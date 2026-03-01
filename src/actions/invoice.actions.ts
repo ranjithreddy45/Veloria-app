@@ -1,0 +1,806 @@
+"use server";
+
+import { auth } from "@/../auth";
+import { hasPermission } from "@/lib/permissions";
+import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
+import { invoiceSchema, type InvoiceInput } from "@/schemas/invoice.schema";
+import type { InvoiceStatus } from "@prisma/client";
+import { serialize, formatINR } from "@/lib/utils";
+import { logActivity } from "@/lib/activity-logger";
+import { notify } from "@/lib/notify";
+import { sendEmail } from "@/lib/email";
+import { invoiceSentEmail } from "@/lib/email-templates/invoice-sent";
+import { format } from "date-fns";
+
+// ============================================================
+// Helper: Generate Invoice Number (INV-YYYY-NNNN)
+// ============================================================
+
+async function generateInvoiceNumber(): Promise<string> {
+  const year = new Date().getFullYear();
+  const prefix = `INV-${year}-`;
+
+  const lastInvoice = await prisma.invoice.findFirst({
+    where: { invoiceNumber: { startsWith: prefix } },
+    orderBy: { invoiceNumber: "desc" },
+    select: { invoiceNumber: true },
+  });
+
+  let nextNumber = 1;
+  if (lastInvoice) {
+    const lastNum = parseInt(
+      lastInvoice.invoiceNumber.split("-").pop() || "0",
+      10
+    );
+    nextNumber = lastNum + 1;
+  }
+
+  return `${prefix}${String(nextNumber).padStart(4, "0")}`;
+}
+
+// formatINR is in @/lib/utils
+
+// ============================================================
+// Get Invoices (Paginated + Filtered)
+// ============================================================
+
+export async function getInvoices(params?: {
+  search?: string;
+  status?: InvoiceStatus;
+  contactId?: string;
+  page?: number;
+  limit?: number;
+}) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "invoices:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
+    const page = params?.page ?? 1;
+    const limit = params?.limit ?? 50;
+    const skip = (page - 1) * limit;
+    const search = params?.search?.trim();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = {};
+
+    if (search) {
+      where.OR = [
+        { invoiceNumber: { contains: search, mode: "insensitive" } },
+        {
+          contact: {
+            OR: [
+              { firstName: { contains: search, mode: "insensitive" } },
+              { lastName: { contains: search, mode: "insensitive" } },
+              { company: { contains: search, mode: "insensitive" } },
+            ],
+          },
+        },
+      ];
+    }
+
+    if (params?.status) {
+      where.status = params.status;
+    }
+
+    if (params?.contactId) {
+      where.contactId = params.contactId;
+    }
+
+    const [invoices, total] = await Promise.all([
+      prisma.invoice.findMany({
+        where,
+        include: {
+          contact: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              phone: true,
+              company: true,
+            },
+          },
+          booking: {
+            select: {
+              id: true,
+              bookingNumber: true,
+              eventName: true,
+            },
+          },
+          _count: {
+            select: { payments: true, lineItems: true },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.invoice.count({ where }),
+    ]);
+
+    return {
+      success: true as const,
+      data: {
+        data: serialize(invoices),
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  } catch (error) {
+    console.error("[GET_INVOICES_ERROR]", error);
+    return { success: false as const, error: "Failed to fetch invoices" };
+  }
+}
+
+// ============================================================
+// Get Single Invoice
+// ============================================================
+
+export async function getInvoice(id: string) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "invoices:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
+    const invoice = await prisma.invoice.findUnique({
+      where: { id },
+      include: {
+        contact: true,
+        booking: {
+          select: {
+            id: true,
+            bookingNumber: true,
+            eventName: true,
+            eventType: true,
+            date: true,
+            venue: { select: { name: true } },
+          },
+        },
+        lineItems: { orderBy: { order: "asc" } },
+        payments: {
+          orderBy: { createdAt: "desc" },
+        },
+        installments: {
+          orderBy: { order: "asc" },
+        },
+        createdBy: { select: { id: true, name: true, email: true } },
+      },
+    });
+
+    if (!invoice) {
+      return { success: false as const, error: "Invoice not found" };
+    }
+
+    return { success: true as const, data: serialize(invoice) };
+  } catch (error) {
+    console.error("[GET_INVOICE_ERROR]", error);
+    return { success: false as const, error: "Failed to fetch invoice" };
+  }
+}
+
+// ============================================================
+// Create Invoice
+// ============================================================
+
+export async function createInvoice(data: InvoiceInput) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "invoices:create")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
+    const parsed = invoiceSchema.safeParse(data);
+    if (!parsed.success) {
+      return {
+        success: false as const,
+        error: "Validation failed",
+        details: parsed.error.flatten().fieldErrors,
+      };
+    }
+
+    const invoiceData = parsed.data;
+
+    // Calculate subtotal from line items
+    let subtotal = 0;
+    const lineItemsWithAmount = invoiceData.lineItems.map((item, index) => {
+      const amount = item.quantity * item.unitPrice;
+      subtotal += amount;
+      return {
+        description: item.description,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        amount,
+        order: index,
+      };
+    });
+
+    // Calculate discount
+    const discountPercent = invoiceData.discountPercent ?? 0;
+    const discountAmount = (subtotal * discountPercent) / 100;
+    const afterDiscount = subtotal - discountAmount;
+
+    // Calculate tax amounts
+    const cgstRate = invoiceData.cgstRate ?? 9;
+    const sgstRate = invoiceData.sgstRate ?? 9;
+    const igstRate = invoiceData.igstRate ?? 0;
+
+    let cgstAmount = 0;
+    let sgstAmount = 0;
+    let igstAmount = 0;
+
+    if (igstRate > 0) {
+      // Interstate: only IGST
+      igstAmount = (afterDiscount * igstRate) / 100;
+    } else {
+      // Intrastate: CGST + SGST
+      cgstAmount = (afterDiscount * cgstRate) / 100;
+      sgstAmount = (afterDiscount * sgstRate) / 100;
+    }
+
+    const totalAmount = afterDiscount + cgstAmount + sgstAmount + igstAmount;
+    const invoiceNumber = await generateInvoiceNumber();
+
+    const invoice = await prisma.invoice.create({
+      data: {
+        invoiceNumber,
+        status: "DRAFT",
+        issueDate: new Date(),
+        dueDate: invoiceData.dueDate,
+        subtotal,
+        discountPercent: discountPercent || null,
+        discountAmount: discountAmount || null,
+        cgstRate,
+        sgstRate,
+        igstRate,
+        cgstAmount,
+        sgstAmount,
+        igstAmount,
+        totalAmount,
+        paidAmount: 0,
+        balanceDue: totalAmount,
+        notes: invoiceData.notes || null,
+        terms: invoiceData.terms || null,
+        gstin: invoiceData.gstin || null,
+        placeOfSupply: invoiceData.placeOfSupply || null,
+        contactId: invoiceData.contactId,
+        bookingId: invoiceData.bookingId || null,
+        createdById: session.user.id,
+        lineItems: {
+          create: lineItemsWithAmount,
+        },
+      },
+      include: {
+        contact: {
+          select: { id: true, firstName: true, lastName: true },
+        },
+        lineItems: true,
+      },
+    });
+
+    await logActivity({
+      userId: session.user.id as string,
+      action: "created",
+      entityType: "Invoice",
+      entityId: invoice.id,
+    });
+
+    revalidatePath("/invoices");
+    return { success: true as const, data: serialize(invoice) };
+  } catch (error) {
+    console.error("[CREATE_INVOICE_ERROR]", error);
+    return { success: false as const, error: "Failed to create invoice" };
+  }
+}
+
+// ============================================================
+// Update Invoice
+// ============================================================
+
+export async function updateInvoice(id: string, data: InvoiceInput) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "invoices:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
+    const parsed = invoiceSchema.safeParse(data);
+    if (!parsed.success) {
+      return {
+        success: false as const,
+        error: "Validation failed",
+        details: parsed.error.flatten().fieldErrors,
+      };
+    }
+
+    const existing = await prisma.invoice.findUnique({
+      where: { id },
+      select: { status: true, paidAmount: true },
+    });
+    if (!existing) {
+      return { success: false as const, error: "Invoice not found" };
+    }
+
+    if (existing.status !== "DRAFT") {
+      return {
+        success: false as const,
+        error: "Only draft invoices can be edited",
+      };
+    }
+
+    const invoiceData = parsed.data;
+
+    // Recalculate subtotal
+    let subtotal = 0;
+    const lineItemsWithAmount = invoiceData.lineItems.map((item, index) => {
+      const amount = item.quantity * item.unitPrice;
+      subtotal += amount;
+      return {
+        description: item.description,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        amount,
+        order: index,
+      };
+    });
+
+    const discountPercent = invoiceData.discountPercent ?? 0;
+    const discountAmount = (subtotal * discountPercent) / 100;
+    const afterDiscount = subtotal - discountAmount;
+
+    const cgstRate = invoiceData.cgstRate ?? 9;
+    const sgstRate = invoiceData.sgstRate ?? 9;
+    const igstRate = invoiceData.igstRate ?? 0;
+
+    let cgstAmount = 0;
+    let sgstAmount = 0;
+    let igstAmount = 0;
+
+    if (igstRate > 0) {
+      igstAmount = (afterDiscount * igstRate) / 100;
+    } else {
+      cgstAmount = (afterDiscount * cgstRate) / 100;
+      sgstAmount = (afterDiscount * sgstRate) / 100;
+    }
+
+    const totalAmount = afterDiscount + cgstAmount + sgstAmount + igstAmount;
+    const paidAmount = Number(existing.paidAmount);
+    const balanceDue = totalAmount - paidAmount;
+
+    // Delete old line items and create new ones
+    await prisma.invoiceLineItem.deleteMany({ where: { invoiceId: id } });
+
+    const invoice = await prisma.invoice.update({
+      where: { id },
+      data: {
+        dueDate: invoiceData.dueDate,
+        subtotal,
+        discountPercent: discountPercent || null,
+        discountAmount: discountAmount || null,
+        cgstRate,
+        sgstRate,
+        igstRate,
+        cgstAmount,
+        sgstAmount,
+        igstAmount,
+        totalAmount,
+        balanceDue,
+        notes: invoiceData.notes || null,
+        terms: invoiceData.terms || null,
+        gstin: invoiceData.gstin || null,
+        placeOfSupply: invoiceData.placeOfSupply || null,
+        contactId: invoiceData.contactId,
+        bookingId: invoiceData.bookingId || null,
+        lineItems: {
+          create: lineItemsWithAmount,
+        },
+      },
+    });
+
+    await logActivity({
+      userId: session.user.id as string,
+      action: "updated",
+      entityType: "Invoice",
+      entityId: invoice.id,
+    });
+
+    revalidatePath("/invoices");
+    revalidatePath(`/invoices/${id}`);
+    return { success: true as const, data: serialize(invoice) };
+  } catch (error) {
+    console.error("[UPDATE_INVOICE_ERROR]", error);
+    return { success: false as const, error: "Failed to update invoice" };
+  }
+}
+
+// ============================================================
+// Delete Invoice (DRAFT only)
+// ============================================================
+
+export async function deleteInvoice(id: string) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "invoices:delete")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
+    const existing = await prisma.invoice.findUnique({
+      where: { id },
+      select: { status: true },
+    });
+
+    if (!existing) {
+      return { success: false as const, error: "Invoice not found" };
+    }
+
+    if (existing.status !== "DRAFT") {
+      return {
+        success: false as const,
+        error: "Only draft invoices can be deleted",
+      };
+    }
+
+    await prisma.invoice.delete({ where: { id } });
+
+    revalidatePath("/invoices");
+    return { success: true as const, data: { id } };
+  } catch (error) {
+    console.error("[DELETE_INVOICE_ERROR]", error);
+    return { success: false as const, error: "Failed to delete invoice" };
+  }
+}
+
+// ============================================================
+// Send Invoice
+// ============================================================
+
+export async function sendInvoice(id: string) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "invoices:send")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
+    const existing = await prisma.invoice.findUnique({
+      where: { id },
+      select: { status: true },
+    });
+
+    if (!existing) {
+      return { success: false as const, error: "Invoice not found" };
+    }
+
+    if (existing.status !== "DRAFT") {
+      return {
+        success: false as const,
+        error: "Only draft invoices can be sent",
+      };
+    }
+
+    const invoice = await prisma.invoice.update({
+      where: { id },
+      data: { status: "SENT" },
+      include: {
+        contact: {
+          select: { firstName: true, lastName: true, email: true },
+        },
+        lineItems: {
+          orderBy: { order: "asc" },
+          select: { description: true, amount: true },
+        },
+      },
+    });
+
+    await logActivity({
+      userId: session.user.id as string,
+      action: "status_changed",
+      entityType: "Invoice",
+      entityId: invoice.id,
+    });
+
+    notify({
+      userId: session.user.id as string,
+      type: "INVOICE_SENT",
+      title: "Invoice Sent",
+      message: `Invoice ${invoice.invoiceNumber} has been sent to ${invoice.contact?.firstName} ${invoice.contact?.lastName}.`,
+      actionUrl: `/invoices/${invoice.id}`,
+    });
+
+    // Fire-and-forget: Send invoice email to contact
+    if (invoice.contact?.email) {
+      sendEmail({
+        to: invoice.contact.email,
+        subject: `Invoice ${invoice.invoiceNumber}`,
+        html: invoiceSentEmail({
+          contactName: `${invoice.contact.firstName} ${invoice.contact.lastName}`,
+          invoiceNumber: invoice.invoiceNumber,
+          issueDate: format(new Date(invoice.issueDate), "dd MMM yyyy"),
+          dueDate: format(new Date(invoice.dueDate), "dd MMM yyyy"),
+          totalAmount: formatINR(invoice.totalAmount),
+          lineItems: invoice.lineItems.map((item) => ({
+            description: item.description,
+            amount: formatINR(item.amount),
+          })),
+        }),
+      }).catch((err) => console.error("[INVOICE_EMAIL_ERROR]", err));
+    }
+
+    revalidatePath("/invoices");
+    revalidatePath(`/invoices/${id}`);
+    return { success: true as const, data: serialize(invoice) };
+  } catch (error) {
+    console.error("[SEND_INVOICE_ERROR]", error);
+    return { success: false as const, error: "Failed to send invoice" };
+  }
+}
+
+// ============================================================
+// Mark Overdue (Batch)
+// ============================================================
+
+export async function markOverdue() {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "invoices:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
+    const now = new Date();
+
+    const result = await prisma.invoice.updateMany({
+      where: {
+        dueDate: { lt: now },
+        status: { in: ["SENT", "PARTIALLY_PAID"] },
+      },
+      data: { status: "OVERDUE" },
+    });
+
+    revalidatePath("/invoices");
+    return {
+      success: true as const,
+      data: { count: result.count },
+    };
+  } catch (error) {
+    console.error("[MARK_OVERDUE_ERROR]", error);
+    return { success: false as const, error: "Failed to mark overdue invoices" };
+  }
+}
+
+// ============================================================
+// Create Installment Plan
+// ============================================================
+
+export async function createInstallmentPlan(
+  invoiceId: string,
+  installments: { label: string; amount: number; dueDate: Date }[]
+) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "invoices:create")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
+    const invoice = await prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      select: { totalAmount: true },
+    });
+
+    if (!invoice) {
+      return { success: false as const, error: "Invoice not found" };
+    }
+
+    const totalInstallments = installments.reduce(
+      (sum, inst) => sum + inst.amount,
+      0
+    );
+    const totalAmount = Number(invoice.totalAmount);
+
+    if (Math.abs(totalInstallments - totalAmount) > 0.01) {
+      return {
+        success: false as const,
+        error: `Installments must sum to invoice total (₹${totalAmount.toLocaleString("en-IN")}). Current sum: (₹${totalInstallments.toLocaleString("en-IN")})`,
+      };
+    }
+
+    // Delete existing installments
+    await prisma.installment.deleteMany({ where: { invoiceId } });
+
+    // Create new installments
+    await prisma.installment.createMany({
+      data: installments.map((inst, index) => ({
+        invoiceId,
+        label: inst.label,
+        amount: inst.amount,
+        dueDate: new Date(inst.dueDate),
+        status: "PENDING",
+        order: index,
+      })),
+    });
+
+    revalidatePath(`/invoices/${invoiceId}`);
+    return { success: true as const, data: { count: installments.length } };
+  } catch (error) {
+    console.error("[CREATE_INSTALLMENT_PLAN_ERROR]", error);
+    return {
+      success: false as const,
+      error: "Failed to create installment plan",
+    };
+  }
+}
+
+// ============================================================
+// Get Invoice Stats
+// ============================================================
+
+export async function getInvoiceStats() {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "invoices:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    const [outstandingResult, overdueResult, collectedResult] =
+      await Promise.all([
+        // Total outstanding (balance due on non-paid, non-cancelled invoices)
+        prisma.invoice.aggregate({
+          _sum: { balanceDue: true },
+          where: {
+            status: { notIn: ["PAID", "CANCELLED", "REFUNDED", "DRAFT"] },
+          },
+        }),
+        // Overdue amount
+        prisma.invoice.aggregate({
+          _sum: { balanceDue: true },
+          where: { status: "OVERDUE" },
+        }),
+        // Collected this month
+        prisma.payment.aggregate({
+          _sum: { amount: true },
+          where: {
+            status: "COMPLETED",
+            paidAt: { gte: monthStart, lte: monthEnd },
+          },
+        }),
+      ]);
+
+    return {
+      success: true as const,
+      data: {
+        totalOutstanding: Number(outstandingResult._sum.balanceDue ?? 0),
+        overdueAmount: Number(overdueResult._sum.balanceDue ?? 0),
+        collectedThisMonth: Number(collectedResult._sum.amount ?? 0),
+      },
+    };
+  } catch (error) {
+    console.error("[GET_INVOICE_STATS_ERROR]", error);
+    return { success: false as const, error: "Failed to fetch invoice stats" };
+  }
+}
+
+// ============================================================
+// Get Contacts (for invoice form)
+// ============================================================
+
+export async function getContacts() {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "invoices:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
+    const contacts = await prisma.contact.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        company: true,
+        address: true,
+        city: true,
+        state: true,
+        pincode: true,
+      },
+      orderBy: { firstName: "asc" },
+    });
+
+    return { success: true as const, data: serialize(contacts) };
+  } catch (error) {
+    console.error("[GET_CONTACTS_ERROR]", error);
+    return { success: false as const, error: "Failed to fetch contacts" };
+  }
+}
+
+// ============================================================
+// Get Bookings (for invoice form - optionally filtered by contact)
+// ============================================================
+
+export async function getBookingsForInvoice(contactId?: string) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "invoices:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = {
+      status: { notIn: ["CANCELLED"] },
+    };
+
+    if (contactId) {
+      where.contactId = contactId;
+    }
+
+    const bookings = await prisma.booking.findMany({
+      where,
+      select: {
+        id: true,
+        bookingNumber: true,
+        eventName: true,
+        eventType: true,
+        date: true,
+        totalAmount: true,
+      },
+      orderBy: { date: "desc" },
+    });
+
+    return { success: true as const, data: serialize(bookings) };
+  } catch (error) {
+    console.error("[GET_BOOKINGS_FOR_INVOICE_ERROR]", error);
+    return { success: false as const, error: "Failed to fetch bookings" };
+  }
+}

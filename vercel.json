@@ -1,0 +1,61 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "buildCommand": "pnpm build",
+  "installCommand": "pnpm install",
+  "crons": [
+    {
+      "path": "/api/cron/cadence-executor",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/escalation-check",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/guest-reminders",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/performance-scores",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/score-decay",
+      "schedule": "0 3 * * 0"
+    },
+    {
+      "path": "/api/cron/ai-scoring",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/sentiment-analysis",
+      "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/cron/anomaly-detection",
+      "schedule": "0 6 * * 1"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-XSS-Protection", "value": "1; mode=block" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" },
+        { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" }
+      ]
+    }
+  ]
+}

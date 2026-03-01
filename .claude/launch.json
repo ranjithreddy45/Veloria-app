@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "nextjs-dev",
+      "runtimeExecutable": "/usr/bin/env",
+      "runtimeArgs": ["PATH=/Users/ranjithreddy/.local/share/fnm/node-versions/v24.14.0/installation/bin:/usr/bin:/bin", "/Users/ranjithreddy/.local/share/fnm/node-versions/v24.14.0/installation/bin/node", "node_modules/next/dist/bin/next", "dev"],
+      "port": 3000
+    }
+  ]
+}

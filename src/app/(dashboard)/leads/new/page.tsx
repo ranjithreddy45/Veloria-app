@@ -1,0 +1,37 @@
+import type { Metadata } from "next";
+import { prisma } from "@/lib/prisma";
+import { PageHeader } from "@/components/layout/page-header";
+import { LeadForm } from "../_components/lead-form";
+
+export const metadata: Metadata = { title: "New Lead" };
+
+// ============================================================
+// Create Lead Page
+// ============================================================
+
+export default async function NewLeadPage() {
+  // Fetch contacts for the contact selector
+  const contacts = await prisma.contact.findMany({
+    where: { isActive: true },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      phone: true,
+    },
+    orderBy: { firstName: "asc" },
+  });
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="New Lead"
+        description="Create a new sales lead."
+      />
+      <div className="mx-auto max-w-3xl">
+        <LeadForm contacts={contacts} />
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,487 @@
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  AlertTriangleIcon,
+  CheckCircle2Icon,
+  ClockIcon,
+  ListChecksIcon,
+  OctagonIcon,
+  PlayIcon,
+  SirenIcon,
+  TimerIcon,
+  UserIcon,
+} from "lucide-react";
+import {
+  EVENT_PHASE_LABELS,
+  EVENT_PHASE_COLORS,
+  OPERATION_STATUS_COLORS,
+  TASK_PRIORITY_COLORS,
+  ESCALATION_LEVEL_LABELS,
+  ESCALATION_STATUS_COLORS,
+} from "@/lib/constants";
+
+interface ControlDashboardProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  dashboard: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  escalations: any[];
+  bookingId: string;
+}
+
+export function ControlDashboard({
+  dashboard,
+  escalations,
+  bookingId,
+}: ControlDashboardProps) {
+  const router = useRouter();
+
+  // Auto-refresh every 30 seconds when the plan is LIVE
+  useEffect(() => {
+    if (dashboard?.planStatus === "LIVE") {
+      const interval = setInterval(() => {
+        router.refresh();
+      }, 30000);
+      return () => clearInterval(interval);
+    }
+    return undefined;
+  }, [dashboard?.planStatus, router]);
+
+  if (!dashboard) {
+    return (
+      <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <CardContent className="py-16 text-center">
+          <ListChecksIcon className="mx-auto size-12 text-muted-foreground/40 mb-3" />
+          <h3 className="text-lg font-semibold mb-1">No Execution Plan Found</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Create an execution plan first to use the control dashboard.
+          </p>
+          <Button asChild>
+            <Link href={`/bookings/${bookingId}/execution`}>
+              Go to Execution Plan
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const {
+    planStatus,
+    totalTasks,
+    completedTasks,
+    inProgressTasks,
+    blockedTasks,
+    delayedTasks,
+    overallProgress,
+    phaseProgress,
+    upcomingTasks,
+    overdueTasks,
+  } = dashboard;
+
+  function getTimeAgo(dateStr: string) {
+    const now = new Date();
+    const date = new Date(dateStr);
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return `${Math.floor(diffHours / 24)}d ago`;
+  }
+
+  function getCountdown(dateStr: string) {
+    const now = new Date();
+    const target = new Date(dateStr);
+    const diffMs = target.getTime() - now.getTime();
+    if (diffMs <= 0) return "NOW";
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 60) return `${diffMins}m`;
+    const hours = Math.floor(diffMins / 60);
+    const mins = diffMins % 60;
+    return `${hours}h ${mins}m`;
+  }
+
+  function getOverdueTime(dateStr: string) {
+    const now = new Date();
+    const deadline = new Date(dateStr);
+    const diffMs = now.getTime() - deadline.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 60) return `${diffMins}m overdue`;
+    const hours = Math.floor(diffMins / 60);
+    const mins = diffMins % 60;
+    return `${hours}h ${mins}m overdue`;
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Alert Banner */}
+      {escalations.length > 0 && (
+        <div className="rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 p-4 flex items-center gap-3">
+          <SirenIcon className="size-6 text-red-600 dark:text-red-400 shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-red-700 dark:text-red-400">
+              {escalations.length} Active Escalation{escalations.length > 1 ? "s" : ""}
+            </p>
+            <p className="text-xs text-red-600 dark:text-red-300">
+              Immediate attention required. Review escalated tasks below.
+            </p>
+          </div>
+          <Badge variant="outline" className="bg-red-100 text-red-700 border-red-300 dark:bg-red-900/50 dark:text-red-300 dark:border-red-700">
+            {escalations.length}
+          </Badge>
+        </div>
+      )}
+
+      {/* Plan Status */}
+      <div className="flex items-center gap-2 text-sm">
+        <span className="text-muted-foreground">Plan Status:</span>
+        <Badge
+          variant="outline"
+          className={OPERATION_STATUS_COLORS[planStatus] ?? ""}
+        >
+          {planStatus}
+        </Badge>
+        {planStatus === "LIVE" && (
+          <span className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+            <span className="relative flex size-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full size-2 bg-emerald-500" />
+            </span>
+            Auto-refreshing
+          </span>
+        )}
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Tasks</p>
+                <p className="text-2xl font-bold">{totalTasks}</p>
+              </div>
+              <ListChecksIcon className="size-8 text-muted-foreground/30" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Completed</p>
+                <p className="text-2xl font-bold text-emerald-600">
+                  {overallProgress}%
+                </p>
+              </div>
+              <CheckCircle2Icon className="size-8 text-emerald-500/30" />
+            </div>
+            <Progress value={overallProgress} className="h-1.5 mt-2" />
+            <p className="text-xs text-muted-foreground mt-1">
+              {completedTasks} of {totalTasks}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">In Progress</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {inProgressTasks}
+                </p>
+              </div>
+              <PlayIcon className="size-8 text-blue-500/30" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  Blocked / Delayed
+                </p>
+                <p className="text-2xl font-bold text-red-600">
+                  {blockedTasks + delayedTasks}
+                </p>
+              </div>
+              <OctagonIcon className="size-8 text-red-500/30" />
+            </div>
+            {(blockedTasks > 0 || delayedTasks > 0) && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {blockedTasks} blocked, {delayedTasks} delayed
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Phase Progress */}
+      {phaseProgress && phaseProgress.length > 0 && (
+        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base">Phase Progress</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+              {phaseProgress.map((phase: any) => (
+                <div key={phase.id} className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">{phase.name}</span>
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] px-1.5 py-0 ${EVENT_PHASE_COLORS[phase.phase] ?? ""}`}
+                      >
+                        {EVENT_PHASE_LABELS[phase.phase] ?? phase.phase}
+                      </Badge>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {phase.completedTasks}/{phase.totalTasks} ({phase.progress}%)
+                    </span>
+                  </div>
+                  <div className="relative h-3 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
+                    <div
+                      className="absolute inset-y-0 left-0 rounded-full transition-all duration-500"
+                      style={{
+                        width: `${phase.progress}%`,
+                        backgroundColor:
+                          phase.progress === 100
+                            ? "rgb(16, 185, 129)"
+                            : phase.progress > 50
+                            ? "rgb(59, 130, 246)"
+                            : phase.progress > 0
+                            ? "rgb(245, 158, 11)"
+                            : "rgb(161, 161, 170)",
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Critical Items */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Overdue Tasks */}
+        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <AlertTriangleIcon className="size-4 text-red-500" />
+              Overdue Tasks ({overdueTasks?.length ?? 0})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {(!overdueTasks || overdueTasks.length === 0) ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No overdue tasks. Everything is on track.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {overdueTasks.map((task: any) => (
+                  <div
+                    key={task.id}
+                    className="rounded-lg bg-red-50/50 dark:bg-red-950/20 border border-red-200/60 dark:border-red-800/40 p-3"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {task.title}
+                        </p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] px-1.5 py-0 ${TASK_PRIORITY_COLORS[task.priority] ?? ""}`}
+                          >
+                            {task.priority}
+                          </Badge>
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                            {task.status?.replace("_", " ")}
+                          </Badge>
+                          {task.assignee && (
+                            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                              <UserIcon className="size-2.5" />
+                              {task.assignee.name ?? task.assignee.email}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-xs font-semibold text-red-600 dark:text-red-400 shrink-0">
+                        {task.slaFinishBy && getOverdueTime(task.slaFinishBy)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Upcoming Tasks */}
+        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <TimerIcon className="size-4 text-blue-500" />
+              Upcoming Tasks ({upcomingTasks?.length ?? 0})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {(!upcomingTasks || upcomingTasks.length === 0) ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No upcoming tasks with SLA deadlines.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {upcomingTasks.map((task: any) => (
+                  <div
+                    key={task.id}
+                    className="rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 p-3"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {task.title}
+                        </p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] px-1.5 py-0 ${TASK_PRIORITY_COLORS[task.priority] ?? ""}`}
+                          >
+                            {task.priority}
+                          </Badge>
+                          {task.assignee && (
+                            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                              <UserIcon className="size-2.5" />
+                              {task.assignee.name ?? task.assignee.email}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-xs font-medium text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                          <ClockIcon className="size-3" />
+                          {task.slaStartBy && getCountdown(task.slaStartBy)}
+                        </span>
+                        {task.slaStartBy && (
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            {new Date(task.slaStartBy).toLocaleTimeString("en-IN", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Active Escalations List */}
+      {escalations.length > 0 && (
+        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <SirenIcon className="size-4 text-red-500" />
+              Active Escalations ({escalations.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+              {escalations.map((esc: any) => (
+                <div
+                  key={esc.id}
+                  className="rounded-lg border border-red-200/60 dark:border-red-800/40 bg-red-50/30 dark:bg-red-950/10 p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-2 min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge
+                          variant="outline"
+                          className={ESCALATION_STATUS_COLORS[esc.status] ?? ""}
+                        >
+                          {esc.status?.replace("_", " ")}
+                        </Badge>
+                        {esc.rule?.level && (
+                          <Badge variant="secondary" className="text-xs">
+                            {ESCALATION_LEVEL_LABELS[esc.rule.level] ?? esc.rule.level}
+                          </Badge>
+                        )}
+                        {esc.rule?.name && (
+                          <span className="text-xs text-muted-foreground">
+                            Rule: {esc.rule.name}
+                          </span>
+                        )}
+                      </div>
+                      {esc.task && (
+                        <div className="space-y-0.5">
+                          <p className="text-sm font-medium">
+                            {esc.task.title}
+                          </p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            {esc.task.phase?.name && (
+                              <span>Phase: {esc.task.phase.name}</span>
+                            )}
+                            {esc.task.assignee && (
+                              <span className="flex items-center gap-0.5">
+                                <UserIcon className="size-2.5" />
+                                {esc.task.assignee.name ?? esc.task.assignee.email}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      {esc.reason && (
+                        <p className="text-xs text-muted-foreground">
+                          {esc.reason}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right shrink-0">
+                      {esc.delayMinutes != null && (
+                        <p className="text-sm font-semibold text-red-600 dark:text-red-400">
+                          {esc.delayMinutes}m delay
+                        </p>
+                      )}
+                      {esc.createdAt && (
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {getTimeAgo(esc.createdAt)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}

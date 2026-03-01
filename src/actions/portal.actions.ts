@@ -1,0 +1,566 @@
+"use server";
+
+import { auth } from "@/../auth";
+import { prisma } from "@/lib/prisma";
+import { serialize } from "@/lib/utils";
+
+// ============================================================
+// Helper: Get contact IDs linked to this user's email
+// ============================================================
+
+async function getClientContactIds(userId: string): Promise<string[]> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true },
+  });
+
+  if (!user?.email) return [];
+
+  const contacts = await prisma.contact.findMany({
+    where: { email: user.email },
+    select: { id: true },
+  });
+
+  return contacts.map((c) => c.id);
+}
+
+// ============================================================
+// Portal Dashboard
+// ============================================================
+
+export async function getPortalDashboard(userId: string) {
+  const session = await auth();
+  if (!session?.user || session.user.id !== userId) {
+    return {
+      upcomingBookings: 0,
+      pendingInvoices: 0,
+      totalPaid: 0,
+      nextEvent: null,
+      recentBookings: [],
+    };
+  }
+
+  const contactIds = await getClientContactIds(userId);
+
+  if (contactIds.length === 0) {
+    return {
+      upcomingBookings: 0,
+      pendingInvoices: 0,
+      totalPaid: 0,
+      nextEvent: null,
+      recentBookings: [],
+    };
+  }
+
+  const now = new Date();
+
+  // Upcoming bookings (date >= today and not cancelled/completed)
+  const upcomingBookings = await prisma.booking.count({
+    where: {
+      contactId: { in: contactIds },
+      date: { gte: now },
+      status: { notIn: ["CANCELLED", "COMPLETED"] },
+    },
+  });
+
+  // Pending invoices (not PAID, not CANCELLED, not DRAFT)
+  const pendingInvoices = await prisma.invoice.count({
+    where: {
+      contactId: { in: contactIds },
+      status: { in: ["SENT", "PARTIALLY_PAID", "OVERDUE"] },
+    },
+  });
+
+  // Total paid amount
+  const paidResult = await prisma.payment.aggregate({
+    _sum: { amount: true },
+    where: {
+      status: "COMPLETED",
+      invoice: { contactId: { in: contactIds } },
+    },
+  });
+  const totalPaid = Number(paidResult._sum.amount || 0);
+
+  // Next event
+  const nextEvent = await prisma.booking.findFirst({
+    where: {
+      contactId: { in: contactIds },
+      date: { gte: now },
+      status: { notIn: ["CANCELLED"] },
+    },
+    orderBy: { date: "asc" },
+    include: {
+      venue: { select: { name: true } },
+    },
+  });
+
+  // Recent bookings (last 5)
+  const recentBookings = await prisma.booking.findMany({
+    where: { contactId: { in: contactIds } },
+    orderBy: { date: "desc" },
+    take: 5,
+    include: {
+      venue: { select: { name: true } },
+    },
+  });
+
+  return serialize({
+    upcomingBookings,
+    pendingInvoices,
+    totalPaid,
+    nextEvent: nextEvent
+      ? {
+          id: nextEvent.id,
+          eventName: nextEvent.eventName,
+          eventType: nextEvent.eventType,
+          date: nextEvent.date,
+          timeSlot: nextEvent.timeSlot,
+          venueName: nextEvent.venue.name,
+          guestCount: nextEvent.guestCount,
+          status: nextEvent.status,
+        }
+      : null,
+    recentBookings: recentBookings.map((b) => ({
+      id: b.id,
+      eventName: b.eventName,
+      date: b.date,
+      venueName: b.venue.name,
+      status: b.status,
+      guestCount: b.guestCount,
+    })),
+  });
+}
+
+// ============================================================
+// Portal Bookings List
+// ============================================================
+
+export async function getPortalBookings(userId: string) {
+  const session = await auth();
+  if (!session?.user || session.user.id !== userId) {
+    return [];
+  }
+
+  const contactIds = await getClientContactIds(userId);
+
+  if (contactIds.length === 0) return [];
+
+  const bookings = await prisma.booking.findMany({
+    where: { contactId: { in: contactIds } },
+    orderBy: { date: "desc" },
+    include: {
+      venue: { select: { name: true, id: true } },
+    },
+  });
+
+  return serialize(bookings.map((b) => ({
+    id: b.id,
+    bookingNumber: b.bookingNumber,
+    eventName: b.eventName,
+    eventType: b.eventType,
+    date: b.date,
+    timeSlot: b.timeSlot,
+    venueName: b.venue.name,
+    guestCount: b.guestCount,
+    status: b.status,
+    totalAmount: Number(b.totalAmount),
+    specialRequests: b.specialRequests,
+  })));
+}
+
+// ============================================================
+// Portal Single Booking
+// ============================================================
+
+export async function getPortalBooking(userId: string, bookingId: string) {
+  const session = await auth();
+  if (!session?.user || session.user.id !== userId) {
+    return null;
+  }
+
+  const contactIds = await getClientContactIds(userId);
+
+  if (contactIds.length === 0) return null;
+
+  const booking = await prisma.booking.findFirst({
+    where: {
+      id: bookingId,
+      contactId: { in: contactIds },
+    },
+    include: {
+      venue: true,
+      contact: {
+        select: {
+          firstName: true,
+          lastName: true,
+          email: true,
+          phone: true,
+        },
+      },
+      tasks: {
+        where: { parentId: null },
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          priority: true,
+          dueDate: true,
+        },
+        orderBy: { order: "asc" },
+      },
+      invoices: {
+        select: {
+          id: true,
+          invoiceNumber: true,
+          totalAmount: true,
+          paidAmount: true,
+          balanceDue: true,
+          status: true,
+          dueDate: true,
+        },
+        orderBy: { issueDate: "desc" },
+      },
+      createdBy: {
+        select: { name: true, phone: true, email: true },
+      },
+    },
+  });
+
+  if (!booking) return null;
+
+  return serialize({
+    id: booking.id,
+    bookingNumber: booking.bookingNumber,
+    eventName: booking.eventName,
+    eventType: booking.eventType,
+    date: booking.date,
+    timeSlot: booking.timeSlot,
+    startTime: booking.startTime,
+    endTime: booking.endTime,
+    guestCount: booking.guestCount,
+    specialRequests: booking.specialRequests,
+    status: booking.status,
+    totalAmount: Number(booking.totalAmount),
+    venue: {
+      id: booking.venue.id,
+      name: booking.venue.name,
+      description: booking.venue.description,
+      capacity: booking.venue.capacity,
+      amenities: booking.venue.amenities,
+    },
+    contact: booking.contact,
+    tasks: booking.tasks.map((t) => ({
+      id: t.id,
+      title: t.title,
+      status: t.status,
+      priority: t.priority,
+      dueDate: t.dueDate,
+    })),
+    invoices: booking.invoices.map((inv) => ({
+      id: inv.id,
+      invoiceNumber: inv.invoiceNumber,
+      totalAmount: Number(inv.totalAmount),
+      paidAmount: Number(inv.paidAmount),
+      balanceDue: Number(inv.balanceDue),
+      status: inv.status,
+      dueDate: inv.dueDate,
+    })),
+    coordinator: booking.createdBy
+      ? {
+          name: booking.createdBy.name,
+          phone: booking.createdBy.phone,
+          email: booking.createdBy.email,
+        }
+      : null,
+    createdAt: booking.createdAt,
+  });
+}
+
+// ============================================================
+// Portal Invoices List
+// ============================================================
+
+export async function getPortalInvoices(userId: string) {
+  const session = await auth();
+  if (!session?.user || session.user.id !== userId) {
+    return [];
+  }
+
+  const contactIds = await getClientContactIds(userId);
+
+  if (contactIds.length === 0) return [];
+
+  const invoices = await prisma.invoice.findMany({
+    where: { contactId: { in: contactIds } },
+    orderBy: { issueDate: "desc" },
+    include: {
+      booking: {
+        select: { eventName: true, bookingNumber: true },
+      },
+    },
+  });
+
+  return serialize(invoices.map((inv) => ({
+    id: inv.id,
+    invoiceNumber: inv.invoiceNumber,
+    status: inv.status,
+    issueDate: inv.issueDate,
+    dueDate: inv.dueDate,
+    totalAmount: Number(inv.totalAmount),
+    paidAmount: Number(inv.paidAmount),
+    balanceDue: Number(inv.balanceDue),
+    eventName: inv.booking?.eventName ?? null,
+    bookingNumber: inv.booking?.bookingNumber ?? null,
+  })));
+}
+
+// ============================================================
+// Portal Single Invoice
+// ============================================================
+
+export async function getPortalInvoice(userId: string, invoiceId: string) {
+  const session = await auth();
+  if (!session?.user || session.user.id !== userId) {
+    return null;
+  }
+
+  const contactIds = await getClientContactIds(userId);
+
+  if (contactIds.length === 0) return null;
+
+  const invoice = await prisma.invoice.findFirst({
+    where: {
+      id: invoiceId,
+      contactId: { in: contactIds },
+    },
+    include: {
+      contact: {
+        select: {
+          firstName: true,
+          lastName: true,
+          email: true,
+          phone: true,
+          company: true,
+          address: true,
+          city: true,
+          state: true,
+          pincode: true,
+        },
+      },
+      booking: {
+        select: { eventName: true, bookingNumber: true, date: true },
+      },
+      lineItems: { orderBy: { order: "asc" } },
+      payments: { orderBy: { createdAt: "desc" } },
+      installments: { orderBy: { order: "asc" } },
+    },
+  });
+
+  if (!invoice) return null;
+
+  return serialize({
+    id: invoice.id,
+    invoiceNumber: invoice.invoiceNumber,
+    status: invoice.status,
+    issueDate: invoice.issueDate,
+    dueDate: invoice.dueDate,
+    subtotal: Number(invoice.subtotal),
+    discountPercent: invoice.discountPercent
+      ? Number(invoice.discountPercent)
+      : null,
+    discountAmount: invoice.discountAmount
+      ? Number(invoice.discountAmount)
+      : null,
+    cgstRate: Number(invoice.cgstRate),
+    sgstRate: Number(invoice.sgstRate),
+    igstRate: Number(invoice.igstRate),
+    cgstAmount: Number(invoice.cgstAmount),
+    sgstAmount: Number(invoice.sgstAmount),
+    igstAmount: Number(invoice.igstAmount),
+    totalAmount: Number(invoice.totalAmount),
+    paidAmount: Number(invoice.paidAmount),
+    balanceDue: Number(invoice.balanceDue),
+    notes: invoice.notes,
+    terms: invoice.terms,
+    gstin: invoice.gstin,
+    placeOfSupply: invoice.placeOfSupply,
+    sacCode: invoice.sacCode,
+    contact: invoice.contact,
+    booking: invoice.booking
+      ? {
+          eventName: invoice.booking.eventName,
+          bookingNumber: invoice.booking.bookingNumber,
+          date: invoice.booking.date,
+        }
+      : null,
+    lineItems: invoice.lineItems.map((li) => ({
+      id: li.id,
+      description: li.description,
+      quantity: Number(li.quantity),
+      unitPrice: Number(li.unitPrice),
+      amount: Number(li.amount),
+      sacCode: li.sacCode,
+    })),
+    payments: invoice.payments.map((p) => ({
+      id: p.id,
+      amount: Number(p.amount),
+      status: p.status,
+      method: p.method,
+      transactionId: p.transactionId,
+      receiptNumber: p.receiptNumber,
+      paidAt: p.paidAt,
+      createdAt: p.createdAt,
+    })),
+    installments: invoice.installments.map((inst) => ({
+      id: inst.id,
+      label: inst.label,
+      amount: Number(inst.amount),
+      dueDate: inst.dueDate,
+      status: inst.status,
+      paidAt: inst.paidAt,
+    })),
+  });
+}
+
+// ============================================================
+// Portal Payments List
+// ============================================================
+
+export async function getPortalPayments(userId: string) {
+  const session = await auth();
+  if (!session?.user || session.user.id !== userId) {
+    return [];
+  }
+
+  const contactIds = await getClientContactIds(userId);
+
+  if (contactIds.length === 0) return [];
+
+  const payments = await prisma.payment.findMany({
+    where: {
+      invoice: { contactId: { in: contactIds } },
+    },
+    orderBy: { createdAt: "desc" },
+    include: {
+      invoice: {
+        select: {
+          invoiceNumber: true,
+          booking: { select: { eventName: true } },
+        },
+      },
+    },
+  });
+
+  return serialize(payments.map((p) => ({
+    id: p.id,
+    amount: Number(p.amount),
+    status: p.status,
+    method: p.method,
+    transactionId: p.transactionId,
+    receiptNumber: p.receiptNumber,
+    razorpayOrderId: p.razorpayOrderId,
+    notes: p.notes,
+    paidAt: p.paidAt,
+    createdAt: p.createdAt,
+    invoiceId: p.invoiceId,
+    invoiceNumber: p.invoice.invoiceNumber,
+    eventName: p.invoice.booking?.eventName ?? null,
+  })));
+}
+
+// ============================================================
+// Portal Event Progress (Aggregated — No Task Details)
+// ============================================================
+
+export async function getPortalEventProgress(userId: string, bookingId: string) {
+  const session = await auth();
+  if (!session?.user || session.user.id !== userId) {
+    return null;
+  }
+
+  const contactIds = await getClientContactIds(userId);
+  if (contactIds.length === 0) return null;
+
+  // Verify booking belongs to this user
+  const booking = await prisma.booking.findFirst({
+    where: { id: bookingId, contactId: { in: contactIds } },
+    select: { id: true },
+  });
+  if (!booking) return null;
+
+  // Try ExecutionPlan first
+  const executionPlan = await prisma.executionPlan.findUnique({
+    where: { bookingId },
+    include: {
+      phases: {
+        orderBy: { order: "asc" },
+        include: {
+          tasks: {
+            select: { status: true },
+          },
+        },
+      },
+    },
+  });
+
+  if (executionPlan) {
+    const phases = executionPlan.phases.map((phase) => {
+      const totalTasks = phase.tasks.length;
+      const completedTasks = phase.tasks.filter((t) => t.status === "COMPLETED").length;
+      const progressPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+      return {
+        phaseName: phase.name,
+        phaseType: phase.phase,
+        totalTasks,
+        completedTasks,
+        progressPercent,
+      };
+    });
+
+    const totalTasks = phases.reduce((sum, p) => sum + p.totalTasks, 0);
+    const totalCompleted = phases.reduce((sum, p) => sum + p.completedTasks, 0);
+    const overallProgress = totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0;
+
+    // Vendor readiness
+    const vendorStats = await prisma.bookingVendor.groupBy({
+      by: ["status"],
+      where: { bookingId },
+      _count: true,
+    });
+    const vendorTotal = vendorStats.reduce((sum, v) => sum + v._count, 0);
+    const vendorConfirmed = vendorStats.find((v) => v.status === "CONFIRMED")?._count || 0;
+
+    return serialize({
+      overallProgress,
+      phases,
+      vendorReadiness: { confirmed: vendorConfirmed, total: vendorTotal },
+      hasExecutionPlan: true,
+    });
+  }
+
+  // Fallback: use Task model
+  const tasks = await prisma.task.findMany({
+    where: { bookingId },
+    select: { status: true },
+  });
+
+  const totalTasks = tasks.length;
+  const completedTasks = tasks.filter((t) => t.status === "DONE").length;
+  const overallProgress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+  // Vendor readiness
+  const vendorStats = await prisma.bookingVendor.groupBy({
+    by: ["status"],
+    where: { bookingId },
+    _count: true,
+  });
+  const vendorTotal = vendorStats.reduce((sum, v) => sum + v._count, 0);
+  const vendorConfirmed = vendorStats.find((v) => v.status === "CONFIRMED")?._count || 0;
+
+  return serialize({
+    overallProgress,
+    phases: [],
+    vendorReadiness: { confirmed: vendorConfirmed, total: vendorTotal },
+    hasExecutionPlan: false,
+  });
+}
