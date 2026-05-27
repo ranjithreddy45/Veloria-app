@@ -13,6 +13,7 @@ import type { Prisma } from "@prisma/client";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
 import { notify } from "@/lib/notify";
+import { hasPermission } from "@/lib/permissions";
 
 // ============================================================
 // Get Workflows (List with log counts)
@@ -23,6 +24,11 @@ export async function getWorkflows() {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "workflows:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const workflows = await prisma.workflow.findMany({
@@ -63,6 +69,11 @@ export async function getWorkflow(id: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "workflows:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const workflow = await prisma.workflow.findUnique({
       where: { id },
       include: {
@@ -96,6 +107,11 @@ export async function createWorkflow(data: WorkflowInput) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "workflows:create")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = workflowSchema.safeParse(data);
@@ -153,6 +169,11 @@ export async function updateWorkflow(id: string, data: WorkflowInput) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "workflows:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const parsed = workflowSchema.safeParse(data);
     if (!parsed.success) {
       return {
@@ -207,6 +228,11 @@ export async function deleteWorkflow(id: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "workflows:delete")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const existing = await prisma.workflow.findUnique({ where: { id } });
     if (!existing) {
       return { success: false as const, error: "Workflow not found" };
@@ -238,6 +264,11 @@ export async function toggleWorkflow(id: string) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "workflows:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const existing = await prisma.workflow.findUnique({ where: { id } });
@@ -279,6 +310,11 @@ export async function executeWorkflow(
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "workflows:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     if (context) {
@@ -375,6 +411,11 @@ export async function getWorkflowLogs(params?: {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "workflows:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const limit = params?.limit ?? 50;

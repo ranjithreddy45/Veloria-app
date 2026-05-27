@@ -10,6 +10,7 @@ const workflowTriggerValues = [
   "PAYMENT_DUE",
   "EVENT_TOMORROW",
   "POST_EVENT",
+  "LEAD_CREATED",
 ] as const;
 
 const workflowActionTypeValues = [
@@ -17,6 +18,7 @@ const workflowActionTypeValues = [
   "CREATE_TASK",
   "SEND_NOTIFICATION",
   "UPDATE_STATUS",
+  "SEND_WHATSAPP",
 ] as const;
 
 // ============================================================

@@ -36,7 +36,7 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["leads:read"],
       },
       {
-        title: "SalesSignals",
+        title: "Sales Signals",
         href: "/crm/signals",
         icon: "Activity",
         permissions: ["contacts:read", "leads:read"],
@@ -59,6 +59,12 @@ export const sidebarNavigation: NavItem[] = [
         icon: "MessageCircle",
         permissions: ["whatsapp:read"],
       },
+      {
+        title: "Call Log",
+        href: "/crm/calls",
+        icon: "Phone",
+        permissions: ["contacts:read", "leads:read"],
+      },
     ],
   },
   {
@@ -66,7 +72,6 @@ export const sidebarNavigation: NavItem[] = [
     href: "/approvals",
     icon: "ShieldCheck",
     permissions: ["settings:read", "leads:read", "contacts:read"],
-    children: [],
   },
   {
     title: "Sales",
@@ -355,6 +360,12 @@ export const sidebarNavigation: NavItem[] = [
         ],
       },
       {
+        title: "Agent Activity",
+        href: "/analytics/agents",
+        icon: "UserCog",
+        permissions: ["performance:read"],
+      },
+      {
         title: "Anomalies",
         href: "/analytics/anomalies",
         icon: "AlertOctagon",
@@ -453,6 +464,18 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["settings:read"],
       },
       {
+        title: "Lead Capture",
+        href: "/settings/integrations/lead-capture",
+        icon: "Webhook",
+        permissions: ["settings:read"],
+      },
+      {
+        title: "Telephony",
+        href: "/settings/integrations/telephony",
+        icon: "PhoneCall",
+        permissions: ["settings:read"],
+      },
+      {
         title: "Emergency",
         href: "/settings/emergency",
         icon: "AlertTriangle",
@@ -532,6 +555,7 @@ export function filterNavigationByPermissions(
 ): NavItem[] {
   return items
     .filter((item) =>
+      item.permissions.length === 0 ||
       item.permissions.some((p) => userPermissions.includes(p))
     )
     .map((item) => ({

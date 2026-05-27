@@ -147,7 +147,28 @@ export const LEAD_SOURCE_LABELS: Record<string, string> = {
   EVENT: "Event",
   PARTNER: "Partner",
   ADVERTISEMENT: "Advertisement",
+  FACEBOOK_ADS: "Facebook Ads",
+  GOOGLE_ADS: "Google Ads",
+  INDIAMART: "IndiaMart",
+  JUSTDIAL: "JustDial",
   OTHER: "Other",
+} as const;
+
+export const LEAD_SOURCE_COLORS: Record<string, string> = {
+  WEBSITE: "bg-blue-50 text-blue-700 border-blue-200/60 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800/40",
+  REFERRAL: "bg-emerald-50 text-emerald-700 border-emerald-200/60 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/40",
+  SOCIAL_MEDIA: "bg-pink-50 text-pink-700 border-pink-200/60 dark:bg-pink-950/30 dark:text-pink-400 dark:border-pink-800/40",
+  WALK_IN: "bg-amber-50 text-amber-700 border-amber-200/60 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/40",
+  PHONE_INQUIRY: "bg-cyan-50 text-cyan-700 border-cyan-200/60 dark:bg-cyan-950/30 dark:text-cyan-400 dark:border-cyan-800/40",
+  EMAIL: "bg-indigo-50 text-indigo-700 border-indigo-200/60 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-800/40",
+  EVENT: "bg-violet-50 text-violet-700 border-violet-200/60 dark:bg-violet-950/30 dark:text-violet-400 dark:border-violet-800/40",
+  PARTNER: "bg-teal-50 text-teal-700 border-teal-200/60 dark:bg-teal-950/30 dark:text-teal-400 dark:border-teal-800/40",
+  ADVERTISEMENT: "bg-orange-50 text-orange-700 border-orange-200/60 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-800/40",
+  FACEBOOK_ADS: "bg-blue-50 text-blue-700 border-blue-200/60 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800/40",
+  GOOGLE_ADS: "bg-red-50 text-red-700 border-red-200/60 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800/40",
+  INDIAMART: "bg-green-50 text-green-700 border-green-200/60 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800/40",
+  JUSTDIAL: "bg-yellow-50 text-yellow-700 border-yellow-200/60 dark:bg-yellow-950/30 dark:text-yellow-400 dark:border-yellow-800/40",
+  OTHER: "bg-zinc-50 text-zinc-600 border-zinc-200/60 dark:bg-zinc-800/30 dark:text-zinc-400 dark:border-zinc-700/40",
 } as const;
 
 // ============================================================
@@ -349,6 +370,7 @@ export const WORKFLOW_TRIGGER_LABELS: Record<string, string> = {
   PAYMENT_DUE: "Payment Due",
   EVENT_TOMORROW: "Event Tomorrow",
   POST_EVENT: "Post Event",
+  LEAD_CREATED: "Lead Created",
 };
 
 export const WORKFLOW_LOG_STATUS_COLORS: Record<string, string> = {
@@ -589,6 +611,56 @@ export const EMAIL_TEMPLATE_CATEGORIES = [
   "Thank You",
   "General",
 ] as const;
+
+// ============================================================
+// Call Disposition Labels & Colors
+// ============================================================
+
+export const CALL_DISPOSITION_LABELS: Record<string, string> = {
+  COMPLETED: "Completed",
+  NO_ANSWER: "No Answer",
+  BUSY: "Busy",
+  VOICEMAIL: "Voicemail",
+  WRONG_NUMBER: "Wrong Number",
+  CALLBACK_REQUESTED: "Callback Requested",
+} as const;
+
+export const CALL_DISPOSITION_COLORS: Record<string, string> = {
+  COMPLETED: "bg-emerald-50 text-emerald-700 border-emerald-200/60 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/40",
+  NO_ANSWER: "bg-zinc-50 text-zinc-600 border-zinc-200/60 dark:bg-zinc-800/30 dark:text-zinc-400 dark:border-zinc-700/40",
+  BUSY: "bg-amber-50 text-amber-700 border-amber-200/60 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/40",
+  VOICEMAIL: "bg-blue-50 text-blue-700 border-blue-200/60 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800/40",
+  WRONG_NUMBER: "bg-red-50 text-red-700 border-red-200/60 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800/40",
+  CALLBACK_REQUESTED: "bg-violet-50 text-violet-700 border-violet-200/60 dark:bg-violet-950/30 dark:text-violet-400 dark:border-violet-800/40",
+} as const;
+
+// ============================================================
+// Telephony Provider Labels & Colors
+// ============================================================
+
+export const TELEPHONY_PROVIDER_LABELS: Record<string, string> = {
+  EXOTEL: "Exotel",
+  KNOWLARITY: "Knowlarity",
+  MYOPERATOR: "MyOperator",
+} as const;
+
+export const TELEPHONY_PROVIDER_COLORS: Record<string, string> = {
+  EXOTEL: "bg-blue-50 text-blue-700 border-blue-200/60 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800/40",
+  KNOWLARITY: "bg-emerald-50 text-emerald-700 border-emerald-200/60 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/40",
+  MYOPERATOR: "bg-violet-50 text-violet-700 border-violet-200/60 dark:bg-violet-950/30 dark:text-violet-400 dark:border-violet-800/40",
+} as const;
+
+// ============================================================
+// Lead Capture Platform Labels
+// ============================================================
+
+export const LEAD_CAPTURE_PLATFORM_LABELS: Record<string, string> = {
+  FACEBOOK: "Facebook Lead Ads",
+  GOOGLE: "Google Ads",
+  INDIAMART: "IndiaMart",
+  JUSTDIAL: "JustDial",
+  GENERIC: "Generic API",
+} as const;
 
 // ============================================================
 // Pagination Defaults

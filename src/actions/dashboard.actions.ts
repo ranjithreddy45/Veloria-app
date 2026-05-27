@@ -1,14 +1,10 @@
 "use server";
 
+import { auth } from "@/../auth";
+import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { serialize, type Serialized } from "@/lib/utils";
-import {
-  startOfMonth,
-  endOfMonth,
-  subMonths,
-  format,
-  addDays,
-} from "date-fns";
+import { startOfMonth, endOfMonth, subMonths, format, addDays } from "date-fns";
 
 // ============================================================
 // Types
@@ -23,24 +19,6 @@ export type BookingsByType = {
   type: string;
   count: number;
   fill: string;
-};
-
-export type LeadsByStatus = {
-  status: string;
-  count: number;
-};
-
-export type RecentActivity = {
-  id: string;
-  action: string;
-  entityType: string;
-  entityId: string;
-  createdAt: Date;
-  user: {
-    id: string;
-    name: string | null;
-    image: string | null;
-  };
 };
 
 export type UpcomingEvent = {
@@ -93,13 +71,11 @@ export type DashboardStats = {
     overdue: number;
     total: number;
   };
-  recentActivity: RecentActivity[];
   upcomingEvents: UpcomingEvent[];
   overduePayments: OverduePayment[];
   overdueTasks: OverdueTask[];
   monthlyRevenue: MonthlyRevenue[];
   bookingsByType: BookingsByType[];
-  leadsByStatus: LeadsByStatus[];
 };
 
 // ============================================================
@@ -123,6 +99,15 @@ const EVENT_TYPE_COLORS: Record<string, string> = {
 // ============================================================
 
 export async function getDashboardStats(): Promise<Serialized<DashboardStats>> {
+  const session = await auth();
+  if (!session?.user) {
+    throw new Error("Unauthorized");
+  }
+  const role = (session.user as { role?: string }).role ?? "";
+  if (!hasPermission(role, "dashboard:read")) {
+    throw new Error("Insufficient permissions");
+  }
+
   const now = new Date();
   const thisMonthStart = startOfMonth(now);
   const thisMonthEnd = endOfMonth(now);
@@ -147,8 +132,6 @@ export async function getDashboardStats(): Promise<Serialized<DashboardStats>> {
     pendingTasks,
     overdueTasks,
     totalTasks,
-    // Recent Activity
-    recentActivity,
     // Upcoming Events
     upcomingEvents,
     // Overdue Payments
@@ -159,8 +142,6 @@ export async function getDashboardStats(): Promise<Serialized<DashboardStats>> {
     last12MonthsPayments,
     // Bookings by Type
     bookingsByTypeRaw,
-    // Leads by Status
-    leadsByStatusRaw,
   ] = await Promise.all([
     // Revenue this month
     prisma.payment.aggregate({
@@ -212,27 +193,19 @@ export async function getDashboardStats(): Promise<Serialized<DashboardStats>> {
         updatedAt: { gte: thisMonthStart, lte: thisMonthEnd },
       },
     }),
-    // Pending tasks (TODO + IN_PROGRESS)
+    // Pending tasks (TODO + IN_PROGRESS + IN_REVIEW)
     prisma.task.count({
-      where: { status: { in: ["TODO", "IN_PROGRESS"] } },
+      where: { status: { in: ["TODO", "IN_PROGRESS", "IN_REVIEW"] } },
     }),
     // Overdue tasks
     prisma.task.count({
       where: {
         status: { not: "DONE" },
-        dueDate: { lt: now },
+        dueDate: { not: null, lt: now },
       },
     }),
     // Total tasks
     prisma.task.count(),
-    // Recent Activity (last 10)
-    prisma.activityLog.findMany({
-      take: 10,
-      orderBy: { createdAt: "desc" },
-      include: {
-        user: { select: { id: true, name: true, image: true } },
-      },
-    }),
     // Upcoming Events (next 7 days)
     prisma.booking.findMany({
       where: {
@@ -258,6 +231,7 @@ export async function getDashboardStats(): Promise<Serialized<DashboardStats>> {
         status: { notIn: ["PAID", "CANCELLED", "REFUNDED"] },
       },
       orderBy: { dueDate: "asc" },
+      take: 10,
       select: {
         id: true,
         invoiceNumber: true,
@@ -293,11 +267,6 @@ export async function getDashboardStats(): Promise<Serialized<DashboardStats>> {
     // Bookings grouped by event type
     prisma.booking.groupBy({
       by: ["eventType"],
-      _count: { id: true },
-    }),
-    // Leads grouped by status
-    prisma.lead.groupBy({
-      by: ["status"],
       _count: { id: true },
     }),
   ]);
@@ -362,12 +331,6 @@ export async function getDashboardStats(): Promise<Serialized<DashboardStats>> {
     fill: EVENT_TYPE_COLORS[b.eventType] || "hsl(215, 16%, 47%)",
   }));
 
-  // Leads by status
-  const leadsByStatus: LeadsByStatus[] = leadsByStatusRaw.map((l) => ({
-    status: l.status,
-    count: l._count.id,
-  }));
-
   return serialize({
     revenue: {
       thisMonth: thisMonthRevenue,
@@ -389,11 +352,7 @@ export async function getDashboardStats(): Promise<Serialized<DashboardStats>> {
       overdue: overdueTasks,
       total: totalTasks,
     },
-    recentActivity,
-    upcomingEvents: upcomingEvents.map((e) => ({
-      ...e,
-      balanceDue: undefined,
-    })) as UpcomingEvent[],
+    upcomingEvents: upcomingEvents as UpcomingEvent[],
     overduePayments: overduePayments.map((p) => ({
       ...p,
       balanceDue: Number(p.balanceDue),
@@ -401,6 +360,5 @@ export async function getDashboardStats(): Promise<Serialized<DashboardStats>> {
     overdueTasks: overdueTasksList as OverdueTask[],
     monthlyRevenue,
     bookingsByType,
-    leadsByStatus,
   });
 }

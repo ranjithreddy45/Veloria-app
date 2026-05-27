@@ -1,9 +1,12 @@
 // ============================================================
 // Notification Helper — Fire-and-forget notification creation
 // ============================================================
-// Never breaks main flow. Wraps createNotification for convenience.
+// Writes directly to DB via Prisma. Does NOT call revalidatePath
+// so it is safe to use during SSR, inside cron jobs, webhooks,
+// or any fire-and-forget context.
 
-import { createNotification } from "@/actions/notification.actions";
+import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import type { NotificationType } from "@prisma/client";
 
 interface NotifyParams {
@@ -12,21 +15,28 @@ interface NotifyParams {
   title: string;
   message: string;
   actionUrl?: string;
+  metadata?: Prisma.InputJsonValue;
 }
 
 /**
- * Fire-and-forget notification. Errors are swallowed and logged.
+ * Fire-and-forget notification. Writes directly to DB (no revalidatePath).
+ * Errors are swallowed and logged so this never breaks the main flow.
  */
 export function notify(params: NotifyParams): void {
-  createNotification({
-    userId: params.userId,
-    type: params.type,
-    title: params.title,
-    message: params.message,
-    actionUrl: params.actionUrl,
-  }).catch((err) => {
-    console.error("[NOTIFY_ERROR]", err);
-  });
+  prisma.notification
+    .create({
+      data: {
+        userId: params.userId,
+        type: params.type,
+        title: params.title,
+        message: params.message,
+        actionUrl: params.actionUrl || null,
+        metadata: params.metadata ?? Prisma.JsonNull,
+      },
+    })
+    .catch((err) => {
+      console.error("[NOTIFY_ERROR]", err);
+    });
 }
 
 /**

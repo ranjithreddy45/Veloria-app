@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/../auth";
+import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
@@ -44,6 +45,10 @@ export async function getAssignmentRules(): Promise<
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const rules = await prisma.assignmentRule.findMany({
       orderBy: [{ priority: "asc" }, { createdAt: "desc" }],
       include: {
@@ -68,6 +73,10 @@ export async function createAssignmentRule(
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "settings:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = assignmentRuleSchema.safeParse(input);
@@ -99,7 +108,7 @@ export async function createAssignmentRule(
       entityId: rule.id,
       changes: { name: rule.name },
       userId: session.user.id,
-    });
+    }).catch((e) => console.error("[LOG_ACTIVITY_ERROR]", e));
 
     return { success: true as const, data: serialize(rule) as unknown as AssignmentRuleData };
   } catch (error) {
@@ -119,6 +128,10 @@ export async function updateAssignmentRule(
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "settings:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = assignmentRuleSchema.safeParse(input);
@@ -161,6 +174,10 @@ export async function deleteAssignmentRule(
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "settings:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     await prisma.assignmentRule.delete({ where: { id } });
     return { success: true as const };
   } catch (error) {
@@ -179,6 +196,10 @@ export async function toggleAssignmentRule(
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "settings:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     await prisma.assignmentRule.update({
       where: { id },
       data: { isActive },
@@ -195,6 +216,7 @@ export async function toggleAssignmentRule(
 // Evaluate Assignment Rules
 // ============================================================
 
+// Internal function — called by authenticated lead creation actions
 export async function evaluateAssignmentRules(
   leadData: Record<string, unknown>
 ): Promise<string | null> {

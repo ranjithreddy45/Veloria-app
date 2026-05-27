@@ -62,7 +62,7 @@ function formatIndianCurrency(amount: number): string {
 export function KpiCards({ revenue, bookings, leads, tasks }: KpiCardsProps) {
   const cards = [
     {
-      title: "Total Revenue",
+      title: "Revenue This Month",
       value: `\u20B9${formatIndianCurrency(revenue.thisMonth)}`,
       change: revenue.changePercent,
       icon: IndianRupee,
@@ -74,6 +74,7 @@ export function KpiCards({ revenue, bookings, leads, tasks }: KpiCardsProps) {
       title: "Active Bookings",
       value: bookings.active.toString(),
       change: bookings.changePercent,
+      subtitle: `${bookings.thisMonth} new this month`,
       icon: CalendarCheck,
       color: "text-blue-600 dark:text-blue-400",
       iconBg: "bg-gradient-to-br from-blue-100 to-blue-200/50 dark:from-blue-900/40 dark:to-blue-800/20",

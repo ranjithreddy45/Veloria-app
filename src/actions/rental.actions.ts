@@ -11,6 +11,7 @@ import {
 } from "@/schemas/rental.schema";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
+import { hasPermission } from "@/lib/permissions";
 
 // ============================================================
 // Get Rental Items (Paginated + Filtered)
@@ -26,6 +27,11 @@ export async function getRentalItems(params?: {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "rentals:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const page = params?.page ?? 1;
@@ -90,6 +96,11 @@ export async function getRentalItem(id: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "rentals:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const item = await prisma.rentalItem.findUnique({
       where: { id },
       include: {
@@ -130,6 +141,11 @@ export async function createRentalItem(data: RentalItemInput) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "rentals:create")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = rentalItemSchema.safeParse(data);
@@ -188,6 +204,11 @@ export async function updateRentalItem(id: string, data: RentalItemInput) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "rentals:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = rentalItemSchema.safeParse(data);
@@ -255,6 +276,11 @@ export async function deleteRentalItem(id: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "rentals:delete")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const existing = await prisma.rentalItem.findUnique({
       where: { id },
       include: {
@@ -299,6 +325,11 @@ export async function rentItem(data: RentItemInput) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "rentals:create")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = rentItemSchema.safeParse(data);
@@ -427,6 +458,11 @@ export async function returnItem(rentalBookingId: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "rentals:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const existing = await prisma.rentalBooking.findUnique({
       where: { id: rentalBookingId },
       include: {
@@ -488,6 +524,11 @@ export async function getAvailability(
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "rentals:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const item = await prisma.rentalItem.findUnique({
@@ -555,6 +596,11 @@ export async function calculateRentalCost(
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "rentals:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const item = await prisma.rentalItem.findUnique({

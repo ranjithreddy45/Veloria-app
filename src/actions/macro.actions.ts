@@ -1,10 +1,15 @@
 "use server";
 
 import { auth } from "@/../auth";
+import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
 import { macroSchema, type MacroInput, type MacroAction } from "@/schemas/macro.schema";
+
+// Allowlist of fields that macros can modify — prevents privilege escalation
+const ALLOWED_LEAD_FIELDS = new Set(["status", "source", "priority", "score", "estimatedValue", "eventType", "eventDate", "guestCount", "description", "tags"]);
+const ALLOWED_CONTACT_FIELDS = new Set(["type", "company", "city", "state", "country", "tags", "source"]);
 
 // ============================================================
 // Types
@@ -70,6 +75,10 @@ export async function getAllMacros(): Promise<
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const macros = await prisma.macro.findMany({
       orderBy: [{ entityType: "asc" }, { name: "asc" }],
     });
@@ -91,6 +100,10 @@ export async function createMacro(
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "settings:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = macroSchema.safeParse(input);
@@ -120,7 +133,7 @@ export async function createMacro(
       entityId: macro.id,
       changes: { name: macro.name },
       userId: session.user.id,
-    });
+    }).catch((e) => console.error("[LOG_ACTIVITY_ERROR]", e));
 
     return { success: true as const, data: serialize(macro) as unknown as MacroData };
   } catch (error) {
@@ -140,6 +153,10 @@ export async function updateMacro(
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "settings:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = macroSchema.safeParse(input);
@@ -179,6 +196,10 @@ export async function deleteMacro(
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "settings:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     await prisma.macro.delete({ where: { id } });
     return { success: true as const };
   } catch (error) {
@@ -202,6 +223,10 @@ export async function executeMacro(
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "settings:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const macro = await prisma.macro.findUnique({ where: { id: macroId } });
@@ -229,12 +254,21 @@ export async function executeMacro(
           case "UPDATE_FIELD": {
             const field = action.config.field as string;
             const value = action.config.value;
+            // Validate field against allowlist to prevent privilege escalation
             if (macro.entityType === "LEAD") {
+              if (!ALLOWED_LEAD_FIELDS.has(field)) {
+                console.warn(`[MACRO] Blocked update to disallowed lead field: ${field}`);
+                break;
+              }
               await prisma.lead.update({
                 where: { id: entityId },
                 data: { [field]: value },
               });
             } else if (macro.entityType === "CONTACT") {
+              if (!ALLOWED_CONTACT_FIELDS.has(field)) {
+                console.warn(`[MACRO] Blocked update to disallowed contact field: ${field}`);
+                break;
+              }
               await prisma.contact.update({
                 where: { id: entityId },
                 data: { [field]: value },
@@ -315,7 +349,7 @@ export async function executeMacro(
       entityId,
       changes: { macroName: macro.name, executedActions: executedCount },
       userId: session.user.id,
-    });
+    }).catch((e) => console.error("[LOG_ACTIVITY_ERROR]", e));
 
     return { success: true as const, data: { executedActions: executedCount } };
   } catch (error) {

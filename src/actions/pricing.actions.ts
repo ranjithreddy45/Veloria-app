@@ -12,6 +12,7 @@ import {
 import type { PricingRuleType } from "@prisma/client";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
+import { hasPermission } from "@/lib/permissions";
 
 // ============================================================
 // Get Pricing Rules (Paginated + Filtered)
@@ -29,6 +30,11 @@ export async function getPricingRules(params?: {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "pricing:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const page = params?.page ?? 1;
@@ -95,6 +101,11 @@ export async function getPricingRule(id: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "pricing:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const rule = await prisma.pricingRule.findUnique({
       where: { id },
       include: {
@@ -122,6 +133,11 @@ export async function createPricingRule(data: PricingRuleInput) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "pricing:manage")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = pricingRuleSchema.safeParse(data);
@@ -178,6 +194,11 @@ export async function updatePricingRule(id: string, data: PricingRuleInput) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "pricing:manage")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = pricingRuleSchema.safeParse(data);
@@ -240,6 +261,11 @@ export async function deletePricingRule(id: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "pricing:manage")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const existing = await prisma.pricingRule.findUnique({ where: { id } });
     if (!existing) {
       return { success: false as const, error: "Pricing rule not found" };
@@ -277,6 +303,11 @@ export async function getRatePlans(params?: {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "pricing:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const page = params?.page ?? 1;
@@ -339,6 +370,11 @@ export async function getRatePlan(id: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "pricing:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const plan = await prisma.ratePlan.findUnique({
       where: { id },
       include: {
@@ -366,6 +402,11 @@ export async function createRatePlan(data: RatePlanInput) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "pricing:manage")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = ratePlanSchema.safeParse(data);
@@ -430,6 +471,11 @@ export async function updateRatePlan(id: string, data: RatePlanInput) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "pricing:manage")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = ratePlanSchema.safeParse(data);
@@ -506,6 +552,11 @@ export async function calculatePrice(
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "pricing:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     // 1. Get venue base price

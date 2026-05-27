@@ -69,6 +69,9 @@ import {
   Bell,
   Award,
   MessageCircle,
+  Phone,
+  PhoneCall,
+  Webhook,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -172,6 +175,9 @@ const iconMap: Record<string, LucideIcon> = {
   Bell,
   Award,
   MessageCircle,
+  Phone,
+  PhoneCall,
+  Webhook,
 };
 
 function getIcon(iconName: string): LucideIcon {
@@ -388,7 +394,7 @@ export function AppSidebar() {
                   );
                 }
 
-                const isActive = pathname === item.href;
+                const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
                 return (
                   <SidebarNavItem
                     key={item.href}
@@ -431,7 +437,8 @@ export function AppSidebar() {
           </div>
           <button
             onClick={() => signOut({ callbackUrl: "/sign-in" })}
-            className="shrink-0 rounded-md p-1.5 text-sidebar-foreground/40 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground group-data-[collapsible=icon]:hidden"
+            className="shrink-0 rounded-md p-1.5 text-sidebar-foreground/40 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-data-[collapsible=icon]:hidden"
+            aria-label="Sign out"
             title="Sign out"
           >
             <LogOut className="size-4" />

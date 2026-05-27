@@ -635,7 +635,7 @@ export async function rejectRequest(
     // Notify submitter
     notify({
       userId: request.submittedById,
-      type: "LEAD_ASSIGNED",
+      type: "SYSTEM",
       title: "Approval Rejected",
       message: `Your ${request.entityType.toLowerCase()} approval request has been rejected.`,
       actionUrl: `/approvals/${requestId}`,
@@ -707,7 +707,7 @@ export async function delegateRequest(
     // Notify delegate
     notify({
       userId: delegateToUserId,
-      type: "LEAD_ASSIGNED",
+      type: "SYSTEM",
       title: "Approval Delegated to You",
       message: `An approval for ${request.entityType.toLowerCase()} has been delegated to you.`,
       actionUrl: `/approvals/${requestId}`,

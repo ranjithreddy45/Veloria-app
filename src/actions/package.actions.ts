@@ -7,6 +7,7 @@ import { packageSchema, type PackageInput } from "@/schemas/package.schema";
 import type { PackageTier } from "@prisma/client";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
+import { hasPermission } from "@/lib/permissions";
 
 // ============================================================
 // Get Packages (Paginated + Filtered)
@@ -24,6 +25,11 @@ export async function getPackages(params?: {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "packages:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const page = params?.page ?? 1;
@@ -93,6 +99,11 @@ export async function getPackage(id: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "packages:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const eventPackage = await prisma.eventPackage.findUnique({
       where: { id },
       include: {
@@ -122,6 +133,11 @@ export async function createPackage(data: PackageInput) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "packages:create")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = packageSchema.safeParse(data);
@@ -185,6 +201,11 @@ export async function updatePackage(id: string, data: PackageInput) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "packages:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = packageSchema.safeParse(data);
@@ -262,6 +283,11 @@ export async function deletePackage(id: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "packages:delete")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const existing = await prisma.eventPackage.findUnique({
       where: { id },
       include: { _count: { select: { quotes: true } } },
@@ -304,6 +330,11 @@ export async function duplicatePackage(id: string) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "packages:create")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const existing = await prisma.eventPackage.findUnique({
@@ -368,6 +399,11 @@ export async function getPackagesByEventType(eventType: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "packages:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const packages = await prisma.eventPackage.findMany({
       where: {
         eventType,
@@ -396,6 +432,11 @@ export async function togglePackageStatus(id: string) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "packages:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const existing = await prisma.eventPackage.findUnique({ where: { id } });

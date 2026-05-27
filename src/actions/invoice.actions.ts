@@ -21,22 +21,34 @@ async function generateInvoiceNumber(): Promise<string> {
   const year = new Date().getFullYear();
   const prefix = `INV-${year}-`;
 
-  const lastInvoice = await prisma.invoice.findFirst({
-    where: { invoiceNumber: { startsWith: prefix } },
-    orderBy: { invoiceNumber: "desc" },
-    select: { invoiceNumber: true },
-  });
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const lastInvoice = await prisma.invoice.findFirst({
+      where: { invoiceNumber: { startsWith: prefix } },
+      orderBy: { invoiceNumber: "desc" },
+      select: { invoiceNumber: true },
+    });
 
-  let nextNumber = 1;
-  if (lastInvoice) {
-    const lastNum = parseInt(
-      lastInvoice.invoiceNumber.split("-").pop() || "0",
-      10
-    );
-    nextNumber = lastNum + 1;
+    let nextNumber = 1;
+    if (lastInvoice) {
+      const lastNum = parseInt(
+        lastInvoice.invoiceNumber.split("-").pop() || "0",
+        10
+      );
+      nextNumber = lastNum + 1;
+    }
+
+    const number = `${prefix}${String(nextNumber + attempt).padStart(4, "0")}`;
+
+    // Check uniqueness to avoid TOCTOU race condition
+    const existing = await prisma.invoice.findFirst({
+      where: { invoiceNumber: number },
+    });
+
+    if (!existing) return number;
   }
 
-  return `${prefix}${String(nextNumber).padStart(4, "0")}`;
+  // Fallback: use timestamp-based unique number
+  return `INV-${Date.now()}`;
 }
 
 // formatINR is in @/lib/utils

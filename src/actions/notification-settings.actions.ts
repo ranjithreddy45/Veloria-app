@@ -98,7 +98,7 @@ export async function getNotificationPreferences(): Promise<{
       return { success: false, error: "Unauthorized" };
     }
 
-    if (!hasPermission(session.user.role as string, "sms:read")) {
+    if (!hasPermission(session.user.role as string, "settings:read")) {
       return { success: false, error: "Insufficient permissions" };
     }
 
@@ -127,7 +127,7 @@ export async function updateNotificationPreferences(
       return { success: false, error: "Unauthorized" };
     }
 
-    if (!hasPermission(session.user.role as string, "sms:manage")) {
+    if (!hasPermission(session.user.role as string, "settings:update")) {
       return { success: false, error: "Insufficient permissions" };
     }
 

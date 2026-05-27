@@ -9,11 +9,16 @@ import {
   bulkDeleteSchema,
   bulkUpdateLeadsSchema,
   bulkAssignLeadsSchema,
+  bulkEnrollCadenceSchema,
+  bulkChangeLeadStatusSchema,
   type BulkUpdateContactsInput,
   type BulkDeleteInput,
   type BulkUpdateLeadsInput,
   type BulkAssignLeadsInput,
+  type BulkEnrollCadenceInput,
+  type BulkChangeLeadStatusInput,
 } from "@/schemas/bulk.schema";
+import { revalidatePath } from "next/cache";
 
 // ============================================================
 // Bulk Update Contacts
@@ -28,7 +33,7 @@ export async function bulkUpdateContacts(
       return { success: false as const, error: "Unauthorized" };
     }
 
-    if (!hasPermission(session.user.role, "contacts:delete")) {
+    if (!hasPermission(session.user.role, "contacts:update")) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
@@ -120,7 +125,7 @@ export async function bulkUpdateLeads(
       return { success: false as const, error: "Unauthorized" };
     }
 
-    if (!hasPermission(session.user.role, "leads:delete")) {
+    if (!hasPermission(session.user.role, "leads:update")) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
@@ -170,7 +175,7 @@ export async function bulkAssignLeads(
       return { success: false as const, error: "Unauthorized" };
     }
 
-    if (!hasPermission(session.user.role, "leads:delete")) {
+    if (!hasPermission(session.user.role, "leads:assign")) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
@@ -240,5 +245,140 @@ export async function bulkDeleteLeads(
   } catch (error) {
     console.error("bulkDeleteLeads error:", error);
     return { success: false as const, error: "Failed to delete leads" };
+  }
+}
+
+// ============================================================
+// Bulk Enroll Leads in Cadence
+// ============================================================
+
+export async function bulkEnrollInCadence(
+  input: BulkEnrollCadenceInput
+): Promise<{ success: true; data: { count: number } } | { success: false; error: string }> {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "leads:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
+    const parsed = bulkEnrollCadenceSchema.safeParse(input);
+    if (!parsed.success) {
+      return { success: false as const, error: parsed.error.issues[0]?.message ?? "Validation failed" };
+    }
+
+    const { ids, cadenceId } = parsed.data;
+
+    // Verify cadence exists
+    const cadence = await prisma.cadence.findUnique({
+      where: { id: cadenceId },
+      select: { id: true, name: true },
+    });
+
+    if (!cadence) {
+      return { success: false as const, error: "Cadence not found" };
+    }
+
+    // Get leads with their contacts
+    const leads = await prisma.lead.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, contactId: true },
+    });
+
+    // Create cadence enrollments for each lead's contact
+    let enrolledCount = 0;
+    for (const lead of leads) {
+      try {
+        // Check if already enrolled
+        const existing = await prisma.cadenceEnrollment.findFirst({
+          where: {
+            cadenceId,
+            entityId: lead.contactId,
+            status: { in: ["ACTIVE", "PAUSED"] },
+          },
+        });
+
+        if (!existing) {
+          await prisma.cadenceEnrollment.create({
+            data: {
+              cadenceId,
+              entityId: lead.contactId,
+              enrolledById: session.user.id,
+              status: "ACTIVE",
+              currentStepOrder: 0,
+            },
+          });
+          enrolledCount++;
+        }
+      } catch {
+        // Skip individual enrollment failures
+      }
+    }
+
+    for (const id of ids) {
+      logActivity({
+        action: "BULK_ENROLL_CADENCE",
+        entityType: "lead",
+        entityId: id,
+        changes: { cadenceId, cadenceName: cadence.name },
+        userId: session.user.id,
+      });
+    }
+
+    revalidatePath("/leads");
+    return { success: true as const, data: { count: enrolledCount } };
+  } catch (error) {
+    console.error("bulkEnrollInCadence error:", error);
+    return { success: false as const, error: "Failed to enroll in cadence" };
+  }
+}
+
+// ============================================================
+// Bulk Change Lead Status
+// ============================================================
+
+export async function bulkChangeLeadStatus(
+  input: BulkChangeLeadStatusInput
+): Promise<{ success: true; data: { count: number } } | { success: false; error: string }> {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "leads:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
+    const parsed = bulkChangeLeadStatusSchema.safeParse(input);
+    if (!parsed.success) {
+      return { success: false as const, error: parsed.error.issues[0]?.message ?? "Validation failed" };
+    }
+
+    const { ids, status } = parsed.data;
+
+    const result = await prisma.lead.updateMany({
+      where: { id: { in: ids } },
+      data: { status: status as any },
+    });
+
+    for (const id of ids) {
+      logActivity({
+        action: "BULK_STATUS_CHANGE",
+        entityType: "lead",
+        entityId: id,
+        changes: { status },
+        userId: session.user.id,
+      });
+    }
+
+    revalidatePath("/leads");
+    return { success: true as const, data: { count: result.count } };
+  } catch (error) {
+    console.error("bulkChangeLeadStatus error:", error);
+    return { success: false as const, error: "Failed to change lead status" };
   }
 }

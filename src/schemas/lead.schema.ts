@@ -14,6 +14,10 @@ const leadSourceValues = [
   "EVENT",
   "PARTNER",
   "ADVERTISEMENT",
+  "FACEBOOK_ADS",
+  "GOOGLE_ADS",
+  "INDIAMART",
+  "JUSTDIAL",
   "OTHER",
 ] as const;
 

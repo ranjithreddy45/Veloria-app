@@ -15,6 +15,7 @@ import {
 import type { ShiftStatus, PayrollStatus } from "@prisma/client";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
+import { hasPermission } from "@/lib/permissions";
 
 // ============================================================
 // Get Staff Profiles (list all with user details)
@@ -25,6 +26,11 @@ export async function getStaffProfiles() {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "staff:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const profiles = await prisma.staffProfile.findMany({
@@ -55,6 +61,11 @@ export async function getStaffProfile(userId: string) {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "staff:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     let profile = await prisma.staffProfile.findUnique({
@@ -109,6 +120,11 @@ export async function updateStaffProfile(id: string, data: StaffProfileInput) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "staff:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = staffProfileSchema.safeParse(data);
@@ -174,6 +190,11 @@ export async function getStaffSchedule(params?: {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "staff:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {};
 
@@ -228,6 +249,11 @@ export async function createShift(data: CreateShiftInput) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "staff:create")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = createShiftSchema.safeParse(data);
@@ -285,6 +311,11 @@ export async function updateShift(id: string, data: UpdateShiftInput) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "staff:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = updateShiftSchema.safeParse(data);
@@ -359,6 +390,11 @@ export async function deleteShift(id: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "staff:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const existing = await prisma.shift.findUnique({ where: { id } });
     if (!existing) {
       return { success: false as const, error: "Shift not found" };
@@ -392,6 +428,11 @@ export async function getPayroll(month: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "staff:payroll")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const entries = await prisma.payrollEntry.findMany({
       where: { month },
       include: {
@@ -422,6 +463,11 @@ export async function generatePayroll(month: string) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "staff:payroll")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     // Validate month format YYYY-MM
@@ -538,6 +584,11 @@ export async function approvePayroll(entryId: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "staff:payroll")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const existing = await prisma.payrollEntry.findUnique({
       where: { id: entryId },
     });
@@ -583,6 +634,11 @@ export async function markPayrollPaid(entryId: string) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "staff:payroll")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const existing = await prisma.payrollEntry.findUnique({
@@ -633,6 +689,11 @@ export async function getStaffUsers() {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "staff:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const users = await prisma.user.findMany({

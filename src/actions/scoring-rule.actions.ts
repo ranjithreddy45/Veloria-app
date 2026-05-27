@@ -143,7 +143,7 @@ export async function createScoringRuleSet(
       entityType: "scoring_rule_set",
       entityId: set.id,
       changes: { name: set.name },
-    });
+    }).catch((e) => console.error("[LOG_ACTIVITY_ERROR]", e));
 
     return { success: true as const, data: serialize(set) as unknown as ScoringRuleSetData };
   } catch (error) {
@@ -190,7 +190,7 @@ export async function updateScoringRuleSet(
       entityType: "scoring_rule_set",
       entityId: set.id,
       changes: { name: set.name },
-    });
+    }).catch((e) => console.error("[LOG_ACTIVITY_ERROR]", e));
 
     return { success: true as const, data: serialize(set) as unknown as ScoringRuleSetData };
   } catch (error) {
@@ -215,7 +215,7 @@ export async function deleteScoringRuleSet(
       action: "DELETE_SCORING_RULE_SET",
       entityType: "scoring_rule_set",
       entityId: id,
-    });
+    }).catch((e) => console.error("[LOG_ACTIVITY_ERROR]", e));
 
     return { success: true as const };
   } catch (error) {
@@ -288,7 +288,7 @@ export async function createScoringRule(
       entityType: "scoring_rule",
       entityId: rule.id,
       changes: { name: rule.name, ruleSetId },
-    });
+    }).catch((e) => console.error("[LOG_ACTIVITY_ERROR]", e));
 
     return { success: true as const, data: serialize(rule) as unknown as ScoringRuleData };
   } catch (error) {
@@ -335,7 +335,7 @@ export async function updateScoringRule(
       entityType: "scoring_rule",
       entityId: rule.id,
       changes: { name: rule.name },
-    });
+    }).catch((e) => console.error("[LOG_ACTIVITY_ERROR]", e));
 
     return { success: true as const, data: serialize(rule) as unknown as ScoringRuleData };
   } catch (error) {
@@ -360,7 +360,7 @@ export async function deleteScoringRule(
       action: "DELETE_SCORING_RULE",
       entityType: "scoring_rule",
       entityId: id,
-    });
+    }).catch((e) => console.error("[LOG_ACTIVITY_ERROR]", e));
 
     return { success: true as const };
   } catch (error) {

@@ -4,6 +4,7 @@ import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/utils";
 import { subDays, subMonths, format, startOfMonth, endOfMonth } from "date-fns";
+import { hasPermission } from "@/lib/permissions";
 
 // ============================================================
 // Types
@@ -273,6 +274,11 @@ export async function getRevenueReport(range: DateRange = "12m") {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "analytics:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const { start, end } = getDateBounds(range);
 
     const [payments, bookingsWithRevenue, venues] = await Promise.all([
@@ -392,6 +398,11 @@ export async function getBookingReport(range: DateRange = "12m") {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "analytics:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const { start, end } = getDateBounds(range);
 
     const [bookings, venues] = await Promise.all([
@@ -473,6 +484,11 @@ export async function getPipelineReport(range: DateRange = "12m") {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "analytics:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const { start, end } = getDateBounds(range);
@@ -558,6 +574,11 @@ export async function getPaymentMethodReport(range: DateRange = "12m") {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "analytics:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const { start, end } = getDateBounds(range);
 
     const payments = await prisma.payment.findMany({
@@ -609,6 +630,11 @@ export async function getSettlementReport(range: DateRange = "12m") {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "analytics:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const { start, end } = getDateBounds(range);
@@ -675,6 +701,11 @@ export async function getDepositReport(range: DateRange = "12m") {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "analytics:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const { start, end } = getDateBounds(range);
@@ -745,6 +776,11 @@ export async function getRevenueBreakdownReport(range: DateRange = "12m") {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "analytics:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const { start, end } = getDateBounds(range);
 
     const lineItems = await prisma.invoiceLineItem.findMany({
@@ -796,6 +832,11 @@ export async function getDiscountReport(range: DateRange = "12m") {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "analytics:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const { start, end } = getDateBounds(range);
 
     const quotes = await prisma.quote.findMany({
@@ -844,6 +885,11 @@ export async function getClientLedger(contactId: string) {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "analytics:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const [contact, invoices, payments] = await Promise.all([
@@ -929,6 +975,11 @@ export async function getVIPClientReport() {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "analytics:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const loyaltyAccounts = await prisma.loyaltyAccount.findMany({
       where: {
         tier: { in: ["GOLD", "PLATINUM"] },
@@ -982,6 +1033,11 @@ export async function getClientTypeReport(range: DateRange = "12m") {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "analytics:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const { start, end } = getDateBounds(range);
 
     const bookings = await prisma.booking.findMany({
@@ -1030,6 +1086,11 @@ export async function getVendorPaymentReport(range: DateRange = "12m") {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "analytics:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const { start, end } = getDateBounds(range);
@@ -1100,6 +1161,11 @@ export async function getNetRevenueReport(range: DateRange = "12m") {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "analytics:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const { start, end } = getDateBounds(range);
@@ -1183,6 +1249,11 @@ export async function getGSTReport(range: DateRange = "12m") {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "analytics:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const { start, end } = getDateBounds(range);
 
     const invoices = await prisma.invoice.findMany({
@@ -1250,6 +1321,11 @@ export async function getDailyOperationsSummary(date: Date) {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "analytics:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const dayStart = new Date(date);
@@ -1327,6 +1403,11 @@ export async function getTaskCompletionReport(range: DateRange = "12m") {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "analytics:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const { start, end } = getDateBounds(range);
@@ -1411,6 +1492,11 @@ export async function getBookingsBySourceReport(range: DateRange = "12m") {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "analytics:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const { start, end } = getDateBounds(range);

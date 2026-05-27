@@ -47,7 +47,34 @@ enum LeadSource {
   EVENT
   PARTNER
   ADVERTISEMENT
+  FACEBOOK_ADS
+  GOOGLE_ADS
+  INDIAMART
+  JUSTDIAL
   OTHER
+}
+
+enum CallDisposition {
+  COMPLETED
+  NO_ANSWER
+  BUSY
+  VOICEMAIL
+  WRONG_NUMBER
+  CALLBACK_REQUESTED
+}
+
+enum TelephonyProvider {
+  EXOTEL
+  KNOWLARITY
+  MYOPERATOR
+}
+
+enum LeadCapturePlatform {
+  FACEBOOK
+  GOOGLE
+  INDIAMART
+  JUSTDIAL
+  GENERIC
 }
 
 enum BookingStatus {
@@ -292,6 +319,11 @@ model User {
   cadences               Cadence[]            @relation("UserCadences")
   webforms               Webform[]            @relation("UserWebforms")
   anomalyAcknowledgements AnomalyAlert[]      @relation("AnomalyAcknowledger")
+  deviceTokens            DeviceToken[]       @relation("UserDeviceTokens")
+  callLogs                CallLog[]           @relation("AgentCallLogs")
+  apiKeys                 ApiKey[]            @relation("UserApiKeys")
+  telephonyConfigs        TelephonyConfig[]   @relation("UserTelephonyConfigs")
+  whatsappConfigs         WhatsAppConfig[]    @relation("UserWhatsAppConfigs")
 
   @@index([email])
   @@index([role])
@@ -367,6 +399,7 @@ model Contact {
   referrals        Referral[]
   loyaltyAccount   LoyaltyAccount?
   reviews          Review[]
+  callLogs         CallLog[]
 
   @@index([email])
   @@index([phone])
@@ -1119,6 +1152,7 @@ enum WorkflowTrigger {
   PAYMENT_DUE
   EVENT_TOMORROW
   POST_EVENT
+  LEAD_CREATED
 }
 
 enum WorkflowLogStatus {
@@ -1900,6 +1934,7 @@ model Communication {
   createdById String
 
   trackingPixel EmailTrackingPixel?
+  callLog       CallLog?
 
   @@index([contactId])
   @@index([bookingId])
@@ -3180,4 +3215,146 @@ model PasswordResetToken {
   createdAt DateTime @default(now())
 
   @@unique([email, token])
+}
+
+// ============================================================
+// MOBILE APP: Device Tokens for Push Notifications
+// ============================================================
+
+model DeviceToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  platform  String   // "ios" | "android"
+  userId    String
+  user      User     @relation("UserDeviceTokens", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ============================================================
+// TELECALLING: Call Log for detailed call tracking
+// ============================================================
+
+model CallLog {
+  id              String           @id @default(cuid())
+  disposition     CallDisposition
+  durationSeconds Int              @default(0)
+  recordingUrl    String?
+  externalCallId  String?
+  notes           String?          @db.Text
+  tags            String[]
+  followUpDate    DateTime?
+  followUpNotes   String?          @db.Text
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  communicationId String           @unique
+  communication   Communication    @relation(fields: [communicationId], references: [id], onDelete: Cascade)
+  contactId       String
+  contact         Contact          @relation(fields: [contactId], references: [id])
+  agentId         String
+  agent           User             @relation("AgentCallLogs", fields: [agentId], references: [id])
+
+  @@index([contactId])
+  @@index([agentId])
+  @@index([disposition])
+  @@index([createdAt])
+  @@index([followUpDate])
+}
+
+// ============================================================
+// API KEY: For external lead capture integrations
+// ============================================================
+
+model ApiKey {
+  id          String   @id @default(cuid())
+  name        String
+  keyHash     String
+  prefix      String   // First 8 chars for display
+  isActive    Boolean  @default(true)
+  lastUsedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdById String
+  createdBy   User     @relation("UserApiKeys", fields: [createdById], references: [id])
+
+  @@index([keyHash])
+  @@index([isActive])
+}
+
+// ============================================================
+// AUTO WELCOME: Per-source welcome message configuration
+// ============================================================
+
+model AutoWelcomeConfig {
+  id           String     @id @default(cuid())
+  leadSource   LeadSource @unique
+  isEnabled    Boolean    @default(true)
+  templateName String
+  delayMinutes Int        @default(0)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+// ============================================================
+// TELEPHONY: Cloud telephony provider configuration
+// ============================================================
+
+model TelephonyConfig {
+  id            String            @id @default(cuid())
+  provider      TelephonyProvider
+  apiKey        String
+  apiSecret     String?
+  callerId      String
+  accountSid    String?
+  subdomain     String?
+  webhookSecret String?
+  isActive      Boolean           @default(true)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  createdById   String
+  createdBy     User              @relation("UserTelephonyConfigs", fields: [createdById], references: [id])
+
+  @@index([isActive])
+}
+
+// ============================================================
+// LEAD CAPTURE CONFIG: Platform credentials for lead webhooks
+// ============================================================
+
+model LeadCaptureConfig {
+  id          String              @id @default(cuid())
+  platform    LeadCapturePlatform @unique
+  credentials Json
+  isActive    Boolean             @default(true)
+  lastSyncAt  DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([platform, isActive])
+}
+
+// ============================================================
+// WHATSAPP CONFIG: Meta WhatsApp Cloud API credentials
+// ============================================================
+
+model WhatsAppConfig {
+  id                String   @id @default(cuid())
+  accessToken       String   @db.Text
+  phoneNumberId     String
+  businessAccountId String
+  appSecret         String?
+  verifyToken       String   @default("veloria_whatsapp_verify")
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  createdById String
+  createdBy   User   @relation("UserWhatsAppConfigs", fields: [createdById], references: [id])
+
+  @@index([isActive])
 }

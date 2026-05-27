@@ -48,6 +48,11 @@
 }
 
 :root {
+  /* Safe area insets for Capacitor / PWA */
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
   --radius: 0.625rem;
   /* Indigo-tinted light theme */
   --background: oklch(0.985 0.005 277);
@@ -126,6 +131,10 @@
   }
   body {
     @apply bg-background text-foreground;
+    padding-top: var(--sat);
+    padding-bottom: var(--sab);
+    padding-left: var(--sal);
+    padding-right: var(--sar);
   }
 }
 

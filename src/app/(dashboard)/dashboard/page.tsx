@@ -15,7 +15,12 @@ export const metadata: Metadata = { title: "Dashboard" };
 // ============================================================
 
 function getGreeting(): string {
-  const hour = new Date().getHours();
+  // Use Asia/Kolkata (IST) regardless of server timezone
+  const now = new Date();
+  const istTime = new Date(
+    now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
+  );
+  const hour = istTime.getHours();
   if (hour < 12) return "Good morning";
   if (hour < 17) return "Good afternoon";
   return "Good evening";

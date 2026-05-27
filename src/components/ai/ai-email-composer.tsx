@@ -1,7 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, Loader2, Copy, Send, RefreshCw } from "lucide-react";
+import {
+  Sparkles,
+  Loader2,
+  Copy,
+  Send,
+  RefreshCw,
+  Bot,
+  FileText,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { logCommunication } from "@/actions/communication.actions";
@@ -24,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 
 // ============================================================
 // Types
@@ -58,6 +67,7 @@ export function AIEmailComposer({
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [generated, setGenerated] = useState(false);
+  const [provider, setProvider] = useState<string>("");
 
   // Reset state when dialog closes
   function handleOpenChange(nextOpen: boolean) {
@@ -70,6 +80,7 @@ export function AIEmailComposer({
       setGenerated(false);
       setIsGenerating(false);
       setIsSending(false);
+      setProvider("");
     }
   }
 
@@ -94,7 +105,9 @@ export function AIEmailComposer({
       }
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Request failed" }));
+        const err = await res
+          .json()
+          .catch(() => ({ error: "Request failed" }));
         throw new Error(err.error || `Request failed (${res.status})`);
       }
 
@@ -103,6 +116,7 @@ export function AIEmailComposer({
         setSubject(data.data.subject);
         setBody(data.data.body);
         setGenerated(true);
+        setProvider(data.provider || "template");
       } else {
         throw new Error(data.error || "Failed to generate email");
       }
@@ -118,7 +132,14 @@ export function AIEmailComposer({
   // Copy email to clipboard
   async function handleCopy() {
     try {
-      const text = `Subject: ${subject}\n\n${body.replace(/<[^>]*>/g, "")}`;
+      const plainBody = body
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/<\/p>\s*<p>/gi, "\n\n")
+        .replace(/<\/p>/gi, "\n\n")
+        .replace(/<[^>]*>/g, "")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+      const text = `Subject: ${subject}\n\n${plainBody}`;
       await navigator.clipboard.writeText(text);
       toast.success("Email copied to clipboard");
     } catch {
@@ -133,6 +154,11 @@ export function AIEmailComposer({
       return;
     }
 
+    if (!contactEmail) {
+      toast.error("Contact has no email address");
+      return;
+    }
+
     setIsSending(true);
     try {
       const result = await logCommunication({
@@ -142,14 +168,14 @@ export function AIEmailComposer({
         content: body,
         contactId,
         bookingId: bookingId || undefined,
-        metadata: { generatedByAI: true, tone },
+        metadata: { generatedByAI: true, tone, provider },
       });
 
       if (result.success) {
-        toast.success("Email logged successfully");
+        toast.success(`Email sent to ${contactEmail}`);
         handleOpenChange(false);
       } else {
-        throw new Error(result.error || "Failed to log email");
+        throw new Error(result.error || "Failed to send email");
       }
     } catch (err) {
       const message =
@@ -160,6 +186,15 @@ export function AIEmailComposer({
     }
   }
 
+  // Convert HTML body to readable plain text for editing
+  const bodyPlainText = body
+    .replace(/<br\s*\/?>/gi, "\n")       // <br/> → newline
+    .replace(/<\/p>\s*<p>/gi, "\n\n")    // </p><p> → double newline (paragraph break)
+    .replace(/<\/p>/gi, "\n\n")          // trailing </p> → double newline
+    .replace(/<[^>]*>/g, "")             // strip remaining tags
+    .replace(/\n{3,}/g, "\n\n")          // collapse 3+ newlines to 2
+    .trim();
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
@@ -168,7 +203,7 @@ export function AIEmailComposer({
           AI Email
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="size-5" />
@@ -177,43 +212,66 @@ export function AIEmailComposer({
           <p className="text-muted-foreground text-sm">
             Generate a personalized email for{" "}
             <span className="font-medium text-foreground">{contactName}</span>
-            {contactEmail && (
+            {contactEmail ? (
               <span className="text-muted-foreground">
                 {" "}
                 ({contactEmail})
+              </span>
+            ) : (
+              <span className="text-destructive text-xs ml-1">
+                (no email on file)
               </span>
             )}
           </p>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          {/* Tone Selector */}
-          <div className="space-y-2">
-            <Label htmlFor="tone">Tone</Label>
-            <Select value={tone} onValueChange={setTone}>
-              <SelectTrigger id="tone">
-                <SelectValue placeholder="Select tone" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="professional">Professional</SelectItem>
-                <SelectItem value="friendly">Friendly</SelectItem>
-                <SelectItem value="urgent">Urgent</SelectItem>
-                <SelectItem value="follow_up">Follow-up</SelectItem>
-              </SelectContent>
-            </Select>
+          {/* Tone & Context Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="tone">Tone</Label>
+              <Select value={tone} onValueChange={setTone}>
+                <SelectTrigger id="tone">
+                  <SelectValue placeholder="Select tone" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="professional">Professional</SelectItem>
+                  <SelectItem value="friendly">Friendly</SelectItem>
+                  <SelectItem value="urgent">Urgent</SelectItem>
+                  <SelectItem value="follow_up">Follow-up</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="custom-subject">Subject (optional)</Label>
+              <Input
+                id="custom-subject"
+                value={generated ? "" : subject}
+                onChange={(e) => !generated && setSubject(e.target.value)}
+                placeholder="Leave blank to auto-generate"
+                disabled={generated}
+              />
+            </div>
           </div>
 
-          {/* Context */}
+          {/* Context / Instruction */}
           <div className="space-y-2">
-            <Label htmlFor="context">Context (optional)</Label>
+            <Label htmlFor="context">
+              What should this email be about?
+            </Label>
             <Textarea
               id="context"
               value={context}
               onChange={(e) => setContext(e.target.value)}
-              placeholder="e.g., Follow up on venue visit, Share wedding packages..."
+              placeholder="e.g., Send a quote for their wedding reception on March 15th with 200 guests, include our premium package pricing..."
               rows={3}
               maxLength={500}
+              className="resize-none"
             />
+            <p className="text-muted-foreground text-xs">
+              Be specific — the more detail you give, the better the email.
+              Leave blank for a general intro email.
+            </p>
           </div>
 
           {/* Generate Button */}
@@ -221,6 +279,7 @@ export function AIEmailComposer({
             onClick={handleGenerate}
             disabled={isGenerating}
             className="w-full"
+            size="lg"
           >
             {isGenerating ? (
               <>
@@ -243,22 +302,63 @@ export function AIEmailComposer({
           {/* Generated Email */}
           {generated && (
             <div className="space-y-4 rounded-lg border p-4">
+              {/* Provider Badge */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-muted-foreground">
+                  Generated Email
+                </span>
+                <Badge
+                  variant="secondary"
+                  className="text-xs"
+                >
+                  {provider === "openai" ? (
+                    <>
+                      <Bot className="mr-1 size-3" />
+                      OpenAI
+                    </>
+                  ) : provider === "gemini" ? (
+                    <>
+                      <Bot className="mr-1 size-3" />
+                      Gemini AI
+                    </>
+                  ) : provider === "groq" ? (
+                    <>
+                      <Bot className="mr-1 size-3" />
+                      Groq AI
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="mr-1 size-3" />
+                      Template
+                    </>
+                  )}
+                </Badge>
+              </div>
+
               <div className="space-y-2">
-                <Label htmlFor="subject">Subject</Label>
+                <Label htmlFor="gen-subject">Subject</Label>
                 <Input
-                  id="subject"
+                  id="gen-subject"
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="body">Body</Label>
+                <Label htmlFor="gen-body">Body</Label>
                 <Textarea
-                  id="body"
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
+                  id="gen-body"
+                  value={bodyPlainText || body}
+                  onChange={(e) => {
+                    // Convert plain text back to basic HTML paragraphs
+                    const html = e.target.value
+                      .split("\n\n")
+                      .filter(Boolean)
+                      .map((p) => `<p>${p.replace(/\n/g, "<br/>")}</p>`)
+                      .join("\n");
+                    setBody(html || e.target.value);
+                  }}
                   rows={12}
-                  className="font-mono text-sm"
+                  className="text-sm leading-relaxed"
                 />
               </div>
             </div>
@@ -276,9 +376,12 @@ export function AIEmailComposer({
             </Button>
             <Button variant="outline" onClick={handleCopy} disabled={isSending}>
               <Copy className="mr-2 size-4" />
-              Copy to Clipboard
+              Copy
             </Button>
-            <Button onClick={handleSend} disabled={isSending}>
+            <Button
+              onClick={handleSend}
+              disabled={isSending || !contactEmail}
+            >
               {isSending ? (
                 <>
                   <Loader2 className="mr-2 size-4 animate-spin" />

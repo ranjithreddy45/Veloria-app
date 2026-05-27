@@ -32,6 +32,11 @@ export async function getDocuments(params?: {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "documents:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const page = params?.page ?? 1;
     const limit = params?.limit ?? 50;
     const skip = (page - 1) * limit;
@@ -99,6 +104,11 @@ export async function getDocument(id: string) {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "documents:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const document = await prisma.document.findUnique({
@@ -290,6 +300,11 @@ export async function getDocumentsByEntity(
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "documents:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

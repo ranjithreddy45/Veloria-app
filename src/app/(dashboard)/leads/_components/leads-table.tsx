@@ -44,7 +44,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { deleteLead } from "@/actions/lead.actions";
-import { bulkUpdateLeads, bulkDeleteLeads } from "@/actions/bulk.actions";
+import { bulkDeleteLeads, bulkChangeLeadStatus } from "@/actions/bulk.actions";
 import { aiScoreAllLeads } from "@/actions/ai.actions";
 import { exportLeads } from "@/actions/export.actions";
 import { toCSV, downloadCSV } from "@/lib/csv-export";
@@ -59,15 +59,19 @@ import { cn } from "@/lib/utils";
 // ============================================================
 
 const LEAD_SOURCE_COLORS: Record<string, string> = {
-  WEBSITE: "bg-blue-100 text-blue-800 border-blue-200",
-  REFERRAL: "bg-green-100 text-green-800 border-green-200",
-  SOCIAL_MEDIA: "bg-pink-100 text-pink-800 border-pink-200",
-  WALK_IN: "bg-amber-100 text-amber-800 border-amber-200",
-  PHONE_INQUIRY: "bg-cyan-100 text-cyan-800 border-cyan-200",
-  EMAIL: "bg-indigo-100 text-indigo-800 border-indigo-200",
-  EVENT: "bg-purple-100 text-purple-800 border-purple-200",
-  PARTNER: "bg-teal-100 text-teal-800 border-teal-200",
-  ADVERTISEMENT: "bg-orange-100 text-orange-800 border-orange-200",
+  WEBSITE: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800/40",
+  REFERRAL: "bg-green-100 text-green-800 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800/40",
+  SOCIAL_MEDIA: "bg-pink-100 text-pink-800 border-pink-200 dark:bg-pink-950/30 dark:text-pink-400 dark:border-pink-800/40",
+  WALK_IN: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/40",
+  PHONE_INQUIRY: "bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-950/30 dark:text-cyan-400 dark:border-cyan-800/40",
+  EMAIL: "bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-800/40",
+  EVENT: "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800/40",
+  PARTNER: "bg-teal-100 text-teal-800 border-teal-200 dark:bg-teal-950/30 dark:text-teal-400 dark:border-teal-800/40",
+  ADVERTISEMENT: "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-800/40",
+  FACEBOOK_ADS: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800/40",
+  GOOGLE_ADS: "bg-red-100 text-red-800 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800/40",
+  INDIAMART: "bg-green-100 text-green-800 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800/40",
+  JUSTDIAL: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/30 dark:text-yellow-400 dark:border-yellow-800/40",
   OTHER: "bg-muted text-foreground border-border",
 };
 
@@ -82,7 +86,7 @@ interface LeadWithContact {
   source: string;
   score: number;
   aiScore: number | null;
-  estimatedValue: unknown;
+  estimatedValue: number | null;
   eventType: string | null;
   eventDate: Date | string | null;
   guestCount: number | null;
@@ -108,10 +112,10 @@ interface LeadWithContact {
 function ScoreBadge({ score }: { score: number }) {
   const colorClass =
     score >= 70
-      ? "bg-green-100 text-green-800 border-green-200"
+      ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800/40"
       : score >= 40
-        ? "bg-yellow-100 text-yellow-800 border-yellow-200"
-        : "bg-red-100 text-red-800 border-red-200";
+        ? "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/30 dark:text-yellow-400 dark:border-yellow-800/40"
+        : "bg-red-100 text-red-800 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800/40";
 
   return (
     <Badge variant="outline" className={cn("border font-medium", colorClass)}>
@@ -131,10 +135,10 @@ function AIScoreBadge({ score }: { score: number | null }) {
 
   const colorClass =
     score >= 70
-      ? "bg-green-100 text-green-800 border-green-200"
+      ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800/40"
       : score >= 40
-        ? "bg-yellow-100 text-yellow-800 border-yellow-200"
-        : "bg-red-100 text-red-800 border-red-200";
+        ? "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/30 dark:text-yellow-400 dark:border-yellow-800/40"
+        : "bg-red-100 text-red-800 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800/40";
 
   return (
     <Badge variant="outline" className={cn("border font-medium", colorClass)}>
@@ -178,7 +182,7 @@ function ActionsCell({ lead }: { lead: LeadWithContact }) {
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <Link href={`/leads/${lead.id}`}>
+            <Link href={`/leads/${lead.id}/edit`}>
               <PencilIcon className="mr-2 size-4" />
               Edit
             </Link>
@@ -410,10 +414,7 @@ export function LeadsTable({ data }: LeadsTableProps) {
         label: "Mark Contacted",
         icon: BulkTagIcon,
         onClick: async (ids: string[]) => {
-          const result = await bulkUpdateLeads({
-            ids,
-            data: { status: "CONTACTED" },
-          });
+          const result = await bulkChangeLeadStatus({ ids, status: "CONTACTED" });
           if (result.success) {
             toast.success(`Updated ${result.data.count} leads`);
             router.refresh();
@@ -427,12 +428,37 @@ export function LeadsTable({ data }: LeadsTableProps) {
         label: "Mark Qualified",
         icon: BulkTagIcon,
         onClick: async (ids: string[]) => {
-          const result = await bulkUpdateLeads({
-            ids,
-            data: { status: "QUALIFIED" },
-          });
+          const result = await bulkChangeLeadStatus({ ids, status: "QUALIFIED" });
           if (result.success) {
             toast.success(`Updated ${result.data.count} leads`);
+            router.refresh();
+          } else {
+            toast.error(result.error);
+          }
+        },
+      },
+      {
+        id: "mark-won",
+        label: "Mark Won",
+        icon: BulkTagIcon,
+        onClick: async (ids: string[]) => {
+          const result = await bulkChangeLeadStatus({ ids, status: "WON" });
+          if (result.success) {
+            toast.success(`Updated ${result.data.count} leads to Won`);
+            router.refresh();
+          } else {
+            toast.error(result.error);
+          }
+        },
+      },
+      {
+        id: "mark-lost",
+        label: "Mark Lost",
+        icon: BulkTagIcon,
+        onClick: async (ids: string[]) => {
+          const result = await bulkChangeLeadStatus({ ids, status: "LOST" });
+          if (result.success) {
+            toast.success(`Updated ${result.data.count} leads to Lost`);
             router.refresh();
           } else {
             toast.error(result.error);

@@ -13,6 +13,7 @@ import {
 } from "@/schemas/inventory.schema";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
+import { hasPermission } from "@/lib/permissions";
 
 // ============================================================
 // Get Inventory Items (Paginated + Filtered)
@@ -29,6 +30,11 @@ export async function getItems(params?: {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "inventory:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const page = params?.page ?? 1;
@@ -98,6 +104,11 @@ export async function getItem(id: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "inventory:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const item = await prisma.inventoryItem.findUnique({
       where: { id },
       include: {
@@ -138,6 +149,11 @@ export async function createItem(data: InventoryItemInput) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "inventory:create")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = inventoryItemSchema.safeParse(data);
@@ -203,6 +219,11 @@ export async function updateItem(id: string, data: InventoryItemInput) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "inventory:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = inventoryItemSchema.safeParse(data);
@@ -277,6 +298,11 @@ export async function deleteItem(id: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "inventory:delete")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const existing = await prisma.inventoryItem.findUnique({
       where: { id },
       include: {
@@ -329,6 +355,11 @@ export async function reserveForBooking(data: InventoryReservationInput) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "inventory:create")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = inventoryReservationSchema.safeParse(data);
@@ -429,6 +460,11 @@ export async function releaseReservation(
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "inventory:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const parsed = releaseReservationSchema.safeParse(data);
     if (!parsed.success) {
       return {
@@ -505,6 +541,11 @@ export async function getAvailability(
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "inventory:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const item = await prisma.inventoryItem.findUnique({
       where: { id: itemId },
     });
@@ -561,6 +602,11 @@ export async function getLowStockAlerts() {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "inventory:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const items = await prisma.$queryRawUnsafe<

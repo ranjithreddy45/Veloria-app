@@ -4,6 +4,7 @@ import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { serialize } from "@/lib/utils";
+import { hasPermission } from "@/lib/permissions";
 
 // ============================================================
 // Types
@@ -51,6 +52,11 @@ export async function getPipelineStages() {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "pipeline:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const stages = await prisma.pipelineStage.findMany({
@@ -146,6 +152,11 @@ export async function createDeal(data: CreateDealInput) {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "pipeline:manage")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     // Validate lead exists and is not already converted
@@ -256,6 +267,11 @@ export async function updateDeal(id: string, data: UpdateDealInput) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "pipeline:manage")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const existing = await prisma.deal.findUnique({ where: { id } });
     if (!existing) {
       return { success: false as const, error: "Deal not found" };
@@ -329,6 +345,11 @@ export async function moveDeal(
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "pipeline:manage")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const deal = await prisma.deal.findUnique({
@@ -479,6 +500,11 @@ export async function getDeal(id: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "pipeline:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const deal = await prisma.deal.findUnique({
       where: { id },
       include: {
@@ -519,6 +545,11 @@ export async function deleteDeal(id: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "pipeline:manage")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const deal = await prisma.deal.findUnique({
       where: { id },
       select: { id: true, leadId: true },
@@ -555,6 +586,11 @@ export async function createPipelineStage(data: CreateStageInput) {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "pipeline:manage")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     // Get the highest order
@@ -595,6 +631,11 @@ export async function updatePipelineStage(id: string, data: UpdateStageInput) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "pipeline:manage")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const existing = await prisma.pipelineStage.findUnique({ where: { id } });
     if (!existing) {
       return { success: false as const, error: "Pipeline stage not found" };
@@ -627,6 +668,11 @@ export async function deletePipelineStage(id: string) {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "pipeline:manage")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const stage = await prisma.pipelineStage.findUnique({
@@ -683,6 +729,11 @@ export async function getPipelineStats() {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "pipeline:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const [totalDeals, stages, wonDeals, allDeals] = await Promise.all([
@@ -751,6 +802,11 @@ export async function getAvailableLeads(search?: string) {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "pipeline:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const where: Record<string, unknown> = {
@@ -822,6 +878,11 @@ export async function convertDealToBooking(data: {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "pipeline:manage")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     // Get deal with lead and contact
     const deal = await prisma.deal.findUnique({
       where: { id: data.dealId },
@@ -854,10 +915,29 @@ export async function convertDealToBooking(data: {
       };
     }
 
-    // Generate booking number
+    // Generate booking number with retry for uniqueness (avoids TOCTOU race)
     const year = new Date().getFullYear();
-    const count = await prisma.booking.count();
-    const bookingNumber = `BK-${year}-${String(count + 1).padStart(4, "0")}`;
+    const bkPrefix = `BK-${year}-`;
+    let bookingNumber: string | null = null;
+
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const count = await prisma.booking.count();
+      const candidate = `${bkPrefix}${String(count + 1 + attempt).padStart(4, "0")}`;
+
+      const existing = await prisma.booking.findFirst({
+        where: { bookingNumber: candidate },
+      });
+
+      if (!existing) {
+        bookingNumber = candidate;
+        break;
+      }
+    }
+
+    if (!bookingNumber) {
+      // Fallback: use timestamp-based unique number
+      bookingNumber = `BK-${Date.now()}`;
+    }
 
     const bookingDate = new Date(data.date);
     bookingDate.setHours(0, 0, 0, 0);
@@ -914,6 +994,11 @@ export async function getTeamMembers() {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "pipeline:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const users = await prisma.user.findMany({

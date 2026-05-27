@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
-import { getOpenAIClient } from "@/lib/ai/openai-client";
+import { getOpenAIClient, getDefaultModel } from "@/lib/ai/openai-client";
 import { buildCRMSystemPrompt } from "@/lib/ai/system-prompt";
 import { CRM_TOOLS, executeCRMTool } from "@/lib/ai/crm-tools";
 import { chatRequestSchema } from "@/schemas/ai.schema";
@@ -275,7 +275,7 @@ async function handleFallbackQuery(
     send(`- 📅 **"Upcoming events"** — Bookings in next 30 days\n`);
     send(`- ⚠️ **"Overdue tasks"** — Tasks needing attention\n`);
     send(`- 🔍 **"Search contact John"** — Find contacts\n\n`);
-    send(`*Tip: Add an OpenAI API key in your .env file to unlock full conversational AI mode with natural language understanding.*\n`);
+    send(`*Tip: Add a GOOGLE_AI_API_KEY (free) or OPENAI_API_KEY in Settings → Integrations to unlock full conversational AI mode.*\n`);
   }
 }
 
@@ -299,7 +299,7 @@ async function streamWithToolCalls(
   }
 
   const response = await openai.chat.completions.create({
-    model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
+    model: getDefaultModel(),
     messages,
     tools: CRM_TOOLS,
     stream: true,

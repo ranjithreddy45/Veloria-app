@@ -54,6 +54,10 @@ export async function getPayments(params?: {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role as string, "payments:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const page = params?.page ?? 1;
     const limit = params?.limit ?? 50;
     const skip = (page - 1) * limit;
@@ -127,6 +131,10 @@ export async function recordPayment(data: {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role as string, "payments:create")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     if (data.amount <= 0) {
@@ -268,6 +276,10 @@ export async function createRazorpayOrder(invoiceId: string, amount: number) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role as string, "payments:create")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
       return { success: false as const, error: "Razorpay is not configured" };
     }
@@ -354,6 +366,10 @@ export async function verifyRazorpayPayment(data: {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role as string, "payments:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     if (!process.env.RAZORPAY_KEY_SECRET) {
@@ -463,6 +479,10 @@ export async function getPaymentStats() {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role as string, "payments:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const now = new Date();

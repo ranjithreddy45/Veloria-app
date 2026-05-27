@@ -21,7 +21,7 @@ export const bulkUpdateLeadsSchema = z.object({
       .optional(),
     assignedToId: z.string().optional(),
     source: z
-      .enum(["WEBSITE", "REFERRAL", "SOCIAL_MEDIA", "WALK_IN", "PHONE_INQUIRY", "EMAIL", "EVENT", "PARTNER", "ADVERTISEMENT", "OTHER"])
+      .enum(["WEBSITE", "REFERRAL", "SOCIAL_MEDIA", "WALK_IN", "PHONE_INQUIRY", "EMAIL", "EVENT", "PARTNER", "ADVERTISEMENT", "FACEBOOK_ADS", "GOOGLE_ADS", "INDIAMART", "JUSTDIAL", "OTHER"])
       .optional(),
   }),
 });
@@ -31,7 +31,19 @@ export const bulkAssignLeadsSchema = z.object({
   assignedToId: z.string().min(1, "Select an assignee"),
 });
 
+export const bulkEnrollCadenceSchema = z.object({
+  ids: z.array(z.string()).min(1, "Select at least one lead"),
+  cadenceId: z.string().min(1, "Select a cadence"),
+});
+
+export const bulkChangeLeadStatusSchema = z.object({
+  ids: z.array(z.string()).min(1, "Select at least one lead"),
+  status: z.enum(["NEW", "CONTACTED", "QUALIFIED", "PROPOSAL_SENT", "NEGOTIATION", "WON", "LOST"]),
+});
+
 export type BulkUpdateContactsInput = z.infer<typeof bulkUpdateContactsSchema>;
 export type BulkDeleteInput = z.infer<typeof bulkDeleteSchema>;
 export type BulkUpdateLeadsInput = z.infer<typeof bulkUpdateLeadsSchema>;
 export type BulkAssignLeadsInput = z.infer<typeof bulkAssignLeadsSchema>;
+export type BulkEnrollCadenceInput = z.infer<typeof bulkEnrollCadenceSchema>;
+export type BulkChangeLeadStatusInput = z.infer<typeof bulkChangeLeadStatusSchema>;

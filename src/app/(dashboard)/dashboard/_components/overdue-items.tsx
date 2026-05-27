@@ -86,7 +86,7 @@ export function OverdueItems({ tasks, payments }: OverdueItemsProps) {
             {tasks.map((task) => {
               const daysOverdue = differenceInDays(
                 new Date(),
-                new Date(task.dueDate!)
+                new Date(task.dueDate as string)
               );
               return (
                 <div
@@ -116,7 +116,7 @@ export function OverdueItems({ tasks, payments }: OverdueItemsProps) {
                         </span>
                       )}
                       <span>
-                        Due: {format(new Date(task.dueDate!), "MMM d")}
+                        Due: {format(new Date(task.dueDate as string), "MMM d")}
                       </span>
                     </div>
                   </div>

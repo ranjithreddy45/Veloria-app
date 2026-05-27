@@ -1,9 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import AuthSessionProvider from "@/providers/session-provider";
 import QueryProvider from "@/providers/query-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
+import { CapacitorProvider } from "@/providers/capacitor-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
@@ -12,6 +13,17 @@ const inter = Inter({
   subsets: ["latin"],
   display: "swap",
 });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#7c3aed" },
+    { media: "(prefers-color-scheme: dark)", color: "#09090b" },
+  ],
+};
 
 export const metadata: Metadata = {
   title: {
@@ -26,6 +38,22 @@ export const metadata: Metadata = {
     "CRM",
     "invoice management",
   ],
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Veloria Grand",
+  },
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/icons/icon-192x192.svg", sizes: "192x192", type: "image/svg+xml" },
+      { url: "/icons/icon-512x512.svg", sizes: "512x512", type: "image/svg+xml" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.svg", sizes: "180x180", type: "image/svg+xml" },
+    ],
+  },
 };
 
 export default function RootLayout({
@@ -35,7 +63,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased`} suppressHydrationWarning>
+      <body className={`${inter.variable} font-sans antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -44,10 +72,12 @@ export default function RootLayout({
         >
           <AuthSessionProvider>
             <QueryProvider>
-              <TooltipProvider delayDuration={0}>
-                {children}
-                <Toaster position="top-right" richColors closeButton />
-              </TooltipProvider>
+              <CapacitorProvider>
+                <TooltipProvider delayDuration={0}>
+                  {children}
+                  <Toaster position="top-right" richColors closeButton />
+                </TooltipProvider>
+              </CapacitorProvider>
             </QueryProvider>
           </AuthSessionProvider>
         </ThemeProvider>

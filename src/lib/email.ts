@@ -42,7 +42,7 @@ export async function sendEmail({ to, subject, html }: SendEmailParams) {
     const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,
       to,
-      subject: `${subject} — ${APP_NAME}`,
+      subject: subject.includes(APP_NAME) ? subject : `${subject} — ${APP_NAME}`,
       html,
     });
 

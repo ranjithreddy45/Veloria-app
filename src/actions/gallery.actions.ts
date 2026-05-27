@@ -308,6 +308,10 @@ export async function getGalleryByBooking(bookingId: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role as string, "gallery:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const items = await prisma.galleryItem.findMany({
       where: { bookingId },
       orderBy: [{ order: "asc" }, { createdAt: "desc" }],
@@ -332,6 +336,10 @@ export async function getGalleryByVenue(venueId: string) {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role as string, "gallery:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const items = await prisma.galleryItem.findMany({
@@ -364,6 +372,10 @@ export async function getPublicGallery(params?: {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role as string, "gallery:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const page = params?.page ?? 1;
@@ -420,6 +432,10 @@ export async function getPortalGallery(userId: string) {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role as string, "gallery:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     // Get bookings belonging to this client

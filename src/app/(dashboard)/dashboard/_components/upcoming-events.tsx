@@ -131,14 +131,14 @@ export function UpcomingEvents({ events }: UpcomingEventsProps) {
                     <span
                       className={cn(
                         "text-[10px] font-medium",
-                        daysRemaining === 0
+                        daysRemaining <= 0
                           ? "text-red-600 dark:text-red-400"
                           : daysRemaining <= 2
                             ? "text-amber-600 dark:text-amber-400"
                             : "text-muted-foreground/60"
                       )}
                     >
-                      {daysRemaining === 0
+                      {daysRemaining <= 0
                         ? "Today"
                         : daysRemaining === 1
                           ? "Tomorrow"

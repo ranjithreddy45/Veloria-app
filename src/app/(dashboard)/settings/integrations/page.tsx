@@ -6,6 +6,8 @@ import {
   Share2,
   ArrowRight,
   Calendar,
+  Webhook,
+  PhoneCall,
 } from "lucide-react";
 import {
   Card,
@@ -30,18 +32,18 @@ const integrations = [
     color:
       "bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400",
     status: "Placeholder",
-    statusColor: "bg-amber-100 text-amber-700 border-amber-200",
+    statusColor: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/40",
   },
   {
     title: "WhatsApp Business",
     description:
-      "Send booking confirmations, reminders, and updates via WhatsApp.",
+      "Send booking confirmations, reminders, and updates via WhatsApp Cloud API.",
     href: "/settings/integrations/whatsapp",
     icon: MessageSquare,
     color:
       "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
-    status: "Placeholder",
-    statusColor: "bg-amber-100 text-amber-700 border-amber-200",
+    status: "Active",
+    statusColor: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/40",
   },
   {
     title: "Google Calendar",
@@ -52,7 +54,7 @@ const integrations = [
     color:
       "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
     status: "Preview",
-    statusColor: "bg-blue-100 text-blue-700 border-blue-200",
+    statusColor: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800/40",
   },
   {
     title: "Social Media",
@@ -62,7 +64,27 @@ const integrations = [
     icon: Share2,
     color: "bg-pink-100 text-pink-600 dark:bg-pink-950 dark:text-pink-400",
     status: "Placeholder",
-    statusColor: "bg-amber-100 text-amber-700 border-amber-200",
+    statusColor: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/40",
+  },
+  {
+    title: "Lead Capture",
+    description:
+      "Auto-capture leads from Facebook Ads, Google Ads, IndiaMart, JustDial, and more via webhooks.",
+    href: "/settings/integrations/lead-capture",
+    icon: Webhook,
+    color: "bg-violet-100 text-violet-600 dark:bg-violet-950 dark:text-violet-400",
+    status: "Active",
+    statusColor: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/40",
+  },
+  {
+    title: "Cloud Telephony",
+    description:
+      "Connect Exotel, Knowlarity, or MyOperator for click-to-call and automatic call recording.",
+    href: "/settings/integrations/telephony",
+    icon: PhoneCall,
+    color: "bg-cyan-100 text-cyan-600 dark:bg-cyan-950 dark:text-cyan-400",
+    status: "Active",
+    statusColor: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/40",
   },
 ];
 
@@ -77,7 +99,7 @@ export default function IntegrationsPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {integrations.map((integration) => {
           const Icon = integration.icon;
-          const isActive = integration.href !== "#";
+          const isActive = integration.status !== "Placeholder";
 
           const content = (
             <Card

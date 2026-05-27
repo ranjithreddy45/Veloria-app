@@ -242,7 +242,7 @@ export async function getOrCreateAccount(contactId: string) {
           contactName: `${contact.firstName} ${contact.lastName}`,
           tier: "BRONZE",
         },
-      });
+      }).catch((e) => console.error("[LOG_ACTIVITY_ERROR]", e));
     }
 
     revalidatePath("/loyalty");
@@ -354,7 +354,7 @@ export async function earnPoints(data: EarnPointsInput) {
         description,
         accountId,
       },
-    });
+    }).catch((e) => console.error("[LOG_ACTIVITY_ERROR]", e));
 
     revalidatePath("/loyalty");
     revalidatePath(`/loyalty/${accountId}`);
@@ -467,7 +467,7 @@ export async function redeemPoints(data: RedeemPointsInput) {
         description,
         accountId,
       },
-    });
+    }).catch((e) => console.error("[LOG_ACTIVITY_ERROR]", e));
 
     revalidatePath("/loyalty");
     revalidatePath(`/loyalty/${accountId}`);
@@ -567,7 +567,7 @@ export async function adjustPoints(data: AdjustPointsInput) {
         description,
         accountId,
       },
-    });
+    }).catch((e) => console.error("[LOG_ACTIVITY_ERROR]", e));
 
     revalidatePath("/loyalty");
     revalidatePath(`/loyalty/${accountId}`);
@@ -669,6 +669,12 @@ export async function getLoyaltyStats() {
 
 export async function getPortalLoyalty(userId: string) {
   try {
+    // Verify the caller IS the userId (portal self-access only)
+    const session = await auth();
+    if (!session?.user?.id || session.user.id !== userId) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { email: true },

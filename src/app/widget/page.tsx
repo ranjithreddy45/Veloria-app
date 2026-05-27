@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { WidgetInquiryForm } from "@/components/widget/widget-inquiry-form";
 
+export const dynamic = "force-dynamic";
+
 // ============================================================
 // Widget Page — Standalone Embeddable Booking Form
 // ============================================================

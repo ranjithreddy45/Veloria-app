@@ -123,13 +123,13 @@ export async function logCommunication(data: LogCommunicationInput) {
       },
     });
 
-    // Email tracking: create tracking pixel and modify content for outbound emails
+    // Email: tracking + actual delivery via Resend for outbound emails
     if (commData.type === "EMAIL" && commData.direction === "OUTBOUND") {
       try {
         // Look up recipient email from contact
         const contact = await prisma.contact.findUnique({
           where: { id: commData.contactId },
-          select: { email: true },
+          select: { email: true, firstName: true, lastName: true },
         });
 
         if (contact?.email) {
@@ -138,23 +138,71 @@ export async function logCommunication(data: LogCommunicationInput) {
               | string
               | undefined;
 
-          const { trackedHtml } = await processEmailForTracking(
-            communication.id,
-            commData.contactId,
-            contact.email,
-            commData.content,
-            campaignId
-          );
+          let finalHtml = commData.content;
 
-          // Update the communication content with tracked HTML
-          await prisma.communication.update({
-            where: { id: communication.id },
-            data: { content: trackedHtml },
-          });
+          // Add tracking pixel
+          try {
+            const { trackedHtml } = await processEmailForTracking(
+              communication.id,
+              commData.contactId,
+              contact.email,
+              commData.content,
+              campaignId
+            );
+            finalHtml = trackedHtml;
+
+            // Update the communication content with tracked HTML
+            await prisma.communication.update({
+              where: { id: communication.id },
+              data: { content: finalHtml },
+            });
+          } catch (trackingError) {
+            console.error("[EMAIL_TRACKING_SETUP_ERROR]", trackingError);
+          }
+
+          // Actually deliver the email via Resend
+          try {
+            const { sendEmail } = await import("@/lib/email");
+            const emailResult = await sendEmail({
+              to: contact.email,
+              subject: commData.subject || `Message from Veloria Grand`,
+              html: finalHtml,
+            });
+
+            if (emailResult.success) {
+              // Store Resend message ID in metadata for tracking
+              await prisma.communication.update({
+                where: { id: communication.id },
+                data: {
+                  metadata: {
+                    ...(commData.metadata as Record<string, unknown> || {}),
+                    emailDelivered: true,
+                    resendMessageId: emailResult.messageId,
+                    deliveredAt: new Date().toISOString(),
+                  },
+                },
+              });
+              console.log("[EMAIL_DELIVERED]", { to: contact.email, messageId: emailResult.messageId });
+            } else {
+              console.error("[EMAIL_DELIVERY_FAILED]", emailResult.error);
+              // Update metadata to record failure
+              await prisma.communication.update({
+                where: { id: communication.id },
+                data: {
+                  metadata: {
+                    ...(commData.metadata as Record<string, unknown> || {}),
+                    emailDelivered: false,
+                    deliveryError: emailResult.error,
+                  },
+                },
+              });
+            }
+          } catch (emailError) {
+            console.error("[EMAIL_SEND_ERROR]", emailError);
+          }
         }
-      } catch (trackingError) {
-        // Tracking should never block communication creation
-        console.error("[EMAIL_TRACKING_SETUP_ERROR]", trackingError);
+      } catch (contactError) {
+        console.error("[EMAIL_CONTACT_LOOKUP_ERROR]", contactError);
       }
     }
 

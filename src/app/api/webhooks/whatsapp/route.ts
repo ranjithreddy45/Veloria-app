@@ -11,6 +11,24 @@ import { prisma } from "@/lib/prisma";
 export const runtime = "nodejs";
 
 // ============================================================
+// Helper: Get active WhatsApp config from DB
+// ============================================================
+
+async function getActiveConfig() {
+  try {
+    return await prisma.whatsAppConfig.findFirst({
+      where: { isActive: true },
+      select: {
+        appSecret: true,
+        verifyToken: true,
+      },
+    });
+  } catch {
+    return null;
+  }
+}
+
+// ============================================================
 // GET — Webhook Verification
 // ============================================================
 
@@ -20,8 +38,12 @@ export async function GET(request: NextRequest) {
   const token = searchParams.get("hub.verify_token");
   const challenge = searchParams.get("hub.challenge");
 
+  // Read verify token from DB config, fallback to env var
+  const config = await getActiveConfig();
   const verifyToken =
-    process.env.WHATSAPP_VERIFY_TOKEN || "veloria_whatsapp_verify";
+    config?.verifyToken ||
+    process.env.WHATSAPP_VERIFY_TOKEN ||
+    "veloria_whatsapp_verify";
 
   if (mode === "subscribe" && token === verifyToken) {
     console.log("[WhatsApp Webhook] Verification successful");
@@ -40,16 +62,14 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.text();
 
-    // Verify HMAC signature — reject if app secret is not configured
+    // Read app secret from DB config, fallback to env var
+    const config = await getActiveConfig();
+    const appSecret = config?.appSecret || process.env.WHATSAPP_APP_SECRET;
+
+    // Verify HMAC signature if app secret is configured
     const signature = request.headers.get("x-hub-signature-256");
-    const appSecret = process.env.WHATSAPP_APP_SECRET;
 
-    if (!appSecret) {
-      console.warn("[WHATSAPP_WEBHOOK] WHATSAPP_APP_SECRET not configured — rejecting request");
-      return NextResponse.json({ error: "Webhook not configured" }, { status: 503 });
-    }
-
-    if (signature) {
+    if (appSecret && signature) {
       const expectedSignature =
         "sha256=" +
         crypto.createHmac("sha256", appSecret).update(body).digest("hex");
@@ -141,7 +161,11 @@ export async function POST(request: NextRequest) {
               await prisma.whatsAppMessage.updateMany({
                 where: { whatsappId: waId },
                 data: {
-                  status: mappedStatus as "SENT" | "DELIVERED" | "READ" | "FAILED",
+                  status: mappedStatus as
+                    | "SENT"
+                    | "DELIVERED"
+                    | "READ"
+                    | "FAILED",
                 },
               });
             }

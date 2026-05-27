@@ -214,6 +214,15 @@ export async function setDefaultView(
       return { success: false as const, error: "Unauthorized" };
     }
 
+    // Verify the user owns this view before setting it as default
+    const view = await prisma.savedView.findUnique({ where: { id } });
+    if (!view) {
+      return { success: false as const, error: "View not found" };
+    }
+    if (view.createdById !== session.user.id) {
+      return { success: false as const, error: "Not authorized to modify this view" };
+    }
+
     // Unset previous defaults
     await prisma.savedView.updateMany({
       where: {

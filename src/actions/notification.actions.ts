@@ -3,6 +3,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { auth } from "@/../auth";
 import type { NotificationType } from "@prisma/client";
 
 // ============================================================
@@ -78,6 +79,18 @@ export async function getUnreadCount(userId: string): Promise<number> {
 // ============================================================
 
 export async function markAsRead(notificationId: string): Promise<void> {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Unauthorized");
+
+  // Verify ownership before marking as read
+  const notification = await prisma.notification.findUnique({
+    where: { id: notificationId },
+    select: { userId: true },
+  });
+  if (!notification || notification.userId !== session.user.id) {
+    throw new Error("Not found");
+  }
+
   await prisma.notification.update({
     where: { id: notificationId },
     data: { isRead: true },
@@ -90,6 +103,9 @@ export async function markAsRead(notificationId: string): Promise<void> {
 // ============================================================
 
 export async function markAllAsRead(userId: string): Promise<void> {
+  const session = await auth();
+  if (!session?.user?.id || session.user.id !== userId) throw new Error("Unauthorized");
+
   await prisma.notification.updateMany({
     where: { userId, isRead: false },
     data: { isRead: true },
@@ -119,7 +135,11 @@ export async function createNotification(data: {
       metadata: data.metadata ?? Prisma.JsonNull,
     },
   });
-  revalidatePath("/notifications");
+  try {
+    revalidatePath("/notifications");
+  } catch {
+    // revalidatePath throws during SSR render — safe to ignore here
+  }
   return notification;
 }
 
@@ -128,6 +148,18 @@ export async function createNotification(data: {
 // ============================================================
 
 export async function deleteNotification(id: string): Promise<void> {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Unauthorized");
+
+  // Verify ownership
+  const notification = await prisma.notification.findUnique({
+    where: { id },
+    select: { userId: true },
+  });
+  if (!notification || notification.userId !== session.user.id) {
+    throw new Error("Not found");
+  }
+
   await prisma.notification.delete({
     where: { id },
   });

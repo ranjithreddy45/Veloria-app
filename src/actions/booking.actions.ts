@@ -21,19 +21,31 @@ async function generateBookingNumber(): Promise<string> {
   const year = new Date().getFullYear();
   const prefix = `VG-${year}-`;
 
-  const lastBooking = await prisma.booking.findFirst({
-    where: { bookingNumber: { startsWith: prefix } },
-    orderBy: { bookingNumber: "desc" },
-    select: { bookingNumber: true },
-  });
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const lastBooking = await prisma.booking.findFirst({
+      where: { bookingNumber: { startsWith: prefix } },
+      orderBy: { bookingNumber: "desc" },
+      select: { bookingNumber: true },
+    });
 
-  let nextNumber = 1;
-  if (lastBooking) {
-    const lastNum = parseInt(lastBooking.bookingNumber.split("-").pop() || "0", 10);
-    nextNumber = lastNum + 1;
+    let nextNumber = 1;
+    if (lastBooking) {
+      const lastNum = parseInt(lastBooking.bookingNumber.split("-").pop() || "0", 10);
+      nextNumber = lastNum + 1;
+    }
+
+    const number = `${prefix}${String(nextNumber + attempt).padStart(4, "0")}`;
+
+    // Check uniqueness to avoid TOCTOU race condition
+    const existing = await prisma.booking.findFirst({
+      where: { bookingNumber: number },
+    });
+
+    if (!existing) return number;
   }
 
-  return `${prefix}${String(nextNumber).padStart(4, "0")}`;
+  // Fallback: use timestamp-based unique number
+  return `VG-${Date.now()}`;
 }
 
 // formatINR is in @/lib/utils

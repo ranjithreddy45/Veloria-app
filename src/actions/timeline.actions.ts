@@ -3,6 +3,7 @@
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/utils";
+import { hasPermission } from "@/lib/permissions";
 
 // ============================================================
 // Types
@@ -52,6 +53,11 @@ export async function getContact360Timeline(
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "contacts:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const items: TimelineItem[] = [];
