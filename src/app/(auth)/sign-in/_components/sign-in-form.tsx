@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn } from "next-auth/react";
 import { toast } from "sonner";
-import { Loader2, Mail, Lock, Chrome } from "lucide-react";
+import { Loader2, Chrome } from "lucide-react";
 import { signInSchema, type SignInInput } from "@/schemas/auth.schema";
 import { signInAction } from "@/actions/auth.actions";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Separator } from "@/components/ui/separator";
 
 export default function SignInForm() {
   const [isPending, startTransition] = useTransition();
@@ -48,20 +47,20 @@ export default function SignInForm() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2 text-center">
-        <h2 className="text-xl font-semibold tracking-tight text-foreground">
+    <div className="space-y-5">
+      <div className="space-y-1 text-center">
+        <h2 className="text-[17px] font-semibold tracking-tight text-foreground">
           Welcome back
         </h2>
-        <p className="text-sm text-muted-foreground">
-          Sign in to your account to continue
+        <p className="text-[12.5px] text-muted-foreground">
+          Sign in to continue to your workspace
         </p>
       </div>
 
       {/* Google Sign In */}
       <Button
         variant="outline"
-        className="w-full gap-2 rounded-xl h-11"
+        className="h-9 w-full gap-2 rounded-md border-border bg-background text-[13px] font-medium hover:bg-muted/60"
         type="button"
         disabled={isPending}
         onClick={() => {
@@ -73,36 +72,37 @@ export default function SignInForm() {
       </Button>
 
       <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <Separator className="w-full" />
+        <div className="absolute inset-0 flex items-center" aria-hidden>
+          <span className="h-px w-full bg-border" />
         </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-white/80 px-2 text-muted-foreground dark:bg-transparent">or continue with</span>
+        <div className="relative flex justify-center text-[10.5px] uppercase tracking-[0.08em]">
+          <span className="bg-card px-2 text-muted-foreground/70">
+            or with email
+          </span>
         </div>
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3.5">
           <FormField
             control={form.control}
             name="email"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email</FormLabel>
+              <FormItem className="space-y-1.5">
+                <FormLabel className="text-[12px] font-medium text-foreground">
+                  Email
+                </FormLabel>
                 <FormControl>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/50" />
-                    <Input
-                      placeholder="you@example.com"
-                      type="email"
-                      autoComplete="email"
-                      className="pl-10 rounded-xl h-11"
-                      disabled={isPending}
-                      {...field}
-                    />
-                  </div>
+                  <Input
+                    placeholder="you@example.com"
+                    type="email"
+                    autoComplete="email"
+                    className="h-9 rounded-md text-[13px]"
+                    disabled={isPending}
+                    {...field}
+                  />
                 </FormControl>
-                <FormMessage />
+                <FormMessage className="text-[11.5px]" />
               </FormItem>
             )}
           />
@@ -111,22 +111,31 @@ export default function SignInForm() {
             control={form.control}
             name="password"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Password</FormLabel>
+              <FormItem className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <FormLabel className="text-[12px] font-medium text-foreground">
+                    Password
+                  </FormLabel>
+                  <Link
+                    href="/forgot-password"
+                    className="text-[11.5px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    Forgot?
+                  </Link>
+                </div>
                 <FormControl>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/50" />
                     <Input
                       placeholder="Enter your password"
                       type={showPassword ? "text" : "password"}
                       autoComplete="current-password"
-                      className="pl-10 pr-20 rounded-xl h-11"
+                      className="h-9 rounded-md pr-14 text-[13px]"
                       disabled={isPending}
                       {...field}
                     />
                     <button
                       type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded px-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
                       onClick={() => setShowPassword(!showPassword)}
                       tabIndex={-1}
                     >
@@ -134,42 +143,33 @@ export default function SignInForm() {
                     </button>
                   </div>
                 </FormControl>
-                <FormMessage />
+                <FormMessage className="text-[11.5px]" />
               </FormItem>
             )}
           />
 
-          <div className="flex justify-end">
-            <Link
-              href="/forgot-password"
-              className="text-xs font-medium text-primary transition-colors hover:text-primary/80"
-            >
-              Forgot password?
-            </Link>
-          </div>
-
           <Button
             type="submit"
-            className="w-full h-11 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-indigo-500/30"
+            className="h-9 w-full rounded-md bg-primary text-[13px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             disabled={isPending}
           >
             {isPending ? (
               <>
-                <Loader2 className="mr-2 size-4 animate-spin" />
+                <Loader2 className="mr-2 size-3.5 animate-spin" />
                 Signing in...
               </>
             ) : (
-              "Sign In"
+              "Sign in"
             )}
           </Button>
         </form>
       </Form>
 
-      <p className="text-center text-sm text-muted-foreground">
+      <p className="text-center text-[12.5px] text-muted-foreground">
         Don&apos;t have an account?{" "}
         <Link
           href="/sign-up"
-          className="font-medium text-primary transition-colors hover:text-primary/80"
+          className="font-medium text-foreground transition-colors hover:underline"
         >
           Sign up
         </Link>

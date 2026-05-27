@@ -42,19 +42,14 @@ export function BookingsChart({ data }: BookingsChartProps) {
   );
 
   return (
-    <Card>
+    <Card className="card-hover-tint border border-border bg-card shadow-none">
       <CardHeader className="pb-2">
-        <div className="flex items-center gap-3">
-          <div className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-100 to-violet-200/50 dark:from-violet-900/40 dark:to-violet-800/20">
-            <svg className="size-4 text-violet-600 dark:text-violet-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
-          </div>
-          <div>
-            <CardTitle className="text-base font-semibold">
-              Bookings by Type
-            </CardTitle>
-            <p className="text-xs text-muted-foreground">Distribution of event types</p>
-          </div>
-        </div>
+        <CardTitle className="text-[13px] font-medium uppercase tracking-[0.05em] text-muted-foreground">
+          Bookings by type
+        </CardTitle>
+        <p className="mt-1 text-[12px] text-muted-foreground/80">
+          <span className="font-semibold text-foreground tabular-nums">{totalBookings}</span> total · distribution
+        </p>
       </CardHeader>
       <CardContent className="pb-4">
         {totalBookings === 0 ? (

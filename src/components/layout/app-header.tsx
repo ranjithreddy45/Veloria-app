@@ -78,9 +78,9 @@ export function AppHeader() {
   React.useEffect(() => setMounted(true), []);
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-4 border-b bg-background/70 px-4 backdrop-blur-xl backdrop-saturate-150">
+    <header className="topbar-glass sticky top-0 z-30 flex h-12 shrink-0 items-center gap-3 border-b border-border px-4">
       {/* Mobile sidebar trigger */}
-      <SidebarTrigger className="-ml-1 text-muted-foreground" />
+      <SidebarTrigger className="-ml-1 size-7 text-muted-foreground" />
 
       <Separator orientation="vertical" className="mr-1 h-4" />
 
@@ -109,13 +109,13 @@ export function AppHeader() {
         {/* Search trigger — opens command palette */}
         <Button
           variant="outline"
-          className="relative hidden h-9 w-72 justify-start rounded-xl border-input bg-muted/60 pl-10 text-sm text-muted-foreground hover:bg-muted lg:flex"
+          className="relative hidden h-8 w-64 justify-start rounded-md border-border bg-background pl-9 text-[13px] font-normal text-muted-foreground hover:bg-muted/60 lg:flex"
           onClick={() => setCommandOpen(true)}
         >
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
           Search...
-          <kbd className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground sm:flex">
-            <span className="text-xs">⌘</span>K
+          <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 hidden h-5 select-none items-center gap-0.5 rounded border border-border bg-muted px-1.5 font-sans text-[10px] font-medium text-muted-foreground sm:flex">
+            <span>⌘</span>K
           </kbd>
         </Button>
 
@@ -123,7 +123,7 @@ export function AppHeader() {
         <Button
           variant="ghost"
           size="icon"
-          className="size-9 text-muted-foreground lg:hidden"
+          className="size-8 text-muted-foreground lg:hidden"
           onClick={() => setCommandOpen(true)}
         >
           <Search className="size-4" />
@@ -137,7 +137,7 @@ export function AppHeader() {
           <Button
             variant="ghost"
             size="icon"
-            className="size-9 text-muted-foreground"
+            className="size-8 text-muted-foreground"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
           >

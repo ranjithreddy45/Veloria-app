@@ -97,7 +97,6 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarRail,
-  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import {
   Collapsible,
@@ -105,7 +104,6 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // ============================================================
@@ -228,14 +226,15 @@ function SidebarNavItem({
         isActive={isActive}
         tooltip={item.title}
         className={cn(
-          "transition-all duration-200",
+          "h-8 rounded-md text-[13px] font-medium text-sidebar-foreground/80 transition-colors duration-150",
+          "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
           isActive &&
-            "bg-sidebar-primary/15 text-sidebar-primary shadow-[inset_3px_0_0_0] shadow-sidebar-primary hover:bg-sidebar-primary/20 hover:text-sidebar-primary"
+            "sidebar-active-accent bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent"
         )}
       >
         <Link href={item.href}>
-          <Icon className="size-4" />
-          <span>{item.title}</span>
+          <Icon className={cn("size-4 transition-colors", isActive ? "text-sidebar-primary" : "text-sidebar-foreground/55")} strokeWidth={isActive ? 2.25 : 1.85} />
+          <span className={cn(isActive && "tracking-[-0.005em]")}>{item.title}</span>
         </Link>
       </SidebarMenuButton>
     </SidebarMenuItem>
@@ -260,7 +259,7 @@ function SidebarCollapsibleItem({
   return (
     <>
       {groupLabel && (
-        <SidebarGroupLabel className="mt-2 text-sidebar-foreground/40 uppercase text-[10px] font-semibold tracking-widest">
+        <SidebarGroupLabel className="mt-3 mb-0.5 px-2 text-[10.5px] font-medium uppercase tracking-[0.08em] text-sidebar-foreground/40">
           {groupLabel}
         </SidebarGroupLabel>
       )}
@@ -270,18 +269,19 @@ function SidebarCollapsibleItem({
             <SidebarMenuButton
               tooltip={item.title}
               className={cn(
-                "transition-all duration-200",
+                "h-8 rounded-md text-[13px] font-medium text-sidebar-foreground/80 transition-colors duration-150",
+                "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                 isGroupActive &&
-                  "bg-sidebar-primary/15 text-sidebar-primary shadow-[inset_3px_0_0_0] shadow-sidebar-primary hover:bg-sidebar-primary/20 hover:text-sidebar-primary"
+                  "text-sidebar-accent-foreground"
               )}
             >
-              <Icon className="size-4" />
-              <span>{item.title}</span>
-              <ChevronRight className="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+              <Icon className={cn("size-4 transition-colors", isGroupActive ? "text-sidebar-primary" : "text-sidebar-foreground/55")} strokeWidth={isGroupActive ? 2.25 : 1.85} />
+              <span className={cn(isGroupActive && "tracking-[-0.005em]")}>{item.title}</span>
+              <ChevronRight className="ml-auto size-3.5 text-sidebar-foreground/40 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
             </SidebarMenuButton>
           </CollapsibleTrigger>
           <CollapsibleContent>
-            <SidebarMenuSub>
+            <SidebarMenuSub className="border-sidebar-border/60">
               {item.children?.map((child) => {
                 const ChildIcon = getIcon(child.icon);
                 const isChildActive = pathname === child.href;
@@ -291,12 +291,13 @@ function SidebarCollapsibleItem({
                       asChild
                       isActive={isChildActive}
                       className={cn(
-                        "transition-all duration-200",
-                        isChildActive && "text-sidebar-primary"
+                        "h-7 rounded-md text-[12.5px] text-sidebar-foreground/70 transition-colors",
+                        "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                        isChildActive && "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                       )}
                     >
                       <Link href={child.href}>
-                        <ChildIcon className="size-3.5" />
+                        <ChildIcon className={cn("size-3.5", isChildActive ? "text-sidebar-primary" : "text-sidebar-foreground/50")} />
                         <span>{child.title}</span>
                       </Link>
                     </SidebarMenuSubButton>
@@ -355,28 +356,26 @@ export function AppSidebar() {
   }
 
   return (
-    <Sidebar collapsible="icon" className="border-r-0">
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar">
       {/* Header with logo */}
-      <SidebarHeader className="p-4">
+      <SidebarHeader className="px-3 py-3.5">
         <Link
           href="/dashboard"
-          className="flex items-center gap-3 transition-opacity hover:opacity-80"
+          className="flex items-center gap-2.5 transition-opacity hover:opacity-80"
         >
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[oklch(0.55_0.22_300)] text-white shadow-md shadow-primary/25">
-            <Gem className="size-4" />
+          <div className="logo-chip flex size-7 shrink-0 items-center justify-center rounded-md text-primary-foreground">
+            <Gem className="size-3.5" strokeWidth={2.5} />
           </div>
           <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-            <span className="text-sm font-bold tracking-tight text-sidebar-foreground">
+            <span className="text-[13.5px] font-semibold tracking-[-0.012em] text-sidebar-accent-foreground">
               Veloria Grand
             </span>
-            <span className="text-[10px] text-sidebar-foreground/50">
+            <span className="text-[10.5px] font-medium tracking-wide text-sidebar-foreground/45">
               Venue Management
             </span>
           </div>
         </Link>
       </SidebarHeader>
-
-      <SidebarSeparator className="bg-sidebar-border opacity-50" />
 
       {/* Navigation */}
       <SidebarContent className="px-2">
@@ -408,14 +407,12 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarSeparator className="bg-sidebar-border opacity-50" />
-
       {/* Footer with user info */}
-      <SidebarFooter className="p-3">
-        <div className="flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-sidebar-accent/50 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0">
-          <Avatar size="default">
+      <SidebarFooter className="border-t border-sidebar-border p-2">
+        <div className="flex items-center gap-2.5 rounded-md px-2 py-1.5 transition-colors hover:bg-sidebar-accent group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0">
+          <Avatar size="sm">
             <AvatarImage src={user?.image || undefined} alt={user?.name || ""} />
-            <AvatarFallback className="bg-primary text-xs text-primary-foreground">
+            <AvatarFallback className="bg-primary text-[10px] font-medium text-primary-foreground">
               {user?.name
                 ?.split(" ")
                 .map((n) => n[0])
@@ -425,23 +422,20 @@ export function AppSidebar() {
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-1 flex-col overflow-hidden group-data-[collapsible=icon]:hidden">
-            <span className="truncate text-sm font-medium text-sidebar-foreground">
+            <span className="truncate text-[12.5px] font-medium leading-tight text-sidebar-accent-foreground">
               {user?.name || "Guest"}
             </span>
-            <Badge
-              variant="secondary"
-              className="mt-0.5 w-fit bg-sidebar-accent px-1.5 py-0 text-[10px] text-sidebar-foreground/60"
-            >
+            <span className="truncate text-[11px] leading-tight text-sidebar-foreground/55">
               {ROLE_LABELS[user?.role || ""] || "Unknown"}
-            </Badge>
+            </span>
           </div>
           <button
             onClick={() => signOut({ callbackUrl: "/sign-in" })}
-            className="shrink-0 rounded-md p-1.5 text-sidebar-foreground/40 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-data-[collapsible=icon]:hidden"
+            className="shrink-0 rounded p-1 text-sidebar-foreground/40 transition-colors hover:bg-background hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-data-[collapsible=icon]:hidden"
             aria-label="Sign out"
             title="Sign out"
           >
-            <LogOut className="size-4" />
+            <LogOut className="size-3.5" />
           </button>
         </div>
       </SidebarFooter>

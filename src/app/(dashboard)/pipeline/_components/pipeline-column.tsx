@@ -78,37 +78,40 @@ export function PipelineColumn({
   return (
     <div
       className={cn(
-        "flex h-full w-[300px] min-w-[300px] flex-col rounded-xl bg-zinc-100/80 transition-colors",
-        isOver && "bg-indigo-50/80 ring-2 ring-indigo-200",
-        isActive && "ring-1 ring-indigo-100"
+        "flex h-full w-[300px] min-w-[300px] flex-col rounded-lg border border-border bg-muted/40 transition-colors",
+        isOver && "bg-primary/[0.04] border-primary/40",
+        isActive && "border-primary/20"
       )}
     >
-      {/* Colored top bar */}
-      <div
-        className="h-1 rounded-t-xl"
-        style={{ backgroundColor: stage.color }}
-      />
-
       {/* Column Header */}
-      <div className="flex items-center justify-between px-3 py-3">
-        <div className="flex items-center gap-2">
-          <h3 className="text-sm font-semibold text-zinc-800">{stage.name}</h3>
+      <div className="flex items-center justify-between gap-2 border-b border-border bg-card/60 px-3 py-2.5 rounded-t-lg">
+        <div className="flex min-w-0 items-center gap-2">
+          <span
+            className="inline-block size-2 shrink-0 rounded-full"
+            style={{ backgroundColor: stage.color }}
+            aria-hidden
+          />
+          <h3 className="truncate text-[12px] font-semibold uppercase tracking-[0.04em] text-foreground">
+            {stage.name}
+          </h3>
           <Badge
-            variant="secondary"
-            className="h-5 min-w-[20px] justify-center px-1.5 text-[10px] font-semibold"
+            variant="outline"
+            className="h-4.5 min-w-[18px] justify-center rounded px-1 text-[10.5px] font-medium tabular-nums text-muted-foreground border-border bg-background"
           >
             {deals.length}
           </Badge>
         </div>
-        <span className="text-xs font-medium text-zinc-500">
-          {totalValue > 0 && `₹${formatIndianCurrency(totalValue)}`}
-        </span>
+        {totalValue > 0 && (
+          <span className="text-[11.5px] font-semibold tabular-nums text-foreground/80">
+            ₹{formatIndianCurrency(totalValue)}
+          </span>
+        )}
       </div>
 
       {/* Deal Cards Container */}
       <div
         ref={setNodeRef}
-        className="flex flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2"
+        className="flex flex-1 flex-col gap-2 overflow-y-auto p-2"
       >
         <SortableContext items={dealIds} strategy={verticalListSortingStrategy}>
           {deals.map((deal) => (
@@ -122,23 +125,23 @@ export function PipelineColumn({
         </SortableContext>
 
         {deals.length === 0 && (
-          <div className="flex flex-1 items-center justify-center rounded-lg border-2 border-dashed border-zinc-200 py-8">
-            <p className="text-xs text-zinc-400">Drop deals here</p>
+          <div className="flex flex-1 items-center justify-center rounded-md border border-dashed border-border py-8">
+            <p className="text-[11.5px] text-muted-foreground/70">Drop deals here</p>
           </div>
         )}
       </div>
 
       {/* Add Deal Button */}
       {!stage.isWonStage && !stage.isLostStage && (
-        <div className="p-2 pt-0">
+        <div className="border-t border-border p-2">
           <Button
             variant="ghost"
             size="sm"
-            className="w-full justify-start gap-2 text-zinc-500 hover:text-indigo-600"
+            className="h-7 w-full justify-start gap-1.5 text-[12px] text-muted-foreground hover:text-foreground"
             onClick={() => setAddDialogOpen(true)}
           >
-            <Plus className="size-4" />
-            Add deal
+            <Plus className="size-3.5" />
+            New deal
           </Button>
         </div>
       )}

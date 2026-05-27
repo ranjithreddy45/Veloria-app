@@ -36,7 +36,7 @@ interface RevenueChartProps {
 const chartConfig = {
   revenue: {
     label: "Revenue",
-    color: "oklch(0.55 0.24 277)",
+    color: "var(--primary)",
   },
 } satisfies ChartConfig;
 
@@ -60,74 +60,103 @@ function formatTooltipValue(value: number): string {
 // ============================================================
 
 export function RevenueChart({ data }: RevenueChartProps) {
+  // Compute total + change for the subtitle row
+  const total = data.reduce((sum, d) => sum + d.revenue, 0);
+  const last = data[data.length - 1]?.revenue ?? 0;
+  const prev = data[data.length - 2]?.revenue ?? 0;
+  const change = prev === 0 ? 0 : ((last - prev) / prev) * 100;
+
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <div className="flex items-center gap-3">
-          <div className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-100 to-indigo-200/50 dark:from-indigo-900/40 dark:to-indigo-800/20">
-            <svg className="size-4 text-indigo-600 dark:text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-          </div>
-          <div>
-            <CardTitle className="text-base font-semibold">
-              Revenue Overview
-            </CardTitle>
-            <p className="text-xs text-muted-foreground">Monthly revenue for the last 12 months</p>
+    <Card className="card-hover-tint border border-border bg-card shadow-none">
+      <CardHeader className="flex flex-row items-end justify-between pb-2">
+        <div>
+          <CardTitle className="text-[13px] font-medium uppercase tracking-[0.05em] text-muted-foreground">
+            Revenue
+          </CardTitle>
+          <div className="mt-1.5 flex items-baseline gap-2">
+            <span className="text-[26px] font-semibold tracking-[-0.02em] text-foreground tabular-nums">
+              ₹{formatYAxis(total).replace("₹", "")}
+            </span>
+            {change !== 0 && (
+              <span
+                className={
+                  change >= 0
+                    ? "text-[12px] font-medium text-emerald-600 dark:text-emerald-400"
+                    : "text-[12px] font-medium text-destructive"
+                }
+              >
+                {change >= 0 ? "+" : ""}
+                {change.toFixed(1)}% m/m
+              </span>
+            )}
           </div>
         </div>
+        <p className="text-[11.5px] text-muted-foreground">Last 12 months</p>
       </CardHeader>
       <CardContent className="px-2 pb-4">
-        <ChartContainer config={chartConfig} className="h-[300px] w-full">
+        <ChartContainer config={chartConfig} className="h-[260px] w-full">
           <AreaChart
             data={data}
-            margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+            margin={{ top: 12, right: 10, left: 0, bottom: 0 }}
           >
             <defs>
               <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="5%"
-                  stopColor="hsl(239, 84%, 67%)"
-                  stopOpacity={0.5}
-                />
-                <stop
-                  offset="95%"
-                  stopColor="hsl(239, 84%, 67%)"
-                  stopOpacity={0.02}
-                />
+                <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.28} />
+                <stop offset="60%" stopColor="var(--primary)" stopOpacity={0.06} />
+                <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid
-              strokeDasharray="3 3"
+              strokeDasharray="2 4"
               vertical={false}
-              className="stroke-border"
+              stroke="var(--border)"
+              strokeOpacity={0.7}
             />
             <XAxis
               dataKey="month"
               tickLine={false}
               axisLine={false}
-              tick={{ fontSize: 12, fill: "hsl(240, 4%, 46%)" }}
+              tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
               tickFormatter={(value) => value.split(" ")[0]}
-              tickMargin={8}
+              tickMargin={10}
+              interval="preserveStartEnd"
             />
             <YAxis
               tickLine={false}
               axisLine={false}
-              tick={{ fontSize: 12, fill: "hsl(240, 4%, 46%)" }}
+              tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
               tickFormatter={formatYAxis}
-              width={60}
+              width={52}
             />
             <Tooltip
+              cursor={{
+                stroke: "var(--primary)",
+                strokeWidth: 1,
+                strokeDasharray: "2 4",
+              }}
               content={
                 <ChartTooltipContent
                   formatter={(value) => formatTooltipValue(Number(value))}
+                  indicator="line"
                 />
               }
             />
             <Area
               type="monotone"
               dataKey="revenue"
-              stroke="hsl(239, 84%, 67%)"
-              strokeWidth={2.5}
+              stroke="var(--primary)"
+              strokeWidth={1.75}
               fill="url(#revenueGradient)"
+              dot={false}
+              activeDot={{
+                r: 4,
+                fill: "var(--background)",
+                stroke: "var(--primary)",
+                strokeWidth: 2,
+              }}
+              isAnimationActive={true}
+              animationDuration={800}
+              animationEasing="ease-out"
             />
           </AreaChart>
         </ChartContainer>

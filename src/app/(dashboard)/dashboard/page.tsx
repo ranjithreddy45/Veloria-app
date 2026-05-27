@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { auth } from "@/../auth";
-import { Sparkles } from "lucide-react";
 import { getDashboardStats } from "@/actions/dashboard.actions";
 import { KpiCards } from "./_components/kpi-cards";
 import { RevenueChart } from "./_components/revenue-chart";
@@ -39,30 +38,31 @@ export default async function DashboardPage() {
   const userName = session?.user?.name?.split(" ")[0] || "there";
   const greeting = getGreeting();
 
+  // Format today's date for the contextual eyebrow
+  const today = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    timeZone: "Asia/Kolkata",
+  });
+
   return (
-    <div className="space-y-8">
-      {/* Modern Welcome Banner */}
-      <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-700 p-6 text-white shadow-lg dark:from-indigo-700 dark:via-indigo-800 dark:to-violet-900 sm:p-8">
-        {/* Decorative background elements */}
-        <div className="pointer-events-none absolute -right-12 -top-12 size-64 rounded-full bg-white/5 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-16 -left-16 size-48 rounded-full bg-violet-400/10 blur-3xl" />
-        <div className="pointer-events-none absolute right-8 top-8 size-24 rounded-full bg-indigo-300/10 blur-2xl" />
-        <div className="relative flex items-start justify-between">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Sparkles className="size-5 text-indigo-200" />
-              <span className="text-xs font-medium uppercase tracking-wider text-indigo-200">
-                Dashboard
-              </span>
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-              {greeting}, {userName}
-            </h1>
-            <p className="max-w-lg text-sm text-indigo-100/80">
-              Here&apos;s an overview of your venue operations. Stay on top of bookings, revenue, and tasks.
-            </p>
-          </div>
+    <div className="mx-auto max-w-[1400px] space-y-6 px-1">
+      {/* Page heading — eyebrow + greeting */}
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2 text-[11.5px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+          <span className="relative inline-flex size-1.5">
+            <span className="absolute inset-0 animate-ping rounded-full bg-emerald-500/60 opacity-75" />
+            <span className="relative size-1.5 rounded-full bg-emerald-500" />
+          </span>
+          {today}
         </div>
+        <h1 className="text-[26px] font-semibold leading-none tracking-[-0.025em] text-foreground">
+          {greeting}, {userName}
+        </h1>
+        <p className="text-[13.5px] text-muted-foreground">
+          Here&apos;s what&apos;s happening across your venue today.
+        </p>
       </div>
 
       {/* KPI Cards */}
@@ -71,10 +71,11 @@ export default async function DashboardPage() {
         bookings={stats.bookings}
         leads={stats.leads}
         tasks={stats.tasks}
+        revenueHistory={stats.monthlyRevenue.map((m) => m.revenue)}
       />
 
-      {/* Charts Section: Revenue (8/12) + Bookings by Type (4/12) */}
-      <div className="grid gap-6 lg:grid-cols-12">
+      {/* Charts: Revenue (8/12) + Bookings by Type (4/12) */}
+      <div className="grid gap-4 lg:grid-cols-12">
         <div className="lg:col-span-8">
           <RevenueChart data={stats.monthlyRevenue} />
         </div>
@@ -83,8 +84,8 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Bottom Section: Upcoming Events + Overdue Items */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      {/* Bottom: Upcoming Events + Overdue Items */}
+      <div className="grid gap-4 lg:grid-cols-2">
         <UpcomingEvents events={stats.upcomingEvents} />
         <OverdueItems
           tasks={stats.overdueTasks}

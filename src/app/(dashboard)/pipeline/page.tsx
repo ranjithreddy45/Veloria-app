@@ -7,17 +7,10 @@ export const metadata: Metadata = { title: "Sales Pipeline" };
 
 // Indian number formatting utility
 function formatIndianCurrency(value: number): string {
-  if (value >= 10000000) {
-    return `${(value / 10000000).toFixed(2)} Cr`;
-  }
-  if (value >= 100000) {
-    return `${(value / 100000).toFixed(2)} L`;
-  }
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(value);
+  if (value >= 10000000) return `₹${(value / 10000000).toFixed(2)} Cr`;
+  if (value >= 100000) return `₹${(value / 100000).toFixed(2)} L`;
+  if (value >= 1000) return `₹${(value / 1000).toFixed(0)} K`;
+  return `₹${value.toLocaleString("en-IN")}`;
 }
 
 export default async function PipelinePage() {
@@ -31,15 +24,38 @@ export default async function PipelinePage() {
 
   const totalValue = stats?.totalValue ?? 0;
   const totalDeals = stats?.totalDeals ?? 0;
+  const wonValue = stats?.wonValue ?? 0;
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] flex-col">
+    <div className="flex h-[calc(100vh-7rem)] flex-col gap-5">
       <PageHeader
-        title="Sales Pipeline"
-        description={`${totalDeals} deals worth ${formatIndianCurrency(totalValue)} in pipeline`}
+        title="Pipeline"
+        eyebrow={
+          <div className="flex items-center gap-3">
+            <span>Sales · Kanban</span>
+            <span className="h-3 w-px bg-border" />
+            <span className="text-foreground/80">
+              <span className="font-semibold tabular-nums">{totalDeals}</span> deals
+            </span>
+            <span className="h-3 w-px bg-border" />
+            <span className="text-foreground/80">
+              <span className="font-semibold tabular-nums">{formatIndianCurrency(totalValue)}</span> open
+            </span>
+            {wonValue > 0 && (
+              <>
+                <span className="h-3 w-px bg-border" />
+                <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
+                  <span className="size-1.5 rounded-full bg-emerald-500" />
+                  <span className="font-semibold tabular-nums">{formatIndianCurrency(wonValue)}</span> won
+                </span>
+              </>
+            )}
+          </div>
+        }
+        description="Drag deals through stages — values and probability auto-update."
       />
 
-      <div className="mt-6 flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden">
         <PipelineBoard initialStages={stages} />
       </div>
     </div>

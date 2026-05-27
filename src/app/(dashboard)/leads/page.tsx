@@ -15,19 +15,47 @@ export const metadata: Metadata = { title: "Leads" };
 
 export default async function LeadsPage() {
   const result = await getLeads();
-
   const leads = result.success ? result.data.data : [];
 
+  // Total pipeline value (only counting non-lost leads)
+  const pipelineValue = leads
+    .filter((l) => l.status !== "LOST")
+    .reduce((sum, l) => sum + Number(l.estimatedValue ?? 0), 0);
+
+  const fmtCurrency = (n: number) => {
+    if (n >= 10000000) return `₹${(n / 10000000).toFixed(2)} Cr`;
+    if (n >= 100000) return `₹${(n / 100000).toFixed(1)} L`;
+    if (n >= 1000) return `₹${(n / 1000).toFixed(0)} K`;
+    return `₹${n.toLocaleString("en-IN")}`;
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageHeader
         title="Leads"
-        description="Track and manage your sales leads."
+        eyebrow={
+          <div className="flex items-center gap-3">
+            <span>CRM · Pipeline</span>
+            <span className="h-3 w-px bg-border" />
+            <span className="text-foreground/80">
+              <span className="font-semibold tabular-nums">{leads.length}</span> total
+            </span>
+            {pipelineValue > 0 && (
+              <>
+                <span className="h-3 w-px bg-border" />
+                <span className="text-foreground/80">
+                  <span className="font-semibold tabular-nums">{fmtCurrency(pipelineValue)}</span> pipeline value
+                </span>
+              </>
+            )}
+          </div>
+        }
+        description="Track and qualify every inbound opportunity — from first contact to close."
       >
         <Button asChild>
           <Link href="/leads/new">
-            <PlusIcon className="mr-2 size-4" />
-            New Lead
+            <PlusIcon className="size-3.5" strokeWidth={2.5} />
+            New lead
           </Link>
         </Button>
       </PageHeader>

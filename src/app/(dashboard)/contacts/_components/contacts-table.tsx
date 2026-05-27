@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { type ColumnDef } from "@tanstack/react-table";
-import { format } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -11,14 +11,17 @@ import {
   TrashIcon,
   EyeIcon,
   DownloadIcon,
+  MailIcon,
+  PhoneIcon,
+  MessageCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { DataTable, DataTableColumnHeader, getSelectionColumn } from "@/components/shared/data-table";
 import { SavedViewSelector } from "@/components/shared/saved-view-selector";
 import { BulkActionBar, TrashIcon as BulkTrashIcon, TagIcon } from "@/components/shared/bulk-action-bar";
-import { StatusBadge } from "@/components/shared/status-badge";
-import { Badge } from "@/components/ui/badge";
+import { StatusPill } from "@/components/shared/status-pill";
+import { DotAvatar } from "@/components/shared/dot-avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -38,15 +41,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { MessageCircle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { deleteContact } from "@/actions/contact.actions";
 import { bulkDeleteContacts, bulkUpdateContacts } from "@/actions/bulk.actions";
 import { exportContacts } from "@/actions/export.actions";
 import { toCSV, downloadCSV } from "@/lib/csv-export";
 import { BulkWhatsAppDialog } from "@/components/shared/bulk-whatsapp-dialog";
+import { cn } from "@/lib/utils";
 
 // ============================================================
-// Contact Type (matching Prisma Contact model)
+// Types
 // ============================================================
 
 interface Contact {
@@ -71,25 +75,45 @@ interface Contact {
 }
 
 // ============================================================
-// Contact Type Colors
+// Identity cell — avatar + name + company/designation subtitle
 // ============================================================
 
-const CONTACT_TYPE_COLORS: Record<string, string> = {
-  INDIVIDUAL: "bg-blue-100 text-blue-800 border-blue-200",
-  CORPORATE: "bg-purple-100 text-purple-800 border-purple-200",
-};
+function IdentityCell({ contact }: { contact: Contact }) {
+  const fullName = `${contact.firstName} ${contact.lastName}`.trim();
+  const subtitle =
+    contact.company && contact.designation
+      ? `${contact.designation} · ${contact.company}`
+      : contact.company || contact.designation || contact.city || "—";
+
+  return (
+    <div className="flex items-center gap-2.5 min-w-0">
+      <DotAvatar seed={contact.id} name={fullName} size="md" />
+      <div className="min-w-0 leading-tight">
+        <Link
+          href={`/contacts/${contact.id}`}
+          className="block truncate text-[13px] font-medium text-foreground hover:underline"
+        >
+          {fullName}
+        </Link>
+        <span className="block truncate text-[11.5px] text-muted-foreground">
+          {subtitle}
+        </span>
+      </div>
+    </div>
+  );
+}
 
 // ============================================================
-// Columns Definition
+// Quick actions on hover
 // ============================================================
 
-function ActionsCell({ contact }: { contact: Contact }) {
+function QuickActions({ contact }: { contact: Contact }) {
   const router = useRouter();
 
   const handleDelete = async () => {
     const result = await deleteContact(contact.id);
     if (result.success) {
-      toast.success("Contact deleted successfully");
+      toast.success("Contact deleted");
       router.refresh();
     } else {
       toast.error(result.error);
@@ -97,136 +121,238 @@ function ActionsCell({ contact }: { contact: Contact }) {
   };
 
   return (
-    <AlertDialog>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon-xs">
-            <MoreHorizontalIcon className="size-4" />
-            <span className="sr-only">Open menu</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem asChild>
-            <Link href={`/contacts/${contact.id}`}>
-              <EyeIcon className="mr-2 size-4" />
-              View
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href={`/contacts/${contact.id}/edit`}>
-              <PencilIcon className="mr-2 size-4" />
-              Edit
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <AlertDialogTrigger asChild>
-            <DropdownMenuItem className="text-destructive">
-              <TrashIcon className="mr-2 size-4" />
-              Delete
-            </DropdownMenuItem>
-          </AlertDialogTrigger>
-        </DropdownMenuContent>
-      </DropdownMenu>
+    <div className="flex items-center justify-end gap-0.5 opacity-0 group-hover/row:opacity-100 group-focus-within/row:opacity-100 transition-opacity">
+      {contact.email && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              className="size-7 text-muted-foreground hover:text-foreground"
+              onClick={(e) => {
+                e.stopPropagation();
+                window.location.href = `mailto:${contact.email}`;
+              }}
+            >
+              <MailIcon className="size-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="text-[11px]">
+            Email {contact.email}
+          </TooltipContent>
+        </Tooltip>
+      )}
+      {contact.phone && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              className="size-7 text-muted-foreground hover:text-foreground"
+              onClick={(e) => {
+                e.stopPropagation();
+                window.location.href = `tel:${contact.phone}`;
+              }}
+            >
+              <PhoneIcon className="size-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="text-[11px]">
+            Call {contact.phone}
+          </TooltipContent>
+        </Tooltip>
+      )}
 
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete Contact</AlertDialogTitle>
-          <AlertDialogDescription>
-            Are you sure you want to delete{" "}
-            <span className="font-medium">
-              {contact.firstName} {contact.lastName}
-            </span>
-            ? This action cannot be undone.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={handleDelete}
-            className="bg-destructive text-white hover:bg-destructive/90"
-          >
-            Delete
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+      <AlertDialog>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              className="size-7 text-muted-foreground hover:text-foreground"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreHorizontalIcon className="size-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuItem asChild>
+              <Link href={`/contacts/${contact.id}`}>
+                <EyeIcon className="mr-2 size-3.5" /> Open
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href={`/contacts/${contact.id}/edit`}>
+                <PencilIcon className="mr-2 size-3.5" /> Edit
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <AlertDialogTrigger asChild>
+              <DropdownMenuItem className="text-destructive focus:text-destructive">
+                <TrashIcon className="mr-2 size-3.5" /> Delete
+              </DropdownMenuItem>
+            </AlertDialogTrigger>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete contact</AlertDialogTitle>
+            <AlertDialogDescription>
+              Delete{" "}
+              <span className="font-medium">
+                {contact.firstName} {contact.lastName}
+              </span>
+              ? This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 }
+
+// ============================================================
+// Type filter tabs
+// ============================================================
+
+type TypeFilter = "ALL" | "INDIVIDUAL" | "CORPORATE";
+
+const TYPE_TABS: Array<{ id: TypeFilter; label: string }> = [
+  { id: "ALL", label: "All" },
+  { id: "INDIVIDUAL", label: "Individual" },
+  { id: "CORPORATE", label: "Corporate" },
+];
+
+function TypeTabs({
+  data,
+  active,
+  onChange,
+}: {
+  data: Contact[];
+  active: TypeFilter;
+  onChange: (v: TypeFilter) => void;
+}) {
+  const counts: Record<TypeFilter, number> = {
+    ALL: data.length,
+    INDIVIDUAL: data.filter((c) => c.type === "INDIVIDUAL").length,
+    CORPORATE: data.filter((c) => c.type === "CORPORATE").length,
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-0.5 rounded-md border border-border bg-card p-0.5">
+      {TYPE_TABS.map((tab) => {
+        const isActive = tab.id === active;
+        return (
+          <button
+            key={tab.id}
+            onClick={() => onChange(tab.id)}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-[5px] px-2.5 py-1 text-[12.5px] font-medium transition-colors",
+              isActive
+                ? "bg-muted text-foreground"
+                : "text-muted-foreground hover:bg-muted/60 hover:text-foreground/90"
+            )}
+          >
+            {tab.label}
+            <span
+              className={cn(
+                "rounded px-1 text-[10.5px] tabular-nums",
+                isActive
+                  ? "bg-background text-foreground/70 ring-1 ring-border"
+                  : "text-muted-foreground/70"
+              )}
+            >
+              {counts[tab.id]}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ============================================================
+// Columns
+// ============================================================
 
 const columns: ColumnDef<Contact>[] = [
   getSelectionColumn<Contact>(),
   {
     id: "name",
-    accessorFn: (row) => `${row.firstName} ${row.lastName}`,
+    accessorFn: (row) => `${row.firstName} ${row.lastName} ${row.company ?? ""}`,
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Name" />
     ),
+    cell: ({ row }) => <IdentityCell contact={row.original} />,
+  },
+  {
+    accessorKey: "email",
+    header: "Email",
     cell: ({ row }) => {
-      const contact = row.original;
+      const email = row.original.email;
+      if (!email) return <span className="text-muted-foreground/60 text-[12px]">—</span>;
       return (
-        <Link
-          href={`/contacts/${contact.id}`}
-          className="font-medium hover:underline"
+        <a
+          href={`mailto:${email}`}
+          className="text-[12.5px] text-muted-foreground hover:text-foreground hover:underline truncate inline-block max-w-[200px]"
+          onClick={(e) => e.stopPropagation()}
         >
-          {contact.firstName} {contact.lastName}
-        </Link>
+          {email}
+        </a>
       );
     },
   },
   {
-    accessorKey: "email",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Email" />
-    ),
-    cell: ({ row }) => (
-      <span className="text-muted-foreground">
-        {row.getValue("email") || "--"}
-      </span>
-    ),
-  },
-  {
     accessorKey: "phone",
     header: "Phone",
-    cell: ({ row }) => (
-      <span className="text-muted-foreground">
-        {row.getValue("phone") || "--"}
-      </span>
-    ),
-  },
-  {
-    accessorKey: "company",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Company" />
-    ),
-    cell: ({ row }) => row.getValue("company") || "--",
+    cell: ({ row }) => {
+      const phone = row.original.phone;
+      if (!phone) return <span className="text-muted-foreground/60 text-[12px]">—</span>;
+      return (
+        <span className="text-[12.5px] text-muted-foreground tabular-nums">{phone}</span>
+      );
+    },
   },
   {
     accessorKey: "type",
     header: "Type",
-    cell: ({ row }) => (
-      <StatusBadge
-        status={row.getValue("type")}
-        colorMap={CONTACT_TYPE_COLORS}
-      />
-    ),
+    cell: ({ row }) => {
+      const t = row.original.type;
+      return (
+        <StatusPill
+          label={t === "CORPORATE" ? "Corporate" : "Individual"}
+          hue={t === "CORPORATE" ? "violet" : "blue"}
+          size="xs"
+        />
+      );
+    },
   },
   {
     accessorKey: "tags",
     header: "Tags",
     cell: ({ row }) => {
-      const tags = row.getValue("tags") as string[];
-      if (!tags || tags.length === 0) return "--";
+      const tags = row.original.tags;
+      if (!tags || tags.length === 0) {
+        return <span className="text-muted-foreground/60 text-[12px]">—</span>;
+      }
       return (
         <div className="flex flex-wrap gap-1">
-          {tags.slice(0, 3).map((tag) => (
-            <Badge key={tag} variant="secondary" className="text-xs">
-              {tag}
-            </Badge>
+          {tags.slice(0, 2).map((tag) => (
+            <StatusPill key={tag} label={tag} hue="neutral" size="xs" noDot />
           ))}
-          {tags.length > 3 && (
-            <Badge variant="secondary" className="text-xs">
-              +{tags.length - 3}
-            </Badge>
+          {tags.length > 2 && (
+            <span className="text-[11px] text-muted-foreground">
+              +{tags.length - 2}
+            </span>
           )}
         </div>
       );
@@ -235,25 +361,25 @@ const columns: ColumnDef<Contact>[] = [
   {
     accessorKey: "createdAt",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Created" />
+      <DataTableColumnHeader column={column} title="Added" />
     ),
-    cell: ({ row }) =>
-      format(new Date(row.getValue("createdAt")), "dd MMM yyyy"),
+    cell: ({ row }) => (
+      <span className="text-[12px] text-muted-foreground">
+        {formatDistanceToNow(new Date(row.original.createdAt), { addSuffix: true })}
+      </span>
+    ),
   },
   {
     id: "actions",
     enableHiding: false,
-    cell: ({ row }) => <ActionsCell contact={row.original} />,
+    cell: ({ row }) => <QuickActions contact={row.original} />,
+    size: 120,
   },
 ];
 
 // ============================================================
-// ContactsTable Component
+// Toolbar buttons
 // ============================================================
-
-interface ContactsTableProps {
-  data: Contact[];
-}
 
 function ExportButton() {
   const [loading, setLoading] = React.useState(false);
@@ -265,12 +391,12 @@ function ExportButton() {
       if (result.success) {
         const csv = toCSV(result.data.headers, result.data.rows);
         downloadCSV(`contacts-${new Date().toISOString().split("T")[0]}.csv`, csv);
-        toast.success("Contacts exported successfully");
+        toast.success("Contacts exported");
       } else {
         toast.error(result.error);
       }
     } catch {
-      toast.error("Failed to export contacts");
+      toast.error("Export failed");
     } finally {
       setLoading(false);
     }
@@ -278,17 +404,31 @@ function ExportButton() {
 
   return (
     <Button variant="outline" size="sm" onClick={handleExport} disabled={loading}>
-      <DownloadIcon className="mr-2 size-4" />
-      {loading ? "Exporting..." : "Export CSV"}
+      <DownloadIcon className="size-3.5" />
+      {loading ? "Exporting…" : "Export"}
     </Button>
   );
 }
 
+// ============================================================
+// Main table
+// ============================================================
+
+interface ContactsTableProps {
+  data: Contact[];
+}
+
 export function ContactsTable({ data }: ContactsTableProps) {
   const router = useRouter();
+  const [typeFilter, setTypeFilter] = React.useState<TypeFilter>("ALL");
   const [selectedRows, setSelectedRows] = React.useState<Contact[]>([]);
   const [bulkWhatsAppOpen, setBulkWhatsAppOpen] = React.useState(false);
   const [bulkWhatsAppIds, setBulkWhatsAppIds] = React.useState<string[]>([]);
+
+  const filtered = React.useMemo(() => {
+    if (typeFilter === "ALL") return data;
+    return data.filter((c) => c.type === typeFilter);
+  }, [data, typeFilter]);
 
   const selectedIds = React.useMemo(
     () => selectedRows.map((r) => r.id),
@@ -302,16 +442,11 @@ export function ContactsTable({ data }: ContactsTableProps) {
         label: "Set Corporate",
         icon: TagIcon,
         onClick: async (ids: string[]) => {
-          const result = await bulkUpdateContacts({
-            ids,
-            data: { type: "CORPORATE" },
-          });
+          const result = await bulkUpdateContacts({ ids, data: { type: "CORPORATE" } });
           if (result.success) {
             toast.success(`Updated ${result.data.count} contacts`);
             router.refresh();
-          } else {
-            toast.error(result.error);
-          }
+          } else toast.error(result.error);
         },
       },
       {
@@ -319,16 +454,11 @@ export function ContactsTable({ data }: ContactsTableProps) {
         label: "Set Individual",
         icon: TagIcon,
         onClick: async (ids: string[]) => {
-          const result = await bulkUpdateContacts({
-            ids,
-            data: { type: "INDIVIDUAL" },
-          });
+          const result = await bulkUpdateContacts({ ids, data: { type: "INDIVIDUAL" } });
           if (result.success) {
             toast.success(`Updated ${result.data.count} contacts`);
             router.refresh();
-          } else {
-            toast.error(result.error);
-          }
+          } else toast.error(result.error);
         },
       },
       {
@@ -346,16 +476,14 @@ export function ContactsTable({ data }: ContactsTableProps) {
         icon: BulkTrashIcon,
         variant: "destructive" as const,
         requireConfirm: true,
-        confirmTitle: "Delete Contacts",
-        confirmDescription: `Are you sure you want to delete ${selectedRows.length} contact(s)? This action cannot be undone.`,
+        confirmTitle: "Delete contacts",
+        confirmDescription: `Delete ${selectedRows.length} contact(s)? This cannot be undone.`,
         onClick: async (ids: string[]) => {
           const result = await bulkDeleteContacts({ ids });
           if (result.success) {
             toast.success(`Deleted ${result.data.count} contacts`);
             router.refresh();
-          } else {
-            toast.error(result.error);
-          }
+          } else toast.error(result.error);
         },
       },
     ],
@@ -364,11 +492,12 @@ export function ContactsTable({ data }: ContactsTableProps) {
 
   return (
     <>
+      <TypeTabs data={data} active={typeFilter} onChange={setTypeFilter} />
       <DataTable
         columns={columns}
-        data={data}
+        data={filtered}
         searchKey="name"
-        searchPlaceholder="Search contacts by name..."
+        searchPlaceholder="Search contacts…"
         enableRowSelection
         onSelectionChange={setSelectedRows}
         getRowId={(row) => row.id}

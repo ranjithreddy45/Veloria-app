@@ -82,16 +82,17 @@ export type DashboardStats = {
 // Color palette for charts
 // ============================================================
 
+// Restrained, modern palette — desaturated, harmonized
 const EVENT_TYPE_COLORS: Record<string, string> = {
-  Wedding: "hsl(262, 83%, 58%)",
-  Reception: "hsl(221, 83%, 53%)",
-  "Corporate Event": "hsl(173, 58%, 39%)",
-  "Birthday Party": "hsl(43, 96%, 56%)",
-  Anniversary: "hsl(346, 77%, 49%)",
-  Engagement: "hsl(199, 89%, 48%)",
-  "Baby Shower": "hsl(316, 72%, 51%)",
-  "Social Gathering": "hsl(142, 71%, 45%)",
-  Other: "hsl(215, 16%, 47%)",
+  Wedding: "oklch(0.55 0.15 270)",         // indigo
+  Reception: "oklch(0.6 0.13 220)",        // sky
+  "Corporate Event": "oklch(0.6 0.12 195)", // teal
+  "Birthday Party": "oklch(0.72 0.13 80)",  // amber
+  Anniversary: "oklch(0.6 0.15 25)",        // terracotta
+  Engagement: "oklch(0.65 0.13 195)",       // cyan
+  "Baby Shower": "oklch(0.65 0.13 340)",    // soft pink
+  "Social Gathering": "oklch(0.6 0.13 145)", // green
+  Other: "oklch(0.55 0.02 270)",            // slate
 };
 
 // ============================================================

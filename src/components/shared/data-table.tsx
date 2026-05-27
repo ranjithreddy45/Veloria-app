@@ -207,13 +207,16 @@ export function DataTable<TData, TValue>({
       </div>
 
       {/* Table */}
-      <div className="rounded-xl border shadow-card overflow-hidden">
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-muted/30">
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
+              <TableRow key={headerGroup.id} className="border-b border-border hover:bg-transparent">
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
+                  <TableHead
+                    key={header.id}
+                    className="h-9 px-3 text-[11px] font-medium uppercase tracking-[0.05em] text-muted-foreground"
+                  >
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -231,9 +234,10 @@ export function DataTable<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  className="group/row border-b border-border last:border-0 transition-colors hover:bg-muted/40 data-[state=selected]:bg-primary/[0.04]"
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className="px-3 py-2.5 align-middle">
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
@@ -246,7 +250,7 @@ export function DataTable<TData, TValue>({
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className="h-24 text-center"
+                  className="h-32 text-center text-[13px] text-muted-foreground"
                 >
                   No results.
                 </TableCell>
@@ -257,54 +261,60 @@ export function DataTable<TData, TValue>({
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between px-2">
-        <div className="text-muted-foreground text-sm">
+      <div className="flex items-center justify-between px-1 text-[12px] text-muted-foreground">
+        <div>
           {enableRowSelection && Object.keys(rowSelection).length > 0 ? (
             <span>
-              {Object.keys(rowSelection).length} of{" "}
-              {table.getFilteredRowModel().rows.length} row(s) selected
+              <span className="font-medium text-foreground tabular-nums">{Object.keys(rowSelection).length}</span> of{" "}
+              <span className="tabular-nums">{table.getFilteredRowModel().rows.length}</span> selected
             </span>
           ) : (
-            <span>{table.getFilteredRowModel().rows.length} row(s) total</span>
+            <span>
+              <span className="font-medium text-foreground tabular-nums">{table.getFilteredRowModel().rows.length}</span> result
+              {table.getFilteredRowModel().rows.length === 1 ? "" : "s"}
+            </span>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <div className="text-muted-foreground text-sm">
-            Page {table.getState().pagination.pageIndex + 1} of{" "}
-            {table.getPageCount()}
+        <div className="flex items-center gap-3">
+          <div className="tabular-nums">
+            Page {table.getState().pagination.pageIndex + 1} of {Math.max(table.getPageCount(), 1)}
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon-xs"
+              className="size-7 text-muted-foreground"
               onClick={() => table.setPageIndex(0)}
               disabled={!table.getCanPreviousPage()}
             >
-              <ChevronsLeftIcon className="size-4" />
+              <ChevronsLeftIcon className="size-3.5" />
             </Button>
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon-xs"
+              className="size-7 text-muted-foreground"
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
             >
-              <ChevronLeftIcon className="size-4" />
+              <ChevronLeftIcon className="size-3.5" />
             </Button>
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon-xs"
+              className="size-7 text-muted-foreground"
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
             >
-              <ChevronRightIcon className="size-4" />
+              <ChevronRightIcon className="size-3.5" />
             </Button>
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon-xs"
+              className="size-7 text-muted-foreground"
               onClick={() => table.setPageIndex(table.getPageCount() - 1)}
               disabled={!table.getCanNextPage()}
             >
-              <ChevronsRightIcon className="size-4" />
+              <ChevronsRightIcon className="size-3.5" />
             </Button>
           </div>
         </div>
@@ -336,14 +346,13 @@ export function DataTableColumnHeader<TData, TValue>({
   }
 
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="-ml-3 h-8"
+    <button
+      type="button"
+      className="-ml-1 inline-flex items-center gap-1 rounded px-1 py-0.5 text-[11px] font-medium uppercase tracking-[0.05em] text-muted-foreground hover:bg-muted hover:text-foreground/80 transition-colors"
       onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
     >
       {title}
-      <ArrowUpDownIcon className="ml-2 size-4" />
-    </Button>
+      <ArrowUpDownIcon className="size-3 opacity-60" />
+    </button>
   );
 }

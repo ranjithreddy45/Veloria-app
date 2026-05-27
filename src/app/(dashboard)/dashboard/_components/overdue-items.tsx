@@ -2,7 +2,6 @@
 
 import { differenceInDays, format } from "date-fns";
 import {
-  AlertTriangle,
   CircleAlert,
   FileText,
   CheckSquare,
@@ -59,29 +58,34 @@ export function OverdueItems({ tasks, payments }: OverdueItemsProps) {
   const hasItems = tasks.length > 0 || payments.length > 0;
 
   return (
-    <Card>
+    <Card className="card-hover-tint border border-border bg-card shadow-none">
       <CardHeader className="pb-2">
-        <div className="flex items-center gap-2">
-          <CardTitle className="text-base font-semibold">
-            Overdue Items
-          </CardTitle>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-[13px] font-medium uppercase tracking-[0.05em] text-muted-foreground">
+              Overdue
+            </CardTitle>
+            <p className="mt-1 text-[12px] text-muted-foreground/80">Tasks and payments past due</p>
+          </div>
           {hasItems && (
-            <Badge className="bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-400 text-[10px] px-1.5 py-0">
+            <Badge
+              variant="outline"
+              className="border-destructive/30 bg-destructive/5 px-1.5 py-0 text-[11px] font-medium text-destructive"
+            >
               {tasks.length + payments.length}
             </Badge>
           )}
         </div>
-        <p className="text-xs text-muted-foreground">Tasks and payments past due date</p>
       </CardHeader>
       <CardContent>
         {!hasItems ? (
-          <div className="flex flex-col items-center justify-center py-8 text-muted-foreground/60">
-            <CircleAlert className="mb-2 size-8" />
-            <p className="text-sm font-medium">All caught up!</p>
-            <p className="text-xs">No overdue items</p>
+          <div className="flex flex-col items-center justify-center gap-1 py-10 text-muted-foreground">
+            <CircleAlert className="mb-1 size-5 opacity-50" />
+            <p className="text-[13px] font-medium">All caught up</p>
+            <p className="text-[12px] text-muted-foreground/70">No overdue items</p>
           </div>
         ) : (
-          <div className="space-y-1">
+          <div className="divide-y divide-border">
             {/* Overdue Tasks */}
             {tasks.map((task) => {
               const daysOverdue = differenceInDays(
@@ -91,10 +95,10 @@ export function OverdueItems({ tasks, payments }: OverdueItemsProps) {
               return (
                 <div
                   key={task.id}
-                  className="group flex items-start gap-3 rounded-xl p-3 transition-all duration-200 hover:bg-red-50/50 dark:hover:bg-red-950/20"
+                  className="flex items-start gap-3 py-3 first:pt-1 last:pb-1"
                 >
-                  <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-red-100 to-red-200/50 dark:from-red-900/40 dark:to-red-800/20 transition-transform duration-200 group-hover:scale-105">
-                    <CheckSquare className="size-3.5 text-red-600 dark:text-red-400" />
+                  <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-muted">
+                    <CheckSquare className="size-3.5 text-muted-foreground" strokeWidth={2} />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
@@ -104,25 +108,25 @@ export function OverdueItems({ tasks, payments }: OverdueItemsProps) {
                           PRIORITY_DOT[task.priority] || "bg-slate-400"
                         )}
                       />
-                      <p className="truncate text-sm font-medium text-foreground">
+                      <p className="truncate text-[13px] font-medium leading-tight text-foreground">
                         {task.title}
                       </p>
                     </div>
-                    <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground/70">
+                    <div className="mt-0.5 flex items-center gap-2 text-[11.5px] text-muted-foreground">
                       {task.assignee?.name && (
-                        <span className="flex items-center gap-1">
+                        <span className="inline-flex items-center gap-1">
                           <User className="size-3" />
                           {task.assignee.name}
                         </span>
                       )}
                       <span>
-                        Due: {format(new Date(task.dueDate as string), "MMM d")}
+                        Due {format(new Date(task.dueDate as string), "MMM d")}
                       </span>
                     </div>
                   </div>
-                  <Badge className="shrink-0 bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-400 text-[10px] px-1.5 py-0">
-                    {daysOverdue}d overdue
-                  </Badge>
+                  <span className="shrink-0 text-[11px] font-medium tabular-nums text-destructive">
+                    {daysOverdue}d
+                  </span>
                 </div>
               );
             })}
@@ -136,28 +140,28 @@ export function OverdueItems({ tasks, payments }: OverdueItemsProps) {
               return (
                 <div
                   key={payment.id}
-                  className="group flex items-start gap-3 rounded-xl p-3 transition-all duration-200 hover:bg-amber-50/50 dark:hover:bg-amber-950/20"
+                  className="flex items-start gap-3 py-3 first:pt-1 last:pb-1"
                 >
-                  <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-100 to-amber-200/50 dark:from-amber-900/40 dark:to-amber-800/20 transition-transform duration-200 group-hover:scale-105">
-                    <FileText className="size-3.5 text-amber-600 dark:text-amber-400" />
+                  <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-muted">
+                    <FileText className="size-3.5 text-muted-foreground" strokeWidth={2} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-foreground">
+                    <p className="truncate text-[13px] font-medium leading-tight text-foreground">
                       {payment.invoiceNumber}
                     </p>
-                    <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground/70">
+                    <div className="mt-0.5 flex items-center gap-2 text-[11.5px] text-muted-foreground">
                       <span>
                         {payment.contact.firstName} {payment.contact.lastName}
                       </span>
-                      <span>&middot;</span>
-                      <span className="font-medium text-amber-700 dark:text-amber-400">
+                      <span>·</span>
+                      <span className="font-medium text-foreground/80 tabular-nums">
                         {formatCurrency(payment.balanceDue)}
                       </span>
                     </div>
                   </div>
-                  <Badge className="shrink-0 bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400 text-[10px] px-1.5 py-0">
-                    {daysOverdue}d overdue
-                  </Badge>
+                  <span className="shrink-0 text-[11px] font-medium tabular-nums text-amber-700 dark:text-amber-400">
+                    {daysOverdue}d
+                  </span>
                 </div>
               );
             })}

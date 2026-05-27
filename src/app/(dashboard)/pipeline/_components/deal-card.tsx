@@ -6,11 +6,8 @@ import { CSS } from "@dnd-kit/utilities";
 import {
   GripVertical,
   Calendar,
-  User,
-  IndianRupee,
-  TrendingUp,
 } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { DotAvatar } from "@/components/shared/dot-avatar";
 import { cn } from "@/lib/utils";
 import { DealDetailSheet } from "./deal-detail-sheet";
 import type { DealItem } from "./pipeline-board";
@@ -20,11 +17,10 @@ import type { DealItem } from "./pipeline-board";
 // ============================================================
 
 function formatIndianCurrency(value: number): string {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(value);
+  if (value >= 10000000) return `₹${(value / 10000000).toFixed(2)} Cr`;
+  if (value >= 100000) return `₹${(value / 100000).toFixed(1)} L`;
+  if (value >= 1000) return `₹${(value / 1000).toFixed(0)} K`;
+  return `₹${value.toLocaleString("en-IN")}`;
 }
 
 function formatDate(date: Date | string | null): string {
@@ -33,6 +29,12 @@ function formatDate(date: Date | string | null): string {
     day: "numeric",
     month: "short",
   }).format(new Date(date));
+}
+
+function probabilityColor(pct: number): string {
+  if (pct >= 70) return "bg-emerald-500";
+  if (pct >= 40) return "bg-amber-500";
+  return "bg-rose-500";
 }
 
 // ============================================================
@@ -83,14 +85,7 @@ export function DealCard({
     ? `${deal.contact.firstName} ${deal.contact.lastName}`
     : "No contact";
 
-  const assigneeInitials = deal.assignedTo?.name
-    ? deal.assignedTo.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
-    : "?";
+  const prob = deal.probability ?? 0;
 
   return (
     <>
@@ -98,93 +93,83 @@ export function DealCard({
         ref={setNodeRef}
         style={style}
         className={cn(
-          "group cursor-pointer rounded-lg border border-border bg-card shadow-sm transition-all hover:shadow-md",
-          isDragging && "opacity-40 shadow-lg",
-          isOverlay && "shadow-xl ring-2 ring-indigo-300"
+          "group cursor-pointer rounded-md border border-border bg-card transition-all duration-150",
+          "hover:border-primary/40 hover:bg-card",
+          isDragging && "opacity-40",
+          isOverlay && "shadow-lg ring-1 ring-primary/40"
         )}
+        onClick={() => setSheetOpen(true)}
       >
-        {/* Left colored border accent */}
-        <div className="flex">
-          <div
-            className="w-1 shrink-0 rounded-l-lg"
-            style={{ backgroundColor: deal.stage.color }}
-          />
-
-          <div className="flex flex-1 flex-col p-3">
-            {/* Top row: drag handle + title */}
-            <div className="flex items-start gap-1">
-              <button
-                className="mt-0.5 shrink-0 cursor-grab rounded p-0.5 text-zinc-300 opacity-0 transition-opacity hover:text-zinc-500 group-hover:opacity-100 active:cursor-grabbing"
-                {...attributes}
-                {...listeners}
-              >
-                <GripVertical className="size-3.5" />
-              </button>
-              <div
-                className="flex-1 min-w-0"
-                onClick={() => setSheetOpen(true)}
-              >
-                <h4 className="text-sm font-medium leading-tight text-zinc-800 line-clamp-2">
-                  {deal.title}
-                </h4>
-              </div>
-            </div>
-
-            {/* Contact name */}
-            <div
-              className="mt-1.5 flex items-center gap-1.5"
-              onClick={() => setSheetOpen(true)}
+        <div className="flex flex-col gap-2 p-2.5">
+          {/* Title row with drag handle */}
+          <div className="flex items-start gap-1.5">
+            <button
+              className="-ml-1 mt-0.5 shrink-0 cursor-grab rounded p-0.5 text-muted-foreground/30 opacity-0 transition-opacity hover:text-muted-foreground group-hover:opacity-100 active:cursor-grabbing"
+              {...attributes}
+              {...listeners}
+              onClick={(e) => e.stopPropagation()}
             >
-              <User className="size-3 text-zinc-400" />
-              <span className="text-xs text-zinc-500 truncate">
-                {contactName}
+              <GripVertical className="size-3" />
+            </button>
+            <h4 className="flex-1 text-[12.5px] font-medium leading-tight text-foreground line-clamp-2">
+              {deal.title}
+            </h4>
+          </div>
+
+          {/* Contact + assignee row */}
+          <div className="flex items-center gap-1.5">
+            {deal.contact && (
+              <DotAvatar
+                seed={deal.contact.id}
+                name={contactName}
+                size="xs"
+              />
+            )}
+            <span className="flex-1 truncate text-[11.5px] text-muted-foreground">
+              {contactName}
+              {deal.lead?.eventType ? <span className="text-muted-foreground/60"> · {deal.lead.eventType}</span> : null}
+            </span>
+          </div>
+
+          {/* Value (large) */}
+          <div className="flex items-center justify-between">
+            <span className="text-[15px] font-semibold tracking-tight tabular-nums text-foreground">
+              {formatIndianCurrency(Number(deal.value))}
+            </span>
+            {deal.expectedCloseDate && (
+              <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground tabular-nums">
+                <Calendar className="size-3" />
+                {formatDate(deal.expectedCloseDate)}
               </span>
-            </div>
+            )}
+          </div>
 
-            {/* Value + Probability row */}
-            <div
-              className="mt-2 flex items-center justify-between"
-              onClick={() => setSheetOpen(true)}
-            >
-              <div className="flex items-center gap-1">
-                <IndianRupee className="size-3 text-zinc-400" />
-                <span className="text-xs font-semibold text-zinc-700">
-                  {formatIndianCurrency(Number(deal.value))}
+          {/* Probability bar + assignee */}
+          <div className="flex items-center gap-2 pt-0.5">
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10.5px] uppercase tracking-[0.05em] text-muted-foreground/70 font-medium">
+                  Probability
+                </span>
+                <span className="text-[10.5px] font-medium tabular-nums text-foreground/80">
+                  {prob}%
                 </span>
               </div>
-              <div className="flex items-center gap-1">
-                <TrendingUp className="size-3 text-zinc-400" />
-                <span className="text-xs text-zinc-500">
-                  {deal.probability}%
-                </span>
+              <div className="h-1 overflow-hidden rounded-full bg-muted">
+                <div
+                  className={cn("h-full rounded-full transition-all", probabilityColor(prob))}
+                  style={{ width: `${prob}%` }}
+                />
               </div>
             </div>
-
-            {/* Bottom row: close date + assignee */}
-            <div
-              className="mt-2 flex items-center justify-between"
-              onClick={() => setSheetOpen(true)}
-            >
-              {deal.expectedCloseDate ? (
-                <div className="flex items-center gap-1">
-                  <Calendar className="size-3 text-zinc-400" />
-                  <span className="text-[11px] text-zinc-400">
-                    {formatDate(deal.expectedCloseDate)}
-                  </span>
-                </div>
-              ) : (
-                <div />
-              )}
-
-              {deal.assignedTo && (
-                <Avatar className="size-5">
-                  <AvatarImage src={deal.assignedTo.image ?? undefined} />
-                  <AvatarFallback className="text-[9px] bg-indigo-100 text-indigo-700">
-                    {assigneeInitials}
-                  </AvatarFallback>
-                </Avatar>
-              )}
-            </div>
+            {deal.assignedTo && (
+              <DotAvatar
+                seed={deal.assignedTo.id}
+                name={deal.assignedTo.name}
+                size="xs"
+                className="ml-1"
+              />
+            )}
           </div>
         </div>
       </div>
