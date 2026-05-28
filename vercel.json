@@ -5,40 +5,8 @@
   "installCommand": "pnpm install",
   "crons": [
     {
-      "path": "/api/cron/cadence-executor",
-      "schedule": "*/15 * * * *"
-    },
-    {
-      "path": "/api/cron/escalation-check",
-      "schedule": "0 * * * *"
-    },
-    {
-      "path": "/api/cron/guest-reminders",
-      "schedule": "0 9 * * *"
-    },
-    {
-      "path": "/api/cron/performance-scores",
+      "path": "/api/cron/daily",
       "schedule": "0 2 * * *"
-    },
-    {
-      "path": "/api/cron/score-decay",
-      "schedule": "0 3 * * 0"
-    },
-    {
-      "path": "/api/cron/ai-scoring",
-      "schedule": "0 4 * * *"
-    },
-    {
-      "path": "/api/cron/sentiment-analysis",
-      "schedule": "0 5 * * *"
-    },
-    {
-      "path": "/api/cron/anomaly-detection",
-      "schedule": "0 6 * * 1"
-    },
-    {
-      "path": "/api/cron/trash-purge",
-      "schedule": "0 7 * * *"
     }
   ],
   "headers": [
