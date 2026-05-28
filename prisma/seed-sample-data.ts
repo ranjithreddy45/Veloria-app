@@ -10,8 +10,6 @@ import { PrismaClient } from "@prisma/client";
 import crypto from "crypto";
 import { subDays, subHours } from "date-fns";
 
-const prisma = new PrismaClient();
-
 // ============================================================
 // Helpers
 // ============================================================
@@ -111,11 +109,11 @@ const EXTERNAL_CALL_IDS = [
 // Main Seed Function
 // ============================================================
 
-export async function runSampleSeed() {
+export async function runSampleSeed(db: PrismaClient) {
   console.log("🌱 Seeding sample data (additive — won't wipe existing data)...\n");
 
   // 1. Find the admin user to use as creator
-  const adminUser = await prisma.user.findFirst({
+  const adminUser = await db.user.findFirst({
     where: { role: "SUPER_ADMIN", isActive: true },
     select: { id: true },
   });
@@ -128,7 +126,7 @@ export async function runSampleSeed() {
   const creatorId = adminUser.id;
 
   // Find all sales execs for assignment
-  const salesExecs = await prisma.user.findMany({
+  const salesExecs = await db.user.findMany({
     where: { role: "SALES_EXEC", isActive: true },
     select: { id: true },
   });
@@ -140,7 +138,7 @@ export async function runSampleSeed() {
   console.log("👥 Creating 12 sample contacts...");
   const contacts = await Promise.all(
     INDIAN_CONTACTS.map((c) =>
-      prisma.contact.create({
+      db.contact.create({
         data: {
           firstName: c.firstName,
           lastName: c.lastName,
@@ -162,7 +160,7 @@ export async function runSampleSeed() {
   console.log("📋 Creating 12 sample leads from various sources...");
   const leads = await Promise.all(
     LEAD_TEMPLATES.map((tpl, i) =>
-      prisma.lead.create({
+      db.lead.create({
         data: {
           title: tpl.title,
           status: tpl.status,
@@ -193,7 +191,7 @@ export async function runSampleSeed() {
     const createdAt = subHours(now, randomInt(2, 200));
 
     // Create Communication first
-    const communication = await prisma.communication.create({
+    const communication = await db.communication.create({
       data: {
         type: "CALL",
         direction: CALL_DIRECTIONS[i],
@@ -205,7 +203,7 @@ export async function runSampleSeed() {
     });
 
     // Create CallLog linked to communication
-    const callLog = await prisma.callLog.create({
+    const callLog = await db.callLog.create({
       data: {
         disposition: CALL_DISPOSITIONS[i],
         durationSeconds: CALL_DURATIONS[i],
@@ -234,9 +232,9 @@ export async function runSampleSeed() {
 
   // 5. Create auto-welcome configs (skip if already exist)
   console.log("💬 Creating auto-welcome configs...");
-  const existingWelcome = await prisma.autoWelcomeConfig.count();
+  const existingWelcome = await db.autoWelcomeConfig.count();
   if (existingWelcome === 0) {
-    await prisma.autoWelcomeConfig.createMany({
+    await db.autoWelcomeConfig.createMany({
       data: [
         {
           leadSource: "FACEBOOK_ADS",
@@ -265,9 +263,9 @@ export async function runSampleSeed() {
 
   // 6. Create placeholder telephony config (inactive)
   console.log("📱 Creating placeholder telephony config...");
-  const existingTelephony = await prisma.telephonyConfig.count();
+  const existingTelephony = await db.telephonyConfig.count();
   if (existingTelephony === 0) {
-    await prisma.telephonyConfig.create({
+    await db.telephonyConfig.create({
       data: {
         provider: "EXOTEL",
         apiKey: "your_exotel_api_key",
@@ -287,9 +285,9 @@ export async function runSampleSeed() {
 
   // 7. Create lead capture configs (Facebook + Google)
   console.log("🔗 Creating lead capture configs...");
-  const existingLCConfigs = await prisma.leadCaptureConfig.count();
+  const existingLCConfigs = await db.leadCaptureConfig.count();
   if (existingLCConfigs === 0) {
-    await prisma.leadCaptureConfig.createMany({
+    await db.leadCaptureConfig.createMany({
       data: [
         {
           platform: "FACEBOOK",
@@ -317,13 +315,13 @@ export async function runSampleSeed() {
 
   // 8. Create sample API key
   console.log("🔑 Creating sample API key...");
-  const existingKeys = await prisma.apiKey.count();
+  const existingKeys = await db.apiKey.count();
   if (existingKeys === 0) {
     const sampleKey = `vel_${crypto.randomBytes(32).toString("hex")}`;
     const keyHash = crypto.createHash("sha256").update(sampleKey).digest("hex");
     const prefix = sampleKey.slice(0, 12);
 
-    await prisma.apiKey.create({
+    await db.apiKey.create({
       data: {
         name: "Development Test Key",
         keyHash,
@@ -340,11 +338,11 @@ export async function runSampleSeed() {
 
   // 9. Create assignment rules for Facebook/Google leads (if none exist)
   console.log("📌 Creating assignment rules for ad leads...");
-  const existingRules = await prisma.assignmentRule.count({
+  const existingRules = await db.assignmentRule.count({
     where: { entityType: "LEAD" },
   });
   if (existingRules === 0) {
-    await prisma.assignmentRule.createMany({
+    await db.assignmentRule.createMany({
       data: [
         {
           name: "Facebook Leads → Round Robin",
@@ -387,12 +385,14 @@ export async function runSampleSeed() {
 }
 
 // Only run as CLI when executed directly via `pnpm db:seed-sample`.
-// When imported (e.g., from a server action), nothing fires automatically.
+// When imported (e.g., from a server action), the caller passes its own
+// (shared) Prisma client so we don't open a second connection pool.
 if (require.main === module) {
-  runSampleSeed()
+  const cliPrisma = new PrismaClient();
+  runSampleSeed(cliPrisma)
     .catch((e) => {
       console.error("❌ Seed failed:", e);
       process.exit(1);
     })
-    .finally(() => prisma.$disconnect());
+    .finally(() => cliPrisma.$disconnect());
 }

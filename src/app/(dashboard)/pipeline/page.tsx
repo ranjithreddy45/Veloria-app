@@ -24,7 +24,11 @@ export default async function PipelinePage() {
 
   const totalValue = stats?.totalValue ?? 0;
   const totalDeals = stats?.totalDeals ?? 0;
-  const wonValue = stats?.wonValue ?? 0;
+  // Sum the value of all "won" stages from the per-stage breakdown.
+  const wonValue =
+    stats?.stageStats
+      ?.filter((s) => s.isWonStage)
+      .reduce((sum, s) => sum + s.totalValue, 0) ?? 0;
 
   return (
     <div className="flex h-[calc(100vh-7rem)] flex-col gap-5">

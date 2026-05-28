@@ -172,9 +172,10 @@ async function loadEmailTemplate(name: string): Promise<{
 } | null> {
   const tpl = await prisma.emailTemplate.findFirst({
     where: { name, isActive: true },
-    select: { subject: true, body: true },
+    select: { subject: true, htmlContent: true },
   });
-  return tpl ?? null;
+  if (!tpl) return null;
+  return { subject: tpl.subject, body: tpl.htmlContent };
 }
 
 // ============================================================
@@ -380,7 +381,30 @@ async function handleUpdateStatus(
 // Public API — run a single workflow's actions
 // ============================================================
 
+// Re-entrancy guard: prevents the same workflow firing twice for the same
+// entity within a single process lifetime (e.g. an UPDATE_STATUS action that
+// indirectly re-triggers the workflow). Keyed by workflow+entity.
+const inFlight = new Set<string>();
+
 export async function runWorkflowActions(
+  workflowId: string,
+  baseCtx: WorkflowExecutionContext
+): Promise<{ executed: number; succeeded: number; failed: number }> {
+  const guardKey = `${workflowId}:${baseCtx.leadId ?? baseCtx.bookingId ?? baseCtx.contactId ?? baseCtx.invoiceId ?? "global"}`;
+  if (inFlight.has(guardKey)) {
+    console.warn(`[workflow-executor] Skipping re-entrant run: ${guardKey}`);
+    return { executed: 0, succeeded: 0, failed: 0 };
+  }
+  inFlight.add(guardKey);
+
+  try {
+    return await runWorkflowActionsInner(workflowId, baseCtx);
+  } finally {
+    inFlight.delete(guardKey);
+  }
+}
+
+async function runWorkflowActionsInner(
   workflowId: string,
   baseCtx: WorkflowExecutionContext
 ): Promise<{ executed: number; succeeded: number; failed: number }> {
@@ -394,7 +418,7 @@ export async function runWorkflowActions(
   }
 
   const ctx = await loadContext(baseCtx);
-  const actions = (workflow.actions as ActionConfig[]) ?? [];
+  const actions = (workflow.actions as unknown as ActionConfig[]) ?? [];
   let succeeded = 0;
   let failed = 0;
 

@@ -3,14 +3,14 @@
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
-import { serialize } from "@/lib/utils";
 
 export interface TrashItem {
   id: string;
   type: "lead" | "contact";
   title: string;
   subtitle: string;
-  deletedAt: Date;
+  /** ISO string — safe to pass across the server/client boundary. */
+  deletedAt: string;
   daysLeft: number;
 }
 
@@ -71,7 +71,7 @@ export async function getTrash(): Promise<{
           type: "lead",
           title: l.title,
           subtitle: `${l.contact.firstName} ${l.contact.lastName}`.trim(),
-          deletedAt,
+          deletedAt: deletedAt.toISOString(),
           daysLeft: Math.max(0, RETENTION_DAYS - ageDays),
         };
       }),
@@ -83,13 +83,16 @@ export async function getTrash(): Promise<{
           type: "contact",
           title: `${c.firstName} ${c.lastName}`.trim(),
           subtitle: c.company ?? c.email ?? "",
-          deletedAt,
+          deletedAt: deletedAt.toISOString(),
           daysLeft: Math.max(0, RETENTION_DAYS - ageDays),
         };
       }),
-    ].sort((a, b) => b.deletedAt.getTime() - a.deletedAt.getTime());
+    ].sort(
+      (a, b) =>
+        new Date(b.deletedAt).getTime() - new Date(a.deletedAt).getTime()
+    );
 
-    return { success: true, data: serialize(items) as TrashItem[] };
+    return { success: true, data: items };
   } catch (error) {
     console.error("[GET_TRASH_ERROR]", error);
     return { success: false, error: "Failed to load trash" };
@@ -99,24 +102,70 @@ export async function getTrash(): Promise<{
 /**
  * Permanently purge soft-deleted records older than RETENTION_DAYS.
  * Wire this to a cron — see `src/app/api/cron/trash-purge/route.ts`.
+ *
+ * FK-safe: only deletes records with no dependents. A lead with a deal or
+ * quote, or a contact with leads/bookings/invoices, is left in trash and
+ * surfaced via `skipped` so an admin can resolve it. This avoids the cron
+ * crashing on a foreign-key violation mid-batch.
  */
 export async function purgeOldTrash(): Promise<{
   leadsPurged: number;
   contactsPurged: number;
+  skipped: number;
 }> {
   const cutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000);
+  let leadsPurged = 0;
+  let contactsPurged = 0;
+  let skipped = 0;
 
-  const [leadsResult, contactsResult] = await Promise.all([
-    prisma.lead.deleteMany({
-      where: { deletedAt: { not: null, lt: cutoff } },
-    }),
-    prisma.contact.deleteMany({
-      where: { deletedAt: { not: null, lt: cutoff } },
-    }),
-  ]);
+  // Leads — skip any with a linked deal or quote
+  const oldLeads = await prisma.lead.findMany({
+    where: { deletedAt: { not: null, lt: cutoff } },
+    select: {
+      id: true,
+      deal: { select: { id: true } },
+      quotes: { select: { id: true }, take: 1 },
+    },
+  });
+  for (const lead of oldLeads) {
+    if (lead.deal || lead.quotes.length > 0) {
+      skipped++;
+      continue;
+    }
+    try {
+      await prisma.lead.delete({ where: { id: lead.id } });
+      leadsPurged++;
+    } catch (e) {
+      console.error(`[purgeOldTrash] Failed to purge lead ${lead.id}:`, e);
+      skipped++;
+    }
+  }
 
-  return {
-    leadsPurged: leadsResult.count,
-    contactsPurged: contactsResult.count,
-  };
+  // Contacts — skip any with leads/bookings/invoices
+  const oldContacts = await prisma.contact.findMany({
+    where: { deletedAt: { not: null, lt: cutoff } },
+    select: {
+      id: true,
+      _count: { select: { leads: true, bookings: true, invoices: true } },
+    },
+  });
+  for (const contact of oldContacts) {
+    if (
+      contact._count.leads > 0 ||
+      contact._count.bookings > 0 ||
+      contact._count.invoices > 0
+    ) {
+      skipped++;
+      continue;
+    }
+    try {
+      await prisma.contact.delete({ where: { id: contact.id } });
+      contactsPurged++;
+    } catch (e) {
+      console.error(`[purgeOldTrash] Failed to purge contact ${contact.id}:`, e);
+      skipped++;
+    }
+  }
+
+  return { leadsPurged, contactsPurged, skipped };
 }

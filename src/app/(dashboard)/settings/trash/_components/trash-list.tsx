@@ -55,11 +55,10 @@ export function TrashList({ items }: TrashListProps) {
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-card">
-      <div className="grid grid-cols-[auto_1fr_auto_auto] gap-x-4 border-b border-border bg-muted/30 px-3 py-2 text-[11px] font-medium uppercase tracking-[0.05em] text-muted-foreground">
-        <div className="w-16">Type</div>
-        <div>Item</div>
-        <div className="text-right">Deleted</div>
-        <div className="text-right">Actions</div>
+      <div className="flex items-center border-b border-border bg-muted/30 px-3 py-2 text-[11px] font-medium uppercase tracking-[0.05em] text-muted-foreground">
+        <div className="flex-1">Item</div>
+        <div className="hidden w-36 text-right sm:block">Deleted</div>
+        <div className="w-[180px] text-right">Actions</div>
       </div>
       <div className="divide-y divide-border">
         {items.map((item) => {
@@ -69,16 +68,16 @@ export function TrashList({ items }: TrashListProps) {
           return (
             <div
               key={`${item.type}-${item.id}`}
-              className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-x-4 px-3 py-2.5"
+              className="flex items-center px-3 py-2.5"
             >
-              <div className="w-16">
+              {/* Item: pill + icon + name/subtitle. flex-1 + min-w-0 so it
+                  always wins remaining width and truncates gracefully. */}
+              <div className="flex min-w-0 flex-1 items-center gap-2.5">
                 <StatusPill
                   label={isLead ? "Lead" : "Contact"}
                   hue={isLead ? "indigo" : "blue"}
                   size="xs"
                 />
-              </div>
-              <div className="flex items-center gap-2.5 min-w-0">
                 <Icon
                   className="size-3.5 shrink-0 text-muted-foreground"
                   strokeWidth={1.8}
@@ -94,7 +93,9 @@ export function TrashList({ items }: TrashListProps) {
                   )}
                 </div>
               </div>
-              <div className="text-right">
+
+              {/* Deleted timestamp — hidden on narrow screens */}
+              <div className="hidden w-36 shrink-0 text-right sm:block">
                 <p className="text-[12px] text-muted-foreground">
                   {formatDistanceToNow(new Date(item.deletedAt), {
                     addSuffix: true,
@@ -110,7 +111,9 @@ export function TrashList({ items }: TrashListProps) {
                   {item.daysLeft} day{item.daysLeft === 1 ? "" : "s"} left
                 </p>
               </div>
-              <div className="flex items-center gap-1">
+
+              {/* Actions — fixed width so they never crowd out the name */}
+              <div className="flex w-[180px] shrink-0 items-center justify-end gap-1">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -133,7 +136,7 @@ export function TrashList({ items }: TrashListProps) {
                   onClick={() => handlePurge(item)}
                 >
                   <Trash2 className="size-3" />
-                  Delete forever
+                  Delete
                 </Button>
               </div>
             </div>

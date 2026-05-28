@@ -399,6 +399,29 @@ export async function purgeContact(id: string) {
     if (role !== "SUPER_ADMIN" && role !== "ADMIN") {
       return { success: false as const, error: "Insufficient permissions" };
     }
+
+    // FK safety: refuse purge if the contact still has related records.
+    const existing = await prisma.contact.findUnique({
+      where: { id },
+      include: {
+        _count: { select: { leads: true, bookings: true, invoices: true } },
+      },
+    });
+    if (!existing) {
+      return { success: false as const, error: "Contact not found" };
+    }
+    if (
+      existing._count.leads > 0 ||
+      existing._count.bookings > 0 ||
+      existing._count.invoices > 0
+    ) {
+      return {
+        success: false as const,
+        error:
+          "Cannot permanently delete a contact with associated leads, bookings, or invoices.",
+      };
+    }
+
     await prisma.contact.delete({ where: { id } });
     await logActivity({
       userId: session.user.id as string,

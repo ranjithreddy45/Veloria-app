@@ -11,6 +11,7 @@ import { logActivity } from "@/lib/activity-logger";
 import { notify } from "@/lib/notify";
 import { evaluateAssignmentRules } from "@/actions/assignment-rule.actions";
 import { triggerWorkflows } from "@/lib/workflow-executor";
+import { after } from "next/server";
 // LeadStatus enum values matching Prisma schema
 type LeadStatus = "NEW" | "CONTACTED" | "QUALIFIED" | "PROPOSAL_SENT" | "NEGOTIATION" | "WON" | "LOST";
 
@@ -254,12 +255,20 @@ export async function createLead(data: LeadInput) {
       console.error("[AUTO_ASSIGN_ERROR]", e);
     }
 
-    // Fire any LEAD_CREATED workflows (non-blocking)
-    triggerWorkflows("LEAD_CREATED", {
-      leadId: lead.id,
-      contactId: lead.contactId,
-      triggeredByUserId: session.user.id as string,
-    }).catch((e) => console.error("[TRIGGER_WORKFLOWS_ERROR]", e));
+    // Fire any LEAD_CREATED workflows. `after()` lets the work run once the
+    // response is sent, while keeping the serverless function alive until it
+    // finishes (a bare fire-and-forget can be killed mid-write on Vercel).
+    after(async () => {
+      try {
+        await triggerWorkflows("LEAD_CREATED", {
+          leadId: lead.id,
+          contactId: lead.contactId,
+          triggeredByUserId: session.user.id as string,
+        });
+      } catch (e) {
+        console.error("[TRIGGER_WORKFLOWS_ERROR]", e);
+      }
+    });
 
     revalidatePath("/leads");
     revalidatePath("/contacts");
@@ -483,6 +492,23 @@ export async function purgeLead(id: string) {
     const role = (session.user as { role?: string }).role ?? "";
     if (role !== "SUPER_ADMIN" && role !== "ADMIN") {
       return { success: false as const, error: "Insufficient permissions" };
+    }
+
+    // FK safety: a lead with a converted deal cannot be hard-deleted
+    // without orphaning the deal. Refuse rather than throw a DB error.
+    const existing = await prisma.lead.findUnique({
+      where: { id },
+      include: { deal: { select: { id: true } }, quotes: { select: { id: true } } },
+    });
+    if (!existing) {
+      return { success: false as const, error: "Lead not found" };
+    }
+    if (existing.deal || existing.quotes.length > 0) {
+      return {
+        success: false as const,
+        error:
+          "Cannot permanently delete a lead with a linked deal or quote. Delete those first.",
+      };
     }
 
     await prisma.lead.delete({ where: { id } });

@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
 import { logActivity } from "@/lib/activity-logger";
 import { revalidatePath } from "next/cache";
+import type { Prisma } from "@prisma/client";
+import { z } from "zod";
 
 // ============================================================
 // Types
@@ -25,10 +27,22 @@ export interface NotificationPreferencesData {
 // Stored shape on User.notificationPreferences — only the toggleable fields.
 // Static metadata (label, description) is merged in at read time so we can
 // edit copy without migrations.
-interface StoredPreference {
-  key: string;
-  emailEnabled: boolean;
-  smsEnabled: boolean;
+const storedPreferenceSchema = z.object({
+  key: z.string(),
+  emailEnabled: z.boolean(),
+  smsEnabled: z.boolean(),
+});
+const storedPreferencesSchema = z.array(storedPreferenceSchema);
+
+type StoredPreference = z.infer<typeof storedPreferenceSchema>;
+
+/**
+ * Safely parse the JSON column into StoredPreference[]. Returns null on any
+ * malformed value so callers fall back to defaults instead of crashing.
+ */
+function parseStored(value: unknown): StoredPreference[] | null {
+  const result = storedPreferencesSchema.safeParse(value);
+  return result.success ? result.data : null;
 }
 
 // ============================================================
@@ -141,7 +155,7 @@ export async function getNotificationPreferences(): Promise<{
       select: { notificationPreferences: true },
     });
 
-    const stored = (user?.notificationPreferences as StoredPreference[] | null) ?? null;
+    const stored = parseStored(user?.notificationPreferences);
     return {
       success: true,
       data: { preferences: mergeWithDefaults(stored) },
@@ -181,7 +195,11 @@ export async function updateNotificationPreferences(
 
     await prisma.user.update({
       where: { id: session.user.id as string },
-      data: { notificationPreferences: cleaned },
+      // JSON column legitimately stores an array; Prisma's input type
+      // expects an object index signature, so cast through the JSON type.
+      data: {
+        notificationPreferences: cleaned as unknown as Prisma.InputJsonValue,
+      },
     });
 
     await logActivity({
@@ -217,9 +235,7 @@ export async function shouldSendNotification(
       where: { id: userId },
       select: { notificationPreferences: true },
     });
-    const merged = mergeWithDefaults(
-      (user?.notificationPreferences as StoredPreference[] | null) ?? null
-    );
+    const merged = mergeWithDefaults(parseStored(user?.notificationPreferences));
     const pref = merged.find((p) => p.key === eventKey);
     if (!pref) return true; // unknown event type = send by default
     return channel === "email" ? pref.emailEnabled : pref.smsEnabled;

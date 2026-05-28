@@ -105,9 +105,14 @@ export function WorkflowDetail({ workflow }: WorkflowDetailProps) {
     try {
       const result = await executeWorkflow(workflow.id);
       if (result.success) {
-        toast.success(
-          `Workflow executed successfully with ${result.data.length} action(s)`
-        );
+        const { executed, succeeded, failed } = result.data;
+        if (failed > 0) {
+          toast.warning(
+            `Workflow ran: ${succeeded}/${executed} action(s) ok, ${failed} failed`
+          );
+        } else {
+          toast.success(`Workflow executed — ${executed} action(s) succeeded`);
+        }
         router.refresh();
       } else {
         toast.error(result.error);

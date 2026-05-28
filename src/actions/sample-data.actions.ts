@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/../auth";
+import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
 import { logActivity } from "@/lib/activity-logger";
 import { revalidatePath } from "next/cache";
@@ -39,8 +40,9 @@ export async function loadSampleData() {
     }
 
     // Dynamic import — keeps the seed script out of the main bundle.
+    // Pass the shared Prisma client so we don't spin up a second pool.
     const { runSampleSeed } = await import("../../prisma/seed-sample-data");
-    await runSampleSeed();
+    await runSampleSeed(prisma);
 
     await logActivity({
       userId: session.user.id as string,
