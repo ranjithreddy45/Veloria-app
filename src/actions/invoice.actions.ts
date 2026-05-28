@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { invoiceSchema, type InvoiceInput } from "@/schemas/invoice.schema";
 import type { InvoiceStatus } from "@prisma/client";
 import { serialize, formatINR } from "@/lib/utils";
+import { calculateInvoiceTotals } from "@/lib/invoice-calc";
 import { logActivity } from "@/lib/activity-logger";
 import { notify } from "@/lib/notify";
 import { sendEmail } from "@/lib/email";
@@ -230,44 +231,14 @@ export async function createInvoice(data: InvoiceInput) {
 
     const invoiceData = parsed.data;
 
-    // Calculate subtotal from line items
-    let subtotal = 0;
-    const lineItemsWithAmount = invoiceData.lineItems.map((item, index) => {
-      const amount = item.quantity * item.unitPrice;
-      subtotal += amount;
-      return {
-        description: item.description,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        amount,
-        order: index,
-      };
+    // Single source of truth for all money math (see lib/invoice-calc.ts)
+    const calc = calculateInvoiceTotals({
+      lineItems: invoiceData.lineItems,
+      discountPercent: invoiceData.discountPercent,
+      cgstRate: invoiceData.cgstRate,
+      sgstRate: invoiceData.sgstRate,
+      igstRate: invoiceData.igstRate,
     });
-
-    // Calculate discount
-    const discountPercent = invoiceData.discountPercent ?? 0;
-    const discountAmount = (subtotal * discountPercent) / 100;
-    const afterDiscount = subtotal - discountAmount;
-
-    // Calculate tax amounts
-    const cgstRate = invoiceData.cgstRate ?? 9;
-    const sgstRate = invoiceData.sgstRate ?? 9;
-    const igstRate = invoiceData.igstRate ?? 0;
-
-    let cgstAmount = 0;
-    let sgstAmount = 0;
-    let igstAmount = 0;
-
-    if (igstRate > 0) {
-      // Interstate: only IGST
-      igstAmount = (afterDiscount * igstRate) / 100;
-    } else {
-      // Intrastate: CGST + SGST
-      cgstAmount = (afterDiscount * cgstRate) / 100;
-      sgstAmount = (afterDiscount * sgstRate) / 100;
-    }
-
-    const totalAmount = afterDiscount + cgstAmount + sgstAmount + igstAmount;
     const invoiceNumber = await generateInvoiceNumber();
 
     const invoice = await prisma.invoice.create({
@@ -276,18 +247,18 @@ export async function createInvoice(data: InvoiceInput) {
         status: "DRAFT",
         issueDate: new Date(),
         dueDate: invoiceData.dueDate,
-        subtotal,
-        discountPercent: discountPercent || null,
-        discountAmount: discountAmount || null,
-        cgstRate,
-        sgstRate,
-        igstRate,
-        cgstAmount,
-        sgstAmount,
-        igstAmount,
-        totalAmount,
+        subtotal: calc.subtotal,
+        discountPercent: calc.discountPercent || null,
+        discountAmount: calc.discountAmount || null,
+        cgstRate: calc.cgstRate,
+        sgstRate: calc.sgstRate,
+        igstRate: calc.igstRate,
+        cgstAmount: calc.cgstAmount,
+        sgstAmount: calc.sgstAmount,
+        igstAmount: calc.igstAmount,
+        totalAmount: calc.totalAmount,
         paidAmount: 0,
-        balanceDue: totalAmount,
+        balanceDue: calc.totalAmount,
         notes: invoiceData.notes || null,
         terms: invoiceData.terms || null,
         gstin: invoiceData.gstin || null,
@@ -296,7 +267,7 @@ export async function createInvoice(data: InvoiceInput) {
         bookingId: invoiceData.bookingId || null,
         createdById: session.user.id,
         lineItems: {
-          create: lineItemsWithAmount,
+          create: calc.lineItems,
         },
       },
       include: {
@@ -363,42 +334,16 @@ export async function updateInvoice(id: string, data: InvoiceInput) {
 
     const invoiceData = parsed.data;
 
-    // Recalculate subtotal
-    let subtotal = 0;
-    const lineItemsWithAmount = invoiceData.lineItems.map((item, index) => {
-      const amount = item.quantity * item.unitPrice;
-      subtotal += amount;
-      return {
-        description: item.description,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        amount,
-        order: index,
-      };
+    // Single source of truth for all money math (see lib/invoice-calc.ts)
+    const calc = calculateInvoiceTotals({
+      lineItems: invoiceData.lineItems,
+      discountPercent: invoiceData.discountPercent,
+      cgstRate: invoiceData.cgstRate,
+      sgstRate: invoiceData.sgstRate,
+      igstRate: invoiceData.igstRate,
     });
-
-    const discountPercent = invoiceData.discountPercent ?? 0;
-    const discountAmount = (subtotal * discountPercent) / 100;
-    const afterDiscount = subtotal - discountAmount;
-
-    const cgstRate = invoiceData.cgstRate ?? 9;
-    const sgstRate = invoiceData.sgstRate ?? 9;
-    const igstRate = invoiceData.igstRate ?? 0;
-
-    let cgstAmount = 0;
-    let sgstAmount = 0;
-    let igstAmount = 0;
-
-    if (igstRate > 0) {
-      igstAmount = (afterDiscount * igstRate) / 100;
-    } else {
-      cgstAmount = (afterDiscount * cgstRate) / 100;
-      sgstAmount = (afterDiscount * sgstRate) / 100;
-    }
-
-    const totalAmount = afterDiscount + cgstAmount + sgstAmount + igstAmount;
     const paidAmount = Number(existing.paidAmount);
-    const balanceDue = totalAmount - paidAmount;
+    const balanceDue = calc.totalAmount - paidAmount;
 
     // Delete old line items and create new ones
     await prisma.invoiceLineItem.deleteMany({ where: { invoiceId: id } });
@@ -407,16 +352,16 @@ export async function updateInvoice(id: string, data: InvoiceInput) {
       where: { id },
       data: {
         dueDate: invoiceData.dueDate,
-        subtotal,
-        discountPercent: discountPercent || null,
-        discountAmount: discountAmount || null,
-        cgstRate,
-        sgstRate,
-        igstRate,
-        cgstAmount,
-        sgstAmount,
-        igstAmount,
-        totalAmount,
+        subtotal: calc.subtotal,
+        discountPercent: calc.discountPercent || null,
+        discountAmount: calc.discountAmount || null,
+        cgstRate: calc.cgstRate,
+        sgstRate: calc.sgstRate,
+        igstRate: calc.igstRate,
+        cgstAmount: calc.cgstAmount,
+        sgstAmount: calc.sgstAmount,
+        igstAmount: calc.igstAmount,
+        totalAmount: calc.totalAmount,
         balanceDue,
         notes: invoiceData.notes || null,
         terms: invoiceData.terms || null,
@@ -425,7 +370,7 @@ export async function updateInvoice(id: string, data: InvoiceInput) {
         contactId: invoiceData.contactId,
         bookingId: invoiceData.bookingId || null,
         lineItems: {
-          create: lineItemsWithAmount,
+          create: calc.lineItems,
         },
       },
     });
