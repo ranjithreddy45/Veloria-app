@@ -1,7 +1,10 @@
 "use server";
 
 import { auth } from "@/../auth";
+import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
+import { logActivity } from "@/lib/activity-logger";
+import { revalidatePath } from "next/cache";
 
 // ============================================================
 // Types
@@ -19,10 +22,18 @@ export interface NotificationPreferencesData {
   preferences: NotificationPreference[];
 }
 
+// Stored shape on User.notificationPreferences — only the toggleable fields.
+// Static metadata (label, description) is merged in at read time so we can
+// edit copy without migrations.
+interface StoredPreference {
+  key: string;
+  emailEnabled: boolean;
+  smsEnabled: boolean;
+}
+
 // ============================================================
-// Default Preferences
+// Default Preferences (single source of truth)
 // ============================================================
-// Placeholder defaults — in production these would come from DB.
 
 const DEFAULT_PREFERENCES: NotificationPreference[] = [
   {
@@ -84,7 +95,30 @@ const DEFAULT_PREFERENCES: NotificationPreference[] = [
 ];
 
 // ============================================================
-// getNotificationPreferences
+// Helpers
+// ============================================================
+
+/**
+ * Merge user overrides on top of defaults — returns a full set even if the
+ * user has only customized a few rows, and silently drops rows whose `key`
+ * no longer exists in the catalog.
+ */
+function mergeWithDefaults(stored: StoredPreference[] | null): NotificationPreference[] {
+  if (!stored || !Array.isArray(stored)) return DEFAULT_PREFERENCES;
+  const map = new Map(stored.map((p) => [p.key, p]));
+  return DEFAULT_PREFERENCES.map((def) => {
+    const override = map.get(def.key);
+    if (!override) return def;
+    return {
+      ...def,
+      emailEnabled: Boolean(override.emailEnabled),
+      smsEnabled: Boolean(override.smsEnabled),
+    };
+  });
+}
+
+// ============================================================
+// getNotificationPreferences — reads from User.notificationPreferences
 // ============================================================
 
 export async function getNotificationPreferences(): Promise<{
@@ -94,7 +128,7 @@ export async function getNotificationPreferences(): Promise<{
 }> {
   try {
     const session = await auth();
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return { success: false, error: "Unauthorized" };
     }
 
@@ -102,11 +136,15 @@ export async function getNotificationPreferences(): Promise<{
       return { success: false, error: "Insufficient permissions" };
     }
 
-    // TODO: Implement database persistence
-    // Placeholder: return defaults (would load from DB in production)
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id as string },
+      select: { notificationPreferences: true },
+    });
+
+    const stored = (user?.notificationPreferences as StoredPreference[] | null) ?? null;
     return {
       success: true,
-      data: { preferences: DEFAULT_PREFERENCES },
+      data: { preferences: mergeWithDefaults(stored) },
     };
   } catch (error) {
     console.error("[GET_NOTIFICATION_PREFS_ERROR]", error);
@@ -115,7 +153,7 @@ export async function getNotificationPreferences(): Promise<{
 }
 
 // ============================================================
-// updateNotificationPreferences
+// updateNotificationPreferences — persists to User.notificationPreferences
 // ============================================================
 
 export async function updateNotificationPreferences(
@@ -123,7 +161,7 @@ export async function updateNotificationPreferences(
 ): Promise<{ success: boolean; message?: string; error?: string }> {
   try {
     const session = await auth();
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return { success: false, error: "Unauthorized" };
     }
 
@@ -131,23 +169,63 @@ export async function updateNotificationPreferences(
       return { success: false, error: "Insufficient permissions" };
     }
 
-    // TODO: Implement database persistence
-    // Placeholder: log to console (would persist to DB in production)
-    console.log(
-      "[NOTIFICATION_PREFS] Updated by:",
-      session.user.email,
-      JSON.stringify(preferences, null, 2)
-    );
+    // Validate keys against the catalog so we don't store garbage
+    const validKeys = new Set(DEFAULT_PREFERENCES.map((p) => p.key));
+    const cleaned: StoredPreference[] = preferences
+      .filter((p) => validKeys.has(p.key))
+      .map((p) => ({
+        key: p.key,
+        emailEnabled: Boolean(p.emailEnabled),
+        smsEnabled: Boolean(p.smsEnabled),
+      }));
 
-    return {
-      success: true,
-      message: "Preferences saved for this session (database persistence coming soon)",
-    };
+    await prisma.user.update({
+      where: { id: session.user.id as string },
+      data: { notificationPreferences: cleaned },
+    });
+
+    await logActivity({
+      userId: session.user.id as string,
+      action: "updated",
+      entityType: "NotificationPreferences",
+      entityId: session.user.id as string,
+    });
+
+    revalidatePath("/settings/notifications");
+    return { success: true, message: "Preferences saved" };
   } catch (error) {
     console.error("[UPDATE_NOTIFICATION_PREFS_ERROR]", error);
     return {
       success: false,
       error: "Failed to update notification preferences",
     };
+  }
+}
+
+/**
+ * Check whether a user has a notification channel enabled for a given event
+ * type. Used by `notify()` and other senders to respect user preferences.
+ * Defaults to ON if the user has no record.
+ */
+export async function shouldSendNotification(
+  userId: string,
+  eventKey: string,
+  channel: "email" | "sms"
+): Promise<boolean> {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { notificationPreferences: true },
+    });
+    const merged = mergeWithDefaults(
+      (user?.notificationPreferences as StoredPreference[] | null) ?? null
+    );
+    const pref = merged.find((p) => p.key === eventKey);
+    if (!pref) return true; // unknown event type = send by default
+    return channel === "email" ? pref.emailEnabled : pref.smsEnabled;
+  } catch (error) {
+    // Fail open — never block a notification due to a settings read error
+    console.error("[SHOULD_SEND_NOTIFICATION_ERROR]", error);
+    return true;
   }
 }

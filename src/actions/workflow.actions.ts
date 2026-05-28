@@ -14,6 +14,7 @@ import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
 import { notify } from "@/lib/notify";
 import { hasPermission } from "@/lib/permissions";
+import { runWorkflowActions } from "@/lib/workflow-executor";
 
 // ============================================================
 // Get Workflows (List with log counts)
@@ -336,40 +337,13 @@ export async function executeWorkflow(
       return { success: false as const, error: "Workflow is not active" };
     }
 
-    const actions = workflow.actions as Array<{ type: string; config: Record<string, unknown> }>;
-
-    // Execute each action and log the result
-    const logs = [];
-    for (const action of actions) {
-      try {
-        // For now, just log them as SUCCESS
-        // In the future, this is where actual action execution would happen
-        // (e.g., sending emails, creating tasks, etc.)
-        const log = await prisma.workflowLog.create({
-          data: {
-            workflowId,
-            action: action.type,
-            status: "SUCCESS",
-            bookingId: context?.bookingId ?? null,
-            contactId: context?.contactId ?? null,
-          },
-        });
-        logs.push(log);
-      } catch (actionError) {
-        // Log failed action
-        const log = await prisma.workflowLog.create({
-          data: {
-            workflowId,
-            action: action.type,
-            status: "FAILED",
-            error: actionError instanceof Error ? actionError.message : "Unknown error",
-            bookingId: context?.bookingId ?? null,
-            contactId: context?.contactId ?? null,
-          },
-        });
-        logs.push(log);
-      }
-    }
+    // Delegate to the real workflow executor (handles SEND_EMAIL,
+    // SEND_WHATSAPP, CREATE_TASK, SEND_NOTIFICATION, UPDATE_STATUS).
+    const result = await runWorkflowActions(workflowId, {
+      bookingId: context?.bookingId,
+      contactId: context?.contactId,
+      triggeredByUserId: session.user.id as string,
+    });
 
     await logActivity({
       userId: session.user.id as string,
@@ -377,7 +351,9 @@ export async function executeWorkflow(
       entityType: "Workflow",
       entityId: workflowId,
       changes: {
-        actionsCount: actions.length,
+        actionsCount: result.executed,
+        succeeded: result.succeeded,
+        failed: result.failed,
         bookingId: context?.bookingId,
         contactId: context?.contactId,
       },
@@ -386,13 +362,16 @@ export async function executeWorkflow(
     notify({
       userId: session.user.id as string,
       type: "SYSTEM",
-      title: "Workflow Executed",
-      message: `Workflow "${workflow.name}" has been executed with ${actions.length} action(s).`,
+      title: "Workflow executed",
+      message:
+        result.failed > 0
+          ? `Workflow "${workflow.name}" ran with ${result.failed} failure(s) (${result.succeeded}/${result.executed} ok).`
+          : `Workflow "${workflow.name}" ran ${result.executed} action(s) successfully.`,
       actionUrl: `/settings/workflows/${workflowId}`,
     });
 
     revalidatePath(`/settings/workflows/${workflowId}`);
-    return { success: true as const, data: serialize(logs) };
+    return { success: true as const, data: result };
   } catch (error) {
     console.error("[EXECUTE_WORKFLOW_ERROR]", error);
     return { success: false as const, error: "Failed to execute workflow" };

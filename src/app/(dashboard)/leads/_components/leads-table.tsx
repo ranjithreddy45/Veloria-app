@@ -19,7 +19,8 @@ import {
 import { toast } from "sonner";
 
 import { DataTable, DataTableColumnHeader, getSelectionColumn } from "@/components/shared/data-table";
-import { SavedViewSelector } from "@/components/shared/saved-view-selector";
+import { SavedViewSelector, type SavedViewState } from "@/components/shared/saved-view-selector";
+import type { SavedViewData } from "@/actions/saved-view.actions";
 import {
   BulkActionBar,
   TrashIcon as BulkTrashIcon,
@@ -613,6 +614,32 @@ export function LeadsTable({ data }: LeadsTableProps) {
     [router, selectedRows.length]
   );
 
+  // Saved-view integration: expose the current filter to the selector
+  // and apply incoming view filters back to local state.
+  const getCurrentState = React.useCallback<() => SavedViewState>(() => {
+    return {
+      filters:
+        statusFilter === "ALL"
+          ? []
+          : [{ field: "status", operator: "equals", value: statusFilter }],
+    };
+  }, [statusFilter]);
+
+  const handleViewSelect = React.useCallback((view: SavedViewData | null) => {
+    if (!view) {
+      setStatusFilter("ALL");
+      return;
+    }
+    const statusFilterEntry = (view.filters as Array<{ field: string; value: unknown }>)?.find(
+      (f) => f.field === "status"
+    );
+    if (statusFilterEntry && typeof statusFilterEntry.value === "string") {
+      setStatusFilter(statusFilterEntry.value as StatusFilter);
+    } else {
+      setStatusFilter("ALL");
+    }
+  }, []);
+
   return (
     <>
       <StatusTabs
@@ -630,7 +657,11 @@ export function LeadsTable({ data }: LeadsTableProps) {
         getRowId={(row) => row.id}
         toolbarExtra={
           <div className="flex items-center gap-2">
-            <SavedViewSelector entityType="LEAD" />
+            <SavedViewSelector
+              entityType="LEAD"
+              getCurrentState={getCurrentState}
+              onViewSelect={handleViewSelect}
+            />
             <AIScoreAllButton />
             <ExportButton />
           </div>

@@ -11,6 +11,7 @@ import { logActivity } from "@/lib/activity-logger";
 import { notify } from "@/lib/notify";
 import { sendEmail } from "@/lib/email";
 import { bookingConfirmationEmail } from "@/lib/email-templates/booking-confirmation";
+import { triggerWorkflows } from "@/lib/workflow-executor";
 import { format } from "date-fns";
 
 // ============================================================
@@ -417,6 +418,22 @@ export async function createBooking(data: BookingInput) {
           }),
         }).catch((err) => console.error("[BOOKING_EMAIL_ERROR]", err));
       }
+    }
+
+    // Fire EVENT_CREATED workflows; also BOOKING_CONFIRMED if the booking
+    // was created already in CONFIRMED state (rare but possible via API).
+    triggerWorkflows("EVENT_CREATED", {
+      bookingId: booking.id,
+      contactId: booking.contactId,
+      triggeredByUserId: session.user.id as string,
+    }).catch((e) => console.error("[TRIGGER_WORKFLOWS_ERROR]", e));
+
+    if (booking.status === "CONFIRMED") {
+      triggerWorkflows("BOOKING_CONFIRMED", {
+        bookingId: booking.id,
+        contactId: booking.contactId,
+        triggeredByUserId: session.user.id as string,
+      }).catch((e) => console.error("[TRIGGER_WORKFLOWS_ERROR]", e));
     }
 
     revalidatePath("/bookings");

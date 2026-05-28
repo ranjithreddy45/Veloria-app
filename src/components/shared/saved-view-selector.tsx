@@ -48,9 +48,21 @@ import { Label } from "@/components/ui/label";
 
 type EntityType = "CONTACT" | "LEAD" | "DEAL" | "TASK" | "INVOICE";
 
+export interface SavedViewState {
+  filters: Array<{ field: string; operator: string; value: unknown }>;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+  columns?: string[];
+}
+
 interface SavedViewSelectorProps {
   entityType: EntityType;
   onViewSelect?: (view: SavedViewData | null) => void;
+  /**
+   * Read current filter/sort state from the parent table so "Save current
+   * view" actually captures something. Without this, saves are empty.
+   */
+  getCurrentState?: () => SavedViewState;
 }
 
 // ============================================================
@@ -60,6 +72,7 @@ interface SavedViewSelectorProps {
 export function SavedViewSelector({
   entityType,
   onViewSelect,
+  getCurrentState,
 }: SavedViewSelectorProps) {
   const [views, setViews] = React.useState<SavedViewData[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -98,10 +111,15 @@ export function SavedViewSelector({
   async function handleSave() {
     if (!newName.trim()) return;
     setSaving(true);
+    // Capture current filter/sort state from the parent table (if wired)
+    const state = getCurrentState?.() ?? { filters: [] };
     const input: SavedViewInput = {
       name: newName.trim(),
       entityType,
-      filters: [],
+      filters: state.filters as SavedViewInput["filters"],
+      sortBy: state.sortBy,
+      sortOrder: state.sortOrder,
+      columns: state.columns,
       isShared,
     };
     const result = await createSavedView(input);

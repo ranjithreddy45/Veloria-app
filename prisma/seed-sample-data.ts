@@ -111,7 +111,7 @@ const EXTERNAL_CALL_IDS = [
 // Main Seed Function
 // ============================================================
 
-async function main() {
+export async function runSampleSeed() {
   console.log("🌱 Seeding sample data (additive — won't wipe existing data)...\n");
 
   // 1. Find the admin user to use as creator
@@ -386,9 +386,13 @@ async function main() {
   console.log("   • /settings/integrations/telephony — Exotel config (inactive)");
 }
 
-main()
-  .catch((e) => {
-    console.error("❌ Seed failed:", e);
-    process.exit(1);
-  })
-  .finally(() => prisma.$disconnect());
+// Only run as CLI when executed directly via `pnpm db:seed-sample`.
+// When imported (e.g., from a server action), nothing fires automatically.
+if (require.main === module) {
+  runSampleSeed()
+    .catch((e) => {
+      console.error("❌ Seed failed:", e);
+      process.exit(1);
+    })
+    .finally(() => prisma.$disconnect());
+}

@@ -9,6 +9,7 @@ import {
   ArrowRight,
   Plug,
   Bell,
+  Trash2,
 } from "lucide-react";
 import {
   Card,
@@ -18,6 +19,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { PageHeader } from "@/components/layout/page-header";
+import { LoadSampleDataButton } from "./_components/load-sample-data-button";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -68,6 +70,14 @@ const settingsSections = [
     icon: Bell,
     color:
       "bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
+  },
+  {
+    title: "Trash",
+    description: "Restore deleted leads and contacts (30-day retention).",
+    href: "/settings/trash",
+    icon: Trash2,
+    color:
+      "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400",
   },
 ];
 
@@ -122,6 +132,22 @@ export default function SettingsPage() {
           );
         })}
       </div>
+
+      {/* Developer / Admin tools */}
+      <Card className="border-dashed">
+        <CardContent className="flex items-center justify-between gap-4 p-5">
+          <div>
+            <h3 className="text-[13.5px] font-semibold text-foreground">
+              Demo data
+            </h3>
+            <p className="mt-0.5 text-[12px] text-muted-foreground">
+              Populate the app with realistic Indian sample contacts, leads,
+              and calls to evaluate workflows. Safe to re-run; additive only.
+            </p>
+          </div>
+          <LoadSampleDataButton />
+        </CardContent>
+      </Card>
     </div>
   );
 }

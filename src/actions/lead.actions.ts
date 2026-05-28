@@ -10,6 +10,7 @@ import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
 import { notify } from "@/lib/notify";
 import { evaluateAssignmentRules } from "@/actions/assignment-rule.actions";
+import { triggerWorkflows } from "@/lib/workflow-executor";
 // LeadStatus enum values matching Prisma schema
 type LeadStatus = "NEW" | "CONTACTED" | "QUALIFIED" | "PROPOSAL_SENT" | "NEGOTIATION" | "WON" | "LOST";
 
@@ -39,8 +40,8 @@ export async function getLeads(params?: {
     const skip = (page - 1) * limit;
     const search = params?.search?.trim();
 
-    // Build where clause
-    const where: Record<string, unknown> = {};
+    // Build where clause — exclude soft-deleted records by default
+    const where: Record<string, unknown> = { deletedAt: null };
 
     if (search) {
       where.OR = [
@@ -253,6 +254,13 @@ export async function createLead(data: LeadInput) {
       console.error("[AUTO_ASSIGN_ERROR]", e);
     }
 
+    // Fire any LEAD_CREATED workflows (non-blocking)
+    triggerWorkflows("LEAD_CREATED", {
+      leadId: lead.id,
+      contactId: lead.contactId,
+      triggeredByUserId: session.user.id as string,
+    }).catch((e) => console.error("[TRIGGER_WORKFLOWS_ERROR]", e));
+
     revalidatePath("/leads");
     revalidatePath("/contacts");
     return { success: true as const, data: serialize(lead) };
@@ -402,7 +410,12 @@ export async function deleteLead(id: string) {
       };
     }
 
-    await prisma.lead.delete({ where: { id } });
+    // Soft-delete: set deletedAt instead of removing the row.
+    // A cron job (or admin action) purges leads older than 30 days.
+    await prisma.lead.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
 
     await logActivity({
       userId: session.user.id as string,
@@ -413,10 +426,79 @@ export async function deleteLead(id: string) {
 
     revalidatePath("/leads");
     revalidatePath("/contacts");
+    revalidatePath("/settings/trash");
     return { success: true as const, data: { id } };
   } catch (error) {
     console.error("[DELETE_LEAD_ERROR]", error);
     return { success: false as const, error: "Failed to delete lead" };
+  }
+}
+
+// ============================================================
+// Restore Lead (from trash)
+// ============================================================
+
+export async function restoreLead(id: string) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "leads:delete")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
+    await prisma.lead.update({
+      where: { id },
+      data: { deletedAt: null },
+    });
+
+    await logActivity({
+      userId: session.user.id as string,
+      action: "restored",
+      entityType: "Lead",
+      entityId: id,
+    });
+
+    revalidatePath("/leads");
+    revalidatePath("/settings/trash");
+    return { success: true as const, data: { id } };
+  } catch (error) {
+    console.error("[RESTORE_LEAD_ERROR]", error);
+    return { success: false as const, error: "Failed to restore lead" };
+  }
+}
+
+// ============================================================
+// Permanently delete (admin only — bypasses 30-day retention)
+// ============================================================
+
+export async function purgeLead(id: string) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+    const role = (session.user as { role?: string }).role ?? "";
+    if (role !== "SUPER_ADMIN" && role !== "ADMIN") {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
+    await prisma.lead.delete({ where: { id } });
+
+    await logActivity({
+      userId: session.user.id as string,
+      action: "purged",
+      entityType: "Lead",
+      entityId: id,
+    });
+
+    revalidatePath("/settings/trash");
+    return { success: true as const, data: { id } };
+  } catch (error) {
+    console.error("[PURGE_LEAD_ERROR]", error);
+    return { success: false as const, error: "Failed to purge lead" };
   }
 }
 

@@ -18,7 +18,8 @@ import {
 import { toast } from "sonner";
 
 import { DataTable, DataTableColumnHeader, getSelectionColumn } from "@/components/shared/data-table";
-import { SavedViewSelector } from "@/components/shared/saved-view-selector";
+import { SavedViewSelector, type SavedViewState } from "@/components/shared/saved-view-selector";
+import type { SavedViewData } from "@/actions/saved-view.actions";
 import { BulkActionBar, TrashIcon as BulkTrashIcon, TagIcon } from "@/components/shared/bulk-action-bar";
 import { StatusPill } from "@/components/shared/status-pill";
 import { DotAvatar } from "@/components/shared/dot-avatar";
@@ -490,6 +491,30 @@ export function ContactsTable({ data }: ContactsTableProps) {
     [router, selectedRows.length]
   );
 
+  const getCurrentState = React.useCallback<() => SavedViewState>(() => {
+    return {
+      filters:
+        typeFilter === "ALL"
+          ? []
+          : [{ field: "type", operator: "equals", value: typeFilter }],
+    };
+  }, [typeFilter]);
+
+  const handleViewSelect = React.useCallback((view: SavedViewData | null) => {
+    if (!view) {
+      setTypeFilter("ALL");
+      return;
+    }
+    const typeEntry = (view.filters as Array<{ field: string; value: unknown }>)?.find(
+      (f) => f.field === "type"
+    );
+    if (typeEntry && typeof typeEntry.value === "string") {
+      setTypeFilter(typeEntry.value as TypeFilter);
+    } else {
+      setTypeFilter("ALL");
+    }
+  }, []);
+
   return (
     <>
       <TypeTabs data={data} active={typeFilter} onChange={setTypeFilter} />
@@ -503,7 +528,11 @@ export function ContactsTable({ data }: ContactsTableProps) {
         getRowId={(row) => row.id}
         toolbarExtra={
           <div className="flex items-center gap-2">
-            <SavedViewSelector entityType="CONTACT" />
+            <SavedViewSelector
+              entityType="CONTACT"
+              getCurrentState={getCurrentState}
+              onViewSelect={handleViewSelect}
+            />
             <ExportButton />
           </div>
         }

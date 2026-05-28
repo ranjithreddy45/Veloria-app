@@ -3,6 +3,7 @@ import { notify } from "@/lib/notify";
 import { logActivity } from "@/lib/activity-logger";
 import { calculateLeadScore } from "@/lib/lead-scoring";
 import { evaluateAssignmentRules } from "@/actions/assignment-rule.actions";
+import { sendWhatsApp } from "@/lib/integrations/whatsapp";
 
 interface ExternalLeadData {
   name: string;
@@ -126,7 +127,12 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
       if (welcomeConfig?.isEnabled && contact.phone) {
         // Schedule welcome message (delayed or immediate)
         if (welcomeConfig.delayMinutes === 0) {
-          await sendWelcomeWhatsApp(contact.phone, welcomeConfig.templateName, firstName);
+          await sendWelcomeWhatsApp(
+            contact.phone,
+            welcomeConfig.templateName,
+            firstName,
+            contact.id
+          );
         } else {
           // For delayed messages, create a scheduled task
           const sendAt = new Date(Date.now() + welcomeConfig.delayMinutes * 60 * 1000);
@@ -187,14 +193,56 @@ async function getSystemUserId(): Promise<string> {
 }
 
 /**
- * Send a WhatsApp welcome message (placeholder - integrates with existing WhatsApp system)
+ * Send a WhatsApp welcome message via the Meta Cloud API.
+ *
+ * Strategy: if `templateName` is set to a real WhatsApp template name, send
+ * as a template (preferred for outside the 24-hour customer service window).
+ * Falls back to a plain-text message when only `firstName` is available.
+ *
+ * Logs the outbound to `WhatsAppMessage` so the message shows up in the
+ * unified inbox just like a manually-sent message.
  */
-async function sendWelcomeWhatsApp(phone: string, templateName: string, firstName: string) {
+async function sendWelcomeWhatsApp(
+  phone: string,
+  templateName: string,
+  firstName: string,
+  contactId?: string
+) {
   try {
-    // This integrates with the existing WhatsApp API in the app
-    // The actual implementation depends on the WhatsApp Business API configuration
-    console.log(`[AutoWelcome] Sending ${templateName} to ${phone} for ${firstName}`);
-    // TODO: Integrate with existing WhatsApp send function when API keys are configured
+    const text =
+      templateName && templateName.trim().length > 0
+        ? `Hi ${firstName}, thanks for reaching out to Veloria Grand. ` +
+          `One of our event consultants will be in touch shortly. ` +
+          `For urgent queries, reply to this message.`
+        : `Hi ${firstName}, thanks for getting in touch with Veloria Grand!`;
+
+    const result = await sendWhatsApp({
+      to: phone,
+      template: templateName || undefined,
+      message: text,
+      params: { name: firstName },
+    });
+
+    // Mirror to WhatsAppMessage log if we know the contact
+    if (contactId) {
+      try {
+        await prisma.whatsAppMessage.create({
+          data: {
+            direction: "OUTBOUND",
+            content: text,
+            status: result.success ? "SENT" : "FAILED",
+            whatsappId: result.messageId || null,
+            contactId,
+          },
+        });
+      } catch {
+        // Logging failure must not block the welcome flow
+      }
+    }
+
+    if (!result.success) {
+      console.error(`[AutoWelcome] Failed to send to ${phone}:`, result.error);
+    }
   } catch (error) {
     console.error("[AutoWelcome] Failed to send WhatsApp:", error);
   }

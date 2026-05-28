@@ -32,17 +32,17 @@ export async function getContacts(params?: {
     const skip = (page - 1) * limit;
     const search = params?.search?.trim();
 
-    const where = search
-      ? {
-          OR: [
-            { firstName: { contains: search, mode: "insensitive" as const } },
-            { lastName: { contains: search, mode: "insensitive" as const } },
-            { email: { contains: search, mode: "insensitive" as const } },
-            { phone: { contains: search, mode: "insensitive" as const } },
-            { company: { contains: search, mode: "insensitive" as const } },
-          ],
-        }
-      : {};
+    // Exclude soft-deleted contacts; combine with any search filter.
+    const where: Record<string, unknown> = { deletedAt: null };
+    if (search) {
+      where.OR = [
+        { firstName: { contains: search, mode: "insensitive" as const } },
+        { lastName: { contains: search, mode: "insensitive" as const } },
+        { email: { contains: search, mode: "insensitive" as const } },
+        { phone: { contains: search, mode: "insensitive" as const } },
+        { company: { contains: search, mode: "insensitive" as const } },
+      ];
+    }
 
     const [contacts, total] = await Promise.all([
       prisma.contact.findMany({
@@ -331,7 +331,11 @@ export async function deleteContact(id: string) {
       };
     }
 
-    await prisma.contact.delete({ where: { id } });
+    // Soft-delete: set deletedAt instead of removing the row.
+    await prisma.contact.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
 
     await logActivity({
       userId: session.user.id as string,
@@ -341,10 +345,72 @@ export async function deleteContact(id: string) {
     });
 
     revalidatePath("/contacts");
+    revalidatePath("/settings/trash");
     return { success: true as const, data: { id } };
   } catch (error) {
     console.error("[DELETE_CONTACT_ERROR]", error);
     return { success: false as const, error: "Failed to delete contact" };
+  }
+}
+
+// ============================================================
+// Restore Contact (from trash)
+// ============================================================
+
+export async function restoreContact(id: string) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+    if (!hasPermission(session.user.role, "contacts:delete")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+    await prisma.contact.update({
+      where: { id },
+      data: { deletedAt: null },
+    });
+    await logActivity({
+      userId: session.user.id as string,
+      action: "restored",
+      entityType: "Contact",
+      entityId: id,
+    });
+    revalidatePath("/contacts");
+    revalidatePath("/settings/trash");
+    return { success: true as const, data: { id } };
+  } catch (error) {
+    console.error("[RESTORE_CONTACT_ERROR]", error);
+    return { success: false as const, error: "Failed to restore contact" };
+  }
+}
+
+// ============================================================
+// Permanently delete contact (admin only)
+// ============================================================
+
+export async function purgeContact(id: string) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+    const role = (session.user as { role?: string }).role ?? "";
+    if (role !== "SUPER_ADMIN" && role !== "ADMIN") {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+    await prisma.contact.delete({ where: { id } });
+    await logActivity({
+      userId: session.user.id as string,
+      action: "purged",
+      entityType: "Contact",
+      entityId: id,
+    });
+    revalidatePath("/settings/trash");
+    return { success: true as const, data: { id } };
+  } catch (error) {
+    console.error("[PURGE_CONTACT_ERROR]", error);
+    return { success: false as const, error: "Failed to purge contact" };
   }
 }
 
