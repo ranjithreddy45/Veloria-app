@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { auth } from "@/../auth";
 import { getDashboardStats } from "@/actions/dashboard.actions";
 import { KpiCards } from "./_components/kpi-cards";
-import { RevenueChart } from "./_components/revenue-chart";
-import { BookingsChart } from "./_components/bookings-chart";
+import { RevenueChart, BookingsChart } from "./_components/charts-lazy";
 import { UpcomingEvents } from "./_components/upcoming-events";
 import { OverdueItems } from "./_components/overdue-items";
 

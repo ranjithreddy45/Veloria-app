@@ -1,7 +1,7 @@
 import { getCallLogs, getCallAnalytics } from "@/actions/call.actions";
 import { CallsTable } from "./_components/calls-table";
 import { CallStatsCards } from "./_components/call-stats-cards";
-import { CallAnalyticsCharts } from "./_components/call-analytics-charts";
+import { CallAnalyticsCharts } from "./_components/call-analytics-charts-lazy";
 import { CallDispositionDialog } from "./_components/call-disposition-dialog";
 import { Phone } from "lucide-react";
 
