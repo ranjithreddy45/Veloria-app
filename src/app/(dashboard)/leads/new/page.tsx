@@ -23,6 +23,12 @@ export default async function NewLeadPage() {
     orderBy: { firstName: "asc" },
   });
 
+  const venues = await prisma.venue.findMany({
+    where: { isActive: true },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -30,7 +36,7 @@ export default async function NewLeadPage() {
         description="Create a new sales lead."
       />
       <div className="mx-auto max-w-3xl">
-        <LeadForm contacts={contacts} />
+        <LeadForm contacts={contacts} venues={venues} />
       </div>
     </div>
   );

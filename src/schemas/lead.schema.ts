@@ -55,6 +55,18 @@ export const leadSchema = z.object({
     .positive("Estimated value must be positive")
     .optional()
     .nullable(),
+  // Venue-specific inquiry fields (spec §3.1)
+  preferredVenueId: z.string().optional().or(z.literal("")),
+  slot: z.enum(["Lunch", "Dinner"]).optional().or(z.literal("")),
+  vegNonVeg: z
+    .enum(["Veg Only", "Non Veg Only", "Both Veg & Non Veg", "Jain"])
+    .optional()
+    .or(z.literal("")),
+  perPlateBudget: z
+    .number()
+    .positive("Per-plate budget must be positive")
+    .optional()
+    .nullable(),
   description: z
     .string()
     .max(5000, "Description must be at most 5000 characters")

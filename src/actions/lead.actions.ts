@@ -208,6 +208,10 @@ export async function createLead(data: LeadInput) {
         eventDate: leadData.eventDate || null,
         guestCount: leadData.guestCount || null,
         estimatedValue: leadData.estimatedValue || null,
+        preferredVenueId: leadData.preferredVenueId || null,
+        slot: leadData.slot || null,
+        vegNonVeg: leadData.vegNonVeg || null,
+        perPlateBudget: leadData.perPlateBudget || null,
         description: leadData.description || null,
         score,
         createdById: session.user.id as string,
@@ -316,6 +320,13 @@ export async function updateLead(
       updateData.guestCount = data.guestCount || null;
     if (data.estimatedValue !== undefined)
       updateData.estimatedValue = data.estimatedValue || null;
+    if (data.preferredVenueId !== undefined)
+      updateData.preferredVenueId = data.preferredVenueId || null;
+    if (data.slot !== undefined) updateData.slot = data.slot || null;
+    if (data.vegNonVeg !== undefined)
+      updateData.vegNonVeg = data.vegNonVeg || null;
+    if (data.perPlateBudget !== undefined)
+      updateData.perPlateBudget = data.perPlateBudget || null;
     if (data.description !== undefined)
       updateData.description = data.description || null;
     if (data.assignedToId !== undefined)

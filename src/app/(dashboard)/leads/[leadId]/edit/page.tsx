@@ -18,7 +18,7 @@ interface EditLeadPageProps {
 export default async function EditLeadPage({ params }: EditLeadPageProps) {
   const { leadId } = await params;
 
-  const [leadResult, contacts] = await Promise.all([
+  const [leadResult, contacts, venues] = await Promise.all([
     getLead(leadId),
     prisma.contact.findMany({
       where: { isActive: true },
@@ -30,6 +30,11 @@ export default async function EditLeadPage({ params }: EditLeadPageProps) {
         phone: true,
       },
       orderBy: { firstName: "asc" },
+    }),
+    prisma.venue.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
     }),
   ]);
 
@@ -48,6 +53,7 @@ export default async function EditLeadPage({ params }: EditLeadPageProps) {
       <div className="mx-auto max-w-3xl">
         <LeadForm
           contacts={contacts}
+          venues={venues}
           lead={{
             id: lead.id,
             title: lead.title,
@@ -57,6 +63,10 @@ export default async function EditLeadPage({ params }: EditLeadPageProps) {
             eventDate: lead.eventDate,
             guestCount: lead.guestCount,
             estimatedValue: lead.estimatedValue ? Number(lead.estimatedValue) : null,
+            preferredVenueId: lead.preferredVenueId ?? null,
+            slot: lead.slot ?? null,
+            vegNonVeg: lead.vegNonVeg ?? null,
+            perPlateBudget: lead.perPlateBudget ? Number(lead.perPlateBudget) : null,
             description: lead.description,
           }}
         />

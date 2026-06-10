@@ -64,6 +64,10 @@ interface LeadData {
   eventDate: Date | string | null;
   guestCount: number | null;
   estimatedValue: number | null;
+  preferredVenueId: string | null;
+  slot: string | null;
+  vegNonVeg: string | null;
+  perPlateBudget: number | null;
   description: string | null;
 }
 
@@ -75,6 +79,7 @@ interface LeadFormProps {
     email: string | null;
     phone: string | null;
   }[];
+  venues?: { id: string; name: string }[];
   lead?: LeadData;
 }
 
@@ -82,7 +87,7 @@ interface LeadFormProps {
 // LeadForm Component
 // ============================================================
 
-export function LeadForm({ contacts, lead }: LeadFormProps) {
+export function LeadForm({ contacts, venues = [], lead }: LeadFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, setIsPending] = React.useState(false);
@@ -102,6 +107,10 @@ export function LeadForm({ contacts, lead }: LeadFormProps) {
       eventDate: lead?.eventDate ? new Date(lead.eventDate) : null,
       guestCount: lead?.guestCount ?? null,
       estimatedValue: lead?.estimatedValue ?? null,
+      preferredVenueId: lead?.preferredVenueId ?? "",
+      slot: (lead?.slot ?? "") as LeadInput["slot"],
+      vegNonVeg: (lead?.vegNonVeg ?? "") as LeadInput["vegNonVeg"],
+      perPlateBudget: lead?.perPlateBudget ?? null,
       description: lead?.description ?? "",
     },
   });
@@ -371,6 +380,111 @@ export function LeadForm({ contacts, lead }: LeadFormProps) {
                       <Input
                         type="number"
                         placeholder="e.g., 500000"
+                        className="pl-8"
+                        value={field.value ?? ""}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          field.onChange(val ? parseFloat(val) : null);
+                        }}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Preferred Venue */}
+            <FormField
+              control={form.control}
+              name="preferredVenueId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Preferred Venue</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select venue" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {venues.map((v) => (
+                        <SelectItem key={v.id} value={v.id}>
+                          {v.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Slot */}
+            <FormField
+              control={form.control}
+              name="slot"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Slot</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Lunch / Dinner" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Lunch">Lunch</SelectItem>
+                      <SelectItem value="Dinner">Dinner</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Veg / Non-Veg */}
+            <FormField
+              control={form.control}
+              name="vegNonVeg"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Menu Preference</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select preference" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Veg Only">Veg Only</SelectItem>
+                      <SelectItem value="Non Veg Only">Non Veg Only</SelectItem>
+                      <SelectItem value="Both Veg & Non Veg">
+                        Both Veg &amp; Non Veg
+                      </SelectItem>
+                      <SelectItem value="Jain">Jain</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Per-plate budget */}
+            <FormField
+              control={form.control}
+              name="perPlateBudget"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Per-plate Budget</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <span className="text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 text-sm">
+                        &#8377;
+                      </span>
+                      <Input
+                        type="number"
+                        placeholder="e.g., 1200"
                         className="pl-8"
                         value={field.value ?? ""}
                         onChange={(e) => {

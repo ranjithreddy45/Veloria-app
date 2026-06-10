@@ -24,6 +24,7 @@ const JOBS = [
   "anomaly-detection",
   "trash-purge",
   "event-triggers",
+  "customer-360",
 ] as const;
 
 function getBaseUrl(): string {

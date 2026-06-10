@@ -331,6 +331,7 @@ model User {
   apiKeys                 ApiKey[]            @relation("UserApiKeys")
   telephonyConfigs        TelephonyConfig[]   @relation("UserTelephonyConfigs")
   whatsappConfigs         WhatsAppConfig[]    @relation("UserWhatsAppConfigs")
+  hallOwnersManaged       HallOwner[]         @relation("HallOwnerBD")
 
   @@index([email])
   @@index([role])
@@ -393,6 +394,15 @@ model Contact {
   notes          String?     @db.Text
   tags           String[]
   isActive       Boolean     @default(true)
+  // Customer 360 (spec §3.2) — vipCustomer/anniversary set by staff;
+  // customerType, lifetimeBookings, totalRevenue, lastEventDate are
+  // auto-rolled by the daily customer-360 cron.
+  customerType     String?   // "New" | "Repeat" | "VIP" | "Lost"
+  vipCustomer      Boolean   @default(false)
+  anniversary      DateTime?
+  lifetimeBookings Int       @default(0)
+  totalRevenue     Decimal   @default(0) @db.Decimal(14, 2)
+  lastEventDate    DateTime?
   deletedAt      DateTime?   // soft-delete; auto-purged after 30 days by cron
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
@@ -427,6 +437,10 @@ model Lead {
   guestCount     Int?
   followUpDate   DateTime?
   lostReason     String?
+  // Venue-specific inquiry fields (spec §3.1)
+  slot           String?    // "Lunch" | "Dinner"
+  vegNonVeg      String?    // "Veg Only" | "Non Veg Only" | "Both Veg & Non Veg" | "Jain"
+  perPlateBudget Decimal?   @db.Decimal(10, 2)
   aiScore        Int?
   aiScoreReason  String?    @db.Text
   aiScoredAt     DateTime?
@@ -434,8 +448,10 @@ model Lead {
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 
-  contactId    String
-  contact      Contact @relation(fields: [contactId], references: [id])
+  contactId        String
+  contact          Contact @relation(fields: [contactId], references: [id])
+  preferredVenueId String?
+  preferredVenue   Venue?  @relation("LeadPreferredVenue", fields: [preferredVenueId], references: [id])
   assignedToId String?
   assignedTo   User?   @relation("AssignedTo", fields: [assignedToId], references: [id])
   createdById  String
@@ -524,6 +540,7 @@ model Venue {
   pricingRules      PricingRule[]
   ratePlans         RatePlan[]
   insurancePolicies InsurancePolicy[]
+  preferredLeads    Lead[]            @relation("LeadPreferredVenue")
 }
 
 model Booking {
@@ -3368,4 +3385,72 @@ model WhatsAppConfig {
   createdBy   User   @relation("UserWhatsAppConfigs", fields: [createdById], references: [id])
 
   @@index([isActive])
+}
+
+// ============================================================
+// OWNER-SIDE B2B CRM — Hall Owner acquisition funnel (spec §13)
+// ============================================================
+
+enum HallOwnerStatus {
+  PROSPECT
+  CONTACT_MADE
+  SITE_INSPECTION
+  NEGOTIATION
+  CONTRACT_DRAFTED
+  SIGNED
+  ONBOARDED
+  RENEWAL
+  CHURNED
+}
+
+enum CommercialModel {
+  REVENUE_SHARE
+  FIXED_LEASE
+  HYBRID
+  MANAGEMENT_FEE
+}
+
+enum PropertyType {
+  BANQUET_HALL
+  CONVENTION_CENTER
+  MARRIAGE_GARDEN
+  MIXED
+}
+
+enum OwnershipStatus {
+  SELF_OWNED
+  LEASED
+  FAMILY_PROPERTY
+}
+
+model HallOwner {
+  id                      String           @id @default(cuid())
+  ownerName               String
+  companyName             String?
+  email                   String?
+  phone                   String?
+  whatsapp                String?
+  gstin                   String?
+  numberOfHalls           Int?
+  totalCapacity           Int?
+  propertyCity            String?
+  propertyType            PropertyType?
+  ownershipStatus         OwnershipStatus?
+  commercialModel         CommercialModel?
+  revenueSharePercent     Decimal?         @db.Decimal(5, 2)
+  minimumMonthlyGuarantee Decimal?         @db.Decimal(14, 2)
+  contractStatus          HallOwnerStatus  @default(PROSPECT)
+  contractStartDate       DateTime?
+  contractEndDate         DateTime?
+  notes                   String?          @db.Text
+  deletedAt               DateTime?
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @updatedAt
+
+  bdOwnerId String?
+  bdOwner   User?   @relation("HallOwnerBD", fields: [bdOwnerId], references: [id])
+
+  @@index([contractStatus])
+  @@index([bdOwnerId])
+  @@index([deletedAt])
 }
