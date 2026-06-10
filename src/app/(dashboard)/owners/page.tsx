@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { OwnersWorkspace, type OwnerItem } from "./_components/owners-workspace";
 
-export const metadata: Metadata = { title: "Hall Owners" };
+export const metadata: Metadata = { title: "BD CRM" };
 
 function fmtCr(n: number): string {
   if (n >= 10000000) return `₹${(n / 10000000).toFixed(2)} Cr`;
@@ -25,10 +25,10 @@ export default async function HallOwnersPage() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Hall Owners"
+        title="BD CRM"
         eyebrow={
           <div className="flex items-center gap-3">
-            <span>Business Development · Owner CRM</span>
+            <span>Business Development · Hall Owner Acquisition</span>
             <span className="h-3 w-px bg-border" />
             <span className="text-foreground/80">
               <span className="font-semibold tabular-nums">{owners.length}</span> owners

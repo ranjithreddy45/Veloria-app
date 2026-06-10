@@ -189,7 +189,7 @@ function getIcon(iconName: string): LucideIcon {
 // ============================================================
 
 const GROUP_LABELS: Record<string, string> = {
-  "/contacts": "CRM",
+  "/contacts": "Sales CRM",
   "/bookings": "Bookings",
   "/invoices": "Finance",
 };
