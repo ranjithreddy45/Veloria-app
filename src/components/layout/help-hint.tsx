@@ -31,7 +31,7 @@ export function HelpHint({ title, children, label, className }: HelpHintProps) {
       <PopoverTrigger asChild>
         <button
           type="button"
-          aria-label={label ?? `What is ${title}?`}
+          aria-label={label ?? title}
           className={cn(
             "inline-flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             className
