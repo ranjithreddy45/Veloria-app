@@ -408,6 +408,84 @@ async function main() {
     console.log(`[bootstrap] Hall owners already exist (${ownerCount})`);
   }
 
+  // ---- 6. Seed default approval rules (sign-off thresholds) ----
+  // These make the Approvals queue functional out of the box. Each rule
+  // is keyed by name; we only create it if it doesn't already exist, so
+  // admins can freely edit/disable them without the bootstrap clobbering
+  // their changes on the next deploy.
+  const approver = await prisma.user.findFirst({
+    where: { role: { in: ["SUPER_ADMIN", "ADMIN"] }, isActive: true },
+    select: { id: true },
+  });
+
+  if (approver) {
+    const DEFAULT_RULES: {
+      name: string;
+      entityType: string;
+      description: string;
+      conditions: { field: string; operator: string; value: number }[];
+    }[] = [
+      {
+        name: "High-discount quote sign-off",
+        entityType: "QUOTE",
+        description:
+          "Quotes discounted more than 20% must be approved before they can be sent to the customer.",
+        conditions: [{ field: "discountPercent", operator: "gt", value: 20 }],
+      },
+      {
+        name: "Large deal sign-off",
+        entityType: "DEAL",
+        description:
+          "Deals worth ₹15,00,000 or more require managerial sign-off when marked Won.",
+        conditions: [{ field: "value", operator: "gte", value: 1500000 }],
+      },
+      {
+        name: "High-value booking review",
+        entityType: "BOOKING",
+        description:
+          "Bookings of ₹10,00,000 or more are flagged for managerial review.",
+        conditions: [{ field: "totalAmount", operator: "gte", value: 1000000 }],
+      },
+    ];
+
+    let createdRules = 0;
+    for (const r of DEFAULT_RULES) {
+      const exists = await prisma.approvalRule.findFirst({
+        where: { name: r.name },
+        select: { id: true },
+      });
+      if (exists) continue;
+      await prisma.approvalRule.create({
+        data: {
+          name: r.name,
+          entityType: r.entityType,
+          description: r.description,
+          isActive: true,
+          priority: 0,
+          conditions: r.conditions,
+          approverChain: {
+            create: [
+              {
+                order: 0,
+                // Assign to the concrete admin user so the request reliably
+                // lands in their queue regardless of role-name conventions.
+                approverType: "USER",
+                approverId: approver.id,
+                isOptional: false,
+              },
+            ],
+          },
+        },
+      });
+      createdRules++;
+    }
+    if (createdRules > 0) {
+      console.log(`[bootstrap] Seeded ${createdRules} default approval rule(s)`);
+    } else {
+      console.log("[bootstrap] Approval rules already present");
+    }
+  }
+
   console.log("[bootstrap] Done.");
 }
 

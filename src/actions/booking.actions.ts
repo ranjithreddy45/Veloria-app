@@ -12,6 +12,7 @@ import { notify } from "@/lib/notify";
 import { sendEmail } from "@/lib/email";
 import { bookingConfirmationEmail } from "@/lib/email-templates/booking-confirmation";
 import { triggerWorkflows } from "@/lib/workflow-executor";
+import { requestApprovalIfNeeded } from "@/lib/approval-engine";
 import { after } from "next/server";
 import { format } from "date-fns";
 
@@ -440,6 +441,19 @@ export async function createBooking(data: BookingInput) {
         }
       } catch (e) {
         console.error("[TRIGGER_WORKFLOWS_ERROR]", e);
+      }
+
+      // Raise an approval request for managerial oversight if this booking
+      // matches an active rule (e.g. value over a threshold). Non-blocking:
+      // the booking already exists in HOLD; this surfaces it for review.
+      try {
+        await requestApprovalIfNeeded(
+          "BOOKING",
+          booking.id,
+          session.user.id as string
+        );
+      } catch (e) {
+        console.error("[BOOKING_APPROVAL_ERROR]", e);
       }
     });
 

@@ -11,6 +11,10 @@ import { logActivity } from "@/lib/activity-logger";
 import { notify } from "@/lib/notify";
 import { sendEmail } from "@/lib/email";
 import { quoteSentEmail } from "@/lib/email-templates/quote-sent";
+import {
+  getEntityApprovalState,
+  requestApprovalIfNeeded,
+} from "@/lib/approval-engine";
 import { format } from "date-fns";
 
 // ============================================================
@@ -496,6 +500,41 @@ export async function sendQuote(id: string) {
         error: "Only draft quotes can be sent",
       };
     }
+
+    // ---- Approval gate ------------------------------------------------
+    // If an active approval rule matches this quote (e.g. discount over a
+    // threshold), it must be approved before it can be sent to the customer.
+    const approval = await getEntityApprovalState("QUOTE", id);
+    if (approval.status === "pending") {
+      return {
+        success: false as const,
+        error:
+          "This quote is awaiting internal approval. It can be sent once approved.",
+      };
+    }
+    if (approval.status === "rejected") {
+      return {
+        success: false as const,
+        error:
+          "This quote's approval was rejected. Edit the quote and resubmit before sending.",
+      };
+    }
+    if (approval.status === "none") {
+      // Not yet evaluated — check the rules now.
+      const result = await requestApprovalIfNeeded(
+        "QUOTE",
+        id,
+        session.user.id as string
+      );
+      if (result.status === "pending") {
+        return {
+          success: false as const,
+          error:
+            "This quote requires approval before it can be sent. An approval request has been raised and the approver has been notified.",
+        };
+      }
+    }
+    // status === "approved" (or no rule matched) falls through and sends.
 
     const quote = await prisma.quote.update({
       where: { id },

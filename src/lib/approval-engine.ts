@@ -215,6 +215,74 @@ export async function submitForApproval(
 }
 
 // ============================================================
+// Entity Approval State — what's the current standing for an entity?
+// ============================================================
+// Returns the most recent approval request for an entity so callers
+// can decide whether to block an action (e.g. sending a quote).
+
+export type EntityApprovalState =
+  | { status: "none" }                                    // no rule matched / never submitted
+  | { status: "pending"; requestId: string }              // awaiting a decision
+  | { status: "approved"; requestId: string }             // cleared — action may proceed
+  | { status: "rejected"; requestId: string };            // blocked — needs rework
+
+export async function getEntityApprovalState(
+  entityType: string,
+  entityId: string
+): Promise<EntityApprovalState> {
+  const latest = await prisma.approvalRequest.findFirst({
+    where: { entityType, entityId },
+    orderBy: { submittedAt: "desc" },
+    select: { id: true, status: true },
+  });
+
+  if (!latest) return { status: "none" };
+
+  switch (latest.status) {
+    case "APPROVED":
+      return { status: "approved", requestId: latest.id };
+    case "REJECTED":
+      return { status: "rejected", requestId: latest.id };
+    case "PENDING_APPROVAL":
+    case "DELEGATED":
+      return { status: "pending", requestId: latest.id };
+    // CANCELLED (or anything else) means there is no live request
+    default:
+      return { status: "none" };
+  }
+}
+
+// ============================================================
+// Request Approval If Needed — the single entry point for callers
+// ============================================================
+// Evaluates active rules for the entity. If one matches AND there is
+// no live (pending/approved/rejected) request already, it creates a
+// request and notifies the first approver. Idempotent: calling it
+// repeatedly for the same entity will not spawn duplicate requests.
+
+export async function requestApprovalIfNeeded(
+  entityType: string,
+  entityId: string,
+  userId: string
+): Promise<EntityApprovalState & { created?: boolean }> {
+  try {
+    // If there's already a live request, don't create another.
+    const existing = await getEntityApprovalState(entityType, entityId);
+    if (existing.status !== "none") return existing;
+
+    const rule = await checkApprovalRequired(entityType, entityId);
+    if (!rule) return { status: "none" };
+
+    const request = await submitForApproval(entityType, entityId, rule.id, userId);
+    return { status: "pending", requestId: request.id, created: true };
+  } catch (error) {
+    console.error("[APPROVAL_ENGINE] requestApprovalIfNeeded error:", error);
+    // Fail open: never let an approval-engine hiccup block the primary action.
+    return { status: "none" };
+  }
+}
+
+// ============================================================
 // Advance Approval Chain
 // ============================================================
 

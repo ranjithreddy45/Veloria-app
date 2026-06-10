@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { serialize } from "@/lib/utils";
 import { hasPermission } from "@/lib/permissions";
+import { requestApprovalIfNeeded } from "@/lib/approval-engine";
 
 // ============================================================
 // Types
@@ -471,8 +472,24 @@ export async function moveDeal(
       }
     });
 
+    // When a deal is marked Won, raise an approval request for managerial
+    // sign-off if it matches an active rule (e.g. value over a threshold).
+    // Non-blocking oversight: the move has already been committed.
+    if (newStage.isWonStage) {
+      try {
+        await requestApprovalIfNeeded(
+          "DEAL",
+          dealId,
+          session.user.id as string
+        );
+      } catch (e) {
+        console.error("[DEAL_APPROVAL_ERROR]", e);
+      }
+    }
+
     revalidatePath("/pipeline");
     revalidatePath("/leads");
+    revalidatePath("/approvals");
     return {
       success: true as const,
       data: {
