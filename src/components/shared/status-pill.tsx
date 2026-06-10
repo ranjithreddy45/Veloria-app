@@ -173,3 +173,47 @@ export function LeadSourcePill({ source, size }: { source: string; size?: Size }
     />
   );
 }
+
+// ============================================================
+// Hall Owner funnel stage pill (B2B owner-side CRM)
+// ============================================================
+
+const HALL_OWNER_HUE: Record<string, Hue> = {
+  PROSPECT: "slate",
+  CONTACT_MADE: "blue",
+  SITE_INSPECTION: "violet",
+  NEGOTIATION: "amber",
+  CONTRACT_DRAFTED: "orange",
+  SIGNED: "teal",
+  ONBOARDED: "emerald",
+  RENEWAL: "cyan",
+  CHURNED: "rose",
+};
+
+const HALL_OWNER_LABEL: Record<string, string> = {
+  PROSPECT: "Prospect",
+  CONTACT_MADE: "Contact Made",
+  SITE_INSPECTION: "Site Inspection",
+  NEGOTIATION: "Negotiation",
+  CONTRACT_DRAFTED: "Contract Drafted",
+  SIGNED: "Signed",
+  ONBOARDED: "Onboarded",
+  RENEWAL: "Renewal",
+  CHURNED: "Churned",
+};
+
+export function HallOwnerStatusPill({
+  status,
+  size,
+}: {
+  status: string;
+  size?: Size;
+}) {
+  return (
+    <StatusPill
+      label={HALL_OWNER_LABEL[status] ?? status}
+      hue={HALL_OWNER_HUE[status] ?? "neutral"}
+      size={size}
+    />
+  );
+}
