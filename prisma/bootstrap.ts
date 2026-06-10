@@ -173,6 +173,110 @@ async function main() {
   }
   console.log("[bootstrap] Synced 5 real venues (placeholders deactivated)");
 
+  // ---- 3b. Seed email templates (spec §8) — idempotent by name ----
+  const TEMPLATES = [
+    {
+      name: "Inquiry Acknowledgement",
+      subject: "Thank you for your Veloria Grand inquiry",
+      category: "Inquiry",
+      htmlContent:
+        "<p>Hi {{firstName}},</p><p>Thank you for reaching out to Veloria Grand. We've received your inquiry and our venue manager will call you shortly to discuss your event.</p><p>We offer 5 venues across Bangalore, capacity 100–1000 guests, in-house Veg / Non-Veg / Jain catering, and end-to-end coordination.</p><p>— Team Veloria Grand</p>",
+    },
+    {
+      name: "Quote Follow-up D1",
+      subject: "Following up on your Veloria Grand proposal",
+      category: "Inquiry",
+      htmlContent:
+        "<p>Hi {{firstName}},</p><p>Just checking in on the proposal we shared. Any questions on pricing or services? Reply or call to confirm and we'll hold your date.</p><p>— Team Veloria Grand</p>",
+    },
+    {
+      name: "Booking Confirmation",
+      subject: "Your Veloria Grand booking is confirmed",
+      category: "Booking",
+      htmlContent:
+        "<p>Dear {{firstName}},</p><p>Your booking <strong>{{bookingNumber}}</strong> is confirmed. Our coordinator will reach out 7 days before the event to finalise details.</p><p>— Team Veloria Grand</p>",
+    },
+    {
+      name: "Pre-event Reminder",
+      subject: "See you tomorrow at Veloria Grand",
+      category: "Booking",
+      htmlContent:
+        "<p>Hi {{firstName}},</p><p>Your event is tomorrow. Reporting time: 30 minutes before start. Parking is available on-site. We look forward to hosting you.</p><p>— Team Veloria Grand</p>",
+    },
+    {
+      name: "Post-event NPS",
+      subject: "How was your event at Veloria Grand?",
+      category: "Booking",
+      htmlContent:
+        "<p>Hi {{firstName}},</p><p>We hope your event was everything you wished for. Your feedback helps us improve — would you rate your experience? If anything fell short, just reply and we'll make it right.</p><p>— Ranjith, Veloria Grand</p>",
+    },
+  ];
+  for (const t of TEMPLATES) {
+    const exists = await prisma.emailTemplate.findFirst({
+      where: { name: t.name },
+    });
+    if (!exists) await prisma.emailTemplate.create({ data: t });
+  }
+  console.log("[bootstrap] Seeded email templates");
+
+  // ---- 3c. Seed workflow automations (spec §6) — idempotent by name ----
+  // Wired to the real workflow engine + triggers. Rule 2 (status→Contacted)
+  // needs a status-change trigger we don't have yet — omitted for now.
+  const WORKFLOWS: {
+    name: string;
+    trigger:
+      | "LEAD_CREATED"
+      | "BOOKING_CONFIRMED"
+      | "EVENT_TOMORROW"
+      | "POST_EVENT";
+    actions: { type: string; config: Record<string, unknown> }[];
+  }[] = [
+    {
+      name: "Inquiry Acknowledgement",
+      trigger: "LEAD_CREATED",
+      actions: [
+        { type: "SEND_EMAIL", config: { template: "Inquiry Acknowledgement", to: "contact" } },
+        { type: "CREATE_TASK", config: { title: "Call new inquiry within 15 minutes" } },
+      ],
+    },
+    {
+      name: "Booking Confirmation",
+      trigger: "BOOKING_CONFIRMED",
+      actions: [
+        { type: "SEND_EMAIL", config: { template: "Booking Confirmation", to: "contact" } },
+      ],
+    },
+    {
+      name: "Pre-event Reminder",
+      trigger: "EVENT_TOMORROW",
+      actions: [
+        { type: "SEND_EMAIL", config: { template: "Pre-event Reminder", to: "contact" } },
+      ],
+    },
+    {
+      name: "Post-event NPS",
+      trigger: "POST_EVENT",
+      actions: [
+        { type: "SEND_EMAIL", config: { template: "Post-event NPS", to: "contact" } },
+      ],
+    },
+  ];
+  for (const w of WORKFLOWS) {
+    const exists = await prisma.workflow.findFirst({ where: { name: w.name } });
+    if (!exists) {
+      await prisma.workflow.create({
+        data: {
+          name: w.name,
+          trigger: w.trigger,
+          // Json[] column — cast through unknown
+          actions: w.actions as unknown as object[],
+          isActive: true,
+        },
+      });
+    }
+  }
+  console.log("[bootstrap] Seeded workflow automations");
+
   // ---- 4. Demo guest account (so the customer portal can be tested) ----
   // Creates a CLIENT login + a matching Contact + one sample booking, so
   // logging in as the guest shows a populated "My Bookings". Idempotent.

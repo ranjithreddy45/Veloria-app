@@ -36,6 +36,9 @@ const TRUST = [
   { icon: UtensilsCrossed, label: "Your caterer", sub: "Outside food allowed" },
 ];
 
+// Revalidate the storefront every 60s so venue/pricing edits surface fast.
+export const revalidate = 60;
+
 export default async function GuestHomePage() {
   const venues = await getStorefrontVenues();
 

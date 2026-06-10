@@ -23,6 +23,7 @@ const JOBS = [
   "sentiment-analysis",
   "anomaly-detection",
   "trash-purge",
+  "event-triggers",
 ] as const;
 
 function getBaseUrl(): string {

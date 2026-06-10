@@ -5,6 +5,7 @@ import { VenueImage } from "../../_components/venue-image";
 import { formatPrice } from "../../_components/format";
 
 export const metadata = { title: "Our Venues — Veloria Grand" };
+export const revalidate = 60;
 
 export default async function VenuesPage() {
   const venues = await getStorefrontVenues();

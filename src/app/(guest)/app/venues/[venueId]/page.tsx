@@ -12,6 +12,8 @@ import { getStorefrontVenue } from "@/actions/storefront.actions";
 import { VenueImage } from "../../../_components/venue-image";
 import { formatPrice } from "../../../_components/format";
 
+export const revalidate = 60;
+
 export default async function VenueDetailPage({
   params,
 }: {
