@@ -7,6 +7,7 @@ import {
   getBlackoutDates,
 } from "@/actions/booking.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { BookingCalendar } from "../_components/booking-calendar";
 
@@ -33,6 +34,7 @@ export default async function CalendarPage() {
     <div className="space-y-6">
       <PageHeader
         title="Booking Calendar"
+        help={<PageHelp id="bookings-calendar" />}
         description="View and manage bookings in calendar format."
       >
         <Button variant="outline" asChild>

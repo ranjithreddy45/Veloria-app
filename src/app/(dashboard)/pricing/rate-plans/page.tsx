@@ -4,6 +4,7 @@ import { PlusIcon, ArrowLeftIcon } from "lucide-react";
 
 import { getRatePlans } from "@/actions/pricing.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { RatePlansTable } from "../_components/rate-plans-table";
 
@@ -22,6 +23,7 @@ export default async function RatePlansPage() {
     <div className="space-y-6">
       <PageHeader
         title="Rate Plans"
+        help={<PageHelp id="rate-plans" />}
         description="Manage base rates and per-guest pricing for your venues."
       >
         <Button variant="outline" asChild>

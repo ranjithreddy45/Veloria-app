@@ -4,6 +4,7 @@ import { PlusIcon } from "lucide-react";
 
 import { getResources } from "@/actions/resource.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { ResourcesTable } from "./_components/resources-table";
 
@@ -22,6 +23,7 @@ export default async function ResourcesPage() {
     <div className="space-y-6">
       <PageHeader
         title="Resources"
+        help={<PageHelp id="resources" />}
         description="Manage staff, equipment, vehicles, and venue add-ons."
       >
         <Button asChild>

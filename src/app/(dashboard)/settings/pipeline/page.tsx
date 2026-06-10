@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getPipelineStages } from "@/actions/pipeline.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { PipelineStageSettings } from "./_components/pipeline-stage-settings";
 
 export const metadata: Metadata = { title: "Pipeline Settings" };
@@ -13,6 +14,7 @@ export default async function PipelineSettingsPage() {
     <div className="max-w-3xl space-y-6">
       <PageHeader
         title="Pipeline Stages"
+        help={<PageHelp id="pipeline-stages" />}
         description="Manage the stages in your sales pipeline. Reorder, rename, or adjust colors."
       />
 

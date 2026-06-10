@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PlusIcon } from "lucide-react";
 import { getQuotes } from "@/actions/quote.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { QuotesTable } from "./_components/quotes-table";
 
@@ -18,6 +19,7 @@ export default async function QuotesPage() {
     <div className="space-y-6">
       <PageHeader
         title="Quotes"
+        help={<PageHelp id="quotes" />}
         description="Create and manage quotations for clients. Track status, send proposals, and convert to invoices."
       >
         <Button asChild>

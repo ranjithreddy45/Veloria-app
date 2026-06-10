@@ -12,6 +12,7 @@ import {
 
 import { getReferralRewardRules } from "@/actions/referral-engine.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -80,6 +81,7 @@ export default async function ReferralRewardRulesPage() {
     <div className="space-y-6">
       <PageHeader
         title="Referral Reward Rules"
+        help={<PageHelp id="referral-rules" />}
         description="Define how referral rewards are calculated and distributed."
       >
         <Button asChild>

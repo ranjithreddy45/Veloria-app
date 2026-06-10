@@ -4,6 +4,7 @@ import { PlusIcon, ReceiptTextIcon } from "lucide-react";
 
 import { getPricingRules, getRatePlans } from "@/actions/pricing.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PricingRulesTable } from "./_components/pricing-rules-table";
@@ -28,6 +29,7 @@ export default async function PricingPage() {
     <div className="space-y-6">
       <PageHeader
         title="Pricing Engine"
+        help={<PageHelp id="pricing" />}
         description="Manage dynamic pricing rules and rate plans for your venues."
       >
         <Button variant="outline" asChild>

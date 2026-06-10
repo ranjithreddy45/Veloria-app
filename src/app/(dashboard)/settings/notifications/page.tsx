@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { getNotificationPreferences } from "@/actions/notification-settings.actions";
 import { NotificationSettings } from "./_components/notification-settings";
 
@@ -18,6 +19,7 @@ export default async function NotificationSettingsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Notification Settings"
+        help={<PageHelp id="notification-settings" />}
         description="Configure how you receive notifications for each event type. Toggle email and SMS channels per notification."
       />
       <NotificationSettings initialPreferences={preferences} />

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { getLoyaltyAccounts, getLoyaltyStats } from "@/actions/loyalty.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { LoyaltyStats } from "./_components/loyalty-stats";
 import { LoyaltyTable } from "./_components/loyalty-table";
 
@@ -37,6 +38,7 @@ export default async function LoyaltyPage() {
     <div className="space-y-6">
       <PageHeader
         title="Loyalty & Rewards"
+        help={<PageHelp id="loyalty" />}
         description="Manage loyalty accounts, track points, and reward your clients."
       />
 

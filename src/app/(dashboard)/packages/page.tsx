@@ -4,6 +4,7 @@ import { PlusIcon, PackageIcon } from "lucide-react";
 
 import { getPackages } from "@/actions/package.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { PackageCard } from "./_components/package-card";
 
@@ -22,6 +23,7 @@ export default async function PackagesPage() {
     <div className="space-y-6">
       <PageHeader
         title="Event Packages"
+        help={<PageHelp id="packages" />}
         description="Manage your event packages and pricing tiers."
       >
         <Button asChild>

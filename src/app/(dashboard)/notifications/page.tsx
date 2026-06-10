@@ -3,6 +3,7 @@ import { auth } from "@/../auth";
 import { redirect } from "next/navigation";
 import { getNotifications } from "@/actions/notification.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { NotificationList } from "./_components/notification-list";
 
 export const metadata: Metadata = { title: "Notifications" };
@@ -26,6 +27,7 @@ export default async function NotificationsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Notifications"
+        help={<PageHelp id="notifications" />}
         description={`You have ${total} notification${total !== 1 ? "s" : ""}`}
       />
       <NotificationList

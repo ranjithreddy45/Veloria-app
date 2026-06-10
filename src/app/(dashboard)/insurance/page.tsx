@@ -4,6 +4,7 @@ import { PlusIcon, AlertTriangleIcon, ShieldIcon, IndianRupeeIcon, ClockIcon } f
 
 import { getInsurancePolicies, getInsuranceStats, getExpiringPolicies } from "@/actions/insurance.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -33,6 +34,7 @@ export default async function InsurancePage() {
     <div className="space-y-6">
       <PageHeader
         title="Insurance Policies"
+        help={<PageHelp id="insurance" />}
         description="Track and manage insurance policies for events, venues, and bookings."
       >
         <Button asChild>

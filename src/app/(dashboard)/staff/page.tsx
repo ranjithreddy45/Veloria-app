@@ -4,6 +4,7 @@ import { BanknoteIcon } from "lucide-react";
 
 import { getStaffProfiles, getStaffSchedule } from "@/actions/staff.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StaffSchedule } from "./_components/staff-schedule";
@@ -34,6 +35,7 @@ export default async function StaffPage() {
     <div className="space-y-6">
       <PageHeader
         title="Staff Scheduling"
+        help={<PageHelp id="staff" />}
         description="Manage staff profiles, shifts, and schedules."
       >
         <Button variant="outline" asChild>

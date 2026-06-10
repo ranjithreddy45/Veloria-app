@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getReviews, getAverageRating } from "@/actions/review.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { ReviewsModerationList } from "./_components/reviews-moderation-list";
 
 export const metadata: Metadata = {
@@ -29,6 +30,7 @@ export default async function ReviewsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Reviews"
+        help={<PageHelp id="reviews" />}
         description="Moderate client reviews and manage public feedback."
       />
 

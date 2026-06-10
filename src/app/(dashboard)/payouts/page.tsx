@@ -8,6 +8,7 @@ import {
 
 import { getPayouts, getPayoutStats } from "@/actions/payout.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PayoutTable } from "./_components/payout-table";
@@ -39,6 +40,7 @@ export default async function PayoutsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Payouts"
+        help={<PageHelp id="payouts" />}
         description="Manage vendor payments, owner payouts, and commissions."
       >
         <Button asChild>

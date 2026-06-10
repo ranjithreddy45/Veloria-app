@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTaskTemplates } from "@/actions/task.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { TemplateList } from "./_components/template-list";
 
 export const metadata: Metadata = { title: "Task Templates" };
@@ -17,6 +18,7 @@ export default async function TaskTemplatesPage() {
     <div className="space-y-6">
       <PageHeader
         title="Task Templates"
+        help={<PageHelp id="task-templates" />}
         description="Reusable task templates for common workflows"
       />
 

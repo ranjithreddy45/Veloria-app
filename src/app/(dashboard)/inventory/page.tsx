@@ -4,6 +4,7 @@ import { PlusIcon, AlertTriangleIcon } from "lucide-react";
 
 import { getItems, getLowStockAlerts } from "@/actions/inventory.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -32,6 +33,7 @@ export default async function InventoryPage() {
     <div className="space-y-6">
       <PageHeader
         title="Inventory"
+        help={<PageHelp id="inventory" />}
         description="Manage inventory items and stock levels."
       >
         <Button asChild>

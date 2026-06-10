@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PlusIcon, FileTextIcon, Trash2Icon, PencilIcon } from "lucide-react";
 import { getContractTemplates } from "@/actions/contract.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +19,7 @@ export default async function ContractTemplatesPage() {
     <div className="space-y-6">
       <PageHeader
         title="Contract Templates"
+        help={<PageHelp id="contract-templates" />}
         description="Manage reusable contract templates with variable placeholders."
       >
         <Button asChild>

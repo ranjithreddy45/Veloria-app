@@ -10,6 +10,7 @@ import {
 
 import { getEscalationRules } from "@/actions/escalation.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -73,6 +74,7 @@ export default async function EscalationRulesPage() {
     <div className="space-y-6">
       <PageHeader
         title="Escalation Rules"
+        help={<PageHelp id="escalation-rules" />}
         description="Configure automatic escalation rules for overdue tasks."
       >
         <Button asChild>

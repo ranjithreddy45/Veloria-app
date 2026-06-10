@@ -9,6 +9,7 @@ import {
 
 import { getBudgets } from "@/actions/forecast.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { formatINR } from "@/lib/utils";
 import {
@@ -55,6 +56,7 @@ export default async function BudgetPage({ searchParams }: BudgetPageProps) {
     <div className="space-y-6">
       <PageHeader
         title="Budgets"
+        help={<PageHelp id="budget" />}
         description="Manage budget entries and track financial performance."
       >
         <div className="flex items-center gap-2">

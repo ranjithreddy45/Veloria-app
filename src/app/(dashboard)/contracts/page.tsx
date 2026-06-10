@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PlusIcon } from "lucide-react";
 import { getContracts } from "@/actions/contract.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { ContractsTable } from "./_components/contracts-table";
 
@@ -18,6 +19,7 @@ export default async function ContractsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Contracts"
+        help={<PageHelp id="contracts" />}
         description="Manage contracts, send for signatures, and track signing status."
       >
         <Button asChild>

@@ -4,6 +4,7 @@ import { PlusIcon } from "lucide-react";
 
 import { getTasks } from "@/actions/task.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { TaskViewToggle } from "./_components/task-view-toggle";
 
@@ -32,6 +33,7 @@ export default async function TasksPage() {
     <div className="flex h-[calc(100vh-8rem)] flex-col">
       <PageHeader
         title="Tasks"
+        help={<PageHelp id="tasks" />}
         description={`${totalTasks} tasks, ${completedTasks} completed`}
       >
         <Button asChild>

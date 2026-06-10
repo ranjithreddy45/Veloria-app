@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { getGalleryItems } from "@/actions/gallery.actions";
 import { getVenues } from "@/actions/booking.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { GalleryGrid } from "./_components/gallery-grid";
 
 export const metadata: Metadata = { title: "Gallery" };
@@ -24,6 +25,7 @@ export default async function GalleryPage() {
     <div className="space-y-6">
       <PageHeader
         title="Gallery"
+        help={<PageHelp id="gallery" />}
         description="Manage photos and videos for events and venues."
       />
       <GalleryGrid

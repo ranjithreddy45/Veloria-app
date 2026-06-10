@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 
 export const metadata: Metadata = { title: "Integrations" };
 
@@ -93,6 +94,7 @@ export default function IntegrationsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Integrations"
+        help={<PageHelp id="integrations" />}
         description="Connect third-party services to extend your event management workflow."
       />
 

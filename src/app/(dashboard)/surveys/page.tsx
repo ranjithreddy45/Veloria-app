@@ -4,6 +4,7 @@ import { PlusIcon } from "lucide-react";
 
 import { getSurveys } from "@/actions/survey.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { SurveysTable } from "./_components/surveys-table";
 
@@ -22,6 +23,7 @@ export default async function SurveysPage() {
     <div className="space-y-6">
       <PageHeader
         title="Surveys & Feedback"
+        help={<PageHelp id="surveys" />}
         description="Create surveys to collect feedback from your clients."
       >
         <Button asChild>

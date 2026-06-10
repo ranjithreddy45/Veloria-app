@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import {
   getTeamPerformance,
   getVenuePerformance,
@@ -45,6 +46,7 @@ export default async function PerformancePage() {
     <div className="space-y-6">
       <PageHeader
         title="Performance"
+        help={<PageHelp id="performance" />}
         description="Track team performance, venue metrics, and leaderboards across your operations."
       />
       <PerformanceDashboard

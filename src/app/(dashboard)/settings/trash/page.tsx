@@ -3,6 +3,7 @@ import { Trash2 } from "lucide-react";
 
 import { getTrash } from "@/actions/trash.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { TrashList } from "./_components/trash-list";
 
 export const metadata: Metadata = { title: "Trash" };
@@ -15,6 +16,7 @@ export default async function TrashPage() {
     <div className="space-y-5">
       <PageHeader
         title="Trash"
+        help={<PageHelp id="trash" />}
         eyebrow={
           <div className="flex items-center gap-3">
             <span>Settings · Recoverable</span>

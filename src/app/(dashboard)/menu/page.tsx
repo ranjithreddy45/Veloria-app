@@ -4,6 +4,7 @@ import { PlusIcon } from "lucide-react";
 
 import { getMenuItems } from "@/actions/menu.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { MenuItemsTable } from "./_components/menu-items-table";
 
@@ -22,6 +23,7 @@ export default async function MenuPage() {
     <div className="space-y-6">
       <PageHeader
         title="Menu Items"
+        help={<PageHelp id="menu" />}
         description="Manage your catering menu catalog."
       >
         <Button asChild>

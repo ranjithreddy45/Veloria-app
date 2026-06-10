@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { getCompetitors } from "@/actions/competitor.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { CompetitorList } from "./_components/competitor-list";
 
 export const metadata: Metadata = { title: "Competitors" };
@@ -19,6 +20,7 @@ export default async function CompetitorsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Competitor Analysis"
+        help={<PageHelp id="competitors" />}
         description="Track and compare competitors in the event management space."
       />
       <CompetitorList data={competitors} />

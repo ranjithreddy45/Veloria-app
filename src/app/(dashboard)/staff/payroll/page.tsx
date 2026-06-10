@@ -4,6 +4,7 @@ import { ArrowLeftIcon } from "lucide-react";
 
 import { getPayroll } from "@/actions/staff.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { PayrollTable } from "../_components/payroll-table";
 import { PayrollToolbar } from "./payroll-toolbar";
@@ -33,6 +34,7 @@ export default async function PayrollPage({
     <div className="space-y-6">
       <PageHeader
         title="Staff Payroll"
+        help={<PageHelp id="staff-payroll" />}
         description="Review and manage monthly payroll entries."
       >
         <Button variant="outline" asChild>

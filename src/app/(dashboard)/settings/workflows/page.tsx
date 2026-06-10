@@ -4,6 +4,7 @@ import { PlusIcon } from "lucide-react";
 
 import { getWorkflows } from "@/actions/workflow.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { WorkflowsTable } from "./_components/workflows-table";
 
@@ -23,6 +24,7 @@ export default async function WorkflowsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Workflows"
+        help={<PageHelp id="workflows" />}
         description="Automate tasks with trigger-based workflows and reminders."
       >
         <Button asChild>

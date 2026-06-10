@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getActivityLogs, getTeamUsers } from "@/actions/activity.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { ActivityLogList } from "./_components/activity-log-list";
 
 export const metadata: Metadata = { title: "Activity Log" };
@@ -23,6 +24,7 @@ export default async function ActivityLogPage() {
     <div className="space-y-6">
       <PageHeader
         title="Activity Log"
+        help={<PageHelp id="activity-log" />}
         description="Track all actions and changes across the system."
       />
       <ActivityLogList

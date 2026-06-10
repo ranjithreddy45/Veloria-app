@@ -4,6 +4,7 @@ import { PlusIcon } from "lucide-react";
 
 import { getRentalItems } from "@/actions/rental.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { RentalItemsTable } from "./_components/rental-items-table";
 
@@ -22,6 +23,7 @@ export default async function RentalsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Equipment Rentals"
+        help={<PageHelp id="rentals" />}
         description="Manage your rental equipment catalog and bookings."
       >
         <Button asChild>

@@ -4,6 +4,7 @@ import { PlusIcon } from "lucide-react";
 
 import { getReferrals, getReferralStats } from "@/actions/referral.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { ReferralStats } from "./_components/referral-stats";
 import { ReferralTable } from "./_components/referral-table";
@@ -38,6 +39,7 @@ export default async function ReferralsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Referrals"
+        help={<PageHelp id="referrals" />}
         description="Track client referrals and reward loyal customers."
       >
         <Button asChild>

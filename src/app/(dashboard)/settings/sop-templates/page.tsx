@@ -12,6 +12,7 @@ import {
 
 import { getSOPTemplates } from "@/actions/sop-template.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -38,6 +39,7 @@ export default async function SOPTemplatesPage() {
     <div className="space-y-6">
       <PageHeader
         title="SOP Templates"
+        help={<PageHelp id="sop-templates" />}
         description="Standard operating procedures for event execution."
       >
         <Button asChild>

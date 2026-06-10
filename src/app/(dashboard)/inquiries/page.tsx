@@ -3,6 +3,7 @@ import { InboxIcon } from "lucide-react";
 
 import { getInquiries } from "@/actions/widget.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { InquiryTable } from "@/components/widget/inquiry-table";
 
 export const metadata: Metadata = { title: "Widget Inquiries" };
@@ -20,6 +21,7 @@ export default async function InquiriesPage() {
     <div className="space-y-6">
       <PageHeader
         title="Widget Inquiries"
+        help={<PageHelp id="inquiries" />}
         description="Manage incoming inquiries from the booking widget. Process them to create Contacts and Leads."
       >
         <div className="flex items-center gap-2 text-sm text-muted-foreground">

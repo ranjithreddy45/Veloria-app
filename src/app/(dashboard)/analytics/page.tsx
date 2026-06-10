@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 
 import {
   getRevenueAnalytics,
@@ -86,6 +87,7 @@ export default async function AnalyticsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Analytics"
+        help={<PageHelp id="analytics" />}
         description="Advanced analytics and business intelligence for your event management operations."
       />
 

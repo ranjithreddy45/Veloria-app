@@ -5,6 +5,7 @@ import { PlusIcon, MailIcon, PencilIcon, TrashIcon } from "lucide-react";
 
 import { getEmailTemplates } from "@/actions/email-template.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,7 @@ export default async function EmailTemplatesPage() {
     <div className="space-y-6">
       <PageHeader
         title="Email Templates"
+        help={<PageHelp id="email-templates" />}
         description="Manage reusable email templates for campaigns and notifications."
       >
         <Button asChild>

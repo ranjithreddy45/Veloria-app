@@ -4,6 +4,7 @@ import { PlusIcon } from "lucide-react";
 
 import { getWebforms } from "@/actions/webform.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { WebformsTable } from "./_components/webforms-table";
 
@@ -35,6 +36,7 @@ export default async function WebformsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Webforms"
+        help={<PageHelp id="webforms" />}
         description="Create lead capture forms that can be embedded on your website."
       >
         <Button asChild>

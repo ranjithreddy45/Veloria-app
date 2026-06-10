@@ -11,6 +11,7 @@ import {
   getVenuesForBudget,
 } from "@/actions/forecast.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { formatINR } from "@/lib/utils";
 import {
   Card,
@@ -69,6 +70,7 @@ export default async function ForecastPage() {
     <div className="space-y-6">
       <PageHeader
         title="Revenue Forecast"
+        help={<PageHelp id="forecast" />}
         description="AI-powered demand forecasting with predicted revenue, bookings, and venue demand heatmaps."
       >
         <GenerateForecastButton />

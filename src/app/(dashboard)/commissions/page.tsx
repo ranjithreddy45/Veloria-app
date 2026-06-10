@@ -7,6 +7,7 @@ import {
   getCommissionRules,
 } from "@/actions/commission.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CommissionTable } from "./_components/commission-table";
@@ -31,6 +32,7 @@ export default async function CommissionsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Commissions"
+        help={<PageHelp id="commissions" />}
         description="Track commission entries and manage commission rules."
       >
         <Button variant="outline" asChild>

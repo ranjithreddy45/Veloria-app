@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { getPayments, getPaymentStats } from "@/actions/payment.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PaymentsTable } from "./_components/payments-table";
 import { formatINR } from "@/lib/utils";
@@ -30,6 +31,7 @@ export default async function PaymentsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Payments"
+        help={<PageHelp id="payments" />}
         description="Track payment collections, pending and overdue amounts."
       />
 

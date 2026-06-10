@@ -4,6 +4,7 @@ import { PlusIcon } from "lucide-react";
 
 import { getVendors } from "@/actions/vendor.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { VendorsTable } from "./_components/vendors-table";
 
@@ -22,6 +23,7 @@ export default async function VendorsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Vendors"
+        help={<PageHelp id="vendors" />}
         description="Manage your vendor marketplace and assignments."
       >
         <Button asChild>

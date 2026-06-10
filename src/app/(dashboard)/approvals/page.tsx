@@ -4,6 +4,7 @@ import {
   getApprovalHistory,
 } from "@/actions/approval.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { ApprovalQueue } from "./_components/approval-queue";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -27,6 +28,7 @@ export default async function ApprovalsPage() {
     <div className="space-y-6">
       <PageHeader
         title="My Approvals"
+        help={<PageHelp id="approvals" />}
         description="Review and manage approval requests assigned to you."
       />
 

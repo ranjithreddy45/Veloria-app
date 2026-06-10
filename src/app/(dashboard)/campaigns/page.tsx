@@ -4,6 +4,7 @@ import { PlusIcon } from "lucide-react";
 
 import { getCampaigns } from "@/actions/campaign.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { CampaignTable } from "./_components/campaign-table";
 
@@ -22,6 +23,7 @@ export default async function CampaignsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Campaigns"
+        help={<PageHelp id="campaigns" />}
         description="Create and manage automated email marketing campaigns."
       >
         <Button asChild>

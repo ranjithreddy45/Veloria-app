@@ -3,6 +3,7 @@ import Link from "next/link";
 import { PlusIcon, Building2 } from "lucide-react";
 import { getHallOwners } from "@/actions/hall-owner.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { OwnersWorkspace, type OwnerItem } from "./_components/owners-workspace";
 
@@ -26,6 +27,7 @@ export default async function HallOwnersPage() {
     <div className="space-y-5">
       <PageHeader
         title="BD CRM"
+        help={<PageHelp id="owners" />}
         eyebrow={
           <div className="flex items-center gap-3">
             <span>Business Development · Hall Owner Acquisition</span>

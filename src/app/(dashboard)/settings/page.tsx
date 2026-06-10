@@ -19,6 +19,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { LoadSampleDataButton } from "./_components/load-sample-data-button";
 
 export const metadata: Metadata = { title: "Settings" };
@@ -86,6 +87,7 @@ export default function SettingsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Settings"
+        help={<PageHelp id="settings" />}
         description="Manage your venue, team, pipeline, and system configuration."
       />
 

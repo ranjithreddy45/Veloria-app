@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PlusIcon } from "lucide-react";
 import { getInvoices } from "@/actions/invoice.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { InvoicesTable } from "./_components/invoices-table";
 
@@ -18,6 +19,7 @@ export default async function InvoicesPage() {
     <div className="space-y-6">
       <PageHeader
         title="Invoices"
+        help={<PageHelp id="invoices" />}
         description="Manage invoices, track payments and generate GST-compliant documents."
       >
         <Button asChild>
