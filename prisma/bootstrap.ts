@@ -119,6 +119,73 @@ async function main() {
     console.log(`[bootstrap] Venues already exist (${venueCount})`);
   }
 
+  // ---- 4. Demo guest account (so the customer portal can be tested) ----
+  // Creates a CLIENT login + a matching Contact + one sample booking, so
+  // logging in as the guest shows a populated "My Bookings". Idempotent.
+  const guestEmail = "guest@theveloriagrand.com";
+  const existingGuest = await prisma.user.findUnique({
+    where: { email: guestEmail },
+  });
+
+  if (!existingGuest) {
+    const guestPassword = await bcryptjs.hash(
+      process.env.DEMO_GUEST_PASSWORD || "Guest@123",
+      12
+    );
+    await prisma.user.create({
+      data: {
+        name: "Demo Guest",
+        email: guestEmail,
+        hashedPassword: guestPassword,
+        role: "CLIENT",
+        isActive: true,
+        emailVerified: new Date(),
+      },
+    });
+
+    // Matching contact (portal links bookings to the user's email)
+    const guestContact = await prisma.contact.create({
+      data: {
+        firstName: "Demo",
+        lastName: "Guest",
+        email: guestEmail,
+        phone: "+91 90000 00000",
+        type: "INDIVIDUAL",
+      },
+    });
+
+    // A sample confirmed booking, 45 days out, in the first venue
+    const venue = await prisma.venue.findFirst({ select: { id: true } });
+    const admin = await prisma.user.findFirst({
+      where: { role: "SUPER_ADMIN" },
+      select: { id: true },
+    });
+    if (venue && admin) {
+      const eventDate = new Date();
+      eventDate.setDate(eventDate.getDate() + 45);
+      await prisma.booking.create({
+        data: {
+          bookingNumber: `VG-DEMO-${Date.now().toString().slice(-6)}`,
+          eventName: "Demo Guest's Reception",
+          eventType: "Reception",
+          date: eventDate,
+          timeSlot: "EVENING",
+          guestCount: 180,
+          totalAmount: 250000,
+          status: "CONFIRMED",
+          venueId: venue.id,
+          contactId: guestContact.id,
+          createdById: admin.id,
+          specialRequests:
+            "Sample booking created for portal demo. Safe to delete.",
+        },
+      });
+    }
+    console.log(`[bootstrap] Created demo guest: ${guestEmail}`);
+  } else {
+    console.log(`[bootstrap] Demo guest already exists: ${guestEmail}`);
+  }
+
   console.log("[bootstrap] Done.");
 }
 
