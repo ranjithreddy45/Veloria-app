@@ -84,13 +84,13 @@ export function BookingForm({ venues }: { venues: VenueOption[] }) {
         </p>
         <a
           href="tel:+919876543210"
-          className="mt-6 inline-flex w-full max-w-xs items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-[14px] font-semibold text-primary-foreground"
+          className="mt-6 inline-flex w-full max-w-xs items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-5 py-3 text-[14px] font-bold text-white"
         >
           <Phone className="size-4" /> Call us now
         </a>
         <Link
           href="/app"
-          className="mt-3 text-[13px] font-medium text-primary"
+          className="mt-3 text-[13px] font-bold text-violet-600"
         >
           Back to home
         </Link>
@@ -100,15 +100,15 @@ export function BookingForm({ venues }: { venues: VenueOption[] }) {
 
   // ---- Form ----
   const inputClass =
-    "w-full rounded-xl border border-border bg-background px-3.5 py-3 text-[14px] text-foreground placeholder:text-muted-foreground/70 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20";
-  const labelClass = "mb-1.5 block text-[12.5px] font-medium text-foreground";
+    "w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-3 text-[14px] text-zinc-900 placeholder:text-zinc-400 focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20";
+  const labelClass = "mb-1.5 block text-[12.5px] font-bold text-zinc-700";
 
   return (
-    <div className="px-5 pt-[calc(var(--sat)+1.25rem)]">
-      <h1 className="font-serif text-[24px] font-semibold tracking-tight text-foreground">
+    <div className="min-h-screen bg-zinc-50 px-5 pt-[calc(var(--sat)+1.25rem)]">
+      <h1 className="text-[24px] font-extrabold tracking-tight text-zinc-900">
         Check availability
       </h1>
-      <p className="mt-1 text-[13px] text-muted-foreground">
+      <p className="mt-1 text-[13px] text-zinc-500">
         Tell us about your event — we&apos;ll confirm and send a quote. No
         payment now.
       </p>
@@ -227,7 +227,7 @@ export function BookingForm({ venues }: { venues: VenueOption[] }) {
         <button
           type="submit"
           disabled={submitting}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3.5 text-[14px] font-semibold text-primary-foreground shadow-sm transition active:scale-[0.99] disabled:opacity-60"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-5 py-3.5 text-[15px] font-extrabold text-white shadow-sm transition active:scale-[0.99] disabled:opacity-60"
         >
           {submitting ? (
             <>

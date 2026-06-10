@@ -32,10 +32,10 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 backdrop-blur-lg"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-200 bg-white shadow-[0_-4px_24px_-12px_rgba(0,0,0,0.15)]"
       style={{ paddingBottom: "var(--sab)" }}
     >
-      <div className="mx-auto flex max-w-md items-stretch justify-around">
+      <div className="mx-auto flex max-w-md items-stretch justify-around px-2">
         {TABS.map((tab) => {
           const active = tab.match(pathname);
           const Icon = tab.icon;
@@ -43,18 +43,31 @@ export function BottomNav() {
             <Link
               key={tab.href}
               href={tab.href}
-              className={cn(
-                "flex flex-1 flex-col items-center gap-1 py-2.5 text-[10.5px] font-medium transition-colors",
-                active
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
+              className="flex flex-1 flex-col items-center gap-1 py-2"
             >
-              <Icon
-                className="size-[22px]"
-                strokeWidth={active ? 2.4 : 1.9}
-              />
-              {tab.label}
+              <span
+                className={cn(
+                  "flex h-8 w-12 items-center justify-center rounded-full transition-colors",
+                  active
+                    ? "bg-violet-100 text-violet-700"
+                    : "text-zinc-400"
+                )}
+              >
+                <Icon
+                  className="size-[21px]"
+                  strokeWidth={active ? 2.5 : 2}
+                  fill={active ? "currentColor" : "none"}
+                  fillOpacity={active ? 0.15 : 0}
+                />
+              </span>
+              <span
+                className={cn(
+                  "text-[10.5px] font-semibold",
+                  active ? "text-violet-700" : "text-zinc-400"
+                )}
+              >
+                {tab.label}
+              </span>
             </Link>
           );
         })}
