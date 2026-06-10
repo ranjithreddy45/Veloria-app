@@ -51,6 +51,9 @@ enum LeadSource {
   GOOGLE_ADS
   INDIAMART
   JUSTDIAL
+  WEDMEGOOD
+  INSTAGRAM
+  WHATSAPP
   OTHER
 }
 
@@ -456,6 +459,7 @@ model PipelineStage {
   name        String
   order       Int      @unique
   color       String   @default("#6366f1")
+  probability Int      @default(0) // forecast % carried by this stage (0-100)
   isDefault   Boolean  @default(false)
   isWonStage  Boolean  @default(false)
   isLostStage Boolean  @default(false)

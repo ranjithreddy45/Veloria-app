@@ -40,84 +40,138 @@ async function main() {
     console.log(`[bootstrap] Admin already exists: ${adminEmail}`);
   }
 
-  // ---- 2. Ensure default pipeline stages exist ----
-  const stageCount = await prisma.pipelineStage.count();
-  if (stageCount === 0) {
-    await prisma.pipelineStage.createMany({
-      data: [
-        { name: "New Inquiry", order: 1, color: "#6366f1", isDefault: true },
-        { name: "Site Visit", order: 2, color: "#8b5cf6" },
-        { name: "Proposal Sent", order: 3, color: "#3b82f6" },
-        { name: "Negotiation", order: 4, color: "#f59e0b" },
-        { name: "Won", order: 5, color: "#10b981", isWonStage: true },
-        { name: "Lost", order: 6, color: "#ef4444", isLostStage: true },
-      ],
+  // ---- 2. Sync the 12-stage venue booking pipeline (spec §5) ----
+  // Converges to the canonical stages by name. Order is @unique, so we
+  // first park existing stages at high orders, then upsert canonical ones
+  // into 1..12. Legacy stages with deals are kept (parked) so no deal is
+  // orphaned; empty legacy stages are removed.
+  const CANONICAL_STAGES = [
+    { name: "New Inquiry", probability: 10, color: "#6366f1", isDefault: true },
+    { name: "Contacted", probability: 20, color: "#8b5cf6" },
+    { name: "Site Visit Scheduled", probability: 30, color: "#a855f7" },
+    { name: "Site Visit Done", probability: 40, color: "#c026d3" },
+    { name: "Quote Sent", probability: 50, color: "#3b82f6" },
+    { name: "Tentative Hold", probability: 60, color: "#0ea5e9" },
+    { name: "Token Paid", probability: 75, color: "#14b8a6" },
+    { name: "Contract Signed", probability: 85, color: "#f59e0b" },
+    { name: "Advance Received", probability: 95, color: "#f97316" },
+    { name: "Event Executed", probability: 100, color: "#10b981", isWonStage: true },
+    { name: "Closed Lost", probability: 0, color: "#ef4444", isLostStage: true },
+    { name: "Cancelled", probability: 0, color: "#94a3b8", isLostStage: true },
+  ];
+  const canonicalNames = new Set(CANONICAL_STAGES.map((s) => s.name));
+
+  const existingStages = await prisma.pipelineStage.findMany({
+    include: { _count: { select: { deals: true } } },
+  });
+
+  // Pass 1: park every existing stage at a non-conflicting high order.
+  let park = 1000;
+  for (const s of existingStages) {
+    await prisma.pipelineStage.update({
+      where: { id: s.id },
+      data: { order: park++ },
     });
-    console.log("[bootstrap] Created 6 default pipeline stages");
-  } else {
-    console.log(`[bootstrap] Pipeline stages already exist (${stageCount})`);
   }
 
-  // ---- 3. Ensure starter venues exist (so the guest app isn't empty) ----
-  // Placeholder details — edit anytime in Settings → Venues.
-  const venueCount = await prisma.venue.count();
-  if (venueCount === 0) {
-    await prisma.venue.createMany({
-      data: [
-        {
-          name: "Grand Ballroom",
-          description:
-            "Our flagship hall — soaring ceilings, crystal chandeliers, and a grand stage. Perfect for weddings and large receptions.",
-          capacity: 300,
-          pricePerSlot: 150000,
-          amenities: [
-            "Air-conditioned",
-            "Stage & green room",
-            "Valet parking",
-            "Bridal suite",
-            "In-house sound & lighting",
-            "Outside caterers welcome",
-          ],
-          isActive: true,
-        },
-        {
-          name: "Garden Pavilion",
-          description:
-            "A lush open-air lawn with a covered pavilion — ideal for sangeet, engagements, and evening celebrations under the stars.",
-          capacity: 200,
-          pricePerSlot: 100000,
-          amenities: [
-            "Open-air lawn",
-            "Covered pavilion",
-            "Mood lighting",
-            "Valet parking",
-            "Power backup",
-            "Outside caterers welcome",
-          ],
-          isActive: true,
-        },
-        {
-          name: "Celebration Hall",
-          description:
-            "An intimate, elegant space for birthdays, anniversaries, and corporate gatherings of up to 80 guests.",
-          capacity: 80,
-          pricePerSlot: 50000,
-          amenities: [
-            "Air-conditioned",
-            "Projector & screen",
-            "Wi-Fi",
-            "Parking",
-            "Flexible seating",
-            "Outside caterers welcome",
-          ],
-          isActive: true,
-        },
-      ],
-    });
-    console.log("[bootstrap] Created 3 starter venues");
-  } else {
-    console.log(`[bootstrap] Venues already exist (${venueCount})`);
+  // Pass 2: upsert canonical stages into orders 1..12 (match by name).
+  for (let i = 0; i < CANONICAL_STAGES.length; i++) {
+    const c = CANONICAL_STAGES[i];
+    const match = existingStages.find((s) => s.name === c.name);
+    const data = {
+      name: c.name,
+      order: i + 1,
+      color: c.color,
+      probability: c.probability,
+      isDefault: c.isDefault ?? false,
+      isWonStage: c.isWonStage ?? false,
+      isLostStage: c.isLostStage ?? false,
+    };
+    if (match) {
+      await prisma.pipelineStage.update({ where: { id: match.id }, data });
+    } else {
+      await prisma.pipelineStage.create({ data });
+    }
   }
+
+  // Pass 3: remove legacy stages that aren't canonical AND have no deals.
+  for (const s of existingStages) {
+    if (!canonicalNames.has(s.name) && s._count.deals === 0) {
+      await prisma.pipelineStage.delete({ where: { id: s.id } });
+    }
+  }
+  console.log("[bootstrap] Synced 12-stage venue booking pipeline");
+
+  // ---- 3. Sync the 5 real Veloria Grand venues (spec §4.3) ----
+  // Adds the real venues if missing; deactivates non-matching placeholders
+  // (kept, not deleted, since bookings may reference them).
+  const REAL_VENUES = [
+    {
+      name: "Veloria Grand — Hosa Road",
+      description:
+        "Our Hosa Road banquet — elegant interiors, ample parking, ideal for weddings and large receptions.",
+      capacity: 600,
+      pricePerSlot: 150000,
+    },
+    {
+      name: "Veloria Grand — Airport Road",
+      description:
+        "Conveniently located near the airport — perfect for corporate events, conferences, and destination weddings.",
+      capacity: 500,
+      pricePerSlot: 140000,
+    },
+    {
+      name: "Veloria Grand — Brookfield",
+      description:
+        "A premium Brookfield venue for weddings, sangeets, and milestone celebrations.",
+      capacity: 400,
+      pricePerSlot: 130000,
+    },
+    {
+      name: "Veloria Grand — JP Nagar",
+      description:
+        "Centrally located in JP Nagar — versatile halls for weddings, engagements, and family functions.",
+      capacity: 350,
+      pricePerSlot: 120000,
+    },
+    {
+      name: "Veloria Grand — Dairy Circle Road",
+      description:
+        "An intimate Dairy Circle venue for birthdays, anniversaries, and corporate gatherings.",
+      capacity: 250,
+      pricePerSlot: 100000,
+    },
+  ];
+  const COMMON_AMENITIES = [
+    "Air-conditioned halls",
+    "Ample parking & valet",
+    "In-house Veg / Non-Veg / Jain catering",
+    "Stage, sound & lighting",
+    "Bridal / green room",
+    "Outside decorators welcome",
+  ];
+
+  const allVenues = await prisma.venue.findMany({ select: { id: true, name: true } });
+  const realNames = new Set(REAL_VENUES.map((v) => v.name));
+
+  for (const v of REAL_VENUES) {
+    const existing = allVenues.find((e) => e.name === v.name);
+    if (!existing) {
+      await prisma.venue.create({
+        data: { ...v, amenities: COMMON_AMENITIES, isActive: true },
+      });
+    }
+  }
+  // Deactivate placeholder venues so the storefront shows only the real five.
+  for (const e of allVenues) {
+    if (!realNames.has(e.name)) {
+      await prisma.venue.update({
+        where: { id: e.id },
+        data: { isActive: false },
+      });
+    }
+  }
+  console.log("[bootstrap] Synced 5 real venues (placeholders deactivated)");
 
   // ---- 4. Demo guest account (so the customer portal can be tested) ----
   // Creates a CLIENT login + a matching Contact + one sample booking, so
@@ -155,7 +209,10 @@ async function main() {
     });
 
     // A sample confirmed booking, 45 days out, in the first venue
-    const venue = await prisma.venue.findFirst({ select: { id: true } });
+    const venue = await prisma.venue.findFirst({
+      where: { isActive: true },
+      select: { id: true },
+    });
     const admin = await prisma.user.findFirst({
       where: { role: "SUPER_ADMIN" },
       select: { id: true },

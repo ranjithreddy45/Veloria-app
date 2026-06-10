@@ -138,6 +138,9 @@ const LEAD_SOURCE_HUE: Record<string, Hue> = {
   GOOGLE_ADS: "red",
   INDIAMART: "emerald",
   JUSTDIAL: "amber",
+  WEDMEGOOD: "rose",
+  INSTAGRAM: "purple",
+  WHATSAPP: "emerald",
   OTHER: "neutral",
 };
 
@@ -155,6 +158,9 @@ const LEAD_SOURCE_LABEL: Record<string, string> = {
   GOOGLE_ADS: "Google Ads",
   INDIAMART: "IndiaMart",
   JUSTDIAL: "JustDial",
+  WEDMEGOOD: "WedMeGood",
+  INSTAGRAM: "Instagram",
+  WHATSAPP: "WhatsApp",
   OTHER: "Other",
 };
 

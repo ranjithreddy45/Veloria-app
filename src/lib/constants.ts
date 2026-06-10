@@ -151,6 +151,9 @@ export const LEAD_SOURCE_LABELS: Record<string, string> = {
   GOOGLE_ADS: "Google Ads",
   INDIAMART: "IndiaMart",
   JUSTDIAL: "JustDial",
+  WEDMEGOOD: "WedMeGood",
+  INSTAGRAM: "Instagram",
+  WHATSAPP: "WhatsApp",
   OTHER: "Other",
 } as const;
 
@@ -168,6 +171,9 @@ export const LEAD_SOURCE_COLORS: Record<string, string> = {
   GOOGLE_ADS: "bg-red-50 text-red-700 border-red-200/60 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800/40",
   INDIAMART: "bg-green-50 text-green-700 border-green-200/60 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800/40",
   JUSTDIAL: "bg-yellow-50 text-yellow-700 border-yellow-200/60 dark:bg-yellow-950/30 dark:text-yellow-400 dark:border-yellow-800/40",
+  WEDMEGOOD: "bg-rose-50 text-rose-700 border-rose-200/60 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-800/40",
+  INSTAGRAM: "bg-purple-50 text-purple-700 border-purple-200/60 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800/40",
+  WHATSAPP: "bg-green-50 text-green-700 border-green-200/60 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800/40",
   OTHER: "bg-zinc-50 text-zinc-600 border-zinc-200/60 dark:bg-zinc-800/30 dark:text-zinc-400 dark:border-zinc-700/40",
 } as const;
 
