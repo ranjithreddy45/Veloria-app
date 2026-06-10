@@ -8,6 +8,8 @@ interface PageHeaderProps {
   eyebrow?: React.ReactNode;
   /** Right-side actions. */
   children?: React.ReactNode;
+  /** Optional help hint rendered as a "?" next to the title. */
+  help?: React.ReactNode;
   className?: string;
 }
 
@@ -16,6 +18,7 @@ export function PageHeader({
   description,
   eyebrow,
   children,
+  help,
   className,
 }: PageHeaderProps) {
   return (
@@ -31,9 +34,12 @@ export function PageHeader({
             {eyebrow}
           </div>
         )}
-        <h1 className="text-[24px] font-semibold leading-none tracking-[-0.025em] text-foreground">
-          {title}
-        </h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-[24px] font-semibold leading-none tracking-[-0.025em] text-foreground">
+            {title}
+          </h1>
+          {help}
+        </div>
         {description && (
           <p className="max-w-2xl text-[13px] text-muted-foreground">{description}</p>
         )}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getPipelineStages, getPipelineStats } from "@/actions/pipeline.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { HelpHint } from "@/components/layout/help-hint";
 import { PipelineBoard } from "./_components/pipeline-board";
 
 export const metadata: Metadata = { title: "Sales Pipeline" };
@@ -34,6 +35,25 @@ export default async function PipelinePage() {
     <div className="flex h-[calc(100vh-7rem)] flex-col gap-5">
       <PageHeader
         title="Pipeline"
+        help={
+          <HelpHint title="What is a Deal?">
+            <p>
+              A <strong>Deal</strong> is a qualified opportunity you&rsquo;re
+              actively working to close — a Lead that got serious. Each deal sits
+              in one <em>stage</em> of this Kanban (New Inquiry → … → Event
+              Executed).
+            </p>
+            <p>
+              Drag a deal between columns to update its stage; its value and win
+              probability update automatically. A won deal becomes a confirmed{" "}
+              <strong>Booking</strong>.
+            </p>
+            <p className="text-foreground/70">
+              Flow: Contact → Lead (enquiry) → <strong>Deal</strong> (pipeline) →
+              Booking (confirmed event).
+            </p>
+          </HelpHint>
+        }
         eyebrow={
           <div className="flex items-center gap-3">
             <span>Sales · Kanban</span>

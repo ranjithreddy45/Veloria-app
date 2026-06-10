@@ -4,6 +4,7 @@ import { PlusIcon } from "lucide-react";
 
 import { getContacts } from "@/actions/contact.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { HelpHint } from "@/components/layout/help-hint";
 import { Button } from "@/components/ui/button";
 import { ContactsTable } from "./_components/contacts-table";
 
@@ -24,6 +25,25 @@ export default async function ContactsPage() {
     <div className="space-y-5">
       <PageHeader
         title="Contacts"
+        help={
+          <HelpHint title="What is a Contact?">
+            <p>
+              A <strong>Contact</strong> is a <em>person</em> — a real human in
+              your address book, with their name, phone, email, and full
+              history.
+            </p>
+            <p>
+              Contacts are permanent and accumulate over time. One contact can
+              have many <strong>Leads</strong> (enquiries) and many{" "}
+              <strong>Bookings</strong>. Their record rolls up lifetime
+              bookings, total revenue, VIP status, and last event date.
+            </p>
+            <p className="text-foreground/70">
+              You don&rsquo;t delete a contact when an enquiry dies — you mark
+              that Lead &ldquo;Lost.&rdquo; The person stays.
+            </p>
+          </HelpHint>
+        }
         eyebrow={
           <div className="flex items-center gap-3">
             <span>CRM · Directory</span>

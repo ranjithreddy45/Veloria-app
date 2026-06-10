@@ -4,6 +4,7 @@ import { PlusIcon } from "lucide-react";
 
 import { getLeads } from "@/actions/lead.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { HelpHint } from "@/components/layout/help-hint";
 import { Button } from "@/components/ui/button";
 import { LeadsTable } from "./_components/leads-table";
 
@@ -33,6 +34,26 @@ export default async function LeadsPage() {
     <div className="space-y-5">
       <PageHeader
         title="Leads"
+        help={
+          <HelpHint title="What is a Lead?">
+            <p>
+              A <strong>Lead</strong> is a specific <em>enquiry</em> — one event
+              someone is asking about (e.g. &ldquo;Dec wedding, 300 guests&rdquo;).
+              It carries the event date, guest count, budget, a score, and a
+              status from New → Won/Lost.
+            </p>
+            <p>
+              Every Lead is attached to a <strong>Contact</strong> (the person).
+              One contact can have many leads over time. When a Lead gets
+              serious, you convert it into a <strong>Deal</strong> in the
+              pipeline.
+            </p>
+            <p className="text-foreground/70">
+              Rule of thumb: <em>the person</em> → Contact; <em>what they want
+              right now</em> → Lead.
+            </p>
+          </HelpHint>
+        }
         eyebrow={
           <div className="flex items-center gap-3">
             <span>CRM · Pipeline</span>
