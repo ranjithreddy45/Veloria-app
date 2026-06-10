@@ -18,6 +18,12 @@ export const sidebarNavigation: NavItem[] = [
     permissions: ["dashboard:read"],
   },
   {
+    title: "Hall Owners",
+    href: "/owners",
+    icon: "Building2",
+    permissions: ["owners:read"],
+  },
+  {
     title: "CRM",
     href: "/contacts",
     icon: "Users",

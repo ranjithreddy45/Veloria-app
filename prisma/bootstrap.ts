@@ -347,6 +347,67 @@ async function main() {
     console.log(`[bootstrap] Demo guest already exists: ${guestEmail}`);
   }
 
+  // ---- 5. Seed sample hall owners (B2B funnel, spec §13) ----
+  const ownerCount = await prisma.hallOwner.count();
+  if (ownerCount === 0) {
+    const bd = await prisma.user.findFirst({
+      where: { role: { in: ["SUPER_ADMIN", "ADMIN"] }, isActive: true },
+      select: { id: true },
+    });
+    await prisma.hallOwner.createMany({
+      data: [
+        {
+          ownerName: "Rajesh Hegde",
+          companyName: "Hegde Convention Centre",
+          email: "rajesh@hegdeconvention.in",
+          phone: "+91 98450 11223",
+          propertyCity: "Bangalore",
+          propertyType: "CONVENTION_CENTER",
+          ownershipStatus: "SELF_OWNED",
+          numberOfHalls: 2,
+          totalCapacity: 800,
+          commercialModel: "REVENUE_SHARE",
+          revenueSharePercent: 12,
+          contractStatus: "NEGOTIATION",
+          bdOwnerId: bd?.id ?? null,
+        },
+        {
+          ownerName: "Lakshmi Estates",
+          companyName: "Lakshmi Marriage Gardens",
+          email: "contact@lakshmigardens.in",
+          phone: "+91 97400 55667",
+          propertyCity: "Mysuru",
+          propertyType: "MARRIAGE_GARDEN",
+          ownershipStatus: "FAMILY_PROPERTY",
+          numberOfHalls: 1,
+          totalCapacity: 1000,
+          commercialModel: "HYBRID",
+          revenueSharePercent: 10,
+          minimumMonthlyGuarantee: 200000,
+          contractStatus: "SITE_INSPECTION",
+          bdOwnerId: bd?.id ?? null,
+        },
+        {
+          ownerName: "Imperial Banquets",
+          companyName: "Imperial Hospitality LLP",
+          email: "owner@imperialbanquets.in",
+          phone: "+91 99000 44556",
+          propertyCity: "Bangalore",
+          propertyType: "BANQUET_HALL",
+          ownershipStatus: "LEASED",
+          numberOfHalls: 3,
+          totalCapacity: 600,
+          commercialModel: "MANAGEMENT_FEE",
+          contractStatus: "PROSPECT",
+          bdOwnerId: bd?.id ?? null,
+        },
+      ],
+    });
+    console.log("[bootstrap] Seeded 3 sample hall owners");
+  } else {
+    console.log(`[bootstrap] Hall owners already exist (${ownerCount})`);
+  }
+
   console.log("[bootstrap] Done.");
 }
 

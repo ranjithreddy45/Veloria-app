@@ -3,6 +3,11 @@
 // ============================================================
 
 export type Permission =
+  // Hall Owners (B2B / owner-side CRM)
+  | "owners:read"
+  | "owners:create"
+  | "owners:update"
+  | "owners:delete"
   // Contacts
   | "contacts:read"
   | "contacts:create"
@@ -250,6 +255,10 @@ export type Permission =
 // ============================================================
 
 const ALL_PERMISSIONS: Permission[] = [
+  "owners:read",
+  "owners:create",
+  "owners:update",
+  "owners:delete",
   "contacts:read",
   "contacts:create",
   "contacts:update",
@@ -454,6 +463,10 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   SUPER_ADMIN: [...ALL_PERMISSIONS],
 
   ADMIN: [
+    "owners:read",
+    "owners:create",
+    "owners:update",
+    "owners:delete",
     "contacts:read",
     "contacts:create",
     "contacts:update",

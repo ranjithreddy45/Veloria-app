@@ -72,6 +72,7 @@ const INTERNAL_ROUTES = [
   "/whatsapp",
   "/approvals",
   "/crm",
+  "/owners",
 ];
 
 export default auth((req) => {
