@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Search,
   LayoutGrid,
@@ -71,6 +72,7 @@ function commercialText(o: OwnerItem): string | null {
 // ============================================================
 
 function QuickActions({ owner }: { owner: OwnerItem }) {
+  const router = useRouter();
   return (
     <div className="flex items-center justify-end gap-0.5 opacity-0 transition-opacity group-hover/row:opacity-100">
       {owner.email && (
@@ -116,14 +118,15 @@ function QuickActions({ owner }: { owner: OwnerItem }) {
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
-            asChild
             variant="ghost"
             size="icon-xs"
             className="size-7 text-muted-foreground hover:text-foreground"
+            onClick={(e) => {
+              e.preventDefault();
+              router.push(`/owners/${owner.id}/edit`);
+            }}
           >
-            <Link href={`/owners/${owner.id}/edit`}>
-              <Pencil className="size-3.5" />
-            </Link>
+            <Pencil className="size-3.5" />
           </Button>
         </TooltipTrigger>
         <TooltipContent side="top" className="text-[11px]">

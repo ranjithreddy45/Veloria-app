@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { auth } from "@/../auth";
+import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { getHallOwner } from "@/actions/hall-owner.actions";
 import { PageHeader } from "@/components/layout/page-header";
@@ -12,8 +14,13 @@ export default async function EditOwnerPage({
 }: {
   params: Promise<{ ownerId: string }>;
 }) {
+  const session = await auth();
+  if (!session?.user || !hasPermission(session.user.role, "owners:update")) {
+    notFound();
+  }
+
   const { ownerId } = await params;
-  const [result, bdUsers] = await Promise.all([
+  const [result, bdUsersRaw] = await Promise.all([
     getHallOwner(ownerId),
     prisma.user.findMany({
       where: { isActive: true, role: { in: ["SUPER_ADMIN", "ADMIN", "SALES_EXEC"] } },
@@ -24,6 +31,18 @@ export default async function EditOwnerPage({
 
   if (!result.success || !result.data) notFound();
   const o = result.data;
+
+  // Guard against silently dropping the current assignee: if this owner is
+  // assigned to a BD user who is now inactive or has a different role, that
+  // user won't be in bdUsersRaw — include them so the select keeps the value.
+  let bdUsers = bdUsersRaw;
+  if (o.bdOwnerId && !bdUsersRaw.some((u) => u.id === o.bdOwnerId)) {
+    const assigned = await prisma.user.findUnique({
+      where: { id: o.bdOwnerId },
+      select: { id: true, name: true },
+    });
+    if (assigned) bdUsers = [assigned, ...bdUsersRaw];
+  }
 
   return (
     <div className="space-y-6">
