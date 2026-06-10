@@ -55,6 +55,13 @@ export default async function EditBookingPage({
             timeSlot: booking.timeSlot,
             guestCount: booking.guestCount,
             totalAmount: Number(booking.totalAmount),
+            hallBooked: booking.hallBooked,
+            startTime: booking.startTime,
+            endTime: booking.endTime,
+            perPlatePrice: booking.perPlatePrice != null ? Number(booking.perPlatePrice) : null,
+            hallRental: booking.hallRental != null ? Number(booking.hallRental) : null,
+            decorCharges: booking.decorCharges != null ? Number(booking.decorCharges) : null,
+            otherServices: booking.otherServices != null ? Number(booking.otherServices) : null,
             specialRequests: booking.specialRequests,
             internalNotes: booking.internalNotes,
           }}

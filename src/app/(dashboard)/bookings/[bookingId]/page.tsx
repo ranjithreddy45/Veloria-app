@@ -215,6 +215,23 @@ export default async function BookingDetailPage({
                     <p className="text-sm font-medium">{booking.guestCount} guests</p>
                   </div>
                 </div>
+                {(booking.startTime || booking.endTime) && (
+                  <div className="flex items-center gap-3">
+                    <ClockIcon className="text-muted-foreground size-4 shrink-0" />
+                    <div>
+                      <p className="text-muted-foreground text-xs">Event Window</p>
+                      <p className="text-sm font-medium">
+                        {booking.startTime
+                          ? format(new Date(booking.startTime), "dd MMM, h:mm a")
+                          : "—"}
+                        {" – "}
+                        {booking.endTime
+                          ? format(new Date(booking.endTime), "h:mm a")
+                          : "—"}
+                      </p>
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center gap-3">
                   <IndianRupeeIcon className="text-muted-foreground size-4 shrink-0" />
                   <div>
@@ -224,6 +241,61 @@ export default async function BookingDetailPage({
                     </p>
                   </div>
                 </div>
+
+                {/* Commercials breakdown (mirrors Zoho Bookings) */}
+                {(booking.perPlatePrice != null ||
+                  booking.hallRental != null ||
+                  booking.decorCharges != null ||
+                  booking.otherServices != null) && (
+                  <>
+                    <Separator />
+                    <div>
+                      <p className="text-muted-foreground text-xs mb-2">
+                        Commercials
+                      </p>
+                      <dl className="space-y-1.5 text-sm">
+                        {booking.perPlatePrice != null && (
+                          <div className="flex items-center justify-between">
+                            <dt className="text-muted-foreground">
+                              Per Plate Price
+                            </dt>
+                            <dd className="font-medium tabular-nums">
+                              {formatINR(booking.perPlatePrice)}
+                            </dd>
+                          </div>
+                        )}
+                        {booking.hallRental != null && (
+                          <div className="flex items-center justify-between">
+                            <dt className="text-muted-foreground">Hall Rental</dt>
+                            <dd className="font-medium tabular-nums">
+                              {formatINR(booking.hallRental)}
+                            </dd>
+                          </div>
+                        )}
+                        {booking.decorCharges != null && (
+                          <div className="flex items-center justify-between">
+                            <dt className="text-muted-foreground">
+                              Decor Charges
+                            </dt>
+                            <dd className="font-medium tabular-nums">
+                              {formatINR(booking.decorCharges)}
+                            </dd>
+                          </div>
+                        )}
+                        {booking.otherServices != null && (
+                          <div className="flex items-center justify-between">
+                            <dt className="text-muted-foreground">
+                              Other Services
+                            </dt>
+                            <dd className="font-medium tabular-nums">
+                              {formatINR(booking.otherServices)}
+                            </dd>
+                          </div>
+                        )}
+                      </dl>
+                    </div>
+                  </>
+                )}
                 {booking.specialRequests && (
                   <>
                     <Separator />
@@ -263,6 +335,15 @@ export default async function BookingDetailPage({
                     <p className="text-sm font-medium">{booking.venue.name}</p>
                   </div>
                 </div>
+                {booking.hallBooked && (
+                  <div className="flex items-center gap-3">
+                    <MapPinIcon className="text-muted-foreground size-4 shrink-0 opacity-0" />
+                    <div>
+                      <p className="text-muted-foreground text-xs">Hall Booked</p>
+                      <p className="text-sm font-medium">{booking.hallBooked}</p>
+                    </div>
+                  </div>
+                )}
                 {booking.venue.description && (
                   <div>
                     <p className="text-muted-foreground text-xs mb-1">

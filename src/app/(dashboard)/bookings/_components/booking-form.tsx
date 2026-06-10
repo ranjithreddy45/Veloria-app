@@ -96,8 +96,24 @@ interface BookingData {
   timeSlot: string;
   guestCount: number;
   totalAmount: unknown;
+  hallBooked?: string | null;
+  startTime?: Date | string | null;
+  endTime?: Date | string | null;
+  perPlatePrice?: unknown;
+  hallRental?: unknown;
+  decorCharges?: unknown;
+  otherServices?: unknown;
   specialRequests: string | null;
   internalNotes: string | null;
+}
+
+// Format a Date/string into the value a <input type="datetime-local"> expects.
+function toLocalInput(value: Date | string | null | undefined): string {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 interface BookingFormProps {
@@ -149,6 +165,13 @@ export function BookingForm({
       timeSlot: (booking?.timeSlot ?? defaultTimeSlot ?? undefined) as BookingInput["timeSlot"],
       guestCount: booking?.guestCount ?? 0,
       totalAmount: booking?.totalAmount ? Number(booking.totalAmount) : 0,
+      hallBooked: booking?.hallBooked ?? "",
+      eventStart: booking?.startTime ? new Date(booking.startTime) : null,
+      eventEnd: booking?.endTime ? new Date(booking.endTime) : null,
+      perPlatePrice: booking?.perPlatePrice ? Number(booking.perPlatePrice) : undefined,
+      hallRental: booking?.hallRental ? Number(booking.hallRental) : undefined,
+      decorCharges: booking?.decorCharges ? Number(booking.decorCharges) : undefined,
+      otherServices: booking?.otherServices ? Number(booking.otherServices) : undefined,
       specialRequests: booking?.specialRequests ?? "",
       internalNotes: booking?.internalNotes ?? "",
     },
@@ -302,6 +325,61 @@ export function BookingForm({
                       placeholder="e.g., 200"
                       {...field}
                       onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="hallBooked"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Hall Booked</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g., Grand Ballroom, Hall A"
+                      {...field}
+                      value={field.value ?? ""}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="eventStart"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Event Start</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="datetime-local"
+                      value={toLocalInput(field.value as Date | string | null)}
+                      onChange={(e) =>
+                        field.onChange(e.target.value ? new Date(e.target.value) : null)
+                      }
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="eventEnd"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Event End</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="datetime-local"
+                      value={toLocalInput(field.value as Date | string | null)}
+                      onChange={(e) =>
+                        field.onChange(e.target.value ? new Date(e.target.value) : null)
+                      }
                     />
                   </FormControl>
                   <FormMessage />
@@ -575,7 +653,87 @@ export function BookingForm({
           <CardHeader>
             <CardTitle>Pricing</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              {(
+                [
+                  { name: "perPlatePrice", label: "Per Plate Price", hint: "₹ per guest plate" },
+                  { name: "hallRental", label: "Hall Rental" },
+                  { name: "decorCharges", label: "Decor Charges" },
+                  { name: "otherServices", label: "Other Services" },
+                ] as const
+              ).map((f) => (
+                <FormField
+                  key={f.name}
+                  control={form.control}
+                  name={f.name}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{f.label}</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">
+                            ₹
+                          </span>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="1"
+                            placeholder="0"
+                            className="pl-7"
+                            value={field.value ?? ""}
+                            onChange={(e) =>
+                              field.onChange(
+                                e.target.value === "" ? undefined : parseFloat(e.target.value)
+                              )
+                            }
+                          />
+                        </div>
+                      </FormControl>
+                      {"hint" in f && f.hint ? (
+                        <p className="text-xs text-zinc-500">{f.hint}</p>
+                      ) : null}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ))}
+            </div>
+
+            {/* Computed component subtotal helper */}
+            {(() => {
+              const guests = Number(form.watch("guestCount")) || 0;
+              const plates = (Number(form.watch("perPlatePrice")) || 0) * guests;
+              const components =
+                plates +
+                (Number(form.watch("hallRental")) || 0) +
+                (Number(form.watch("decorCharges")) || 0) +
+                (Number(form.watch("otherServices")) || 0);
+              if (components <= 0) return null;
+              const fmt = (n: number) =>
+                new Intl.NumberFormat("en-IN", {
+                  style: "currency",
+                  currency: "INR",
+                  maximumFractionDigits: 0,
+                }).format(n);
+              return (
+                <div className="flex items-center justify-between rounded-lg border border-dashed border-zinc-300 bg-zinc-50 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900/40">
+                  <span className="text-zinc-600 dark:text-zinc-400">
+                    Components total
+                    {guests > 0 && plates > 0 ? ` (incl. ${guests} plates)` : ""}: {fmt(components)}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => form.setValue("totalAmount", components)}
+                  >
+                    Apply to Total
+                  </Button>
+                </div>
+              );
+            })()}
+
             <FormField
               control={form.control}
               name="totalAmount"

@@ -25,15 +25,19 @@ export const COMPANY_EMAIL =
 // Event Types
 // ============================================================
 
+// Event types — aligned 1:1 with the Veloria Grand Zoho Bookings module.
 export const EVENT_TYPES = [
   "Wedding",
-  "Reception",
-  "Corporate Event",
-  "Birthday Party",
-  "Anniversary",
   "Engagement",
-  "Baby Shower",
-  "Social Gathering",
+  "Reception",
+  "Sangeet",
+  "Mehendi",
+  "Haldi",
+  "Birthday",
+  "Anniversary",
+  "Corporate Conference",
+  "Product Launch",
+  "Awards Night",
   "Other",
 ] as const;
 

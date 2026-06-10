@@ -43,6 +43,30 @@ export const bookingSchema = z.object({
       error: "Total amount must be a number",
     })
     .positive("Total amount must be positive"),
+  // ---- Banquet commercials (mirrors Zoho Bookings) ----
+  hallBooked: z
+    .string()
+    .max(200, "Hall name must be at most 200 characters")
+    .optional()
+    .or(z.literal("")),
+  eventStart: z.coerce.date().optional().nullable(),
+  eventEnd: z.coerce.date().optional().nullable(),
+  perPlatePrice: z
+    .number({ error: "Per-plate price must be a number" })
+    .nonnegative("Per-plate price cannot be negative")
+    .optional(),
+  hallRental: z
+    .number({ error: "Hall rental must be a number" })
+    .nonnegative("Hall rental cannot be negative")
+    .optional(),
+  decorCharges: z
+    .number({ error: "Decor charges must be a number" })
+    .nonnegative("Decor charges cannot be negative")
+    .optional(),
+  otherServices: z
+    .number({ error: "Other services must be a number" })
+    .nonnegative("Other services cannot be negative")
+    .optional(),
   specialRequests: z
     .string()
     .max(2000, "Special requests must be at most 2000 characters")

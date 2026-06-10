@@ -559,6 +559,14 @@ model Booking {
   holdExpiresAt   DateTime?
   totalAmount     Decimal       @db.Decimal(12, 2)
   currency        String        @default("INR")
+
+  // Banquet commercials (mirrors Zoho Bookings/Deals custom fields)
+  hallBooked      String?       // specific hall/section within the venue
+  perPlatePrice   Decimal?      @db.Decimal(12, 2)
+  hallRental      Decimal?      @db.Decimal(12, 2)
+  decorCharges    Decimal?      @db.Decimal(12, 2)
+  otherServices   Decimal?      @db.Decimal(12, 2)
+
   venueGroupId    String?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
