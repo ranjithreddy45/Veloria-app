@@ -58,6 +58,67 @@ async function main() {
     console.log(`[bootstrap] Pipeline stages already exist (${stageCount})`);
   }
 
+  // ---- 3. Ensure starter venues exist (so the guest app isn't empty) ----
+  // Placeholder details — edit anytime in Settings → Venues.
+  const venueCount = await prisma.venue.count();
+  if (venueCount === 0) {
+    await prisma.venue.createMany({
+      data: [
+        {
+          name: "Grand Ballroom",
+          description:
+            "Our flagship hall — soaring ceilings, crystal chandeliers, and a grand stage. Perfect for weddings and large receptions.",
+          capacity: 300,
+          pricePerSlot: 150000,
+          amenities: [
+            "Air-conditioned",
+            "Stage & green room",
+            "Valet parking",
+            "Bridal suite",
+            "In-house sound & lighting",
+            "Outside caterers welcome",
+          ],
+          isActive: true,
+        },
+        {
+          name: "Garden Pavilion",
+          description:
+            "A lush open-air lawn with a covered pavilion — ideal for sangeet, engagements, and evening celebrations under the stars.",
+          capacity: 200,
+          pricePerSlot: 100000,
+          amenities: [
+            "Open-air lawn",
+            "Covered pavilion",
+            "Mood lighting",
+            "Valet parking",
+            "Power backup",
+            "Outside caterers welcome",
+          ],
+          isActive: true,
+        },
+        {
+          name: "Celebration Hall",
+          description:
+            "An intimate, elegant space for birthdays, anniversaries, and corporate gatherings of up to 80 guests.",
+          capacity: 80,
+          pricePerSlot: 50000,
+          amenities: [
+            "Air-conditioned",
+            "Projector & screen",
+            "Wi-Fi",
+            "Parking",
+            "Flexible seating",
+            "Outside caterers welcome",
+          ],
+          isActive: true,
+        },
+      ],
+    });
+    console.log("[bootstrap] Created 3 starter venues");
+  } else {
+    console.log(`[bootstrap] Venues already exist (${venueCount})`);
+  }
+
   console.log("[bootstrap] Done.");
 }
 
