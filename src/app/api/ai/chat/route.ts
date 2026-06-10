@@ -3,7 +3,7 @@ import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
 import { getOpenAIClient, getDefaultModel } from "@/lib/ai/openai-client";
 import { buildCRMSystemPrompt } from "@/lib/ai/system-prompt";
-import { CRM_TOOLS, executeCRMTool } from "@/lib/ai/crm-tools";
+import { CRM_TOOLS, executeCRMTool, type ToolContext } from "@/lib/ai/crm-tools";
 import { chatRequestSchema } from "@/schemas/ai.schema";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import type OpenAI from "openai";
@@ -43,7 +43,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request", details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { messages } = parsed.data;
+  const { messages, context } = parsed.data;
+
+  // Build the tool-execution context: who is acting, and from where.
+  const toolCtx: ToolContext = {
+    userId: session.user.id as string,
+    userName: session.user.name ?? "Team Member",
+    role: session.user.role ?? "",
+    path: context?.path,
+    entityType: context?.entityType,
+    entityId: context?.entityId,
+    entityLabel: context?.entityLabel,
+  };
 
   // Get OpenAI client
   const openai = getOpenAIClient();
@@ -59,6 +70,14 @@ export async function POST(req: NextRequest) {
           const systemPrompt = buildCRMSystemPrompt({
             name: session.user.name,
             role: session.user.role ?? "Unknown",
+            today: new Date().toLocaleDateString("en-IN", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+              timeZone: "Asia/Kolkata",
+            }),
+            context,
           });
 
           const openaiMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
@@ -69,7 +88,7 @@ export async function POST(req: NextRequest) {
             })),
           ];
 
-          await streamWithToolCalls(openai, openaiMessages, controller, encoder);
+          await streamWithToolCalls(openai, openaiMessages, controller, encoder, toolCtx);
         } else {
           // Fallback mode: use CRM tools directly with pattern matching
           const lastMessage = messages[messages.length - 1]?.content ?? "";
@@ -288,6 +307,7 @@ async function streamWithToolCalls(
   messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
   controller: ReadableStreamDefaultController,
   encoder: TextEncoder,
+  toolCtx: ToolContext,
   depth = 0
 ): Promise<void> {
   // Safety: prevent infinite tool call loops
@@ -368,7 +388,7 @@ async function streamWithToolCalls(
           toolArgs = {};
         }
 
-        const result = await executeCRMTool(tc.name, toolArgs);
+        const result = await executeCRMTool(tc.name, toolArgs, toolCtx);
 
         // Add tool result to messages
         updatedMessages.push({
@@ -379,7 +399,7 @@ async function streamWithToolCalls(
       }
 
       // Recurse to continue the conversation with tool results
-      await streamWithToolCalls(openai, updatedMessages, controller, encoder, depth + 1);
+      await streamWithToolCalls(openai, updatedMessages, controller, encoder, toolCtx, depth + 1);
       return;
     }
   }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { usePathname } from "next/navigation";
 import {
   Sparkles,
   Send,
@@ -30,6 +31,37 @@ import {
   Pie,
   Legend,
 } from "recharts";
+
+// ============================================================
+// Derive the record the user is looking at from the URL, so the
+// assistant understands "this lead / this booking" without an id.
+// ============================================================
+
+const CUID_RE = /^c[a-z0-9]{20,}$/i;
+
+function deriveEntityContext(path: string): {
+  entityType?: string;
+  entityId?: string;
+} {
+  const segs = path.split("/").filter(Boolean);
+  // Map the route's leading segment to an entity type.
+  const typeBySegment: Record<string, string> = {
+    leads: "lead",
+    contacts: "contact",
+    bookings: "booking",
+    pipeline: "deal",
+    quotes: "quote",
+    contracts: "contract",
+    invoices: "invoice",
+    owners: "owner",
+  };
+  const head = segs[0];
+  const entityType = typeBySegment[head];
+  if (!entityType) return {};
+  // The id is the first CUID-looking segment after the head.
+  const entityId = segs.slice(1).find((s) => CUID_RE.test(s));
+  return entityId ? { entityType, entityId } : {};
+}
 
 // ============================================================
 // Types
@@ -185,6 +217,8 @@ export function AIChatPanel() {
   const [error, setError] = useState<string | null>(null);
   const [aiUnavailable, setAiUnavailable] = useState(false);
 
+  const pathname = usePathname();
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -248,6 +282,10 @@ export function AIChatPanel() {
             role: m.role,
             content: m.content,
           })),
+          context: {
+            path: pathname,
+            ...deriveEntityContext(pathname ?? ""),
+          },
         }),
       });
 
@@ -330,7 +368,7 @@ export function AIChatPanel() {
       setIsLoading(false);
       setIsToolCalling(null);
     }
-  }, [input, isLoading, messages]);
+  }, [input, isLoading, messages, pathname]);
 
   // Handle key down in textarea
   const handleKeyDown = useCallback(
@@ -431,10 +469,10 @@ export function AIChatPanel() {
                   </div>
                   <div className="grid gap-2 text-xs">
                     {[
-                      "How many leads came in this month?",
+                      "Is Veloria Grand — Hosa Road free on 12 Dec evening?",
+                      "Log a call: Priya wants a 300-guest wedding in December",
                       "Show me the pipeline summary",
-                      "What are the upcoming events?",
-                      "Any overdue tasks?",
+                      "Create a task to follow up with new leads tomorrow",
                     ].map((suggestion) => (
                       <button
                         key={suggestion}
