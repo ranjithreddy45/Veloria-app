@@ -3,7 +3,7 @@ import { PageHelp } from "@/lib/page-help";
 import { SignalsSummaryCards } from "./_components/signals-summary-cards";
 import { SalesSignalsFeed } from "./_components/sales-signals-feed";
 
-export const metadata: Metadata = { title: "SalesSignals" };
+export const metadata: Metadata = { title: "Sales Signals" };
 
 export default function SalesSignalsPage() {
   return (
