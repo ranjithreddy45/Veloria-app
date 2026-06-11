@@ -357,7 +357,7 @@ export function GalleryGrid({ data, venues }: GalleryGridProps) {
                 </div>
 
                 {/* Actions Overlay */}
-                <div className="absolute right-2 bottom-2 opacity-0 transition-opacity group-hover:opacity-100">
+                <div className="absolute right-2 bottom-2 opacity-100 [@media(hover:hover)]:opacity-0 transition-opacity group-hover:opacity-100">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button

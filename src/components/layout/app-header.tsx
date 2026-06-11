@@ -78,7 +78,7 @@ export function AppHeader() {
   React.useEffect(() => setMounted(true), []);
 
   return (
-    <header className="topbar-glass sticky top-0 z-30 flex h-12 shrink-0 items-center gap-3 border-b border-border px-4">
+    <header className="topbar-glass sticky top-0 z-30 flex min-h-12 shrink-0 items-center gap-3 border-b border-border px-4 pt-[env(safe-area-inset-top)]">
       {/* Mobile sidebar trigger */}
       <SidebarTrigger className="-ml-1 size-7 text-muted-foreground" />
 

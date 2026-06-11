@@ -112,8 +112,8 @@ export default async function VenueDetailPage({
         </div>
       </div>
 
-      {/* Sticky book bar */}
-      <div className="fixed inset-x-0 bottom-[calc(var(--sab)+60px)] z-30 mx-auto max-w-md border-t border-zinc-200 bg-white px-4 py-3 shadow-[0_-4px_24px_-12px_rgba(0,0,0,0.15)]">
+      {/* Sticky book bar — sits clear above the ~68px bottom nav (+ safe area) */}
+      <div className="fixed inset-x-0 bottom-[calc(var(--sab)+72px)] z-30 mx-auto max-w-md border-t border-zinc-200 bg-white px-4 py-3 shadow-[0_-4px_24px_-12px_rgba(0,0,0,0.15)]">
         <Link
           href={`/app/book?venueId=${venue.id}&venueName=${encodeURIComponent(venue.name)}`}
           className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-5 py-3.5 text-[15px] font-extrabold text-white shadow-md shadow-violet-600/25 transition active:scale-[0.99]"

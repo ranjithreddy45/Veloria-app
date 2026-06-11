@@ -104,7 +104,7 @@ export function DealCard({
           {/* Title row with drag handle */}
           <div className="flex items-start gap-1.5">
             <button
-              className="-ml-1 mt-0.5 shrink-0 cursor-grab rounded p-0.5 text-muted-foreground/30 opacity-0 transition-opacity hover:text-muted-foreground group-hover:opacity-100 active:cursor-grabbing"
+              className="-ml-1 mt-0.5 shrink-0 cursor-grab touch-none rounded p-0.5 text-muted-foreground/30 opacity-100 transition-opacity hover:text-muted-foreground [@media(hover:hover)]:opacity-0 group-hover:opacity-100 active:cursor-grabbing"
               {...attributes}
               {...listeners}
               onClick={(e) => e.stopPropagation()}

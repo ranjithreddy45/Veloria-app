@@ -171,6 +171,7 @@ export function BookingForm({ venues }: { venues: VenueOption[] }) {
             <input
               className={inputClass}
               type="date"
+              min={new Date().toISOString().slice(0, 10)}
               value={form.eventDate}
               onChange={(e) => update("eventDate", e.target.value)}
             />

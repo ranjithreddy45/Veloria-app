@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Building2, CalendarCheck, User } from "lucide-react";
+import { Home, Building2, CalendarCheck, LogIn } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// Public storefront tabs only. The old "Bookings"/"Account" tabs pointed at
+// /portal/* which is auth-gated — a guest tapping them got ejected to
+// /not-authorized. These destinations are all public.
 const TABS = [
   { href: "/app", label: "Home", icon: Home, match: (p: string) => p === "/app" },
   {
@@ -14,16 +17,16 @@ const TABS = [
     match: (p: string) => p.startsWith("/app/venues"),
   },
   {
-    href: "/portal/bookings",
-    label: "Bookings",
+    href: "/app/book",
+    label: "Book",
     icon: CalendarCheck,
-    match: (p: string) => p.startsWith("/portal/bookings"),
+    match: (p: string) => p.startsWith("/app/book"),
   },
   {
-    href: "/portal",
-    label: "Account",
-    icon: User,
-    match: (p: string) => p === "/portal",
+    href: "/sign-in",
+    label: "Sign in",
+    icon: LogIn,
+    match: (p: string) => p.startsWith("/sign-in"),
   },
 ] as const;
 

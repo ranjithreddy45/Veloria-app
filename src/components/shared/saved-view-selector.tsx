@@ -235,7 +235,7 @@ export function SavedViewSelector({
                       <BookmarkIcon className="size-3.5 text-zinc-400" />
                       {view.name}
                     </span>
-                    <span className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="flex items-center gap-1 opacity-100 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

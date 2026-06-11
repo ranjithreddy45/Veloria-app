@@ -165,7 +165,7 @@ export function TaskChecklist({ taskId, items }: TaskChecklistProps) {
               <button
                 onClick={() => handleDelete(item.id)}
                 disabled={deletingIds.has(item.id)}
-                className="shrink-0 rounded p-0.5 text-zinc-300 opacity-0 transition-opacity hover:text-red-500 group-hover:opacity-100 disabled:opacity-50"
+                className="shrink-0 rounded p-0.5 text-zinc-300 opacity-100 [@media(hover:hover)]:opacity-0 transition-opacity hover:text-red-500 group-hover:opacity-100 disabled:opacity-50"
               >
                 <XIcon className="size-3.5" />
               </button>

@@ -108,7 +108,7 @@ export function TaskCard({ task, isOverlay = false }: TaskCardProps) {
         {/* Drag Handle */}
         <div className="flex items-start pt-3 pl-1">
           <button
-            className="shrink-0 cursor-grab rounded p-0.5 text-zinc-300 opacity-0 transition-opacity hover:text-zinc-500 group-hover:opacity-100 active:cursor-grabbing"
+            className="shrink-0 cursor-grab touch-none rounded p-0.5 text-zinc-300 opacity-100 transition-opacity hover:text-zinc-500 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 active:cursor-grabbing"
             {...attributes}
             {...listeners}
           >

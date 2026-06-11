@@ -74,7 +74,7 @@ function commercialText(o: OwnerItem): string | null {
 function QuickActions({ owner }: { owner: OwnerItem }) {
   const router = useRouter();
   return (
-    <div className="flex items-center justify-end gap-0.5 opacity-0 transition-opacity group-hover/row:opacity-100">
+    <div className="flex items-center justify-end gap-0.5 opacity-100 [@media(hover:hover)]:opacity-0 transition-opacity group-hover/row:opacity-100">
       {owner.email && (
         <Tooltip>
           <TooltipTrigger asChild>
