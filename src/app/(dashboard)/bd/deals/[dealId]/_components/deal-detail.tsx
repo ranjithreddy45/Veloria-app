@@ -35,6 +35,7 @@ import {
 } from "@/lib/acq/constants";
 
 import { StatusPill } from "@/components/shared/status-pill";
+import { ProjectionTab } from "./projection-tab";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -265,7 +266,13 @@ function fmtDate(iso: string): string {
 // ============================================================
 // Component
 // ============================================================
-export function DealDetail({ deal }: { deal: AcqDealDetail }) {
+export function DealDetail({
+  deal,
+  userRole,
+}: {
+  deal: AcqDealDetail;
+  userRole?: string;
+}) {
   const router = useRouter();
 
   return (
@@ -278,6 +285,7 @@ export function DealDetail({ deal }: { deal: AcqDealDetail }) {
             <TabsTrigger value="evaluation">Evaluation</TabsTrigger>
             <TabsTrigger value="negotiation">Negotiation</TabsTrigger>
             <TabsTrigger value="contract">Contract</TabsTrigger>
+            <TabsTrigger value="projection">Projection</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="mt-4">
@@ -294,6 +302,9 @@ export function DealDetail({ deal }: { deal: AcqDealDetail }) {
           </TabsContent>
           <TabsContent value="contract" className="mt-4">
             <ContractTab deal={deal} onMutate={() => router.refresh()} />
+          </TabsContent>
+          <TabsContent value="projection" className="mt-4">
+            <ProjectionTab dealId={deal.id} userRole={userRole} />
           </TabsContent>
         </Tabs>
       </div>

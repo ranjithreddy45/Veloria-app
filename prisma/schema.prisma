@@ -348,6 +348,10 @@ model User {
   acqDealNotes            AcqDealNote[]        @relation("AcqDealNoteAuthor")
   acqOnboardingTasks      AcqOnboardingTask[]  @relation("AcqOnboardingAssignee")
   acqStageTransitions     AcqStageTransition[] @relation("AcqStageTransitionActor")
+  acqProjectionsSubmitted AcqProjection[]      @relation("AcqProjectionSubmittedBy")
+  acqProjectionsApproved  AcqProjection[]      @relation("AcqProjectionApprovedBy")
+  acqProjectionsSent      AcqProjection[]      @relation("AcqProjectionSentBy")
+  acqProjectionTransitions AcqProjectionTransition[] @relation("AcqProjectionTransitionActor")
 
   @@index([email])
   @@index([role])
@@ -3669,6 +3673,7 @@ model AcqDeal {
   evaluations AcqEvaluation[]
   attachments AcqAttachment[]
   notes       AcqDealNote[]
+  projections AcqProjection[]
 
   @@index([stage])
   @@index([bdExecutiveId])
@@ -3795,4 +3800,77 @@ model AcqConfig {
   key       String   @unique
   value     String
   updatedAt DateTime @updatedAt
+}
+
+// ============================================================
+// BD CRM — Owner Projection Calculator (5-year revenue projection)
+// ============================================================
+
+enum AcqProjectionModel {
+  WITH_FOOD
+  WITHOUT_FOOD
+}
+
+enum AcqProjectionStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  SENT
+  REJECTED
+}
+
+enum AcqProjectionSendMethod {
+  EMAIL_APP
+  MANUAL_DOWNLOAD
+}
+
+model AcqProjection {
+  id         String              @id @default(cuid())
+  dealId     String
+  deal       AcqDeal             @relation(fields: [dealId], references: [id])
+  version    Int                 @default(1)
+  modelType  AcqProjectionModel
+  status     AcqProjectionStatus @default(DRAFT)
+  inputsJson Json // raw BD-entered inputs
+  outputsJson Json? // full 5yr base+best grid; frozen at APPROVED
+  pdfUrl     String?
+
+  // approval
+  submittedById String?
+  submittedBy   User?     @relation("AcqProjectionSubmittedBy", fields: [submittedById], references: [id])
+  submittedAt   DateTime?
+  approvedById  String?
+  approvedBy    User?     @relation("AcqProjectionApprovedBy", fields: [approvedById], references: [id])
+  approvedAt    DateTime?
+  rejectedReason String?
+
+  // send
+  sendMethod  AcqProjectionSendMethod?
+  sentChannel String?
+  sentTo      String?
+  sentById    String?
+  sentBy      User?     @relation("AcqProjectionSentBy", fields: [sentById], references: [id])
+  sentAt      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transitions AcqProjectionTransition[]
+
+  @@index([dealId])
+  @@index([status])
+}
+
+model AcqProjectionTransition {
+  id           String        @id @default(cuid())
+  projectionId String
+  projection   AcqProjection @relation(fields: [projectionId], references: [id])
+  fromStatus   String?
+  toStatus     String
+  actorId      String
+  actor        User          @relation("AcqProjectionTransitionActor", fields: [actorId], references: [id])
+  note         String?
+  createdAt    DateTime      @default(now())
+
+  @@index([projectionId])
 }
