@@ -283,9 +283,9 @@ export function DealDetail({
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="economics">Economics &amp; Model</TabsTrigger>
             <TabsTrigger value="evaluation">Evaluation</TabsTrigger>
+            <TabsTrigger value="projection">Projection</TabsTrigger>
             <TabsTrigger value="negotiation">Negotiation</TabsTrigger>
             <TabsTrigger value="contract">Contract</TabsTrigger>
-            <TabsTrigger value="projection">Projection</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="mt-4">
@@ -297,14 +297,14 @@ export function DealDetail({
           <TabsContent value="evaluation" className="mt-4">
             <EvaluationTab deal={deal} onMutate={() => router.refresh()} />
           </TabsContent>
+          <TabsContent value="projection" className="mt-4">
+            <ProjectionTab dealId={deal.id} userRole={userRole} />
+          </TabsContent>
           <TabsContent value="negotiation" className="mt-4">
             <NegotiationTab deal={deal} onMutate={() => router.refresh()} />
           </TabsContent>
           <TabsContent value="contract" className="mt-4">
             <ContractTab deal={deal} onMutate={() => router.refresh()} />
-          </TabsContent>
-          <TabsContent value="projection" className="mt-4">
-            <ProjectionTab dealId={deal.id} userRole={userRole} />
           </TabsContent>
         </Tabs>
       </div>
