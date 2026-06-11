@@ -21,7 +21,7 @@ export async function getAcqProperties(): Promise<Result<unknown[]>> {
   const user = await requireUser();
   if (!user || !acqHasAnyAccess(user.role)) return { success: false, error: "Unauthorized" };
 
-  const salesOnly = user.role === "SALES" || user.role === "SALES_EXEC";
+  const salesOnly = user.role === "SALES_EXEC";
   const where: Record<string, unknown> = { deletedAt: null };
   if (salesOnly) where.status = { in: ["AVAILABLE", "ACTIVE", "PAUSED"] };
 

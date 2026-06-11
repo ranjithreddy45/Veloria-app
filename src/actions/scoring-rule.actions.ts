@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/../auth";
+import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
@@ -119,6 +120,10 @@ export async function createScoringRuleSet(
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const parsed = scoringRuleSetSchema.safeParse(input);
     if (!parsed.success) {
       return { success: false as const, error: parsed.error.issues[0]?.message ?? "Validation failed" };
@@ -165,6 +170,10 @@ export async function updateScoringRuleSet(
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const parsed = scoringRuleSetSchema.safeParse(input);
     if (!parsed.success) {
       return { success: false as const, error: parsed.error.issues[0]?.message ?? "Validation failed" };
@@ -208,6 +217,10 @@ export async function deleteScoringRuleSet(
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     await prisma.scoringRuleSet.delete({ where: { id } });
 
     logActivity({
@@ -232,6 +245,10 @@ export async function toggleScoringRuleSet(
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     await prisma.scoringRuleSet.update({
@@ -261,6 +278,10 @@ export async function createScoringRule(
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = scoringRuleSchema.safeParse(input);
@@ -310,6 +331,10 @@ export async function updateScoringRule(
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const parsed = scoringRuleSchema.safeParse(input);
     if (!parsed.success) {
       return { success: false as const, error: parsed.error.issues[0]?.message ?? "Validation failed" };
@@ -353,6 +378,10 @@ export async function deleteScoringRule(
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     await prisma.scoringRule.delete({ where: { id } });
 
     logActivity({
@@ -377,6 +406,10 @@ export async function reorderScoringRules(
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     await prisma.$transaction(
@@ -524,6 +557,13 @@ export async function bulkRecalculateScores(
   | { success: false; error: string }
 > {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
     // Find active rule set for the entity type
     const ruleSet = await prisma.scoringRuleSet.findFirst({
       where: { entityType, isActive: true },

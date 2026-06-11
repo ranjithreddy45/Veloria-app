@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/../auth";
+import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { serialize } from "@/lib/utils";
@@ -62,6 +63,10 @@ export async function createTimeline(bookingId: string) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "execution:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     // Verify booking exists
@@ -128,6 +133,10 @@ export async function addTimelineItem(
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "execution:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = addTimelineItemSchema.safeParse(data);
@@ -203,6 +212,10 @@ export async function updateTimelineItem(
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "execution:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const parsed = updateTimelineItemSchema.safeParse(data);
     if (!parsed.success) {
       return {
@@ -267,6 +280,10 @@ export async function updateItemStatus(itemId: string, status: string) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "execution:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = updateItemStatusSchema.safeParse({ status });
@@ -339,6 +356,10 @@ export async function removeTimelineItem(itemId: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "execution:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const existing = await prisma.timelineItem.findUnique({
       where: { id: itemId },
       include: { timeline: { select: { bookingId: true } } },
@@ -378,6 +399,10 @@ export async function reorderItems(
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "execution:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = reorderItemsSchema.safeParse({ items });
@@ -434,6 +459,10 @@ export async function updateTimelineStatus(
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "execution:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = updateTimelineStatusSchema.safeParse({ status });

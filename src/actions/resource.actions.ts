@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/../auth";
+import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import {
@@ -140,6 +141,10 @@ export async function createResource(data: ResourceInput) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "resources:create")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const parsed = resourceSchema.safeParse(data);
     if (!parsed.success) {
       return {
@@ -193,6 +198,10 @@ export async function updateResource(id: string, data: ResourceInput) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "resources:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = resourceSchema.safeParse(data);
@@ -249,6 +258,10 @@ export async function deleteResource(id: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "resources:delete")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const existing = await prisma.resource.findUnique({
       where: { id },
       include: {
@@ -293,6 +306,10 @@ export async function allocateResource(data: AllocationInput) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "resources:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = allocationSchema.safeParse(data);
@@ -388,6 +405,10 @@ export async function deallocateResource(allocationId: string) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "resources:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const existing = await prisma.resourceAllocation.findUnique({

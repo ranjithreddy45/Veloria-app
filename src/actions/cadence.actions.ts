@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/../auth";
+import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
@@ -135,6 +136,10 @@ export async function createCadence(
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const parsed = cadenceSchema.safeParse(input);
     if (!parsed.success) {
       return { success: false as const, error: parsed.error.issues[0]?.message ?? "Validation failed" };
@@ -187,6 +192,10 @@ export async function updateCadence(
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const existing = await prisma.cadence.findUnique({ where: { id } });
@@ -246,6 +255,10 @@ export async function deleteCadence(
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const existing = await prisma.cadence.findUnique({ where: { id } });
     if (!existing) {
       return { success: false as const, error: "Cadence not found" };
@@ -279,6 +292,10 @@ export async function toggleCadenceStatus(
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const existing = await prisma.cadence.findUnique({ where: { id } });
@@ -339,6 +356,10 @@ export async function createStep(
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const parsed = cadenceStepSchema.safeParse(input);
     if (!parsed.success) {
       return { success: false as const, error: parsed.error.issues[0]?.message ?? "Validation failed" };
@@ -385,6 +406,10 @@ export async function updateStep(
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const parsed = cadenceStepSchema.safeParse(input);
     if (!parsed.success) {
       return { success: false as const, error: parsed.error.issues[0]?.message ?? "Validation failed" };
@@ -427,6 +452,10 @@ export async function deleteStep(
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     await prisma.cadenceStep.delete({ where: { id } });
 
     logActivity({
@@ -452,6 +481,10 @@ export async function reorderSteps(
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     await prisma.$transaction(
@@ -500,6 +533,10 @@ export async function enrollEntity(
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const cadence = await prisma.cadence.findUnique({
@@ -566,6 +603,10 @@ export async function bulkEnroll(
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const cadence = await prisma.cadence.findUnique({
       where: { id: cadenceId },
       include: { steps: { orderBy: { order: "asc" } } },
@@ -629,6 +670,10 @@ export async function pauseEnrollment(
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const enrollment = await prisma.cadenceEnrollment.findUnique({
       where: { id: enrollmentId },
     });
@@ -666,6 +711,10 @@ export async function resumeEnrollment(
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const enrollment = await prisma.cadenceEnrollment.findUnique({
@@ -723,6 +772,10 @@ export async function stopEnrollment(
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const enrollment = await prisma.cadenceEnrollment.findUnique({

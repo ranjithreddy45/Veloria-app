@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { PlusIcon, FileTextIcon, Trash2Icon, PencilIcon } from "lucide-react";
+import { PlusIcon, FileTextIcon, PencilIcon } from "lucide-react";
 import { getContractTemplates } from "@/actions/contract.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { DeleteTemplateButton } from "./_components/delete-template-button";
 
 export const metadata = {
   title: "Contract Templates | Veloria Grand",
@@ -118,6 +119,10 @@ export default async function ContractTemplatesPage() {
                         <PencilIcon className="size-3.5" />
                       </Link>
                     </Button>
+                    <DeleteTemplateButton
+                      id={template.id}
+                      name={template.name}
+                    />
                   </div>
                 </div>
               </CardContent>

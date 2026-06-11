@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/../auth";
+import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import {
@@ -88,6 +89,10 @@ export async function createOperation(data: CreateOperationInput) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "operations:create")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = createOperationSchema.safeParse(data);
@@ -201,6 +206,10 @@ export async function updateOperation(
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "operations:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const parsed = updateOperationSchema.safeParse(data);
     if (!parsed.success) {
       return {
@@ -261,6 +270,10 @@ export async function updateRunOfShow(
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "operations:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const parsed = updateRunOfShowSchema.safeParse(data);
     if (!parsed.success) {
       return {
@@ -314,6 +327,10 @@ export async function assignStaff(
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "operations:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = assignStaffSchema.safeParse(data);
@@ -397,6 +414,10 @@ export async function removeStaffAssignment(assignmentId: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "operations:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const existing = await prisma.staffAssignment.findUnique({
       where: { id: assignmentId },
       include: {
@@ -437,6 +458,10 @@ export async function updateStaffStatus(
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "operations:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = updateStaffStatusSchema.safeParse(data);
@@ -497,6 +522,10 @@ export async function assignVendor(
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "operations:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = assignOperationVendorSchema.safeParse(data);
@@ -583,6 +612,10 @@ export async function removeVendorAssignment(assignmentId: string) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "operations:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const existing = await prisma.operationVendorAssignment.findUnique({

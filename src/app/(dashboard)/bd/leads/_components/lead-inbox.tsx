@@ -11,12 +11,14 @@ import {
   XCircle,
   Clock,
   Loader2,
+  Phone,
 } from "lucide-react";
 
 import {
   createAcqLead,
   qualifyAcqLead,
   disqualifyAcqLead,
+  updateAcqLead,
 } from "@/actions/acq-lead.actions";
 import {
   ACQ_PROPERTY_TYPE,
@@ -169,6 +171,9 @@ export function LeadInbox({ leads, bdUsers }: LeadInboxProps) {
   const [query, setQuery] = React.useState("");
   const [createOpen, setCreateOpen] = React.useState(false);
   const [qualifyLead, setQualifyLead] = React.useState<AcqLead | null>(null);
+  const [logContactLead, setLogContactLead] = React.useState<AcqLead | null>(
+    null
+  );
 
   const counts = React.useMemo(() => {
     const base: Record<"ALL" | AcqLeadStatus, number> = {
@@ -282,6 +287,7 @@ export function LeadInbox({ leads, bdUsers }: LeadInboxProps) {
                   key={lead.id}
                   lead={lead}
                   onQualify={() => setQualifyLead(lead)}
+                  onLogContact={() => setLogContactLead(lead)}
                 />
               ))
             )}
@@ -301,6 +307,13 @@ export function LeadInbox({ leads, bdUsers }: LeadInboxProps) {
           if (!open) setQualifyLead(null);
         }}
       />
+
+      <LogContactDialog
+        lead={logContactLead}
+        onOpenChange={(open) => {
+          if (!open) setLogContactLead(null);
+        }}
+      />
     </div>
   );
 }
@@ -312,12 +325,16 @@ export function LeadInbox({ leads, bdUsers }: LeadInboxProps) {
 function LeadRow({
   lead,
   onQualify,
+  onLogContact,
 }: {
   lead: AcqLead;
   onQualify: () => void;
+  onLogContact: () => void;
 }) {
   const isTerminal =
     lead.status === "QUALIFIED" || lead.status === "DISQUALIFIED";
+  const canLogContact =
+    lead.status === "NEW" || lead.status === "CONTACTED";
   const sla = lead.status === "NEW" ? slaCopy(lead.firstContactDue) : null;
 
   return (
@@ -363,11 +380,19 @@ function LeadRow({
         )}
       </td>
       <td className="px-3 py-2.5 text-right">
-        {!isTerminal && (
-          <Button variant="outline" size="xs" onClick={onQualify}>
-            Qualify
-          </Button>
-        )}
+        <div className="inline-flex items-center gap-1.5">
+          {canLogContact && (
+            <Button variant="ghost" size="xs" onClick={onLogContact}>
+              <Phone className="size-3.5" />
+              Log contact
+            </Button>
+          )}
+          {!isTerminal && (
+            <Button variant="outline" size="xs" onClick={onQualify}>
+              Qualify
+            </Button>
+          )}
+        </div>
       </td>
     </tr>
   );
@@ -860,6 +885,129 @@ function QualifyLeadDialog({
             </div>
           </div>
         </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ============================================================
+// Log contact dialog
+// ============================================================
+
+/** `value` for a <input type="datetime-local"> from a Date (local time). */
+function toLocalInputValue(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+    d.getHours()
+  )}:${pad(d.getMinutes())}`;
+}
+
+function LogContactDialog({
+  lead,
+  onOpenChange,
+}: {
+  lead: AcqLead | null;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const router = useRouter();
+  const [followupAt, setFollowupAt] = React.useState("");
+  const [submitting, setSubmitting] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (lead) {
+      // Default to tomorrow, same time.
+      const next = new Date();
+      next.setDate(next.getDate() + 1);
+      setFollowupAt(toLocalInputValue(next));
+      setError(null);
+      setSubmitting(false);
+    }
+  }, [lead]);
+
+  async function handleSubmit() {
+    if (!lead || !followupAt || submitting) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await updateAcqLead(lead.id, {
+        status: "CONTACTED",
+        nextFollowupAt: new Date(followupAt).toISOString(),
+        incrementContactAttempt: true,
+      });
+      if (res.success) {
+        toast.success("Contact logged");
+        onOpenChange(false);
+        router.refresh();
+        return;
+      }
+      const msg = res.error || "Failed to log contact.";
+      setError(msg);
+      toast.error(msg);
+    } catch {
+      const msg = "Something went wrong. Please try again.";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Dialog open={!!lead} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Log contact</DialogTitle>
+          <DialogDescription>
+            {lead
+              ? `Record an attempt for ${lead.propertyName} and schedule the next follow-up.`
+              : ""}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid gap-4 text-[13px]">
+          {error && (
+            <div className="flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-red-700">
+              <XCircle className="mt-0.5 size-4 shrink-0" />
+              <p>{error}</p>
+            </div>
+          )}
+
+          <div className="grid gap-1.5">
+            <Label className="text-[12px] text-muted-foreground">
+              Next follow-up <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              type="datetime-local"
+              value={followupAt}
+              onChange={(e) => setFollowupAt(e.target.value)}
+            />
+            <p className="text-[11.5px] text-muted-foreground">
+              Must be in the future. Logging contact also marks the lead as
+              Contacted.
+            </p>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={submitting}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            onClick={handleSubmit}
+            disabled={!followupAt || submitting}
+            className="gap-1.5"
+          >
+            {submitting && <Loader2 className="size-3.5 animate-spin" />}
+            Log contact
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

@@ -3,6 +3,7 @@ import { getPipelineStages, getPipelineStats } from "@/actions/pipeline.actions"
 import { PageHeader } from "@/components/layout/page-header";
 import { HelpHint } from "@/components/layout/help-hint";
 import { PipelineBoard } from "./_components/pipeline-board";
+import { ScoreAllDealsButton } from "./_components/score-all-deals-button";
 
 export const metadata: Metadata = { title: "Sales Pipeline" };
 
@@ -77,7 +78,9 @@ export default async function PipelinePage() {
           </div>
         }
         description="Drag deals through stages — values and probability auto-update."
-      />
+      >
+        <ScoreAllDealsButton />
+      </PageHeader>
 
       <div className="flex-1 overflow-hidden">
         <PipelineBoard initialStages={stages} />

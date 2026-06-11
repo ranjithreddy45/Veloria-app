@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/../auth";
+import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
@@ -188,6 +189,10 @@ export async function createApprovalRule(
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const parsed = approvalRuleSchema.safeParse(input);
     if (!parsed.success) {
       return { success: false as const, error: parsed.error.issues[0]?.message ?? "Validation failed" };
@@ -257,6 +262,10 @@ export async function updateApprovalRule(
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = approvalRuleSchema.safeParse(input);
@@ -329,6 +338,10 @@ export async function deleteApprovalRule(
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     await prisma.approvalRule.delete({ where: { id } });
 
     logActivity({
@@ -354,6 +367,10 @@ export async function toggleApprovalRule(
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     await prisma.approvalRule.update({

@@ -206,6 +206,10 @@ const ROLE_LABELS: Record<string, string> = {
   FINANCE: "Finance",
   STAFF: "Staff",
   CLIENT: "Client",
+  BD_EXECUTIVE: "BD Executive",
+  BD_HEAD: "BD Head",
+  OPERATIONS: "Operations",
+  LEGAL: "Legal",
 };
 
 // ============================================================

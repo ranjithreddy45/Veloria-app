@@ -26,6 +26,7 @@ const JOBS = [
   "event-triggers",
   "customer-360",
   "acq-sla",
+  "invoice-due",
 ] as const;
 
 function getBaseUrl(): string {

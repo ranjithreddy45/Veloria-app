@@ -665,8 +665,10 @@ export async function convertToInvoice(id: string) {
     }));
 
     // Create the invoice and update the quote in a transaction
-    const [invoice] = await prisma.$transaction([
-      prisma.invoice.create({
+    // Interactive transaction so the quote's back-link is set atomically
+    // with the invoice creation (no dangling convertedInvoiceId on failure).
+    const invoice = await prisma.$transaction(async (tx) => {
+      const created = await tx.invoice.create({
         data: {
           invoiceNumber,
           status: "DRAFT",
@@ -692,19 +694,12 @@ export async function convertToInvoice(id: string) {
             create: invoiceLineItems,
           },
         },
-      }),
-      prisma.quote.update({
+      });
+      await tx.quote.update({
         where: { id },
-        data: {
-          status: "CONVERTED",
-        },
-      }),
-    ]);
-
-    // Link the convertedInvoiceId after transaction (since we need the invoice id)
-    await prisma.quote.update({
-      where: { id },
-      data: { convertedInvoiceId: invoice.id },
+        data: { status: "CONVERTED", convertedInvoiceId: created.id },
+      });
+      return created;
     });
 
     await logActivity({

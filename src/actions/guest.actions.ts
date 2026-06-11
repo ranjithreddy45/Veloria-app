@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/../auth";
+import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import {
@@ -91,6 +92,10 @@ export async function createGuestList(bookingId: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "guests:create")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     // Verify booking exists
     const booking = await prisma.booking.findUnique({
       where: { id: bookingId },
@@ -140,6 +145,10 @@ export async function addGuest(guestListId: string, data: GuestInput) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "guests:create")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = guestSchema.safeParse(data);
@@ -206,6 +215,10 @@ export async function updateGuest(guestId: string, data: GuestInput) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "guests:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const parsed = guestSchema.safeParse(data);
     if (!parsed.success) {
       return {
@@ -270,6 +283,10 @@ export async function removeGuest(guestId: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "guests:delete")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const existing = await prisma.guest.findUnique({
       where: { id: guestId },
       include: {
@@ -310,6 +327,10 @@ export async function bulkImportGuests(guestListId: string, data: BulkImportInpu
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "guests:create")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = bulkImportSchema.safeParse(data);
@@ -382,6 +403,10 @@ export async function checkInGuest(guestId: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "guests:checkin")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const existing = await prisma.guest.findUnique({
       where: { id: guestId },
       include: {
@@ -430,6 +455,10 @@ export async function updateRSVP(guestId: string, data: UpdateRSVPInput) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "guests:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = updateRSVPSchema.safeParse(data);

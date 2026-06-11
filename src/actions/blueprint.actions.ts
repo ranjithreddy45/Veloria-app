@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/../auth";
+import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import {
@@ -96,6 +97,10 @@ export async function createBlueprint(input: BlueprintInput) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const parsed = blueprintSchema.safeParse(input);
     if (!parsed.success) {
       return {
@@ -136,6 +141,10 @@ export async function updateBlueprint(id: string, input: BlueprintInput) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = blueprintSchema.safeParse(input);
@@ -184,6 +193,10 @@ export async function deleteBlueprint(id: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const existing = await prisma.blueprint.findUnique({ where: { id } });
     if (!existing) {
       return { success: false as const, error: "Blueprint not found" };
@@ -218,6 +231,10 @@ export async function toggleBlueprint(id: string, isActive: boolean) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const existing = await prisma.blueprint.findUnique({ where: { id } });
@@ -271,6 +288,10 @@ export async function createTransition(
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = blueprintTransitionSchema.safeParse(input);
@@ -329,6 +350,10 @@ export async function updateTransition(
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const parsed = blueprintTransitionSchema.safeParse(input);
     if (!parsed.success) {
       return {
@@ -379,6 +404,10 @@ export async function deleteTransition(id: string) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const existing = await prisma.blueprintTransition.findUnique({

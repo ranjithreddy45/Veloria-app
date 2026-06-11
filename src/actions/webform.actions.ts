@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/../auth";
+import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { webformSchema, type WebformInput } from "@/schemas/webform.schema";
@@ -170,6 +171,10 @@ export async function createWebform(input: WebformInput) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const parsed = webformSchema.safeParse(input);
     if (!parsed.success) {
       const firstError = parsed.error.issues[0]?.message ?? "Validation failed";
@@ -232,6 +237,10 @@ export async function updateWebform(id: string, input: WebformInput) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = webformSchema.safeParse(input);
@@ -307,6 +316,10 @@ export async function deleteWebform(id: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const existing = await prisma.webform.findUnique({ where: { id } });
     if (!existing) {
       return { success: false as const, error: "Webform not found" };
@@ -341,6 +354,10 @@ export async function toggleWebform(id: string) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const existing = await prisma.webform.findUnique({ where: { id } });

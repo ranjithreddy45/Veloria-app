@@ -18,6 +18,11 @@ const INTERNAL_ROLES = [
   "EVENT_COORDINATOR",
   "FINANCE",
   "STAFF",
+  // BD / Acquisition CRM roles
+  "BD_EXECUTIVE",
+  "BD_HEAD",
+  "OPERATIONS",
+  "LEGAL",
 ] as const;
 
 /**

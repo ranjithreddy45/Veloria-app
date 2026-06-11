@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/../auth";
+import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import {
@@ -121,6 +122,10 @@ export async function createMenuItem(data: MenuItemInput) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "menu:create")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const parsed = menuItemSchema.safeParse(data);
     if (!parsed.success) {
       return {
@@ -169,6 +174,10 @@ export async function updateMenuItem(id: string, data: MenuItemInput) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "menu:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = menuItemSchema.safeParse(data);
@@ -226,6 +235,10 @@ export async function deleteMenuItem(id: string) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "menu:delete")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const existing = await prisma.menuItem.findUnique({
@@ -309,6 +322,10 @@ export async function saveBookingMenu(
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "menu:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = saveBookingMenuSchema.safeParse(data);

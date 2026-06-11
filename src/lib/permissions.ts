@@ -833,6 +833,38 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "vendor-portal:bids",
     "vendor-portal:payouts",
   ],
+
+  // ---- BD / Acquisition CRM roles ----
+  // Server-side BD authorization is enforced by acqCan() (src/lib/acq/rbac.ts);
+  // these grants make the BD CRM nav + pages reachable for the right people.
+  BD_EXECUTIVE: [
+    "dashboard:read",
+    "owners:read",
+    "owners:create",
+    "owners:update",
+    "contacts:read",
+  ],
+  BD_HEAD: [
+    "dashboard:read",
+    "owners:read",
+    "owners:create",
+    "owners:update",
+    "owners:delete",
+    "contacts:read",
+  ],
+  OPERATIONS: [
+    "dashboard:read",
+    "owners:read",
+    "operations:read",
+    "operations:update",
+    "tasks:read",
+    "tasks:update",
+  ],
+  LEGAL: [
+    "dashboard:read",
+    "owners:read",
+    "contracts:read",
+  ],
 };
 
 // ============================================================

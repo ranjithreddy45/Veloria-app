@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PlusIcon, ListIcon } from "lucide-react";
+import { PlusIcon, ListIcon, BanIcon } from "lucide-react";
 
 import {
   getBookingsForCalendar,
@@ -41,6 +41,12 @@ export default async function CalendarPage() {
           <Link href="/bookings">
             <ListIcon className="mr-2 size-4" />
             List View
+          </Link>
+        </Button>
+        <Button variant="outline" asChild>
+          <Link href="/bookings/blackouts">
+            <BanIcon className="mr-2 size-4" />
+            Blackout Dates
           </Link>
         </Button>
         <Button asChild>
