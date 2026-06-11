@@ -66,6 +66,56 @@ export const PAGE_HELP: Record<string, HelpEntry> = {
       </>
     ),
   },
+  "sales-signals": {
+    title: "What are Sales Signals?",
+    body: (
+      <>
+        {p(<>Real-time alerts about buying intent and risk on your leads and contacts — for example, a client who opened your quote three times, or a hot lead that&rsquo;s gone quiet for a week.</>)}
+        {p(<>They point your team to who to call next, and why, so effort goes where it&rsquo;s most likely to win.</>)}
+        {rule(<>Rule of thumb: Signals are the nudges that say &ldquo;act on this one now.&rdquo;</>)}
+      </>
+    ),
+  },
+  cadences: {
+    title: "What are Cadences?",
+    body: (
+      <>
+        {p(<>A <strong>Cadence</strong> is a pre-planned sequence of follow-up steps — call on day 1, email on day 3, WhatsApp on day 7 — that you put a lead on so it&rsquo;s chased the right amount: never too little, never too much.</>)}
+        {p(<>The system reminds the owner (or acts automatically) at each step until the lead responds or the sequence finishes.</>)}
+        {rule(<>Rule of thumb: Cadences are your &ldquo;follow-up on autopilot&rdquo; so leads don&rsquo;t slip through the cracks.</>)}
+      </>
+    ),
+  },
+  "email-insights": {
+    title: "What are Email Insights?",
+    body: (
+      <>
+        {p(<>Tracking on the emails you send — who opened them, when, how many times, and which links they clicked.</>)}
+        {p(<>It shows which clients are genuinely engaged and the best moment to follow up.</>)}
+        {rule(<>Rule of thumb: Email Insights tell you who&rsquo;s actually reading, not just who you mailed.</>)}
+      </>
+    ),
+  },
+  whatsapp: {
+    title: "What is WhatsApp?",
+    body: (
+      <>
+        {p(<>A shared inbox for WhatsApp conversations with your clients, right inside the CRM.</>)}
+        {p(<>Your team can reply, see the full chat history, and keep every conversation tied to the contact — no personal phones needed.</>)}
+        {rule(<>Rule of thumb: WhatsApp is where you chat with clients on the channel they actually use, without leaving the CRM.</>)}
+      </>
+    ),
+  },
+  "call-log": {
+    title: "What is the Call Log?",
+    body: (
+      <>
+        {p(<>A record of calls made and received with your contacts — who, when, how long, and the outcome or notes.</>)}
+        {p(<>It keeps the whole team&rsquo;s phone conversations in one place, attached to each contact&rsquo;s history.</>)}
+        {rule(<>Rule of thumb: the Call Log is the paper trail of every phone conversation, so nothing relies on memory.</>)}
+      </>
+    ),
+  },
 
   // ---- Bookings & Operations ----
   "bookings-calendar": {

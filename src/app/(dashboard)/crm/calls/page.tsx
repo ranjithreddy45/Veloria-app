@@ -3,6 +3,7 @@ import { CallsTable } from "./_components/calls-table";
 import { CallStatsCards } from "./_components/call-stats-cards";
 import { CallAnalyticsCharts } from "./_components/call-analytics-charts-lazy";
 import { CallDispositionDialog } from "./_components/call-disposition-dialog";
+import { PageHelp } from "@/lib/page-help";
 import { Phone } from "lucide-react";
 
 export const metadata = {
@@ -49,6 +50,7 @@ export default async function CallsPage({
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <Phone className="h-6 w-6 text-primary" />
             Call Log
+            <PageHelp id="call-log" />
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
             Track and manage all call activities

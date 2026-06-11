@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getTrackingStats, getTrackingEvents, getTopEngagedContacts } from "@/actions/email-tracking.actions";
+import { PageHelp } from "@/lib/page-help";
 import { TrackingDashboard } from "./_components/tracking-dashboard";
 
 export const metadata: Metadata = { title: "Email Insights" };
@@ -22,9 +23,12 @@ export default async function EmailTrackingPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          Email Insights
-        </h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Email Insights
+          </h1>
+          <PageHelp id="email-insights" />
+        </div>
         <p className="mt-1 text-sm text-muted-foreground">
           Track email opens, clicks, and engagement across all your
           communications.

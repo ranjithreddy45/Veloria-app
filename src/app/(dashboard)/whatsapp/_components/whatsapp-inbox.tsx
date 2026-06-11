@@ -7,6 +7,7 @@ import { ConversationList } from "./conversation-list";
 import { InboxChatView } from "./inbox-chat-view";
 import { WhatsAppEmptyState } from "./whatsapp-empty-state";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import {
   getConversationsList,
   type ConversationSummary,
@@ -66,6 +67,7 @@ export function WhatsAppInbox({
     <div className="space-y-4">
       <PageHeader
         title="WhatsApp"
+        help={<PageHelp id="whatsapp" />}
         description="Manage WhatsApp conversations with your contacts."
       />
 
