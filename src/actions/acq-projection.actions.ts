@@ -8,18 +8,27 @@ import { notify } from "@/lib/notify";
 import { logActivity } from "@/lib/activity-logger";
 import { sendEmail } from "@/lib/email";
 import { acqCan, acqHasAnyAccess } from "@/lib/acq/rbac";
+import { getProjectionConfig } from "@/lib/acq/config";
 import {
   computeProjection,
   validateProjectionInputs,
+  PROJECTION_CONST,
   type ProjectionModel,
   type ProjectionInputs,
+  type ProjectionConfig,
 } from "@/lib/acq/projection-calc";
 import { Prisma } from "@prisma/client";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string; code?: number };
 
-// Default: a projection submitter cannot also approve it (needs a 2nd approver).
-const REQUIRE_SECOND_APPROVER = true;
+// Expose the resolved (DB-tunable) config so the client preview computes
+// with the SAME numbers the server snapshot will use.
+export async function getAcqProjectionConfig(): Promise<ProjectionConfig> {
+  const user = await requireUser();
+  if (!user || !acqHasAnyAccess(user.role)) return PROJECTION_CONST;
+  const { config } = await getProjectionConfig();
+  return config;
+}
 
 async function requireUser() {
   const session = await auth();
@@ -184,14 +193,17 @@ export async function approveAcqProjection(id: string): Promise<Result<{ status:
   if (!row) return { success: false, error: "Projection not found" };
   if (row.status !== "PENDING_APPROVAL") return { success: false, error: `Cannot approve from ${row.status}.`, code: 409 };
 
+  const { config, requireSecondApprover } = await getProjectionConfig();
+
   // A BD exec cannot approve their own; a BD Head needs a 2nd approver unless admin.
-  if (row.submittedById === user.id && REQUIRE_SECOND_APPROVER && !isAdmin(user.role)) {
+  if (row.submittedById === user.id && requireSecondApprover && !isAdmin(user.role)) {
     return { success: false, error: "You submitted this projection — it needs a different BD Head or Admin to approve." };
   }
 
-  // Freeze the snapshot: compute the full grid server-side from the stored inputs.
+  // Freeze the snapshot: compute the full grid server-side from the stored
+  // inputs using the DB-resolved config (same config the preview used).
   const inputs = row.inputsJson as unknown as ProjectionInputs;
-  const grid = computeProjection(row.modelType, inputs);
+  const grid = computeProjection(row.modelType, inputs, config);
 
   await prisma.$transaction([
     prisma.acqProjection.update({

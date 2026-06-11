@@ -16,13 +16,16 @@ import {
 import {
   computeProjection,
   validateProjectionInputs,
+  PROJECTION_CONST,
   type ProjectionInputs,
   type ProjectionModel,
   type ProjectionGrid,
+  type ProjectionConfig,
   type YearRow,
 } from "@/lib/acq/projection-calc";
 import {
   getAcqProjections,
+  getAcqProjectionConfig,
   createAcqProjection,
   updateAcqProjection,
   submitAcqProjection,
@@ -148,17 +151,18 @@ function asInputs(raw: unknown): ProjectionInputs {
   };
 }
 
-// Resolve a grid for read-only views: prefer the frozen snapshot, else compute.
-function resolveGrid(row: ProjectionRow): ProjectionGrid {
+// Resolve a grid for read-only views: prefer the frozen snapshot, else compute
+// (using the DB-resolved config so a non-snapshot preview matches the server).
+function resolveGrid(row: ProjectionRow, cfg: ProjectionConfig = PROJECTION_CONST): ProjectionGrid {
   if (row.outputsJson) {
     return row.outputsJson as ProjectionGrid;
   }
-  return computeProjection(row.modelType, asInputs(row.inputsJson));
+  return computeProjection(row.modelType, asInputs(row.inputsJson), cfg);
 }
 
-function y1NetReturn(row: ProjectionRow): number | null {
+function y1NetReturn(row: ProjectionRow, cfg: ProjectionConfig = PROJECTION_CONST): number | null {
   try {
-    const grid = resolveGrid(row);
+    const grid = resolveGrid(row, cfg);
     return grid.base[0]?.netOwnerReturn ?? null;
   } catch {
     return null;
@@ -307,6 +311,16 @@ export function ProjectionTab({
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<ProjectionRow[]>([]);
   const [view, setView] = useState<View>({ kind: "list" });
+  // DB-tunable assumptions; defaults equal the oracle until loaded.
+  const [cfg, setCfg] = useState<ProjectionConfig>(PROJECTION_CONST);
+
+  useEffect(() => {
+    let active = true;
+    getAcqProjectionConfig()
+      .then((c) => { if (active && c) setCfg(c); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
 
   const refresh = useCallback(async (): Promise<ProjectionRow[]> => {
     const res = await getAcqProjections(dealId);
@@ -364,6 +378,7 @@ export function ProjectionTab({
       <Builder
         dealId={dealId}
         existing={null}
+        cfg={cfg}
         onBack={() => setView({ kind: "list" })}
         onSaved={(id) => reloadAndStay(id)}
       />
@@ -376,6 +391,7 @@ export function ProjectionTab({
         row={view.row}
         dealId={dealId}
         userRole={userRole}
+        cfg={cfg}
         onBack={() => reloadAndStay()}
         onReload={(id) => reloadAndStay(id ?? view.row.id)}
       />
@@ -409,7 +425,7 @@ export function ProjectionTab({
         ) : (
           <ul className="space-y-2">
             {rows.map((row) => {
-              const net = y1NetReturn(row);
+              const net = y1NetReturn(row, cfg);
               return (
                 <li key={row.id}>
                   <button
@@ -521,11 +537,13 @@ function toInputs(model: ProjectionModel, f: FormState): ProjectionInputs {
 function Builder({
   dealId,
   existing,
+  cfg = PROJECTION_CONST,
   onBack,
   onSaved,
 }: {
   dealId: string;
   existing: ProjectionRow | null;
+  cfg?: ProjectionConfig;
   onBack: () => void;
   onSaved: (id: string) => void;
 }) {
@@ -574,8 +592,8 @@ function Builder({
   );
   const valid = errors.length === 0;
   const grid = useMemo(
-    () => (valid ? computeProjection(model, inputs) : null),
-    [valid, model, inputs]
+    () => (valid ? computeProjection(model, inputs, cfg) : null),
+    [valid, model, inputs, cfg]
   );
 
   const busy = savingDraft || submitting;
@@ -772,12 +790,14 @@ function OpenProjection({
   row,
   dealId,
   userRole,
+  cfg = PROJECTION_CONST,
   onBack,
   onReload,
 }: {
   row: ProjectionRow;
   dealId: string;
   userRole?: string;
+  cfg?: ProjectionConfig;
   onBack: () => void;
   onReload: (id?: string) => void;
 }) {
@@ -786,6 +806,7 @@ function OpenProjection({
       <Builder
         dealId={dealId}
         existing={row}
+        cfg={cfg}
         onBack={onBack}
         onSaved={(id) => onReload(id)}
       />
@@ -819,7 +840,7 @@ function OpenProjection({
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
-        <ProjectionGridView grid={resolveGrid(row)} />
+        <ProjectionGridView grid={resolveGrid(row, cfg)} />
 
         {row.status === "PENDING_APPROVAL" && (
           <PendingActions row={row} userRole={userRole} onReload={onReload} />

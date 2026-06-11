@@ -4,6 +4,7 @@ import {
   withoutFoodOpexY1,
   withFoodOpexY1,
   validateProjectionInputs,
+  PROJECTION_CONST,
   type ProjectionInputs,
 } from "./projection-calc";
 
@@ -117,6 +118,19 @@ describe("guards", () => {
     expect(g.base[0].totalRevenue).toBe(0);
     expect(g.base[0].ownerReturnPct).toBe(0);
     expect(Number.isFinite(g.base[0].ownerReturnPct)).toBe(true);
+  });
+
+  it("a tunable config actually changes the output (and defaults match oracle)", () => {
+    const inputs: ProjectionInputs = {
+      banquetSizeSft: 1500, seatingCapacity: 100, eventsBaseCase: 20, eventsBestCase: 25,
+      hourlyHallCharge: 6999, hoursPerEvent: 4,
+    };
+    const dflt = computeProjection("WITHOUT_FOOD", inputs);
+    expect(dflt.base[0].netOwnerReturn).toBe(332740); // unchanged with defaults
+    // Double the base fee % → management fee rises, net return falls.
+    const tweaked = computeProjection("WITHOUT_FOOD", inputs, { ...PROJECTION_CONST, BASE_FEE_PCT: 0.1 });
+    expect(tweaked.base[0].baseFee).toBeCloseTo(55992, 4); // 559920 * 0.10
+    expect(tweaked.base[0].netOwnerReturn).toBeLessThan(dflt.base[0].netOwnerReturn);
   });
 
   it("validation requires the model-appropriate fields", () => {

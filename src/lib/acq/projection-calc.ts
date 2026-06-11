@@ -4,23 +4,40 @@
 // to the rupee. No IO; this is the single source of truth that
 // BOTH the live UI preview and the server snapshot import, so the
 // on-screen grid and the sent PDF can never disagree.
+//
+// The §3 fixed assumptions are tunable via the AcqConfig table:
+// computeProjection() takes an optional config; the DEFAULTS below
+// equal the oracle, so omitting config keeps every test exact.
 // ============================================================
 
 export type ProjectionModel = "WITH_FOOD" | "WITHOUT_FOOD";
 
-// ---- Fixed assumptions (§3). Overridable via config later. ----
-export const PROJECTION_CONST = {
-  EVENTS_RAMP: [1, 1.3, 1.3, 1.1, 1.1], // per-year multiplier vs prior year (Y1 = 1)
-  BASE_FEE_PCT: 0.05, // of revenue
-  INCENTIVE_PCT: 0.2, // of GOP
-  OPEX_YOY_GROWTH: 1.3, // Yr2+ opex = prior * 1.30
-  WITHOUTFOOD_REV_YOY: 1.05, // rev/event grows 5%/yr (without-food)
-  WITHFOOD_PLATE_YOY: 1.1, // per-plate grows 10%/yr (with-food)
+export interface ProjectionConfig {
+  EVENTS_RAMP: number[]; // per-year multiplier vs prior year (Y1 = 1)
+  BASE_FEE_PCT: number; // of revenue
+  INCENTIVE_PCT: number; // of GOP
+  OPEX_YOY_GROWTH: number; // Yr2+ opex = prior * this
+  WITHOUTFOOD_REV_YOY: number; // rev/event growth (without-food)
+  WITHFOOD_PLATE_YOY: number; // per-plate growth (with-food)
+  FOOD_COST_PER_PLATE: number;
+  HALL_CHARGE_DEFAULT: number;
+  HOURS_PER_EVENT_DEFAULT: number;
+  BEST_CASE_PLATE_UPLIFT_DEFAULT: number;
+}
+
+// ---- Fixed assumptions (§3) — defaults == oracle. ----
+export const PROJECTION_CONST: ProjectionConfig = {
+  EVENTS_RAMP: [1, 1.3, 1.3, 1.1, 1.1],
+  BASE_FEE_PCT: 0.05,
+  INCENTIVE_PCT: 0.2,
+  OPEX_YOY_GROWTH: 1.3,
+  WITHOUTFOOD_REV_YOY: 1.05,
+  WITHFOOD_PLATE_YOY: 1.1,
   FOOD_COST_PER_PLATE: 250,
   HALL_CHARGE_DEFAULT: 6999,
   HOURS_PER_EVENT_DEFAULT: 4,
   BEST_CASE_PLATE_UPLIFT_DEFAULT: 100,
-} as const;
+};
 
 export interface ProjectionInputs {
   bestCasePlateUplift?: number;
@@ -74,29 +91,34 @@ export function withoutFoodOpexY1(cap: number, sft: number): number {
 }
 
 /** §4.2 — with-food opex = the 8 lines + marketing + food cost. Food uses events_base_case (per oracle). */
-export function withFoodOpexY1(cap: number, sft: number, eventsBaseCase: number): number {
+export function withFoodOpexY1(
+  cap: number,
+  sft: number,
+  eventsBaseCase: number,
+  cfg: ProjectionConfig = PROJECTION_CONST
+): number {
   const base = withoutFoodOpexY1(cap, sft);
   const marketing = Math.max(1, Math.ceil(cap / 200)) * 20000;
-  const foodCost = PROJECTION_CONST.FOOD_COST_PER_PLATE * cap * eventsBaseCase;
+  const foodCost = cfg.FOOD_COST_PER_PLATE * cap * eventsBaseCase;
   return base + marketing + foodCost;
 }
 
 // ---- Shared per-year fee + return math (§5/§6) ----
-function applyFees(totalRevenue: number, opex: number) {
+function applyFees(totalRevenue: number, opex: number, cfg: ProjectionConfig) {
   const gop = totalRevenue - opex;
-  const baseFee = totalRevenue * PROJECTION_CONST.BASE_FEE_PCT;
-  const incentiveFee = gop * PROJECTION_CONST.INCENTIVE_PCT;
+  const baseFee = totalRevenue * cfg.BASE_FEE_PCT;
+  const incentiveFee = gop * cfg.INCENTIVE_PCT;
   const mgmtFee = baseFee + incentiveFee;
   const netOwnerReturn = totalRevenue - opex - mgmtFee;
   const ownerReturnPct = totalRevenue > 0 ? netOwnerReturn / totalRevenue : 0; // guard div/0
   return { gop, baseFee, incentiveFee, mgmtFee, netOwnerReturn, ownerReturnPct };
 }
 
-function eventSeries(y1Events: number): number[] {
+function eventSeries(y1Events: number, cfg: ProjectionConfig): number[] {
   const out: number[] = [];
   let prev = 0;
   for (let i = 0; i < 5; i++) {
-    const v = i === 0 ? y1Events : prev * PROJECTION_CONST.EVENTS_RAMP[i];
+    const v = i === 0 ? y1Events : prev * (cfg.EVENTS_RAMP[i] ?? 1);
     out.push(v);
     prev = v;
   }
@@ -104,70 +126,69 @@ function eventSeries(y1Events: number): number[] {
 }
 
 // ---- WITHOUT-FOOD (§5) ----
-function computeWithoutFood(inputs: ProjectionInputs, isBest: boolean): YearRow[] {
+function computeWithoutFood(inputs: ProjectionInputs, isBest: boolean, cfg: ProjectionConfig): YearRow[] {
   const cap = inputs.seatingCapacity;
   const sft = inputs.banquetSizeSft;
-  const hall = inputs.hourlyHallCharge ?? PROJECTION_CONST.HALL_CHARGE_DEFAULT;
-  const hours = inputs.hoursPerEvent ?? PROJECTION_CONST.HOURS_PER_EVENT_DEFAULT;
-  const events = eventSeries(isBest ? inputs.eventsBestCase : inputs.eventsBaseCase);
+  const hall = inputs.hourlyHallCharge ?? cfg.HALL_CHARGE_DEFAULT;
+  const hours = inputs.hoursPerEvent ?? cfg.HOURS_PER_EVENT_DEFAULT;
+  const events = eventSeries(isBest ? inputs.eventsBestCase : inputs.eventsBaseCase, cfg);
 
-  const opexY1 = withoutFoodOpexY1(cap, sft);
   const rows: YearRow[] = [];
   let revPerEvent = hall * hours;
-  let opex = opexY1;
+  let opex = withoutFoodOpexY1(cap, sft);
   for (let i = 0; i < 5; i++) {
     if (i > 0) {
-      revPerEvent = revPerEvent * PROJECTION_CONST.WITHOUTFOOD_REV_YOY;
-      opex = opex * PROJECTION_CONST.OPEX_YOY_GROWTH;
+      revPerEvent = revPerEvent * cfg.WITHOUTFOOD_REV_YOY;
+      opex = opex * cfg.OPEX_YOY_GROWTH;
     }
     const totalRevenue = events[i] * revPerEvent;
-    const f = applyFees(totalRevenue, opex);
+    const f = applyFees(totalRevenue, opex, cfg);
     rows.push({ year: i + 1, events: events[i], revPerEvent, totalRevenue, opex, ...f });
   }
   return rows;
 }
 
 // ---- WITH-FOOD (§6) ----
-function computeWithFood(inputs: ProjectionInputs, isBest: boolean): YearRow[] {
+function computeWithFood(inputs: ProjectionInputs, isBest: boolean, cfg: ProjectionConfig): YearRow[] {
   const cap = inputs.seatingCapacity;
   const sft = inputs.banquetSizeSft;
   const seats = cap;
-  const uplift = isBest
-    ? inputs.bestCasePlateUplift ?? PROJECTION_CONST.BEST_CASE_PLATE_UPLIFT_DEFAULT
-    : 0;
-  const events = eventSeries(isBest ? inputs.eventsBestCase : inputs.eventsBaseCase);
+  const uplift = isBest ? inputs.bestCasePlateUplift ?? cfg.BEST_CASE_PLATE_UPLIFT_DEFAULT : 0;
+  const events = eventSeries(isBest ? inputs.eventsBestCase : inputs.eventsBaseCase, cfg);
 
   // Food cost (inside opex Y1) ALWAYS uses events_base_case, even in the best block (oracle).
-  const opexY1 = withFoodOpexY1(cap, sft, inputs.eventsBaseCase);
-
   const rows: YearRow[] = [];
   let perPlate = (inputs.perPlateCharge ?? 0) + uplift;
-  let opex = opexY1;
+  let opex = withFoodOpexY1(cap, sft, inputs.eventsBaseCase, cfg);
   for (let i = 0; i < 5; i++) {
     if (i > 0) {
-      perPlate = perPlate * PROJECTION_CONST.WITHFOOD_PLATE_YOY;
-      opex = opex * PROJECTION_CONST.OPEX_YOY_GROWTH;
+      perPlate = perPlate * cfg.WITHFOOD_PLATE_YOY;
+      opex = opex * cfg.OPEX_YOY_GROWTH;
     }
     const revPerEvent = perPlate * seats; // recomputed each year
     const totalRevenue = events[i] * revPerEvent;
-    const f = applyFees(totalRevenue, opex);
+    const f = applyFees(totalRevenue, opex, cfg);
     rows.push({ year: i + 1, events: events[i], perPlate, revPerEvent, totalRevenue, opex, ...f });
   }
   return rows;
 }
 
-export function computeProjection(model: ProjectionModel, inputs: ProjectionInputs): ProjectionGrid {
+export function computeProjection(
+  model: ProjectionModel,
+  inputs: ProjectionInputs,
+  cfg: ProjectionConfig = PROJECTION_CONST
+): ProjectionGrid {
   if (model === "WITHOUT_FOOD") {
     return {
       modelType: model,
-      base: computeWithoutFood(inputs, false),
-      best: computeWithoutFood(inputs, true),
+      base: computeWithoutFood(inputs, false, cfg),
+      best: computeWithoutFood(inputs, true, cfg),
     };
   }
   return {
     modelType: model,
-    base: computeWithFood(inputs, false),
-    best: computeWithFood(inputs, true),
+    base: computeWithFood(inputs, false, cfg),
+    best: computeWithFood(inputs, true, cfg),
   };
 }
 
