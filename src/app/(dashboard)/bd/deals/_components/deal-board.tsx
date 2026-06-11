@@ -79,8 +79,8 @@ export function DealBoard({ deals }: { deals: AcqDealCard[] }) {
                   deal.evalScore == null || deal.evalScore === ""
                     ? null
                     : Number(deal.evalScore);
-                const owner =
-                  deal.bdExecutive?.name ?? deal.ownerName ?? "Unassigned";
+                const owner = deal.ownerName ?? "—";
+                const bdExec = deal.bdExecutive?.name ?? "Unassigned";
                 return (
                   <button
                     key={deal.id}
@@ -117,8 +117,9 @@ export function DealBoard({ deals }: { deals: AcqDealCard[] }) {
                       )}
                     </div>
 
-                    <div className="text-[11px] text-muted-foreground/80">
-                      {owner}
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground/80">
+                      <span className="truncate">Owner: {owner}</span>
+                      <span className="shrink-0 pl-2 text-muted-foreground/60">{bdExec}</span>
                     </div>
                   </button>
                 );

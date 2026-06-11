@@ -9,12 +9,14 @@ import {
   BadgeCheck,
   Camera,
   CheckCircle2,
+  Circle,
   FileSignature,
   Loader2,
   Paperclip,
   Plus,
   ShieldCheck,
 } from "lucide-react";
+import { requiresBdHeadApproval } from "@/lib/acq/domain";
 
 import {
   transitionAcqDeal,
@@ -153,6 +155,79 @@ const LEGAL_TARGETS: Record<AcqDealStage, AcqDealStage[]> = {
   LOST: [],
   ON_HOLD: ["EVALUATION", "LOST"],
 };
+
+// The single forward stage for each current stage, and the live guard
+// requirements to reach it — so a rep sees exactly what's needed before
+// clicking (no guesswork, no dead ends).
+interface NextStep {
+  stage: AcqDealStage;
+  reqs: { label: string; met: boolean }[];
+}
+function forwardStep(deal: AcqDealDetail): NextStep | null {
+  const photos = deal.attachments.filter((a) => a.kind === "PHOTO").length;
+  const hasGpa = deal.attachments.some((a) => a.kind === "GPA");
+  const hasAgreement = deal.attachments.some((a) => a.kind === "AGREEMENT");
+  const passedEval = deal.evaluations.some((e) => e.passed);
+
+  switch (deal.stage) {
+    case "QUALIFIED":
+      return { stage: "EVALUATION", reqs: [] };
+    case "ON_HOLD":
+      return { stage: "EVALUATION", reqs: [] };
+    case "EVALUATION":
+      return {
+        stage: "EVALUATION_COMPLETED",
+        reqs: [
+          { label: "Site evaluation passed (≥70, high criteria ≥3)", met: passedEval },
+          { label: `8+ site photos uploaded (${photos}/8)`, met: photos >= 8 },
+        ],
+      };
+    case "EVALUATION_COMPLETED": {
+      const reqs: { label: string; met: boolean }[] = [
+        { label: "Commercial model selected", met: !!deal.model },
+      ];
+      if (deal.model === "FRANCHISE") {
+        reqs.push({ label: "Royalty % set", met: num(deal.royaltyPct) != null });
+      } else {
+        reqs.push({
+          label: "Base fee % and incentive % set",
+          met: num(deal.baseFeePct) != null && num(deal.incentivePct) != null,
+        });
+      }
+      reqs.push({ label: "Term & lock-in (years) set", met: num(deal.termYears) != null && num(deal.lockinYears) != null });
+      return { stage: "PROPOSAL_SENT", reqs };
+    }
+    case "PROPOSAL_SENT":
+      return { stage: "NEGOTIATION", reqs: [] };
+    case "NEGOTIATION": {
+      const needsApproval = requiresBdHeadApproval({
+        model: deal.model,
+        baseFeePct: num(deal.baseFeePct),
+        incentivePct: num(deal.incentivePct),
+        royaltyPct: num(deal.royaltyPct),
+        lockinYears: num(deal.lockinYears),
+      });
+      const reqs: { label: string; met: boolean }[] = [
+        { label: "Signatory authority verified", met: deal.signatoryAuthorityVerified },
+      ];
+      if (deal.ownerType === "GPA_HOLDER") reqs.push({ label: "GPA document attached", met: hasGpa });
+      if (needsApproval) reqs.push({ label: "BD Head approval (below floor / short lock-in)", met: !!deal.bdHeadApprovedById });
+      return { stage: "CONTRACT_SENT", reqs };
+    }
+    case "CONTRACT_SENT":
+      return {
+        stage: "SIGNED",
+        reqs: [
+          { label: "Contract marked signed", met: deal.contractStatus === "SIGNED" },
+          { label: "Executed agreement attached", met: hasAgreement },
+        ],
+      };
+    case "SIGNED":
+      return { stage: "WON", reqs: [] };
+    default:
+      return null;
+  }
+}
 
 const STAGE_HUE: Record<AcqDealStage, Parameters<typeof StatusPill>[0]["hue"]> = {
   QUALIFIED: "cyan",
@@ -294,6 +369,35 @@ function StagePanel({
           </div>
         </CardHeader>
         <CardContent className="space-y-2">
+          {(() => {
+            const step = forwardStep(deal);
+            if (!step || step.reqs.length === 0) return null;
+            const remaining = step.reqs.filter((r) => !r.met).length;
+            return (
+              <div className="mb-1 rounded-lg border border-border bg-muted/40 p-2.5">
+                <p className="mb-1.5 text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                  To reach {ACQ_DEAL_STAGE_LABEL[step.stage]}
+                </p>
+                <ul className="space-y-1">
+                  {step.reqs.map((r) => (
+                    <li key={r.label} className="flex items-start gap-1.5 text-[12px]">
+                      {r.met ? (
+                        <CheckCircle2 className="mt-px size-3.5 shrink-0 text-emerald-600" />
+                      ) : (
+                        <Circle className="mt-px size-3.5 shrink-0 text-muted-foreground/50" />
+                      )}
+                      <span className={r.met ? "text-foreground/70 line-through" : "text-foreground"}>
+                        {r.label}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <p className={`mt-1.5 text-[11.5px] font-medium ${remaining === 0 ? "text-emerald-600" : "text-amber-600"}`}>
+                  {remaining === 0 ? "✓ Ready to advance" : `${remaining} requirement${remaining > 1 ? "s" : ""} left`}
+                </p>
+              </div>
+            );
+          })()}
           {targets.length === 0 ? (
             <p className="text-[12px] text-muted-foreground">
               This stage is terminal — no further transitions.
