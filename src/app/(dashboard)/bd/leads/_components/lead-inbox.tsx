@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   Plus,
@@ -170,6 +170,11 @@ export function LeadInbox({ leads, bdUsers }: LeadInboxProps) {
   );
   const [query, setQuery] = React.useState("");
   const [createOpen, setCreateOpen] = React.useState(false);
+  const searchParams = useSearchParams();
+  // Auto-open the capture form when arriving via "New deal" on the board.
+  React.useEffect(() => {
+    if (searchParams.get("new") === "1") setCreateOpen(true);
+  }, [searchParams]);
   const [qualifyLead, setQualifyLead] = React.useState<AcqLead | null>(null);
   const [logContactLead, setLogContactLead] = React.useState<AcqLead | null>(
     null
