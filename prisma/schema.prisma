@@ -20,6 +20,11 @@ enum UserRole {
   STAFF
   VENDOR
   CLIENT
+  // BD / Acquisition CRM roles (property acquisition pipeline)
+  BD_EXECUTIVE
+  BD_HEAD
+  OPERATIONS
+  LEGAL
 }
 
 enum ContactType {
@@ -332,6 +337,17 @@ model User {
   telephonyConfigs        TelephonyConfig[]   @relation("UserTelephonyConfigs")
   whatsappConfigs         WhatsAppConfig[]    @relation("UserWhatsAppConfigs")
   hallOwnersManaged       HallOwner[]         @relation("HallOwnerBD")
+
+  // BD / Acquisition CRM relations
+  acqLeads                AcqLead[]            @relation("AcqLeadBdExec")
+  acqDeals                AcqDeal[]            @relation("AcqDealBdExec")
+  acqDealApprovals        AcqDeal[]            @relation("AcqDealBdHeadApprover")
+  acqPropertiesManaged    AcqProperty[]        @relation("AcqPropertyManager")
+  acqEvaluations          AcqEvaluation[]      @relation("AcqEvaluationBy")
+  acqAttachments          AcqAttachment[]      @relation("AcqAttachmentBy")
+  acqDealNotes            AcqDealNote[]        @relation("AcqDealNoteAuthor")
+  acqOnboardingTasks      AcqOnboardingTask[]  @relation("AcqOnboardingAssignee")
+  acqStageTransitions     AcqStageTransition[] @relation("AcqStageTransitionActor")
 
   @@index([email])
   @@index([role])
@@ -3461,4 +3477,322 @@ model HallOwner {
   @@index([contractStatus])
   @@index([bdOwnerId])
   @@index([deletedAt])
+}
+
+// ============================================================
+// BD / Property Acquisition CRM (VELORIA_ACQUISITION_CRM_SPEC)
+// Lead → Deal → Property lifecycle. Namespaced with `Acq` to stay
+// fully separate from the Sales CRM's Lead/Deal/Booking models.
+// ============================================================
+
+enum AcqLeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  DISQUALIFIED
+}
+
+enum AcqOwnerType {
+  SOLE_OWNER
+  PARTNER
+  GPA_HOLDER
+  MANAGER
+}
+
+enum AcqPropertyType {
+  BANQUET
+  MARRIAGE_HALL
+  CONVENTION_CENTRE
+  RESORT
+  LAWN
+}
+
+enum AcqLeadSource {
+  WEBSITE
+  REFERRAL
+  BROKER
+  COLD_CALL
+  SOCIAL_MEDIA
+  WALK_IN
+  OTHER
+}
+
+enum AcqDealStage {
+  QUALIFIED
+  EVALUATION
+  EVALUATION_COMPLETED
+  PROPOSAL_SENT
+  NEGOTIATION
+  CONTRACT_SENT
+  SIGNED
+  WON
+  LOST
+  ON_HOLD
+}
+
+enum AcqDealModel {
+  MANAGEMENT
+  FRANCHISE
+}
+
+enum AcqContractStatus {
+  NOT_SENT
+  SENT
+  SIGNED
+}
+
+enum AcqPropertyStatus {
+  ONBOARDING
+  AVAILABLE
+  ACTIVE
+  PAUSED
+  OFF_BOARDED
+}
+
+enum AcqDisqualifyReason {
+  WANTS_OUTRIGHT_RENT_ONLY
+  COMPETITOR_EXCLUSIVE
+  VENUE_NOT_OPERATIONAL
+  NOT_DECISION_MAKER
+  UNREALISTIC_EXPECTATIONS
+  NO_RESPONSE_5_DAYS
+  OUT_OF_GEOGRAPHY
+  OTHER
+}
+
+enum AcqLostReason {
+  HIGH_COMMISSION
+  COMPETITOR_SELECTED
+  WANTED_OUTRIGHT_RENT
+  LOCKIN_TOO_LONG
+  BUDGET_PRICING
+  NO_RESPONSE
+  VENUE_QUALITY_BELOW_STANDARD
+  OTHER
+}
+
+model AcqLead {
+  id               String        @id @default(cuid())
+  ownerName        String
+  mobilePrimary    String // E.164 normalized
+  mobileAlternate  String?
+  email            String?
+  propertyName     String
+  propertyType     AcqPropertyType
+  city             String
+  locality         String
+  seatingTheatre   Int?
+  seatingFloating  Int?
+  leadSource       AcqLeadSource
+  ownerType        AcqOwnerType
+  bdExecutiveId    String
+  bdExecutive      User          @relation("AcqLeadBdExec", fields: [bdExecutiveId], references: [id])
+  status           AcqLeadStatus @default(NEW)
+  disqualifyReason AcqDisqualifyReason?
+  contactAttempts  Int           @default(0)
+  nextFollowupAt   DateTime?
+  firstContactDue  DateTime
+  convertedDealId  String? // set on qualify (denormalized; deal.leadId is authoritative)
+  deal             AcqDeal?      @relation("AcqDealOrigin")
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  deletedAt        DateTime?
+
+  @@index([status])
+  @@index([city])
+  @@index([bdExecutiveId])
+  @@index([mobilePrimary])
+  @@index([deletedAt])
+}
+
+model AcqDeal {
+  id          String       @id @default(cuid())
+  name        String
+  leadId      String       @unique
+  lead        AcqLead      @relation("AcqDealOrigin", fields: [leadId], references: [id])
+  stage       AcqDealStage @default(QUALIFIED)
+
+  // Owner + venue snapshot (copied from lead at creation)
+  ownerName       String
+  ownerType       AcqOwnerType
+  propertyName    String
+  propertyType    AcqPropertyType
+  city            String
+  locality        String
+  seatingTheatre  Int?
+  seatingFloating Int?
+
+  // Venue economics
+  ownerCurrentMonthlyRevenue Decimal? @db.Decimal(12, 2)
+  avgEventsPerMonth          Decimal? @db.Decimal(6, 2)
+  peakRateCard               Decimal? @db.Decimal(12, 2)
+
+  // Commercials
+  model               AcqDealModel?
+  baseFeePct          Decimal? @db.Decimal(5, 2)
+  incentivePct        Decimal? @db.Decimal(5, 2)
+  royaltyPct          Decimal? @db.Decimal(5, 2)
+  termYears           Int?
+  lockinYears         Int?
+  isExclusive         Boolean?
+  expectedMonthlyEvents Decimal? @db.Decimal(6, 2)
+  projectedFeeValue   Decimal? @db.Decimal(12, 2)
+
+  // Scoring
+  evalScore  Int?
+  evalPassed Boolean?
+
+  // Contract
+  contractStatus              AcqContractStatus @default(NOT_SENT)
+  signatoryAuthorityVerified  Boolean           @default(false)
+  gpaDocumentUrl              String?
+
+  // Approvals
+  bdHeadApprovedById String?
+  bdHeadApprovedBy   User?    @relation("AcqDealBdHeadApprover", fields: [bdHeadApprovedById], references: [id])
+  bdHeadApprovedAt   DateTime?
+
+  // Outcome
+  lostReason  AcqLostReason?
+  reengageAt  DateTime?
+  wonAt       DateTime?
+  propertyId  String? // denormalized; property.dealId is authoritative
+  property    AcqProperty? @relation("AcqDealProperty")
+
+  expectedCloseDate DateTime?
+  bdExecutiveId     String
+  bdExecutive       User     @relation("AcqDealBdExec", fields: [bdExecutiveId], references: [id])
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  deletedAt         DateTime?
+
+  evaluations AcqEvaluation[]
+  attachments AcqAttachment[]
+  notes       AcqDealNote[]
+
+  @@index([stage])
+  @@index([bdExecutiveId])
+  @@index([deletedAt])
+}
+
+model AcqProperty {
+  id                String            @id @default(cuid())
+  dealId            String            @unique
+  deal              AcqDeal           @relation("AcqDealProperty", fields: [dealId], references: [id])
+  propertyName      String
+  propertyType      AcqPropertyType
+  ownerName         String
+  address           String?
+  city              String
+  locality          String
+  seatingTheatre    Int?
+  seatingFloating   Int?
+  status            AcqPropertyStatus @default(ONBOARDING)
+  acquisitionDate   DateTime
+  propertyManagerId String?
+  propertyManager   User?             @relation("AcqPropertyManager", fields: [propertyManagerId], references: [id])
+  availableAt       DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  deletedAt         DateTime?
+
+  onboardingProject AcqOnboardingProject?
+
+  @@index([status])
+  @@index([deletedAt])
+}
+
+model AcqEvaluation {
+  id               String   @id @default(cuid())
+  dealId           String
+  deal             AcqDeal  @relation(fields: [dealId], references: [id])
+  capacityScore    Int
+  parkingScore     Int
+  kitchenScore     Int
+  roomsScore       Int
+  conditionScore   Int
+  locationScore    Int
+  avAmenitiesScore Int
+  totalScore       Int
+  passed           Boolean
+  notes            String?
+  evaluatedById    String
+  evaluatedBy      User     @relation("AcqEvaluationBy", fields: [evaluatedById], references: [id])
+  createdAt        DateTime @default(now())
+
+  @@index([dealId])
+}
+
+model AcqAttachment {
+  id           String   @id @default(cuid())
+  dealId       String
+  deal         AcqDeal  @relation(fields: [dealId], references: [id])
+  kind         String // PHOTO | DOCUMENT | AGREEMENT | GPA
+  label        String?
+  url          String
+  uploadedById String
+  uploadedBy   User     @relation("AcqAttachmentBy", fields: [uploadedById], references: [id])
+  createdAt    DateTime @default(now())
+
+  @@index([dealId])
+  @@index([dealId, kind])
+}
+
+model AcqDealNote {
+  id        String   @id @default(cuid())
+  dealId    String
+  deal      AcqDeal  @relation(fields: [dealId], references: [id])
+  noteType  String // NEGOTIATION | INTERNAL | GENERAL
+  body      String
+  authorId  String
+  author    User     @relation("AcqDealNoteAuthor", fields: [authorId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@index([dealId])
+}
+
+model AcqOnboardingProject {
+  id          String              @id @default(cuid())
+  propertyId  String              @unique
+  property    AcqProperty         @relation(fields: [propertyId], references: [id])
+  status      String              @default("OPEN") // OPEN | COMPLETED
+  createdAt   DateTime            @default(now())
+  completedAt DateTime?
+  tasks       AcqOnboardingTask[]
+
+  @@index([status])
+}
+
+model AcqOnboardingTask {
+  id         String               @id @default(cuid())
+  projectId  String
+  project    AcqOnboardingProject @relation(fields: [projectId], references: [id])
+  title      String
+  done       Boolean              @default(false)
+  assigneeId String?
+  assignee   User?                @relation("AcqOnboardingAssignee", fields: [assigneeId], references: [id])
+  createdAt  DateTime             @default(now())
+
+  @@index([projectId])
+}
+
+model AcqStageTransition {
+  id        String   @id @default(cuid())
+  entity    String // DEAL | LEAD | PROPERTY
+  entityId  String
+  fromState String?
+  toState   String
+  actorId   String
+  actor     User     @relation("AcqStageTransitionActor", fields: [actorId], references: [id])
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+}
+
+model AcqConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
 }
