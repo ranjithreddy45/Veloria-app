@@ -12,6 +12,9 @@
 
 export type ProjectionModel = "WITH_FOOD" | "WITHOUT_FOOD";
 
+// Number of projection years shown (Years 4 & 5 dropped per product request).
+export const PROJECTION_YEARS = 3;
+
 export interface ProjectionConfig {
   EVENTS_RAMP: number[]; // per-year multiplier vs prior year (Y1 = 1)
   BASE_FEE_PCT: number; // of revenue
@@ -117,7 +120,7 @@ function applyFees(totalRevenue: number, opex: number, cfg: ProjectionConfig) {
 function eventSeries(y1Events: number, cfg: ProjectionConfig): number[] {
   const out: number[] = [];
   let prev = 0;
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < PROJECTION_YEARS; i++) {
     const v = i === 0 ? y1Events : prev * (cfg.EVENTS_RAMP[i] ?? 1);
     out.push(v);
     prev = v;
@@ -136,7 +139,7 @@ function computeWithoutFood(inputs: ProjectionInputs, isBest: boolean, cfg: Proj
   const rows: YearRow[] = [];
   let revPerEvent = hall * hours;
   let opex = withoutFoodOpexY1(cap, sft);
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < PROJECTION_YEARS; i++) {
     if (i > 0) {
       revPerEvent = revPerEvent * cfg.WITHOUTFOOD_REV_YOY;
       opex = opex * cfg.OPEX_YOY_GROWTH;
@@ -160,7 +163,7 @@ function computeWithFood(inputs: ProjectionInputs, isBest: boolean, cfg: Project
   const rows: YearRow[] = [];
   let perPlate = (inputs.perPlateCharge ?? 0) + uplift;
   let opex = withFoodOpexY1(cap, sft, inputs.eventsBaseCase, cfg);
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < PROJECTION_YEARS; i++) {
     if (i > 0) {
       perPlate = perPlate * cfg.WITHFOOD_PLATE_YOY;
       opex = opex * cfg.OPEX_YOY_GROWTH;

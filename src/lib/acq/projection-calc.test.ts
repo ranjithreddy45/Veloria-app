@@ -40,6 +40,13 @@ describe("WITHOUT-FOOD model (oracle §5)", () => {
     expect(y1.ownerReturnPct).toBeCloseTo(0.5943, 3);
   });
 
+  it("produces exactly 3 years (Years 4 & 5 removed)", () => {
+    const g = computeProjection("WITHOUT_FOOD", inputs);
+    expect(g.base).toHaveLength(3);
+    expect(g.best).toHaveLength(3);
+    expect(g.base[g.base.length - 1].year).toBe(3);
+  });
+
   it("ramps events and escalates rev/event + opex correctly (Y2)", () => {
     const g = computeProjection("WITHOUT_FOOD", inputs);
     const y2 = g.base[1];

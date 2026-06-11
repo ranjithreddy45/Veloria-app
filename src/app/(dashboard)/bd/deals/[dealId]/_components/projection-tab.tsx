@@ -405,7 +405,7 @@ export function ProjectionTab({
         <div className="flex items-center justify-between gap-3">
           <div>
             <CardTitle className="text-[15px]">Owner Projection</CardTitle>
-            <CardDescription>5-year indicative revenue projection.</CardDescription>
+            <CardDescription>3-year indicative revenue projection.</CardDescription>
           </div>
           {rows.length > 0 && (
             <Button size="sm" onClick={() => setView({ kind: "create" })}>
@@ -667,7 +667,7 @@ function Builder({
           {isDraftEdit ? `Edit Projection v${existing?.version}` : "New Projection"}
         </CardTitle>
         <CardDescription>
-          Live 5-year preview matches the approved PDF exactly.
+          Live 3-year preview matches the approved PDF exactly.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">

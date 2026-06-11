@@ -173,7 +173,7 @@ export async function submitAcqProjection(id: string): Promise<Result<{ status: 
       userId: h.id,
       type: "SLA_WARNING",
       title: "Projection awaiting approval",
-      message: `A 5-year projection for ${row.deal.propertyName} needs your approval.`,
+      message: `A 3-year projection for ${row.deal.propertyName} needs your approval.`,
       actionUrl: `/bd/deals/${row.dealId}`,
     });
   }
@@ -226,7 +226,7 @@ export async function approveAcqProjection(id: string): Promise<Result<{ status:
       userId: row.submittedById,
       type: "SYSTEM",
       title: "Projection approved",
-      message: "Your 5-year projection was approved and is ready to send to the owner.",
+      message: "Your 3-year projection was approved and is ready to send to the owner.",
       actionUrl: `/bd/deals/${row.dealId}`,
     });
   }
@@ -322,10 +322,10 @@ export async function sendAcqProjection(
 
   if (opts.method === "EMAIL_APP") {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.theveloriagrand.com";
-    const subject = opts.subject?.trim() || `5-Year Revenue Projection — ${row.deal.propertyName}`;
+    const subject = opts.subject?.trim() || `3-Year Revenue Projection — ${row.deal.propertyName}`;
     const body =
       opts.body?.trim() ||
-      `Dear ${row.deal.lead.ownerName || "Partner"},<br/><br/>Please find your indicative 5-year revenue projection for ${row.deal.propertyName} prepared by Veloria Grand.<br/><br/><a href="${appUrl}${pdfUrl}">View / download the projection (PDF)</a><br/><br/>Warm regards,<br/>Veloria Grand`;
+      `Dear ${row.deal.lead.ownerName || "Partner"},<br/><br/>Please find your indicative 3-year revenue projection for ${row.deal.propertyName} prepared by Veloria Grand.<br/><br/><a href="${appUrl}${pdfUrl}">View / download the projection (PDF)</a><br/><br/>Warm regards,<br/>Veloria Grand`;
     sendEmail({ to: ownerEmail, subject, html: body }).catch((e) =>
       console.error("[PROJECTION_EMAIL_ERROR]", e)
     );

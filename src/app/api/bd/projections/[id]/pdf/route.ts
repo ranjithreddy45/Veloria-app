@@ -76,7 +76,7 @@ export async function GET(
   const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>5-Year Revenue Projection — ${property}</title>
+<title>3-Year Revenue Projection — ${property}</title>
 <style>
   @page { size: A4 landscape; margin: 14mm; }
   * { box-sizing: border-box; }
@@ -105,7 +105,7 @@ export async function GET(
     <div class="actions"><button onclick="window.print()">Save as PDF / Print</button></div>
     <div class="header">
       <div class="brand">Veloria Grand<small>Premium Event Venues</small></div>
-      <div class="title">5-Year Revenue Projection<small>${property} · ${esc(projection.deal.locality)}</small></div>
+      <div class="title">3-Year Revenue Projection<small>${property} · ${esc(projection.deal.locality)}</small></div>
     </div>
     <div class="modeltag">${withFood ? "With In-House Food" : "Hall-Only (Without Food)"} Model · Management Fee 5% Revenue + 20% GOP</div>
 
