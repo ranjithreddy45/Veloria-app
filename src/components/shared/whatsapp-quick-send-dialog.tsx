@@ -147,7 +147,7 @@ export function WhatsAppQuickSendDialog({
           </div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2">
               <TabsTrigger value="message">Message</TabsTrigger>
               <TabsTrigger value="template">Template</TabsTrigger>
             </TabsList>

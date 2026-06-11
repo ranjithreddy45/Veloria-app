@@ -19,6 +19,7 @@ import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
 import { notify } from "@/lib/notify";
+import { processEmailForTracking } from "@/lib/email-tracking";
 
 // ============================================================
 // Types
@@ -211,7 +212,48 @@ async function handleSendEmail(
     ? resolveTokens(tpl.body, ctx)
     : `<p>Hi ${ctx.contact?.firstName ?? "there"}, this is an automated message from Veloria Grand.</p>`;
 
-  const result = await sendEmail({ to: recipient, subject, html });
+  // Log as a Communication and inject open/click tracking so automated
+  // workflow emails show up in Email Insights (previously untracked).
+  let finalHtml = html;
+  if (ctx.contact?.id) {
+    try {
+      const actorId =
+        ctx.triggeredByUserId ??
+        (
+          await prisma.user.findFirst({
+            where: { role: { in: ["SUPER_ADMIN", "ADMIN"] }, isActive: true },
+            select: { id: true },
+          })
+        )?.id;
+      if (actorId) {
+        const comm = await prisma.communication.create({
+          data: {
+            type: "EMAIL",
+            direction: "OUTBOUND",
+            subject,
+            content: html,
+            contactId: ctx.contact.id,
+            createdById: actorId,
+          },
+        });
+        const { trackedHtml } = await processEmailForTracking(
+          comm.id,
+          ctx.contact.id,
+          recipient,
+          html
+        );
+        finalHtml = trackedHtml;
+        await prisma.communication.update({
+          where: { id: comm.id },
+          data: { content: trackedHtml },
+        });
+      }
+    } catch (err) {
+      console.error("[WORKFLOW_EMAIL_TRACKING_ERROR]", err);
+    }
+  }
+
+  const result = await sendEmail({ to: recipient, subject, html: finalHtml });
   if (!result.success) {
     return { ok: false, error: result.error ?? "sendEmail failed" };
   }

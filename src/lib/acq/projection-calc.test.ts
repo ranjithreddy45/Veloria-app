@@ -11,7 +11,8 @@ import {
 // ============================================================
 // Oracle: VG_Projection_WITHOUT_FOOD.xlsx (§5)
 // cap 100, 1500 sft, hall 6999 × 4h, 20 events base.
-// Y1 revenue ₹559,920; GOP ₹450,920; net owner ₹332,740; 59.4%.
+// Opex now includes marketing (₹20,000 per 100 seats): Y1 opex ₹129,000.
+// Y1 revenue ₹559,920; GOP ₹430,920; net owner ₹316,740; 56.6%.
 // ============================================================
 describe("WITHOUT-FOOD model (oracle §5)", () => {
   const inputs: ProjectionInputs = {
@@ -23,8 +24,15 @@ describe("WITHOUT-FOOD model (oracle §5)", () => {
     hoursPerEvent: 4,
   };
 
-  it("opex Y1 = ₹109,000", () => {
-    expect(withoutFoodOpexY1(100, 1500)).toBe(109000);
+  it("opex Y1 = ₹129,000 (109k base lines + ₹20k marketing at 100 seats)", () => {
+    expect(withoutFoodOpexY1(100, 1500)).toBe(129000);
+  });
+
+  it("marketing scales ₹20,000 per 100 seats of capacity (ceil)", () => {
+    // 100 seats → 1×₹20k marketing; base lines ₹109k → ₹129k total.
+    expect(withoutFoodOpexY1(100, 1500)).toBe(129000);
+    // 200 seats → 2×₹20k marketing; base lines ₹155k → ₹195k total.
+    expect(withoutFoodOpexY1(200, 1500)).toBe(195000);
   });
 
   it("reproduces the Y1 base-case oracle to the rupee", () => {
@@ -32,12 +40,12 @@ describe("WITHOUT-FOOD model (oracle §5)", () => {
     const y1 = g.base[0];
     expect(y1.revPerEvent).toBe(27996);
     expect(y1.totalRevenue).toBe(559920);
-    expect(y1.opex).toBe(109000);
-    expect(y1.gop).toBe(450920);
+    expect(y1.opex).toBe(129000);
+    expect(y1.gop).toBe(430920);
     expect(y1.baseFee).toBeCloseTo(27996, 4);
-    expect(y1.incentiveFee).toBeCloseTo(90184, 4);
-    expect(y1.netOwnerReturn).toBe(332740);
-    expect(y1.ownerReturnPct).toBeCloseTo(0.5943, 3);
+    expect(y1.incentiveFee).toBeCloseTo(86184, 4);
+    expect(y1.netOwnerReturn).toBe(316740);
+    expect(y1.ownerReturnPct).toBeCloseTo(0.5657, 3);
   });
 
   it("produces exactly 3 years (Years 4 & 5 removed)", () => {
@@ -67,7 +75,7 @@ describe("WITHOUT-FOOD model (oracle §5)", () => {
     const y2 = g.base[1];
     expect(y2.events).toBeCloseTo(26, 6); // 20 * 1.30
     expect(y2.revPerEvent).toBeCloseTo(27996 * 1.05, 4);
-    expect(y2.opex).toBeCloseTo(109000 * 1.3, 4);
+    expect(y2.opex).toBeCloseTo(129000 * 1.3, 4);
   });
 
   it("never references food/marketing (structural: no perPlate field)", () => {
@@ -148,7 +156,7 @@ describe("guards", () => {
       hourlyHallCharge: 6999, hoursPerEvent: 4,
     };
     const dflt = computeProjection("WITHOUT_FOOD", inputs);
-    expect(dflt.base[0].netOwnerReturn).toBe(332740); // unchanged with defaults
+    expect(dflt.base[0].netOwnerReturn).toBe(316740); // marketing-inclusive opex
     // Double the base fee % → management fee rises, net return falls.
     const tweaked = computeProjection("WITHOUT_FOOD", inputs, { ...PROJECTION_CONST, BASE_FEE_PCT: 0.1 });
     expect(tweaked.base[0].baseFee).toBeCloseTo(55992, 4); // 559920 * 0.10

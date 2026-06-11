@@ -345,8 +345,8 @@ export function QuoteDetail({ quote }: QuoteDetailProps) {
         )}
 
         {/* Line Items Table */}
-        <div className="mt-8">
-          <table className="w-full text-sm">
+        <div className="mt-8 overflow-x-auto">
+          <table className="w-full min-w-[520px] text-sm">
             <thead>
               <tr className="border-b-2 border-zinc-200 dark:border-zinc-700">
                 <th className="pb-2 text-left font-semibold text-zinc-500 dark:text-zinc-400">

@@ -274,12 +274,15 @@ export function CompetitorFormDialog({
             </div>
             <div className="space-y-2">
               <Label htmlFor="comp-price">Price Range</Label>
-              <Select value={priceRange} onValueChange={setPriceRange}>
+              <Select
+                value={priceRange || "__none__"}
+                onValueChange={(v) => setPriceRange(v === "__none__" ? "" : v)}
+              >
                 <SelectTrigger id="comp-price" className="w-full">
                   <SelectValue placeholder="Select price range" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="__none__">None</SelectItem>
                   {PRICE_RANGE_OPTIONS.map((option) => (
                     <SelectItem key={option} value={option}>
                       {option}

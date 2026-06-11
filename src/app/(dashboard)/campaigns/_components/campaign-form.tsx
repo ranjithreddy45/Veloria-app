@@ -200,8 +200,8 @@ export function CampaignForm({ campaign }: CampaignFormProps) {
                 <FormItem>
                   <FormLabel>Event Type</FormLabel>
                   <Select
-                    onValueChange={field.onChange}
-                    value={field.value ?? ""}
+                    onValueChange={(v) => field.onChange(v === "__all__" ? "" : v)}
+                    value={field.value || "__all__"}
                   >
                     <FormControl>
                       <SelectTrigger className="w-full">
@@ -209,7 +209,7 @@ export function CampaignForm({ campaign }: CampaignFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">All Event Types</SelectItem>
+                      <SelectItem value="__all__">All Event Types</SelectItem>
                       {EVENT_TYPES.map((type) => (
                         <SelectItem key={type} value={type}>
                           {type}
@@ -228,8 +228,8 @@ export function CampaignForm({ campaign }: CampaignFormProps) {
                 <FormItem>
                   <FormLabel>Contact Type</FormLabel>
                   <Select
-                    onValueChange={field.onChange}
-                    value={field.value ?? ""}
+                    onValueChange={(v) => field.onChange(v === "__all__" ? "" : v)}
+                    value={field.value || "__all__"}
                   >
                     <FormControl>
                       <SelectTrigger className="w-full">
@@ -237,7 +237,7 @@ export function CampaignForm({ campaign }: CampaignFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">All Contacts</SelectItem>
+                      <SelectItem value="__all__">All Contacts</SelectItem>
                       <SelectItem value="INDIVIDUAL">Individual</SelectItem>
                       <SelectItem value="CORPORATE">Corporate</SelectItem>
                     </SelectContent>

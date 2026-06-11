@@ -227,7 +227,7 @@ export function NotificationPopover() {
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="w-[380px] p-0"
+        className="w-[min(380px,calc(100vw-1rem))] p-0"
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b px-4 py-3">

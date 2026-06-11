@@ -316,7 +316,7 @@ export function MacrosManager() {
                 placeholder="Optional description"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Entity Type</Label>
                 <Select value={formEntityType} onValueChange={(v) => setFormEntityType(v as "LEAD" | "CONTACT" | "DEAL" | "BOOKING")}>
@@ -379,7 +379,7 @@ export function MacrosManager() {
               </div>
             )}
             {formActionType === "UPDATE_FIELD" && (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div className="space-y-2">
                   <Label>Field</Label>
                   <Input

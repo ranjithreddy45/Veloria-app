@@ -1,18 +1,24 @@
 "use client";
 
 import * as React from "react";
+import dynamic from "next/dynamic";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import type { DateRange } from "@/actions/report.actions";
-import { RevenueReports } from "./revenue-reports";
-import { BookingReports } from "./booking-reports";
-import { PipelineReports } from "./pipeline-reports";
-import { FinancialReports } from "./financial-reports";
-import { ClientReports } from "./client-reports";
-import { VendorReports } from "./vendor-reports";
-import { TaxReports } from "./tax-reports";
-import { OperationsReports } from "./operations-reports";
+
+// Each report tab pulls in recharts (~250KB). Load only the tab the user opens
+// instead of bundling all 8 + recharts on first paint.
+const tabLoading = () => <Skeleton className="h-[420px] w-full rounded-lg" />;
+const RevenueReports = dynamic(() => import("./revenue-reports").then((m) => m.RevenueReports), { loading: tabLoading });
+const BookingReports = dynamic(() => import("./booking-reports").then((m) => m.BookingReports), { loading: tabLoading });
+const PipelineReports = dynamic(() => import("./pipeline-reports").then((m) => m.PipelineReports), { loading: tabLoading });
+const FinancialReports = dynamic(() => import("./financial-reports").then((m) => m.FinancialReports), { loading: tabLoading });
+const ClientReports = dynamic(() => import("./client-reports").then((m) => m.ClientReports), { loading: tabLoading });
+const VendorReports = dynamic(() => import("./vendor-reports").then((m) => m.VendorReports), { loading: tabLoading });
+const TaxReports = dynamic(() => import("./tax-reports").then((m) => m.TaxReports), { loading: tabLoading });
+const OperationsReports = dynamic(() => import("./operations-reports").then((m) => m.OperationsReports), { loading: tabLoading });
 
 // ============================================================
 // Date Range Options

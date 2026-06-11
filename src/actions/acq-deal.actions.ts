@@ -95,6 +95,23 @@ export async function updateAcqDeal(
   }
   if (data.expectedCloseDate) data.expectedCloseDate = new Date(data.expectedCloseDate as string);
 
+  // Defense in depth: never let a NaN/Infinity reach a numeric column, and
+  // truncate the Int-only year fields so a decimal can't make Prisma throw.
+  const numericFields = [
+    "ownerCurrentMonthlyRevenue", "avgEventsPerMonth", "peakRateCard",
+    "baseFeePct", "incentivePct", "royaltyPct", "termYears", "lockinYears",
+    "expectedMonthlyEvents", "projectedFeeValue",
+  ];
+  for (const k of numericFields) {
+    if (data[k] != null) {
+      const n = Number(data[k]);
+      if (!Number.isFinite(n)) {
+        return { success: false, error: `Invalid number for ${k}.` };
+      }
+      data[k] = k === "termYears" || k === "lockinYears" ? Math.trunc(n) : n;
+    }
+  }
+
   await prisma.acqDeal.update({ where: { id }, data });
   revalidatePath(`/bd/deals/${id}`);
   return { success: true, data: { id } };

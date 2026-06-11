@@ -17,6 +17,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { requiresBdHeadApproval } from "@/lib/acq/domain";
+import { acqCan } from "@/lib/acq/rbac";
 
 import {
   transitionAcqDeal,
@@ -279,7 +280,7 @@ export function DealDetail({
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_300px]">
       <div className="min-w-0">
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList>
+          <TabsList className="w-full justify-start overflow-x-auto">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="economics">Economics &amp; Model</TabsTrigger>
             <TabsTrigger value="evaluation">Evaluation</TabsTrigger>
@@ -289,7 +290,7 @@ export function DealDetail({
           </TabsList>
 
           <TabsContent value="overview" className="mt-4">
-            <OverviewTab deal={deal} onMutate={() => router.refresh()} />
+            <OverviewTab deal={deal} userRole={userRole} onMutate={() => router.refresh()} />
           </TabsContent>
           <TabsContent value="economics" className="mt-4">
             <EconomicsTab deal={deal} onMutate={() => router.refresh()} />
@@ -304,7 +305,7 @@ export function DealDetail({
             <NegotiationTab deal={deal} onMutate={() => router.refresh()} />
           </TabsContent>
           <TabsContent value="contract" className="mt-4">
-            <ContractTab deal={deal} onMutate={() => router.refresh()} />
+            <ContractTab deal={deal} userRole={userRole} onMutate={() => router.refresh()} />
           </TabsContent>
         </Tabs>
       </div>
@@ -505,12 +506,15 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 
 function OverviewTab({
   deal,
+  userRole,
   onMutate,
 }: {
   deal: AcqDealDetail;
+  userRole?: string;
   onMutate: () => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const canApprove = acqCan(userRole, "bdhead:approve");
   const seating = [num(deal.seatingTheatre), num(deal.seatingFloating)]
     .filter((n) => n != null)
     .map((n, i) => `${n} ${i === 0 ? "theatre" : "floating"}`)
@@ -569,12 +573,16 @@ function OverviewTab({
           ) : (
             <div className="flex items-center justify-between gap-3">
               <span className="text-[12.5px] text-muted-foreground">
-                Not yet approved by BD Head.
+                {canApprove
+                  ? "Not yet approved by BD Head."
+                  : "Not yet approved by BD Head. Only a BD Head can approve."}
               </span>
-              <Button size="sm" onClick={approve} disabled={busy}>
-                {busy && <Loader2 className="size-3.5 animate-spin" />}
-                Approve (BD Head)
-              </Button>
+              {canApprove && (
+                <Button size="sm" onClick={approve} disabled={busy}>
+                  {busy && <Loader2 className="size-3.5 animate-spin" />}
+                  Approve (BD Head)
+                </Button>
+              )}
             </div>
           )}
         </div>
@@ -615,32 +623,48 @@ function EconomicsTab({
   const [peakRateCard, setPeakRateCard] = useState(numStr(deal.peakRateCard));
   const [busy, setBusy] = useState(false);
 
-  const numOrNull = (s: string): number | null =>
-    s.trim() === "" ? null : Number(s);
+  // Blank → null; anything non-finite (a lone "-", "1e", etc.) → null too,
+  // so we never ship NaN to a Decimal column.
+  const numOrNull = (s: string): number | null => {
+    if (s.trim() === "") return null;
+    const n = Number(s);
+    return Number.isFinite(n) ? n : null;
+  };
+  // termYears / lockinYears are Int? columns — Prisma rejects a decimal, so
+  // truncate. Without this a "3.5" throws and (pre-fix) hung the Save button.
+  const intOrNull = (s: string): number | null => {
+    const n = numOrNull(s);
+    return n == null ? null : Math.trunc(n);
+  };
 
   async function save() {
     setBusy(true);
-    const res = await updateAcqDeal(deal.id, {
-      model,
-      baseFeePct: numOrNull(baseFeePct),
-      incentivePct: numOrNull(incentivePct),
-      royaltyPct: numOrNull(royaltyPct),
-      termYears: numOrNull(termYears),
-      lockinYears: numOrNull(lockinYears),
-      isExclusive,
-      expectedMonthlyEvents: numOrNull(expectedMonthlyEvents),
-      projectedFeeValue: numOrNull(projectedFeeValue),
-      ownerCurrentMonthlyRevenue: numOrNull(ownerRevenue),
-      avgEventsPerMonth: numOrNull(avgEvents),
-      peakRateCard: numOrNull(peakRateCard),
-    });
-    setBusy(false);
-    if (!res.success) {
-      toast.error(res.error);
-      return;
+    try {
+      const res = await updateAcqDeal(deal.id, {
+        model,
+        baseFeePct: numOrNull(baseFeePct),
+        incentivePct: numOrNull(incentivePct),
+        royaltyPct: numOrNull(royaltyPct),
+        termYears: intOrNull(termYears),
+        lockinYears: intOrNull(lockinYears),
+        isExclusive,
+        expectedMonthlyEvents: numOrNull(expectedMonthlyEvents),
+        projectedFeeValue: numOrNull(projectedFeeValue),
+        ownerCurrentMonthlyRevenue: numOrNull(ownerRevenue),
+        avgEventsPerMonth: numOrNull(avgEvents),
+        peakRateCard: numOrNull(peakRateCard),
+      });
+      if (!res.success) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Economics saved");
+      onMutate();
+    } catch {
+      toast.error("Couldn't save — please try again.");
+    } finally {
+      setBusy(false);
     }
-    toast.success("Economics saved");
-    onMutate();
   }
 
   return (
@@ -1216,9 +1240,11 @@ function NegotiationTab({
 // ------------------------------------------------------------
 function ContractTab({
   deal,
+  userRole,
   onMutate,
 }: {
   deal: AcqDealDetail;
+  userRole?: string;
   onMutate: () => void;
 }) {
   const [verified, setVerified] = useState(
@@ -1228,6 +1254,7 @@ function ContractTab({
   const [savingVerify, setSavingVerify] = useState(false);
   const [savingGpa, setSavingGpa] = useState(false);
   const [signing, setSigning] = useState(false);
+  const canSign = acqCan(userRole, "legal:review");
 
   async function toggleVerified(next: boolean) {
     setVerified(next);
@@ -1261,14 +1288,19 @@ function ContractTab({
 
   async function markSigned() {
     setSigning(true);
-    const res = await markAcqContractSigned(deal.id);
-    setSigning(false);
-    if (!res.success) {
-      toast.error(res.error);
-      return;
+    try {
+      const res = await markAcqContractSigned(deal.id);
+      if (!res.success) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Contract marked signed");
+      onMutate();
+    } catch {
+      toast.error("Couldn't mark signed — please try again.");
+    } finally {
+      setSigning(false);
     }
-    toast.success("Contract marked signed");
-    onMutate();
   }
 
   const contractHue =
@@ -1335,16 +1367,20 @@ function ContractTab({
             ) : (
               <FileSignature className="size-4" />
             )}
-            Mark the executed contract as signed.
+            {canSign
+              ? "Mark the executed contract as signed."
+              : "Only Legal / BD Head can mark a contract signed."}
           </div>
-          <Button
-            size="sm"
-            onClick={markSigned}
-            disabled={signing || deal.contractStatus === "SIGNED"}
-          >
-            {signing && <Loader2 className="size-3.5 animate-spin" />}
-            Mark Contract Signed
-          </Button>
+          {canSign && (
+            <Button
+              size="sm"
+              onClick={markSigned}
+              disabled={signing || deal.contractStatus === "SIGNED"}
+            >
+              {signing && <Loader2 className="size-3.5 animate-spin" />}
+              Mark Contract Signed
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

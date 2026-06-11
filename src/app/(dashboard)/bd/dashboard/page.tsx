@@ -77,7 +77,7 @@ function FunnelBar({ row, max }: { row: FunnelRow; max: number }) {
   const pct = max > 0 ? Math.round((row.count / max) * 100) : 0;
   return (
     <div className="flex items-center gap-3">
-      <div className="w-40 shrink-0 truncate text-[13px] text-muted-foreground">
+      <div className="w-28 shrink-0 truncate text-[13px] text-muted-foreground sm:w-40">
         {row.label}
       </div>
       <div className="relative h-7 flex-1 overflow-hidden rounded-lg border border-border bg-muted/30">

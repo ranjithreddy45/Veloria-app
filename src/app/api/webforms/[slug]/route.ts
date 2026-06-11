@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { webformSubmissionSchema } from "@/schemas/webform.schema";
 import { notify } from "@/lib/notify";
+import { calculateLeadScore } from "@/lib/lead-scoring";
+import { evaluateAssignmentRules } from "@/actions/assignment-rule.actions";
+import { runLeadIntake, leadSlaDeadline } from "@/lib/lead-pipeline";
 import type { Prisma, LeadSource } from "@prisma/client";
 
 // ============================================================
@@ -194,8 +197,21 @@ export async function POST(
       }
 
       // Create Lead if we have a contact
-      if (contactId) {
+      if (contactId && !isSpam) {
         const leadSource = (webform.defaultSource || "WEBSITE") as LeadSource;
+
+        // Resolve assignment: static autoAssignTo, else the rules engine.
+        let assignedToId: string | null = webform.autoAssignTo || null;
+        if (!assignedToId) {
+          try {
+            assignedToId =
+              (await evaluateAssignmentRules({ source: leadSource })) || null;
+          } catch {
+            /* assignment optional */
+          }
+        }
+
+        const score = calculateLeadScore({ source: leadSource, status: "NEW" });
 
         const lead = await prisma.lead.create({
           data: {
@@ -203,12 +219,24 @@ export async function POST(
             source: leadSource,
             contactId,
             createdById: webform.createdById,
-            ...(webform.autoAssignTo
-              ? { assignedToId: webform.autoAssignTo }
-              : {}),
+            score,
+            firstContactDue: leadSlaDeadline(),
+            ...(assignedToId ? { assignedToId } : {}),
           },
         });
         leadId = lead.id;
+
+        // Intake: instant auto-reply (LEAD_CREATED workflows) + auto-enrol.
+        await runLeadIntake({
+          lead: {
+            id: lead.id,
+            contactId,
+            source: lead.source,
+            status: lead.status,
+            score: lead.score,
+          },
+          triggeredByUserId: assignedToId ?? webform.createdById,
+        });
       }
     }
 

@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
+import { stampLeadResponded } from "@/lib/lead-pipeline";
 import {
   logCallSchema,
   callFiltersSchema,
@@ -77,6 +78,11 @@ export async function logCall(data: LogCallInput) {
         agentId: session.user.id,
       },
     });
+
+    // An outbound call = first response → stop the speed-to-lead SLA clock.
+    if (parsed.data.direction === "OUTBOUND") {
+      await stampLeadResponded(parsed.data.contactId);
+    }
 
     // If follow-up date is set, create a follow-up task
     if (parsed.data.followUpDate) {

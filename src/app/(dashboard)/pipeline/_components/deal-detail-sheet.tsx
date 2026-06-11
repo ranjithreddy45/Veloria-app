@@ -289,7 +289,7 @@ export function DealDetailSheet({
 
           <div className="flex flex-col gap-5 px-4 pb-6">
             {/* Value & Probability */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
                 <div className="flex items-center gap-1.5 text-zinc-500">
                   <IndianRupee className="size-3.5" />

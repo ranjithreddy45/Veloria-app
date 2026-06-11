@@ -82,8 +82,8 @@ export interface ProjectionGrid {
 
 // ---- Opex engines (§4). Fixed monthly; does not scale with events. ----
 
-/** §4.1 — without-food opex lines (owner absorbs all). Marketing & food excluded. */
-export function withoutFoodOpexY1(cap: number, sft: number): number {
+/** The 8 shared operating-expense lines (no marketing, no food). */
+function opexBaseLines(cap: number, sft: number): number {
   const electricity = sft * 16;
   const water = 1500 * 6;
   const housekeeping = (cap <= 100 ? 1 : 1 + Math.floor((cap - 1) / 100)) * 20000;
@@ -97,6 +97,16 @@ export function withoutFoodOpexY1(cap: number, sft: number): number {
   );
 }
 
+/**
+ * §4.1 — without-food opex = the 8 base lines + marketing.
+ * Marketing is ₹20,000 at ≤100 seats and rises ₹20,000 for every additional
+ * 100 seats of capacity → ceil(cap/100) × 20,000. (Food is excluded.)
+ */
+export function withoutFoodOpexY1(cap: number, sft: number): number {
+  const marketing = Math.ceil(cap / 100) * 20000;
+  return opexBaseLines(cap, sft) + marketing;
+}
+
 /** §4.2 — with-food opex = the 8 lines + marketing + food cost. Food uses events_base_case (per oracle). */
 export function withFoodOpexY1(
   cap: number,
@@ -104,10 +114,9 @@ export function withFoodOpexY1(
   eventsBaseCase: number,
   cfg: ProjectionConfig = PROJECTION_CONST
 ): number {
-  const base = withoutFoodOpexY1(cap, sft);
   const marketing = Math.max(1, Math.ceil(cap / 200)) * 20000;
   const foodCost = cfg.FOOD_COST_PER_PLATE * cap * eventsBaseCase;
-  return base + marketing + foodCost;
+  return opexBaseLines(cap, sft) + marketing + foodCost;
 }
 
 // ---- Shared per-year fee + return math (§5/§6) ----

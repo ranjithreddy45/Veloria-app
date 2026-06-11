@@ -26,8 +26,8 @@ export default async function DashboardLayout({
       <AppSidebar />
       <SidebarInset>
         <AppHeader />
-        <main className="flex-1 overflow-auto bg-background px-6 py-6 lg:px-8 lg:py-8">
-          <div className="mx-auto max-w-[1400px] animate-fade-in-up">
+        <main className="flex-1 overflow-auto bg-background px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+          <div className="mx-auto min-w-0 max-w-[1400px] animate-fade-in-up">
             {children}
           </div>
         </main>

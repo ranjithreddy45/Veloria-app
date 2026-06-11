@@ -178,7 +178,7 @@ export function CreateChartButton({ bookingId }: { bookingId: string }) {
                 placeholder="e.g. Main Hall, Outdoor Area"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Rows</Label>
                 <Input
@@ -914,7 +914,7 @@ export function SeatingEditor({ bookingId, chart }: SeatingEditorProps) {
                 placeholder="e.g. Table 1, VIP Table"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Row Position</Label>
                 <Input
@@ -936,7 +936,7 @@ export function SeatingEditor({ bookingId, chart }: SeatingEditorProps) {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Capacity</Label>
                 <Input
@@ -1014,7 +1014,7 @@ export function SeatingEditor({ bookingId, chart }: SeatingEditorProps) {
                 onChange={(e) => setEditLabel(e.target.value)}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Row Position</Label>
                 <Input
@@ -1036,7 +1036,7 @@ export function SeatingEditor({ bookingId, chart }: SeatingEditorProps) {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Capacity</Label>
                 <Input
@@ -1154,7 +1154,7 @@ export function SeatingEditor({ bookingId, chart }: SeatingEditorProps) {
                 placeholder="Full name"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Category (optional)</Label>
                 <Input
@@ -1281,7 +1281,7 @@ export function SeatingEditor({ bookingId, chart }: SeatingEditorProps) {
                 onChange={(e) => setChartName(e.target.value)}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Rows</Label>
                 <Input

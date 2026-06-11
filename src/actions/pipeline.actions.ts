@@ -75,6 +75,18 @@ export async function getPipelineStages() {
                 eventDate: true,
                 guestCount: true,
                 estimatedValue: true,
+                // Pull the contact in the SAME query — previously this was a
+                // separate findUnique per deal (a classic N+1 on the board).
+                contact: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                    phone: true,
+                    company: true,
+                  },
+                },
               },
             },
             assignedTo: {
@@ -99,43 +111,24 @@ export async function getPipelineStages() {
       },
     });
 
-    // Also fetch contact info through lead relation
-    const stagesWithContacts = await Promise.all(
-      stages.map(async (stage) => {
-        const dealsWithContacts = await Promise.all(
-          stage.deals.map(async (deal) => {
-            const lead = await prisma.lead.findUnique({
-              where: { id: deal.leadId },
-              select: {
-                contact: {
-                  select: {
-                    id: true,
-                    firstName: true,
-                    lastName: true,
-                    email: true,
-                    phone: true,
-                    company: true,
-                  },
-                },
-              },
-            });
-            return {
-              ...deal,
-              value: Number(deal.value),
-              contact: lead?.contact ?? null,
-              aiScore: deal.aiScore ?? null,
-              aiScoreReason: deal.aiScoreReason ?? null,
-              aiFactors: deal.aiFactors ?? null,
-              aiScoredAt: deal.aiScoredAt ?? null,
-            };
-          })
-        );
+    // Reshape in memory — the contact now arrives via the lead include above,
+    // so there are zero extra round-trips here.
+    const stagesWithContacts = stages.map((stage) => ({
+      ...stage,
+      deals: stage.deals.map((deal) => {
+        const { contact, ...leadRest } = deal.lead ?? { contact: null };
         return {
-          ...stage,
-          deals: dealsWithContacts,
+          ...deal,
+          lead: deal.lead ? leadRest : deal.lead,
+          value: Number(deal.value),
+          contact: contact ?? null,
+          aiScore: deal.aiScore ?? null,
+          aiScoreReason: deal.aiScoreReason ?? null,
+          aiFactors: deal.aiFactors ?? null,
+          aiScoredAt: deal.aiScoredAt ?? null,
         };
-      })
-    );
+      }),
+    }));
 
     return { success: true as const, data: serialize(stagesWithContacts) };
   } catch (error) {
@@ -958,6 +951,64 @@ export async function convertDealToBooking(data: {
 
     const bookingDate = new Date(data.date);
     bookingDate.setHours(0, 0, 0, 0);
+
+    if (Number.isNaN(bookingDate.getTime())) {
+      return { success: false as const, error: "Invalid event date" };
+    }
+
+    // Reject past dates (a confirmed booking can't be in the past).
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (bookingDate < today) {
+      return { success: false as const, error: "Event date cannot be in the past" };
+    }
+
+    // Availability + blackout guard — mirror createBooking so a conversion
+    // can never double-book a venue/slot or land on a blacked-out date.
+    const slot = data.timeSlot as "MORNING" | "AFTERNOON" | "EVENING" | "FULL_DAY";
+    const slotConflicts =
+      slot === "FULL_DAY"
+        ? ["MORNING", "AFTERNOON", "EVENING", "FULL_DAY"]
+        : [slot, "FULL_DAY"];
+    const clash = await prisma.booking.findFirst({
+      where: {
+        venueId: data.venueId,
+        date: bookingDate,
+        status: { notIn: ["CANCELLED"] },
+        timeSlot: { in: slotConflicts as ("MORNING" | "AFTERNOON" | "EVENING" | "FULL_DAY")[] },
+      },
+      select: { bookingNumber: true, eventName: true },
+    });
+    if (clash) {
+      return {
+        success: false as const,
+        error: `Slot taken by ${clash.bookingNumber} — ${clash.eventName}`,
+      };
+    }
+    const blackout = await prisma.blackoutDate.findFirst({
+      where: {
+        venueId: data.venueId,
+        date: bookingDate,
+        OR: [
+          { timeSlot: null },
+          { timeSlot: slot },
+          ...(slot === "FULL_DAY"
+            ? [
+                { timeSlot: "MORNING" as const },
+                { timeSlot: "AFTERNOON" as const },
+                { timeSlot: "EVENING" as const },
+              ]
+            : []),
+        ],
+      },
+      select: { reason: true },
+    });
+    if (blackout) {
+      return {
+        success: false as const,
+        error: `Venue is blacked out: ${blackout.reason || "No reason specified"}`,
+      };
+    }
 
     // Create booking in a transaction
     const booking = await prisma.$transaction(async (tx) => {

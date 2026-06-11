@@ -321,8 +321,8 @@ export function InsurancePolicyForm({
                 <FormItem>
                   <FormLabel>Booking</FormLabel>
                   <Select
-                    onValueChange={field.onChange}
-                    value={field.value || ""}
+                    onValueChange={(v) => field.onChange(v === "__none__" ? "" : v)}
+                    value={field.value || "__none__"}
                   >
                     <FormControl>
                       <SelectTrigger className="w-full">
@@ -330,7 +330,7 @@ export function InsurancePolicyForm({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="__none__">None</SelectItem>
                       {bookings.map((b) => (
                         <SelectItem key={b.id} value={b.id}>
                           {b.bookingNumber} - {b.eventName}
@@ -349,8 +349,8 @@ export function InsurancePolicyForm({
                 <FormItem>
                   <FormLabel>Venue</FormLabel>
                   <Select
-                    onValueChange={field.onChange}
-                    value={field.value || ""}
+                    onValueChange={(v) => field.onChange(v === "__none__" ? "" : v)}
+                    value={field.value || "__none__"}
                   >
                     <FormControl>
                       <SelectTrigger className="w-full">
@@ -358,7 +358,7 @@ export function InsurancePolicyForm({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="__none__">None</SelectItem>
                       {venues.map((v) => (
                         <SelectItem key={v.id} value={v.id}>
                           {v.name}

@@ -181,7 +181,7 @@ export function AddGuestDialog({
           </div>
 
           {/* Email + Phone */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="guest-email" className="text-sm font-medium">
                 Email
@@ -208,7 +208,7 @@ export function AddGuestDialog({
           </div>
 
           {/* Category + Table */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="guest-category" className="text-sm font-medium">
                 Category

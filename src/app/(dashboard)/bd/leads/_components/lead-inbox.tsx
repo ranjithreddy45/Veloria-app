@@ -242,13 +242,13 @@ export function LeadInbox({ leads, bdUsers }: LeadInboxProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="relative">
+          <div className="relative flex-1 sm:flex-none">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search owner, property, city…"
-              className="h-8 w-[230px] pl-8 text-[13px]"
+              className="h-8 w-full pl-8 text-[13px] sm:w-[230px]"
             />
           </div>
           <Button
@@ -263,8 +263,8 @@ export function LeadInbox({ leads, bdUsers }: LeadInboxProps) {
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-lg border border-border">
-        <table className="w-full border-collapse">
+      <div className="overflow-x-auto rounded-lg border border-border">
+        <table className="w-full min-w-[720px] border-collapse">
           <thead>
             <tr className="border-b border-border bg-muted/40 text-left text-[11.5px] font-medium uppercase tracking-wide text-muted-foreground">
               <th className="px-3 py-2 font-medium">Owner / Property</th>

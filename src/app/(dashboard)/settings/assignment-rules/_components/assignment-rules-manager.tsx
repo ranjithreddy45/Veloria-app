@@ -288,7 +288,7 @@ export function AssignmentRulesManager() {
                 placeholder="e.g., Assign website leads to John"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Priority</Label>
                 <Input
@@ -313,7 +313,7 @@ export function AssignmentRulesManager() {
             </div>
             <div className="space-y-2">
               <Label>Condition</Label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <Select value={formConditionField} onValueChange={setFormConditionField}>
                   <SelectTrigger>
                     <SelectValue />

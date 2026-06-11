@@ -284,7 +284,10 @@ export function TastingForm({
         {venues.length > 0 && (
           <div className="space-y-2">
             <Label>Venue</Label>
-            <Select value={venueId} onValueChange={setVenueId}>
+            <Select
+              value={venueId || "__none__"}
+              onValueChange={(v) => setVenueId(v === "__none__" ? "" : v)}
+            >
               <SelectTrigger>
                 <div className="flex items-center gap-2">
                   <MapPinIcon className="size-4 text-muted-foreground" />
@@ -292,7 +295,7 @@ export function TastingForm({
                 </div>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No venue</SelectItem>
+                <SelectItem value="__none__">No venue</SelectItem>
                 {venues.map((venue) => (
                   <SelectItem key={venue.id} value={venue.id}>
                     {venue.name}

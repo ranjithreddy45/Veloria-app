@@ -13,8 +13,9 @@ export const prisma =
         : ["error"],
   });
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
-}
+// Retain the singleton in ALL environments. On Vercel each warm serverless
+// instance then reuses one PrismaClient (and one pooled connection) instead of
+// opening a fresh connection on every module re-evaluation.
+globalForPrisma.prisma = prisma;
 
 export default prisma;

@@ -324,7 +324,7 @@ export function AddDealDialog({
           </div>
 
           {/* Value + Probability */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="value" className="text-sm font-medium">
                 Value (INR) <span className="text-red-500">*</span>

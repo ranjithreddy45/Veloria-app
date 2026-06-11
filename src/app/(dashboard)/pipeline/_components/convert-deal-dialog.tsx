@@ -113,7 +113,9 @@ export function ConvertDealDialog({
 
       // Pre-fill from deal data
       setEventName(deal.lead?.title || deal.title || "");
-      setGuestCount(deal.lead?.guestCount || 100);
+      // Use the lead's real guest count; don't fabricate 100. The guestCount<=0
+      // guard then forces an explicit entry when the lead has none.
+      setGuestCount(deal.lead?.guestCount ?? 0);
       setTotalAmount(deal.value || 0);
 
       // Set date from lead's eventDate if available
@@ -265,12 +267,13 @@ export function ConvertDealDialog({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="convert-date">Event Date *</Label>
               <Input
                 id="convert-date"
                 type="date"
+                min={new Date().toISOString().slice(0, 10)}
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
               />
@@ -292,7 +295,7 @@ export function ConvertDealDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="convert-guests">Guest Count *</Label>
               <Input

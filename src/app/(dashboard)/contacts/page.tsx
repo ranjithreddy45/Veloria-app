@@ -15,7 +15,9 @@ export const metadata: Metadata = { title: "Contacts" };
 // ============================================================
 
 export default async function ContactsPage() {
-  const result = await getContacts();
+  // Ceiling lets the client table page through rows without the default-50
+  // cutoff, while keeping the payload far lighter than 1000.
+  const result = await getContacts({ limit: 500 });
   const contacts = result.success ? result.data.data : [];
 
   const corporate = contacts.filter((c) => c.type === "CORPORATE").length;

@@ -442,6 +442,7 @@ model Contact {
   @@index([email])
   @@index([phone])
   @@index([firstName, lastName])
+  @@index([deletedAt, createdAt]) // hot list query: not-deleted, newest first
 }
 
 model Lead {
@@ -464,6 +465,10 @@ model Lead {
   aiScore        Int?
   aiScoreReason  String?    @db.Text
   aiScoredAt     DateTime?
+  // Speed-to-lead SLA (§ Lever 1)
+  firstContactDue  DateTime? // deadline for first response (set on capture)
+  firstRespondedAt DateTime? // first outbound contact → stops the SLA clock
+  slaEscalatedAt   DateTime? // breach escalated (dedupe so we alert once)
   deletedAt      DateTime?  // soft-delete; auto-purged after 30 days by cron
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
@@ -484,6 +489,8 @@ model Lead {
   @@index([source])
   @@index([createdAt])
   @@index([deletedAt])
+  @@index([score]) // hot-lead worklist (default sort)
+  @@index([status, firstContactDue]) // SLA breach sweep
 }
 
 // ============================================================
@@ -631,6 +638,8 @@ model Booking {
   @@index([date])
   @@index([status])
   @@index([contactId])
+  @@index([eventType]) // dashboard groupBy(eventType)
+  @@index([status, date]) // active/upcoming filters by status + date range
 }
 
 model BlackoutDate {
@@ -658,6 +667,7 @@ model Task {
   priority    TaskPriority @default(MEDIUM)
   dueDate     DateTime?
   completedAt DateTime?
+  escalatedAt DateTime?    // overdue task escalated (dedupe)
   order       Int          @default(0)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
@@ -746,6 +756,7 @@ model Invoice {
   @@index([status])
   @@index([contactId])
   @@index([dueDate])
+  @@index([status, dueDate]) // dashboard overdue: status filter + dueDate sort
 }
 
 model InvoiceLineItem {
@@ -795,6 +806,7 @@ model Payment {
 
   @@index([status])
   @@index([invoiceId])
+  @@index([status, paidAt]) // dashboard revenue: completed payments by paid date
 }
 
 // ============================================================

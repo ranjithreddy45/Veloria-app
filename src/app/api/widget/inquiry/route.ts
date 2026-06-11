@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { widgetInquirySchema } from "@/schemas/widget.schema";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { captureLeadFromExternal } from "@/lib/lead-capture";
 
 // ============================================================
 // POST: Submit Widget Inquiry (Public — No Auth Required)
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
 
     const data = parsed.data;
 
-    // Create widget inquiry
+    // Create widget inquiry (audit record)
     const inquiry = await prisma.widgetInquiry.create({
       data: {
         name: data.name,
@@ -49,6 +50,20 @@ export async function POST(request: NextRequest) {
         message: data.message,
         source: "WIDGET",
       },
+    });
+
+    // Turn the inquiry into a REAL lead — scored, assigned, SLA-stamped,
+    // auto-replied, and auto-enrolled — instead of an inert row.
+    await captureLeadFromExternal({
+      name: data.name,
+      email: data.email,
+      phone: data.phone || undefined,
+      source: "website",
+      message: data.message,
+      eventType: data.eventType || undefined,
+      eventDate: data.eventDate ? new Date(data.eventDate).toISOString() : undefined,
+      guestCount: data.guestCount || undefined,
+      venueId: data.venueId || undefined,
     });
 
     return NextResponse.json(

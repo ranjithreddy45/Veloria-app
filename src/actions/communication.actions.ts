@@ -12,6 +12,7 @@ import {
   type LogCommunicationInput,
 } from "@/schemas/communication.schema";
 import { processEmailForTracking } from "@/lib/email-tracking";
+import { stampLeadResponded } from "@/lib/lead-pipeline";
 
 // ============================================================
 // Get Communications (for a Contact or Booking)
@@ -122,6 +123,11 @@ export async function logCommunication(data: LogCommunicationInput) {
         },
       },
     });
+
+    // A rep reaching out = first response → stop the speed-to-lead SLA clock.
+    if (commData.direction === "OUTBOUND" && commData.contactId) {
+      await stampLeadResponded(commData.contactId);
+    }
 
     // Email: tracking + actual delivery via Resend for outbound emails
     if (commData.type === "EMAIL" && commData.direction === "OUTBOUND") {

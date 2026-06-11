@@ -15,7 +15,9 @@ export const metadata: Metadata = { title: "Leads" };
 // ============================================================
 
 export default async function LeadsPage() {
-  const result = await getLeads();
+  // Ceiling lets the client-side table page through records without the
+  // default-50 cutoff, while keeping the payload far lighter than 1000.
+  const result = await getLeads({ limit: 500 });
   const leads = result.success ? result.data.data : [];
 
   // Total pipeline value (only counting non-lost leads)
@@ -55,7 +57,7 @@ export default async function LeadsPage() {
           </HelpHint>
         }
         eyebrow={
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <span>CRM · Pipeline</span>
             <span className="h-3 w-px bg-border" />
             <span className="text-foreground/80">

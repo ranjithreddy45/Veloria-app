@@ -164,8 +164,8 @@ export function BookingCalendar({
   return (
     <div className="space-y-4">
       {/* Month Navigation */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Button
             variant="outline"
             size="icon"
@@ -174,7 +174,7 @@ export function BookingCalendar({
           >
             <ChevronLeftIcon className="size-4" />
           </Button>
-          <h2 className="text-lg font-semibold min-w-[200px] text-center">
+          <h2 className="text-lg font-semibold min-w-[140px] text-center sm:min-w-[200px]">
             {format(currentDate, "MMMM yyyy")}
           </h2>
           <Button

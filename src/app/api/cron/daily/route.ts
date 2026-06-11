@@ -14,6 +14,7 @@ export const maxDuration = 300; // allow up to 5 min for the full batch
 // this orchestrator becomes optional.
 
 const JOBS = [
+  "fast", // SLA escalation + cadence steps/exits + overdue tasks
   "cadence-executor",
   "escalation-check",
   "guest-reminders",

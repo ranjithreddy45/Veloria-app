@@ -10,7 +10,7 @@ import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
 import { notify } from "@/lib/notify";
 import { evaluateAssignmentRules } from "@/actions/assignment-rule.actions";
-import { triggerWorkflows } from "@/lib/workflow-executor";
+import { runLeadIntake, leadSlaDeadline } from "@/lib/lead-pipeline";
 import { after } from "next/server";
 // LeadStatus enum values matching Prisma schema
 type LeadStatus = "NEW" | "CONTACTED" | "QUALIFIED" | "PROPOSAL_SENT" | "NEGOTIATION" | "WON" | "LOST";
@@ -25,6 +25,7 @@ export async function getLeads(params?: {
   source?: string;
   page?: number;
   limit?: number;
+  sort?: "score" | "recent"; // default: score (hot-lead worklist)
 }) {
   try {
     const session = await auth();
@@ -70,7 +71,12 @@ export async function getLeads(params?: {
     const [leads, total] = await Promise.all([
       prisma.lead.findMany({
         where,
-        orderBy: { createdAt: "desc" },
+        // Default to a hot-lead worklist: highest score first so reps work the
+        // best opportunities before cold ones. "recent" restores newest-first.
+        orderBy:
+          params?.sort === "recent"
+            ? { createdAt: "desc" }
+            : [{ score: "desc" }, { createdAt: "desc" }],
         skip,
         take: limit,
         include: {
@@ -214,6 +220,7 @@ export async function createLead(data: LeadInput) {
         perPlateBudget: leadData.perPlateBudget || null,
         description: leadData.description || null,
         score,
+        firstContactDue: leadSlaDeadline(),
         createdById: session.user.id as string,
       },
       include: {
@@ -259,18 +266,26 @@ export async function createLead(data: LeadInput) {
       console.error("[AUTO_ASSIGN_ERROR]", e);
     }
 
-    // Fire any LEAD_CREATED workflows. `after()` lets the work run once the
-    // response is sent, while keeping the serverless function alive until it
-    // finishes (a bare fire-and-forget can be killed mid-write on Vercel).
+    // Intake: LEAD_CREATED workflows (instant email ack + "call now" task)
+    // AND auto-enrolment into matching nurture cadences. `after()` runs it
+    // once the response is sent while keeping the function alive to finish.
     after(async () => {
       try {
-        await triggerWorkflows("LEAD_CREATED", {
-          leadId: lead.id,
-          contactId: lead.contactId,
+        await runLeadIntake({
+          lead: {
+            id: lead.id,
+            contactId: lead.contactId,
+            source: lead.source,
+            eventType: lead.eventType,
+            status: lead.status,
+            guestCount: lead.guestCount,
+            score: lead.score,
+            estimatedValue: leadData.estimatedValue ?? null,
+          },
           triggeredByUserId: session.user.id as string,
         });
       } catch (e) {
-        console.error("[TRIGGER_WORKFLOWS_ERROR]", e);
+        console.error("[LEAD_INTAKE_ERROR]", e);
       }
     });
 

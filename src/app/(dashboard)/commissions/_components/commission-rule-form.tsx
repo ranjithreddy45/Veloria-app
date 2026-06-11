@@ -398,7 +398,7 @@ export function CommissionRuleForm({ initialRules }: CommissionRuleFormProps) {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="new-rule-percentage">Percentage *</Label>
                 <Input
@@ -426,7 +426,7 @@ export function CommissionRuleForm({ initialRules }: CommissionRuleFormProps) {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="new-rule-role">Role (optional)</Label>
                 <Input
@@ -507,7 +507,7 @@ export function CommissionRuleForm({ initialRules }: CommissionRuleFormProps) {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-rule-percentage">Percentage *</Label>
                 <Input
@@ -533,7 +533,7 @@ export function CommissionRuleForm({ initialRules }: CommissionRuleFormProps) {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-rule-role">Role (optional)</Label>
                 <Input

@@ -190,7 +190,7 @@ export function StepFormDialog({
           </div>
 
           {/* Delay Fields */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Delay (Days)</Label>
               <Input
@@ -258,7 +258,7 @@ export function StepFormDialog({
                   rows={3}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label>Priority</Label>
                   <Select

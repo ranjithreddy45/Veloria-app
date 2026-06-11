@@ -114,7 +114,7 @@ export function SocialPlatformCard({
 
         {/* Analytics Preview */}
         {connected && analytics && (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="rounded-lg border p-3 text-center">
               <p className="text-lg font-bold text-foreground">
                 {analytics.followers.toLocaleString()}

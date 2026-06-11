@@ -156,8 +156,8 @@ export function BudgetForm({ budget, venues }: BudgetFormProps) {
                 <FormItem>
                   <FormLabel>Venue</FormLabel>
                   <Select
-                    onValueChange={field.onChange}
-                    value={field.value || ""}
+                    onValueChange={(v) => field.onChange(v === "__none__" ? "" : v)}
+                    value={field.value || "__none__"}
                   >
                     <FormControl>
                       <SelectTrigger className="w-full">
@@ -165,7 +165,7 @@ export function BudgetForm({ budget, venues }: BudgetFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="__none__">None</SelectItem>
                       {venues.map((venue) => (
                         <SelectItem key={venue.id} value={venue.id}>
                           {venue.name}
@@ -226,8 +226,8 @@ export function BudgetForm({ budget, venues }: BudgetFormProps) {
                 <FormItem>
                   <FormLabel>Category</FormLabel>
                   <Select
-                    onValueChange={field.onChange}
-                    value={field.value || ""}
+                    onValueChange={(v) => field.onChange(v === "__none__" ? "" : v)}
+                    value={field.value || "__none__"}
                   >
                     <FormControl>
                       <SelectTrigger className="w-full">
@@ -235,7 +235,7 @@ export function BudgetForm({ budget, venues }: BudgetFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="__none__">None</SelectItem>
                       {BUDGET_CATEGORIES.map((cat) => (
                         <SelectItem key={cat} value={cat}>
                           {cat}

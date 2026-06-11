@@ -4,6 +4,7 @@ import { logActivity } from "@/lib/activity-logger";
 import { calculateLeadScore } from "@/lib/lead-scoring";
 import { evaluateAssignmentRules } from "@/actions/assignment-rule.actions";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
+import { runLeadIntake, leadSlaDeadline } from "@/lib/lead-pipeline";
 
 interface ExternalLeadData {
   name: string;
@@ -14,6 +15,9 @@ interface ExternalLeadData {
   eventType?: string;
   eventDate?: string;
   guestCount?: number;
+  estimatedValue?: number; // budget — feeds scoring
+  perPlateBudget?: number; // ×guestCount estimates value when no budget given
+  venueId?: string; // preferred venue
   customFields?: Record<string, unknown>;
 }
 
@@ -69,19 +73,29 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
       // Assignment rules are optional; proceed without assignment
     }
 
-    // Calculate lead score
+    // Derive an estimated value: explicit budget, else per-plate × guests.
+    const estimatedValue =
+      data.estimatedValue && data.estimatedValue > 0
+        ? data.estimatedValue
+        : data.perPlateBudget && data.guestCount
+          ? data.perPlateBudget * data.guestCount
+          : null;
+
+    // Calculate lead score — now fed the FULL signal set (budget included).
     let score = 0;
     try {
       score = calculateLeadScore({
         source: mapSource(data.source),
         guestCount: data.guestCount,
         eventDate: data.eventDate ? new Date(data.eventDate) : null,
+        estimatedValue,
+        status: "NEW",
       });
     } catch {
       // Scoring is optional
     }
 
-    // Create the lead
+    // Create the lead — stamp the speed-to-lead SLA clock on capture.
     const lead = await prisma.lead.create({
       data: {
         title: `${data.source} Lead — ${firstName} ${lastName}`.trim(),
@@ -92,6 +106,9 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
         eventType: data.eventType || null,
         eventDate: data.eventDate ? new Date(data.eventDate) : null,
         guestCount: data.guestCount || null,
+        estimatedValue,
+        preferredVenueId: data.venueId || null,
+        firstContactDue: leadSlaDeadline(),
         contactId: contact.id,
         assignedToId,
         createdById: await getSystemUserId(),
@@ -153,6 +170,22 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
       // Welcome message is optional; don't fail the lead capture
     }
 
+    // Intake: instant email auto-reply (via LEAD_CREATED workflows) + the
+    // "call now" task + auto-enrolment into matching nurture cadences.
+    await runLeadIntake({
+      lead: {
+        id: lead.id,
+        contactId: contact.id,
+        source: lead.source,
+        eventType: lead.eventType,
+        status: lead.status,
+        guestCount: lead.guestCount,
+        score: lead.score,
+        estimatedValue: estimatedValue,
+      },
+      triggeredByUserId: assignedToId ?? undefined,
+    });
+
     return { success: true, leadId: lead.id, contactId: contact.id };
   } catch (error) {
     console.error("[LeadCapture] Error:", error);
@@ -174,6 +207,7 @@ function mapSource(source: string): string {
     website: "WEBSITE",
     referral: "REFERRAL",
     social_media: "SOCIAL_MEDIA",
+    whatsapp: "SOCIAL_MEDIA",
     walk_in: "WALK_IN",
     phone: "PHONE_INQUIRY",
     email: "EMAIL",

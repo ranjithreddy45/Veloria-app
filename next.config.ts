@@ -32,6 +32,16 @@ const nextConfig: NextConfig = {
   // Reduce bundle size by enabling tree shaking for server-only modules
   serverExternalPackages: ["bcryptjs"],
 
+  // Barrel-optimize heavy libraries so only the used exports are bundled.
+  experimental: {
+    optimizePackageImports: [
+      "recharts",
+      "lucide-react",
+      "date-fns",
+      "@tanstack/react-table",
+    ],
+  },
+
   // Suppress noisy static generation logs
   logging: {
     fetches: {

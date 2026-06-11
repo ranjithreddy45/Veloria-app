@@ -150,7 +150,7 @@ export function DataTable<TData, TValue>({
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-1 items-center gap-2">
           {searchKey && (
             <div className="relative max-w-sm flex-1">
@@ -173,6 +173,8 @@ export function DataTable<TData, TValue>({
           )}
         </div>
 
+        {/* Right-side controls — wrap on mobile instead of overflowing */}
+        <div className="flex flex-wrap items-center gap-2">
         {/* Extra toolbar content (e.g. Export button) */}
         {toolbarExtra}
 
@@ -204,6 +206,7 @@ export function DataTable<TData, TValue>({
               ))}
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
       </div>
 
       {/* Table */}

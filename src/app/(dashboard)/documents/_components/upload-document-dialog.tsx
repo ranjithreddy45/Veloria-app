@@ -221,7 +221,7 @@ export function UploadDocumentDialog({
           </div>
 
           {/* Category (required) + Visibility */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="doc-category" className="text-sm font-medium">
                 Category <span className="text-red-500">*</span>
@@ -279,12 +279,15 @@ export function UploadDocumentDialog({
             <Label htmlFor="doc-venue" className="text-sm font-medium">
               Venue
             </Label>
-            <Select value={venueId} onValueChange={setVenueId}>
+            <Select
+              value={venueId || "__none__"}
+              onValueChange={(v) => setVenueId(v === "__none__" ? "" : v)}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select venue (optional)..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="__none__">None</SelectItem>
                 {venues.map((venue) => (
                   <SelectItem key={venue.id} value={venue.id}>
                     {venue.name}

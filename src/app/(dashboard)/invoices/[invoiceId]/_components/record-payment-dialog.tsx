@@ -126,7 +126,7 @@ export function RecordPaymentDialog({
             <RadioGroup
               value={method}
               onValueChange={(val) => setMethod(val as PaymentMethod)}
-              className="grid grid-cols-2 gap-2"
+              className="grid grid-cols-1 sm:grid-cols-2 gap-2"
             >
               {PAYMENT_METHODS.map((pm) => (
                 <div key={pm.value} className="flex items-center gap-2">

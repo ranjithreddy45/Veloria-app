@@ -138,8 +138,8 @@ export function EmailTemplateForm({ template }: EmailTemplateFormProps) {
                 <FormItem>
                   <FormLabel>Category</FormLabel>
                   <Select
-                    onValueChange={field.onChange}
-                    value={field.value ?? ""}
+                    onValueChange={(v) => field.onChange(v === "__none__" ? "" : v)}
+                    value={field.value || "__none__"}
                   >
                     <FormControl>
                       <SelectTrigger className="w-full">
@@ -147,7 +147,7 @@ export function EmailTemplateForm({ template }: EmailTemplateFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="__none__">None</SelectItem>
                       {EMAIL_TEMPLATE_CATEGORIES.map((category) => (
                         <SelectItem key={category} value={category}>
                           {category}

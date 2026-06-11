@@ -15,7 +15,9 @@ export const metadata: Metadata = { title: "Bookings" };
 // ============================================================
 
 export default async function BookingsPage() {
-  const result = await getBookings();
+  // Ceiling lets the client table page through rows without the default-50
+  // cutoff, while keeping the payload far lighter than 1000.
+  const result = await getBookings({ limit: 500 });
 
   const bookings = result.success ? result.data.data : [];
 

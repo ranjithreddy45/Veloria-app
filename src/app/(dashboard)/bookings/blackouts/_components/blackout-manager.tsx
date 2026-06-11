@@ -87,7 +87,10 @@ export function BlackoutManager({ blackouts, venues }: BlackoutManagerProps) {
       const res = await createBlackoutDate({
         venueId,
         date,
-        timeSlot,
+        // "Full Day" must persist as null so it blocks EVERY slot. Stored as
+        // the literal "FULL_DAY" it would only collide with full-day bookings
+        // and let morning/afternoon/evening bookings slip through.
+        timeSlot: timeSlot === "FULL_DAY" ? null : timeSlot,
         reason: reason.trim() || undefined,
       });
       if (res.success) {
@@ -126,8 +129,8 @@ export function BlackoutManager({ blackouts, venues }: BlackoutManagerProps) {
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
       {/* Existing blackouts */}
-      <div className="overflow-hidden rounded-lg border border-border">
-        <table className="w-full border-collapse text-[13px]">
+      <div className="overflow-x-auto rounded-lg border border-border">
+        <table className="w-full min-w-[480px] border-collapse text-[13px]">
           <thead>
             <tr className="border-b border-border bg-muted/40 text-left text-[11.5px] font-medium uppercase tracking-wide text-muted-foreground">
               <th className="px-3 py-2 font-medium">Venue</th>

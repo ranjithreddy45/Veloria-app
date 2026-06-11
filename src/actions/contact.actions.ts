@@ -452,7 +452,8 @@ export async function checkDuplicates(email?: string, phone?: string) {
     }
 
     const duplicates = await prisma.contact.findMany({
-      where: { OR: conditions },
+      // Ignore trashed contacts so a soft-deleted record can't block re-creation.
+      where: { AND: [{ deletedAt: null }, { OR: conditions }] },
       select: {
         id: true,
         firstName: true,

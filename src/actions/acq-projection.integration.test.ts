@@ -99,7 +99,7 @@ describe("projection lifecycle", () => {
     // snapshot reproduces the oracle to the rupee
     const grid = row?.outputsJson as unknown as { base: { netOwnerReturn: number; totalRevenue: number }[] };
     expect(grid.base[0].totalRevenue).toBe(559920);
-    expect(grid.base[0].netOwnerReturn).toBe(332740);
+    expect(grid.base[0].netOwnerReturn).toBe(316740); // marketing-inclusive opex
   });
 
   it("cannot edit an approved projection", async () => {

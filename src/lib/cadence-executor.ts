@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity-logger";
 import { sendEmail } from "@/lib/email";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
+import { processEmailForTracking } from "@/lib/email-tracking";
 
 // ============================================================
 // Cadence Executor — Cron-triggered step processor
@@ -102,23 +103,43 @@ export async function processDueCadenceSteps(): Promise<{
       switch (currentStep.stepType) {
         case "SEND_EMAIL": {
           if (contactId) {
-            await prisma.communication.create({
+            const rawHtml = config.body ?? config.content ?? "";
+            const comm = await prisma.communication.create({
               data: {
                 type: "EMAIL",
                 direction: "OUTBOUND",
                 subject: config.subject ?? "Cadence Email",
-                content: config.body ?? "",
+                content: rawHtml,
                 contactId,
                 createdById: enrollment.enrolledById,
               },
             });
 
-            // Fire-and-forget: send the actual email
+            // Inject open/click tracking so Email Insights counts automated
+            // follow-ups too (previously these sends were invisible).
+            let html = rawHtml;
             if (contact?.email) {
+              try {
+                const { trackedHtml } = await processEmailForTracking(
+                  comm.id,
+                  contactId,
+                  contact.email,
+                  rawHtml
+                );
+                html = trackedHtml;
+                await prisma.communication.update({
+                  where: { id: comm.id },
+                  data: { content: trackedHtml },
+                });
+              } catch (err) {
+                console.error("[CADENCE_EMAIL_TRACKING_ERROR]", err);
+              }
+
+              // Fire-and-forget: send the actual (tracked) email
               sendEmail({
                 to: contact.email,
                 subject: config.subject ?? "Update from Veloria Grand",
-                html: config.body ?? config.content ?? "",
+                html,
               }).catch((err) => console.error("[CADENCE_EMAIL_ERROR]", err));
             }
           }

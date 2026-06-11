@@ -83,16 +83,28 @@ export async function checkExitCriteria(
             }
 
             if (contactId) {
-              const recentInbound = await prisma.communication.findFirst({
-                where: {
-                  contactId,
-                  direction: "INBOUND",
-                  createdAt: { gte: enrollment.createdAt },
-                },
-                orderBy: { createdAt: "desc" },
-              });
+              // A reply can land as a logged Communication OR an inbound
+              // WhatsApp message — count both so cadences stop on either.
+              const [recentInbound, recentWhatsApp] = await Promise.all([
+                prisma.communication.findFirst({
+                  where: {
+                    contactId,
+                    direction: "INBOUND",
+                    createdAt: { gte: enrollment.createdAt },
+                  },
+                  select: { id: true },
+                }),
+                prisma.whatsAppMessage.findFirst({
+                  where: {
+                    contactId,
+                    direction: "INBOUND",
+                    sentAt: { gte: enrollment.createdAt },
+                  },
+                  select: { id: true },
+                }),
+              ]);
 
-              if (recentInbound) {
+              if (recentInbound || recentWhatsApp) {
                 shouldExit = true;
                 exitReason = "Reply received from contact";
               }

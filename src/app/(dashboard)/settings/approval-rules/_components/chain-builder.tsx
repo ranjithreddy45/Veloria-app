@@ -254,7 +254,7 @@ export function ChainBuilder({
               {/* Step config */}
               <div className="flex-1 space-y-3">
                 {/* Approver Type */}
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div className="space-y-1">
                     <Label className="text-xs">Type</Label>
                     <Select

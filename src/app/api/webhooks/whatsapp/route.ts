@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
+import { captureLeadFromExternal } from "@/lib/lead-capture";
+import { handleInboundReply } from "@/lib/lead-pipeline";
 
 // ============================================================
 // WhatsApp Webhook — Meta Cloud API Webhook Handler
@@ -131,13 +133,25 @@ export async function POST(request: NextRequest) {
                   },
                 });
 
+                // Prospect engaged → stop any running cadences for them.
+                await handleInboundReply(contact.id);
+
                 console.log(
                   `[WhatsApp Webhook] Inbound message from ${from} → contact ${contact.id}`
                 );
               }
             } else {
+              // Unknown number → a brand-new inbound lead (WhatsApp is the #1
+              // inbound channel in India; never drop it). Capture creates the
+              // contact + lead, scores, assigns, SLA-stamps, and auto-replies.
+              await captureLeadFromExternal({
+                name: from,
+                phone: from.startsWith("+") ? from : `+${from}`,
+                source: "whatsapp",
+                message: text,
+              });
               console.log(
-                `[WhatsApp Webhook] Inbound from unknown number: ${from}`
+                `[WhatsApp Webhook] Captured new lead from unknown number: ${from}`
               );
             }
           }

@@ -558,7 +558,7 @@ export function ScoringRulesManager({ ruleSet: initialRuleSet }: Props) {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Category</Label>
                 <Select
@@ -600,7 +600,7 @@ export function ScoringRulesManager({ ruleSet: initialRuleSet }: Props) {
               <Label className="text-sm font-medium text-zinc-700">Conditions</Label>
 
               {formCategory === "FIELD_BASED" && (
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <Select value={condField} onValueChange={setCondField}>
                     <SelectTrigger>
                       <SelectValue placeholder="Field" />
@@ -692,7 +692,7 @@ export function ScoringRulesManager({ ruleSet: initialRuleSet }: Props) {
                     Deduct points for each interval that has passed since the
                     decay field&apos;s date. Set points to a negative number.
                   </p>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <Label className="text-xs">Decay Field</Label>
                       <Select value={decayField} onValueChange={setDecayField}>
