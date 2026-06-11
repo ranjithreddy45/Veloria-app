@@ -19,9 +19,41 @@ export const sidebarNavigation: NavItem[] = [
   },
   {
     title: "BD CRM",
-    href: "/owners",
+    href: "/bd/dashboard",
     icon: "Building2",
     permissions: ["owners:read"],
+    children: [
+      {
+        title: "Dashboard",
+        href: "/bd/dashboard",
+        icon: "LayoutDashboard",
+        permissions: ["owners:read"],
+      },
+      {
+        title: "Lead Inbox",
+        href: "/bd/leads",
+        icon: "Inbox",
+        permissions: ["owners:read"],
+      },
+      {
+        title: "Deal Board",
+        href: "/bd/deals",
+        icon: "Kanban",
+        permissions: ["owners:read"],
+      },
+      {
+        title: "Properties",
+        href: "/bd/properties",
+        icon: "Building2",
+        permissions: ["owners:read"],
+      },
+      {
+        title: "Hall Owners",
+        href: "/owners",
+        icon: "Users",
+        permissions: ["owners:read"],
+      },
+    ],
   },
   {
     title: "Sales CRM",

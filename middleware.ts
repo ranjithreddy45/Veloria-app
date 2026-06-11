@@ -73,6 +73,7 @@ const INTERNAL_ROUTES = [
   "/approvals",
   "/crm",
   "/owners",
+  "/bd",
 ];
 
 export default auth((req) => {
