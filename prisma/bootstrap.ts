@@ -500,6 +500,7 @@ async function main() {
     EVALUATION_PASS_THRESHOLD: "70",
     // Owner Projection Calculator — tunable §3 assumptions (defaults = oracle).
     PROJ_EVENTS_RAMP: "1,1.3,1.3,1.1,1.1",
+    PROJ_EVENTS_MAX_YEAR3: "40",
     PROJ_BASE_FEE_PCT: "0.05",
     PROJ_INCENTIVE_PCT: "0.2",
     PROJ_OPEX_YOY_GROWTH: "1.3",

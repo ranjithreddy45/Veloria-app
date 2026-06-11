@@ -17,6 +17,7 @@ export const PROJECTION_YEARS = 3;
 
 export interface ProjectionConfig {
   EVENTS_RAMP: number[]; // per-year multiplier vs prior year (Y1 = 1)
+  EVENTS_MAX_YEAR3: number; // hard cap on Year-3 events/month (0 = no cap)
   BASE_FEE_PCT: number; // of revenue
   INCENTIVE_PCT: number; // of GOP
   OPEX_YOY_GROWTH: number; // Yr2+ opex = prior * this
@@ -31,6 +32,7 @@ export interface ProjectionConfig {
 // ---- Fixed assumptions (§3) — defaults == oracle. ----
 export const PROJECTION_CONST: ProjectionConfig = {
   EVENTS_RAMP: [1, 1.3, 1.3, 1.1, 1.1],
+  EVENTS_MAX_YEAR3: 40,
   BASE_FEE_PCT: 0.05,
   INCENTIVE_PCT: 0.2,
   OPEX_YOY_GROWTH: 1.3,
@@ -121,7 +123,9 @@ function eventSeries(y1Events: number, cfg: ProjectionConfig): number[] {
   const out: number[] = [];
   let prev = 0;
   for (let i = 0; i < PROJECTION_YEARS; i++) {
-    const v = i === 0 ? y1Events : prev * (cfg.EVENTS_RAMP[i] ?? 1);
+    let v = i === 0 ? y1Events : prev * (cfg.EVENTS_RAMP[i] ?? 1);
+    // Year 3 (index 2) is capped at the venue's max monthly events (base & best).
+    if (i === 2 && cfg.EVENTS_MAX_YEAR3 > 0) v = Math.min(v, cfg.EVENTS_MAX_YEAR3);
     out.push(v);
     prev = v;
   }

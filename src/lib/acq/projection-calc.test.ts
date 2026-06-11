@@ -47,6 +47,18 @@ describe("WITHOUT-FOOD model (oracle §5)", () => {
     expect(g.base[g.base.length - 1].year).toBe(3);
   });
 
+  it("caps Year 3 events at 40 (base & best); leaves it uncapped when below", () => {
+    // base 25 → Y3 = 25*1.69 = 42.25 → capped to 40; best 26 → 43.94 → 40.
+    const capped = computeProjection("WITHOUT_FOOD", { ...inputs, eventsBaseCase: 25, eventsBestCase: 26 });
+    expect(capped.base[2].events).toBe(40);
+    expect(capped.best[2].events).toBe(40);
+    // Year-3 revenue uses the capped 40 events.
+    expect(capped.base[2].totalRevenue).toBeCloseTo(40 * capped.base[2].revPerEvent, 4);
+    // base 20 → Y3 = 33.8 (< 40) stays uncapped.
+    const uncapped = computeProjection("WITHOUT_FOOD", inputs);
+    expect(uncapped.base[2].events).toBeCloseTo(33.8, 6);
+  });
+
   it("ramps events and escalates rev/event + opex correctly (Y2)", () => {
     const g = computeProjection("WITHOUT_FOOD", inputs);
     const y2 = g.base[1];
