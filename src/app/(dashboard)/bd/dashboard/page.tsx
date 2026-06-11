@@ -12,6 +12,7 @@ import { getAcqLeads } from "@/actions/acq-lead.actions";
 import { getAcqDeals } from "@/actions/acq-deal.actions";
 import { getAcqProperties } from "@/actions/acq-property.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   ACQ_DEAL_STAGE,
@@ -175,6 +176,7 @@ export default async function BdDashboardPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="BD Dashboard"
+        help={<PageHelp id="bd-dashboard" />}
         description="Acquisition funnel, losses, and SLAs at a glance."
       />
 

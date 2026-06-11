@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getAcqProperties } from "@/actions/acq-property.actions";
 import { getBdUsers } from "@/actions/acq-lead.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { PropertyList, type PropertyListItem } from "./_components/property-list";
 
 export const metadata: Metadata = { title: "Properties" };
@@ -17,6 +18,7 @@ export default async function BdPropertiesPage() {
     <div className="flex flex-col gap-5">
       <PageHeader
         title="Properties"
+        help={<PageHelp id="bd-properties" />}
         description="Acquired venues. Sales sees inventory only when AVAILABLE."
       />
       <PropertyList properties={properties} />

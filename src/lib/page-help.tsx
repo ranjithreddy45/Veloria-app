@@ -25,6 +25,48 @@ const rule = (children: React.ReactNode) => (
 );
 
 export const PAGE_HELP: Record<string, HelpEntry> = {
+  // ---- BD / Acquisition CRM ----
+  "bd-dashboard": {
+    title: "What is the BD Dashboard?",
+    body: (
+      <>
+        {p("A bird's-eye view of property acquisition — your funnel from owner enquiry to a live, bookable venue, plus why deals are lost and where SLAs are slipping.")}
+        {p(<>The pipeline runs <strong>Lead → Deal → Property</strong>: an owner enquiry, qualified into a deal you evaluate and negotiate, then a won property that goes live only after onboarding.</>)}
+        {rule(<>Rule of thumb: start here to see how venue acquisition is tracking this month.</>)}
+      </>
+    ),
+  },
+  "bd-leads": {
+    title: "What is the Lead Inbox?",
+    body: (
+      <>
+        {p(<>An <strong>acquisition Lead</strong> is an owner enquiry — a venue whose owner might join Veloria Grand. Cheap to create and aggressively de-duplicated (same phone or same property+locality is blocked).</>)}
+        {p(<>Each lead has a 24-hour first-contact SLA. To move forward it must pass the <strong>4-point qualification gate</strong> (decision-maker, operational soon, open to revenue-share, no competitor lock-in) — only then does it become a Deal.</>)}
+        {rule(<>Rule of thumb: a Lead is &ldquo;an owner who enquired&rdquo;; qualifying it on substance — not politeness — creates a Deal.</>)}
+      </>
+    ),
+  },
+  "bd-deals": {
+    title: "What is the Deal Board?",
+    body: (
+      <>
+        {p(<>A <strong>Deal</strong> carries a qualified venue through Evaluation → Proposal → Negotiation → Contract → Signed → Won. Stages are <em>guarded</em> — you can&rsquo;t skip ahead, and each step has gates (e.g. a passed site evaluation with 8+ photos, BD-Head sign-off for below-floor commercials).</>)}
+        {p(<>When a deal is <strong>Won</strong>, a Property is created in onboarding — but Sales is <em>not</em> told yet.</>)}
+        {rule(<>Rule of thumb: a Deal is the venue&rsquo;s journey from &ldquo;qualified&rdquo; to &ldquo;signed&rdquo;; the rules stop it advancing on optimism alone.</>)}
+      </>
+    ),
+  },
+  "bd-properties": {
+    title: "What are Properties?",
+    body: (
+      <>
+        {p(<>A <strong>Property</strong> is a won venue being brought onto the platform. It starts in <strong>Onboarding</strong> (upload images, verify documents, configure pricing, assign a manager…).</>)}
+        {p(<>It becomes bookable inventory only when you mark it <strong>Available</strong> — which is allowed only after every onboarding task is done and a manager is assigned. <em>That</em> is the single moment Sales is notified.</>)}
+        {rule(<>Rule of thumb: Won ≠ bookable. A property sells only once onboarding is genuinely complete.</>)}
+      </>
+    ),
+  },
+
   // ---- Sales CRM ----
   approvals: {
     title: "What are Approvals?",

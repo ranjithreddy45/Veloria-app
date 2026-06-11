@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getAcqLeads, getBdUsers } from "@/actions/acq-lead.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { LeadInbox, type AcqLead, type BdUser } from "./_components/lead-inbox";
 
 export const metadata: Metadata = { title: "Lead Inbox" };
@@ -14,6 +15,7 @@ export default async function BdLeadsPage() {
     <div className="flex flex-col gap-5">
       <PageHeader
         title="Lead Inbox"
+        help={<PageHelp id="bd-leads" />}
         description="Owner enquiries — SLA-tracked and de-duplicated."
       />
       <LeadInbox leads={leads} bdUsers={bdUsers as BdUser[]} />

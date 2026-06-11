@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getAcqDeals } from "@/actions/acq-deal.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { DealBoard, type AcqDealCard } from "./_components/deal-board";
 
 export const metadata: Metadata = { title: "Deal Board" };
@@ -13,6 +14,7 @@ export default async function BdDealsPage() {
     <div className="flex flex-col gap-5">
       <PageHeader
         title="Deal Board"
+        help={<PageHelp id="bd-deals" />}
         description="Acquisition pipeline — drag-free guarded stages."
       />
       <DealBoard deals={deals} />

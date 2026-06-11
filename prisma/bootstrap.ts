@@ -486,6 +486,60 @@ async function main() {
     }
   }
 
+  // ---- 7. Seed BD / Acquisition CRM config + sample data ----
+  const ACQ_CONFIG_SEED: Record<string, string> = {
+    MANAGEMENT_BASE_FEE_FLOOR_PCT: "5",
+    MANAGEMENT_INCENTIVE_FLOOR_PCT: "15",
+    FRANCHISE_ROYALTY_FLOOR_PCT: "20",
+    MIN_LOCKIN_YEARS: "3",
+    LEAD_FIRST_CONTACT_SLA_HOURS: "24",
+    LEAD_MIN_ATTEMPTS_BEFORE_DISQUALIFY: "3",
+    LEAD_DISQUALIFY_WINDOW_DAYS: "5",
+    ONBOARDING_SLA_DAYS: "7",
+    REENGAGE_DAYS: "90",
+    EVALUATION_PASS_THRESHOLD: "70",
+  };
+  let acqCfgCreated = 0;
+  for (const [key, value] of Object.entries(ACQ_CONFIG_SEED)) {
+    const exists = await prisma.acqConfig.findUnique({ where: { key } });
+    if (!exists) {
+      await prisma.acqConfig.create({ data: { key, value } });
+      acqCfgCreated++;
+    }
+  }
+  if (acqCfgCreated > 0) console.log(`[bootstrap] Seeded ${acqCfgCreated} BD config value(s)`);
+
+  const acqLeadCount = await prisma.acqLead.count();
+  if (acqLeadCount === 0 && approver) {
+    const due = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await prisma.acqLead.createMany({
+      data: [
+        {
+          ownerName: "Suresh Rao", mobilePrimary: "+919900112233",
+          propertyName: "Rao Grand Convention", propertyType: "CONVENTION_CENTRE",
+          city: "Bangalore", locality: "Whitefield", seatingTheatre: 800, seatingFloating: 1200,
+          leadSource: "REFERRAL", ownerType: "SOLE_OWNER", bdExecutiveId: approver.id,
+          status: "NEW", firstContactDue: due,
+        },
+        {
+          ownerName: "Meena Iyer", mobilePrimary: "+919812345678",
+          propertyName: "Iyer Marriage Palace", propertyType: "MARRIAGE_HALL",
+          city: "Mysuru", locality: "Vijayanagar", seatingTheatre: 500, seatingFloating: 700,
+          leadSource: "BROKER", ownerType: "PARTNER", bdExecutiveId: approver.id,
+          status: "NEW", firstContactDue: due,
+        },
+        {
+          ownerName: "Anil Kapoor", mobilePrimary: "+919845567890",
+          propertyName: "Greenfield Lawns", propertyType: "LAWN",
+          city: "Bangalore", locality: "Sarjapur", seatingTheatre: 0, seatingFloating: 1500,
+          leadSource: "WEBSITE", ownerType: "GPA_HOLDER", bdExecutiveId: approver.id,
+          status: "NEW", firstContactDue: due,
+        },
+      ],
+    });
+    console.log("[bootstrap] Seeded 3 sample acquisition leads");
+  }
+
   console.log("[bootstrap] Done.");
 }
 

@@ -25,6 +25,7 @@ const JOBS = [
   "trash-purge",
   "event-triggers",
   "customer-360",
+  "acq-sla",
 ] as const;
 
 function getBaseUrl(): string {
