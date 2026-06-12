@@ -41,6 +41,8 @@ export async function instantiateExecutionPlanFromSOP(
       (evt
         ? await prisma.sOPTemplate.findFirst({
             where: { isActive: true, eventType: evt },
+            // Deterministic when several templates share an event type.
+            orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
             include: withPhases,
           })
         : null) ??

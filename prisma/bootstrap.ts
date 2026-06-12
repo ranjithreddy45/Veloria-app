@@ -11,6 +11,7 @@
  */
 import { PrismaClient } from "@prisma/client";
 import bcryptjs from "bcryptjs";
+import { seedTemplates } from "./seed-templates";
 
 const prisma = new PrismaClient();
 
@@ -553,6 +554,9 @@ async function main() {
     });
     console.log("[bootstrap] Seeded 3 sample acquisition leads");
   }
+
+  // ---- Seed ready-to-use SOP + email templates (idempotent) ----
+  await seedTemplates(prisma);
 
   console.log("[bootstrap] Done.");
 }

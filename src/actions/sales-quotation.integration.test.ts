@@ -30,6 +30,7 @@ let templateId: string;
 let quotationId: string;
 let bookingId: string;
 let invoiceId: string;
+const TEST_EVENT_TYPE = `TESTEVT-${U}`;
 
 const setActor = (id: string, role: string) => authMock.mockResolvedValue({ user: { id, role, name: role } });
 
@@ -53,12 +54,14 @@ beforeAll(async () => {
   venueId = venue.id;
 
   // SOP template for the ops-handoff step: 1 phase, 2 task definitions.
+  // Use a unique eventType so seeded templates (which use real occasion names
+  // like "Birthday") can't shadow this test's expected match.
   const tmpl = await prisma.sOPTemplate.create({
     data: {
-      name: `Birthday SOP ${U}`,
-      eventType: "Birthday",
+      name: `Test SOP ${U}`,
+      eventType: TEST_EVENT_TYPE,
       isActive: true,
-      isDefault: true,
+      isDefault: false,
       phases: {
         create: [
           {
@@ -118,7 +121,7 @@ describe("Sales quotation → booking → payment → confirm → ops (E2E)", ()
   it("creates and approves a quotation built from the planner", async () => {
     const created = await createSalesQuotation(
       { guestCount: 120, foodPackageId: "veg_gold", decorId: "babyshower_premium", photographyId: "bday" },
-      { clientName: "Ravi Kumar", clientPhone: "+919812345678", clientEmail: `cust-${U}@t.local`, occasion: "Birthday", eventDate: "2026-09-01", contactId, venueId }
+      { clientName: "Ravi Kumar", clientPhone: "+919812345678", clientEmail: `cust-${U}@t.local`, occasion: TEST_EVENT_TYPE, eventDate: "2026-09-01", contactId, venueId }
     );
     expect(created.success).toBe(true);
     if (!created.success) return;
