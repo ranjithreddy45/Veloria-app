@@ -127,6 +127,7 @@ export async function recordPayment(data: {
   method: PaymentMethod;
   transactionId?: string;
   notes?: string;
+  receiptUrl?: string;
 }) {
   try {
     const session = await auth();
@@ -194,6 +195,8 @@ export async function recordPayment(data: {
           transactionId: data.transactionId || null,
           receiptNumber,
           notes: data.notes || null,
+          receiptUrl: data.receiptUrl || null,
+          receiptUploadedAt: data.receiptUrl ? new Date() : null,
           paidAt: new Date(),
         },
       }),
@@ -268,6 +271,66 @@ export async function recordPayment(data: {
   } catch (error) {
     console.error("[RECORD_PAYMENT_ERROR]", error);
     return { success: false as const, error: "Failed to record payment" };
+  }
+}
+
+// ============================================================
+// Verify a customer-submitted payment proof (PENDING → COMPLETED)
+// ============================================================
+
+export async function verifyPaymentProof(paymentId: string) {
+  try {
+    const session = await auth();
+    if (!session?.user) return { success: false as const, error: "Unauthorized" };
+    if (!hasPermission(session.user.role as string, "payments:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
+    const payment = await prisma.payment.findUnique({
+      where: { id: paymentId },
+      include: { invoice: { select: { id: true, totalAmount: true, paidAmount: true, status: true } } },
+    });
+    if (!payment) return { success: false as const, error: "Payment not found" };
+    if (payment.status === "COMPLETED")
+      return { success: false as const, error: "This payment is already verified" };
+    if (payment.invoice.status === "CANCELLED")
+      return { success: false as const, error: "Invoice is cancelled" };
+
+    const amount = Number(payment.amount);
+    const newPaid = Number(payment.invoice.paidAmount) + amount;
+    const newBalance = Number(payment.invoice.totalAmount) - newPaid;
+    const newStatus = newBalance <= 0.01 ? "PAID" : "PARTIALLY_PAID";
+    const receiptNumber = payment.receiptNumber || (await generateReceiptNumber());
+
+    await prisma.$transaction([
+      prisma.payment.update({
+        where: { id: paymentId },
+        data: { status: "COMPLETED", paidAt: new Date(), receiptNumber },
+      }),
+      prisma.invoice.update({
+        where: { id: payment.invoice.id },
+        data: { paidAmount: newPaid, balanceDue: Math.max(0, newBalance), status: newStatus },
+      }),
+    ]);
+
+    await logActivity({
+      userId: session.user.id as string,
+      action: "verified",
+      entityType: "Payment",
+      entityId: paymentId,
+    });
+
+    // Same BookMyShow-style confirm + customer notifications as a recorded payment.
+    await maybeConfirmBookingOnPayment(payment.invoice.id);
+
+    revalidatePath("/invoices");
+    revalidatePath(`/invoices/${payment.invoice.id}`);
+    revalidatePath("/payments");
+    revalidatePath("/bookings");
+    return { success: true as const, data: { id: paymentId, receiptNumber } };
+  } catch (error) {
+    console.error("[VERIFY_PAYMENT_PROOF_ERROR]", error);
+    return { success: false as const, error: "Failed to verify payment" };
   }
 }
 

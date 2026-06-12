@@ -9,6 +9,7 @@ import { format } from "date-fns";
 import { CalendarIcon, ChevronsUpDownIcon, CheckIcon, Loader2Icon } from "lucide-react";
 import { leadSchema, type LeadInput } from "@/schemas/lead.schema";
 import { createLead, updateLead } from "@/actions/lead.actions";
+import { getDaySlotAvailability } from "@/actions/quotation-booking.actions";
 import { EVENT_TYPES, LEAD_SOURCE_LABELS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -442,6 +443,11 @@ export function LeadForm({ contacts, venues = [], users = [], lead }: LeadFormPr
                     </SelectContent>
                   </Select>
                   <FormMessage />
+                  <SlotAvailabilityHint
+                    venueId={form.watch("preferredVenueId")}
+                    eventDate={form.watch("eventDate")}
+                    slot={field.value}
+                  />
                 </FormItem>
               )}
             />
@@ -567,5 +573,67 @@ export function LeadForm({ contacts, venues = [], users = [], lead }: LeadFormPr
         </div>
       </form>
     </Form>
+  );
+}
+
+// Live availability check for the chosen venue + date + slot (lead form item D).
+// Lunch → Afternoon, Dinner → Evening; suggests free slots if the pick is taken.
+function SlotAvailabilityHint({
+  venueId,
+  eventDate,
+  slot,
+}: {
+  venueId?: string | null;
+  eventDate?: Date | string | null;
+  slot?: string | null;
+}) {
+  const [state, setState] = React.useState<
+    | { loading: true }
+    | { loading: false; available: boolean; reason: string | null; alternates: string[] }
+    | null
+  >(null);
+
+  React.useEffect(() => {
+    if (!venueId || !eventDate || !slot) {
+      setState(null);
+      return;
+    }
+    const d = eventDate instanceof Date ? eventDate : new Date(eventDate);
+    if (Number.isNaN(d.getTime())) {
+      setState(null);
+      return;
+    }
+    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const want = slot === "Dinner" ? "EVENING" : "AFTERNOON";
+    let cancelled = false;
+    setState({ loading: true });
+    getDaySlotAvailability(venueId, iso)
+      .then((res) => {
+        if (cancelled) return;
+        if (!res.success) {
+          setState(null);
+          return;
+        }
+        const mine = res.data.find((s) => s.slot === want);
+        const free = res.data.filter((s) => s.available).map((s) => s.label);
+        setState({ loading: false, available: !!mine?.available, reason: mine?.reason ?? null, alternates: free });
+      })
+      .catch(() => {
+        if (!cancelled) setState(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [venueId, eventDate, slot]);
+
+  if (!state) return null;
+  if (state.loading) return <p className="mt-1 text-xs text-muted-foreground">Checking availability…</p>;
+  if (state.available)
+    return <p className="mt-1 text-xs text-emerald-600">✓ {slot} slot looks available on this date.</p>;
+  return (
+    <p className="mt-1 text-xs text-amber-600">
+      This slot may be taken{state.reason ? ` (${state.reason})` : ""}.
+      {state.alternates.length ? ` Free: ${state.alternates.join(", ")}.` : " No slots free that day."}
+    </p>
   );
 }

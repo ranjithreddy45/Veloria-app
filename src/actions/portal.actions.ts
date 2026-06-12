@@ -3,6 +3,10 @@
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/utils";
+import { revalidatePath } from "next/cache";
+import { notify } from "@/lib/notify";
+import { hasPermission } from "@/lib/permissions";
+import type { PaymentMethod } from "@prisma/client";
 
 // ============================================================
 // Helper: Get contact IDs linked to this user's email
@@ -563,4 +567,73 @@ export async function getPortalEventProgress(userId: string, bookingId: string) 
     vendorReadiness: { confirmed: vendorConfirmed, total: vendorTotal },
     hasExecutionPlan: false,
   });
+}
+
+// ============================================================
+// Submit a payment proof (customer uploads a receipt/screenshot)
+// Creates a PENDING payment for staff to verify; on verification the
+// booking auto-confirms. Data-URL (base64) is stored so this works with
+// no external file storage.
+// ============================================================
+
+export async function submitPaymentProof(
+  userId: string,
+  data: { invoiceId: string; amount: number; method: PaymentMethod; receiptUrl: string; notes?: string }
+) {
+  const session = await auth();
+  if (!session?.user || session.user.id !== userId) {
+    return { success: false as const, error: "Unauthorized" };
+  }
+  if (!data.receiptUrl) return { success: false as const, error: "Attach a payment screenshot or reference." };
+  if (!(data.amount > 0)) return { success: false as const, error: "Enter a valid amount." };
+  // Guard against oversized data-URLs (base64 of a large photo).
+  if (data.receiptUrl.length > 7_000_000) {
+    return { success: false as const, error: "Image too large — please upload one under ~5 MB." };
+  }
+
+  const contactIds = await getClientContactIds(userId);
+  if (contactIds.length === 0) return { success: false as const, error: "No linked account found." };
+
+  const invoice = await prisma.invoice.findFirst({
+    where: { id: data.invoiceId, contactId: { in: contactIds } },
+    select: { id: true, balanceDue: true, invoiceNumber: true },
+  });
+  if (!invoice) return { success: false as const, error: "Invoice not found." };
+  if (data.amount > Number(invoice.balanceDue) + 0.01) {
+    return { success: false as const, error: "Amount exceeds the balance due." };
+  }
+
+  const payment = await prisma.payment.create({
+    data: {
+      invoiceId: data.invoiceId,
+      amount: data.amount,
+      method: data.method,
+      status: "PENDING",
+      notes: data.notes || "Customer-submitted payment proof",
+      receiptUrl: data.receiptUrl,
+      receiptUploadedAt: new Date(),
+    },
+    select: { id: true },
+  });
+
+  // Alert staff who can verify payments.
+  const verifiers = await prisma.user.findMany({
+    where: { isActive: true },
+    select: { id: true, role: true },
+  });
+  for (const v of verifiers) {
+    if (hasPermission(v.role, "payments:update")) {
+      notify({
+        userId: v.id,
+        type: "PAYMENT_RECEIVED",
+        title: "Payment proof to verify",
+        message: `A customer uploaded a payment proof for invoice ${invoice.invoiceNumber}. Please verify.`,
+        actionUrl: `/invoices/${data.invoiceId}`,
+      });
+    }
+  }
+
+  revalidatePath("/portal/invoices");
+  revalidatePath(`/portal/invoices/${data.invoiceId}`);
+  return { success: true as const, data: { id: payment.id } };
 }

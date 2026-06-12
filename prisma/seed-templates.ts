@@ -254,6 +254,84 @@ const EMAIL_TEMPLATES = [
   },
 ];
 
+// ---- WhatsApp message templates (plain text, stored under category WHATSAPP) ----
+const WHATSAPP_TEMPLATES = [
+  {
+    name: "WhatsApp — Quotation Sent",
+    category: "WHATSAPP",
+    subject: "Quotation",
+    body: "Hi {{clientName}}, thank you for considering Veloria Grand for your {{occasion}}! 🎉 Your quotation total is {{grandTotal}}. To reserve your date, a 10% advance blocks the slot in your name. Reply here with any questions. — Team Veloria Grand",
+  },
+  {
+    name: "WhatsApp — Booking Confirmed",
+    category: "WHATSAPP",
+    subject: "Booking Confirmed",
+    body: "Hi {{clientName}}, your booking {{bookingNumber}} at {{venueName}} on {{eventDate}} ({{timeSlot}}) is CONFIRMED ✅. Your point of contact is {{pocName}} ({{pocPhone}}). We can't wait to host you! — Team Veloria Grand",
+  },
+  {
+    name: "WhatsApp — Payment Reminder",
+    category: "WHATSAPP",
+    subject: "Payment Reminder",
+    body: "Hi {{clientName}}, a gentle reminder: an installment of {{amountDue}} for booking {{bookingNumber}} is due on {{dueDate}}. You can pay via the link we shared or reply here for help. — Team Veloria Grand",
+  },
+  {
+    name: "WhatsApp — Thank You",
+    category: "WHATSAPP",
+    subject: "Thank You",
+    body: "Hi {{clientName}}, thank you for celebrating with Veloria Grand! 🙏 We'd love your feedback, and a referral means the world to us. — Team Veloria Grand",
+  },
+];
+
+// ---- Standard event packages (sales catalog) ----
+interface PackageItem {
+  name: string;
+  category?: string;
+  quantity?: number;
+  unitPrice: number;
+}
+interface PackageDef {
+  name: string;
+  eventType: string;
+  tier: "BASIC" | "STANDARD" | "PREMIUM" | "CUSTOM";
+  basePrice: number; // per-plate for food tiers; bundled price for event packages
+  description: string;
+  items: PackageItem[];
+}
+const PACKAGES: PackageDef[] = [
+  // Per-plate food tiers (match the quotation planner).
+  { name: "Veg Silver — Per Plate", eventType: "Catering", tier: "BASIC", basePrice: 599, description: "Pure-veg silver menu, ₹599 per plate.", items: [{ name: "Veg Silver menu", category: "Catering", unitPrice: 599 }] },
+  { name: "Veg Gold — Per Plate", eventType: "Catering", tier: "STANDARD", basePrice: 699, description: "Pure-veg gold menu, ₹699 per plate.", items: [{ name: "Veg Gold menu", category: "Catering", unitPrice: 699 }] },
+  { name: "Veg Platinum — Per Plate", eventType: "Catering", tier: "PREMIUM", basePrice: 899, description: "Pure-veg platinum menu, ₹899 per plate.", items: [{ name: "Veg Platinum menu", category: "Catering", unitPrice: 899 }] },
+  { name: "Non-Veg Premium — Per Plate", eventType: "Catering", tier: "PREMIUM", basePrice: 1099, description: "Premium non-veg menu, ₹1099 per plate.", items: [{ name: "Premium Non-veg menu", category: "Catering", unitPrice: 1099 }] },
+  // Bundled event packages.
+  {
+    name: "Birthday Bliss", eventType: "Birthday", tier: "STANDARD", basePrice: 35000,
+    description: "Turnkey birthday package — themed decor, cake, and photography.",
+    items: [
+      { name: "Themed balloon decor", category: "Decor", unitPrice: 16000 },
+      { name: "2 kg premium cake", category: "Cake", unitPrice: 4000 },
+      { name: "Photography (3 hrs)", category: "Photography", unitPrice: 15000 },
+    ],
+  },
+  {
+    name: "Engagement Elegance", eventType: "Engagement", tier: "PREMIUM", basePrice: 55000,
+    description: "Engagement package — stage decor, photography & videography.",
+    items: [
+      { name: "Engagement stage & floral decor", category: "Decor", unitPrice: 25000 },
+      { name: "Photography + videography", category: "Photography", unitPrice: 30000 },
+    ],
+  },
+  {
+    name: "Wedding Grandeur", eventType: "Wedding", tier: "PREMIUM", basePrice: 150000,
+    description: "Premium wedding package — mandap, lighting, photography & videography.",
+    items: [
+      { name: "Mandap & floral decor", category: "Decor", unitPrice: 90000 },
+      { name: "Ambient lighting", category: "Decor", unitPrice: 25000 },
+      { name: "Cinematic photography + videography", category: "Photography", unitPrice: 35000 },
+    ],
+  },
+];
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function seedTemplates(prisma: PrismaClient | any): Promise<void> {
   // ---- SOP templates ----
@@ -307,4 +385,45 @@ export async function seedTemplates(prisma: PrismaClient | any): Promise<void> {
     emailCreated++;
   }
   console.log(`[bootstrap] Email templates: created ${emailCreated}, ${EMAIL_TEMPLATES.length - emailCreated} already present`);
+
+  // ---- WhatsApp message templates (reuse EmailTemplate with category WHATSAPP) ----
+  let waCreated = 0;
+  for (const w of WHATSAPP_TEMPLATES) {
+    const existing = await prisma.emailTemplate.findFirst({ where: { name: w.name }, select: { id: true } });
+    if (existing) continue;
+    await prisma.emailTemplate.create({
+      data: { name: w.name, subject: w.subject, htmlContent: w.body, category: w.category, isActive: true },
+    });
+    waCreated++;
+  }
+  console.log(`[bootstrap] WhatsApp templates: created ${waCreated}, ${WHATSAPP_TEMPLATES.length - waCreated} already present`);
+
+  // ---- Event packages ----
+  let pkgCreated = 0;
+  for (const p of PACKAGES) {
+    const existing = await prisma.eventPackage.findFirst({ where: { name: p.name }, select: { id: true } });
+    if (existing) continue;
+    await prisma.eventPackage.create({
+      data: {
+        name: p.name,
+        description: p.description,
+        eventType: p.eventType,
+        basePrice: p.basePrice,
+        tier: p.tier,
+        isActive: true,
+        items: {
+          create: p.items.map((it, i) => ({
+            name: it.name,
+            category: it.category ?? null,
+            quantity: it.quantity ?? 1,
+            unitPrice: it.unitPrice,
+            isIncluded: true,
+            order: i,
+          })),
+        },
+      },
+    });
+    pkgCreated++;
+  }
+  console.log(`[bootstrap] Event packages: created ${pkgCreated}, ${PACKAGES.length - pkgCreated} already present`);
 }

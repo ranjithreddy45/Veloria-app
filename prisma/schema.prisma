@@ -835,6 +835,11 @@ model Payment {
   razorpaySignature String?
   receiptNumber     String?
   notes             String?       @db.Text
+  // Customer/staff-supplied proof of payment (a base64 data-URL of a screenshot
+  // or an external link). A PENDING payment with a receipt is awaiting staff
+  // verification; verifying it marks COMPLETED and auto-confirms the booking.
+  receiptUrl        String?       @db.Text
+  receiptUploadedAt DateTime?
   paidAt            DateTime?
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt

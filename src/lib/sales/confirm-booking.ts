@@ -66,6 +66,10 @@ export async function maybeConfirmBookingOnPayment(invoiceId: string): Promise<v
     const slot = SLOT_LABEL[b.timeSlot] ?? b.timeSlot;
     const name = `${b.contact?.firstName ?? "Guest"} ${b.contact?.lastName ?? ""}`.trim();
 
+    // Point of contact (the rep who handled the booking) shared with the customer.
+    const poc = b.createdBy;
+    const pocContact = poc?.name ? `${poc.name}${poc.phone ? ` · ${poc.phone}` : ""}` : "Sales team";
+
     // Notify the owning staff member.
     notify({
       userId: b.createdById,
@@ -75,8 +79,23 @@ export async function maybeConfirmBookingOnPayment(invoiceId: string): Promise<v
       actionUrl: `/bookings/${b.id}`,
     });
 
-    // Point of contact (the rep who handled the booking) shared with the customer.
-    const poc = b.createdBy;
+    // Share the booking + POC with the operations team so they can take over
+    // (their task checklist is also auto-created below).
+    const opsUsers = await prisma.user.findMany({
+      where: { isActive: true, role: { in: ["OPERATIONS", "EVENT_COORDINATOR", "ADMIN", "SUPER_ADMIN"] } },
+      select: { id: true },
+    });
+    for (const o of opsUsers) {
+      if (o.id === b.createdById) continue;
+      notify({
+        userId: o.id,
+        type: "BOOKING_CREATED",
+        title: "New confirmed booking for ops",
+        message: `${b.bookingNumber} — ${name} on ${dateStr} (${slot}) at ${b.venue?.name ?? "venue"}. POC: ${pocContact}.`,
+        actionUrl: `/bookings/${b.id}`,
+      });
+    }
+
     const pocLine = poc?.name
       ? ` Your point of contact is ${poc.name}${poc.phone ? ` (${poc.phone})` : ""}.`
       : "";

@@ -26,6 +26,7 @@ import {
   PAYMENT_STATUS_COLORS,
 } from "@/lib/constants";
 import { RazorpayCheckout } from "../_components/razorpay-checkout";
+import { UploadProof } from "../_components/upload-proof";
 import { DownloadPdfButton } from "@/app/(dashboard)/invoices/[invoiceId]/_components/download-pdf-button";
 import { formatINR } from "@/lib/utils";
 
@@ -474,6 +475,13 @@ export default async function PortalInvoiceDetailPage({
                   customerPhone={invoice.contact.phone || undefined}
                   description={`Payment for Invoice ${invoice.invoiceNumber}`}
                 />
+                <div className="mt-3">
+                  <UploadProof
+                    userId={session.user.id}
+                    invoiceId={invoice.id}
+                    balanceDue={Number(invoice.balanceDue)}
+                  />
+                </div>
               </CardContent>
             </Card>
           )}

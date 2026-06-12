@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { INVOICE_STATUS_COLORS } from "@/lib/constants";
 import { InvoicePreview } from "./_components/invoice-preview";
 import { RecordPaymentDialog } from "./_components/record-payment-dialog";
+import { PendingProofs } from "./_components/pending-proofs";
 import { InstallmentPlanDialog } from "./_components/installment-plan-dialog";
 import { PaymentLinkDialog } from "./_components/payment-link-dialog";
 import { DownloadPdfButton } from "./_components/download-pdf-button";
@@ -96,6 +97,8 @@ export default async function InvoiceDetailPage({
             )}
         </div>
       </PageHeader>
+
+      <PendingProofs payments={invoice.payments as never} />
 
       <InvoicePreview invoice={invoice} />
     </div>
