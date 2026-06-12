@@ -30,7 +30,7 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["owners:read"],
       },
       {
-        title: "Lead Inbox",
+        title: "Leads",
         href: "/bd/leads",
         icon: "Inbox",
         permissions: ["owners:read"],

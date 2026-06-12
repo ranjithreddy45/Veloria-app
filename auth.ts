@@ -6,6 +6,11 @@ import bcryptjs from "bcryptjs";
 import prisma from "@/lib/prisma";
 import { signInSchema } from "@/schemas/auth.schema";
 import authConfig from "./auth.config";
+import {
+  normalizeOtpPhone,
+  verifyLoginOtp,
+  findActiveUserByPhone,
+} from "@/lib/otp";
 import type { UserRole } from "@prisma/client";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -74,6 +79,38 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!isPasswordValid) {
           return null;
         }
+
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image,
+          role: user.role,
+        };
+      },
+    }),
+
+    // Passwordless WhatsApp OTP login. Verifies a one-time code (which was
+    // sent only if an active account exists for the number), then signs that
+    // user in. Works for staff and portal clients alike.
+    Credentials({
+      id: "otp",
+      name: "WhatsApp Code",
+      credentials: {
+        phone: { label: "Phone", type: "tel" },
+        code: { label: "Code", type: "text" },
+      },
+      async authorize(credentials) {
+        const normalized = normalizeOtpPhone(String(credentials?.phone ?? ""));
+        const code = String(credentials?.code ?? "");
+        if (!normalized || !/^\d{6}$/.test(code)) return null;
+
+        // Verify (and consume) the code first, then resolve the user.
+        const ok = await verifyLoginOtp(normalized, code);
+        if (!ok) return null;
+
+        const user = await findActiveUserByPhone(normalized);
+        if (!user) return null;
 
         return {
           id: user.id,

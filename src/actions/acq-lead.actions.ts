@@ -17,6 +17,8 @@ import {
   ACQ_LEAD_SOURCE,
   ACQ_OWNER_TYPE,
   ACQ_PROPERTY_TYPE,
+  ACQ_PROPERTY_STAGE,
+  ACQ_SEATING_RANGE,
   ACQ_DISQUALIFY_REASON,
   type AcqDisqualifyReason,
 } from "@/lib/acq/constants";
@@ -35,6 +37,9 @@ const leadInputSchema = z.object({
   locality: z.string().min(1).max(100),
   seatingTheatre: z.number().int().nonnegative().optional(),
   seatingFloating: z.number().int().nonnegative().optional(),
+  seatingRange: z.enum(ACQ_SEATING_RANGE).optional(),
+  propertyStage: z.enum(ACQ_PROPERTY_STAGE).optional(),
+  notes: z.string().max(5000).optional().or(z.literal("")),
   leadSource: z.enum(ACQ_LEAD_SOURCE),
   ownerType: z.enum(ACQ_OWNER_TYPE),
   bdExecutiveId: z.string().optional(),
@@ -81,7 +86,15 @@ export async function getAcqLead(id: string): Promise<Result<unknown>> {
     include: { bdExecutive: { select: { id: true, name: true } }, deal: { select: { id: true, stage: true } } },
   });
   if (!lead) return { success: false, error: "Lead not found" };
-  return { success: true, data: serialize(lead) };
+
+  // Activity timeline — stage transitions for this lead, newest first.
+  const transitions = await prisma.acqStageTransition.findMany({
+    where: { entity: "LEAD", entityId: id },
+    include: { actor: { select: { name: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return { success: true, data: serialize({ ...lead, timeline: transitions }) };
 }
 
 // ------------------------------------------------------------
@@ -140,6 +153,9 @@ export async function createAcqLead(input: AcqLeadInput): Promise<
       locality: d.locality,
       seatingTheatre: d.seatingTheatre ?? null,
       seatingFloating: d.seatingFloating ?? null,
+      seatingRange: d.seatingRange ?? null,
+      propertyStage: d.propertyStage ?? null,
+      notes: d.notes || null,
       leadSource: d.leadSource,
       ownerType: d.ownerType,
       bdExecutiveId: d.bdExecutiveId || user.id,
@@ -243,7 +259,14 @@ export async function qualifyAcqLead(
     });
     await tx.acqLead.update({
       where: { id: lead.id },
-      data: { status: "QUALIFIED", convertedDealId: deal.id },
+      data: {
+        status: "QUALIFIED",
+        convertedDealId: deal.id,
+        qualSeating100: payload.seating_100_plus,
+        qualOwnerInterested: payload.owner_interested_in_management_model,
+        qualAgreeRenovate: payload.agrees_to_renovate_if_required,
+        qualPhotosReady: payload.required_photos_available,
+      },
     });
     await tx.acqStageTransition.create({
       data: { entity: "LEAD", entityId: lead.id, fromState: lead.status, toState: "QUALIFIED", actorId: user.id },
@@ -304,4 +327,121 @@ export async function getBdUsers(): Promise<{ id: string; name: string | null; r
     orderBy: { name: "asc" },
   });
   return users as { id: string; name: string | null; role: string }[];
+}
+
+// ------------------------------------------------------------
+// Edit full lead details (BD team) — § "edit/view the lead"
+// ------------------------------------------------------------
+const editSchema = z.object({
+  ownerName: z.string().min(1).max(200).optional(),
+  mobilePrimary: z.string().min(6).max(20).optional(),
+  mobileAlternate: z.string().max(20).optional().or(z.literal("")),
+  email: z.string().email().optional().or(z.literal("")),
+  propertyName: z.string().min(1).max(200).optional(),
+  propertyType: z.enum(ACQ_PROPERTY_TYPE).optional(),
+  city: z.string().min(1).max(100).optional(),
+  locality: z.string().min(1).max(100).optional(),
+  seatingTheatre: z.number().int().nonnegative().nullable().optional(),
+  seatingFloating: z.number().int().nonnegative().nullable().optional(),
+  seatingRange: z.enum(ACQ_SEATING_RANGE).nullable().optional(),
+  propertyStage: z.enum(ACQ_PROPERTY_STAGE).nullable().optional(),
+  leadSource: z.enum(ACQ_LEAD_SOURCE).optional(),
+  ownerType: z.enum(ACQ_OWNER_TYPE).optional(),
+  notes: z.string().max(5000).optional().or(z.literal("")),
+});
+export type AcqLeadEditInput = z.infer<typeof editSchema>;
+
+export async function editAcqLead(
+  id: string,
+  patch: AcqLeadEditInput
+): Promise<Result<{ id: string }>> {
+  const user = await requireUser();
+  if (!user || !acqCan(user.role, "lead:write")) return { success: false, error: "Unauthorized" };
+
+  const parsed = editSchema.safeParse(patch);
+  if (!parsed.success) return { success: false, error: "Validation failed" };
+  const p = parsed.data;
+
+  const lead = await prisma.acqLead.findFirst({ where: { id, deletedAt: null } });
+  if (!lead) return { success: false, error: "Lead not found" };
+
+  const data: Record<string, unknown> = {};
+  if (p.ownerName !== undefined) data.ownerName = p.ownerName;
+  if (p.mobilePrimary !== undefined) data.mobilePrimary = normalizeMobile(p.mobilePrimary);
+  if (p.mobileAlternate !== undefined) data.mobileAlternate = p.mobileAlternate ? normalizeMobile(p.mobileAlternate) : null;
+  if (p.email !== undefined) data.email = p.email || null;
+  if (p.propertyName !== undefined) data.propertyName = p.propertyName;
+  if (p.propertyType !== undefined) data.propertyType = p.propertyType;
+  if (p.city !== undefined) data.city = p.city;
+  if (p.locality !== undefined) data.locality = p.locality;
+  if (p.seatingTheatre !== undefined) data.seatingTheatre = p.seatingTheatre;
+  if (p.seatingFloating !== undefined) data.seatingFloating = p.seatingFloating;
+  if (p.seatingRange !== undefined) data.seatingRange = p.seatingRange;
+  if (p.propertyStage !== undefined) data.propertyStage = p.propertyStage;
+  if (p.leadSource !== undefined) data.leadSource = p.leadSource;
+  if (p.ownerType !== undefined) data.ownerType = p.ownerType;
+  if (p.notes !== undefined) data.notes = p.notes || null;
+
+  await prisma.acqLead.update({ where: { id }, data });
+  revalidatePath("/bd/leads");
+  revalidatePath(`/bd/leads/${id}`);
+  return { success: true, data: { id } };
+}
+
+// ------------------------------------------------------------
+// Delete a lead — BD Head only (not the BD team)
+// ------------------------------------------------------------
+export async function deleteAcqLead(id: string): Promise<Result<{ id: string }>> {
+  const user = await requireUser();
+  if (!user || !acqCan(user.role, "lead:delete")) {
+    return { success: false, error: "Only the BD Head can delete a lead." };
+  }
+  const lead = await prisma.acqLead.findFirst({ where: { id, deletedAt: null } });
+  if (!lead) return { success: false, error: "Lead not found" };
+  if (lead.convertedDealId) {
+    return { success: false, error: "This lead is qualified and linked to a deal — it can't be deleted." };
+  }
+  await prisma.acqLead.update({ where: { id }, data: { deletedAt: new Date() } });
+  await prisma.acqStageTransition.create({
+    data: { entity: "LEAD", entityId: id, fromState: lead.status, toState: lead.status, actorId: user.id, reason: "Lead deleted" },
+  });
+  revalidatePath("/bd/leads");
+  return { success: true, data: { id } };
+}
+
+// ------------------------------------------------------------
+// Reassign lead owner — manager (BD Head) only
+// ------------------------------------------------------------
+export async function reassignAcqLead(
+  id: string,
+  bdExecutiveId: string
+): Promise<Result<{ id: string }>> {
+  const user = await requireUser();
+  if (!user || !acqCan(user.role, "lead:reassign")) {
+    return { success: false, error: "Only a manager can change lead ownership." };
+  }
+  const lead = await prisma.acqLead.findFirst({ where: { id, deletedAt: null } });
+  if (!lead) return { success: false, error: "Lead not found" };
+
+  const target = await prisma.user.findFirst({
+    where: { id: bdExecutiveId, isActive: true, role: { in: ["BD_EXECUTIVE", "BD_HEAD"] } },
+    select: { id: true, name: true },
+  });
+  if (!target) return { success: false, error: "Pick a valid BD team member." };
+  if (target.id === lead.bdExecutiveId) return { success: true, data: { id } };
+
+  await prisma.acqLead.update({ where: { id }, data: { bdExecutiveId: target.id } });
+  await prisma.acqStageTransition.create({
+    data: {
+      entity: "LEAD",
+      entityId: id,
+      fromState: lead.status,
+      toState: lead.status,
+      actorId: user.id,
+      reason: `Owner changed to ${target.name ?? "another BD exec"}`,
+    },
+  });
+  revalidatePath("/bd/leads");
+  revalidatePath(`/bd/leads/${id}`);
+  return { success: true, data: { id } };
 }

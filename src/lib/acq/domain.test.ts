@@ -129,23 +129,29 @@ describe("isLegalTransition", () => {
 // ============================================================
 describe("evaluateQualification", () => {
   const allTrue = {
-    is_decision_maker: true,
-    venue_operational_within_60d: true,
-    open_to_revenue_share_model: true,
-    no_competitor_exclusivity: true,
+    seating_100_plus: true,
+    owner_interested_in_management_model: true,
+    agrees_to_renovate_if_required: true,
+    required_photos_available: true,
   };
   it("qualifies only when all four are true", () => {
     expect(evaluateQualification(allTrue).qualified).toBe(true);
   });
   it("rejects when any is false and lists the failures", () => {
-    const r = evaluateQualification({ ...allTrue, open_to_revenue_share_model: false });
+    const r = evaluateQualification({ ...allTrue, owner_interested_in_management_model: false });
     expect(r.qualified).toBe(false);
-    expect(r.failed).toContain("open_to_revenue_share_model");
+    expect(r.failed).toContain("owner_interested_in_management_model");
     expect(r.suggestedDisqualifyReason).toBe("WANTS_OUTRIGHT_RENT_ONLY");
   });
-  it("maps non-decision-maker to the right reason", () => {
-    const r = evaluateQualification({ ...allTrue, is_decision_maker: false });
-    expect(r.suggestedDisqualifyReason).toBe("NOT_DECISION_MAKER");
+  it("fails when seating is under 100", () => {
+    const r = evaluateQualification({ ...allTrue, seating_100_plus: false });
+    expect(r.qualified).toBe(false);
+    expect(r.failed).toContain("seating_100_plus");
+  });
+  it("fails when required photos are missing", () => {
+    const r = evaluateQualification({ ...allTrue, required_photos_available: false });
+    expect(r.qualified).toBe(false);
+    expect(r.failed).toContain("required_photos_available");
   });
 });
 

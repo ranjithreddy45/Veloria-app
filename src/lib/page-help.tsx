@@ -37,7 +37,7 @@ export const PAGE_HELP: Record<string, HelpEntry> = {
     ),
   },
   "bd-leads": {
-    title: "What is the Lead Inbox?",
+    title: "What is a BD Lead?",
     body: (
       <>
         {p(<>An <strong>acquisition Lead</strong> is an owner enquiry — a venue whose owner might join Veloria Grand. Cheap to create and aggressively de-duplicated (same phone or same property+locality is blocked).</>)}

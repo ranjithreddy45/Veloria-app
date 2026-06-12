@@ -16,6 +16,35 @@ export type AcqPropertyType = (typeof ACQ_PROPERTY_TYPE)[number];
 export const ACQ_LEAD_SOURCE = ["WEBSITE", "REFERRAL", "BROKER", "COLD_CALL", "SOCIAL_MEDIA", "WALK_IN", "OTHER"] as const;
 export type AcqLeadSource = (typeof ACQ_LEAD_SOURCE)[number];
 
+export const ACQ_PROPERTY_STAGE = ["OPERATIONAL", "CONVERSION", "BROWNFIELD", "GREENFIELD"] as const;
+export type AcqPropertyStage = (typeof ACQ_PROPERTY_STAGE)[number];
+
+export const ACQ_SEATING_RANGE = ["R_50_100", "R_100_150", "R_150_200", "R_200_300", "R_300_500", "R_500_PLUS"] as const;
+export type AcqSeatingRange = (typeof ACQ_SEATING_RANGE)[number];
+
+export const ACQ_LEAD_STATUS_LABEL: Record<AcqLeadStatus, string> = {
+  NEW: "New",
+  CONTACTED: "Contacted",
+  QUALIFIED: "Qualified",
+  DISQUALIFIED: "Dropped",
+};
+
+export const ACQ_PROPERTY_STAGE_LABEL: Record<AcqPropertyStage, string> = {
+  OPERATIONAL: "Operational",
+  CONVERSION: "Conversion",
+  BROWNFIELD: "Brownfield",
+  GREENFIELD: "Greenfield",
+};
+
+export const ACQ_SEATING_RANGE_LABEL: Record<AcqSeatingRange, string> = {
+  R_50_100: "50–100",
+  R_100_150: "100–150",
+  R_150_200: "150–200",
+  R_200_300: "200–300",
+  R_300_500: "300–500",
+  R_500_PLUS: "500+",
+};
+
 // Canonical deal stage machine — ORDERED.
 export const ACQ_DEAL_STAGE = [
   "QUALIFIED",

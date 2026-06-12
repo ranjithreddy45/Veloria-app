@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -26,6 +27,10 @@ import {
   ACQ_LEAD_SOURCE,
   ACQ_OWNER_TYPE,
   ACQ_DISQUALIFY_REASON,
+  ACQ_SEATING_RANGE,
+  ACQ_SEATING_RANGE_LABEL,
+  ACQ_PROPERTY_STAGE,
+  ACQ_PROPERTY_STAGE_LABEL,
 } from "@/lib/acq/constants";
 
 import { Button } from "@/components/ui/button";
@@ -64,10 +69,17 @@ export interface AcqLead {
   id: string;
   ownerName: string;
   mobilePrimary: string;
+  mobileAlternate?: string | null;
+  email?: string | null;
   propertyName: string;
   propertyType: string;
   city: string;
   locality: string;
+  seatingTheatre?: number | null;
+  seatingFloating?: number | null;
+  seatingRange?: string | null;
+  propertyStage?: string | null;
+  notes?: string | null;
   leadSource: string;
   ownerType: string;
   status: AcqLeadStatus;
@@ -86,6 +98,7 @@ export interface BdUser {
 interface LeadInboxProps {
   leads: AcqLead[];
   bdUsers: BdUser[];
+  userRole?: string;
 }
 
 /** Minimal shape we read off a `duplicateOf` payload. */
@@ -112,7 +125,7 @@ const STATUS_LABEL: Record<AcqLeadStatus, string> = {
   NEW: "New",
   CONTACTED: "Contacted",
   QUALIFIED: "Qualified",
-  DISQUALIFIED: "Disqualified",
+  DISQUALIFIED: "Dropped",
 };
 
 const STATUS_TABS: Array<"ALL" | AcqLeadStatus> = [
@@ -345,7 +358,12 @@ function LeadRow({
   return (
     <tr className="border-b border-border last:border-0 hover:bg-muted/30">
       <td className="px-3 py-2.5">
-        <div className="font-medium text-foreground">{lead.propertyName}</div>
+        <Link
+          href={`/bd/leads/${lead.id}`}
+          className="font-medium text-foreground hover:underline"
+        >
+          {lead.propertyName}
+        </Link>
         <div className="text-[12px] text-muted-foreground">
           {lead.ownerName} · {propertyTypeLabel(lead.propertyType)}
         </div>
@@ -386,6 +404,9 @@ function LeadRow({
       </td>
       <td className="px-3 py-2.5 text-right">
         <div className="inline-flex items-center gap-1.5">
+          <Button variant="ghost" size="xs" asChild>
+            <Link href={`/bd/leads/${lead.id}`}>View</Link>
+          </Button>
           {canLogContact && (
             <Button variant="ghost" size="xs" onClick={onLogContact}>
               <Phone className="size-3.5" />
@@ -418,6 +439,8 @@ interface CreateFormState {
   locality: string;
   seatingTheatre: string;
   seatingFloating: string;
+  seatingRange: string;
+  propertyStage: string;
   leadSource: string;
   ownerType: string;
   bdExecutiveId: string;
@@ -434,6 +457,8 @@ const EMPTY_FORM: CreateFormState = {
   locality: "",
   seatingTheatre: "",
   seatingFloating: "",
+  seatingRange: "",
+  propertyStage: "",
   leadSource: ACQ_LEAD_SOURCE[0],
   ownerType: ACQ_OWNER_TYPE[0],
   bdExecutiveId: "",
@@ -506,6 +531,12 @@ function CreateLeadDialog({
         locality: form.locality.trim(),
         seatingTheatre,
         seatingFloating,
+        seatingRange: form.seatingRange
+          ? (form.seatingRange as (typeof ACQ_SEATING_RANGE)[number])
+          : undefined,
+        propertyStage: form.propertyStage
+          ? (form.propertyStage as (typeof ACQ_PROPERTY_STAGE)[number])
+          : undefined,
         leadSource: form.leadSource as (typeof ACQ_LEAD_SOURCE)[number],
         ownerType: form.ownerType as (typeof ACQ_OWNER_TYPE)[number],
         bdExecutiveId:
@@ -659,6 +690,29 @@ function CreateLeadDialog({
               />
             </Field>
 
+            <Field label="Seating capacity (range)">
+              <EnumSelect
+                value={form.seatingRange}
+                onChange={(v) => set("seatingRange", v)}
+                options={ACQ_SEATING_RANGE}
+                labelFor={(v) =>
+                  (ACQ_SEATING_RANGE_LABEL as Record<string, string>)[v] ?? v
+                }
+                placeholder="Select range…"
+              />
+            </Field>
+            <Field label="Property status">
+              <EnumSelect
+                value={form.propertyStage}
+                onChange={(v) => set("propertyStage", v)}
+                options={ACQ_PROPERTY_STAGE}
+                labelFor={(v) =>
+                  (ACQ_PROPERTY_STAGE_LABEL as Record<string, string>)[v] ?? v
+                }
+                placeholder="Operational / Conversion / …"
+              />
+            </Field>
+
             <Field label="Assign BD executive" className="sm:col-span-2">
               <Select
                 value={form.bdExecutiveId || UNASSIGNED}
@@ -708,31 +762,42 @@ function CreateLeadDialog({
 // ============================================================
 
 interface QualifyChecks {
-  is_decision_maker: boolean;
-  venue_operational_within_60d: boolean;
-  open_to_revenue_share_model: boolean;
-  no_competitor_exclusivity: boolean;
+  seating_100_plus: boolean;
+  owner_interested_in_management_model: boolean;
+  agrees_to_renovate_if_required: boolean;
+  required_photos_available: boolean;
 }
 
 const QUALIFY_FIELDS: Array<{ key: keyof QualifyChecks; label: string }> = [
-  { key: "is_decision_maker", label: "Is the decision-maker" },
+  { key: "seating_100_plus", label: "Seating capacity is 100+" },
   {
-    key: "venue_operational_within_60d",
-    label: "Venue operational within 60 days",
+    key: "owner_interested_in_management_model",
+    label: "Owner is interested in the Veloria management model",
   },
   {
-    key: "open_to_revenue_share_model",
-    label: "Open to revenue-share model",
+    key: "agrees_to_renovate_if_required",
+    label: "Agrees to renovate the venue if required",
   },
-  { key: "no_competitor_exclusivity", label: "No competitor exclusivity" },
+  {
+    key: "required_photos_available",
+    label: "Photos available (interiors, exterior, washrooms, dressing rooms)",
+  },
 ];
 
 const EMPTY_CHECKS: QualifyChecks = {
-  is_decision_maker: false,
-  venue_operational_within_60d: false,
-  open_to_revenue_share_model: false,
-  no_competitor_exclusivity: false,
+  seating_100_plus: false,
+  owner_interested_in_management_model: false,
+  agrees_to_renovate_if_required: false,
+  required_photos_available: false,
 };
+
+/** Pre-tick "seating 100+" from the lead's captured seating data. */
+function seatingIs100Plus(lead: AcqLead): boolean {
+  const cap = Math.max(toNumber(lead.seatingTheatre), toNumber(lead.seatingFloating));
+  if (cap >= 100) return true;
+  const r = (lead as { seatingRange?: string | null }).seatingRange;
+  return !!r && r !== "R_50_100";
+}
 
 function QualifyLeadDialog({
   lead,
@@ -750,7 +815,7 @@ function QualifyLeadDialog({
 
   React.useEffect(() => {
     if (lead) {
-      setChecks(EMPTY_CHECKS);
+      setChecks({ ...EMPTY_CHECKS, seating_100_plus: seatingIs100Plus(lead) });
       setReason("");
       setError(null);
       setQualifying(false);

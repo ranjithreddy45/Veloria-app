@@ -97,20 +97,20 @@ describe("BD acquisition pipeline (end-to-end)", () => {
 
   it("blocks qualification unless all 4 gates are true", async () => {
     const bad = await qualifyAcqLead(ids.leadId!, {
-      is_decision_maker: true,
-      venue_operational_within_60d: true,
-      open_to_revenue_share_model: false, // the decisive one
-      no_competitor_exclusivity: true,
+      seating_100_plus: true,
+      owner_interested_in_management_model: false, // the decisive one
+      agrees_to_renovate_if_required: true,
+      required_photos_available: true,
     });
     expect(bad.success).toBe(false);
   });
 
   it("qualifies and creates a deal in QUALIFIED", async () => {
     const r = await qualifyAcqLead(ids.leadId!, {
-      is_decision_maker: true,
-      venue_operational_within_60d: true,
-      open_to_revenue_share_model: true,
-      no_competitor_exclusivity: true,
+      seating_100_plus: true,
+      owner_interested_in_management_model: true,
+      agrees_to_renovate_if_required: true,
+      required_photos_available: true,
     });
     expect(r.success).toBe(true);
     if (r.success) ids.dealId = r.data.dealId;

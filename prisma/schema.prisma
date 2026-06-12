@@ -393,6 +393,21 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+// One-time passcodes for passwordless (WhatsApp) login.
+model OtpCode {
+  id         String    @id @default(cuid())
+  phone      String // normalized digits incl. country code
+  codeHash   String // sha256(code + pepper) — never store the plaintext
+  purpose    String    @default("LOGIN")
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([phone])
+  @@index([expiresAt])
+}
+
 // ============================================================
 // CRM: CONTACTS & LEADS
 // ============================================================
@@ -3533,6 +3548,24 @@ enum AcqLeadSource {
   OTHER
 }
 
+// Development/operational stage of the property a lead is about.
+enum AcqPropertyStage {
+  OPERATIONAL // already a running venue
+  CONVERSION  // existing building being converted to a venue
+  BROWNFIELD  // redeveloping an existing site
+  GREENFIELD  // new build on undeveloped land
+}
+
+// Seating-capacity bucket for quick filtering/qualification.
+enum AcqSeatingRange {
+  R_50_100
+  R_100_150
+  R_150_200
+  R_200_300
+  R_300_500
+  R_500_PLUS
+}
+
 enum AcqDealStage {
   QUALIFIED
   EVALUATION
@@ -3599,6 +3632,15 @@ model AcqLead {
   locality         String
   seatingTheatre   Int?
   seatingFloating  Int?
+  seatingRange     AcqSeatingRange?  // bucketed capacity (50-100, 100-150, …)
+  propertyStage    AcqPropertyStage? // operational / conversion / brownfield / greenfield
+  notes            String?           @db.Text
+  // Qualification checklist (§ qualify gate) — persisted so the lead dashboard
+  // can show progress toward qualification.
+  qualSeating100      Boolean?
+  qualOwnerInterested Boolean?
+  qualAgreeRenovate   Boolean?
+  qualPhotosReady     Boolean?
   leadSource       AcqLeadSource
   ownerType        AcqOwnerType
   bdExecutiveId    String

@@ -110,11 +110,16 @@ export function isLegalTransition(from: AcqDealStage, to: AcqDealStage): boolean
 // ------------------------------------------------------------
 // §5.2 — Lead → Deal qualification gate (4-point).
 // ------------------------------------------------------------
+// Qualification gate (§ qualify). ALL four must be true to qualify a lead:
+//   A. seating capacity 100+
+//   B. landlord/owner interested in the Veloria management model
+//   C. agrees to renovate the venue if required
+//   D. pictures (interiors, exterior, washrooms, dressing rooms) available
 export interface QualificationPayload {
-  is_decision_maker: boolean;
-  venue_operational_within_60d: boolean;
-  open_to_revenue_share_model: boolean;
-  no_competitor_exclusivity: boolean;
+  seating_100_plus: boolean;
+  owner_interested_in_management_model: boolean;
+  agrees_to_renovate_if_required: boolean;
+  required_photos_available: boolean;
 }
 
 export interface QualificationResult {
@@ -126,19 +131,19 @@ export interface QualificationResult {
 
 export function evaluateQualification(p: QualificationPayload): QualificationResult {
   const failed: string[] = [];
-  if (!p.is_decision_maker) failed.push("is_decision_maker");
-  if (!p.venue_operational_within_60d) failed.push("venue_operational_within_60d");
-  if (!p.open_to_revenue_share_model) failed.push("open_to_revenue_share_model");
-  if (!p.no_competitor_exclusivity) failed.push("no_competitor_exclusivity");
+  if (!p.seating_100_plus) failed.push("seating_100_plus");
+  if (!p.owner_interested_in_management_model) failed.push("owner_interested_in_management_model");
+  if (!p.agrees_to_renovate_if_required) failed.push("agrees_to_renovate_if_required");
+  if (!p.required_photos_available) failed.push("required_photos_available");
 
   let suggested: AcqDisqualifyReason | null = null;
   if (failed.length > 0) {
     const first = failed[0];
     const map: Record<string, AcqDisqualifyReason> = {
-      is_decision_maker: "NOT_DECISION_MAKER",
-      venue_operational_within_60d: "VENUE_NOT_OPERATIONAL",
-      open_to_revenue_share_model: "WANTS_OUTRIGHT_RENT_ONLY",
-      no_competitor_exclusivity: "COMPETITOR_EXCLUSIVE",
+      owner_interested_in_management_model: "WANTS_OUTRIGHT_RENT_ONLY",
+      seating_100_plus: "OTHER",
+      agrees_to_renovate_if_required: "OTHER",
+      required_photos_available: "OTHER",
     };
     suggested = map[first] ?? "OTHER";
   }
