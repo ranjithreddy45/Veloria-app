@@ -40,17 +40,34 @@ export function PendingProofs({ payments }: { payments: Proof[] }) {
   }
 
   function view(receiptUrl: string) {
-    // data-URL or external link — open in a new tab for review.
-    const w = window.open();
-    if (w) {
-      if (receiptUrl.startsWith("data:")) {
-        w.document.write(
-          `<iframe src="${receiptUrl}" style="border:0;width:100vw;height:100vh"></iframe>`
-        );
-      } else {
-        w.location.href = receiptUrl;
-      }
+    const url = (receiptUrl || "").trim();
+    const isImg = /^data:image\/(png|jpe?g|gif|webp);base64,/.test(url);
+    const isPdf = /^data:application\/pdf;base64,/.test(url);
+    const isHttps = /^https:\/\//i.test(url);
+    // Reject anything that could execute (javascript:, data:text/html, …).
+    if (!isImg && !isPdf && !isHttps) {
+      toast.error("Unsupported receipt format.");
+      return;
     }
+    if (isHttps) {
+      window.open(url, "_blank", "noopener,noreferrer");
+      return;
+    }
+    // For data-URLs, build elements via the DOM and set `src` as a PROPERTY —
+    // never interpolate the value into an HTML string. An <img>/<iframe> with a
+    // validated image/pdf data-URL cannot execute page script.
+    const w = window.open("", "_blank", "noopener,noreferrer");
+    if (!w) return;
+    const el = w.document.createElement(isImg ? "img" : "iframe");
+    el.src = url;
+    el.style.border = "0";
+    el.style.maxWidth = "100vw";
+    if (isPdf) {
+      el.style.width = "100vw";
+      el.style.height = "100vh";
+    }
+    w.document.body.style.margin = "0";
+    w.document.body.appendChild(el);
   }
 
   return (

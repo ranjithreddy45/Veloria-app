@@ -140,19 +140,28 @@ export async function blockSlotFromQuotation(
   }
   const bookingId = res.data.id;
 
-  await prisma.salesQuotation.update({
-    where: { id: quotationId },
-    data: { bookingId, venueId: opts.venueId, slotBlockedAt: new Date() },
-  });
-  await prisma.salesQuotationTransition.create({
-    data: {
-      quotationId,
-      fromStatus: q.status,
-      toStatus: q.status,
-      actorId: user.id,
-      note: `Slot blocked — ${SLOT_LABEL[timeSlot]} on ${date.toLocaleDateString("en-IN")} (booking ${res.data.bookingNumber ?? bookingId})`,
-    },
-  });
+  // Link the booking to the quotation. If this fails the HOLD booking would be
+  // orphaned (blocking the slot with nothing pointing at it), so cancel it and
+  // surface the error rather than leaving a ghost hold.
+  try {
+    await prisma.salesQuotation.update({
+      where: { id: quotationId },
+      data: { bookingId, venueId: opts.venueId, slotBlockedAt: new Date() },
+    });
+    await prisma.salesQuotationTransition.create({
+      data: {
+        quotationId,
+        fromStatus: q.status,
+        toStatus: q.status,
+        actorId: user.id,
+        note: `Slot blocked — ${SLOT_LABEL[timeSlot]} on ${date.toLocaleDateString("en-IN")} (booking ${res.data.bookingNumber ?? bookingId})`,
+      },
+    });
+  } catch (e) {
+    await prisma.booking.update({ where: { id: bookingId }, data: { status: "CANCELLED" } }).catch(() => {});
+    console.error("[BLOCK_SLOT_LINK_ERROR]", e);
+    return { success: false, error: "Could not finalize the slot block — please try again." };
+  }
 
   notify({
     userId: user.id,

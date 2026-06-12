@@ -38,14 +38,21 @@ export async function createBookingInvoiceFromQuotation(
     return { success: false, error: "Block the slot first — the invoice attaches to that booking." };
   if (!q.contactId)
     return { success: false, error: "Link a customer/contact to the quotation first." };
-  if (q.invoiceId)
+  const PENDING = "__pending__";
+  // A real invoice already exists (the sentinel doesn't count — see below).
+  if (q.invoiceId && q.invoiceId !== PENDING)
     return { success: false, error: "An invoice already exists for this quotation." };
 
   // Atomically CLAIM the quotation so two concurrent clicks can't both create
-  // an invoice. Only the writer that flips invoiceId null→sentinel proceeds.
-  const PENDING = "__pending__";
+  // an invoice. Only the writer that flips invoiceId→sentinel proceeds. We also
+  // reclaim a STALE sentinel (>5 min old) so a crashed prior attempt can't lock
+  // the quotation out of invoicing forever.
+  const staleBefore = new Date(Date.now() - 5 * 60 * 1000);
   const claim = await prisma.salesQuotation.updateMany({
-    where: { id: quotationId, invoiceId: null },
+    where: {
+      id: quotationId,
+      OR: [{ invoiceId: null }, { invoiceId: PENDING, updatedAt: { lt: staleBefore } }],
+    },
     data: { invoiceId: PENDING },
   });
   if (claim.count === 0)

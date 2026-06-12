@@ -556,7 +556,12 @@ async function main() {
   }
 
   // ---- Seed ready-to-use SOP + email templates (idempotent) ----
-  await seedTemplates(prisma);
+  // Non-essential: a seeding error must NEVER fail the production deploy.
+  try {
+    await seedTemplates(prisma);
+  } catch (e) {
+    console.error("[bootstrap] template seeding failed (non-fatal):", e);
+  }
 
   console.log("[bootstrap] Done.");
 }

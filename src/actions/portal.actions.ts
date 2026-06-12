@@ -6,6 +6,7 @@ import { serialize } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 import { notify } from "@/lib/notify";
 import { hasPermission } from "@/lib/permissions";
+import { isSafeReceiptDataUrl } from "@/lib/sales/receipt";
 import type { PaymentMethod } from "@prisma/client";
 
 // ============================================================
@@ -589,6 +590,12 @@ export async function submitPaymentProof(
   // Guard against oversized data-URLs (base64 of a large photo).
   if (data.receiptUrl.length > 7_000_000) {
     return { success: false as const, error: "Image too large — please upload one under ~5 MB." };
+  }
+  // SECURITY: a customer controls this string. Only accept a base64 image/PDF
+  // data-URL — never an executable scheme (javascript:, data:text/html) that
+  // could run when staff open the proof.
+  if (!isSafeReceiptDataUrl(data.receiptUrl)) {
+    return { success: false as const, error: "Unsupported file — upload a JPG, PNG, WEBP, GIF or PDF." };
   }
 
   const contactIds = await getClientContactIds(userId);

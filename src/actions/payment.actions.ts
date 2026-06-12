@@ -12,6 +12,7 @@ import { paymentReceivedEmail } from "@/lib/email-templates/payment-received";
 import { format } from "date-fns";
 import { hasPermission } from "@/lib/permissions";
 import { maybeConfirmBookingOnPayment } from "@/lib/sales/confirm-booking";
+import { isSafeReceiptUrl } from "@/lib/sales/receipt";
 
 // ============================================================
 // Helper: Generate Receipt Number (RCP-YYYY-NNNN)
@@ -177,16 +178,19 @@ export async function recordPayment(data: {
       };
     }
 
+    // Reject an unsafe receipt reference (never execute on open).
+    if (data.receiptUrl && !isSafeReceiptUrl(data.receiptUrl)) {
+      return { success: false as const, error: "Unsupported receipt — use an image, PDF or https link." };
+    }
+
     const receiptNumber = await generateReceiptNumber();
 
-    const newPaidAmount = Number(invoice.paidAmount) + data.amount;
-    const newBalanceDue = Number(invoice.totalAmount) - newPaidAmount;
-    const newStatus =
-      newBalanceDue <= 0.01 ? "PAID" : "PARTIALLY_PAID";
-
-    // Create payment and update invoice in a transaction
-    const [payment] = await prisma.$transaction([
-      prisma.payment.create({
+    // Atomic: create the payment and CREDIT the invoice with a relative
+    // increment (not an absolute write from a stale read), then re-read inside
+    // the same transaction to set balance/status — so concurrent payments can't
+    // clobber each other and lose money.
+    const { payment, newPaidAmount, newBalanceDue } = await prisma.$transaction(async (tx) => {
+      const created = await tx.payment.create({
         data: {
           invoiceId: data.invoiceId,
           amount: data.amount,
@@ -199,16 +203,20 @@ export async function recordPayment(data: {
           receiptUploadedAt: data.receiptUrl ? new Date() : null,
           paidAt: new Date(),
         },
-      }),
-      prisma.invoice.update({
+      });
+      const credited = await tx.invoice.update({
         where: { id: data.invoiceId },
-        data: {
-          paidAmount: newPaidAmount,
-          balanceDue: Math.max(0, newBalanceDue),
-          status: newStatus,
-        },
-      }),
-    ]);
+        data: { paidAmount: { increment: data.amount } },
+        select: { totalAmount: true, paidAmount: true },
+      });
+      const paid = Number(credited.paidAmount);
+      const bal = Number(credited.totalAmount) - paid;
+      await tx.invoice.update({
+        where: { id: data.invoiceId },
+        data: { balanceDue: Math.max(0, bal), status: bal <= 0.01 ? "PAID" : "PARTIALLY_PAID" },
+      });
+      return { payment: created, newPaidAmount: paid, newBalanceDue: bal };
+    });
 
     await logActivity({
       userId: session.user.id as string,
@@ -288,30 +296,42 @@ export async function verifyPaymentProof(paymentId: string) {
 
     const payment = await prisma.payment.findUnique({
       where: { id: paymentId },
-      include: { invoice: { select: { id: true, totalAmount: true, paidAmount: true, status: true } } },
+      include: { invoice: { select: { id: true, status: true } } },
     });
     if (!payment) return { success: false as const, error: "Payment not found" };
-    if (payment.status === "COMPLETED")
-      return { success: false as const, error: "This payment is already verified" };
+    // STRICT allow-list: only a genuine PENDING proof can be verified (blocks
+    // already-COMPLETED, plus FAILED / REFUNDED / PROCESSING).
+    if (payment.status !== "PENDING")
+      return { success: false as const, error: "Only a pending payment proof can be verified" };
+    if (!payment.receiptUrl)
+      return { success: false as const, error: "This payment has no attached proof to verify" };
     if (payment.invoice.status === "CANCELLED")
       return { success: false as const, error: "Invoice is cancelled" };
 
-    const amount = Number(payment.amount);
-    const newPaid = Number(payment.invoice.paidAmount) + amount;
-    const newBalance = Number(payment.invoice.totalAmount) - newPaid;
-    const newStatus = newBalance <= 0.01 ? "PAID" : "PARTIALLY_PAID";
     const receiptNumber = payment.receiptNumber || (await generateReceiptNumber());
 
-    await prisma.$transaction([
-      prisma.payment.update({
-        where: { id: paymentId },
+    // Atomic + idempotent: only the writer that flips this PENDING row proceeds
+    // to credit the invoice (relative increment, re-read for status) — so a
+    // double-verify can't double-count.
+    const verified = await prisma.$transaction(async (tx) => {
+      const flip = await tx.payment.updateMany({
+        where: { id: paymentId, status: "PENDING" },
         data: { status: "COMPLETED", paidAt: new Date(), receiptNumber },
-      }),
-      prisma.invoice.update({
+      });
+      if (flip.count !== 1) return false; // someone else verified it first
+      const credited = await tx.invoice.update({
         where: { id: payment.invoice.id },
-        data: { paidAmount: newPaid, balanceDue: Math.max(0, newBalance), status: newStatus },
-      }),
-    ]);
+        data: { paidAmount: { increment: Number(payment.amount) } },
+        select: { totalAmount: true, paidAmount: true },
+      });
+      const bal = Number(credited.totalAmount) - Number(credited.paidAmount);
+      await tx.invoice.update({
+        where: { id: payment.invoice.id },
+        data: { balanceDue: Math.max(0, bal), status: bal <= 0.01 ? "PAID" : "PARTIALLY_PAID" },
+      });
+      return true;
+    });
+    if (!verified) return { success: false as const, error: "This payment was just verified by someone else" };
 
     await logActivity({
       userId: session.user.id as string,
