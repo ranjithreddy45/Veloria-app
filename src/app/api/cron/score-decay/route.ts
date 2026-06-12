@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
-import { bulkRecalculateScores } from "@/actions/scoring-rule.actions";
+import { recalculateScoresForEntityType } from "@/actions/scoring-rule.actions";
+
+export const maxDuration = 300;
 
 export async function GET(request: Request) {
   try {
@@ -17,9 +19,9 @@ export async function GET(request: Request) {
     }
 
     const [leadResult, contactResult, dealResult] = await Promise.all([
-      bulkRecalculateScores("LEAD"),
-      bulkRecalculateScores("CONTACT"),
-      bulkRecalculateScores("DEAL"),
+      recalculateScoresForEntityType("LEAD"),
+      recalculateScoresForEntityType("CONTACT"),
+      recalculateScoresForEntityType("DEAL"),
     ]);
 
     return NextResponse.json({

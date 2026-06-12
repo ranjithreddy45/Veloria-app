@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { prisma } from "@/lib/prisma";
-import { notify } from "@/lib/notify";
+import { notifyAwait } from "@/lib/notify";
 import { getAcqConfig } from "@/lib/acq/config";
 
 export const maxDuration = 60;
@@ -33,6 +33,14 @@ export async function GET(request: Request) {
   const now = new Date();
   const cfg = await getAcqConfig();
   const summary: Record<string, number> = {};
+
+  // Collect notification writes and await them before returning, so the
+  // serverless function doesn't freeze before the fire-and-forget DB writes
+  // land (which would silently drop SLA alerts).
+  const pending: Promise<void>[] = [];
+  const notify = (p: Parameters<typeof notifyAwait>[0]) => {
+    pending.push(notifyAwait(p));
+  };
 
   // BD Heads + Admins receive escalation copies.
   const heads = await prisma.user.findMany({
@@ -124,5 +132,6 @@ export async function GET(request: Request) {
   }
   summary.reengagements = reengage.length;
 
+  await Promise.all(pending);
   return NextResponse.json({ ok: true, summary });
 }

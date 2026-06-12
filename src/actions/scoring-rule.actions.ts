@@ -564,6 +564,22 @@ export async function bulkRecalculateScores(
     if (!hasPermission(session.user.role, "settings:read")) {
       return { success: false as const, error: "Insufficient permissions" };
     }
+    return await recalculateScoresForEntityType(entityType);
+  } catch (error) {
+    console.error("bulkRecalculateScores error:", error);
+    return { success: false as const, error: "Failed to recalculate scores" };
+  }
+}
+
+// Session-free core, callable from cron (which has no user session). Does the
+// actual recalculation; auth is the caller's responsibility.
+export async function recalculateScoresForEntityType(
+  entityType: string
+): Promise<
+  | { success: true; data: { processed: number; updated: number } }
+  | { success: false; error: string }
+> {
+  try {
     // Find active rule set for the entity type
     const ruleSet = await prisma.scoringRuleSet.findFirst({
       where: { entityType, isActive: true },

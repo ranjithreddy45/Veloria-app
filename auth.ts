@@ -24,10 +24,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     ...authConfig.callbacks,
     async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id as string;
-        const role = (user as { role?: string }).role;
-        (token as { role?: unknown }).role = role;
+      const bakePerms = async (role?: string) => {
         try {
           (token as { perms?: string[] }).perms =
             role === "SUPER_ADMIN" || role === "ADMIN"
@@ -37,6 +34,40 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 : [];
         } catch {
           (token as { perms?: string[] }).perms = undefined; // fall back to defaults
+        }
+      };
+
+      if (user) {
+        token.id = user.id as string;
+        const role = (user as { role?: string }).role;
+        (token as { role?: unknown }).role = role;
+        await bakePerms(role);
+        (token as { checkedAt?: number }).checkedAt = Date.now();
+        return token;
+      }
+
+      // On later requests, periodically re-validate against the DB so a
+      // deactivated user is locked out and role/permission changes take effect
+      // without waiting for the JWT to expire (throttled to once / 5 min).
+      const last = (token as { checkedAt?: number }).checkedAt ?? 0;
+      if (token.id && Date.now() - last > 5 * 60 * 1000) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { isActive: true, role: true },
+          });
+          if (!dbUser || !dbUser.isActive) {
+            // Force sign-out: strip identity so server checks treat as logged out.
+            delete (token as { id?: string }).id;
+            (token as { role?: unknown }).role = undefined;
+            (token as { perms?: string[] }).perms = [];
+            return token;
+          }
+          (token as { role?: unknown }).role = dbUser.role;
+          await bakePerms(dbUser.role);
+          (token as { checkedAt?: number }).checkedAt = Date.now();
+        } catch {
+          // Transient DB error — keep the existing token, re-check next cycle.
         }
       }
       return token;

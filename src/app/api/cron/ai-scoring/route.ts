@@ -5,6 +5,9 @@ import { scoreLeadWithAI } from "@/lib/ai/lead-scoring";
 import { scoreDeal } from "@/lib/ai/deal-scoring";
 import { Prisma } from "@prisma/client";
 
+// Allow up to 5 minutes (matches the other heavy cron routes).
+export const maxDuration = 300;
+
 export async function GET(request: Request) {
   try {
     // Verify cron secret (timing-safe comparison)
@@ -27,11 +30,15 @@ export async function GET(request: Request) {
     // ========================================
     // Score all active leads
     // ========================================
+    // Bounded batch, oldest-scored (and never-scored) first, so each run
+    // finishes within the time budget and coverage rotates across days.
     const leads = await prisma.lead.findMany({
       where: {
         status: { notIn: ["WON", "LOST"] },
       },
       select: { id: true },
+      orderBy: { aiScoredAt: { sort: "asc", nulls: "first" } },
+      take: 60,
     });
 
     for (const lead of leads) {
@@ -66,6 +73,8 @@ export async function GET(request: Request) {
         lostDate: null,
       },
       select: { id: true },
+      orderBy: { aiScoredAt: { sort: "asc", nulls: "first" } },
+      take: 60,
     });
 
     for (const deal of deals) {
