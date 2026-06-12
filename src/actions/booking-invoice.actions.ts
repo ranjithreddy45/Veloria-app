@@ -41,67 +41,103 @@ export async function createBookingInvoiceFromQuotation(
   if (q.invoiceId)
     return { success: false, error: "An invoice already exists for this quotation." };
 
-  const input = q.inputsJson as unknown as QuotationInput;
-  const result: QuotationResult = (q.outputsJson as unknown as QuotationResult) || computeQuotation(input);
-  const guests = Math.max(1, q.guestCount || input.guestCount || 1);
+  // Atomically CLAIM the quotation so two concurrent clicks can't both create
+  // an invoice. Only the writer that flips invoiceId null→sentinel proceeds.
+  const PENDING = "__pending__";
+  const claim = await prisma.salesQuotation.updateMany({
+    where: { id: quotationId, invoiceId: null },
+    data: { invoiceId: PENDING },
+  });
+  if (claim.count === 0)
+    return { success: false, error: "An invoice is already being created for this quotation." };
 
-  // Per-plate line items: food is divided by the head count; fixed items stay whole.
-  const lineItems = result.lines.map((l) => {
-    if (l.particulars === "Food Plan") {
-      const unit = Math.max(1, Math.round(l.amount / guests));
-      return { description: `${l.particulars} — ${l.plan}`, quantity: guests, unitPrice: unit };
+  const release = () =>
+    prisma.salesQuotation
+      .updateMany({ where: { id: quotationId, invoiceId: PENDING }, data: { invoiceId: null } })
+      .catch(() => {});
+
+  try {
+    const input = q.inputsJson as unknown as QuotationInput;
+    const result: QuotationResult = (q.outputsJson as unknown as QuotationResult) || computeQuotation(input);
+    const guests = Math.max(1, q.guestCount || input.guestCount || 1);
+    const round2 = (n: number) => Math.round(n * 100) / 100;
+
+    // Per-plate line items: food is divided by the head count (2-decimal unit
+    // price so guests × unit reconstructs the food total exactly — no whole-
+    // rupee drift on fractional overrides). Fixed items stay whole. Drop any
+    // non-positive line rather than clamping it to +₹1 (which would overcharge).
+    const lineItems = result.lines
+      .filter((l) => l.amount > 0)
+      .map((l) => {
+        if (l.particulars === "Food Plan") {
+          const unit = round2(l.amount / guests);
+          return { description: `${l.particulars} — ${l.plan}`, quantity: guests, unitPrice: unit };
+        }
+        return { description: `${l.particulars} — ${l.plan}`, quantity: 1, unitPrice: l.amount };
+      });
+    if (lineItems.length === 0) {
+      await release();
+      return { success: false, error: "Quotation has no line items to invoice." };
     }
-    return { description: `${l.particulars} — ${l.plan}`, quantity: 1, unitPrice: Math.max(1, l.amount) };
-  });
-  if (lineItems.length === 0)
-    return { success: false, error: "Quotation has no line items to invoice." };
 
-  const effectivePerPlate = Math.round(result.grandTotal / guests);
-  const dueNow = new Date();
-  dueNow.setDate(dueNow.getDate() + 1);
+    const effectivePerPlate = Math.round(result.grandTotal / guests);
+    const dueNow = new Date();
+    dueNow.setDate(dueNow.getDate() + 1);
 
-  const inv = await createInvoice({
-    contactId: q.contactId,
-    bookingId: q.bookingId,
-    dueDate: dueNow,
-    lineItems,
-    discountPercent: Number(q.discountPct) || 0,
-    // Planner's 5% tax, split as intra-state CGST + SGST.
-    cgstRate: 2.5,
-    sgstRate: 2.5,
-    igstRate: 0,
-    notes: `Generated from quotation ${q.quoteNumber}. Effective per-plate: ₹${effectivePerPlate.toLocaleString("en-IN")} (grand total ÷ ${guests} guests).`,
-    terms: "Payment terms: 10% to block the slot, 50% fifteen days before the event, balance two hours before the event.",
-  });
+    const inv = await createInvoice({
+      contactId: q.contactId,
+      bookingId: q.bookingId,
+      dueDate: dueNow,
+      lineItems,
+      discountPercent: Number(q.discountPct) || 0,
+      // Planner's 5% tax, split as intra-state CGST + SGST.
+      cgstRate: 2.5,
+      sgstRate: 2.5,
+      igstRate: 0,
+      notes: `Generated from quotation ${q.quoteNumber}. Effective per-plate: ₹${effectivePerPlate.toLocaleString("en-IN")} (grand total ÷ ${guests} guests).`,
+      terms: "Payment terms: 10% to block the slot, 50% fifteen days before the event, balance two hours before the event.",
+    });
 
-  if (!inv.success || !inv.data) {
-    return { success: false, error: inv.error || "Could not create the invoice." };
+    if (!inv.success || !inv.data) {
+      await release();
+      return { success: false, error: inv.error || "Could not create the invoice." };
+    }
+    const invData = inv.data as { id: string; totalAmount: number | string };
+    const invoiceId = invData.id;
+
+    // 10 / 50 / 40 installment schedule anchored on the event date. Base the
+    // split on the INVOICE total (not the quotation's) so the three installments
+    // sum to it exactly — createInstallmentPlan rejects any drift.
+    const grand = Number(invData.totalAmount);
+    const block = Math.round(grand * 0.1);
+    const mid = Math.round(grand * 0.5);
+    const balance = grand - block - mid;
+
+    const event = q.eventDate ? new Date(q.eventDate) : null;
+    const midDue = event ? new Date(event) : new Date(Date.now() + 15 * 86400000);
+    if (event) midDue.setDate(midDue.getDate() - 15);
+    const balanceDue = event ? new Date(event) : new Date(Date.now() + 30 * 86400000);
+
+    const plan = await createInstallmentPlan(invoiceId, [
+      { label: "Booking advance (10%) — blocks the slot", amount: block, dueDate: new Date() },
+      { label: "Part payment (50%) — 15 days before event", amount: mid, dueDate: midDue },
+      { label: "Final balance (40%) — before the event", amount: balance, dueDate: balanceDue },
+    ]);
+    if (!plan.success) {
+      // Roll back the just-created invoice so we don't leave one without a plan.
+      await prisma.invoice.delete({ where: { id: invoiceId } }).catch(() => {});
+      await release();
+      return { success: false, error: plan.error || "Could not create the installment plan." };
+    }
+
+    // Replace the sentinel with the real invoice id.
+    await prisma.salesQuotation.update({ where: { id: quotationId }, data: { invoiceId } });
+
+    revalidatePath(`/quotations/${quotationId}`);
+    revalidatePath("/invoices");
+    return { success: true, data: { invoiceId } };
+  } catch (e) {
+    await release();
+    return { success: false, error: e instanceof Error ? e.message : "Could not create the invoice." };
   }
-  const invData = inv.data as { id: string; totalAmount: number | string };
-  const invoiceId = invData.id;
-
-  // 10 / 50 / 40 installment schedule anchored on the event date. Base the
-  // split on the INVOICE total (not the quotation's) so the three installments
-  // sum to it exactly — createInstallmentPlan rejects any drift.
-  const grand = Number(invData.totalAmount);
-  const block = Math.round(grand * 0.1);
-  const mid = Math.round(grand * 0.5);
-  const balance = grand - block - mid;
-
-  const event = q.eventDate ? new Date(q.eventDate) : null;
-  const midDue = event ? new Date(event) : new Date(Date.now() + 15 * 86400000);
-  if (event) midDue.setDate(midDue.getDate() - 15);
-  const balanceDue = event ? new Date(event) : new Date(Date.now() + 30 * 86400000);
-
-  await createInstallmentPlan(invoiceId, [
-    { label: "Booking advance (10%) — blocks the slot", amount: block, dueDate: new Date() },
-    { label: "Part payment (50%) — 15 days before event", amount: mid, dueDate: midDue },
-    { label: "Final balance (40%) — before the event", amount: balance, dueDate: balanceDue },
-  ]);
-
-  await prisma.salesQuotation.update({ where: { id: quotationId }, data: { invoiceId } });
-
-  revalidatePath(`/quotations/${quotationId}`);
-  revalidatePath("/invoices");
-  return { success: true, data: { invoiceId } };
 }

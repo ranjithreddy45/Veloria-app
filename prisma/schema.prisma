@@ -4088,7 +4088,7 @@ enum SalesQuotationSendMethod {
 
 model SalesQuotation {
   id          String               @id @default(cuid())
-  quoteNumber String // generated uniquely server-side (no @unique → safe db push)
+  quoteNumber String // monotonic VG-Q-NNNNN allocated inside a Serializable txn (no @unique → db push stays non-destructive)
   version     Int                  @default(1)
   status      SalesQuotationStatus @default(DRAFT)
 

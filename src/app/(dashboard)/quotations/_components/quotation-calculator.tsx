@@ -175,14 +175,14 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
         const sub = await submitSalesQuotation(id);
         if (!sub.success) {
           toast.error(sub.error);
-          router.push(`/quotes/${id}`);
+          router.push(`/quotations/${id}`);
           return;
         }
         toast.success("Quotation submitted for approval.");
       } else {
         toast.success("Quotation saved.");
       }
-      router.push(`/quotes/${id}`);
+      router.push(`/quotations/${id}`);
       router.refresh();
     } finally {
       setSaving(false);

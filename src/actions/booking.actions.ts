@@ -331,7 +331,7 @@ export async function createBooking(data: BookingInput) {
 
     const bookingData = parsed.data;
 
-    // Check availability
+    // Fast pre-check for a friendly message (not authoritative on its own).
     const availability = await checkAvailability(
       bookingData.venueId,
       bookingData.date,
@@ -350,36 +350,71 @@ export async function createBooking(data: BookingInput) {
     const bookingDate = new Date(bookingData.date);
     bookingDate.setHours(0, 0, 0, 0);
 
-    const booking = await prisma.booking.create({
-      data: {
-        bookingNumber,
-        eventName: bookingData.eventName,
-        eventType: bookingData.eventType,
-        date: bookingDate,
-        timeSlot: bookingData.timeSlot as TimeSlot,
-        guestCount: bookingData.guestCount,
-        totalAmount: bookingData.totalAmount,
-        hallBooked: bookingData.hallBooked || null,
-        startTime: bookingData.eventStart ?? null,
-        endTime: bookingData.eventEnd ?? null,
-        perPlatePrice: bookingData.perPlatePrice ?? null,
-        hallRental: bookingData.hallRental ?? null,
-        decorCharges: bookingData.decorCharges ?? null,
-        otherServices: bookingData.otherServices ?? null,
-        specialRequests: bookingData.specialRequests || null,
-        internalNotes: bookingData.internalNotes || null,
-        venueId: bookingData.venueId,
-        contactId: bookingData.contactId,
-        createdById: session.user.id,
-        status: "HOLD",
-      },
-      include: {
-        venue: { select: { id: true, name: true } },
-        contact: {
-          select: { id: true, firstName: true, lastName: true },
+    // Slot-conflict OR covering the cross-slot overlap the @@unique constraint
+    // can't express: requested slot taken, OR an existing FULL_DAY blocks any
+    // slot, OR a requested FULL_DAY conflicts with any partial slot.
+    const reqSlot = bookingData.timeSlot as TimeSlot;
+    const conflictOr =
+      reqSlot === "FULL_DAY"
+        ? [
+            { timeSlot: "FULL_DAY" as TimeSlot },
+            { timeSlot: "MORNING" as TimeSlot },
+            { timeSlot: "AFTERNOON" as TimeSlot },
+            { timeSlot: "EVENING" as TimeSlot },
+          ]
+        : [{ timeSlot: reqSlot }, { timeSlot: "FULL_DAY" as TimeSlot }];
+
+    // Re-check + insert ATOMICALLY under Serializable isolation so two
+    // concurrent blocks for overlapping slots (e.g. EVENING + FULL_DAY) can't
+    // both succeed. The loser aborts with a serialization error → "slot taken".
+    let booking;
+    try {
+      booking = await prisma.$transaction(
+        async (tx) => {
+          const clash = await tx.booking.findFirst({
+            where: { venueId: bookingData.venueId, date: bookingDate, status: { notIn: ["CANCELLED"] }, OR: conflictOr },
+            select: { id: true },
+          });
+          if (clash) throw new Error("SLOT_TAKEN");
+          return tx.booking.create({
+            data: {
+              bookingNumber,
+              eventName: bookingData.eventName,
+              eventType: bookingData.eventType,
+              date: bookingDate,
+              timeSlot: reqSlot,
+              guestCount: bookingData.guestCount,
+              totalAmount: bookingData.totalAmount,
+              hallBooked: bookingData.hallBooked || null,
+              startTime: bookingData.eventStart ?? null,
+              endTime: bookingData.eventEnd ?? null,
+              perPlatePrice: bookingData.perPlatePrice ?? null,
+              hallRental: bookingData.hallRental ?? null,
+              decorCharges: bookingData.decorCharges ?? null,
+              otherServices: bookingData.otherServices ?? null,
+              specialRequests: bookingData.specialRequests || null,
+              internalNotes: bookingData.internalNotes || null,
+              venueId: bookingData.venueId,
+              contactId: bookingData.contactId,
+              createdById: session.user.id,
+              status: "HOLD",
+            },
+            include: {
+              venue: { select: { id: true, name: true } },
+              contact: { select: { id: true, firstName: true, lastName: true } },
+            },
+          });
         },
-      },
-    });
+        { isolationLevel: "Serializable" }
+      );
+    } catch (e) {
+      const code = (e as { code?: string }).code;
+      // SLOT_TAKEN (our guard), P2002 (unique violation), or 40001 (serialization failure).
+      if ((e instanceof Error && e.message === "SLOT_TAKEN") || code === "P2002" || code === "P2034") {
+        return { success: false as const, error: "That slot was just taken — please pick another." };
+      }
+      throw e;
+    }
 
     await logActivity({
       userId: session.user.id as string,

@@ -18,7 +18,7 @@ interface EditLeadPageProps {
 export default async function EditLeadPage({ params }: EditLeadPageProps) {
   const { leadId } = await params;
 
-  const [leadResult, contacts, venues] = await Promise.all([
+  const [leadResult, contacts, venues, users] = await Promise.all([
     getLead(leadId),
     prisma.contact.findMany({
       where: { isActive: true },
@@ -33,6 +33,14 @@ export default async function EditLeadPage({ params }: EditLeadPageProps) {
     }),
     prisma.venue.findMany({
       where: { isActive: true },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.user.findMany({
+      where: {
+        isActive: true,
+        role: { in: ["SALES_EXEC", "EVENT_COORDINATOR", "ADMIN", "SUPER_ADMIN"] },
+      },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
@@ -54,6 +62,7 @@ export default async function EditLeadPage({ params }: EditLeadPageProps) {
         <LeadForm
           contacts={contacts}
           venues={venues}
+          users={users}
           lead={{
             id: lead.id,
             title: lead.title,
@@ -64,6 +73,7 @@ export default async function EditLeadPage({ params }: EditLeadPageProps) {
             guestCount: lead.guestCount,
             estimatedValue: lead.estimatedValue ? Number(lead.estimatedValue) : null,
             preferredVenueId: lead.preferredVenueId ?? null,
+            assignedToId: lead.assignedToId ?? null,
             slot: lead.slot ?? null,
             vegNonVeg: lead.vegNonVeg ?? null,
             perPlateBudget: lead.perPlateBudget ? Number(lead.perPlateBudget) : null,

@@ -28,6 +28,7 @@ export async function maybeConfirmBookingOnPayment(invoiceId: string): Promise<v
       select: {
         id: true,
         paidAmount: true,
+        totalAmount: true,
         bookingId: true,
         booking: {
           select: {
@@ -51,11 +52,12 @@ export async function maybeConfirmBookingOnPayment(invoiceId: string): Promise<v
     const b = invoice?.booking;
     if (!b || b.status !== "HOLD") return;
 
-    // The booking advance is 10% of the booking value (the planner's "block"
-    // term). The installment is stored as a rounded rupee amount, so allow a
-    // ₹1 tolerance — otherwise paying exactly the first installment (e.g.
-    // ₹13,007 vs a 10% threshold of ₹13,007.40) would never confirm.
-    const threshold = Number(b.totalAmount) * 0.1 - 1;
+    // The booking advance is 10% of the value. Anchor the threshold on the
+    // INVOICE total (the same number the 10% installment was computed from),
+    // not the booking total — the two can differ by a rupee of GST rounding,
+    // and the installment is round(invoiceTotal × 0.10). The ₹1 tolerance then
+    // guarantees an exact first-installment payment always clears the bar.
+    const threshold = Number(invoice.totalAmount) * 0.1 - 1;
     if (Number(invoice.paidAmount) < threshold) return;
 
     await prisma.booking.update({ where: { id: b.id }, data: { status: "CONFIRMED" } });

@@ -15,6 +15,21 @@ import { after } from "next/server";
 // LeadStatus enum values matching Prisma schema
 type LeadStatus = "NEW" | "CONTACTED" | "QUALIFIED" | "PROPOSAL_SENT" | "NEGOTIATION" | "WON" | "LOST";
 
+// Roles a lead can be assigned to (mirrors the new/edit form's user list).
+const ASSIGNABLE_ROLES = ["SALES_EXEC", "EVENT_COORDINATOR", "ADMIN", "SUPER_ADMIN"];
+
+// Returns an error string if the id is not a real, active, assignable user; null if OK.
+async function assigneeInvalid(userId: string): Promise<string | null> {
+  const u = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, role: true, isActive: true },
+  });
+  if (!u || !u.isActive || !ASSIGNABLE_ROLES.includes(u.role)) {
+    return "Assigned user is invalid or not assignable.";
+  }
+  return null;
+}
+
 // ============================================================
 // Get Leads (Paginated + Filters)
 // ============================================================
@@ -196,6 +211,13 @@ export async function createLead(data: LeadInput) {
       return { success: false as const, error: "Contact not found" };
     }
 
+    // Validate an explicit assignee: must be a real, active, sales-facing user
+    // (otherwise a tampered id would silently FK-fail or bypass the role list).
+    if (leadData.assignedToId) {
+      const bad = await assigneeInvalid(leadData.assignedToId);
+      if (bad) return { success: false as const, error: bad };
+    }
+
     // Calculate lead score
     const score = calculateLeadScore({
       estimatedValue: leadData.estimatedValue,
@@ -347,8 +369,13 @@ export async function updateLead(
       updateData.perPlateBudget = data.perPlateBudget || null;
     if (data.description !== undefined)
       updateData.description = data.description || null;
-    if (data.assignedToId !== undefined)
+    if (data.assignedToId !== undefined) {
+      if (data.assignedToId) {
+        const bad = await assigneeInvalid(data.assignedToId);
+        if (bad) return { success: false as const, error: bad };
+      }
       updateData.assignedToId = data.assignedToId || null;
+    }
     if (data.followUpDate !== undefined)
       updateData.followUpDate = data.followUpDate || null;
     if (data.lostReason !== undefined)

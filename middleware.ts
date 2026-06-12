@@ -52,6 +52,8 @@ const INTERNAL_ROUTES = [
   "/settings",
   "/notifications",
   "/quotes",
+  "/quotations",
+  "/availability",
   "/contracts",
   "/vendors",
   "/packages",

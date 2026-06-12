@@ -150,6 +150,22 @@ describe("Sales quotation → booking → payment → confirm → ops (E2E)", ()
     expect(res.success).toBe(false); // quote already has a booking
   });
 
+  it("rejects a FULL_DAY block that overlaps an existing partial-slot booking", async () => {
+    // A second quote tries to take the WHOLE day the EVENING slot is already on.
+    const q2 = await createSalesQuotation(
+      { guestCount: 50, foodPackageId: "veg_silver" },
+      { clientName: "Overlap Test", contactId, venueId, eventDate: "2026-09-01" }
+    );
+    expect(q2.success).toBe(true);
+    if (!q2.success) return;
+    await submitSalesQuotation(q2.data.id);
+    await approveSalesQuotation(q2.data.id);
+    const res = await blockSlotFromQuotation(q2.data.id, { venueId, dateISO: "2026-09-01", timeSlot: "FULL_DAY" });
+    expect(res.success).toBe(false); // FULL_DAY conflicts with the existing EVENING booking
+    await prisma.salesQuotationTransition.deleteMany({ where: { quotationId: q2.data.id } });
+    await prisma.salesQuotation.delete({ where: { id: q2.data.id } });
+  });
+
   it("generates a 5%-tax, per-plate invoice with a 10/50/40 plan", async () => {
     const res = await createBookingInvoiceFromQuotation(quotationId);
     expect(res.success).toBe(true);

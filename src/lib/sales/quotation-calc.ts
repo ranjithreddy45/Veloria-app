@@ -292,5 +292,19 @@ export function validateQuotationInput(i: Partial<QuotationInput>): string[] {
   if (!hasAnyLine) errs.push("Add at least one line item to the quotation.");
   if (i.discountPct != null && (i.discountPct < 0 || i.discountPct > 100))
     errs.push("Discount must be between 0 and 100%.");
+  // Reject negative / non-finite money inputs (a negative override or rate
+  // would otherwise produce negative line totals or a negative grand total).
+  const nonNeg = (v: number | null | undefined, label: string) => {
+    if (v != null && (!Number.isFinite(v) || v < 0)) errs.push(`${label} cannot be negative.`);
+  };
+  nonNeg(i.foodPerPlateOverride, "Per-plate price");
+  nonNeg(i.cakeKg, "Cake quantity");
+  nonNeg(i.drinksPerPerson, "Drinks per-person rate");
+  nonNeg(i.rooms, "Room count");
+  nonNeg(i.roomCharge, "Room charge");
+  nonNeg(i.photographyCustomAmount, "Photography amount");
+  for (const c of i.customLines ?? []) {
+    if (!Number.isFinite(c.amount) || c.amount < 0) errs.push(`Line "${c.label || "custom"}" amount cannot be negative.`);
+  }
   return errs;
 }

@@ -16,6 +16,15 @@ async function requireUser() {
   return session.user as { id: string; role?: string };
 }
 
+// Parse a YYYY-MM-DD string into LOCAL midnight (matching how booking.actions
+// normalizes @db.Date with setHours). `new Date("2026-09-01")` parses as UTC
+// midnight and would shift the day on a non-UTC server — this avoids that.
+function parseLocalDate(iso: string): Date {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return new Date(iso);
+}
+
 export interface SlotAvailability {
   slot: TimeSlotEnum;
   label: string;
@@ -37,7 +46,7 @@ export async function getDaySlotAvailability(
     return { success: false, error: "Unauthorized" };
   if (!venueId || !dateISO) return { success: false, error: "Venue and date are required." };
 
-  const date = new Date(dateISO);
+  const date = parseLocalDate(dateISO);
   if (Number.isNaN(date.getTime())) return { success: false, error: "Invalid date." };
 
   const out: SlotAvailability[] = [];
@@ -76,7 +85,8 @@ export async function blockSlotFromQuotation(
   if (q.bookingId) return { success: false, error: "This quotation already has a booked slot." };
   if (!opts.venueId) return { success: false, error: "Select a venue to block." };
 
-  const date = new Date(opts.dateISO || (q.eventDate ? q.eventDate.toISOString() : ""));
+  const dateStr = opts.dateISO || (q.eventDate ? q.eventDate.toISOString().slice(0, 10) : "");
+  const date = parseLocalDate(dateStr);
   if (Number.isNaN(date.getTime())) return { success: false, error: "Select a valid event date." };
   const timeSlot = opts.timeSlot ?? plannerSlotToEnum(q.timeSlot);
 
@@ -86,8 +96,11 @@ export async function blockSlotFromQuotation(
     return { success: false, error: avail.data.reason || "That slot is already taken." };
   }
 
-  // Resolve a contact: use the linked one, else mint a light contact from the quote.
+  // Resolve a contact: use the linked one, else mint a light contact from the
+  // quote. Track whether we minted one so we can roll it back if the booking
+  // then fails (otherwise an orphan contact would linger on the quotation).
   let contactId = q.contact?.id ?? null;
+  let mintedContactId: string | null = null;
   if (!contactId) {
     const name = (q.clientName || "Guest").trim();
     const [firstName, ...rest] = name.split(/\s+/);
@@ -101,6 +114,7 @@ export async function blockSlotFromQuotation(
       select: { id: true },
     });
     contactId = created.id;
+    mintedContactId = created.id;
     await prisma.salesQuotation.update({ where: { id: quotationId }, data: { contactId } });
   }
 
@@ -117,6 +131,11 @@ export async function blockSlotFromQuotation(
   });
 
   if (!res.success || !res.data) {
+    // Roll back a freshly-minted contact so it isn't orphaned on the quote.
+    if (mintedContactId) {
+      await prisma.salesQuotation.update({ where: { id: quotationId }, data: { contactId: null } }).catch(() => {});
+      await prisma.contact.delete({ where: { id: mintedContactId } }).catch(() => {});
+    }
     return { success: false, error: res.error || "Could not create the booking." };
   }
   const bookingId = res.data.id;

@@ -126,6 +126,18 @@ describe("validateQuotationInput", () => {
   it("accepts a valid quote", () => {
     expect(validateQuotationInput({ guestCount: 10, foodPackageId: "veg_gold" })).toEqual([]);
   });
+
+  it("rejects negative money inputs (override, rates, custom lines)", () => {
+    expect(
+      validateQuotationInput({ guestCount: 10, foodPackageId: "veg_gold", foodPerPlateOverride: -50 })
+    ).toContain("Per-plate price cannot be negative.");
+    expect(
+      validateQuotationInput({ guestCount: 10, drinksPerPerson: -5 })
+    ).toContain("Drinks per-person rate cannot be negative.");
+    expect(
+      validateQuotationInput({ guestCount: 10, customLines: [{ label: "Credit", amount: -1000 }] })
+    ).toContain('Line "Credit" amount cannot be negative.');
+  });
 });
 
 describe("catalog integrity", () => {

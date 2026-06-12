@@ -64,10 +64,42 @@ function headline(input: QuotationInput, meta: QuotationMeta) {
   };
 }
 
-async function nextQuoteNumber(): Promise<string> {
-  const count = await prisma.salesQuotation.count();
-  const seq = String(count + 1).padStart(5, "0");
-  return `VG-Q-${seq}`;
+function isSerializationFailure(e: unknown): boolean {
+  const code = !!e && typeof e === "object" ? (e as { code?: string }).code : undefined;
+  return code === "P2034" || code === "P2002"; // write conflict / serialization / unique
+}
+
+// Allocate the next number AND create the row inside a single Serializable
+// transaction so two concurrent creates can't read the same max and collide.
+// The loser hits a serialization failure and retries with the next number.
+// (No @unique on quoteNumber — that would make `prisma db push` destructive.)
+async function createQuotationRow(
+  buildData: (quoteNumber: string) => Prisma.SalesQuotationUncheckedCreateInput
+): Promise<{ id: string; quoteNumber: string }> {
+  for (let attempt = 0; attempt < 6; attempt++) {
+    try {
+      return await prisma.$transaction(
+        async (tx) => {
+          const last = await tx.salesQuotation.findFirst({
+            where: { quoteNumber: { startsWith: "VG-Q-" } },
+            orderBy: { quoteNumber: "desc" },
+            select: { quoteNumber: true },
+          });
+          const lastSeq = last ? parseInt(last.quoteNumber.split("-").pop() || "0", 10) : 0;
+          const quoteNumber = `VG-Q-${String(lastSeq + 1).padStart(5, "0")}`;
+          return tx.salesQuotation.create({
+            data: buildData(quoteNumber),
+            select: { id: true, quoteNumber: true },
+          });
+        },
+        { isolationLevel: "Serializable" }
+      );
+    } catch (e) {
+      if (isSerializationFailure(e) && attempt < 5) continue;
+      throw e;
+    }
+  }
+  throw new Error("Could not allocate a unique quotation number.");
 }
 
 // ------------------------------------------------------------
@@ -132,22 +164,18 @@ export async function createSalesQuotation(
   const errs = validateQuotationInput(input);
   if (errs.length) return { success: false, error: errs.join(" ") };
 
-  const quoteNumber = await nextQuoteNumber();
-  const row = await prisma.salesQuotation.create({
-    data: {
-      quoteNumber,
-      status: "DRAFT",
-      inputsJson: input as unknown as Prisma.InputJsonValue,
-      leadId: meta.leadId || null,
-      contactId: meta.contactId || null,
-      venueId: meta.venueId || null,
-      createdById: user.id,
-      ...headline(input, meta),
-    },
-    select: { id: true },
-  });
+  const row = await createQuotationRow((quoteNumber) => ({
+    quoteNumber,
+    status: "DRAFT",
+    inputsJson: input as unknown as Prisma.InputJsonValue,
+    leadId: meta.leadId || null,
+    contactId: meta.contactId || null,
+    venueId: meta.venueId || null,
+    createdById: user.id,
+    ...headline(input, meta),
+  }));
   await prisma.salesQuotationTransition.create({
-    data: { quotationId: row.id, fromStatus: null, toStatus: "DRAFT", actorId: user.id, note: `${quoteNumber} created` },
+    data: { quotationId: row.id, fromStatus: null, toStatus: "DRAFT", actorId: user.id, note: `${row.quoteNumber} created` },
   });
   revalidatePath("/quotations");
   if (meta.leadId) revalidatePath(`/leads/${meta.leadId}`);
@@ -176,9 +204,10 @@ export async function updateSalesQuotation(
     where: { id },
     data: {
       inputsJson: input as unknown as Prisma.InputJsonValue,
-      leadId: meta.leadId ?? row.leadId,
-      contactId: meta.contactId ?? row.contactId,
-      venueId: meta.venueId ?? row.venueId,
+      // `undefined` = key omitted (keep current); explicit null = clear it.
+      leadId: meta.leadId !== undefined ? meta.leadId || null : row.leadId,
+      contactId: meta.contactId !== undefined ? meta.contactId || null : row.contactId,
+      venueId: meta.venueId !== undefined ? meta.venueId || null : row.venueId,
       ...headline(input, {
         clientName: meta.clientName ?? row.clientName ?? undefined,
         clientPhone: meta.clientPhone ?? row.clientPhone ?? undefined,
@@ -395,34 +424,30 @@ export async function newSalesQuotationVersion(id: string): Promise<Result<{ id:
   if (row.status !== "APPROVED" && row.status !== "SENT")
     return { success: false, error: "Only an approved or sent quotation can be versioned." };
 
-  const quoteNumber = await nextQuoteNumber();
-  const clone = await prisma.salesQuotation.create({
-    data: {
-      quoteNumber,
-      version: row.version + 1,
-      status: "DRAFT",
-      inputsJson: row.inputsJson as Prisma.InputJsonValue,
-      clientName: row.clientName,
-      clientPhone: row.clientPhone,
-      clientEmail: row.clientEmail,
-      occasion: row.occasion,
-      eventDate: row.eventDate,
-      timeSlot: row.timeSlot,
-      guestCount: row.guestCount,
-      subtotal: row.subtotal,
-      discountPct: row.discountPct,
-      taxAmount: row.taxAmount,
-      grandTotal: row.grandTotal,
-      notes: row.notes,
-      leadId: row.leadId,
-      contactId: row.contactId,
-      venueId: row.venueId,
-      createdById: user.id,
-    },
-    select: { id: true },
-  });
+  const clone = await createQuotationRow((quoteNumber) => ({
+    quoteNumber,
+    version: row.version + 1,
+    status: "DRAFT",
+    inputsJson: row.inputsJson as Prisma.InputJsonValue,
+    clientName: row.clientName,
+    clientPhone: row.clientPhone,
+    clientEmail: row.clientEmail,
+    occasion: row.occasion,
+    eventDate: row.eventDate,
+    timeSlot: row.timeSlot,
+    guestCount: row.guestCount,
+    subtotal: row.subtotal,
+    discountPct: row.discountPct,
+    taxAmount: row.taxAmount,
+    grandTotal: row.grandTotal,
+    notes: row.notes,
+    leadId: row.leadId,
+    contactId: row.contactId,
+    venueId: row.venueId,
+    createdById: user.id,
+  }));
   await prisma.salesQuotationTransition.create({
-    data: { quotationId: clone.id, fromStatus: null, toStatus: "DRAFT", actorId: user.id, note: `${quoteNumber} from ${row.quoteNumber}` },
+    data: { quotationId: clone.id, fromStatus: null, toStatus: "DRAFT", actorId: user.id, note: `${clone.quoteNumber} from ${row.quoteNumber}` },
   });
   revalidatePath("/quotations");
   return { success: true, data: { id: clone.id } };

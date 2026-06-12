@@ -56,39 +56,44 @@ export async function instantiateExecutionPlanFromSOP(
 
     if (!template || template.phases.length === 0) return;
 
-    const plan = await prisma.executionPlan.create({
-      data: {
-        bookingId,
-        sopTemplateId: template.id,
-        eventDate: booking.date,
-        status: "PLANNING",
-        createdById,
-      },
-      select: { id: true },
-    });
-
-    for (const ph of template.phases) {
-      const phase = await prisma.executionPhase.create({
-        data: { planId: plan.id, name: ph.name, phase: ph.phase, order: ph.order },
+    // All-or-nothing: a mid-loop failure must not leave a half-populated plan
+    // (the bookingId-unique plan row would then block any retry). One
+    // transaction means a failure rolls the whole plan back cleanly.
+    await prisma.$transaction(async (tx) => {
+      const plan = await tx.executionPlan.create({
+        data: {
+          bookingId,
+          sopTemplateId: template.id,
+          eventDate: booking.date,
+          status: "PLANNING",
+          createdById,
+        },
         select: { id: true },
       });
-      if (ph.taskDefinitions.length) {
-        await prisma.executionTask.createMany({
-          data: ph.taskDefinitions.map((t) => ({
-            phaseId: phase.id,
-            title: t.title,
-            description: t.description,
-            category: t.category,
-            priority: t.priority,
-            estimatedMinutes: t.estimatedMinutes,
-            isMandatory: t.isMandatory,
-            requiresApproval: t.requiresApproval,
-            requiresProof: t.requiresProof,
-            order: t.order,
-          })),
+
+      for (const ph of template.phases) {
+        const phase = await tx.executionPhase.create({
+          data: { planId: plan.id, name: ph.name, phase: ph.phase, order: ph.order },
+          select: { id: true },
         });
+        if (ph.taskDefinitions.length) {
+          await tx.executionTask.createMany({
+            data: ph.taskDefinitions.map((t) => ({
+              phaseId: phase.id,
+              title: t.title,
+              description: t.description,
+              category: t.category,
+              priority: t.priority,
+              estimatedMinutes: t.estimatedMinutes,
+              isMandatory: t.isMandatory,
+              requiresApproval: t.requiresApproval,
+              requiresProof: t.requiresProof,
+              order: t.order,
+            })),
+          });
+        }
       }
-    }
+    });
   } catch (e) {
     console.error("[OPS_HANDOFF_ERROR]", e);
   }
