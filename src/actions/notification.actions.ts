@@ -39,11 +39,17 @@ export async function getNotifications(
     offset?: number;
   }
 ): Promise<NotificationsResponse> {
+  // IDOR guard: only ever return the SIGNED-IN user's notifications, never an
+  // arbitrary caller-supplied userId.
+  const session = await auth();
+  if (!session?.user?.id || session.user.id !== userId) {
+    return { notifications: [], total: 0, hasMore: false };
+  }
   const limit = params?.limit ?? 20;
   const offset = params?.offset ?? 0;
 
   const where = {
-    userId,
+    userId: session.user.id,
     ...(params?.unreadOnly ? { isRead: false } : {}),
   };
 
@@ -69,8 +75,10 @@ export async function getNotifications(
 // ============================================================
 
 export async function getUnreadCount(userId: string): Promise<number> {
+  const session = await auth();
+  if (!session?.user?.id || session.user.id !== userId) return 0;
   return prisma.notification.count({
-    where: { userId, isRead: false },
+    where: { userId: session.user.id, isRead: false },
   });
 }
 

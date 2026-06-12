@@ -13,6 +13,7 @@ import { format } from "date-fns";
 import { hasPermission } from "@/lib/permissions";
 import { maybeConfirmBookingOnPayment } from "@/lib/sales/confirm-booking";
 import { isSafeReceiptUrl } from "@/lib/sales/receipt";
+import { applyRazorpayCapture } from "@/lib/payments/apply-capture";
 
 // ============================================================
 // Helper: Generate Receipt Number (RCP-YYYY-NNNN)
@@ -481,75 +482,22 @@ export async function verifyRazorpayPayment(data: {
       return { success: false as const, error: "Invalid payment signature" };
     }
 
-    // Find the pending payment
-    const payment = await prisma.payment.findFirst({
-      where: { razorpayOrderId: data.razorpay_order_id },
+    // Idempotent + atomic credit, bound to the payment's OWN invoice (not the
+    // caller-supplied invoiceId — that could target another tenant's invoice).
+    const applied = await applyRazorpayCapture({
+      razorpayOrderId: data.razorpay_order_id,
+      razorpayPaymentId: data.razorpay_payment_id,
+      razorpaySignature: data.razorpay_signature,
     });
-
-    if (!payment) {
-      return { success: false as const, error: "Payment record not found" };
+    if (!applied.ok) return { success: false as const, error: applied.error };
+    if (data.invoiceId && data.invoiceId !== applied.invoiceId) {
+      return { success: false as const, error: "Invoice mismatch for this payment" };
     }
-
-    // Get invoice for balance calculations
-    const invoice = await prisma.invoice.findUnique({
-      where: { id: data.invoiceId },
-      select: { totalAmount: true, paidAmount: true },
-    });
-
-    if (!invoice) {
-      return { success: false as const, error: "Invoice not found" };
-    }
-
-    const paymentAmount = Number(payment.amount);
-    const newPaidAmount = Number(invoice.paidAmount) + paymentAmount;
-    const newBalanceDue = Number(invoice.totalAmount) - newPaidAmount;
-    const newStatus = newBalanceDue <= 0.01 ? "PAID" : "PARTIALLY_PAID";
-
-    // Generate receipt number
-    const year = new Date().getFullYear();
-    const prefix = `RCP-${year}-`;
-    const lastPayment = await prisma.payment.findFirst({
-      where: { receiptNumber: { startsWith: prefix } },
-      orderBy: { receiptNumber: "desc" },
-      select: { receiptNumber: true },
-    });
-
-    let nextNumber = 1;
-    if (lastPayment?.receiptNumber) {
-      const lastNum = parseInt(
-        lastPayment.receiptNumber.split("-").pop() || "0",
-        10
-      );
-      nextNumber = lastNum + 1;
-    }
-    const receiptNumber = `${prefix}${String(nextNumber).padStart(4, "0")}`;
-
-    // Update payment and invoice in a transaction
-    const [updatedPayment] = await prisma.$transaction([
-      prisma.payment.update({
-        where: { id: payment.id },
-        data: {
-          status: "COMPLETED",
-          transactionId: data.razorpay_payment_id,
-          razorpaySignature: data.razorpay_signature,
-          receiptNumber,
-          paidAt: new Date(),
-        },
-      }),
-      prisma.invoice.update({
-        where: { id: data.invoiceId },
-        data: {
-          paidAmount: newPaidAmount,
-          balanceDue: Math.max(0, newBalanceDue),
-          status: newStatus,
-        },
-      }),
-    ]);
 
     revalidatePath("/invoices");
-    revalidatePath(`/invoices/${data.invoiceId}`);
+    revalidatePath(`/invoices/${applied.invoiceId}`);
     revalidatePath("/payments");
-    return { success: true as const, data: serialize(updatedPayment) };
+    return { success: true as const, data: { invoiceId: applied.invoiceId } };
   } catch (error) {
     console.error("[VERIFY_RAZORPAY_PAYMENT_ERROR]", error);
     return {

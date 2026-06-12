@@ -531,6 +531,40 @@ export async function getApprovalRequest(
 // Approval Decisions
 // ============================================================
 
+// Prisma include that loads everything needed to authorize an approval action.
+const APPROVER_INCLUDE = {
+  rule: { include: { approverChain: { orderBy: { order: "asc" as const } } } },
+  decisions: { orderBy: { decidedAt: "asc" as const } },
+};
+
+// Returns an error string if `userId`/`userRole` is NOT the authorized approver
+// for the request's current chain step (or an admin / a valid delegate), else
+// null. Mirrors getMyPendingApprovals' visibility logic — the UI hiding a
+// button is not server-side authorization.
+function approverAuthError(
+  request: {
+    currentStep: number;
+    submittedById: string;
+    rule: { approverChain: { approverType: string; approverId: string }[] };
+    decisions: { action: string; delegatedToId: string | null }[];
+  },
+  userId: string,
+  userRole: string
+): string | null {
+  const isAdmin = userRole === "SUPER_ADMIN" || userRole === "ADMIN";
+  // Integrity: no one approves their own request (admins included).
+  if (request.submittedById === userId) return "You can't act on your own approval request.";
+  const step = request.rule.approverChain[request.currentStep];
+  const last = request.decisions[request.decisions.length - 1];
+  const delegatedToMe = last?.action === "DELEGATE" && last.delegatedToId === userId;
+  const isStepApprover =
+    !!step &&
+    ((step.approverType === "USER" && step.approverId === userId) ||
+      (step.approverType === "ROLE" && step.approverId === userRole));
+  if (delegatedToMe || isStepApprover || isAdmin) return null;
+  return "You are not authorized to act on this approval step.";
+}
+
 export async function approveRequest(
   requestId: string,
   comment?: string
@@ -551,11 +585,7 @@ export async function approveRequest(
 
     const request = await prisma.approvalRequest.findUnique({
       where: { id: requestId },
-      include: {
-        rule: {
-          include: { approverChain: { orderBy: { order: "asc" } } },
-        },
-      },
+      include: APPROVER_INCLUDE,
     });
 
     if (!request) {
@@ -565,6 +595,9 @@ export async function approveRequest(
     if (request.status !== "PENDING_APPROVAL") {
       return { success: false as const, error: "Request is no longer pending" };
     }
+
+    const authErr = approverAuthError(request, session.user.id, (session.user as { role?: string }).role ?? "");
+    if (authErr) return { success: false as const, error: authErr };
 
     // Create the approval decision
     await prisma.approvalDecision.create({
@@ -619,6 +652,7 @@ export async function rejectRequest(
 
     const request = await prisma.approvalRequest.findUnique({
       where: { id: requestId },
+      include: APPROVER_INCLUDE,
     });
 
     if (!request) {
@@ -628,6 +662,9 @@ export async function rejectRequest(
     if (request.status !== "PENDING_APPROVAL") {
       return { success: false as const, error: "Request is no longer pending" };
     }
+
+    const authErr = approverAuthError(request, session.user.id, (session.user as { role?: string }).role ?? "");
+    if (authErr) return { success: false as const, error: authErr };
 
     // Create the reject decision
     await prisma.approvalDecision.create({
@@ -699,6 +736,7 @@ export async function delegateRequest(
 
     const request = await prisma.approvalRequest.findUnique({
       where: { id: requestId },
+      include: APPROVER_INCLUDE,
     });
 
     if (!request) {
@@ -708,6 +746,9 @@ export async function delegateRequest(
     if (request.status !== "PENDING_APPROVAL") {
       return { success: false as const, error: "Request is no longer pending" };
     }
+
+    const authErr = approverAuthError(request, session.user.id, (session.user as { role?: string }).role ?? "");
+    if (authErr) return { success: false as const, error: authErr };
 
     // Create the delegate decision
     await prisma.approvalDecision.create({

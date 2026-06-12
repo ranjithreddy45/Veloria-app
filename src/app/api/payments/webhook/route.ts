@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
-import { maybeConfirmBookingOnPayment } from "@/lib/sales/confirm-booking";
+import { applyRazorpayCapture } from "@/lib/payments/apply-capture";
 
 // ============================================================
 // POST: Razorpay Webhook Handler
@@ -49,84 +49,16 @@ export async function POST(request: NextRequest) {
       const paymentEntity = event.payload.payment.entity;
       const razorpayOrderId = paymentEntity.order_id;
       const razorpayPaymentId = paymentEntity.id;
-      const amountInPaise = paymentEntity.amount;
-      const amountInRupees = amountInPaise / 100;
 
-      // Find the payment record by Razorpay order ID
-      const payment = await prisma.payment.findFirst({
-        where: { razorpayOrderId },
-        include: {
-          invoice: {
-            select: { id: true, totalAmount: true, paidAmount: true },
-          },
-        },
-      });
-
-      if (!payment) {
-        console.warn(
-          `[RAZORPAY_WEBHOOK] No payment found for order: ${razorpayOrderId}`
-        );
-        // Return 200 to acknowledge receipt even if we can't process
-        return NextResponse.json({ success: true, message: "No matching payment found" });
+      // Single shared path: idempotent + atomic credit + auto-confirm. Safe to
+      // run alongside the browser verify call for the same payment.
+      const applied = await applyRazorpayCapture({ razorpayOrderId, razorpayPaymentId });
+      if (!applied.ok) {
+        console.warn(`[RAZORPAY_WEBHOOK] ${applied.error} for order: ${razorpayOrderId}`);
+        return NextResponse.json({ success: true, message: applied.error });
       }
-
-      // Skip if payment is already completed
-      if (payment.status === "COMPLETED") {
-        return NextResponse.json({ success: true, message: "Payment already processed" });
-      }
-
-      // Generate receipt number
-      const year = new Date().getFullYear();
-      const prefix = `RCP-${year}-`;
-      const lastPayment = await prisma.payment.findFirst({
-        where: { receiptNumber: { startsWith: prefix } },
-        orderBy: { receiptNumber: "desc" },
-        select: { receiptNumber: true },
-      });
-
-      let nextNumber = 1;
-      if (lastPayment?.receiptNumber) {
-        const lastNum = parseInt(
-          lastPayment.receiptNumber.split("-").pop() || "0",
-          10
-        );
-        nextNumber = lastNum + 1;
-      }
-      const receiptNumber = `${prefix}${String(nextNumber).padStart(4, "0")}`;
-
-      // Calculate new invoice amounts
-      const invoice = payment.invoice;
-      const newPaidAmount = Number(invoice.paidAmount) + amountInRupees;
-      const newBalanceDue = Number(invoice.totalAmount) - newPaidAmount;
-      const newStatus = newBalanceDue <= 0.01 ? "PAID" : "PARTIALLY_PAID";
-
-      // Update payment and invoice in a transaction
-      await prisma.$transaction([
-        prisma.payment.update({
-          where: { id: payment.id },
-          data: {
-            status: "COMPLETED",
-            transactionId: razorpayPaymentId,
-            receiptNumber,
-            paidAt: new Date(),
-          },
-        }),
-        prisma.invoice.update({
-          where: { id: invoice.id },
-          data: {
-            paidAmount: newPaidAmount,
-            balanceDue: Math.max(0, newBalanceDue),
-            status: newStatus,
-          },
-        }),
-      ]);
-
-      // BookMyShow-style auto-confirm: if this advance covers the 10% block,
-      // flip the held booking to CONFIRMED and fire customer confirmations.
-      await maybeConfirmBookingOnPayment(invoice.id);
-
       console.log(
-        `[RAZORPAY_WEBHOOK] Payment captured: ${razorpayPaymentId} for order: ${razorpayOrderId}`
+        `[RAZORPAY_WEBHOOK] Payment captured: ${razorpayPaymentId} (${applied.alreadyProcessed ? "already processed" : "credited"})`
       );
     }
 

@@ -284,7 +284,7 @@ export async function calculateCommission(data: CalculateCommissionInput) {
       };
     }
 
-    const { ruleId, userId, bookingId, invoiceAmount } = parsed.data;
+    const { ruleId, userId, bookingId } = parsed.data;
 
     const rule = await prisma.commissionRule.findUnique({
       where: { id: ruleId },
@@ -296,6 +296,26 @@ export async function calculateCommission(data: CalculateCommissionInput) {
 
     if (!rule.isActive) {
       return { success: false as const, error: "Commission rule is inactive" };
+    }
+
+    // Derive the base amount from the BOOKING server-side — never trust a
+    // client-supplied invoiceAmount (which could inflate a payout).
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      select: { totalAmount: true },
+    });
+    if (!booking) {
+      return { success: false as const, error: "Booking not found" };
+    }
+    const invoiceAmount = Number(booking.totalAmount);
+
+    // Idempotency: one commission per (booking, rule) — block duplicates.
+    const existing = await prisma.commissionEntry.findFirst({
+      where: { bookingId, ruleId },
+      select: { id: true },
+    });
+    if (existing) {
+      return { success: false as const, error: "A commission already exists for this booking and rule." };
     }
 
     // Calculate commission: percentage of invoice amount + optional flat amount

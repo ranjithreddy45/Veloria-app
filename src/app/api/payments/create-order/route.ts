@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     // Verify invoice exists and amount is valid
     const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
-      select: { id: true, balanceDue: true, status: true, invoiceNumber: true },
+      select: { id: true, balanceDue: true, status: true, invoiceNumber: true, contactId: true },
     });
 
     if (!invoice) {
@@ -57,6 +57,24 @@ export async function POST(request: NextRequest) {
         { success: false, error: "Invoice not found" },
         { status: 404 }
       );
+    }
+
+    // IDOR guard: a portal customer (non-staff) may only pay an invoice that
+    // belongs to one of THEIR contacts. Staff roles may pay any invoice.
+    const role = (session.user as { role?: string }).role;
+    const isStaff = !!role && role !== "CLIENT";
+    if (!isStaff) {
+      const u = await prisma.user.findUnique({
+        where: { id: session.user.id as string },
+        select: { email: true },
+      });
+      const myContacts = u?.email
+        ? await prisma.contact.findMany({ where: { email: u.email }, select: { id: true } })
+        : [];
+      if (!myContacts.some((c) => c.id === invoice.contactId)) {
+        // Don't leak existence — return 404.
+        return NextResponse.json({ success: false, error: "Invoice not found" }, { status: 404 });
+      }
     }
 
     if (invoice.status === "PAID" || invoice.status === "CANCELLED") {
