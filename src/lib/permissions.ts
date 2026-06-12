@@ -888,6 +888,7 @@ export const ROUTE_PERMISSIONS: { prefix: string; permission: Permission }[] = [
   { prefix: "/quotations", permission: "quotes:read" },
   { prefix: "/contracts", permission: "contracts:read" },
   { prefix: "/bookings", permission: "bookings:read" },
+  { prefix: "/availability", permission: "bookings:read" },
   { prefix: "/tasks", permission: "tasks:read" },
   { prefix: "/invoices", permission: "invoices:read" },
   { prefix: "/payments", permission: "payments:read" },

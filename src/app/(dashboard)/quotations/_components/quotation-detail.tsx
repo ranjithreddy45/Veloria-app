@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/dialog";
 import { QUOTE_STATUS_META } from "./quotations-table";
 import { QuotationCalculator } from "./quotation-calculator";
+import { SlotBlockCard } from "./slot-block-card";
 
 const inr = (n: number) => "₹" + Math.round(n).toLocaleString("en-IN");
 const statusMeta = (s: string) => QUOTE_STATUS_META[s] ?? { label: s, hue: "slate" as const };
@@ -71,6 +72,8 @@ interface QuoteRow {
   notes: string | null;
   rejectedReason: string | null;
   pdfUrl: string | null;
+  bookingId: string | null;
+  slotBlockedAt: string | null;
   sentChannel: string | null;
   sentTo: string | null;
   sentAt: string | null;
@@ -248,6 +251,16 @@ export function QuotationDetail({ quote, perms, leads, venues }: Props) {
 
         {/* Totals + schedule + timeline */}
         <div className="space-y-4">
+          {(quote.status === "APPROVED" || quote.status === "SENT") && perms.canSend && (
+            <SlotBlockCard
+              quotationId={quote.id}
+              venues={venues}
+              defaultVenueId={quote.venue?.id ?? null}
+              defaultDateISO={quote.eventDate}
+              defaultPlannerSlot={quote.timeSlot}
+              blocked={quote.bookingId ? { bookingId: quote.bookingId, at: quote.slotBlockedAt } : null}
+            />
+          )}
           <Card>
             <CardHeader><CardTitle className="text-base">Totals</CardTitle></CardHeader>
             <CardContent className="space-y-1.5 text-sm">

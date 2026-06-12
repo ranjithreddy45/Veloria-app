@@ -4112,6 +4112,12 @@ model SalesQuotation {
 
   pdfUrl String?
 
+  // Slot booking (BookMyShow-style): when the customer commits, we create a
+  // HOLD Booking for the venue+date+slot. bookingId references that Booking
+  // (plain ref, not a relation, to avoid widening the Booking model).
+  bookingId     String?
+  slotBlockedAt DateTime?
+
   // Approval
   submittedById  String?
   submittedBy    User?     @relation("SalesQuotationSubmittedBy", fields: [submittedById], references: [id])

@@ -168,6 +168,12 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["bookings:read"],
       },
       {
+        title: "Slot Availability",
+        href: "/availability",
+        icon: "CalendarClock",
+        permissions: ["bookings:read"],
+      },
+      {
         title: "Inquiries",
         href: "/inquiries",
         icon: "Inbox",
