@@ -28,6 +28,7 @@ const JOBS = [
   "customer-360",
   "acq-sla",
   "invoice-due",
+  "contract-reminders",
 ] as const;
 
 function getBaseUrl(): string {

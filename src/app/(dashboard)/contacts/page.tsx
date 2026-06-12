@@ -8,7 +8,7 @@ import { HelpHint } from "@/components/layout/help-hint";
 import { Button } from "@/components/ui/button";
 import { ContactsTable } from "./_components/contacts-table";
 
-export const metadata: Metadata = { title: "Contacts" };
+export const metadata: Metadata = { title: "Enquiry" };
 
 // ============================================================
 // Contacts List Page
@@ -26,9 +26,9 @@ export default async function ContactsPage() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Contacts"
+        title="Enquiry"
         help={
-          <HelpHint title="What is a Contact?">
+          <HelpHint title="What is an Enquiry?">
             <p>
               A <strong>Contact</strong> is a <em>person</em> — a real human in
               your address book, with their name, phone, email, and full

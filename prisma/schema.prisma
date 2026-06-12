@@ -352,6 +352,11 @@ model User {
   acqProjectionsApproved  AcqProjection[]      @relation("AcqProjectionApprovedBy")
   acqProjectionsSent      AcqProjection[]      @relation("AcqProjectionSentBy")
   acqProjectionTransitions AcqProjectionTransition[] @relation("AcqProjectionTransitionActor")
+  salesQuotationsCreated   SalesQuotation[]          @relation("SalesQuotationCreatedBy")
+  salesQuotationsSubmitted SalesQuotation[]          @relation("SalesQuotationSubmittedBy")
+  salesQuotationsApproved  SalesQuotation[]          @relation("SalesQuotationApprovedBy")
+  salesQuotationsSent      SalesQuotation[]          @relation("SalesQuotationSentBy")
+  salesQuotationTransitions SalesQuotationTransition[] @relation("SalesQuotationTransitionActor")
 
   @@index([email])
   @@index([role])
@@ -391,6 +396,21 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+// Per-role permission overrides on top of the static defaults (editable in
+// Settings → Roles & Permissions). granted=true adds, granted=false removes.
+model RolePermission {
+  id         String   @id @default(cuid())
+  role       String
+  permission String
+  granted    Boolean  @default(true)
+  updatedById String?
+  updatedAt  DateTime @updatedAt
+  createdAt  DateTime @default(now())
+
+  @@unique([role, permission])
+  @@index([role])
 }
 
 // One-time passcodes for passwordless (WhatsApp) login.
@@ -453,6 +473,7 @@ model Contact {
   loyaltyAccount   LoyaltyAccount?
   reviews          Review[]
   callLogs         CallLog[]
+  salesQuotations  SalesQuotation[]
 
   @@index([email])
   @@index([phone])
@@ -498,6 +519,7 @@ model Lead {
   createdBy    User    @relation("CreatedBy", fields: [createdById], references: [id])
   deal         Deal?
   quotes       Quote[]
+  salesQuotations SalesQuotation[]
 
   @@index([status])
   @@index([assignedToId])
@@ -583,6 +605,7 @@ model Venue {
   ratePlans         RatePlan[]
   insurancePolicies InsurancePolicy[]
   preferredLeads    Lead[]            @relation("LeadPreferredVenue")
+  salesQuotations   SalesQuotation[]  @relation("SalesQuotationVenue")
 }
 
 model Booking {
@@ -3685,6 +3708,8 @@ model AcqDeal {
   avgEventsPerMonth          Decimal? @db.Decimal(6, 2)
   peakRateCard               Decimal? @db.Decimal(12, 2)
 
+  banquetSizeSft  Int? // venue size (sqft) — shown on the board card
+
   // Commercials
   model               AcqDealModel?
   baseFeePct          Decimal? @db.Decimal(5, 2)
@@ -3695,6 +3720,8 @@ model AcqDeal {
   isExclusive         Boolean?
   expectedMonthlyEvents Decimal? @db.Decimal(6, 2)
   projectedFeeValue   Decimal? @db.Decimal(12, 2)
+  // Once frozen, base fee / incentive / term are locked (post-agreement).
+  economicsFrozenAt   DateTime?
 
   // Scoring
   evalScore  Int?
@@ -3795,6 +3822,113 @@ model AcqAttachment {
 
   @@index([dealId])
   @@index([dealId, kind])
+}
+
+// ============================================================
+// BD CONTRACTS — standalone contract-lifecycle module (CLM)
+// User/deal references are plain ids (no FK) to keep this self-contained.
+// ============================================================
+enum AcqContractPhase {
+  AUTHORING
+  APPROVAL
+  NEGOTIATION
+  EXECUTION
+  POST_EXECUTION
+}
+
+enum AcqContractLifecycle {
+  DRAFT
+  APPROVED
+  NEGOTIATED
+  SIGNED
+  ACTIVE
+  TERMINATED
+}
+
+model AcqContract {
+  id             String  @id @default(cuid())
+  contractNumber String? // VG-CON-YYYY-NNN (generated server-side)
+  title          String
+  dealId        String? // source deal (create-from-deal)
+  ownerName     String
+  ownerEmail    String?
+  ownerPhone    String?
+  propertyName  String
+  model         String? // MANAGEMENT | FRANCHISE
+  baseFeePct    Decimal? @db.Decimal(5, 2)
+  incentivePct  Decimal? @db.Decimal(5, 2)
+  termYears     Int?
+  contractValue Decimal? @db.Decimal(14, 2)
+  body          String?  @db.Text
+
+  phase  AcqContractPhase     @default(AUTHORING)
+  status AcqContractLifecycle @default(DRAFT)
+
+  signByDate          DateTime? // target signing date (calendar)
+  signedAt            DateTime?
+  startDate           DateTime?
+  endDate             DateTime?
+  terminatedAt        DateTime?
+  terminationGainLoss Decimal?  @db.Decimal(14, 2) // +gain / -loss
+
+  approvedById   String?
+  approvedAt     DateTime?
+  esignProvider  String?
+  esignRequestId String?
+  esignStatus    String? // SENT | SIGNED | DECLINED
+
+  bdExecutiveId String
+  createdById   String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  documents  AcqContractDocument[]
+  activities AcqContractActivity[]
+  versions   AcqContractVersion[]
+
+  @@index([status])
+  @@index([phase])
+  @@index([signByDate])
+  @@index([deletedAt])
+}
+
+model AcqContractDocument {
+  id           String      @id @default(cuid())
+  contractId   String
+  contract     AcqContract @relation(fields: [contractId], references: [id])
+  label        String?
+  url          String
+  uploadedById String
+  createdAt    DateTime    @default(now())
+
+  @@index([contractId])
+}
+
+model AcqContractActivity {
+  id         String      @id @default(cuid())
+  contractId String
+  contract   AcqContract @relation(fields: [contractId], references: [id])
+  type       String // AUTHORED | APPROVED | NEGOTIATION | SENT_FOR_SIGN | SIGNED | ACTIVATED | TERMINATED | NOTE
+  detail     String?
+  actorId    String
+  createdAt  DateTime    @default(now())
+
+  @@index([contractId])
+  @@index([type])
+}
+
+// Version history of the contract body (each saved draft is snapshotted).
+model AcqContractVersion {
+  id          String      @id @default(cuid())
+  contractId  String
+  contract    AcqContract @relation(fields: [contractId], references: [id])
+  version     Int
+  body        String      @db.Text
+  createdById String
+  createdAt   DateTime    @default(now())
+
+  @@index([contractId])
 }
 
 model AcqDealNote {
@@ -3927,4 +4061,105 @@ model AcqProjectionTransition {
   createdAt    DateTime      @default(now())
 
   @@index([projectionId])
+}
+
+// ============================================================
+// SALES CRM — Quotation Calculator (mirrors AcqProjection)
+// Sales rep builds a quote with the calculator → submits → a sales
+// manager/head approves → it can be viewed/downloaded/emailed/whatsapped.
+// inputsJson holds the raw calculator input; outputsJson is the frozen
+// computed result (lines + totals + payment schedule) snapshotted at
+// approval so the customer-facing PDF can never drift from the engine.
+// ============================================================
+
+enum SalesQuotationStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  SENT
+  REJECTED
+}
+
+enum SalesQuotationSendMethod {
+  EMAIL
+  WHATSAPP
+  MANUAL_DOWNLOAD
+}
+
+model SalesQuotation {
+  id          String               @id @default(cuid())
+  quoteNumber String // generated uniquely server-side (no @unique → safe db push)
+  version     Int                  @default(1)
+  status      SalesQuotationStatus @default(DRAFT)
+
+  // Calculator snapshot
+  inputsJson  Json // QuotationInput
+  outputsJson Json? // QuotationResult, frozen at APPROVED
+
+  // Denormalised headline figures for list views / sorting
+  clientName  String?
+  clientPhone String?
+  clientEmail String?
+  occasion    String?
+  eventDate   DateTime?
+  timeSlot    String?
+  guestCount  Int       @default(0)
+  subtotal    Decimal   @default(0) @db.Decimal(12, 2)
+  discountPct Decimal   @default(0) @db.Decimal(5, 2)
+  taxAmount   Decimal   @default(0) @db.Decimal(12, 2)
+  grandTotal  Decimal   @default(0) @db.Decimal(12, 2)
+  notes       String?   @db.Text
+
+  pdfUrl String?
+
+  // Approval
+  submittedById  String?
+  submittedBy    User?     @relation("SalesQuotationSubmittedBy", fields: [submittedById], references: [id])
+  submittedAt    DateTime?
+  approvedById   String?
+  approvedBy     User?     @relation("SalesQuotationApprovedBy", fields: [approvedById], references: [id])
+  approvedAt     DateTime?
+  rejectedReason String?
+
+  // Send
+  sendMethod  SalesQuotationSendMethod?
+  sentChannel String?
+  sentTo      String?
+  sentById    String?
+  sentBy      User?                     @relation("SalesQuotationSentBy", fields: [sentById], references: [id])
+  sentAt      DateTime?
+
+  // Relations
+  leadId      String?
+  lead        Lead?    @relation(fields: [leadId], references: [id])
+  contactId   String?
+  contact     Contact? @relation(fields: [contactId], references: [id])
+  venueId     String?
+  venue       Venue?   @relation("SalesQuotationVenue", fields: [venueId], references: [id])
+  createdById String
+  createdBy   User     @relation("SalesQuotationCreatedBy", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transitions SalesQuotationTransition[]
+
+  @@index([status])
+  @@index([leadId])
+  @@index([contactId])
+  @@index([createdAt])
+}
+
+model SalesQuotationTransition {
+  id          String         @id @default(cuid())
+  quotationId String
+  quotation   SalesQuotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  fromStatus  String?
+  toStatus    String
+  actorId     String
+  actor       User           @relation("SalesQuotationTransitionActor", fields: [actorId], references: [id])
+  note        String?
+  createdAt   DateTime       @default(now())
+
+  @@index([quotationId])
 }

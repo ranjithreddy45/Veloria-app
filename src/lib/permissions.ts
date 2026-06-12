@@ -69,6 +69,7 @@ export type Permission =
   | "quotes:update"
   | "quotes:delete"
   | "quotes:send"
+  | "quotes:approve"
   // Contracts
   | "contracts:read"
   | "contracts:create"
@@ -254,7 +255,7 @@ export type Permission =
 // All Permissions (for SUPER_ADMIN)
 // ============================================================
 
-const ALL_PERMISSIONS: Permission[] = [
+export const ALL_PERMISSIONS: Permission[] = [
   "owners:read",
   "owners:create",
   "owners:update",
@@ -308,6 +309,7 @@ const ALL_PERMISSIONS: Permission[] = [
   "quotes:update",
   "quotes:delete",
   "quotes:send",
+  "quotes:approve",
   "contracts:read",
   "contracts:create",
   "contracts:update",
@@ -505,6 +507,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "quotes:update",
     "quotes:delete",
     "quotes:send",
+    "quotes:approve",
     "contracts:read",
     "contracts:create",
     "contracts:update",
@@ -866,6 +869,65 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "contracts:read",
   ],
 };
+
+// ============================================================
+// Route → required permission (enforced in middleware, edge-safe).
+// Most-specific (longest) prefix wins. Routes not listed are open to any
+// internal role. SUPER_ADMIN and ADMIN bypass all route gating.
+// ============================================================
+export const ROUTE_PERMISSIONS: { prefix: string; permission: Permission }[] = [
+  // More specific first (the lookup sorts by length, but keep readable).
+  { prefix: "/settings/users", permission: "users:read" },
+  { prefix: "/settings/roles", permission: "users:manage-roles" },
+  { prefix: "/bd", permission: "owners:read" },
+  { prefix: "/owners", permission: "owners:read" },
+  { prefix: "/leads", permission: "leads:read" },
+  { prefix: "/pipeline", permission: "pipeline:read" },
+  { prefix: "/contacts", permission: "contacts:read" },
+  { prefix: "/quotes", permission: "quotes:read" },
+  { prefix: "/quotations", permission: "quotes:read" },
+  { prefix: "/contracts", permission: "contracts:read" },
+  { prefix: "/bookings", permission: "bookings:read" },
+  { prefix: "/tasks", permission: "tasks:read" },
+  { prefix: "/invoices", permission: "invoices:read" },
+  { prefix: "/payments", permission: "payments:read" },
+  { prefix: "/payouts", permission: "payouts:read" },
+  { prefix: "/commissions", permission: "commissions:read" },
+  { prefix: "/insurance", permission: "insurance:read" },
+  { prefix: "/reports", permission: "analytics:read" },
+  { prefix: "/analytics", permission: "analytics:read" },
+  { prefix: "/vendors", permission: "vendors:read" },
+  { prefix: "/packages", permission: "packages:read" },
+  { prefix: "/pricing", permission: "pricing:read" },
+  { prefix: "/menu", permission: "menu:read" },
+  { prefix: "/inventory", permission: "inventory:read" },
+  { prefix: "/rentals", permission: "rentals:read" },
+  { prefix: "/staff", permission: "staff:read" },
+  { prefix: "/resources", permission: "resources:read" },
+  { prefix: "/campaigns", permission: "campaigns:read" },
+  { prefix: "/referrals", permission: "referrals:read" },
+  { prefix: "/loyalty", permission: "loyalty:read" },
+  { prefix: "/surveys", permission: "surveys:read" },
+  { prefix: "/reviews", permission: "reviews:read" },
+  { prefix: "/gallery", permission: "gallery:read" },
+  { prefix: "/competitors", permission: "competitors:read" },
+  { prefix: "/documents", permission: "documents:read" },
+  { prefix: "/whatsapp", permission: "whatsapp:read" },
+  { prefix: "/performance", permission: "performance:read" },
+  { prefix: "/crm", permission: "communications:read" },
+  { prefix: "/inquiries", permission: "leads:read" },
+  { prefix: "/settings", permission: "settings:read" },
+];
+
+/** The permission a path requires (longest matching prefix wins), or null. */
+export function routePermission(pathname: string): Permission | null {
+  let best: { prefix: string; permission: Permission } | null = null;
+  for (const r of ROUTE_PERMISSIONS) {
+    const match = pathname === r.prefix || pathname.startsWith(r.prefix + "/");
+    if (match && (!best || r.prefix.length > best.prefix.length)) best = r;
+  }
+  return best ? best.permission : null;
+}
 
 // ============================================================
 // Permission Check Functions

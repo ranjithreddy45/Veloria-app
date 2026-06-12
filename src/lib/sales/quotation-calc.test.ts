@@ -1,0 +1,138 @@
+import { describe, it, expect } from "vitest";
+import {
+  computeQuotation,
+  buildPaymentSchedule,
+  validateQuotationInput,
+  QUOTE_CATALOG,
+  type QuotationInput,
+} from "./quotation-calc";
+
+// ============================================================
+// Oracle = "Veloria Grand Quotation Planner.xlsx" worked example:
+//   Guests 120 · Veg Gold (699) · Baby shower premium decor (25000)
+//   · Photography B'day (15000) · no drinks/rooms
+//   → Food 83,880 + Decor 25,000 + Photo 15,000 = 123,880
+//   → Tax 5% = 6,194 → Grand Total = 130,074
+// ============================================================
+
+describe("computeQuotation — planner oracle", () => {
+  const input: QuotationInput = {
+    guestCount: 120,
+    foodPackageId: "veg_gold",
+    decorId: "babyshower_premium",
+    photographyId: "bday",
+  };
+
+  it("food line = per-plate × guests", () => {
+    const r = computeQuotation(input);
+    const food = r.lines.find((l) => l.particulars === "Food Plan");
+    expect(food?.amount).toBe(83880);
+  });
+
+  it("decor + photography are fixed", () => {
+    const r = computeQuotation(input);
+    expect(r.lines.find((l) => l.particulars === "Decor Plan")?.amount).toBe(25000);
+    expect(r.lines.find((l) => l.particulars === "Photography / Videography")?.amount).toBe(15000);
+  });
+
+  it("subtotal, tax and grand total match the planner to the rupee", () => {
+    const r = computeQuotation(input);
+    expect(r.subtotal).toBe(123880);
+    expect(r.tax).toBe(6194);
+    expect(r.grandTotal).toBe(130074);
+  });
+});
+
+describe("computeQuotation — line engines", () => {
+  it("cake = rate/kg × kg", () => {
+    const r = computeQuotation({ guestCount: 100, cakeId: "premium", cakeKg: 3 });
+    expect(r.lines.find((l) => l.particulars === "Cake Plan")?.amount).toBe(6000);
+  });
+
+  it("drinks = per-person × guests", () => {
+    const r = computeQuotation({ guestCount: 80, drinksPerPerson: 150 });
+    expect(r.lines.find((l) => l.particulars === "Drinks Plan")?.amount).toBe(12000);
+  });
+
+  it("accommodation = rooms × charge (default 2500)", () => {
+    const r = computeQuotation({ guestCount: 50, rooms: 4 });
+    expect(r.lines.find((l) => l.particulars.startsWith("Accommodation"))?.amount).toBe(10000);
+  });
+
+  it("activities sum the selected fixed items", () => {
+    const r = computeQuotation({ guestCount: 50, activityIds: ["balloon", "caricature"] });
+    expect(r.lines.find((l) => l.particulars === "Activity Plan")?.amount).toBe(5000);
+  });
+
+  it("photography 'other' uses the custom amount", () => {
+    const r = computeQuotation({
+      guestCount: 50,
+      photographyId: "other",
+      photographyCustomAmount: 22000,
+    });
+    expect(r.lines.find((l) => l.particulars === "Photography / Videography")?.amount).toBe(22000);
+  });
+
+  it("per-plate override beats the catalog rate", () => {
+    const r = computeQuotation({
+      guestCount: 100,
+      foodPackageId: "veg_gold",
+      foodPerPlateOverride: 650,
+    });
+    expect(r.lines.find((l) => l.particulars === "Food Plan")?.amount).toBe(65000);
+  });
+});
+
+describe("computeQuotation — discount", () => {
+  it("applies discount to the subtotal before tax", () => {
+    // subtotal 100000, 10% off → 90000, +5% tax → 94500
+    const r = computeQuotation({
+      guestCount: 100,
+      foodPackageId: "veg_silver", // 599 × 100 = 59900
+      customLines: [{ label: "Misc", amount: 40100 }],
+      discountPct: 10,
+    });
+    expect(r.subtotal).toBe(100000);
+    expect(r.discountAmount).toBe(10000);
+    expect(r.taxableAmount).toBe(90000);
+    expect(r.tax).toBe(4500);
+    expect(r.grandTotal).toBe(94500);
+  });
+
+  it("clamps discount into 0..100", () => {
+    expect(computeQuotation({ guestCount: 1, customLines: [{ label: "x", amount: 100 }], discountPct: 200 }).discountPct).toBe(100);
+    expect(computeQuotation({ guestCount: 1, customLines: [{ label: "x", amount: 100 }], discountPct: -5 }).discountPct).toBe(0);
+  });
+});
+
+describe("buildPaymentSchedule", () => {
+  it("splits 10/50/40 and always sums to the grand total", () => {
+    const sched = buildPaymentSchedule(130074);
+    expect(sched.map((s) => s.pct)).toEqual([10, 50, 40]);
+    expect(sched[0].amount).toBe(13007);
+    expect(sched[1].amount).toBe(65037);
+    expect(sched.reduce((s, i) => s + i.amount, 0)).toBe(130074); // no drift
+  });
+});
+
+describe("validateQuotationInput", () => {
+  it("rejects empty / zero-guest / line-less quotes", () => {
+    expect(validateQuotationInput({})).toContain("Guest count must be at least 1.");
+    expect(validateQuotationInput({ guestCount: 10 })).toContain(
+      "Add at least one line item to the quotation."
+    );
+  });
+
+  it("accepts a valid quote", () => {
+    expect(validateQuotationInput({ guestCount: 10, foodPackageId: "veg_gold" })).toEqual([]);
+  });
+});
+
+describe("catalog integrity", () => {
+  it("ids are unique within each category", () => {
+    for (const cat of [QUOTE_CATALOG.food, QUOTE_CATALOG.decor, QUOTE_CATALOG.activity, QUOTE_CATALOG.cake, QUOTE_CATALOG.photography]) {
+      const ids = cat.map((c) => c.id);
+      expect(new Set(ids).size).toBe(ids.length);
+    }
+  });
+});

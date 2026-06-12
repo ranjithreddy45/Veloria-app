@@ -221,6 +221,7 @@ export async function createLead(data: LeadInput) {
         description: leadData.description || null,
         score,
         firstContactDue: leadSlaDeadline(),
+        ...(leadData.assignedToId ? { assignedToId: leadData.assignedToId } : {}),
         createdById: session.user.id as string,
       },
       include: {
@@ -237,14 +238,16 @@ export async function createLead(data: LeadInput) {
       entityId: lead.id,
     });
 
-    // Auto-assign lead based on assignment rules
+    // Auto-assign by rules ONLY when the sales rep didn't pick an assignee.
     try {
-      const assignedUserId = await evaluateAssignmentRules({
-        source: lead.source,
-        eventType: lead.eventType ?? undefined,
-        status: lead.status,
-        score: lead.score,
-      });
+      const assignedUserId = leadData.assignedToId
+        ? null
+        : await evaluateAssignmentRules({
+            source: lead.source,
+            eventType: lead.eventType ?? undefined,
+            status: lead.status,
+            score: lead.score,
+          });
 
       if (assignedUserId) {
         await prisma.lead.update({

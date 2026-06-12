@@ -29,6 +29,16 @@ export default async function NewLeadPage() {
     orderBy: { name: "asc" },
   });
 
+  // Internal sales-facing users a lead can be assigned to.
+  const users = await prisma.user.findMany({
+    where: {
+      isActive: true,
+      role: { in: ["SALES_EXEC", "EVENT_COORDINATOR", "ADMIN", "SUPER_ADMIN"] },
+    },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -36,7 +46,7 @@ export default async function NewLeadPage() {
         description="Create a new sales lead."
       />
       <div className="mx-auto max-w-3xl">
-        <LeadForm contacts={contacts} venues={venues} />
+        <LeadForm contacts={contacts} venues={venues} users={users} />
       </div>
     </div>
   );

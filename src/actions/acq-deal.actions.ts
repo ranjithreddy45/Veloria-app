@@ -20,6 +20,8 @@ import {
   ONBOARDING_SEED_TASKS,
   ACQ_LOST_REASON,
   ACQ_DEAL_MODEL,
+  ACQ_OWNER_TYPE,
+  ACQ_PROPERTY_TYPE,
   type AcqDealStage,
   type AcqLostReason,
 } from "@/lib/acq/constants";
@@ -83,7 +85,7 @@ export async function updateAcqDeal(
   const allowed = [
     "ownerCurrentMonthlyRevenue", "avgEventsPerMonth", "peakRateCard",
     "model", "baseFeePct", "incentivePct", "royaltyPct", "termYears", "lockinYears",
-    "isExclusive", "expectedMonthlyEvents", "projectedFeeValue",
+    "isExclusive", "expectedMonthlyEvents", "projectedFeeValue", "banquetSizeSft",
     "signatoryAuthorityVerified", "gpaDocumentUrl", "expectedCloseDate",
   ];
   const data: Record<string, unknown> = {};
@@ -93,6 +95,15 @@ export async function updateAcqDeal(
   if (data.model != null && !ACQ_DEAL_MODEL.includes(data.model as never)) {
     return { success: false, error: "Invalid model" };
   }
+
+  // Once economics are frozen, the agreed commercials are immutable.
+  if (deal.economicsFrozenAt) {
+    for (const locked of ["baseFeePct", "incentivePct", "termYears"]) {
+      if (locked in data) {
+        return { success: false, error: "Economics are frozen — base fee, incentive and term can't be changed." };
+      }
+    }
+  }
   if (data.expectedCloseDate) data.expectedCloseDate = new Date(data.expectedCloseDate as string);
 
   // Defense in depth: never let a NaN/Infinity reach a numeric column, and
@@ -100,19 +111,48 @@ export async function updateAcqDeal(
   const numericFields = [
     "ownerCurrentMonthlyRevenue", "avgEventsPerMonth", "peakRateCard",
     "baseFeePct", "incentivePct", "royaltyPct", "termYears", "lockinYears",
-    "expectedMonthlyEvents", "projectedFeeValue",
+    "expectedMonthlyEvents", "projectedFeeValue", "banquetSizeSft",
   ];
+  const intFields = new Set(["termYears", "lockinYears", "banquetSizeSft"]);
   for (const k of numericFields) {
     if (data[k] != null) {
       const n = Number(data[k]);
       if (!Number.isFinite(n)) {
         return { success: false, error: `Invalid number for ${k}.` };
       }
-      data[k] = k === "termYears" || k === "lockinYears" ? Math.trunc(n) : n;
+      data[k] = intFields.has(k) ? Math.trunc(n) : n;
     }
   }
 
   await prisma.acqDeal.update({ where: { id }, data });
+  revalidatePath(`/bd/deals/${id}`);
+  return { success: true, data: { id } };
+}
+
+// ------------------------------------------------------------
+// Freeze / unfreeze economics — locks base fee, incentive, term.
+// Freeze: BD Head (or admin). Unfreeze: BD Head only.
+// ------------------------------------------------------------
+export async function setAcqDealEconomicsFrozen(
+  id: string,
+  frozen: boolean
+): Promise<Result<{ id: string }>> {
+  const user = await requireUser();
+  if (!user || !acqCan(user.role, "bdhead:approve")) {
+    return { success: false, error: "Only a BD Head can freeze or unfreeze economics." };
+  }
+  const deal = await prisma.acqDeal.findFirst({ where: { id, deletedAt: null } });
+  if (!deal) return { success: false, error: "Deal not found" };
+
+  if (frozen) {
+    if (deal.baseFeePct == null || deal.incentivePct == null || deal.termYears == null) {
+      return { success: false, error: "Set base fee, incentive and term before freezing." };
+    }
+  }
+  await prisma.acqDeal.update({
+    where: { id },
+    data: { economicsFrozenAt: frozen ? new Date() : null },
+  });
   revalidatePath(`/bd/deals/${id}`);
   return { success: true, data: { id } };
 }
@@ -185,12 +225,56 @@ export async function addAcqNote(
   const user = await requireUser();
   if (!user || !acqCan(user.role, "lead:write")) return { success: false, error: "Unauthorized" };
   if (!input.body?.trim()) return { success: false, error: "Note body required" };
+  const deal = await prisma.acqDeal.findFirst({
+    where: { id: dealId, deletedAt: null },
+    select: { propertyName: true, bdExecutiveId: true },
+  });
+  if (!deal) return { success: false, error: "Deal not found" };
+
   const note = await prisma.acqDealNote.create({
     data: { dealId, noteType: input.noteType, body: input.body.trim(), authorId: user.id },
     select: { id: true },
   });
+
+  // Negotiation / change requests → alert Management + BD Heads + the BD owner,
+  // so nothing the owner asks for is missed and the team stays in the loop.
+  if (input.noteType === "NEGOTIATION") {
+    await notifyDealStakeholders(deal.bdExecutiveId, {
+      title: "Negotiation update",
+      message: `${deal.propertyName}: ${input.body.trim().slice(0, 120)}`,
+      actionUrl: `/bd/deals/${dealId}`,
+      excludeUserId: user.id,
+    });
+  }
+
   revalidatePath(`/bd/deals/${dealId}`);
   return { success: true, data: { id: note.id } };
+}
+
+/** Notify Management (admins) + BD Heads + the deal's BD owner. */
+async function notifyDealStakeholders(
+  bdExecutiveId: string,
+  n: { title: string; message: string; actionUrl: string; excludeUserId?: string }
+) {
+  try {
+    const recipients = await prisma.user.findMany({
+      where: {
+        isActive: true,
+        OR: [
+          { role: { in: ["SUPER_ADMIN", "ADMIN", "BD_HEAD"] } },
+          { id: bdExecutiveId },
+        ],
+      },
+      select: { id: true },
+    });
+    const ids = new Set(recipients.map((r) => r.id));
+    ids.delete(n.excludeUserId ?? "");
+    for (const id of ids) {
+      notify({ userId: id, type: "SYSTEM", title: n.title, message: n.message, actionUrl: n.actionUrl });
+    }
+  } catch (e) {
+    console.error("[notifyDealStakeholders] error:", e);
+  }
 }
 
 /** Legal/BD Head marks the executed contract as signed (precondition for the SIGNED stage). */
@@ -213,6 +297,70 @@ export async function approveAcqDeal(dealId: string): Promise<Result<{ id: strin
   await prisma.acqDeal.update({
     where: { id: dealId },
     data: { bdHeadApprovedById: user.id, bdHeadApprovedAt: new Date() },
+  });
+  revalidatePath(`/bd/deals/${dealId}`);
+  return { success: true, data: { id: dealId } };
+}
+
+// ------------------------------------------------------------
+// Edit Overview details (BD team) — logs every change for transparency
+// ------------------------------------------------------------
+export async function editAcqDealOverview(
+  dealId: string,
+  patch: {
+    ownerName?: string;
+    ownerType?: string;
+    propertyName?: string;
+    propertyType?: string;
+    city?: string;
+    locality?: string;
+    seatingTheatre?: number | null;
+    seatingFloating?: number | null;
+  }
+): Promise<Result<{ id: string }>> {
+  const user = await requireUser();
+  if (!user || !acqCan(user.role, "lead:write")) return { success: false, error: "Unauthorized" };
+  const deal = await prisma.acqDeal.findFirst({ where: { id: dealId, deletedAt: null } });
+  if (!deal) return { success: false, error: "Deal not found" };
+
+  if (patch.ownerType && !ACQ_OWNER_TYPE.includes(patch.ownerType as never)) {
+    return { success: false, error: "Invalid owner type" };
+  }
+  if (patch.propertyType && !ACQ_PROPERTY_TYPE.includes(patch.propertyType as never)) {
+    return { success: false, error: "Invalid property type" };
+  }
+
+  const fields: (keyof typeof patch)[] = [
+    "ownerName", "ownerType", "propertyName", "propertyType",
+    "city", "locality", "seatingTheatre", "seatingFloating",
+  ];
+  const data: Record<string, unknown> = {};
+  const changes: string[] = [];
+  for (const k of fields) {
+    if (patch[k] === undefined) continue;
+    let v: unknown = patch[k];
+    if (k === "seatingTheatre" || k === "seatingFloating") {
+      v = v == null || v === "" ? null : Math.trunc(Number(v));
+      if (v != null && !Number.isFinite(v)) v = null;
+    }
+    const before = (deal as Record<string, unknown>)[k];
+    if (String(before ?? "") !== String(v ?? "")) {
+      data[k] = v;
+      changes.push(`${k}: "${before ?? "—"}" → "${v ?? "—"}"`);
+    }
+  }
+
+  if (changes.length === 0) return { success: true, data: { id: dealId } };
+
+  await prisma.acqDeal.update({ where: { id: dealId }, data });
+  // Transparent change log — written as a note so it shows in the deal thread.
+  await prisma.acqDealNote.create({
+    data: {
+      dealId,
+      noteType: "CHANGE_LOG",
+      body: changes.join("\n"),
+      authorId: user.id,
+    },
   });
   revalidatePath(`/bd/deals/${dealId}`);
   return { success: true, data: { id: dealId } };

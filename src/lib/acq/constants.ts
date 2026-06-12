@@ -19,6 +19,30 @@ export type AcqLeadSource = (typeof ACQ_LEAD_SOURCE)[number];
 export const ACQ_PROPERTY_STAGE = ["OPERATIONAL", "CONVERSION", "BROWNFIELD", "GREENFIELD"] as const;
 export type AcqPropertyStage = (typeof ACQ_PROPERTY_STAGE)[number];
 
+// ---- Contracts (CLM) ----
+export const ACQ_CONTRACT_PHASE = ["AUTHORING", "APPROVAL", "NEGOTIATION", "EXECUTION", "POST_EXECUTION"] as const;
+export type AcqContractPhase = (typeof ACQ_CONTRACT_PHASE)[number];
+
+export const ACQ_CONTRACT_LIFECYCLE = ["DRAFT", "APPROVED", "NEGOTIATED", "SIGNED", "ACTIVE", "TERMINATED"] as const;
+export type AcqContractLifecycle = (typeof ACQ_CONTRACT_LIFECYCLE)[number];
+
+export const ACQ_CONTRACT_PHASE_LABEL: Record<AcqContractPhase, string> = {
+  AUTHORING: "Authoring",
+  APPROVAL: "Approval",
+  NEGOTIATION: "Negotiation",
+  EXECUTION: "Execution",
+  POST_EXECUTION: "Post-Execution",
+};
+
+export const ACQ_CONTRACT_LIFECYCLE_LABEL: Record<AcqContractLifecycle, string> = {
+  DRAFT: "Draft",
+  APPROVED: "Approved",
+  NEGOTIATED: "Negotiated",
+  SIGNED: "Signed",
+  ACTIVE: "Active",
+  TERMINATED: "Terminated",
+};
+
 export const ACQ_SEATING_RANGE = ["R_50_100", "R_100_150", "R_150_200", "R_200_300", "R_300_500", "R_500_PLUS"] as const;
 export type AcqSeatingRange = (typeof ACQ_SEATING_RANGE)[number];
 

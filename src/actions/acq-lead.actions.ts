@@ -424,7 +424,11 @@ export async function reassignAcqLead(
   if (!lead) return { success: false, error: "Lead not found" };
 
   const target = await prisma.user.findFirst({
-    where: { id: bdExecutiveId, isActive: true, role: { in: ["BD_EXECUTIVE", "BD_HEAD"] } },
+    where: {
+      id: bdExecutiveId,
+      isActive: true,
+      role: { in: ["BD_EXECUTIVE", "BD_HEAD", "SUPER_ADMIN", "ADMIN", "OPERATIONS"] },
+    },
     select: { id: true, name: true },
   });
   if (!target) return { success: false, error: "Pick a valid BD team member." };

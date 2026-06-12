@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -12,12 +12,15 @@ import {
   Circle,
   FileSignature,
   Loader2,
+  Lock,
   Paperclip,
+  Pencil,
   Plus,
   ShieldCheck,
 } from "lucide-react";
 import { requiresBdHeadApproval } from "@/lib/acq/domain";
 import { acqCan } from "@/lib/acq/rbac";
+import { cn } from "@/lib/utils";
 
 import {
   transitionAcqDeal,
@@ -27,10 +30,14 @@ import {
   addAcqNote,
   markAcqContractSigned,
   approveAcqDeal,
+  setAcqDealEconomicsFrozen,
+  editAcqDealOverview,
 } from "@/actions/acq-deal.actions";
 import {
   ACQ_DEAL_STAGE_LABEL,
   ACQ_LOST_REASON,
+  ACQ_OWNER_TYPE,
+  ACQ_PROPERTY_TYPE,
   type AcqDealStage,
   type AcqLostReason,
 } from "@/lib/acq/constants";
@@ -98,7 +105,7 @@ export interface AcqAttachmentRow {
 
 export interface AcqNoteRow {
   id: string;
-  noteType: "NEGOTIATION" | "INTERNAL" | "GENERAL";
+  noteType: "NEGOTIATION" | "INTERNAL" | "GENERAL" | "CHANGE_LOG" | string;
   body: string;
   createdAt: string;
   author?: { name: string | null } | null;
@@ -128,6 +135,8 @@ export interface AcqDealDetail {
   isExclusive: boolean;
   expectedMonthlyEvents: Num;
   projectedFeeValue: Num;
+  banquetSizeSft: Num;
+  economicsFrozenAt: string | null;
   evalScore: Num;
   evalPassed: boolean | null;
   contractStatus: string;
@@ -293,7 +302,7 @@ export function DealDetail({
             <OverviewTab deal={deal} userRole={userRole} onMutate={() => router.refresh()} />
           </TabsContent>
           <TabsContent value="economics" className="mt-4">
-            <EconomicsTab deal={deal} onMutate={() => router.refresh()} />
+            <EconomicsTab deal={deal} userRole={userRole} onMutate={() => router.refresh()} />
           </TabsContent>
           <TabsContent value="evaluation" className="mt-4">
             <EvaluationTab deal={deal} onMutate={() => router.refresh()} />
@@ -514,7 +523,10 @@ function OverviewTab({
   onMutate: () => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const canApprove = acqCan(userRole, "bdhead:approve");
+  const canEdit = acqCan(userRole, "lead:write");
+  const changeLog = deal.notes.filter((n) => n.noteType === "CHANGE_LOG");
   const seating = [num(deal.seatingTheatre), num(deal.seatingFloating)]
     .filter((n) => n != null)
     .map((n, i) => `${n} ${i === 0 ? "theatre" : "floating"}`)
@@ -534,8 +546,13 @@ function OverviewTab({
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-[15px]">Overview</CardTitle>
+        {canEdit && (
+          <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+            <Pencil className="size-3.5" /> Edit
+          </Button>
+        )}
       </CardHeader>
       <CardContent className="space-y-5">
         <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -586,8 +603,139 @@ function OverviewTab({
             </div>
           )}
         </div>
+
+        {/* Transparent change log */}
+        <div className="space-y-2">
+          <div className="text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
+            Change log
+          </div>
+          {changeLog.length === 0 ? (
+            <p className="text-[12.5px] text-muted-foreground">No edits yet.</p>
+          ) : (
+            <ul className="space-y-2">
+              {changeLog.map((n) => (
+                <li key={n.id} className="rounded-md border border-border/60 p-2.5 text-[12.5px]">
+                  <pre className="whitespace-pre-wrap font-sans text-foreground">{n.body}</pre>
+                  <div className="pt-1 text-[11px] text-muted-foreground">
+                    {n.author?.name ?? "—"} · {fmtDate(n.createdAt)}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </CardContent>
+
+      <OverviewEditDialog
+        deal={deal}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        onMutate={onMutate}
+      />
     </Card>
+  );
+}
+
+function OverviewEditDialog({
+  deal,
+  open,
+  onOpenChange,
+  onMutate,
+}: {
+  deal: AcqDealDetail;
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  onMutate: () => void;
+}) {
+  const [ownerName, setOwnerName] = useState(deal.ownerName ?? "");
+  const [ownerType, setOwnerType] = useState(deal.ownerType ?? "SOLE_OWNER");
+  const [propertyName, setPropertyName] = useState(deal.propertyName ?? "");
+  const [propertyType, setPropertyType] = useState(deal.propertyType ?? "BANQUET");
+  const [city, setCity] = useState(deal.city ?? "");
+  const [locality, setLocality] = useState(deal.locality ?? "");
+  const [seatTheatre, setSeatTheatre] = useState(numStr(deal.seatingTheatre));
+  const [seatFloating, setSeatFloating] = useState(numStr(deal.seatingFloating));
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setOwnerName(deal.ownerName ?? "");
+      setOwnerType(deal.ownerType ?? "SOLE_OWNER");
+      setPropertyName(deal.propertyName ?? "");
+      setPropertyType(deal.propertyType ?? "BANQUET");
+      setCity(deal.city ?? "");
+      setLocality(deal.locality ?? "");
+      setSeatTheatre(numStr(deal.seatingTheatre));
+      setSeatFloating(numStr(deal.seatingFloating));
+    }
+  }, [open, deal]);
+
+  async function save() {
+    setBusy(true);
+    try {
+      const res = await editAcqDealOverview(deal.id, {
+        ownerName: ownerName.trim(),
+        ownerType,
+        propertyName: propertyName.trim(),
+        propertyType,
+        city: city.trim(),
+        locality: locality.trim(),
+        seatingTheatre: seatTheatre.trim() === "" ? null : Math.trunc(Number(seatTheatre)),
+        seatingFloating: seatFloating.trim() === "" ? null : Math.trunc(Number(seatFloating)),
+      });
+      if (!res.success) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Overview updated");
+      onOpenChange(false);
+      onMutate();
+    } catch {
+      toast.error("Couldn't save — please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Edit overview</DialogTitle>
+          <DialogDescription>Changes are logged below for the team.</DialogDescription>
+        </DialogHeader>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5"><Label>Owner</Label><Input value={ownerName} onChange={(e) => setOwnerName(e.target.value)} /></div>
+          <div className="space-y-1.5">
+            <Label>Owner type</Label>
+            <Select value={ownerType} onValueChange={setOwnerType}>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {ACQ_OWNER_TYPE.map((o) => (<SelectItem key={o} value={o}>{o.replaceAll("_", " ")}</SelectItem>))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5"><Label>Property</Label><Input value={propertyName} onChange={(e) => setPropertyName(e.target.value)} /></div>
+          <div className="space-y-1.5">
+            <Label>Property type</Label>
+            <Select value={propertyType} onValueChange={setPropertyType}>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {ACQ_PROPERTY_TYPE.map((o) => (<SelectItem key={o} value={o}>{o.replaceAll("_", " ")}</SelectItem>))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5"><Label>City</Label><Input value={city} onChange={(e) => setCity(e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>Locality</Label><Input value={locality} onChange={(e) => setLocality(e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>Seating — theatre</Label><Input inputMode="numeric" value={seatTheatre} onChange={(e) => setSeatTheatre(e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>Seating — floating</Label><Input inputMode="numeric" value={seatFloating} onChange={(e) => setSeatFloating(e.target.value)} /></div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>Cancel</Button>
+          <Button onClick={save} disabled={busy}>{busy ? "Saving…" : "Save changes"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -596,11 +744,15 @@ function OverviewTab({
 // ------------------------------------------------------------
 function EconomicsTab({
   deal,
+  userRole,
   onMutate,
 }: {
   deal: AcqDealDetail;
+  userRole?: string;
   onMutate: () => void;
 }) {
+  const frozen = !!deal.economicsFrozenAt;
+  const canFreeze = acqCan(userRole, "bdhead:approve");
   const [model, setModel] = useState<"MANAGEMENT" | "FRANCHISE">(
     deal.model ?? "MANAGEMENT"
   );
@@ -609,6 +761,8 @@ function EconomicsTab({
   const [royaltyPct, setRoyaltyPct] = useState(numStr(deal.royaltyPct));
   const [termYears, setTermYears] = useState(numStr(deal.termYears));
   const [lockinYears, setLockinYears] = useState(numStr(deal.lockinYears));
+  const [banquetSizeSft, setBanquetSizeSft] = useState(numStr(deal.banquetSizeSft));
+  const [freezing, setFreezing] = useState(false);
   const [isExclusive, setIsExclusive] = useState(Boolean(deal.isExclusive));
   const [expectedMonthlyEvents, setExpectedMonthlyEvents] = useState(
     numStr(deal.expectedMonthlyEvents)
@@ -640,12 +794,9 @@ function EconomicsTab({
   async function save() {
     setBusy(true);
     try {
-      const res = await updateAcqDeal(deal.id, {
+      const patch: Record<string, unknown> = {
         model,
-        baseFeePct: numOrNull(baseFeePct),
-        incentivePct: numOrNull(incentivePct),
         royaltyPct: numOrNull(royaltyPct),
-        termYears: intOrNull(termYears),
         lockinYears: intOrNull(lockinYears),
         isExclusive,
         expectedMonthlyEvents: numOrNull(expectedMonthlyEvents),
@@ -653,7 +804,15 @@ function EconomicsTab({
         ownerCurrentMonthlyRevenue: numOrNull(ownerRevenue),
         avgEventsPerMonth: numOrNull(avgEvents),
         peakRateCard: numOrNull(peakRateCard),
-      });
+        banquetSizeSft: intOrNull(banquetSizeSft),
+      };
+      // Frozen → never send the locked commercials (the server would reject).
+      if (!frozen) {
+        patch.baseFeePct = numOrNull(baseFeePct);
+        patch.incentivePct = numOrNull(incentivePct);
+        patch.termYears = intOrNull(termYears);
+      }
+      const res = await updateAcqDeal(deal.id, patch);
       if (!res.success) {
         toast.error(res.error);
         return;
@@ -664,6 +823,23 @@ function EconomicsTab({
       toast.error("Couldn't save — please try again.");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function toggleFreeze() {
+    setFreezing(true);
+    try {
+      const res = await setAcqDealEconomicsFrozen(deal.id, !frozen);
+      if (!res.success) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(frozen ? "Economics unfrozen" : "Economics frozen");
+      onMutate();
+    } catch {
+      toast.error("Couldn't update — please try again.");
+    } finally {
+      setFreezing(false);
     }
   }
 
@@ -700,11 +876,13 @@ function EconomicsTab({
                 label="Base fee %"
                 value={baseFeePct}
                 onChange={setBaseFeePct}
+                disabled={frozen}
               />
               <NumField
                 label="Incentive %"
                 value={incentivePct}
                 onChange={setIncentivePct}
+                disabled={frozen}
               />
             </>
           ) : (
@@ -719,6 +897,7 @@ function EconomicsTab({
             label="Term (years)"
             value={termYears}
             onChange={setTermYears}
+            disabled={frozen}
           />
           <NumField
             label="Lock-in (years)"
@@ -750,6 +929,11 @@ function EconomicsTab({
             value={peakRateCard}
             onChange={setPeakRateCard}
           />
+          <NumField
+            label="Venue size (sqft)"
+            value={banquetSizeSft}
+            onChange={setBanquetSizeSft}
+          />
         </div>
 
         <div className="flex items-center justify-between rounded-md border border-border/60 p-3">
@@ -760,6 +944,37 @@ function EconomicsTab({
             </p>
           </div>
           <Switch checked={isExclusive} onCheckedChange={setIsExclusive} />
+        </div>
+
+        {/* Freeze banner — locks the agreed base fee / incentive / term. */}
+        <div
+          className={cn(
+            "flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:items-center sm:justify-between",
+            frozen ? "border-emerald-300 bg-emerald-50/60" : "border-border/60"
+          )}
+        >
+          <div className="space-y-0.5">
+            <Label className="flex items-center gap-1.5 text-[13px]">
+              {frozen && <Lock className="size-3.5 text-emerald-600" />}
+              {frozen ? "Economics frozen" : "Freeze economics"}
+            </Label>
+            <p className="text-[11.5px] text-muted-foreground">
+              {frozen
+                ? "Base fee, incentive and term are locked at the agreed terms."
+                : "Lock base fee, incentive and term once agreed with the owner."}
+            </p>
+          </div>
+          {canFreeze && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleFreeze}
+              disabled={freezing}
+            >
+              {freezing && <Loader2 className="size-3.5 animate-spin" />}
+              {frozen ? "Unfreeze" : "Freeze economics"}
+            </Button>
+          )}
         </div>
 
         <div className="flex justify-end">
@@ -777,10 +992,12 @@ function NumField({
   label,
   value,
   onChange,
+  disabled,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="space-y-1.5">
@@ -788,6 +1005,7 @@ function NumField({
       <Input
         type="number"
         value={value}
+        disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
       />
     </div>
@@ -1236,6 +1454,117 @@ function NegotiationTab({
 }
 
 // ------------------------------------------------------------
+// Required agreement documents (Aadhaar, PAN, property tax, ownership…)
+// ------------------------------------------------------------
+const REQUIRED_DOCS = [
+  "Aadhaar (Owner)",
+  "PAN (Owner / Business)",
+  "Property Tax Receipt",
+  "Ownership Document",
+] as const;
+
+function ContractDocuments({
+  deal,
+  onMutate,
+}: {
+  deal: AcqDealDetail;
+  onMutate: () => void;
+}) {
+  const docs = deal.attachments.filter((a) => a.kind === "DOCUMENT");
+  const [urls, setUrls] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState<string | null>(null);
+
+  async function add(label: string) {
+    const url = (urls[label] ?? "").trim();
+    if (!url) {
+      toast.error("Paste a document link first.");
+      return;
+    }
+    setBusy(label);
+    try {
+      const res = await addAcqAttachment(deal.id, { kind: "DOCUMENT", url, label });
+      if (!res.success) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(`${label} uploaded`);
+      setUrls((p) => ({ ...p, [label]: "" }));
+      onMutate();
+    } catch {
+      toast.error("Couldn't upload — please try again.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <div className="space-y-2 rounded-md border border-border/60 p-3">
+      <Label className="text-[13px]">Agreement documents</Label>
+      <p className="text-[11.5px] text-muted-foreground">
+        Upload the owner&apos;s KYC and property papers needed for the agreement.
+      </p>
+      <div className="space-y-2 pt-1">
+        {REQUIRED_DOCS.map((label) => {
+          const existing = docs.find((d) => d.label === label);
+          return (
+            <div key={label} className="flex flex-col gap-1.5 sm:flex-row sm:items-center">
+              <span className="flex w-full items-center gap-1.5 text-[12.5px] sm:w-52">
+                {existing ? (
+                  <CheckCircle2 className="size-3.5 shrink-0 text-emerald-600" />
+                ) : (
+                  <Circle className="size-3.5 shrink-0 text-muted-foreground/40" />
+                )}
+                {label}
+              </span>
+              {existing ? (
+                <a
+                  href={existing.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[12.5px] text-primary hover:underline"
+                >
+                  View uploaded
+                </a>
+              ) : (
+                <div className="flex flex-1 gap-2">
+                  <Input
+                    value={urls[label] ?? ""}
+                    onChange={(e) => setUrls((p) => ({ ...p, [label]: e.target.value }))}
+                    placeholder="https://… (document link)"
+                    className="h-8 text-[12.5px]"
+                  />
+                  <Button size="sm" variant="outline" onClick={() => add(label)} disabled={busy === label}>
+                    {busy === label ? <Loader2 className="size-3.5 animate-spin" /> : "Add"}
+                  </Button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {/* Any other documents */}
+      {docs.filter((d) => !REQUIRED_DOCS.includes(d.label as never)).length > 0 && (
+        <div className="space-y-1 border-t border-border/50 pt-2">
+          {docs
+            .filter((d) => !REQUIRED_DOCS.includes(d.label as never))
+            .map((d) => (
+              <a
+                key={d.id}
+                href={d.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-[12.5px] text-primary hover:underline"
+              >
+                {d.label ?? "Document"}
+              </a>
+            ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ------------------------------------------------------------
 // Contract tab
 // ------------------------------------------------------------
 function ContractTab({
@@ -1359,6 +1688,8 @@ function ContractTab({
             </Button>
           </div>
         </div>
+
+        <ContractDocuments deal={deal} onMutate={onMutate} />
 
         <div className="flex items-center justify-between rounded-md border border-border/60 p-3">
           <div className="flex items-center gap-2 text-[12.5px] text-muted-foreground">

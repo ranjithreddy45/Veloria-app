@@ -1,6 +1,7 @@
 import NextAuth from "next-auth";
 import authConfig from "./auth.config";
 import { NextResponse } from "next/server";
+import { routePermission, hasPermission } from "@/lib/permissions";
 
 /**
  * Use the edge-safe authConfig (no Prisma, no bcryptjs) for middleware.
@@ -99,6 +100,22 @@ export default auth((req) => {
   if (isInternalRoute) {
     if (!role || !(INTERNAL_ROLES as readonly string[]).includes(role)) {
       return NextResponse.redirect(new URL("/not-authorized", nextUrl));
+    }
+    // Per-route permission enforcement. SUPER_ADMIN / ADMIN bypass everything;
+    // every other role must hold the permission the route requires. Effective
+    // (override-aware) permissions, when present on the session, win over the
+    // static defaults; otherwise we fall back to the role's default matrix.
+    if (role !== "SUPER_ADMIN" && role !== "ADMIN") {
+      const required = routePermission(pathname);
+      if (required) {
+        const effective = (user as { perms?: string[] } | undefined)?.perms;
+        const allowed = Array.isArray(effective)
+          ? effective.includes(required)
+          : hasPermission(role, required);
+        if (!allowed) {
+          return NextResponse.redirect(new URL("/not-authorized", nextUrl));
+        }
+      }
     }
   }
 

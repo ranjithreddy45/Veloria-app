@@ -18,6 +18,9 @@ export interface AcqDealCard {
   model: string | null;
   evalScore: number | string | null;
   ownerName: string;
+  seatingTheatre?: number | null;
+  seatingFloating?: number | null;
+  banquetSizeSft?: number | null;
   bdExecutive?: { id: string; name: string | null } | null;
 }
 
@@ -115,6 +118,16 @@ export function DealBoard({ deals }: { deals: AcqDealCard[] }) {
                           Score {score}
                         </span>
                       )}
+                      {(deal.seatingTheatre || deal.seatingFloating) && (
+                        <span className="rounded bg-muted px-1.5 py-0.5 font-medium">
+                          {Math.max(deal.seatingTheatre ?? 0, deal.seatingFloating ?? 0)} seats
+                        </span>
+                      )}
+                      {deal.banquetSizeSft ? (
+                        <span className="rounded bg-muted px-1.5 py-0.5 font-medium">
+                          {deal.banquetSizeSft.toLocaleString("en-IN")} sqft
+                        </span>
+                      ) : null}
                     </div>
 
                     <div className="flex items-center justify-between text-[11px] text-muted-foreground/80">

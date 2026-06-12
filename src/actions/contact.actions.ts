@@ -171,7 +171,7 @@ export async function createContact(data: ContactInput) {
     const contact = await prisma.contact.create({
       data: {
         firstName: contactData.firstName,
-        lastName: contactData.lastName,
+        lastName: contactData.lastName || "",
         email: contactData.email || null,
         phone: contactData.phone || null,
         company: contactData.company || null,

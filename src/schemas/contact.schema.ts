@@ -11,8 +11,9 @@ export const contactSchema = z.object({
     .max(100, "First name must be at most 100 characters"),
   lastName: z
     .string()
-    .min(1, "Last name is required")
-    .max(100, "Last name must be at most 100 characters"),
+    .max(100, "Last name must be at most 100 characters")
+    .optional()
+    .or(z.literal("")),
   email: z
     .string()
     .email("Please enter a valid email address")
@@ -20,9 +21,8 @@ export const contactSchema = z.object({
     .or(z.literal("")),
   phone: z
     .string()
-    .max(20, "Phone number must be at most 20 characters")
-    .optional()
-    .or(z.literal("")),
+    .min(7, "Phone number is required")
+    .max(20, "Phone number must be at most 20 characters"),
   company: z
     .string()
     .max(200, "Company name must be at most 200 characters")

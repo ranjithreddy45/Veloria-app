@@ -42,6 +42,12 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["owners:read"],
       },
       {
+        title: "Contracts",
+        href: "/bd/contracts",
+        icon: "FileText",
+        permissions: ["owners:read"],
+      },
+      {
         title: "Properties",
         href: "/bd/properties",
         icon: "Building2",
@@ -62,7 +68,7 @@ export const sidebarNavigation: NavItem[] = [
     permissions: ["contacts:read", "leads:read"],
     children: [
       {
-        title: "Contacts",
+        title: "Enquiry",
         href: "/contacts",
         icon: "Contact",
         permissions: ["contacts:read"],
@@ -122,6 +128,12 @@ export const sidebarNavigation: NavItem[] = [
         href: "/pipeline",
         icon: "Kanban",
         permissions: ["pipeline:read"],
+      },
+      {
+        title: "Quotations",
+        href: "/quotations",
+        icon: "Calculator",
+        permissions: ["quotes:read"],
       },
       {
         title: "Quotes",
@@ -482,6 +494,12 @@ export const sidebarNavigation: NavItem[] = [
         href: "/settings/users",
         icon: "Users",
         permissions: ["users:read"],
+      },
+      {
+        title: "Roles & Permissions",
+        href: "/settings/roles",
+        icon: "ShieldCheck",
+        permissions: ["users:manage-roles"],
       },
       {
         title: "Email Templates",

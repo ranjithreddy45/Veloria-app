@@ -597,8 +597,10 @@ function ReassignDialog({
   React.useEffect(() => {
     if (open) setTarget(lead.bdExecutive?.id ?? "");
   }, [open, lead]);
-  // Only BD execs/heads can OWN a lead.
-  const owners = bdUsers.filter((u) => u.role === "BD_EXECUTIVE" || u.role === "BD_HEAD");
+  // bdUsers is already the BD-capable set (exec/head/admin/ops) from the server.
+  // Show all of them so the dropdown is never empty; fall back to a clear note
+  // if there genuinely are no assignable users.
+  const owners = bdUsers;
 
   async function save() {
     if (!target) return;
@@ -629,9 +631,18 @@ function ReassignDialog({
         <Select value={target || undefined} onValueChange={setTarget}>
           <SelectTrigger className="w-full"><SelectValue placeholder="Select BD owner…" /></SelectTrigger>
           <SelectContent>
-            {owners.map((u) => (
-              <SelectItem key={u.id} value={u.id}>{u.name ?? "Unnamed"}</SelectItem>
-            ))}
+            {owners.length === 0 ? (
+              <div className="px-2 py-1.5 text-[12.5px] text-muted-foreground">
+                No assignable team members found.
+              </div>
+            ) : (
+              owners.map((u) => (
+                <SelectItem key={u.id} value={u.id}>
+                  {u.name ?? "Unnamed"}
+                  {u.role ? ` · ${u.role.replaceAll("_", " ")}` : ""}
+                </SelectItem>
+              ))
+            )}
           </SelectContent>
         </Select>
         <DialogFooter>

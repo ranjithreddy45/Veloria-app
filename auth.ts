@@ -11,12 +11,37 @@ import {
   verifyLoginOtp,
   findActiveUserByPhone,
 } from "@/lib/otp";
+import { getEffectivePermissions } from "@/lib/rbac";
 import type { UserRole } from "@prisma/client";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
 
   trustHost: true,
+
+  // Bake effective (override-aware) permissions into the token at sign-in so
+  // the edge middleware can enforce per-route access without a DB read.
+  callbacks: {
+    ...authConfig.callbacks,
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id as string;
+        const role = (user as { role?: string }).role;
+        (token as { role?: unknown }).role = role;
+        try {
+          (token as { perms?: string[] }).perms =
+            role === "SUPER_ADMIN" || role === "ADMIN"
+              ? ["*"]
+              : role
+                ? await getEffectivePermissions(role)
+                : [];
+        } catch {
+          (token as { perms?: string[] }).perms = undefined; // fall back to defaults
+        }
+      }
+      return token;
+    },
+  },
 
   adapter: PrismaAdapter(prisma) as never,
 

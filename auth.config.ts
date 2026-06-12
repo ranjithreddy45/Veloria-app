@@ -119,6 +119,9 @@ const authConfig: NextAuthConfig = {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as UserRole;
+        // Effective (override-aware) permissions, baked at sign-in (auth.ts).
+        (session.user as { perms?: string[] }).perms =
+          (token as { perms?: string[] }).perms;
       }
       return session;
     },

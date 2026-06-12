@@ -65,6 +65,7 @@ interface LeadData {
   guestCount: number | null;
   estimatedValue: number | null;
   preferredVenueId: string | null;
+  assignedToId?: string | null;
   slot: string | null;
   vegNonVeg: string | null;
   perPlateBudget: number | null;
@@ -80,6 +81,7 @@ interface LeadFormProps {
     phone: string | null;
   }[];
   venues?: { id: string; name: string }[];
+  users?: { id: string; name: string | null }[];
   lead?: LeadData;
 }
 
@@ -87,7 +89,7 @@ interface LeadFormProps {
 // LeadForm Component
 // ============================================================
 
-export function LeadForm({ contacts, venues = [], lead }: LeadFormProps) {
+export function LeadForm({ contacts, venues = [], users = [], lead }: LeadFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, setIsPending] = React.useState(false);
@@ -108,6 +110,7 @@ export function LeadForm({ contacts, venues = [], lead }: LeadFormProps) {
       guestCount: lead?.guestCount ?? null,
       estimatedValue: lead?.estimatedValue ?? null,
       preferredVenueId: lead?.preferredVenueId ?? "",
+      assignedToId: lead?.assignedToId ?? "",
       slot: (lead?.slot ?? "") as LeadInput["slot"],
       vegNonVeg: (lead?.vegNonVeg ?? "") as LeadInput["vegNonVeg"],
       perPlateBudget: lead?.perPlateBudget ?? null,
@@ -281,14 +284,14 @@ export function LeadForm({ contacts, venues = [], lead }: LeadFormProps) {
               name="eventType"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Event Type</FormLabel>
+                  <FormLabel>Occasion</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     value={field.value ?? ""}
                   >
                     <FormControl>
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select event type" />
+                        <SelectValue placeholder="Select occasion" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -449,7 +452,7 @@ export function LeadForm({ contacts, venues = [], lead }: LeadFormProps) {
               name="vegNonVeg"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Menu Preference</FormLabel>
+                  <FormLabel>Preferred Food</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value ?? ""}>
                     <FormControl>
                       <SelectTrigger className="w-full">
@@ -457,12 +460,41 @@ export function LeadForm({ contacts, venues = [], lead }: LeadFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="Veg Only">Veg Only</SelectItem>
-                      <SelectItem value="Non Veg Only">Non Veg Only</SelectItem>
-                      <SelectItem value="Both Veg & Non Veg">
-                        Both Veg &amp; Non Veg
-                      </SelectItem>
-                      <SelectItem value="Jain">Jain</SelectItem>
+                      <SelectItem value="Veg">Veg</SelectItem>
+                      <SelectItem value="Non Veg">Non Veg</SelectItem>
+                      <SelectItem value="Both">Both</SelectItem>
+                      <SelectItem value="Custom">Custom</SelectItem>
+                      <SelectItem value="None">None</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Assigned to */}
+            <FormField
+              control={form.control}
+              name="assignedToId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Assigned to</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value || undefined}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Auto-assign by rules" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {users.length === 0 ? (
+                        <div className="px-2 py-1.5 text-[12.5px] text-muted-foreground">
+                          No assignable users.
+                        </div>
+                      ) : (
+                        users.map((u) => (
+                          <SelectItem key={u.id} value={u.id}>{u.name ?? "Unnamed"}</SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
