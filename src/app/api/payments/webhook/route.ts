@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
+import { maybeConfirmBookingOnPayment } from "@/lib/sales/confirm-booking";
 
 // ============================================================
 // POST: Razorpay Webhook Handler
@@ -119,6 +120,10 @@ export async function POST(request: NextRequest) {
           },
         }),
       ]);
+
+      // BookMyShow-style auto-confirm: if this advance covers the 10% block,
+      // flip the held booking to CONFIRMED and fire customer confirmations.
+      await maybeConfirmBookingOnPayment(invoice.id);
 
       console.log(
         `[RAZORPAY_WEBHOOK] Payment captured: ${razorpayPaymentId} for order: ${razorpayOrderId}`

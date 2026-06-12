@@ -4117,6 +4117,7 @@ model SalesQuotation {
   // (plain ref, not a relation, to avoid widening the Booking model).
   bookingId     String?
   slotBlockedAt DateTime?
+  invoiceId     String? // booking-advance invoice generated from this quote
 
   // Approval
   submittedById  String?

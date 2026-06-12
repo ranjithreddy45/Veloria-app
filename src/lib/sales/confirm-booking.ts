@@ -1,0 +1,98 @@
+import { prisma } from "@/lib/prisma";
+import { notify } from "@/lib/notify";
+import { sendEmail } from "@/lib/email";
+import { sendSMSFireAndForget } from "@/lib/sms";
+import { sendWhatsApp } from "@/lib/integrations/whatsapp";
+
+const fmtINR = (n: number) => "₹" + Math.round(n).toLocaleString("en-IN");
+const SLOT_LABEL: Record<string, string> = {
+  MORNING: "Morning",
+  AFTERNOON: "Afternoon (11am–3pm)",
+  EVENING: "Evening (5pm–10pm)",
+  FULL_DAY: "Full Day",
+};
+
+/**
+ * BookMyShow-style auto-confirm: once a verified payment covers the 10%
+ * booking advance, the HOLD booking flips to CONFIRMED — locking the slot —
+ * and the customer is sent confirmations across every available channel
+ * (email + SMS + WhatsApp). Idempotent (only acts on a HOLD booking) and
+ * never throws, so it's safe to call from both the manual recordPayment
+ * path and the Razorpay webhook.
+ */
+export async function maybeConfirmBookingOnPayment(invoiceId: string): Promise<void> {
+  try {
+    const invoice = await prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      select: {
+        id: true,
+        paidAmount: true,
+        bookingId: true,
+        booking: {
+          select: {
+            id: true,
+            status: true,
+            totalAmount: true,
+            bookingNumber: true,
+            eventName: true,
+            date: true,
+            timeSlot: true,
+            createdById: true,
+            contact: { select: { firstName: true, lastName: true, email: true, phone: true } },
+            venue: { select: { name: true } },
+            createdBy: { select: { name: true, email: true, phone: true } },
+          },
+        },
+      },
+    });
+
+    const b = invoice?.booking;
+    if (!b || b.status !== "HOLD") return;
+
+    // The booking advance is 10% of the booking value (the planner's "block" term).
+    const threshold = Number(b.totalAmount) * 0.1;
+    if (Number(invoice.paidAmount) + 0.01 < threshold) return;
+
+    await prisma.booking.update({ where: { id: b.id }, data: { status: "CONFIRMED" } });
+
+    const dateStr = new Date(b.date).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+    const slot = SLOT_LABEL[b.timeSlot] ?? b.timeSlot;
+    const name = `${b.contact?.firstName ?? "Guest"} ${b.contact?.lastName ?? ""}`.trim();
+
+    // Notify the owning staff member.
+    notify({
+      userId: b.createdById,
+      type: "PAYMENT_RECEIVED",
+      title: "Slot confirmed — advance received",
+      message: `${b.bookingNumber} (${b.eventName}) is now CONFIRMED for ${dateStr}, ${slot}.`,
+      actionUrl: `/bookings/${b.id}`,
+    });
+
+    // Point of contact (the rep who handled the booking) shared with the customer.
+    const poc = b.createdBy;
+    const pocLine = poc?.name
+      ? ` Your point of contact is ${poc.name}${poc.phone ? ` (${poc.phone})` : ""}.`
+      : "";
+
+    // Customer confirmations — every channel, all best-effort.
+    const line = `Hi ${b.contact?.firstName ?? "there"}, your booking ${b.bookingNumber} at ${b.venue?.name ?? "Veloria Grand"} is CONFIRMED for ${dateStr} (${slot}). Thank you for the advance payment.${pocLine} — Veloria Grand`;
+
+    if (b.contact?.email) {
+      sendEmail({
+        to: b.contact.email,
+        subject: `Booking Confirmed — ${b.bookingNumber}`,
+        html: `<p>Dear ${name || "Guest"},</p><p>Your booking <strong>${b.bookingNumber}</strong> at <strong>${b.venue?.name ?? "Veloria Grand"}</strong> is <strong>confirmed</strong> for <strong>${dateStr}</strong> (${slot}).</p><p>We have received your booking advance and the slot is now locked in your name.</p>${
+          poc?.name
+            ? `<p><strong>Your point of contact:</strong> ${poc.name}${poc.phone ? ` · ${poc.phone}` : ""}${poc.email ? ` · ${poc.email}` : ""}</p>`
+            : ""
+        }<p>Warm regards,<br/>Veloria Grand</p>`,
+      }).catch((e) => console.error("[CONFIRM_EMAIL_ERROR]", e));
+    }
+    if (b.contact?.phone) {
+      sendSMSFireAndForget({ to: b.contact.phone, message: line });
+      sendWhatsApp({ to: b.contact.phone, message: line }).catch((e) => console.error("[CONFIRM_WA_ERROR]", e));
+    }
+  } catch (e) {
+    console.error("[CONFIRM_BOOKING_ON_PAYMENT_ERROR]", e);
+  }
+}

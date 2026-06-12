@@ -11,6 +11,7 @@ import { sendEmail } from "@/lib/email";
 import { paymentReceivedEmail } from "@/lib/email-templates/payment-received";
 import { format } from "date-fns";
 import { hasPermission } from "@/lib/permissions";
+import { maybeConfirmBookingOnPayment } from "@/lib/sales/confirm-booking";
 
 // ============================================================
 // Helper: Generate Receipt Number (RCP-YYYY-NNNN)
@@ -255,9 +256,14 @@ export async function recordPayment(data: {
       console.error("[PAYMENT_EMAIL_ERROR]", emailErr);
     }
 
+    // BookMyShow-style: if this payment covers the booking advance, the held
+    // slot auto-confirms and the customer gets confirmations (best-effort).
+    await maybeConfirmBookingOnPayment(data.invoiceId);
+
     revalidatePath("/invoices");
     revalidatePath(`/invoices/${data.invoiceId}`);
     revalidatePath("/payments");
+    revalidatePath("/bookings");
     return { success: true as const, data: serialize(payment) };
   } catch (error) {
     console.error("[RECORD_PAYMENT_ERROR]", error);

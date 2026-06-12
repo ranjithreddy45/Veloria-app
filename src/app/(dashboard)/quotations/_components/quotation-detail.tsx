@@ -74,6 +74,7 @@ interface QuoteRow {
   pdfUrl: string | null;
   bookingId: string | null;
   slotBlockedAt: string | null;
+  invoiceId: string | null;
   sentChannel: string | null;
   sentTo: string | null;
   sentAt: string | null;
@@ -259,6 +260,7 @@ export function QuotationDetail({ quote, perms, leads, venues }: Props) {
               defaultDateISO={quote.eventDate}
               defaultPlannerSlot={quote.timeSlot}
               blocked={quote.bookingId ? { bookingId: quote.bookingId, at: quote.slotBlockedAt } : null}
+              invoiceId={quote.invoiceId}
             />
           )}
           <Card>

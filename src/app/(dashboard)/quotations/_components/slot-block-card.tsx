@@ -6,7 +6,9 @@ import { toast } from "sonner";
 import { CalendarCheck, CheckCircle2, Loader2, Lock, Search } from "lucide-react";
 
 import { getDaySlotAvailability, blockSlotFromQuotation, type SlotAvailability } from "@/actions/quotation-booking.actions";
+import { createBookingInvoiceFromQuotation } from "@/actions/booking-invoice.actions";
 import { BOOKABLE_SLOTS, plannerSlotToEnum, SLOT_LABEL, type TimeSlotEnum } from "@/lib/sales/slot";
+import { FileText, Receipt } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,16 +31,30 @@ interface Props {
   defaultDateISO?: string | null;
   defaultPlannerSlot?: string | null;
   blocked: { bookingId: string; at: string | null } | null;
+  invoiceId?: string | null;
 }
 
-export function SlotBlockCard({ quotationId, venues, defaultVenueId, defaultDateISO, defaultPlannerSlot, blocked }: Props) {
+export function SlotBlockCard({ quotationId, venues, defaultVenueId, defaultDateISO, defaultPlannerSlot, blocked, invoiceId }: Props) {
   const router = useRouter();
   const [venueId, setVenueId] = useState(defaultVenueId ?? "");
   const [date, setDate] = useState(defaultDateISO ? defaultDateISO.slice(0, 10) : "");
   const [slot, setSlot] = useState<TimeSlotEnum>(plannerSlotToEnum(defaultPlannerSlot));
   const [checking, setChecking] = useState(false);
   const [blocking, setBlocking] = useState(false);
+  const [invoicing, setInvoicing] = useState(false);
   const [avail, setAvail] = useState<SlotAvailability[] | null>(null);
+
+  async function genInvoice() {
+    setInvoicing(true);
+    try {
+      const res = await createBookingInvoiceFromQuotation(quotationId);
+      if (!res.success) return toast.error(res.error);
+      toast.success("Booking invoice created.");
+      router.push(`/invoices/${res.data.invoiceId}`);
+    } finally {
+      setInvoicing(false);
+    }
+  }
 
   if (blocked) {
     return (
@@ -49,10 +65,23 @@ export function SlotBlockCard({ quotationId, venues, defaultVenueId, defaultDate
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
-          <p>The slot is held for this customer.</p>
-          <Button asChild variant="outline" size="sm">
-            <a href={`/bookings/${blocked.bookingId}`}>View booking</a>
+          <p>The slot is held for this customer (pending the booking advance).</p>
+          <Button asChild variant="outline" size="sm" className="w-full">
+            <a href={`/bookings/${blocked.bookingId}`}><CalendarCheck className="h-4 w-4" /> View booking</a>
           </Button>
+          {invoiceId ? (
+            <Button asChild size="sm" className="w-full">
+              <a href={`/invoices/${invoiceId}`}><Receipt className="h-4 w-4" /> View booking invoice</a>
+            </Button>
+          ) : (
+            <Button size="sm" className="w-full" onClick={genInvoice} disabled={invoicing}>
+              {invoicing ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+              Generate booking invoice (10% to confirm)
+            </Button>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Collect the 10% advance on the invoice — once paid, the slot auto-confirms and the customer is notified.
+          </p>
         </CardContent>
       </Card>
     );
