@@ -360,6 +360,13 @@ model User {
   salesQuotationsApproved  SalesQuotation[]          @relation("SalesQuotationApprovedBy")
   salesQuotationsSent      SalesQuotation[]          @relation("SalesQuotationSentBy")
   salesQuotationTransitions SalesQuotationTransition[] @relation("SalesQuotationTransitionActor")
+  projectsManaged       AcqOnboardingProject[]    @relation("ProjectManager")
+  projectsAudited       AcqOnboardingProject[]    @relation("ProjectOpsAuditor")
+  projectsHandedOver    AcqOnboardingProject[]    @relation("ProjectHandover")
+  capexCreated          AcqCapexProjection[]      @relation("CapexCreatedBy")
+  capexSubmitted        AcqCapexProjection[]      @relation("CapexSubmittedBy")
+  capexApproved         AcqCapexProjection[]      @relation("CapexApprovedBy")
+  capexSent             AcqCapexProjection[]      @relation("CapexSentBy")
 
   @@index([email])
   @@index([role])
@@ -3956,11 +3963,109 @@ model AcqOnboardingProject {
   id          String              @id @default(cuid())
   propertyId  String              @unique
   property    AcqProperty         @relation(fields: [propertyId], references: [id])
-  status      String              @default("OPEN") // OPEN | COMPLETED
+  status      String              @default("OPEN") // OPEN | COMPLETED (legacy)
+  // Projects-team pipeline: PLANNING → CAPEX → EXECUTION → OPS_AUDIT → HANDOVER → LAUNCHED
+  phase             String    @default("PLANNING")
+  projectManagerId  String?
+  projectManager    User?     @relation("ProjectManager", fields: [projectManagerId], references: [id])
+  targetReadyDate   DateTime?
+  startedAt         DateTime?
+  opsAuditRequestedAt DateTime?
+  opsAuditPassedAt    DateTime?
+  opsAuditById        String?
+  opsAuditBy          User?     @relation("ProjectOpsAuditor", fields: [opsAuditById], references: [id])
+  handoverReportAt    DateTime?
+  handoverById        String?
+  handoverBy          User?     @relation("ProjectHandover", fields: [handoverById], references: [id])
+  launchedAt          DateTime?
+  notes               String?   @db.Text
   createdAt   DateTime            @default(now())
   completedAt DateTime?
-  tasks       AcqOnboardingTask[]
+  updatedAt   DateTime            @default(now()) @updatedAt
 
+  tasks         AcqOnboardingTask[]
+  readinessItems VenueReadinessItem[]
+  opsAuditItems  OpsAuditItem[]
+  capexProjections AcqCapexProjection[]
+
+  @@index([status])
+  @@index([phase])
+}
+
+// A venue-readiness checklist line (interiors, bathrooms, fire-safety, lift…)
+// against a Veloria Grand standard. Seeded per project from config.
+model VenueReadinessItem {
+  id        String   @id @default(cuid())
+  projectId String
+  project   AcqOnboardingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  category  String
+  title     String
+  standard  String   @db.Text
+  status    String   @default("PENDING") // PENDING | IN_PROGRESS | DONE | NA
+  notes     String?  @db.Text
+  order     Int      @default(0)
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([projectId])
+}
+
+// Operations deep-audit line, run before launch sign-off.
+model OpsAuditItem {
+  id        String   @id @default(cuid())
+  projectId String
+  project   AcqOnboardingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  category  String
+  title     String
+  critical  Boolean  @default(false)
+  status    String   @default("PENDING") // PENDING | PASS | FAIL | NA
+  notes     String?  @db.Text
+  order     Int      @default(0)
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([projectId])
+}
+
+// CapEx budget + timeline projection for readying a venue (mirrors AcqProjection).
+enum CapexStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  SENT
+  REJECTED
+}
+
+model AcqCapexProjection {
+  id          String      @id @default(cuid())
+  projectId   String
+  project     AcqOnboardingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  version     Int         @default(1)
+  status      CapexStatus @default(DRAFT)
+  inputsJson  Json        // CapexInput
+  outputsJson Json?       // CapexResult, frozen at approval
+  totalCapex  Decimal     @default(0) @db.Decimal(14, 2)
+  estimatedWeeks Int      @default(0)
+  notes       String?     @db.Text
+  pdfUrl      String?
+
+  submittedById  String?
+  submittedBy    User?     @relation("CapexSubmittedBy", fields: [submittedById], references: [id])
+  submittedAt    DateTime?
+  approvedById   String?
+  approvedBy     User?     @relation("CapexApprovedBy", fields: [approvedById], references: [id])
+  approvedAt     DateTime?
+  rejectedReason String?
+  sentChannel String?
+  sentTo      String?
+  sentById    String?
+  sentBy      User?      @relation("CapexSentBy", fields: [sentById], references: [id])
+  sentAt      DateTime?
+
+  createdById String
+  createdBy   User     @relation("CapexCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([projectId])
   @@index([status])
 }
 

@@ -176,6 +176,12 @@ export const sidebarNavigation: NavItem[] = [
     ],
   },
   {
+    title: "Projects",
+    href: "/projects",
+    icon: "Building2",
+    permissions: ["projects:read"],
+  },
+  {
     title: "Operations",
     href: "/tasks",
     icon: "Cog",
