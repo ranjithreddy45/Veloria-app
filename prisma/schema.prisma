@@ -25,6 +25,9 @@ enum UserRole {
   BD_HEAD
   OPERATIONS
   LEGAL
+  // Projects team — readies an acquired venue to Veloria Grand standards
+  PROJECTS_EXEC
+  PROJECTS_HEAD
 }
 
 enum ContactType {

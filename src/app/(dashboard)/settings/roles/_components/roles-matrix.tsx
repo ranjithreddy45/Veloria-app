@@ -17,6 +17,8 @@ const ROLE_LABEL: Record<string, string> = {
   BD_HEAD: "BD Head",
   OPERATIONS: "Operations",
   LEGAL: "Legal",
+  PROJECTS_EXEC: "Projects Exec",
+  PROJECTS_HEAD: "Projects Head",
 };
 
 function categoryOf(permission: string): string {

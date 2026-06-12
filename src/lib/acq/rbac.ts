@@ -49,5 +49,7 @@ export function acqHasAnyAccess(role: string | null | undefined): boolean {
     "OPERATIONS",
     "LEGAL",
     "SALES_EXEC",
+    "PROJECTS_EXEC",
+    "PROJECTS_HEAD",
   ].includes(role);
 }

@@ -17,6 +17,8 @@ export const EDITABLE_ROLES = [
   "BD_HEAD",
   "OPERATIONS",
   "LEGAL",
+  "PROJECTS_EXEC",
+  "PROJECTS_HEAD",
 ] as const;
 
 /** Resolve the effective permission list for a role (defaults ± overrides). */

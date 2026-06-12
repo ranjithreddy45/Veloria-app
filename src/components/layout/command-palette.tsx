@@ -60,7 +60,7 @@ const QUICK_ACTIONS = [
   { title: "New contact", href: "/contacts/new", shortcut: "C", icon: Users },
   { title: "New booking", href: "/bookings/new", shortcut: "B", icon: CalendarCheck },
   { title: "New invoice", href: "/invoices/new", shortcut: "I", icon: FileText },
-  { title: "New quote", href: "/quotes/new", shortcut: "Q", icon: FileText },
+  { title: "New quotation", href: "/quotations/new", shortcut: "Q", icon: FileText },
 ];
 
 const TYPE_ICONS: Record<string, React.ElementType> = {

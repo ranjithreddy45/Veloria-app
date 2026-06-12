@@ -90,6 +90,12 @@ export type Permission =
   | "operations:read"
   | "operations:create"
   | "operations:update"
+  // Projects (venue readiness)
+  | "projects:read"
+  | "projects:create"
+  | "projects:update"
+  | "projects:approve"
+  | "projects:audit"
   // Menu
   | "menu:read"
   | "menu:create"
@@ -326,6 +332,11 @@ export const ALL_PERMISSIONS: Permission[] = [
   "operations:read",
   "operations:create",
   "operations:update",
+  "projects:read",
+  "projects:create",
+  "projects:update",
+  "projects:approve",
+  "projects:audit",
   "menu:read",
   "menu:create",
   "menu:update",
@@ -524,6 +535,11 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "operations:read",
     "operations:create",
     "operations:update",
+    "projects:read",
+    "projects:create",
+    "projects:update",
+    "projects:approve",
+    "projects:audit",
     "menu:read",
     "menu:create",
     "menu:update",
@@ -862,6 +878,37 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "operations:update",
     "tasks:read",
     "tasks:update",
+    "projects:read",
+    "projects:audit", // ops runs the deep audit + sign-off on a readied venue
+    "execution:read",
+    "execution:update",
+    "bookings:read",
+  ],
+  PROJECTS_EXEC: [
+    "dashboard:read",
+    "owners:read",
+    "projects:read",
+    "projects:create",
+    "projects:update",
+    "tasks:read",
+    "tasks:create",
+    "tasks:update",
+    "vendors:read",
+    "vendors:assign",
+  ],
+  PROJECTS_HEAD: [
+    "dashboard:read",
+    "owners:read",
+    "projects:read",
+    "projects:create",
+    "projects:update",
+    "projects:approve", // approves the CapEx projection + final handover go-ahead
+    "tasks:read",
+    "tasks:create",
+    "tasks:update",
+    "vendors:read",
+    "vendors:assign",
+    "analytics:read",
   ],
   LEGAL: [
     "dashboard:read",
@@ -880,6 +927,7 @@ export const ROUTE_PERMISSIONS: { prefix: string; permission: Permission }[] = [
   { prefix: "/settings/users", permission: "users:read" },
   { prefix: "/settings/roles", permission: "users:manage-roles" },
   { prefix: "/bd", permission: "owners:read" },
+  { prefix: "/projects", permission: "projects:read" },
   { prefix: "/owners", permission: "owners:read" },
   { prefix: "/leads", permission: "leads:read" },
   { prefix: "/pipeline", permission: "pipeline:read" },

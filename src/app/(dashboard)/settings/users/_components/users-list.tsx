@@ -72,6 +72,12 @@ const ROLES = [
   { value: "EVENT_COORDINATOR", label: "Event Coordinator" },
   { value: "FINANCE", label: "Finance" },
   { value: "STAFF", label: "Staff" },
+  { value: "BD_EXECUTIVE", label: "BD Executive" },
+  { value: "BD_HEAD", label: "BD Head" },
+  { value: "PROJECTS_EXEC", label: "Projects Executive" },
+  { value: "PROJECTS_HEAD", label: "Projects Head" },
+  { value: "OPERATIONS", label: "Operations" },
+  { value: "LEGAL", label: "Legal" },
 ] as const;
 
 const ROLE_LABELS: Record<string, string> = {
@@ -81,6 +87,12 @@ const ROLE_LABELS: Record<string, string> = {
   EVENT_COORDINATOR: "Coordinator",
   FINANCE: "Finance",
   STAFF: "Staff",
+  BD_EXECUTIVE: "BD Exec",
+  BD_HEAD: "BD Head",
+  PROJECTS_EXEC: "Projects Exec",
+  PROJECTS_HEAD: "Projects Head",
+  OPERATIONS: "Operations",
+  LEGAL: "Legal",
 };
 
 const ROLE_COLORS: Record<string, string> = {
@@ -90,6 +102,12 @@ const ROLE_COLORS: Record<string, string> = {
   EVENT_COORDINATOR: "bg-amber-100 text-amber-700 border-amber-200",
   FINANCE: "bg-green-100 text-green-700 border-green-200",
   STAFF: "bg-zinc-100 text-zinc-700 border-zinc-200",
+  BD_EXECUTIVE: "bg-cyan-100 text-cyan-700 border-cyan-200",
+  BD_HEAD: "bg-teal-100 text-teal-700 border-teal-200",
+  PROJECTS_EXEC: "bg-orange-100 text-orange-700 border-orange-200",
+  PROJECTS_HEAD: "bg-rose-100 text-rose-700 border-rose-200",
+  OPERATIONS: "bg-indigo-100 text-indigo-700 border-indigo-200",
+  LEGAL: "bg-slate-100 text-slate-700 border-slate-200",
 };
 
 // ============================================================
