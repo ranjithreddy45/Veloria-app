@@ -3,6 +3,7 @@ import { notify } from "@/lib/notify";
 import { sendEmail } from "@/lib/email";
 import { sendSMSFireAndForget } from "@/lib/sms";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
+import { instantiateExecutionPlanFromSOP } from "@/lib/sales/ops-handoff";
 
 const fmtINR = (n: number) => "₹" + Math.round(n).toLocaleString("en-IN");
 const SLOT_LABEL: Record<string, string> = {
@@ -38,6 +39,7 @@ export async function maybeConfirmBookingOnPayment(invoiceId: string): Promise<v
             date: true,
             timeSlot: true,
             createdById: true,
+            eventType: true,
             contact: { select: { firstName: true, lastName: true, email: true, phone: true } },
             venue: { select: { name: true } },
             createdBy: { select: { name: true, email: true, phone: true } },
@@ -92,6 +94,10 @@ export async function maybeConfirmBookingOnPayment(invoiceId: string): Promise<v
       sendSMSFireAndForget({ to: b.contact.phone, message: line });
       sendWhatsApp({ to: b.contact.phone, message: line }).catch((e) => console.error("[CONFIRM_WA_ERROR]", e));
     }
+
+    // Ops handoff: auto-populate the execution plan + tasks from the SOP
+    // template so the operations team has its checklist the moment we confirm.
+    await instantiateExecutionPlanFromSOP(b.id, b.createdById, b.eventType);
   } catch (e) {
     console.error("[CONFIRM_BOOKING_ON_PAYMENT_ERROR]", e);
   }
