@@ -102,12 +102,32 @@ export async function POST(
       );
     }
 
+    // Anti-poisoning: only attribute the response to a booking/contact when the
+    // pair is internally consistent (the booking really belongs to that
+    // contact). A mismatched or unknown attribution is dropped to anonymous so
+    // an attacker can't poison another customer's NPS/feedback. (A signed
+    // single-use response token is the stronger follow-up.)
+    let attribBookingId: string | null = null;
+    let attribContactId: string | null = responseData.contactId || null;
+    if (responseData.bookingId) {
+      const b = await prisma.booking.findUnique({
+        where: { id: responseData.bookingId },
+        select: { id: true, contactId: true },
+      });
+      if (b && (!responseData.contactId || b.contactId === responseData.contactId)) {
+        attribBookingId = b.id;
+        attribContactId = b.contactId;
+      } else {
+        attribContactId = null; // inconsistent — drop attribution entirely
+      }
+    }
+
     // Create the response
     const surveyResponse = await prisma.surveyResponse.create({
       data: {
         surveyId,
-        bookingId: responseData.bookingId || null,
-        contactId: responseData.contactId || null,
+        bookingId: attribBookingId,
+        contactId: attribContactId,
         overallRating: responseData.overallRating ?? null,
         npsScore: responseData.npsScore ?? null,
         answers: {

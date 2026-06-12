@@ -124,6 +124,20 @@ export async function updateAcqDeal(
     }
   }
 
+  // If a BD-Head-approved deal has its commercials changed, the prior approval
+  // no longer applies — clear it so it must be re-approved (prevents a BD exec
+  // approving high terms then quietly lowering them after the fact).
+  if (deal.bdHeadApprovedById) {
+    const commercialKeys = ["model", "baseFeePct", "incentivePct", "royaltyPct", "lockinYears", "termYears"];
+    const changed = commercialKeys.some(
+      (k) => k in data && String(data[k]) !== String((deal as Record<string, unknown>)[k])
+    );
+    if (changed) {
+      (data as Record<string, unknown>).bdHeadApprovedById = null;
+      (data as Record<string, unknown>).bdHeadApprovedAt = null;
+    }
+  }
+
   await prisma.acqDeal.update({ where: { id }, data });
   revalidatePath(`/bd/deals/${id}`);
   return { success: true, data: { id } };
@@ -294,6 +308,14 @@ export async function approveAcqDeal(dealId: string): Promise<Result<{ id: strin
   if (!user || !acqCan(user.role, "bdhead:approve")) return { success: false, error: "Only BD Head / Admin can approve." };
   const deal = await prisma.acqDeal.findFirst({ where: { id: dealId, deletedAt: null } });
   if (!deal) return { success: false, error: "Deal not found" };
+  // Idempotency: don't re-stamp an already-approved deal (a no-op).
+  if (deal.bdHeadApprovedById) {
+    return { success: true, data: { id: dealId } };
+  }
+  // Precondition: there must be commercials to approve.
+  if (!deal.model) {
+    return { success: false, error: "Set the deal model and commercials before approving." };
+  }
   await prisma.acqDeal.update({
     where: { id: dealId },
     data: { bdHeadApprovedById: user.id, bdHeadApprovedAt: new Date() },

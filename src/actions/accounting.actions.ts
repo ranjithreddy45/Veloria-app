@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
+import { hasPermission } from "@/lib/permissions";
 import { triggerSyncSchema } from "@/schemas/accounting.schema";
 import { syncInvoice, syncPayment, syncPayout } from "@/lib/integrations/tally";
 import type { AccountingSyncStatus } from "@prisma/client";
@@ -103,6 +104,9 @@ export async function triggerSync(data: { type: string; entityId: string }) {
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
     }
+    if (!hasPermission(session.user.role as string, "accounting:sync")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
 
     const parsed = triggerSyncSchema.safeParse(data);
     if (!parsed.success) {
@@ -155,6 +159,9 @@ export async function retryFailedSync(logId: string) {
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
     }
+    if (!hasPermission(session.user.role as string, "accounting:sync")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
 
     const existing = await prisma.accountingSyncLog.findUnique({
       where: { id: logId },
@@ -204,6 +211,9 @@ export async function clearSyncLogs() {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+    if (!hasPermission(session.user.role as string, "accounting:sync")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const thirtyDaysAgo = new Date();

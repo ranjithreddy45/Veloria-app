@@ -43,13 +43,20 @@ function generateCode(): string {
   return randomInt(0, 1_000_000).toString().padStart(6, "0");
 }
 
-/** Find an active user whose stored phone matches this number. */
+/**
+ * Find THE active user whose stored phone matches this number. If more than one
+ * active account shares the phone, the match is ambiguous — refuse rather than
+ * non-deterministically log the requester into someone else's account.
+ */
 export async function findActiveUserByPhone(normalized: string) {
   if (!normalized) return null;
-  return prisma.user.findFirst({
+  const matches = await prisma.user.findMany({
     where: { phone: { in: phoneVariants(normalized) }, isActive: true },
     select: { id: true, name: true, email: true, image: true, role: true },
+    take: 2,
   });
+  if (matches.length !== 1) return null; // none, or ambiguous
+  return matches[0];
 }
 
 /**

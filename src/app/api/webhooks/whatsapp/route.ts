@@ -68,21 +68,24 @@ export async function POST(request: NextRequest) {
     const config = await getActiveConfig();
     const appSecret = config?.appSecret || process.env.WHATSAPP_APP_SECRET;
 
-    // Verify HMAC signature if app secret is configured
+    // FAIL CLOSED: we can't trust an inbound webhook we can't verify. Reject if
+    // no secret is configured, and require a valid signature otherwise.
+    if (!appSecret) {
+      console.error("[WhatsApp Webhook] No app secret configured — rejecting unverifiable inbound.");
+      return NextResponse.json({ error: "Webhook not configured" }, { status: 503 });
+    }
     const signature = request.headers.get("x-hub-signature-256");
-
-    if (appSecret && signature) {
-      const expectedSignature =
-        "sha256=" +
-        crypto.createHmac("sha256", appSecret).update(body).digest("hex");
-
-      if (expectedSignature !== signature) {
-        console.warn("[WhatsApp Webhook] Invalid signature");
-        return NextResponse.json(
-          { error: "Invalid signature" },
-          { status: 403 }
-        );
-      }
+    if (!signature) {
+      return NextResponse.json({ error: "Missing signature" }, { status: 401 });
+    }
+    const expectedSignature =
+      "sha256=" + crypto.createHmac("sha256", appSecret).update(body).digest("hex");
+    // Timing-safe compare.
+    const sigBuf = Buffer.from(signature);
+    const expBuf = Buffer.from(expectedSignature);
+    if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+      console.warn("[WhatsApp Webhook] Invalid signature");
+      return NextResponse.json({ error: "Invalid signature" }, { status: 403 });
     }
 
     const payload = JSON.parse(body);

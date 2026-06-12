@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { defaultManagementAgreement } from "@/lib/acq/contract-template";
+import { auth } from "@/../auth";
+import { acqHasAnyAccess } from "@/lib/acq/rbac";
 
 export const runtime = "nodejs";
 
@@ -57,6 +59,18 @@ export async function GET(
   const { id } = await params;
   const c = await prisma.acqContract.findFirst({ where: { id, deletedAt: null } });
   if (!c) return new Response("Not found", { status: 404 });
+
+  // Access control: an internal BD user may view any contract. An
+  // unauthenticated owner (share-by-link) may view ONLY a contract that has
+  // actually been sent for signature or is finalized — never an internal
+  // DRAFT/APPROVED/NEGOTIATED document (which would leak terms + owner PII).
+  const session = await auth();
+  const role = (session?.user as { role?: string } | undefined)?.role;
+  const isInternal = !!session?.user && acqHasAnyAccess(role);
+  const ownerShareable = !!c.esignStatus || c.status === "SIGNED" || c.status === "ACTIVE";
+  if (!isInternal && !ownerShareable) {
+    return new Response("Not found", { status: 404 });
+  }
 
   const body =
     c.body && c.body.trim().length > 0

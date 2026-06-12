@@ -1,4 +1,21 @@
 import { prisma } from "@/lib/prisma";
+import crypto from "crypto";
+
+// HMAC-sign a redirect target so the click-tracking endpoint can't be abused as
+// an open redirect (a signature binds the destination to one we generated).
+function redirectSecret(): string {
+  return process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "veloria-redirect-secret";
+}
+export function signRedirect(url: string): string {
+  return crypto.createHmac("sha256", redirectSecret()).update(url).digest("hex").slice(0, 32);
+}
+export function verifyRedirect(url: string, sig: string | null | undefined): boolean {
+  if (!sig) return false;
+  const expected = signRedirect(url);
+  const a = Buffer.from(sig);
+  const b = Buffer.from(expected);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
 
 // ============================================================
 // Email Tracking Library Functions
@@ -66,7 +83,8 @@ export function wrapLinksForTracking(
       }
 
       const encodedUrl = encodeURIComponent(url);
-      const trackingUrl = `${baseUrl}/api/track/click/${pixelId}?url=${encodedUrl}`;
+      const sig = signRedirect(url);
+      const trackingUrl = `${baseUrl}/api/track/click/${pixelId}?url=${encodedUrl}&sig=${sig}`;
       return `<a ${before}href="${trackingUrl}"${after}>`;
     }
   );

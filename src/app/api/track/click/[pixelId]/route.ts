@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { verifyRedirect } from "@/lib/email-tracking";
 
 // ============================================================
 // GET: Track Link Click (Public — No Auth Required)
@@ -13,19 +14,26 @@ export async function GET(
 
   // Get the destination URL from query params
   const url = request.nextUrl.searchParams.get("url");
+  const sig = request.nextUrl.searchParams.get("sig");
 
-  // Validate URL — must start with http:// or https://
-  const isValidUrl =
-    url && (url.startsWith("http://") || url.startsWith("https://"));
-  let redirectUrl = isValidUrl ? url : "/";
-
-  // Validate URL is not an open redirect
-  if (isValidUrl && url) {
+  // Open-redirect guard: only redirect to the raw destination if either (a) it
+  // carries a valid HMAC signature we generated, or (b) it points at our OWN
+  // app host. Anything else falls back to the home page. This prevents the
+  // public tracking endpoint from being used as a phishing redirector.
+  let redirectUrl = "/";
+  if (url && (url.startsWith("http://") || url.startsWith("https://"))) {
     try {
-      const urlObj = new URL(url);
-      const allowedProtocols = ["http:", "https:"];
-      if (!allowedProtocols.includes(urlObj.protocol)) {
-        return NextResponse.json({ error: "Invalid URL protocol" }, { status: 400 });
+      const u = new URL(url);
+      if (u.protocol === "http:" || u.protocol === "https:") {
+        let appHost = "";
+        try {
+          appHost = new URL(process.env.NEXT_PUBLIC_APP_URL || "https://app.theveloriagrand.com").host;
+        } catch {
+          appHost = "";
+        }
+        if (verifyRedirect(url, sig) || (appHost && u.host === appHost)) {
+          redirectUrl = url;
+        }
       }
     } catch {
       redirectUrl = "/";

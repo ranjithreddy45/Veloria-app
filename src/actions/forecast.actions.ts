@@ -92,6 +92,9 @@ export async function createBudget(data: BudgetInput) {
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
     }
+    if (!hasPermission(session.user.role as string, "budget:create")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
 
     const parsed = budgetSchema.safeParse(data);
     if (!parsed.success) {
@@ -142,6 +145,9 @@ export async function updateBudget(id: string, data: BudgetInput) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+    if (!hasPermission(session.user.role as string, "budget:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = budgetSchema.safeParse(data);
@@ -204,6 +210,9 @@ export async function deleteBudget(id: string) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+    if (!hasPermission(session.user.role as string, "budget:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const existing = await prisma.budget.findUnique({
@@ -277,6 +286,9 @@ export async function generateForecast(months: number) {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+    if (!hasPermission(session.user.role as string, "forecast:create")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const parsed = generateForecastSchema.safeParse({ months });

@@ -430,17 +430,23 @@ export async function getPublicGallery(params?: {
 export async function getPortalGallery(userId: string) {
   try {
     const session = await auth();
-    if (!session?.user) {
+    // Ownership, not a staff permission: the customer sees only THEIR gallery.
+    if (!session?.user?.id || session.user.id !== userId) {
       return { success: false as const, error: "Unauthorized" };
     }
 
-    if (!hasPermission(session.user.role as string, "gallery:read")) {
-      return { success: false as const, error: "Insufficient permissions" };
+    // Resolve the client's contact ids via their email (User id != Contact id).
+    const u = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+    const contactIds = u?.email
+      ? (await prisma.contact.findMany({ where: { email: u.email }, select: { id: true } })).map((c) => c.id)
+      : [];
+    if (contactIds.length === 0) {
+      return { success: true as const, data: { items: [], bookings: [] } };
     }
 
     // Get bookings belonging to this client
     const bookings = await prisma.booking.findMany({
-      where: { contactId: userId },
+      where: { contactId: { in: contactIds } },
       select: { id: true, eventName: true },
     });
 

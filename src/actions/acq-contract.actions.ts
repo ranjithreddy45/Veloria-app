@@ -13,6 +13,11 @@ import { z } from "zod";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
+// Escape owner-controlled fields before embedding in outbound HTML email/WhatsApp.
+function esc(s: string | null | undefined): string {
+  return String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
+}
+
 async function requireUser() {
   const session = await auth();
   if (!session?.user?.id) return null;
@@ -313,7 +318,8 @@ export async function sendAcqContractToOwner(
   if (!user || !acqCan(user.role, "deal:transition")) return { success: false, error: "Unauthorized" };
   const c = await prisma.acqContract.findFirst({ where: { id, deletedAt: null } });
   if (!c) return { success: false, error: "Contract not found" };
-  if (c.status === "DRAFT") return { success: false, error: "Get manager approval before sending to the owner." };
+  if (c.status !== "APPROVED" && c.status !== "NEGOTIATED")
+    return { success: false, error: "A contract can only be sent to the owner while it is approved or under negotiation." };
 
   const base = process.env.NEXT_PUBLIC_APP_URL || "https://app.theveloriagrand.com";
   const link = `${base}/api/bd/contracts/${id}/pdf`;
@@ -324,7 +330,7 @@ export async function sendAcqContractToOwner(
     const r = await sendEmail({
       to: c.ownerEmail,
       subject: `Your Veloria Grand agreement — ${c.propertyName}`,
-      html: `<p>Dear ${c.ownerName},</p><p>Please find your management agreement for <strong>${c.propertyName}</strong> here:</p><p><a href="${link}">View / download the agreement</a></p><p>Kindly review and let us know if you have any questions.</p><p>— Team Veloria Grand</p>`,
+      html: `<p>Dear ${esc(c.ownerName)},</p><p>Please find your management agreement for <strong>${esc(c.propertyName)}</strong> here:</p><p><a href="${link}">View / download the agreement</a></p><p>Kindly review and let us know if you have any questions.</p><p>— Team Veloria Grand</p>`,
     });
     sent = !!r.success;
   } else {
@@ -365,7 +371,8 @@ export async function sendAcqContractForEsign(id: string): Promise<Result<{ conf
   if (!user || !acqCan(user.role, "deal:transition")) return { success: false, error: "Unauthorized" };
   const c = await prisma.acqContract.findFirst({ where: { id, deletedAt: null } });
   if (!c) return { success: false, error: "Contract not found" };
-  if (c.status === "DRAFT") return { success: false, error: "Get manager approval before sending to the owner." };
+  if (c.status !== "APPROVED" && c.status !== "NEGOTIATED")
+    return { success: false, error: "A contract can only be sent for signature while it is approved or under negotiation." };
 
   const doc = await prisma.acqContractDocument.findFirst({ where: { contractId: id }, orderBy: { createdAt: "desc" } });
   const res = await sendForSignature({
@@ -399,6 +406,9 @@ export async function markAcqContractSignedCLM(id: string): Promise<Result<{ id:
   if (!user || !acqCan(user.role, "deal:transition")) return { success: false, error: "Unauthorized" };
   const c = await prisma.acqContract.findFirst({ where: { id, deletedAt: null } });
   if (!c) return { success: false, error: "Contract not found" };
+  // Can't jump DRAFT→SIGNED and bypass approval; must be approved/sent first.
+  if (c.status !== "APPROVED" && c.status !== "NEGOTIATED")
+    return { success: false, error: "Get manager approval and send the contract before marking it signed." };
   await prisma.acqContract.update({
     where: { id },
     data: { status: "SIGNED", phase: "POST_EXECUTION", signedAt: new Date(), esignStatus: "SIGNED" },
@@ -427,7 +437,7 @@ async function postSigningNotify(
       select: { id: true, email: true },
     });
     const subject = `Contract signed — ${propertyName}`;
-    const html = `<p>The contract <strong>${title}</strong> for <strong>${propertyName}</strong> has been signed.</p>`;
+    const html = `<p>The contract <strong>${esc(title)}</strong> for <strong>${esc(propertyName)}</strong> has been signed.</p>`;
     for (const u of internal) {
       notify({ userId: u.id, type: "SYSTEM", title: "Contract signed", message: `${propertyName} — ${title}`, actionUrl: `/bd/contracts/${contractId}` });
       if (u.email) sendEmail({ to: u.email, subject, html }).catch(() => {});
@@ -436,7 +446,7 @@ async function postSigningNotify(
       sendEmail({
         to: ownerEmail,
         subject: `Welcome to Veloria Grand — ${propertyName}`,
-        html: `<p>Thank you! Your management agreement for <strong>${propertyName}</strong> is now signed. Our team will be in touch with next steps.</p>`,
+        html: `<p>Thank you! Your management agreement for <strong>${esc(propertyName)}</strong> is now signed. Our team will be in touch with next steps.</p>`,
       }).catch(() => {});
     }
   } catch (e) {
@@ -475,6 +485,8 @@ export async function terminateAcqContract(
   }
   const c = await prisma.acqContract.findFirst({ where: { id, deletedAt: null } });
   if (!c) return { success: false, error: "Contract not found" };
+  if (c.status !== "ACTIVE")
+    return { success: false, error: "Only an active contract can be terminated." };
   await prisma.acqContract.update({
     where: { id },
     data: { status: "TERMINATED", terminatedAt: new Date(), terminationGainLoss: gainLoss },
