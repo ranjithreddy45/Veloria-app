@@ -3691,8 +3691,10 @@ model AcqLead {
   contactAttempts  Int           @default(0)
   nextFollowupAt   DateTime?
   firstContactDue  DateTime
+  firstContactAt   DateTime? // when the lead was first actually contacted — clears the SLA
   convertedDealId  String? // set on qualify (denormalized; deal.leadId is authoritative)
   deal             AcqDeal?      @relation("AcqDealOrigin")
+  activities       AcqLeadActivity[]
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
   deletedAt        DateTime?
@@ -3702,6 +3704,21 @@ model AcqLead {
   @@index([bdExecutiveId])
   @@index([mobilePrimary])
   @@index([deletedAt])
+}
+
+// Contact-log / activity timeline for a BD lead (channel + outcome + note per touch).
+model AcqLeadActivity {
+  id         String   @id @default(cuid())
+  leadId     String
+  lead       AcqLead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  channel    String   // CALL | WHATSAPP | EMAIL | VISIT | NOTE
+  outcome    String?  // CONNECTED | NO_ANSWER | INTERESTED | NOT_INTERESTED | CALLBACK | ...
+  note       String?  @db.Text
+  actorId    String?
+  actorName  String?
+  createdAt  DateTime @default(now())
+
+  @@index([leadId])
 }
 
 model AcqDeal {

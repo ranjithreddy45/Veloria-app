@@ -84,7 +84,11 @@ export async function getAcqLead(id: string): Promise<Result<unknown>> {
   if (!user || !acqHasAnyAccess(user.role)) return { success: false, error: "Unauthorized" };
   const lead = await prisma.acqLead.findFirst({
     where: { id, deletedAt: null },
-    include: { bdExecutive: { select: { id: true, name: true } }, deal: { select: { id: true, stage: true } } },
+    include: {
+      bdExecutive: { select: { id: true, name: true } },
+      deal: { select: { id: true, stage: true } },
+      activities: { orderBy: { createdAt: "desc" }, take: 100 },
+    },
   });
   if (!lead) return { success: false, error: "Lead not found" };
 
@@ -217,6 +221,56 @@ export async function updateAcqLead(
   revalidatePath("/bd/leads");
   revalidatePath("/bd/dashboard");
   return { success: true, data: { id } };
+}
+
+// ------------------------------------------------------------
+// Log a contact touch (BUG-007): channel + outcome + note → activity timeline,
+// increments contact attempts, stamps first-contact (clears SLA), optional follow-up.
+// ------------------------------------------------------------
+const CONTACT_CHANNELS = ["CALL", "WHATSAPP", "EMAIL", "VISIT", "NOTE"];
+const CONTACT_OUTCOMES = ["CONNECTED", "NO_ANSWER", "INTERESTED", "NOT_INTERESTED", "CALLBACK", "OTHER"];
+
+export async function logAcqLeadContact(
+  leadId: string,
+  input: { channel: string; outcome?: string; note?: string; nextFollowupAt?: string | null }
+): Promise<Result<{ id: string }>> {
+  const user = await requireUser();
+  if (!user || !acqCan(user.role, "lead:write")) return { success: false, error: "Unauthorized" };
+  if (!CONTACT_CHANNELS.includes(input.channel)) return { success: false, error: "Pick how you contacted them." };
+  if (input.outcome && !CONTACT_OUTCOMES.includes(input.outcome)) return { success: false, error: "Invalid outcome." };
+  const lead = await prisma.acqLead.findFirst({ where: { id: leadId, deletedAt: null }, select: { status: true, firstContactAt: true } });
+  if (!lead) return { success: false, error: "Lead not found" };
+
+  let next: Date | null = null;
+  if (input.nextFollowupAt) {
+    next = new Date(input.nextFollowupAt);
+    if (Number.isNaN(next.getTime()) || next <= new Date()) return { success: false, error: "Follow-up date must be in the future." };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.acqLeadActivity.create({
+      data: { leadId, channel: input.channel, outcome: input.outcome || null, note: input.note?.trim() || null, actorId: user.id, actorName: (user as { name?: string | null }).name ?? null },
+    });
+    await tx.acqLead.update({
+      where: { id: leadId },
+      data: {
+        contactAttempts: { increment: 1 },
+        firstContactAt: lead.firstContactAt ?? new Date(),
+        // A real contact moves a NEW lead to CONTACTED and records the follow-up.
+        ...(lead.status === "NEW" ? { status: "CONTACTED" } : {}),
+        ...(next ? { nextFollowupAt: next } : {}),
+      },
+    });
+    if (lead.status === "NEW") {
+      await tx.acqStageTransition.create({
+        data: { entity: "LEAD", entityId: leadId, fromState: "NEW", toState: "CONTACTED", actorId: user.id },
+      });
+    }
+  });
+  revalidatePath("/bd/leads");
+  revalidatePath(`/bd/leads/${leadId}`);
+  revalidatePath("/bd/dashboard");
+  return { success: true, data: { id: leadId } };
 }
 
 // ------------------------------------------------------------

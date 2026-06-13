@@ -32,6 +32,7 @@ interface LeadRow {
   id: string;
   status: string;
   firstContactDue: string | null;
+  firstContactAt: string | null;
   createdAt: string;
 }
 
@@ -171,6 +172,7 @@ export default async function BdDashboardPage() {
   const slaBreaches = leads.filter(
     (l) =>
       l.status === "NEW" &&
+      !l.firstContactAt &&
       l.firstContactDue !== null &&
       new Date(l.firstContactDue).getTime() < now
   ).length;

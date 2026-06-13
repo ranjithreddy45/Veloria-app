@@ -53,7 +53,7 @@ import {
   ACQ_LEAD_STATUS_LABEL,
 } from "@/lib/acq/constants";
 import {
-  updateAcqLead,
+  logAcqLeadContact,
   qualifyAcqLead,
   disqualifyAcqLead,
   editAcqLead,
@@ -93,8 +93,17 @@ export interface AcqLeadFull {
   contactAttempts: number;
   nextFollowupAt?: string | null;
   firstContactDue: string;
+  firstContactAt?: string | null;
   convertedDealId?: string | null;
   createdAt: string;
+  activities?: Array<{
+    id: string;
+    channel: string;
+    outcome: string | null;
+    note: string | null;
+    actorName: string | null;
+    createdAt: string;
+  }>;
   bdExecutive?: { id: string; name: string | null } | null;
   deal?: { id: string; stage: string } | null;
   qualSeating100?: boolean | null;
@@ -366,7 +375,26 @@ export function LeadDetail({
         <CardHeader>
           <CardTitle className="text-[15px]">Activity</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {lead.activities && lead.activities.length > 0 && (
+            <ol className="space-y-3">
+              {lead.activities.map((a) => (
+                <li key={a.id} className="flex items-start gap-3 text-[13px]">
+                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-blue-500" />
+                  <div>
+                    <div className="text-foreground">
+                      {CONTACT_CHANNEL_LABEL[a.channel] ?? a.channel}
+                      {a.outcome ? ` · ${CONTACT_OUTCOME_LABEL[a.outcome] ?? a.outcome}` : ""}
+                    </div>
+                    {a.note && <div className="text-muted-foreground">{a.note}</div>}
+                    <div className="text-[11.5px] text-muted-foreground">
+                      {fmtDate(a.createdAt)} · {a.actorName ?? "—"}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
           {lead.timeline && lead.timeline.length > 0 ? (
             <ol className="space-y-3">
               {lead.timeline.map((t) => (
@@ -386,7 +414,7 @@ export function LeadDetail({
               ))}
             </ol>
           ) : (
-            <p className="text-[13px] text-muted-foreground">No activity yet.</p>
+            !lead.activities?.length && <p className="text-[13px] text-muted-foreground">No activity yet.</p>
           )}
         </CardContent>
       </Card>
@@ -802,6 +830,11 @@ function QualifyDialog({
 // ------------------------------------------------------------
 // Log contact dialog
 // ------------------------------------------------------------
+const CONTACT_CHANNELS = ["CALL", "WHATSAPP", "EMAIL", "VISIT", "NOTE"] as const;
+const CONTACT_CHANNEL_LABEL: Record<string, string> = { CALL: "Call", WHATSAPP: "WhatsApp", EMAIL: "Email", VISIT: "Site visit", NOTE: "Note" };
+const CONTACT_OUTCOMES = ["CONNECTED", "NO_ANSWER", "INTERESTED", "NOT_INTERESTED", "CALLBACK", "OTHER"] as const;
+const CONTACT_OUTCOME_LABEL: Record<string, string> = { CONNECTED: "Connected", NO_ANSWER: "No answer", INTERESTED: "Interested", NOT_INTERESTED: "Not interested", CALLBACK: "Callback requested", OTHER: "Other" };
+
 function LogContactDialog({
   lead,
   open,
@@ -812,28 +845,26 @@ function LogContactDialog({
   onOpenChange: (o: boolean) => void;
 }) {
   const router = useRouter();
+  const [channel, setChannel] = React.useState("CALL");
+  const [outcome, setOutcome] = React.useState("");
+  const [note, setNote] = React.useState("");
   const [followup, setFollowup] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   React.useEffect(() => {
-    if (open) setFollowup("");
+    if (open) { setChannel("CALL"); setOutcome(""); setNote(""); setFollowup(""); }
   }, [open]);
 
   async function save() {
-    if (!followup) {
-      toast.error("Pick a follow-up date.");
-      return;
-    }
+    if (!channel) { toast.error("Pick how you contacted them."); return; }
     setBusy(true);
     try {
-      const res = await updateAcqLead(lead.id, {
-        status: "CONTACTED",
-        nextFollowupAt: new Date(followup).toISOString(),
-        incrementContactAttempt: true,
+      const res = await logAcqLeadContact(lead.id, {
+        channel,
+        outcome: outcome || undefined,
+        note: note || undefined,
+        nextFollowupAt: followup ? new Date(followup).toISOString() : undefined,
       });
-      if (!res.success) {
-        toast.error(res.error);
-        return;
-      }
+      if (!res.success) { toast.error(res.error); return; }
       toast.success("Contact logged");
       onOpenChange(false);
       router.refresh();
@@ -849,16 +880,27 @@ function LogContactDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Log contact</DialogTitle>
-          <DialogDescription>Marks the lead Contacted and schedules a follow-up.</DialogDescription>
+          <DialogDescription>Record the touch — it appears on the timeline, counts as a contact attempt, and clears the first-contact SLA.</DialogDescription>
         </DialogHeader>
-        <L label="Next follow-up">
-          <Input
-            type="datetime-local"
-            value={followup}
-            min={new Date().toISOString().slice(0, 16)}
-            onChange={(e) => setFollowup(e.target.value)}
-          />
-        </L>
+        <div className="space-y-3">
+          <L label="Channel">
+            <Picker value={channel} onChange={setChannel} options={[...CONTACT_CHANNELS]} labels={CONTACT_CHANNEL_LABEL} />
+          </L>
+          <L label="Outcome">
+            <Picker value={outcome} onChange={setOutcome} options={[...CONTACT_OUTCOMES]} labels={CONTACT_OUTCOME_LABEL} placeholder="Optional…" />
+          </L>
+          <L label="Notes">
+            <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder="What was discussed?" />
+          </L>
+          <L label="Next follow-up (optional)">
+            <Input
+              type="datetime-local"
+              value={followup}
+              min={new Date().toISOString().slice(0, 16)}
+              onChange={(e) => setFollowup(e.target.value)}
+            />
+          </L>
+        </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>Cancel</Button>
           <Button onClick={save} disabled={busy}>{busy ? "Saving…" : "Log contact"}</Button>
