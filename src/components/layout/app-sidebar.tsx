@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
@@ -194,10 +195,24 @@ function getIcon(iconName: string): LucideIcon {
 // Collapsible group labels
 // ============================================================
 
-const GROUP_LABELS: Record<string, string> = {
-  "/contacts": "Sales CRM",
-  "/bookings": "Bookings",
-  "/invoices": "Finance",
+// Section bands — keyed by each TOP-LEVEL nav href. A band header renders the
+// first time a section appears as we walk the nav in order, so related modules
+// sit under a clear label and nothing reads as "nested" under its neighbour.
+const SECTIONS: Record<string, string> = {
+  "/bd/dashboard": "Sales & CRM",
+  "/contacts": "Sales & CRM",
+  "/crm/cadences": "Sales & CRM",
+  "/bookings": "Delivery & Ops",
+  "/projects": "Delivery & Ops",
+  "/tasks": "Delivery & Ops",
+  "/people": "People",
+  "/packages": "Catalog & Finance",
+  "/invoices": "Catalog & Finance",
+  "/campaigns": "Marketing & Insights",
+  "/reports": "Marketing & Insights",
+  "/documents": "Workspace",
+  "/gallery": "Workspace",
+  "/settings": "System",
 };
 
 // ============================================================
@@ -266,15 +281,8 @@ function SidebarCollapsibleItem({
 }) {
   const Icon = getIcon(item.icon);
   const isGroupActive = pathname.startsWith(item.href);
-  const groupLabel = GROUP_LABELS[item.href];
 
   return (
-    <>
-      {groupLabel && (
-        <SidebarGroupLabel className="mt-3 mb-0.5 px-2 text-[10.5px] font-medium uppercase tracking-[0.08em] text-sidebar-foreground/40">
-          {groupLabel}
-        </SidebarGroupLabel>
-      )}
       <Collapsible defaultOpen={isGroupActive} className="group/collapsible">
         <SidebarMenuItem>
           <CollapsibleTrigger asChild>
@@ -320,7 +328,6 @@ function SidebarCollapsibleItem({
           </CollapsibleContent>
         </SidebarMenuItem>
       </Collapsible>
-    </>
   );
 }
 
@@ -394,26 +401,35 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {filteredNavigation.map((item) => {
-                if (item.children && item.children.length > 0) {
-                  return (
-                    <SidebarCollapsibleItem
-                      key={item.href}
-                      item={item}
-                      pathname={pathname}
-                    />
-                  );
-                }
+              {(() => {
+                let prevSection: string | undefined;
+                return filteredNavigation.map((item) => {
+                  const section = SECTIONS[item.href];
+                  const showHeader = !!section && section !== prevSection;
+                  if (section) prevSection = section;
 
-                const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
-                return (
-                  <SidebarNavItem
-                    key={item.href}
-                    item={item}
-                    isActive={isActive}
-                  />
-                );
-              })}
+                  const node =
+                    item.children && item.children.length > 0 ? (
+                      <SidebarCollapsibleItem item={item} pathname={pathname} />
+                    ) : (
+                      <SidebarNavItem
+                        item={item}
+                        isActive={pathname === item.href || pathname.startsWith(item.href + "/")}
+                      />
+                    );
+
+                  return (
+                    <Fragment key={item.href}>
+                      {showHeader && (
+                        <SidebarGroupLabel className="mt-3 mb-0.5 px-2 text-[10.5px] font-medium uppercase tracking-[0.08em] text-sidebar-foreground/40">
+                          {section}
+                        </SidebarGroupLabel>
+                      )}
+                      {node}
+                    </Fragment>
+                  );
+                });
+              })()}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
