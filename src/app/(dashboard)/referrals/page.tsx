@@ -10,7 +10,7 @@ import { ReferralStats } from "./_components/referral-stats";
 import { ReferralTable } from "./_components/referral-table";
 
 export const metadata: Metadata = {
-  title: "Referrals | Veloria Grand",
+  title: "Referrals",
 };
 
 // ============================================================

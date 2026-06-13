@@ -29,7 +29,7 @@ import { REFERRAL_STATUS_COLORS } from "@/lib/constants";
 import { ReferralActions } from "./_components/referral-actions";
 
 export const metadata: Metadata = {
-  title: "Referral Details | Veloria Grand",
+  title: "Referral Details",
 };
 
 // ============================================================

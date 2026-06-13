@@ -21,7 +21,7 @@ import {
 import { AddAssetDialog, DeleteAssetButton } from "./_components/asset-actions";
 
 export const metadata: Metadata = {
-  title: "Referral Assets | Veloria Grand",
+  title: "Referral Assets",
 };
 
 // ============================================================

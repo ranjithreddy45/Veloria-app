@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { PageHeader } from "@/components/layout/page-header";
 import { SOPTemplateForm } from "../_components/sop-template-form";
 
-export const metadata: Metadata = { title: "New SOP Template | Veloria Grand" };
+export const metadata: Metadata = { title: "New SOP Template" };
 
 // ============================================================
 // Create SOP Template Page

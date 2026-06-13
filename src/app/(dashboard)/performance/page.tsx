@@ -13,7 +13,7 @@ import {
 } from "@/actions/performance.actions";
 import { PerformanceDashboard } from "./_components/performance-dashboard";
 
-export const metadata: Metadata = { title: "Performance | Veloria Grand" };
+export const metadata: Metadata = { title: "Performance" };
 
 // ============================================================
 // Performance Dashboard Page

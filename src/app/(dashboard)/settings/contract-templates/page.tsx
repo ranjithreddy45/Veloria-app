@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { DeleteTemplateButton } from "./_components/delete-template-button";
 
 export const metadata = {
-  title: "Contract Templates | Veloria Grand",
+  title: "Contract Templates",
 };
 
 export default async function ContractTemplatesPage() {

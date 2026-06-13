@@ -26,7 +26,7 @@ import {
 import { BADGE_TYPE_LABELS } from "@/lib/constants";
 
 export const metadata: Metadata = {
-  title: "Badges & Recognition | Veloria Grand",
+  title: "Badges & Recognition",
 };
 
 // ============================================================

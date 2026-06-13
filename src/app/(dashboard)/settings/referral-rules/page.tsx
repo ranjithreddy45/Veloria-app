@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/card";
 
 export const metadata: Metadata = {
-  title: "Referral Reward Rules | Settings | Veloria Grand",
+  title: "Referral Reward Rules | Settings",
 };
 
 // ============================================================

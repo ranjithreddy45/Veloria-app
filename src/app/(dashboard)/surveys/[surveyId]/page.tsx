@@ -25,7 +25,7 @@ import { SurveyResults } from "./_components/survey-results";
 import { SendInvitationDialog } from "./_components/send-invitation-dialog";
 
 export const metadata = {
-  title: "Survey Details | Veloria Grand",
+  title: "Survey Details",
 };
 
 // ============================================================

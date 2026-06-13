@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/card";
 
 export const metadata: Metadata = {
-  title: "Referrer Leaderboard | Veloria Grand",
+  title: "Referrer Leaderboard",
 };
 
 // ============================================================

@@ -29,7 +29,7 @@ import {
 } from "@/lib/constants";
 
 export const metadata: Metadata = {
-  title: "Loyalty & Rewards | Veloria Grand",
+  title: "Loyalty & Rewards",
 };
 
 // ============================================================

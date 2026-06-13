@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { InvoiceForm } from "../../_components/invoice-form";
 
 export const metadata = {
-  title: "Edit Invoice | Veloria Grand",
+  title: "Edit Invoice",
 };
 
 interface EditInvoicePageProps {

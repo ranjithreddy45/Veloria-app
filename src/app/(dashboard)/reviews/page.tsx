@@ -5,7 +5,7 @@ import { PageHelp } from "@/lib/page-help";
 import { ReviewsModerationList } from "./_components/reviews-moderation-list";
 
 export const metadata: Metadata = {
-  title: "Reviews | Veloria Grand",
+  title: "Reviews",
 };
 
 // ============================================================

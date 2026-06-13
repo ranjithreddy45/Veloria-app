@@ -4,7 +4,7 @@ import { getActiveEscalations } from "@/actions/escalation.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { ControlDashboard } from "./_components/control-dashboard";
 
-export const metadata: Metadata = { title: "Live Event Control | Veloria Grand" };
+export const metadata: Metadata = { title: "Live Event Control" };
 
 interface ControlPageProps {
   params: Promise<{ bookingId: string }>;

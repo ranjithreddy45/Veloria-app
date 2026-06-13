@@ -22,7 +22,7 @@ import {
 import { AwardIncentiveButton } from "./_components/award-incentive-button";
 
 export const metadata: Metadata = {
-  title: "Incentives | Veloria Grand",
+  title: "Incentives",
 };
 
 // ============================================================

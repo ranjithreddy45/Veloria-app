@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { EscalationRuleForm } from "../_components/escalation-rule-form";
 
 export const metadata: Metadata = {
-  title: "New Escalation Rule | Veloria Grand",
+  title: "New Escalation Rule",
 };
 
 // ============================================================

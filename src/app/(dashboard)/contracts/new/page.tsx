@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { ContractForm } from "../_components/contract-form";
 
 export const metadata = {
-  title: "New Contract | Veloria Grand",
+  title: "New Contract",
 };
 
 export default async function NewContractPage() {

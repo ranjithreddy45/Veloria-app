@@ -9,7 +9,7 @@ import { CONTRACT_STATUS_COLORS } from "@/lib/constants";
 import { ContractDetail } from "../_components/contract-detail";
 
 export const metadata = {
-  title: "Contract Details | Veloria Grand",
+  title: "Contract Details",
 };
 
 interface ContractDetailPageProps {

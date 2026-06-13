@@ -35,7 +35,7 @@ import {
 import { BADGE_TYPE_LABELS } from "@/lib/constants";
 
 export const metadata: Metadata = {
-  title: "Vendor Performance Detail | Veloria Grand",
+  title: "Vendor Performance Detail",
 };
 
 // ============================================================

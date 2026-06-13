@@ -25,7 +25,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { EVENT_PHASE_LABELS } from "@/lib/constants";
 
-export const metadata: Metadata = { title: "SOP Templates | Veloria Grand" };
+export const metadata: Metadata = { title: "SOP Templates" };
 
 // ============================================================
 // SOP Templates List Page

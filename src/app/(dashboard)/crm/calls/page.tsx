@@ -7,7 +7,7 @@ import { PageHelp } from "@/lib/page-help";
 import { Phone } from "lucide-react";
 
 export const metadata = {
-  title: "Call Log | Veloria Grand",
+  title: "Call Log",
 };
 
 export default async function CallsPage({

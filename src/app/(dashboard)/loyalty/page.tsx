@@ -7,7 +7,7 @@ import { LoyaltyStats } from "./_components/loyalty-stats";
 import { LoyaltyTable } from "./_components/loyalty-table";
 
 export const metadata: Metadata = {
-  title: "Loyalty & Rewards | Veloria Grand",
+  title: "Loyalty & Rewards",
 };
 
 // ============================================================

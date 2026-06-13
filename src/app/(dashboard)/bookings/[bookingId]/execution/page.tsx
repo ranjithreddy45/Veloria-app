@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { ExecutionPlanView } from "./_components/execution-plan-view";
 import { CreatePlanDialog } from "./_components/create-plan-dialog";
 
-export const metadata: Metadata = { title: "Execution Plan | Veloria Grand" };
+export const metadata: Metadata = { title: "Execution Plan" };
 
 interface ExecutionPageProps {
   params: Promise<{ bookingId: string }>;

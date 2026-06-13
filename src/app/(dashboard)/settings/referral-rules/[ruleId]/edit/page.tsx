@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ReferralRuleForm } from "../../_components/referral-rule-form";
 
 export const metadata: Metadata = {
-  title: "Edit Referral Reward Rule | Settings | Veloria Grand",
+  title: "Edit Referral Reward Rule | Settings",
 };
 
 // ============================================================

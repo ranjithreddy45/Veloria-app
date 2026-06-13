@@ -35,7 +35,7 @@ import {
 import { AdjustPointsDialog } from "../_components/adjust-points-dialog";
 
 export const metadata: Metadata = {
-  title: "Loyalty Account | Veloria Grand",
+  title: "Loyalty Account",
 };
 
 // ============================================================

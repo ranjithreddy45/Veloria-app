@@ -3,7 +3,7 @@ import { AgentActivityDashboard } from "./_components/agent-activity-dashboard";
 import { UserCog } from "lucide-react";
 
 export const metadata = {
-  title: "Agent Activity | Veloria Grand",
+  title: "Agent Activity",
 };
 
 export default async function AgentActivityPage() {

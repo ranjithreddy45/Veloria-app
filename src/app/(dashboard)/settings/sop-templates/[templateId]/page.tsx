@@ -30,7 +30,7 @@ import {
 } from "@/lib/constants";
 
 export const metadata: Metadata = {
-  title: "SOP Template | Veloria Grand",
+  title: "SOP Template",
 };
 
 interface SOPTemplateDetailPageProps {

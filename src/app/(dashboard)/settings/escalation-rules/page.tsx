@@ -26,7 +26,7 @@ import {
   TASK_PRIORITY_COLORS,
 } from "@/lib/constants";
 
-export const metadata: Metadata = { title: "Escalation Rules | Veloria Grand" };
+export const metadata: Metadata = { title: "Escalation Rules" };
 
 // ============================================================
 // Escalation Level Colors

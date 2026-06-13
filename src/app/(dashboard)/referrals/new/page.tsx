@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/layout/page-header";
 import { ReferralForm } from "../_components/referral-form";
 
-export const metadata: Metadata = { title: "New Referral | Veloria Grand" };
+export const metadata: Metadata = { title: "New Referral" };
 
 // ============================================================
 // Create Referral Page

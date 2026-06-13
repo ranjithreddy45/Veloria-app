@@ -21,7 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-export const metadata: Metadata = { title: "Performance Scores | Veloria Grand" };
+export const metadata: Metadata = { title: "Performance Scores" };
 
 // ============================================================
 // Performance Scores Page

@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { PayoutForm } from "../_components/payout-form";
 
 export const metadata = {
-  title: "New Payout | Veloria Grand",
+  title: "New Payout",
 };
 
 export default async function NewPayoutPage() {

@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { EmailTemplateForm } from "../_components/template-form";
 
 export const metadata: Metadata = {
-  title: "New Email Template | Veloria Grand",
+  title: "New Email Template",
 };
 
 // ============================================================

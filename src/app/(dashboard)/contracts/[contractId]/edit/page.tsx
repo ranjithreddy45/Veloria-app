@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { ContractForm } from "../../_components/contract-form";
 
 export const metadata = {
-  title: "Edit Contract | Veloria Grand",
+  title: "Edit Contract",
 };
 
 interface EditContractPageProps {

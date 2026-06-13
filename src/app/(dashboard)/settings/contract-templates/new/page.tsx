@@ -2,7 +2,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { TemplateForm } from "../_components/template-form";
 
 export const metadata = {
-  title: "New Contract Template | Veloria Grand",
+  title: "New Contract Template",
 };
 
 export default function NewContractTemplatePage() {

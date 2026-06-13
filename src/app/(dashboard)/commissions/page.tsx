@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CommissionTable } from "./_components/commission-table";
 import { CommissionRuleForm } from "./_components/commission-rule-form";
 
-export const metadata: Metadata = { title: "Commissions | Veloria Grand" };
+export const metadata: Metadata = { title: "Commissions" };
 
 // ============================================================
 // Commissions Page

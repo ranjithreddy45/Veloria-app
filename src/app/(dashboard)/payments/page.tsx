@@ -11,7 +11,7 @@ import { PaymentsTable } from "./_components/payments-table";
 import { formatINR } from "@/lib/utils";
 
 export const metadata = {
-  title: "Payments | Veloria Grand",
+  title: "Payments",
 };
 
 export default async function PaymentsPage() {

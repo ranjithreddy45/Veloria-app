@@ -6,7 +6,7 @@ import { AutoWelcomeConfig } from "./_components/auto-welcome-config";
 import { Webhook } from "lucide-react";
 
 export const metadata = {
-  title: "Lead Capture Integration | Veloria Grand",
+  title: "Lead Capture Integration",
 };
 
 export default async function LeadCapturePage() {

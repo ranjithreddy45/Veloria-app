@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { InvoicesTable } from "./_components/invoices-table";
 
 export const metadata = {
-  title: "Invoices | Veloria Grand",
+  title: "Invoices",
 };
 
 export default async function InvoicesPage() {

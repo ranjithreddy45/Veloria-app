@@ -15,7 +15,7 @@ import { PayoutTable } from "./_components/payout-table";
 import { formatINR } from "@/lib/utils";
 
 export const metadata = {
-  title: "Payouts | Veloria Grand",
+  title: "Payouts",
 };
 
 export default async function PayoutsPage() {

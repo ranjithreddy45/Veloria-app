@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { PageHelp } from "@/lib/page-help";
 import { DocumentList } from "./_components/document-list";
 
-export const metadata: Metadata = { title: "Documents | Veloria Grand" };
+export const metadata: Metadata = { title: "Documents" };
 
 // ============================================================
 // Documents Page

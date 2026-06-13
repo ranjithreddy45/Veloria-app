@@ -22,7 +22,7 @@ import { serialize } from "@/lib/utils";
 import { ApproveRewardButton, MarkPaidButton } from "./_components/reward-actions";
 
 export const metadata: Metadata = {
-  title: "Referral Rewards | Veloria Grand",
+  title: "Referral Rewards",
 };
 
 // ============================================================

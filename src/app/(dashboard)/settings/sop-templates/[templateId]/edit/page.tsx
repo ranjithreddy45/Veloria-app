@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { SOPTemplateForm } from "../../_components/sop-template-form";
 
 export const metadata: Metadata = {
-  title: "Edit SOP Template | Veloria Grand",
+  title: "Edit SOP Template",
 };
 
 interface EditSOPTemplatePageProps {

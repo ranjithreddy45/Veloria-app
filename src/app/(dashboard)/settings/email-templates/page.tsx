@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { DeleteTemplateButton } from "./_components/delete-template-button";
 
 export const metadata: Metadata = {
-  title: "Email Templates | Veloria Grand",
+  title: "Email Templates",
 };
 
 // ============================================================

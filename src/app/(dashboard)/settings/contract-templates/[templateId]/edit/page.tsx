@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { TemplateForm } from "../../_components/template-form";
 
 export const metadata = {
-  title: "Edit Contract Template | Veloria Grand",
+  title: "Edit Contract Template",
 };
 
 interface EditContractTemplatePageProps {

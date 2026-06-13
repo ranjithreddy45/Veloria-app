@@ -20,7 +20,7 @@ import { PaymentLinkDialog } from "./_components/payment-link-dialog";
 import { DownloadPdfButton } from "./_components/download-pdf-button";
 
 export const metadata = {
-  title: "Invoice Details | Veloria Grand",
+  title: "Invoice Details",
 };
 
 interface InvoiceDetailPageProps {

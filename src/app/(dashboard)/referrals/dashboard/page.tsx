@@ -23,7 +23,7 @@ import {
 import { REFERRAL_STATUS_COLORS } from "@/lib/constants";
 
 export const metadata: Metadata = {
-  title: "Referral Dashboard | Veloria Grand",
+  title: "Referral Dashboard",
 };
 
 // ============================================================

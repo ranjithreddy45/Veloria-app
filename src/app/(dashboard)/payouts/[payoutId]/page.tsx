@@ -26,7 +26,7 @@ import { PAYOUT_STATUS_COLORS, PAYOUT_TYPE_LABELS } from "@/lib/constants";
 import { formatINR } from "@/lib/utils";
 import { PayoutActions } from "./_components/payout-actions";
 
-export const metadata: Metadata = { title: "Payout Details | Veloria Grand" };
+export const metadata: Metadata = { title: "Payout Details" };
 
 // ============================================================
 // Payout Detail Page

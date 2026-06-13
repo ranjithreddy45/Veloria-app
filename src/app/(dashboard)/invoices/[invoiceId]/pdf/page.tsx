@@ -11,7 +11,7 @@ import { COMPANY_ADDRESS, COMPANY_GSTIN } from "@/lib/constants";
 // No sidebar, no header — just the invoice.
 
 export const metadata = {
-  title: "Invoice PDF | Veloria Grand",
+  title: "Invoice PDF",
 };
 
 interface InvoicePdfPageProps {

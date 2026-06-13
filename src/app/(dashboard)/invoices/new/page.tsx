@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { InvoiceForm } from "../_components/invoice-form";
 
 export const metadata = {
-  title: "New Invoice | Veloria Grand",
+  title: "New Invoice",
 };
 
 export default async function NewInvoicePage() {
