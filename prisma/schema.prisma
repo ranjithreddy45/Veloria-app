@@ -4546,6 +4546,8 @@ model Employee {
   compOffs          CompOff[]
   attendance        AttendanceRecord[]
   regularizations   Regularization[]      @relation("RegnEmployee")
+  documents         HrDocument[]
+  docAcks           DocumentAcknowledgement[]
 
   @@index([legalEntityId])
   @@index([businessVerticalId])
@@ -4863,5 +4865,98 @@ model Regularization {
   createdAt          DateTime             @default(now())
 
   @@index([employeeId])
+  @@index([status])
+}
+
+// ============================================================
+// Document Management
+// ============================================================
+enum DocumentScope {
+  ORG // policies, handbooks — everyone
+  EMPLOYEE // offer letters, ID proofs — one employee
+}
+
+model HrDocumentCategory {
+  id        String        @id @default(cuid())
+  name      String
+  scope     DocumentScope @default(ORG)
+  isActive  Boolean       @default(true)
+  order     Int           @default(0)
+  createdAt DateTime      @default(now())
+
+  documents HrDocument[]
+
+  @@index([scope])
+}
+
+model HrDocument {
+  id           String              @id @default(cuid())
+  title        String
+  categoryId   String?
+  category     HrDocumentCategory? @relation(fields: [categoryId], references: [id])
+  scope        DocumentScope       @default(ORG)
+  fileUrl      String? // link to the stored file (Drive/S3/etc.)
+  version      Int                 @default(1)
+  employeeId   String? // set when scope = EMPLOYEE
+  employee     Employee?           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  requiresAck  Boolean             @default(false)
+  expiryDate   DateTime?
+  uploadedBy   String
+  isActive     Boolean             @default(true)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @default(now()) @updatedAt
+
+  acknowledgements DocumentAcknowledgement[]
+  esignRequests    ESignRequest[]
+
+  @@index([scope])
+  @@index([employeeId])
+  @@index([expiryDate])
+}
+
+model DocumentAcknowledgement {
+  id             String     @id @default(cuid())
+  documentId     String
+  document       HrDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  employeeId     String
+  employee       Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  acknowledgedAt DateTime   @default(now())
+
+  @@unique([documentId, employeeId])
+  @@index([documentId])
+}
+
+// Mail-merge templates (offer/confirmation letters) — body has {{placeholders}}.
+model HrDocumentTemplate {
+  id        String   @id @default(cuid())
+  name      String
+  body      String   @db.Text
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+enum ESignStatus {
+  PENDING
+  SIGNED
+  DECLINED
+  CANCELLED
+}
+
+// E-signature requests — provider abstracted behind the hr/esign lib adapter.
+model ESignRequest {
+  id          String      @id @default(cuid())
+  documentId  String
+  document    HrDocument  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  signerName  String
+  signerEmail String
+  provider    String      @default("noop")
+  externalId  String?
+  status      ESignStatus @default(PENDING)
+  requestedBy String
+  signedAt    DateTime?
+  createdAt   DateTime    @default(now())
+
+  @@index([documentId])
   @@index([status])
 }

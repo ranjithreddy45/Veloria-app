@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  ArrowLeft, Mail, Phone, MapPin, Briefcase, Building2, Network, Lock, Users,
+  ArrowLeft, Mail, Phone, MapPin, Briefcase, Building2, Network, Lock, Users, FileText, ExternalLink,
 } from "lucide-react";
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
@@ -14,6 +14,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getEmployee, getHrLookups } from "@/actions/hr-employee.actions";
 import { getStatutoryMasked } from "@/actions/hr-statutory.actions";
 import { getCustomFieldDefs } from "@/actions/hr-config.actions";
+import { getEmployeeDocuments } from "@/actions/hr-documents.actions";
+import { getDocumentCategories } from "@/actions/hr-documents.actions";
+import { AddDocDialog } from "../documents/_components/documents-home";
 import {
   EMPLOYEE_STATUS_LABELS, EMPLOYEE_STATUS_HUE, EMPLOYMENT_TYPE_LABELS,
 } from "@/lib/hr/constants";
@@ -31,6 +34,11 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
     getEmployee(id), getHrLookups(), auth(), getCustomFieldDefs(true),
   ]);
   if (!emp) notFound();
+
+  const showDocs = FEATURES.hrDocuments;
+  const [empDocs, docCategories] = showDocs
+    ? await Promise.all([getEmployeeDocuments(emp.id), getDocumentCategories()])
+    : [[], []];
 
   const role = session?.user?.role ?? "";
   const canWrite = hasPermission(role, "hr:write");
@@ -108,6 +116,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="team">Team</TabsTrigger>
+          {showDocs && <TabsTrigger value="documents">Documents</TabsTrigger>}
           <TabsTrigger value="statutory">Statutory</TabsTrigger>
         </TabsList>
 
@@ -186,6 +195,45 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
             The reporting line here drives approval routing across Leave, Attendance and Projects.
           </p>
         </TabsContent>
+
+        {/* Employee documents */}
+        {showDocs && (
+          <TabsContent value="documents">
+            <div className="rounded-xl border bg-card p-5">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">Documents</h3>
+                {canWrite && (
+                  <AddDocDialog categories={docCategories as never} employees={[]} forEmployeeId={emp.id} />
+                )}
+              </div>
+              {empDocs.length === 0 ? (
+                <p className="text-[13px] text-muted-foreground">No documents on file. Offer letters, ID proofs and contracts appear here.</p>
+              ) : (
+                <div className="divide-y">
+                  {empDocs.map((d) => (
+                    <div key={d.id} className="flex items-center justify-between gap-3 py-2.5 first:pt-0">
+                      <div className="flex items-center gap-2">
+                        <FileText className="size-4 text-muted-foreground" />
+                        <div>
+                          <span className="text-[13.5px] font-medium">{d.title}</span>
+                          <div className="text-[12px] text-muted-foreground">
+                            {d.category?.name ?? "Uncategorised"}{d.expiryDate ? ` · expires ${formatDate(d.expiryDate)}` : ""}
+                          </div>
+                        </div>
+                      </div>
+                      {d.fileUrl && (
+                        <a href={d.fileUrl} target="_blank" rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-[13px] text-muted-foreground hover:text-foreground">
+                          <ExternalLink className="size-3.5" /> Open
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+        )}
 
         {/* Statutory — encrypted at rest, masked, access-logged */}
         <TabsContent value="statutory">
