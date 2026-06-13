@@ -196,6 +196,7 @@ export const sidebarNavigation: NavItem[] = [
     permissions: ["projects:read"],
     children: [
       { title: "Venues", href: "/projects", icon: "Building2", permissions: ["projects:read"] },
+      { title: "Portfolio", href: "/projects/portfolio", icon: "BarChart3", permissions: ["projects:read"] },
       { title: "CapEx Rate Card", href: "/projects/rate-card", icon: "Calculator", permissions: ["projects:read"] },
       { title: "Vendors", href: "/projects/vendors", icon: "Truck", permissions: ["projects:read"] },
     ],
