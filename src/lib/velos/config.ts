@@ -56,6 +56,35 @@ export const VELOS_TUNING = {
   SLUMP_BASELINE_WEEKS: 8,
 };
 
+// Identity arc (A2) — lifetime-Velos ladder with named stages + real unlocks.
+// Mirrors the Bronze→Platinum loyalty ladder; ops gets a parallel track.
+export interface VelosTier {
+  key: "BRONZE" | "SILVER" | "GOLD" | "PLATINUM";
+  minLifetime: number;
+  salesIdentity: string;
+  opsIdentity: string;
+  unlock: string;
+  hue: "amber" | "slate" | "violet" | "emerald";
+}
+
+export const VELOS_TIERS: VelosTier[] = [
+  { key: "BRONZE", minLifetime: 0, salesIdentity: "Prospector", opsIdentity: "Coordinator", unlock: "Standard lead flow", hue: "amber" },
+  { key: "SILVER", minLifetime: 500, salesIdentity: "Closer", opsIdentity: "Steward", unlock: "Priority lead routing · choose your weekly quest", hue: "slate" },
+  { key: "GOLD", minLifetime: 1500, salesIdentity: "Master Closer", opsIdentity: "Maestro", unlock: "First pick of high-value enquiries · mentor credit", hue: "amber" },
+  { key: "PLATINUM", minLifetime: 3500, salesIdentity: "Rainmaker", opsIdentity: "Maestro", unlock: "Best territory · input on team decisions · quarterly award", hue: "violet" },
+];
+
+export function tierForLifetime(lifetime: number): { tier: VelosTier; next: VelosTier | null; toNext: number; pctToNext: number } {
+  let idx = 0;
+  for (let i = 0; i < VELOS_TIERS.length; i++) if (lifetime >= VELOS_TIERS[i].minLifetime) idx = i;
+  const tier = VELOS_TIERS[idx];
+  const next = VELOS_TIERS[idx + 1] ?? null;
+  const toNext = next ? Math.max(0, next.minLifetime - lifetime) : 0;
+  const span = next ? next.minLifetime - tier.minLifetime : 1;
+  const pctToNext = next ? Math.min(100, Math.round(((lifetime - tier.minLifetime) / span) * 100)) : 100;
+  return { tier, next, toNext, pctToNext };
+}
+
 /** Period key 'YYYY-MM' for a date (UTC). */
 export function velosPeriod(d: Date): string {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;

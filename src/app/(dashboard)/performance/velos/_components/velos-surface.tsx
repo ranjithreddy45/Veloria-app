@@ -1,0 +1,189 @@
+"use client";
+
+import * as React from "react";
+import { useRouter } from "next/navigation";
+import {
+  TrendingUp, Trophy, Sparkles, Target, Loader2, Medal, ArrowUp, Settings2, Gem,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { StatusPill } from "@/components/shared/status-pill";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
+import { seedVelosConfig, updateVelosPoints } from "@/actions/velos.actions";
+
+interface Pace { thisPeriod: number; lastPeriod: number; projected: number; goal: number; onTrack: boolean; pctOfGoal: number }
+interface Team { team: number; target: number; pct: number }
+interface Identity { lifetime: number; tierKey: string; identity: string; unlock: string; hue: string; next: { key: string; identity: string; unlock: string; toNext: number } | null; pctToNext: number }
+interface LbRow { userId: string; name: string; image: string | null; points: number; delta: number }
+interface Cfg { id: string; eventType: string; points: number; label: string; category: string; clawbackEligible: boolean; isEffort: boolean }
+
+const TIER_HUE: Record<string, string> = { BRONZE: "text-amber-700 bg-amber-50 ring-amber-200", SILVER: "text-slate-600 bg-slate-50 ring-slate-200", GOLD: "text-amber-600 bg-amber-50 ring-amber-200", PLATINUM: "text-violet-700 bg-violet-50 ring-violet-200" };
+
+export function VelosSurface({
+  pace, team, identity, leaderboard, config, myId, canAdmin, needsSeed,
+}: {
+  pace: Pace | null; team: Team | null; identity: Identity | null; leaderboard: LbRow[];
+  config: Cfg[]; myId: string; canAdmin: boolean; needsSeed: boolean;
+}) {
+  if (needsSeed) {
+    return canAdmin ? <SeedPanel /> : (
+      <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
+        Velos isn’t set up yet. Ask an admin to initialise the points configuration.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* Personal Pace — the primary view (motivates all eight) */}
+      {pace && (
+        <div className="rounded-2xl border bg-gradient-to-br from-[#2D1B3D] to-[#43295c] p-5 text-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-[12.5px] font-medium text-white/70"><TrendingUp className="size-4" /> Your pace this month</div>
+            <StatusPill label={pace.onTrack ? "On track" : "Push needed"} hue={pace.onTrack ? "emerald" : "amber"} size="sm" />
+          </div>
+          <div className="mt-3 flex flex-wrap items-end gap-x-8 gap-y-3">
+            <div>
+              <div className="text-[36px] font-bold leading-none tabular-nums">{pace.thisPeriod}</div>
+              <div className="mt-1 text-[11.5px] text-white/60">Velos this month</div>
+            </div>
+            <div>
+              <div className="text-xl font-semibold tabular-nums text-white/90">{pace.lastPeriod}</div>
+              <div className="text-[11.5px] text-white/60">Your last month</div>
+            </div>
+            <div>
+              <div className="text-xl font-semibold tabular-nums text-white/90">{pace.projected}</div>
+              <div className="text-[11.5px] text-white/60">Projected end of month</div>
+            </div>
+          </div>
+          <div className="mt-4">
+            <div className="mb-1 flex justify-between text-[11px] text-white/60"><span>vs your goal ({pace.goal})</span><span>{pace.pctOfGoal}%</span></div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-white/15">
+              <div className="h-full rounded-full bg-[#C9A96E] transition-all" style={{ width: `${Math.min(100, pace.pctOfGoal)}%` }} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        {/* Identity arc */}
+        {identity && (
+          <div className="rounded-xl border bg-card p-5">
+            <div className="mb-3 flex items-center gap-2 text-[12.5px] font-semibold text-muted-foreground"><Sparkles className="size-4 text-[#C9A96E]" /> Your journey</div>
+            <div className="flex items-center gap-3">
+              <div className={cn("flex size-12 items-center justify-center rounded-xl ring-1 ring-inset", TIER_HUE[identity.tierKey])}>
+                <Gem className="size-5" />
+              </div>
+              <div>
+                <div className="text-lg font-semibold">{identity.identity}</div>
+                <div className="text-[12px] text-muted-foreground">{identity.tierKey[0] + identity.tierKey.slice(1).toLowerCase()} · {identity.lifetime} lifetime Velos</div>
+              </div>
+            </div>
+            <p className="mt-3 text-[12.5px] text-muted-foreground">Unlocked: <span className="text-foreground">{identity.unlock}</span></p>
+            {identity.next ? (
+              <div className="mt-3">
+                <div className="mb-1 flex justify-between text-[11px] text-muted-foreground"><span>Next: {identity.next.identity}</span><span>{identity.next.toNext} to go</span></div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                  <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${identity.pctToNext}%` }} />
+                </div>
+                <p className="mt-1.5 text-[11.5px] text-muted-foreground">Unlocks: {identity.next.unlock}</p>
+              </div>
+            ) : <p className="mt-3 text-[12.5px] font-medium text-violet-700">Top tier reached — Rainmaker 🏆</p>}
+          </div>
+        )}
+
+        {/* Team vs Target */}
+        {team && (
+          <div className="rounded-xl border bg-card p-5">
+            <div className="mb-3 flex items-center gap-2 text-[12.5px] font-semibold text-muted-foreground"><Target className="size-4" /> Team vs target</div>
+            <div className="flex items-end justify-between">
+              <div className="text-3xl font-bold tabular-nums">{team.team}</div>
+              <div className="text-[12.5px] text-muted-foreground">target {team.target}</div>
+            </div>
+            <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-muted">
+              <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${team.pct}%` }} />
+            </div>
+            <p className="mt-2 text-[12px] text-muted-foreground">{team.pct}% of the team’s shared goal — we hit this together.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Leaderboard (light touch) */}
+      <div className="rounded-xl border bg-card">
+        <div className="flex items-center gap-2 border-b px-4 py-3 text-[13px] font-semibold"><Trophy className="size-4 text-[#C9A96E]" /> This month (recognition)</div>
+        {leaderboard.length === 0 ? (
+          <div className="p-8 text-center text-sm text-muted-foreground">No Velos earned yet this month. As the team works the pipeline, leads and tasks, points appear here.</div>
+        ) : (
+          <div className="divide-y">
+            {leaderboard.map((r, i) => {
+              const mostImproved = leaderboard.length > 1 && r.delta === Math.max(...leaderboard.map((x) => x.delta)) && r.delta > 0;
+              return (
+                <div key={r.userId} className={cn("flex items-center gap-3 px-4 py-2.5", r.userId === myId && "bg-primary/5")}>
+                  <span className="w-5 text-center text-[13px] font-semibold text-muted-foreground tabular-nums">{i + 1}</span>
+                  <Avatar size="sm"><AvatarImage src={r.image || undefined} /><AvatarFallback className="bg-primary/10 text-[10px] text-primary">{r.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}</AvatarFallback></Avatar>
+                  <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium">{r.name}{r.userId === myId && <span className="ml-1.5 text-[11px] text-muted-foreground">(you)</span>}</span>
+                  {mostImproved && <StatusPill label="Most improved" hue="emerald" size="xs" />}
+                  {r.delta !== 0 && <span className={cn("inline-flex items-center gap-0.5 text-[11.5px]", r.delta > 0 ? "text-emerald-600" : "text-muted-foreground")}>{r.delta > 0 && <ArrowUp className="size-3" />}{r.delta > 0 ? `+${r.delta}` : r.delta}</span>}
+                  <span className="w-12 text-right text-[14px] font-semibold tabular-nums">{r.points}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {canAdmin && <ConfigPanel config={config} />}
+    </div>
+  );
+}
+
+function SeedPanel() {
+  const router = useRouter();
+  const [busy, setBusy] = React.useState(false);
+  const [msg, setMsg] = React.useState<string | null>(null);
+  async function run() {
+    setBusy(true); const res = await seedVelosConfig(); setBusy(false);
+    setMsg(res.success ? `Seeded ${res.data.created} point rules.` : res.error); router.refresh();
+  }
+  return (
+    <div className="mx-auto max-w-lg rounded-xl border border-dashed p-10 text-center">
+      <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary"><Sparkles className="size-6" /></div>
+      <h3 className="mt-4 text-lg font-semibold">Set up Velos</h3>
+      <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">Seed the default point values for every trigger (pipeline, lead-SLA, ops, finance, peer, recovery). All tunable afterwards.</p>
+      <Button onClick={run} disabled={busy} className="mt-5 gap-1.5">{busy ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />} Set up Velos</Button>
+      {msg && <p className="mt-3 text-[13px] text-muted-foreground">{msg}</p>}
+    </div>
+  );
+}
+
+function ConfigPanel({ config }: { config: Cfg[] }) {
+  return (
+    <div className="rounded-xl border bg-card p-5">
+      <div className="mb-3 flex items-center gap-2 text-[13px] font-semibold"><Settings2 className="size-4" /> Point configuration <span className="text-[11.5px] font-normal text-muted-foreground">— retune anytime, no redeploy</span></div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {config.map((c) => <ConfigRow key={c.id} cfg={c} />)}
+      </div>
+    </div>
+  );
+}
+
+function ConfigRow({ cfg }: { cfg: Cfg }) {
+  const router = useRouter();
+  const [points, setPoints] = React.useState(cfg.points.toString());
+  const [busy, setBusy] = React.useState(false);
+  const dirty = points !== cfg.points.toString();
+  async function save() {
+    setBusy(true); await updateVelosPoints(cfg.eventType, parseInt(points, 10) || 0); setBusy(false); router.refresh();
+  }
+  return (
+    <div className="flex items-center gap-2 rounded-lg bg-muted/30 px-3 py-2">
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[12.5px] font-medium">{cfg.label}</div>
+        <div className="text-[10.5px] text-muted-foreground">{cfg.category}{cfg.isEffort ? " · effort" : ""}{cfg.clawbackEligible ? " · clawback" : ""}</div>
+      </div>
+      <Input value={points} onChange={(e) => setPoints(e.target.value)} className="h-7 w-16 text-center" />
+      {dirty && <Button size="sm" className="h-7" disabled={busy} onClick={save}>{busy ? <Loader2 className="size-3.5 animate-spin" /> : "Save"}</Button>}
+    </div>
+  );
+}

@@ -472,6 +472,12 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["performance:read"],
         children: [
           {
+            title: "Velos",
+            href: "/performance/velos",
+            icon: "Sparkles",
+            permissions: ["performance:read"],
+          },
+          {
             title: "Scores",
             href: "/performance/scores",
             icon: "BarChart3",
