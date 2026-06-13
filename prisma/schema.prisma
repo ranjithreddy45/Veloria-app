@@ -4548,6 +4548,7 @@ model Employee {
   regularizations   Regularization[]      @relation("RegnEmployee")
   documents         HrDocument[]
   docAcks           DocumentAcknowledgement[]
+  journeys          EmployeeJourney[]
 
   @@index([legalEntityId])
   @@index([businessVerticalId])
@@ -4959,4 +4960,114 @@ model ESignRequest {
 
   @@index([documentId])
   @@index([status])
+}
+
+// ============================================================
+// Onboarding / Offboarding (employee lifecycle journeys)
+// ============================================================
+enum JourneyType {
+  ONBOARDING
+  OFFBOARDING
+}
+
+enum JourneyStatus {
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum JourneyTaskStatus {
+  PENDING
+  IN_PROGRESS
+  DONE
+  NA
+  BLOCKED
+}
+
+model OnboardingTemplate {
+  id            String       @id @default(cuid())
+  name          String
+  type          JourneyType  @default(ONBOARDING)
+  legalEntityId String? // null = applies to all entities
+  isActive      Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+
+  tasks OnboardingTaskTemplate[]
+
+  @@index([type])
+}
+
+model OnboardingTaskTemplate {
+  id         String  @id @default(cuid())
+  templateId String
+  template   OnboardingTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  title      String
+  category   String  @default("General") // IT, HR, Manager, Finance, …
+  ownerRole  String? // role responsible
+  blocksDay1 Boolean @default(false) // must be DONE before Day-1 / completion
+  order      Int     @default(0)
+
+  @@index([templateId])
+}
+
+model EmployeeJourney {
+  id          String        @id @default(cuid())
+  employeeId  String
+  employee    Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  type        JourneyType
+  status      JourneyStatus @default(IN_PROGRESS)
+  templateId  String?
+  startDate   DateTime?
+  targetDate  DateTime? // joining date or last working day
+  reason      String? // resignation/termination reason (offboarding)
+  completedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @default(now()) @updatedAt
+
+  tasks        JourneyTask[]
+  exitInterview ExitInterview?
+
+  @@index([employeeId])
+  @@index([type])
+  @@index([status])
+}
+
+model JourneyTask {
+  id         String            @id @default(cuid())
+  journeyId  String
+  journey    EmployeeJourney   @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  title      String
+  category   String            @default("General")
+  ownerRole  String?
+  assigneeId String? // Employee id
+  status     JourneyTaskStatus @default(PENDING)
+  blocksDay1 Boolean           @default(false)
+  dueDate    DateTime?
+  order      Int               @default(0)
+  completedAt DateTime?
+
+  @@index([journeyId])
+  @@index([status])
+}
+
+model ExitInterview {
+  id          String          @id @default(cuid())
+  journeyId   String          @unique
+  journey     EmployeeJourney @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  reason      String?
+  feedback    String?         @db.Text
+  rating      Int? // 1-5 overall experience
+  conductedBy String?
+  conductedAt DateTime        @default(now())
+}
+
+model CandidatePortalInvite {
+  id         String    @id @default(cuid())
+  employeeId String
+  token      String    @unique
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([employeeId])
 }

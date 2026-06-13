@@ -117,6 +117,35 @@ export const ATTENDANCE_STATUS_HUE: Record<string, "emerald" | "red" | "amber" |
   ON_LEAVE: "violet", HOLIDAY: "slate", WEEKEND: "slate",
 };
 
+// --- Onboarding / Offboarding default task templates ---
+export const ONBOARDING_TASKS = [
+  { title: "Collect & verify statutory documents (PAN, Aadhaar, bank)", category: "HR", ownerRole: "HR_EXECUTIVE", blocksDay1: true, order: 1 },
+  { title: "Sign offer letter", category: "HR", ownerRole: "HR_EXECUTIVE", blocksDay1: true, order: 2 },
+  { title: "Create work email & app login", category: "IT", ownerRole: "ADMIN", blocksDay1: true, order: 3 },
+  { title: "Provision laptop / IT assets", category: "IT", ownerRole: "ADMIN", blocksDay1: false, order: 4 },
+  { title: "Assign reporting manager & buddy", category: "Manager", ownerRole: "HR_MANAGER", blocksDay1: false, order: 5 },
+  { title: "Add to payroll", category: "Finance", ownerRole: "FINANCE", blocksDay1: false, order: 6 },
+  { title: "Schedule induction & training", category: "HR", ownerRole: "HR_EXECUTIVE", blocksDay1: false, order: 7 },
+  { title: "Day-1 welcome & workspace setup", category: "Manager", ownerRole: "HR_EXECUTIVE", blocksDay1: false, order: 8 },
+] as const;
+
+export const OFFBOARDING_TASKS = [
+  { title: "Record resignation / notice & last working day", category: "HR", ownerRole: "HR_EXECUTIVE", blocksDay1: false, order: 1 },
+  { title: "Knowledge transfer & handover", category: "Manager", ownerRole: "HR_MANAGER", blocksDay1: true, order: 2 },
+  { title: "Return laptop / IT assets", category: "IT", ownerRole: "ADMIN", blocksDay1: true, order: 3 },
+  { title: "Revoke app & email access", category: "IT", ownerRole: "ADMIN", blocksDay1: true, order: 4 },
+  { title: "Clear dues & advances", category: "Finance", ownerRole: "FINANCE", blocksDay1: true, order: 5 },
+  { title: "Conduct exit interview", category: "HR", ownerRole: "HR_MANAGER", blocksDay1: false, order: 6 },
+  { title: "Final settlement (FnF) handoff to Finance", category: "Finance", ownerRole: "FINANCE", blocksDay1: false, order: 7 },
+] as const;
+
+export const JOURNEY_TASK_STATUS_LABELS: Record<string, string> = {
+  PENDING: "Pending", IN_PROGRESS: "In progress", DONE: "Done", NA: "N/A", BLOCKED: "Blocked",
+};
+export const JOURNEY_TASK_STATUS_HUE: Record<string, "slate" | "amber" | "emerald" | "neutral" | "red"> = {
+  PENDING: "slate", IN_PROGRESS: "amber", DONE: "emerald", NA: "neutral", BLOCKED: "red",
+};
+
 // Generate the next employee code given the current max numeric suffix.
 // Format: PPG-0001 (PropertyPlush Group). Pure helper for testability.
 export function nextEmpCode(existingCodes: string[]): string {
