@@ -189,6 +189,13 @@ export function LeadInbox({ leads, bdUsers }: LeadInboxProps) {
   React.useEffect(() => {
     if (searchParams.get("new") === "1") setCreateOpen(true);
   }, [searchParams]);
+  // Honour a ?status= deep-link from the dashboard drill-downs (FEAT-005).
+  React.useEffect(() => {
+    const s = searchParams.get("status");
+    if (s && ["NEW", "CONTACTED", "QUALIFIED", "DISQUALIFIED"].includes(s)) {
+      setActiveTab(s as AcqLeadStatus);
+    }
+  }, [searchParams]);
   const [qualifyLead, setQualifyLead] = React.useState<AcqLead | null>(null);
   const [logContactLead, setLogContactLead] = React.useState<AcqLead | null>(
     null

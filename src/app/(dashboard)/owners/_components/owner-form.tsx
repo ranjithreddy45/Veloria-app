@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { createHallOwner, updateHallOwner } from "@/actions/hall-owner.actions";
 import type { HallOwnerInput } from "@/schemas/hall-owner.schema";
+import { isValidMobile } from "@/lib/acq/domain";
 
 const STATUS = [
   ["PROSPECT", "Prospect"],
@@ -114,6 +115,8 @@ export function OwnerForm({
     }
   }
 
+  const phoneInvalid = !!f.phone && !isValidMobile(f.phone);
+
   const input =
     "w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20";
   const label = "mb-1 block text-[12px] font-medium text-foreground";
@@ -137,7 +140,14 @@ export function OwnerForm({
           </div>
           <div>
             <label className={label}>Phone</label>
-            <input className={input} value={f.phone} onChange={(e) => set("phone", e.target.value)} />
+            <input
+              className={input}
+              inputMode="tel"
+              value={f.phone}
+              onChange={(e) => set("phone", e.target.value)}
+              aria-invalid={phoneInvalid}
+            />
+            {phoneInvalid && <p className="mt-1 text-[12px] text-red-600">Enter a valid phone number (10–15 digits).</p>}
           </div>
           <div>
             <label className={label}>WhatsApp</label>
@@ -220,7 +230,7 @@ export function OwnerForm({
       <div className="flex justify-end gap-2">
         <button
           type="submit"
-          disabled={saving || !f.ownerName}
+          disabled={saving || !f.ownerName || phoneInvalid}
           className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-[13px] font-semibold text-primary-foreground disabled:opacity-50"
         >
           {saving && <Loader2 className="size-4 animate-spin" />}

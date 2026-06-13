@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import {
   Users,
   CheckCircle2,
@@ -52,11 +53,12 @@ interface KpiCardProps {
   label: string;
   value: number;
   icon: React.ComponentType<{ className?: string }>;
+  href?: string;
 }
 
-function KpiCard({ label, value, icon: Icon }: KpiCardProps) {
-  return (
-    <Card className="gap-0 py-0">
+function KpiCard({ label, value, icon: Icon, href }: KpiCardProps) {
+  const card = (
+    <Card className={`gap-0 py-0 ${href ? "transition hover:border-foreground/30 hover:bg-muted/30" : ""}`}>
       <CardContent className="flex items-center justify-between gap-3 px-4 py-4">
         <div className="space-y-1">
           <div className="text-[11.5px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
@@ -70,16 +72,18 @@ function KpiCard({ label, value, icon: Icon }: KpiCardProps) {
       </CardContent>
     </Card>
   );
+  return href ? <Link href={href} className="block">{card}</Link> : card;
 }
 
 interface FunnelRow {
   label: string;
   count: number;
+  href?: string;
 }
 
 function FunnelBar({ row, max }: { row: FunnelRow; max: number }) {
   const pct = max > 0 ? Math.min(100, Math.round((row.count / max) * 100)) : 0;
-  return (
+  const inner = (
     <div className="flex items-center gap-3">
       <div className="w-28 shrink-0 truncate text-[13px] text-muted-foreground sm:w-40">
         {row.label}
@@ -95,6 +99,7 @@ function FunnelBar({ row, max }: { row: FunnelRow; max: number }) {
       </div>
     </div>
   );
+  return row.href ? <Link href={row.href} className="block transition hover:opacity-80">{inner}</Link> : inner;
 }
 
 export default async function BdDashboardPage() {
@@ -134,13 +139,14 @@ export default async function BdDashboardPage() {
       const li = linearOf(d.stage);
       return li >= 0 && li >= i; // reached at least this stage
     }).length,
+    href: "/bd/deals",
   }));
 
   const funnel: FunnelRow[] = [
-    { label: "Leads (total)", count: totalLeads },
-    { label: "Qualified Leads", count: qualifiedLeads },
+    { label: "Leads (total)", count: totalLeads, href: "/bd/leads" },
+    { label: "Qualified Leads", count: qualifiedLeads, href: "/bd/leads?status=QUALIFIED" },
     ...dealFunnel,
-    { label: "Properties Available", count: availableProperties },
+    { label: "Properties Available", count: availableProperties, href: "/bd/properties?status=AVAILABLE" },
   ];
   // Bars scale to the top of the funnel so widths are visually non-increasing.
   const funnelMax = funnel.length > 0 ? funnel[0].count : 0;
@@ -187,18 +193,20 @@ export default async function BdDashboardPage() {
 
       {/* KPI row */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <KpiCard label="Total Leads" value={totalLeads} icon={Users} />
+        <KpiCard label="Total Leads" value={totalLeads} icon={Users} href="/bd/leads" />
         <KpiCard
           label="Qualified Leads"
           value={qualifiedLeads}
           icon={CheckCircle2}
+          href="/bd/leads?status=QUALIFIED"
         />
-        <KpiCard label="Active Deals" value={activeDeals} icon={Handshake} />
-        <KpiCard label="Won Deals" value={wonDeals} icon={Trophy} />
+        <KpiCard label="Active Deals" value={activeDeals} icon={Handshake} href="/bd/deals" />
+        <KpiCard label="Won Deals" value={wonDeals} icon={Trophy} href="/bd/deals" />
         <KpiCard
           label="Available for Sales"
           value={availableProperties}
           icon={Building2}
+          href="/bd/properties?status=AVAILABLE"
         />
       </div>
 

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isValidMobile } from "@/lib/acq/domain";
 
 export const hallOwnerStatusValues = [
   "PROSPECT",
@@ -36,7 +37,7 @@ export const hallOwnerSchema = z.object({
   ownerName: z.string().min(1, "Owner name is required").max(200),
   companyName: z.string().max(200).optional().or(z.literal("")),
   email: z.string().email("Invalid email").optional().or(z.literal("")),
-  phone: z.string().max(20).optional().or(z.literal("")),
+  phone: z.string().max(20).refine((v) => !v || isValidMobile(v), "Enter a valid phone number (10–15 digits).").optional().or(z.literal("")),
   whatsapp: z.string().max(20).optional().or(z.literal("")),
   gstin: z.string().max(20).optional().or(z.literal("")),
   numberOfHalls: z.number().int().positive().optional().nullable(),

@@ -7,12 +7,19 @@ import { PropertyList, type PropertyListItem } from "./_components/property-list
 
 export const metadata: Metadata = { title: "Properties" };
 
-export default async function BdPropertiesPage() {
+export default async function BdPropertiesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>;
+}) {
   const [propertiesResult] = await Promise.all([getAcqProperties(), getBdUsers()]);
+  const { status } = await searchParams;
 
-  const properties = (
+  let properties = (
     propertiesResult.success ? propertiesResult.data : []
   ) as PropertyListItem[];
+  // Honour a ?status= deep-link from the dashboard drill-downs (FEAT-005).
+  if (status) properties = properties.filter((p) => p.status === status);
 
   return (
     <div className="flex flex-col gap-5">
