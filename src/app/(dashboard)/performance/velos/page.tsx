@@ -6,6 +6,7 @@ import {
   getPersonalPace, getTeamTarget, getIdentityProgress, getLeaderboard, getVelosConfig,
 } from "@/actions/velos.actions";
 import { getKudosFeed, getTeammates } from "@/actions/velos-peer.actions";
+import { getQuests } from "@/actions/velos-quests.actions";
 import { VelosSurface } from "./_components/velos-surface";
 
 export const metadata: Metadata = { title: "Velos" };
@@ -16,10 +17,11 @@ export default async function VelosPage() {
   const role = session.user.role ?? "";
   const canAdmin = role === "SUPER_ADMIN" || role === "ADMIN";
 
-  const [pace, team, identity, leaderboard, config, kudos, teammates] = await Promise.all([
+  const [pace, team, identity, leaderboard, config, kudos, teammates, questData] = await Promise.all([
     getPersonalPace(), getTeamTarget(), getIdentityProgress(), getLeaderboard(), getVelosConfig(),
-    getKudosFeed(), getTeammates(),
+    getKudosFeed(), getTeammates(), getQuests(),
   ]);
+  const configMetrics = (config as { eventType: string; label: string }[]).map((c) => ({ eventType: c.eventType, label: c.label }));
 
   return (
     <div className="space-y-5">
@@ -40,6 +42,10 @@ export default async function VelosPage() {
         kudosFeed={kudos.feed as never}
         kudosRemaining={kudos.remaining}
         teammates={teammates as never}
+        quests={questData.quests as never}
+        questsCanManage={questData.canManage}
+        silverPlus={questData.silverPlus}
+        configMetrics={configMetrics}
       />
     </div>
   );

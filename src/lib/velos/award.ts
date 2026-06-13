@@ -58,11 +58,44 @@ export async function awardVelos(client: Client, input: AwardInput): Promise<Awa
         note: input.note ?? null,
       },
     });
+    // A real award also advances any matching individual quest (one event,
+    // two consumers — B8). Best-effort; never fails the award.
+    if (input.eventType !== "quest_reward") {
+      try { await bumpIndividualQuests(client, input.userId, input.eventType); } catch { /* noop */ }
+    }
     return { awarded: true, points };
   } catch (e) {
     // Unique-constraint hit → already awarded; idempotent no-op.
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return { awarded: false, points: 0 };
     throw e;
+  }
+}
+
+// Advance the caller's progress on any ACTIVE individual quest whose metric
+// matches this event; on reaching target, mark complete and pay the reward.
+async function bumpIndividualQuests(client: Client, userId: string, eventType: string): Promise<void> {
+  const quests = await client.quest.findMany({
+    where: {
+      status: "ACTIVE", scope: "INDIVIDUAL", metric: eventType,
+      OR: [{ ownerUserId: null }, { ownerUserId: userId }],
+    },
+  });
+  for (const q of quests) {
+    if (q.endsAt && q.endsAt < new Date()) continue;
+    const prog = await client.questProgress.upsert({
+      where: { questId_userId: { questId: q.id, userId } },
+      create: { questId: q.id, userId, currentCount: 1 },
+      update: { currentCount: { increment: 1 } },
+    });
+    if (!prog.completedAt && prog.currentCount >= q.targetCount) {
+      await client.questProgress.update({ where: { id: prog.id }, data: { completedAt: new Date() } });
+      if (q.rewardPoints > 0) {
+        await awardVelos(client, {
+          userId, eventType: "quest_reward", entityType: "quest", entityId: q.id,
+          pointsOverride: q.rewardPoints, keySuffix: userId, note: q.title,
+        });
+      }
+    }
   }
 }
 

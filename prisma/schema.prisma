@@ -380,6 +380,7 @@ model User {
   velosLedger               VelosLedger[]
   kudosGiven                Kudos[]                    @relation("KudosFrom")
   kudosReceived             Kudos[]                    @relation("KudosTo")
+  questProgress             QuestProgress[]
 
   @@index([email])
   @@index([role])
@@ -5272,4 +5273,54 @@ model Kudos {
 
   @@index([toUserId])
   @@index([fromUserId, createdAt])
+}
+
+// Quests & team goals (B8) — self-selectable challenges. Trigger events that
+// write to VelosLedger also increment matching QuestProgress rows.
+enum QuestScope {
+  INDIVIDUAL
+  TEAM
+}
+
+enum QuestStatus {
+  ACTIVE
+  COMPLETED
+  EXPIRED
+}
+
+model Quest {
+  id             String      @id @default(cuid())
+  title          String
+  scope          QuestScope  @default(INDIVIDUAL)
+  metric         String // matches a VelosConfig.eventType
+  targetCount    Int
+  startsAt       DateTime    @default(now())
+  endsAt         DateTime?
+  rewardPoints   Int         @default(0)
+  rewardNote     String?
+  selfSelectable Boolean     @default(false) // Silver+ can opt in (autonomy)
+  isRecovery     Boolean     @default(false) // auto-created slump-catch quest (A3/B7)
+  ownerUserId    String? // set for personal/recovery quests targeted at one user
+  status         QuestStatus @default(ACTIVE)
+  createdAt      DateTime    @default(now())
+
+  progress QuestProgress[]
+
+  @@index([status])
+  @@index([scope])
+  @@index([ownerUserId])
+}
+
+model QuestProgress {
+  id           String    @id @default(cuid())
+  questId      String
+  quest        Quest     @relation(fields: [questId], references: [id], onDelete: Cascade)
+  userId       String? // null = team aggregate row
+  user         User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentCount Int       @default(0)
+  completedAt  DateTime?
+  updatedAt    DateTime  @default(now()) @updatedAt
+
+  @@unique([questId, userId])
+  @@index([userId])
 }

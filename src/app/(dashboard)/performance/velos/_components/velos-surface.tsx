@@ -12,6 +12,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { seedVelosConfig, updateVelosPoints } from "@/actions/velos.actions";
 import { giveKudos } from "@/actions/velos-peer.actions";
+import { joinQuest, createQuest, seedStarterQuests } from "@/actions/velos-quests.actions";
+import { Target as TargetIcon, Users as UsersIcon, LifeBuoy } from "lucide-react";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
@@ -28,14 +30,16 @@ const TIER_HUE: Record<string, string> = { BRONZE: "text-amber-700 bg-amber-50 r
 
 interface KudosItem { id: string; note: string; from: string; fromImg: string | null; to: string; toImg: string | null }
 interface Teammate { id: string; name: string | null; image: string | null }
+interface QuestItem { id: string; title: string; scope: string; metric: string; target: number; current: number; pct: number; rewardPoints: number; rewardNote: string | null; selfSelectable: boolean; isRecovery: boolean; joined: boolean; completed: boolean }
 
 export function VelosSurface({
   pace, team, identity, leaderboard, config, myId, canAdmin, needsSeed,
-  kudosFeed, kudosRemaining, teammates,
+  kudosFeed, kudosRemaining, teammates, quests, questsCanManage, silverPlus, configMetrics,
 }: {
   pace: Pace | null; team: Team | null; identity: Identity | null; leaderboard: LbRow[];
   config: Cfg[]; myId: string; canAdmin: boolean; needsSeed: boolean;
   kudosFeed: KudosItem[]; kudosRemaining: number; teammates: Teammate[];
+  quests: QuestItem[]; questsCanManage: boolean; silverPlus: boolean; configMetrics: { eventType: string; label: string }[];
 }) {
   if (needsSeed) {
     return canAdmin ? <SeedPanel /> : (
@@ -144,9 +148,127 @@ export function VelosSurface({
         )}
       </div>
 
+      <QuestsBoard quests={quests} canManage={questsCanManage} silverPlus={silverPlus} configMetrics={configMetrics} />
+
       <KudosWall feed={kudosFeed} remaining={kudosRemaining} teammates={teammates} />
 
       {canAdmin && <ConfigPanel config={config} />}
+    </div>
+  );
+}
+
+function QuestsBoard({ quests, canManage, silverPlus, configMetrics }: { quests: QuestItem[]; canManage: boolean; silverPlus: boolean; configMetrics: { eventType: string; label: string }[] }) {
+  const router = useRouter();
+  const [busy, setBusy] = React.useState<string | null>(null);
+
+  async function join(id: string) {
+    setBusy(id); await joinQuest(id); setBusy(null); router.refresh();
+  }
+
+  return (
+    <div className="rounded-xl border bg-card">
+      <div className="flex items-center justify-between border-b px-4 py-3">
+        <div className="flex items-center gap-2 text-[13px] font-semibold"><TargetIcon className="size-4 text-[#C9A96E]" /> Quests &amp; team goals</div>
+        {canManage && <CreateQuestControls configMetrics={configMetrics} hasQuests={quests.length > 0} />}
+      </div>
+      {quests.length === 0 ? (
+        <div className="p-8 text-center text-sm text-muted-foreground">No active quests. {canManage ? "Seed the starter quests or create one." : "Check back soon."}</div>
+      ) : (
+        <div className="divide-y">
+          {quests.map((q) => (
+            <div key={q.id} className="px-4 py-3">
+              <div className="flex items-center gap-2">
+                {q.isRecovery ? <LifeBuoy className="size-3.5 text-emerald-600" /> : q.scope === "TEAM" ? <UsersIcon className="size-3.5 text-muted-foreground" /> : <TargetIcon className="size-3.5 text-muted-foreground" />}
+                <span className="font-medium">{q.title}</span>
+                {q.scope === "TEAM" && <StatusPill label="Team" hue="violet" size="xs" />}
+                {q.isRecovery && <StatusPill label="Recovery" hue="emerald" size="xs" />}
+                {q.completed && <StatusPill label="Done" hue="emerald" size="xs" />}
+                <span className="ml-auto text-[12px] text-muted-foreground">
+                  {q.rewardPoints > 0 ? `+${q.rewardPoints}` : ""}{q.rewardNote ? ` · ${q.rewardNote}` : ""}
+                </span>
+              </div>
+              <div className="mt-2 flex items-center gap-3">
+                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                  <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${q.pct}%` }} />
+                </div>
+                <span className="w-14 text-right text-[11.5px] tabular-nums text-muted-foreground">{q.current}/{q.target}</span>
+                {q.selfSelectable && !q.joined && q.scope === "INDIVIDUAL" && (
+                  <Button size="sm" className="h-7" disabled={!silverPlus || busy === q.id} onClick={() => join(q.id)} title={silverPlus ? "" : "Reach Silver to opt in"}>
+                    {busy === q.id ? <Loader2 className="size-3.5 animate-spin" /> : "Join"}
+                  </Button>
+                )}
+                {q.joined && q.scope === "INDIVIDUAL" && <span className="text-[11.5px] text-emerald-600">Joined</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CreateQuestControls({ configMetrics, hasQuests }: { configMetrics: { eventType: string; label: string }[]; hasQuests: boolean }) {
+  const router = useRouter();
+  const [open, setOpen] = React.useState(false);
+  const [busy, setBusy] = React.useState(false);
+  const [seeding, setSeeding] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [title, setTitle] = React.useState("");
+  const [scope, setScope] = React.useState("INDIVIDUAL");
+  const [metric, setMetric] = React.useState("");
+  const [target, setTarget] = React.useState("5");
+  const [reward, setReward] = React.useState("40");
+  const [rewardNote, setRewardNote] = React.useState("");
+  const [selfSel, setSelfSel] = React.useState(true);
+
+  async function seed() {
+    setSeeding(true); await seedStarterQuests(); setSeeding(false); router.refresh();
+  }
+  async function save() {
+    setError(null);
+    if (!title.trim() || !metric) { setError("Title and metric required."); return; }
+    setBusy(true);
+    const res = await createQuest({ title, scope, metric, targetCount: parseInt(target, 10) || 1, rewardPoints: parseInt(reward, 10) || 0, rewardNote: rewardNote || undefined, selfSelectable: selfSel });
+    setBusy(false);
+    if (!res.success) { setError(res.error); return; }
+    setOpen(false); setTitle(""); setMetric(""); router.refresh();
+  }
+
+  return (
+    <div className="flex gap-2">
+      {!hasQuests && <Button variant="ghost" size="sm" onClick={seed} disabled={seeding}>{seeding ? <Loader2 className="size-3.5 animate-spin" /> : "Seed starters"}</Button>}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild><Button size="sm" className="gap-1.5"><TargetIcon className="size-3.5" /> New quest</Button></DialogTrigger>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>New quest</DialogTitle><DialogDescription>Maps to a Velos trigger; progress advances as those events fire.</DialogDescription></DialogHeader>
+          <div className="space-y-3 py-2">
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title (e.g. 5 site visits this week)" />
+            <div className="grid grid-cols-2 gap-3">
+              <Select value={scope} onValueChange={setScope}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="INDIVIDUAL">Individual</SelectItem><SelectItem value="TEAM">Team</SelectItem></SelectContent>
+              </Select>
+              <Input type="number" value={target} onChange={(e) => setTarget(e.target.value)} placeholder="Target" />
+            </div>
+            <Select value={metric} onValueChange={setMetric}>
+              <SelectTrigger><SelectValue placeholder="Metric (trigger event)" /></SelectTrigger>
+              <SelectContent>{configMetrics.map((m) => <SelectItem key={m.eventType} value={m.eventType}>{m.label}</SelectItem>)}</SelectContent>
+            </Select>
+            <div className="grid grid-cols-2 gap-3">
+              <Input type="number" value={reward} onChange={(e) => setReward(e.target.value)} placeholder="Reward points" />
+              <Input value={rewardNote} onChange={(e) => setRewardNote(e.target.value)} placeholder="Reward note" />
+            </div>
+            {scope === "INDIVIDUAL" && (
+              <label className="flex items-center gap-2 text-[13px]"><input type="checkbox" checked={selfSel} onChange={(e) => setSelfSel(e.target.checked)} className="size-4" /> Self-selectable (Silver+ can opt in)</label>
+            )}
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>Cancel</Button>
+            <Button onClick={save} disabled={busy} className="gap-1.5">{busy && <Loader2 className="size-4 animate-spin" />} Create</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
