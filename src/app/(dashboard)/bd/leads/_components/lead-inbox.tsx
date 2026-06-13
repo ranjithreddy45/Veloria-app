@@ -194,30 +194,43 @@ export function LeadInbox({ leads, bdUsers }: LeadInboxProps) {
     null
   );
 
-  const counts = React.useMemo(() => {
-    const base: Record<"ALL" | AcqLeadStatus, number> = {
-      ALL: leads.length,
-      NEW: 0,
-      CONTACTED: 0,
-      QUALIFIED: 0,
-      DISQUALIFIED: 0,
-    };
-    for (const lead of leads) base[lead.status] += 1;
-    return base;
-  }, [leads]);
-
-  const filtered = React.useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return leads.filter((lead) => {
-      if (activeTab !== "ALL" && lead.status !== activeTab) return false;
+  const matchesQuery = React.useCallback(
+    (lead: { ownerName: string; propertyName: string; city: string }) => {
+      const q = query.trim().toLowerCase();
       if (!q) return true;
       return (
         lead.ownerName.toLowerCase().includes(q) ||
         lead.propertyName.toLowerCase().includes(q) ||
         lead.city.toLowerCase().includes(q)
       );
+    },
+    [query]
+  );
+
+  // Chip counts reflect the active search so the numbers always match the rows shown
+  // (BD BUG-015 / Sales SCRM-012).
+  const counts = React.useMemo(() => {
+    const base: Record<"ALL" | AcqLeadStatus, number> = {
+      ALL: 0,
+      NEW: 0,
+      CONTACTED: 0,
+      QUALIFIED: 0,
+      DISQUALIFIED: 0,
+    };
+    for (const lead of leads) {
+      if (!matchesQuery(lead)) continue;
+      base.ALL += 1;
+      base[lead.status] += 1;
+    }
+    return base;
+  }, [leads, matchesQuery]);
+
+  const filtered = React.useMemo(() => {
+    return leads.filter((lead) => {
+      if (activeTab !== "ALL" && lead.status !== activeTab) return false;
+      return matchesQuery(lead);
     });
-  }, [leads, activeTab, query]);
+  }, [leads, activeTab, matchesQuery]);
 
   return (
     <div className="flex flex-col gap-4 text-[13px]">

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { computeQuotation, type QuotationInput, type QuotationResult } from "@/lib/sales/quotation-calc";
+import { formatDate, formatDateTime } from "@/lib/utils";
 import {
   approveSalesQuotation,
   rejectSalesQuotation,
@@ -204,7 +205,7 @@ export function QuotationDetail({ quote, perms, leads, venues }: Props) {
       {quote.sentAt && (
         <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700">
           Sent via {quote.sentChannel} {quote.sentTo ? `to ${quote.sentTo}` : ""} on{" "}
-          {new Date(quote.sentAt).toLocaleString("en-IN")}.
+          {formatDateTime(quote.sentAt)}.
         </div>
       )}
 
@@ -217,7 +218,7 @@ export function QuotationDetail({ quote, perms, leads, venues }: Props) {
               <Detail label="Client" value={client} />
               <Detail label="Phone" value={quote.clientPhone || "—"} />
               <Detail label="Occasion" value={quote.occasion || "—"} />
-              <Detail label="Event Date" value={quote.eventDate ? new Date(quote.eventDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—"} />
+              <Detail label="Event Date" value={quote.eventDate ? formatDate(quote.eventDate) : "—"} />
               <Detail label="Time Slot" value={quote.timeSlot || "—"} />
               <Detail label="Hall" value={quote.venue?.name || "—"} />
               <Detail label="Guests" value={String(quote.guestCount || "—")} />
@@ -303,7 +304,7 @@ export function QuotationDetail({ quote, perms, leads, venues }: Props) {
                       {t.note ? <span className="text-muted-foreground"> — {t.note}</span> : null}
                     </span>
                     <span className="text-muted-foreground whitespace-nowrap">
-                      {t.actor?.name ?? "—"} · {new Date(t.createdAt).toLocaleDateString("en-IN")}
+                      {t.actor?.name ?? "—"} · {formatDate(t.createdAt)}
                     </span>
                   </div>
                 ))}

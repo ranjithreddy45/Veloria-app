@@ -54,13 +54,37 @@ const ROUTE_LABELS: Record<string, string> = {
   portal: "Portal",
 };
 
+// Singular labels for a record-id segment, derived from its parent collection, so a
+// breadcrumb shows "Lead" / "Deal" instead of a raw CUID (BD BUG-010 / Sales SCRM-008).
+const RECORD_SINGULAR: Record<string, string> = {
+  leads: "Lead", deals: "Deal", owners: "Owner", contacts: "Contact",
+  quotations: "Quotation", contracts: "Contract", properties: "Property",
+  inquiries: "Inquiry", bookings: "Booking", invoices: "Invoice",
+  projects: "Project", quotes: "Quote", vendors: "Vendor", tasks: "Task",
+};
+// A database id segment: long alphanumeric containing a digit (CUIDs, etc.).
+function isRecordIdSegment(s: string) {
+  return /^[a-z0-9]{16,}$/i.test(s) && /\d/.test(s);
+}
+
 function generateBreadcrumbs(pathname: string) {
   const segments = pathname.split("/").filter(Boolean);
-  return segments.map((segment, index) => ({
-    label: ROUTE_LABELS[segment] || segment.charAt(0).toUpperCase() + segment.slice(1),
-    href: "/" + segments.slice(0, index + 1).join("/"),
-    isLast: index === segments.length - 1,
-  }));
+  return segments.map((segment, index) => {
+    let label: string;
+    if (ROUTE_LABELS[segment]) {
+      label = ROUTE_LABELS[segment];
+    } else if (isRecordIdSegment(segment)) {
+      const parent = segments[index - 1];
+      label = (parent && RECORD_SINGULAR[parent]) || "Details";
+    } else {
+      label = segment.charAt(0).toUpperCase() + segment.slice(1);
+    }
+    return {
+      label,
+      href: "/" + segments.slice(0, index + 1).join("/"),
+      isLast: index === segments.length - 1,
+    };
+  });
 }
 
 // ============================================================

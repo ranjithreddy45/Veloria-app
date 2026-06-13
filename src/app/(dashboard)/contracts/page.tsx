@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ContractsTable } from "./_components/contracts-table";
 
 export const metadata = {
-  title: "Contracts | Veloria Grand",
+  title: "Sales Contracts",
 };
 
 export default async function ContractsPage() {
@@ -18,7 +18,7 @@ export default async function ContractsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Contracts"
+        title="Sales Contracts"
         help={<PageHelp id="contracts" />}
         description="Manage contracts, send for signatures, and track signing status."
       >

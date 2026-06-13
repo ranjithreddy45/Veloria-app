@@ -13,7 +13,7 @@ import {
   type DealOption,
 } from "./_components/contracts-dashboard";
 
-export const metadata: Metadata = { title: "Contracts" };
+export const metadata: Metadata = { title: "Acquisition Contracts" };
 
 export default async function BdContractsPage() {
   const [listRes, statsRes, deals, session] = await Promise.all([
@@ -30,7 +30,7 @@ export default async function BdContractsPage() {
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
-        title="Contracts"
+        title="Acquisition Contracts"
         description="Authoring → Approval → Negotiation → Execution → Post-Execution. Track value, signings and gain/loss."
       />
       <ContractsDashboard

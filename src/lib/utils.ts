@@ -56,3 +56,17 @@ export function formatDate(date: Date | string | null | undefined): string {
     year: "numeric",
   }).format(new Date(date));
 }
+
+// Single app-wide date+time format (e.g. "13 Jun 2026, 8:27 PM") so detail pages
+// don't mix "12/6/2026", lowercase "8:27:28 pm", etc. (Sales SCRM-010).
+export function formatDateTime(date: Date | string | null | undefined): string {
+  if (!date) return "--";
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(new Date(date));
+}

@@ -194,7 +194,7 @@ export default async function BdDashboardPage() {
         <KpiCard label="Active Deals" value={activeDeals} icon={Handshake} />
         <KpiCard label="Won Deals" value={wonDeals} icon={Trophy} />
         <KpiCard
-          label="Available Properties"
+          label="Available for Sales"
           value={availableProperties}
           icon={Building2}
         />

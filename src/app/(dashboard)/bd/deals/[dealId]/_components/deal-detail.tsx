@@ -291,12 +291,12 @@ export function DealDetail({
       <div className="min-w-0">
         <Tabs defaultValue="overview" className="w-full">
           <TabsList className="w-full justify-start overflow-x-auto">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="economics">Economics &amp; Model</TabsTrigger>
-            <TabsTrigger value="evaluation">Evaluation</TabsTrigger>
-            <TabsTrigger value="projection">Projection</TabsTrigger>
-            <TabsTrigger value="negotiation">Negotiation</TabsTrigger>
-            <TabsTrigger value="contract">Contract</TabsTrigger>
+            <TabsTrigger value="overview" className="shrink-0 whitespace-nowrap">Overview</TabsTrigger>
+            <TabsTrigger value="economics" className="shrink-0 whitespace-nowrap">Economics &amp; Model</TabsTrigger>
+            <TabsTrigger value="evaluation" className="shrink-0 whitespace-nowrap">Evaluation</TabsTrigger>
+            <TabsTrigger value="projection" className="shrink-0 whitespace-nowrap">Projection</TabsTrigger>
+            <TabsTrigger value="negotiation" className="shrink-0 whitespace-nowrap">Negotiation</TabsTrigger>
+            <TabsTrigger value="contract" className="shrink-0 whitespace-nowrap">Contract</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="mt-4">
