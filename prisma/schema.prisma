@@ -4549,6 +4549,9 @@ model Employee {
   documents         HrDocument[]
   docAcks           DocumentAcknowledgement[]
   journeys          EmployeeJourney[]
+  goals             Goal[]
+  reviewsAbout      AppraisalReview[]     @relation("ReviewSubject")
+  reviewsGiven      AppraisalReview[]     @relation("ReviewAuthor")
 
   @@index([legalEntityId])
   @@index([businessVerticalId])
@@ -5070,4 +5073,87 @@ model CandidatePortalInvite {
   createdAt  DateTime  @default(now())
 
   @@index([employeeId])
+}
+
+// ============================================================
+// Performance Management (KRA / Goals / Appraisals)
+// ============================================================
+enum AppraisalCycleStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+}
+
+enum GoalStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum ReviewKind {
+  SELF
+  MANAGER
+  PEER
+}
+
+enum ReviewStatus {
+  PENDING
+  SUBMITTED
+}
+
+model AppraisalCycle {
+  id        String               @id @default(cuid())
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  status    AppraisalCycleStatus @default(DRAFT)
+  ratingMax Int                  @default(5)
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @default(now()) @updatedAt
+
+  goals   Goal[]
+  reviews AppraisalReview[]
+
+  @@index([status])
+}
+
+model Goal {
+  id            String     @id @default(cuid())
+  employeeId    String
+  employee      Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  cycleId       String
+  cycle         AppraisalCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  title         String
+  description   String?
+  weight        Int        @default(0) // percentage weight of the KRA
+  status        GoalStatus @default(NOT_STARTED)
+  selfRating    Int?
+  managerRating Int?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @default(now()) @updatedAt
+
+  @@index([employeeId, cycleId])
+  @@index([cycleId])
+}
+
+model AppraisalReview {
+  id          String       @id @default(cuid())
+  cycleId     String
+  cycle       AppraisalCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  employeeId  String // subject of the review
+  employee    Employee     @relation("ReviewSubject", fields: [employeeId], references: [id], onDelete: Cascade)
+  reviewerId  String // author of the review
+  reviewer    Employee     @relation("ReviewAuthor", fields: [reviewerId], references: [id], onDelete: Cascade)
+  kind        ReviewKind
+  status      ReviewStatus @default(PENDING)
+  rating      Int?
+  strengths   String?      @db.Text
+  improvements String?     @db.Text
+  comments    String?      @db.Text
+  submittedAt DateTime?
+  createdAt   DateTime     @default(now())
+
+  @@unique([cycleId, employeeId, reviewerId, kind])
+  @@index([cycleId, employeeId])
+  @@index([reviewerId, status])
 }
