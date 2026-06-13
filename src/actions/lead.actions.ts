@@ -588,6 +588,51 @@ export async function purgeLead(id: string) {
 // Update Lead Status
 // ============================================================
 
+// SCRM-001: keep the Pipeline in sync with a lead's status.
+// A lead enters the pipeline (auto-creates a Deal at the entry stage) the first time it
+// reaches a pipeline-worthy status, and Won/Lost move that deal to the won/lost stage.
+async function syncPipelineDealForLead(
+  leadId: string,
+  status: LeadStatus,
+  lead: { title: string; estimatedValue: unknown; assignedToId: string | null }
+) {
+  const PIPELINE_STATUSES: LeadStatus[] = ["QUALIFIED", "PROPOSAL_SENT", "NEGOTIATION", "WON"];
+  if (PIPELINE_STATUSES.includes(status)) {
+    const existingDeal = await prisma.deal.findUnique({ where: { leadId }, select: { id: true } });
+    if (!existingDeal) {
+      const entry =
+        (await prisma.pipelineStage.findFirst({ where: { isDefault: true }, select: { id: true } })) ??
+        (await prisma.pipelineStage.findFirst({ orderBy: { order: "asc" }, select: { id: true } }));
+      if (entry) {
+        const last = await prisma.deal.findFirst({ where: { stageId: entry.id }, orderBy: { orderInStage: "desc" }, select: { orderInStage: true } });
+        await prisma.deal.create({
+          data: {
+            title: lead.title,
+            leadId,
+            stageId: entry.id,
+            value: (lead.estimatedValue as number | null) ?? 0,
+            assignedToId: lead.assignedToId,
+            orderInStage: (last?.orderInStage ?? -1) + 1,
+          },
+        });
+      }
+    }
+  }
+  if (status === "WON" || status === "LOST") {
+    const stage = await prisma.pipelineStage.findFirst({
+      where: status === "WON" ? { isWonStage: true } : { isLostStage: true },
+      select: { id: true },
+    });
+    const deal = await prisma.deal.findUnique({ where: { leadId }, select: { id: true } });
+    if (stage && deal) {
+      await prisma.deal.update({
+        where: { id: deal.id },
+        data: status === "WON" ? { stageId: stage.id, wonDate: new Date() } : { stageId: stage.id, lostDate: new Date() },
+      });
+    }
+  }
+}
+
 export async function updateLeadStatus(id: string, status: LeadStatus) {
   try {
     const session = await auth();
@@ -627,6 +672,10 @@ export async function updateLeadStatus(id: string, status: LeadStatus) {
       data: { status, score },
     });
 
+    // SCRM-001: a lead enters the Pipeline once it's Qualified (auto-create a deal),
+    // and its terminal Won/Lost state keeps the deal's stage in sync.
+    await syncPipelineDealForLead(id, status, existing);
+
     await logActivity({
       userId: session.user.id as string,
       action: "status_changed",
@@ -636,6 +685,7 @@ export async function updateLeadStatus(id: string, status: LeadStatus) {
 
     revalidatePath("/leads");
     revalidatePath(`/leads/${id}`);
+    revalidatePath("/pipeline");
     return { success: true as const, data: serialize(lead) };
   } catch (error) {
     console.error("[UPDATE_LEAD_STATUS_ERROR]", error);
