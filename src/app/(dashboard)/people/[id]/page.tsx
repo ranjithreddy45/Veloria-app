@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  ArrowLeft, Mail, Phone, MapPin, Briefcase, Building2, Network, ShieldCheck, Lock, Users,
+  ArrowLeft, Mail, Phone, MapPin, Briefcase, Building2, Network, Lock, Users,
 } from "lucide-react";
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
@@ -12,10 +12,12 @@ import { StatusPill } from "@/components/shared/status-pill";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getEmployee, getHrLookups } from "@/actions/hr-employee.actions";
+import { getStatutoryMasked } from "@/actions/hr-statutory.actions";
 import {
   EMPLOYEE_STATUS_LABELS, EMPLOYEE_STATUS_HUE, EMPLOYMENT_TYPE_LABELS,
 } from "@/lib/hr/constants";
 import { EmployeeEditDialog } from "./_components/employee-edit-dialog";
+import { StatutoryPanel } from "./_components/statutory-panel";
 
 export const metadata: Metadata = { title: "Employee" };
 
@@ -29,6 +31,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
   const role = session?.user?.role ?? "";
   const canWrite = hasPermission(role, "hr:write");
   const canStatutory = hasPermission(role, "hr:statutory");
+  const statutory = canStatutory ? await getStatutoryMasked(emp.id) : null;
 
   const name = `${emp.firstName} ${emp.lastName}`.trim();
   const initials = `${emp.firstName[0] ?? ""}${emp.lastName[0] ?? ""}`.toUpperCase();
@@ -168,25 +171,20 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
           </p>
         </TabsContent>
 
-        {/* Statutory — locked in M1; encrypted/masked surface lands in M2 */}
+        {/* Statutory — encrypted at rest, masked, access-logged */}
         <TabsContent value="statutory">
-          <InfoCard title="Statutory &amp; bank details">
-            <div className="flex items-start gap-3 rounded-lg bg-muted/40 p-4">
-              <div className="mt-0.5 text-muted-foreground">
-                {canStatutory ? <ShieldCheck className="size-5 text-emerald-600" /> : <Lock className="size-5" />}
+          {canStatutory && statutory ? (
+            <StatutoryPanel employeeId={emp.id} masked={statutory} />
+          ) : (
+            <InfoCard title="Statutory &amp; bank details">
+              <div className="flex items-start gap-3 rounded-lg bg-muted/40 p-4">
+                <div className="mt-0.5 text-muted-foreground"><Lock className="size-5" /></div>
+                <div className="text-[13px] text-muted-foreground">
+                  This section contains sensitive statutory PII and is restricted. You don’t have access to view it.
+                </div>
               </div>
-              <div className="text-[13px] text-muted-foreground">
-                {canStatutory ? (
-                  <>
-                    PAN, Aadhaar, UAN, ESI and bank details are <strong>encrypted at rest</strong>, masked in the UI, and
-                    every access is logged. The secure capture &amp; reveal flow ships in the next People update.
-                  </>
-                ) : (
-                  <>This section contains sensitive statutory PII and is restricted. You don’t have access to view it.</>
-                )}
-              </div>
-            </div>
-          </InfoCard>
+            </InfoCard>
+          )}
         </TabsContent>
       </Tabs>
     </div>

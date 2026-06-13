@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Users, UserCheck, UserPlus, Plane, Building2 } from "lucide-react";
+import { Users, UserCheck, UserPlus, Plane, Building2, Upload } from "lucide-react";
 import { auth } from "@/../auth";
+import { Button } from "@/components/ui/button";
 import { hasPermission } from "@/lib/permissions";
 import { FEATURES } from "@/config/features";
 import { PageHeader } from "@/components/layout/page-header";
@@ -51,13 +53,18 @@ export default async function PeoplePage({ searchParams }: PageProps) {
           description="The single employee master for the whole group — across every legal entity and business vertical. The same record powers Projects, approvals and access everywhere."
         />
         {canWrite && !needsSeed && (
-          <EmployeeFormDialog
-            entities={lookups.entities}
-            verticals={lookups.verticals}
-            departments={lookups.departments}
-            designations={lookups.designations}
-            managers={lookups.managers}
-          />
+          <div className="flex items-center gap-2">
+            <Button variant="outline" asChild className="gap-1.5">
+              <Link href="/people/import"><Upload className="size-4" /> Import</Link>
+            </Button>
+            <EmployeeFormDialog
+              entities={lookups.entities}
+              verticals={lookups.verticals}
+              departments={lookups.departments}
+              designations={lookups.designations}
+              managers={lookups.managers}
+            />
+          </div>
         )}
       </div>
 
