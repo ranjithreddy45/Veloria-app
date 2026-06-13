@@ -26,6 +26,10 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -91,6 +95,13 @@
 
   --destructive: oklch(0.55 0.2 27);
 
+  /* Semantic status — success (emerald) + warning (amber). Used for gate
+   * notices, met/unmet handover gates, and DONE/PENDING states. */
+  --success: oklch(0.62 0.15 150);
+  --success-foreground: oklch(0.985 0 0);
+  --warning: oklch(0.75 0.15 75);
+  --warning-foreground: oklch(0.30 0.05 75);
+
   /* Hairline borders */
   --border: oklch(0.92 0 0);               /* zinc-200 */
   --input: oklch(0.92 0 0);
@@ -133,6 +144,11 @@
   --accent-foreground: oklch(0.95 0 0);
 
   --destructive: oklch(0.65 0.18 27);
+
+  --success: oklch(0.70 0.15 150);
+  --success-foreground: oklch(0.13 0 0);
+  --warning: oklch(0.80 0.14 75);
+  --warning-foreground: oklch(0.18 0.03 75);
 
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 12%);
@@ -396,6 +412,55 @@
 @utility border-glow { border: 1px solid var(--border); }
 @utility animate-shimmer { background: transparent; }
 @utility animate-pulse-dot { opacity: 0.75; }
+
+/* --------------------------------------------------------------
+ * Projects module — stepper + checklist motion
+ * -------------------------------------------------------------- */
+
+/* Check pop for a node that just completed / an item that flipped DONE */
+@keyframes check-pop {
+  0% { opacity: 0; transform: scale(0.6); }
+  60% { transform: scale(1.12); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@utility animate-check-pop {
+  animation: check-pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Stagger helpers for node / row entrance (fade-up). Pair with inline
+ * animation-delay set per index. */
+@utility animate-node-in {
+  animation: fade-in-up 0.3s ease-out both;
+}
+
+/* Two-line clamp for long standards text */
+@utility line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Horizontal scroll-snap track for the responsive stepper */
+@utility snap-x-track {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+@utility snap-node {
+  scroll-snap-align: center;
+}
+
+/* Global reduced-motion guard — honour the user's OS setting everywhere. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 
 /* Scrollbar — kept, slightly toned down */
 @layer base {

@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 // token. Lets you pass any tailwind color name (emerald, amber...).
 // ============================================================
 
-type Hue =
+export type Hue =
   | "slate"
   | "indigo"
   | "blue"

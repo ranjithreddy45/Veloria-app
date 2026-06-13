@@ -202,6 +202,50 @@ export const sidebarNavigation: NavItem[] = [
     ],
   },
   {
+    title: "Operations",
+    href: "/tasks",
+    icon: "Cog",
+    permissions: ["tasks:read", "vendors:read", "resources:read", "staff:read"],
+    children: [
+      {
+        title: "Tasks",
+        href: "/tasks",
+        icon: "CheckSquare",
+        permissions: ["tasks:read"],
+      },
+      {
+        title: "Task Templates",
+        href: "/tasks/templates",
+        icon: "Copy",
+        permissions: ["tasks:read"],
+      },
+      {
+        title: "Vendors",
+        href: "/vendors",
+        icon: "Store",
+        permissions: ["vendors:read"],
+      },
+      {
+        title: "Resources",
+        href: "/resources",
+        icon: "Boxes",
+        permissions: ["resources:read"],
+      },
+      {
+        title: "Staff",
+        href: "/staff",
+        icon: "UserCog",
+        permissions: ["staff:read"],
+      },
+      {
+        title: "SOP Templates",
+        href: "/settings/sop-templates",
+        icon: "FileCheck",
+        permissions: ["sop:read"],
+      },
+    ],
+  },
+  {
     title: "People",
     href: "/people",
     icon: "Users",
@@ -285,50 +329,6 @@ export const sidebarNavigation: NavItem[] = [
       { title: "Compensation", href: "/people/compensation", icon: "IndianRupee", permissions: ["hr:read"] },
       { title: "Learning", href: "/people/lms", icon: "Award", permissions: ["hr:read"] },
       { title: "Engagement", href: "/people/engagement", icon: "Star", permissions: ["hr:read"] },
-    ],
-  },
-  {
-    title: "Operations",
-    href: "/tasks",
-    icon: "Cog",
-    permissions: ["tasks:read", "vendors:read", "resources:read", "staff:read"],
-    children: [
-      {
-        title: "Tasks",
-        href: "/tasks",
-        icon: "CheckSquare",
-        permissions: ["tasks:read"],
-      },
-      {
-        title: "Task Templates",
-        href: "/tasks/templates",
-        icon: "Copy",
-        permissions: ["tasks:read"],
-      },
-      {
-        title: "Vendors",
-        href: "/vendors",
-        icon: "Store",
-        permissions: ["vendors:read"],
-      },
-      {
-        title: "Resources",
-        href: "/resources",
-        icon: "Boxes",
-        permissions: ["resources:read"],
-      },
-      {
-        title: "Staff",
-        href: "/staff",
-        icon: "UserCog",
-        permissions: ["staff:read"],
-      },
-      {
-        title: "SOP Templates",
-        href: "/settings/sop-templates",
-        icon: "FileCheck",
-        permissions: ["sop:read"],
-      },
     ],
   },
   {

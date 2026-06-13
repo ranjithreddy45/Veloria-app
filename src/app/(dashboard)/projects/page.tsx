@@ -1,16 +1,22 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { auth } from "@/../auth";
 import { getProjects } from "@/actions/projects.actions";
 import { getDemoCount } from "@/actions/projects-demo.actions";
 import { PageHeader } from "@/components/layout/page-header";
-import { ProjectsTable, type ProjectRow } from "./_components/projects-table";
+import { ProjectsTable, ProjectsTableSkeleton, type ProjectRow } from "./_components/projects-table";
 import { DemoControls } from "./_components/demo-controls";
 
 export const metadata: Metadata = { title: "Projects" };
 
-export default async function ProjectsPage() {
-  const [res, session] = await Promise.all([getProjects(), auth()]);
+async function ProjectsList() {
+  const res = await getProjects();
   const rows = (res.success ? (res.data as ProjectRow[]) : []) ?? [];
+  return <ProjectsTable rows={rows} />;
+}
+
+export default async function ProjectsPage() {
+  const session = await auth();
   const role = session?.user?.role ?? "";
   const isAdmin = role === "SUPER_ADMIN" || role === "ADMIN";
   const demoCount = isAdmin ? await getDemoCount() : 0;
@@ -24,7 +30,9 @@ export default async function ProjectsPage() {
         />
         {isAdmin && <DemoControls count={demoCount} />}
       </div>
-      <ProjectsTable rows={rows} />
+      <Suspense fallback={<ProjectsTableSkeleton />}>
+        <ProjectsList />
+      </Suspense>
     </div>
   );
 }
