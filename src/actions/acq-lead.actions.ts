@@ -284,6 +284,11 @@ export async function logAcqLeadContact(
     next = new Date(input.nextFollowupAt);
     if (Number.isNaN(next.getTime()) || next <= new Date()) return { success: false, error: "Follow-up date must be in the future." };
   }
+  // Logging the first contact moves NEW → CONTACTED; it must carry a follow-up date or
+  // the lead drops out of the follow-up queue AND the NEW-only SLA net (audit fix).
+  if (lead.status === "NEW" && !next) {
+    return { success: false, error: "Set a follow-up date when logging the first contact." };
+  }
 
   await prisma.$transaction(async (tx) => {
     await tx.acqLeadActivity.create({

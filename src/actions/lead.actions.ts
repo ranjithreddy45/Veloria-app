@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/../auth";
+import { Prisma } from "@prisma/client";
 import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
@@ -592,20 +593,26 @@ export async function purgeLead(id: string) {
 // A lead enters the pipeline (auto-creates a Deal at the entry stage) the first time it
 // reaches a pipeline-worthy status, and Won/Lost move that deal to the won/lost stage.
 async function syncPipelineDealForLead(
+  tx: Prisma.TransactionClient,
   leadId: string,
   status: LeadStatus,
   lead: { title: string; estimatedValue: unknown; assignedToId: string | null }
 ) {
-  const PIPELINE_STATUSES: LeadStatus[] = ["QUALIFIED", "PROPOSAL_SENT", "NEGOTIATION", "WON"];
-  if (PIPELINE_STATUSES.includes(status)) {
-    const existingDeal = await prisma.deal.findUnique({ where: { leadId }, select: { id: true } });
+  const entryStage = async () =>
+    (await tx.pipelineStage.findFirst({ where: { isDefault: true }, select: { id: true } })) ??
+    (await tx.pipelineStage.findFirst({ orderBy: { order: "asc" }, select: { id: true } }));
+
+  const OPEN_STATUSES: LeadStatus[] = ["QUALIFIED", "PROPOSAL_SENT", "NEGOTIATION"];
+  if (OPEN_STATUSES.includes(status) || status === "WON") {
+    const existingDeal = await tx.deal.findUnique({
+      where: { leadId },
+      select: { id: true, stage: { select: { isWonStage: true, isLostStage: true } } },
+    });
     if (!existingDeal) {
-      const entry =
-        (await prisma.pipelineStage.findFirst({ where: { isDefault: true }, select: { id: true } })) ??
-        (await prisma.pipelineStage.findFirst({ orderBy: { order: "asc" }, select: { id: true } }));
+      const entry = await entryStage();
       if (entry) {
-        const last = await prisma.deal.findFirst({ where: { stageId: entry.id }, orderBy: { orderInStage: "desc" }, select: { orderInStage: true } });
-        await prisma.deal.create({
+        const last = await tx.deal.findFirst({ where: { stageId: entry.id }, orderBy: { orderInStage: "desc" }, select: { orderInStage: true } });
+        await tx.deal.create({
           data: {
             title: lead.title,
             leadId,
@@ -616,18 +623,25 @@ async function syncPipelineDealForLead(
           },
         });
       }
+    } else if (status !== "WON" && (existingDeal.stage?.isWonStage || existingDeal.stage?.isLostStage)) {
+      // Re-opening a previously closed deal: move it back to the entry stage and clear
+      // the terminal dates so pipeline metrics stop counting it as won/lost (audit fix).
+      const entry = await entryStage();
+      if (entry) {
+        await tx.deal.update({ where: { id: existingDeal.id }, data: { stageId: entry.id, wonDate: null, lostDate: null } });
+      }
     }
   }
   if (status === "WON" || status === "LOST") {
-    const stage = await prisma.pipelineStage.findFirst({
+    const stage = await tx.pipelineStage.findFirst({
       where: status === "WON" ? { isWonStage: true } : { isLostStage: true },
       select: { id: true },
     });
-    const deal = await prisma.deal.findUnique({ where: { leadId }, select: { id: true } });
+    const deal = await tx.deal.findUnique({ where: { leadId }, select: { id: true } });
     if (stage && deal) {
-      await prisma.deal.update({
+      await tx.deal.update({
         where: { id: deal.id },
-        data: status === "WON" ? { stageId: stage.id, wonDate: new Date() } : { stageId: stage.id, lostDate: new Date() },
+        data: status === "WON" ? { stageId: stage.id, wonDate: new Date(), lostDate: null } : { stageId: stage.id, lostDate: new Date(), wonDate: null },
       });
     }
   }
@@ -667,14 +681,14 @@ export async function updateLeadStatus(id: string, status: LeadStatus) {
       createdAt: existing.createdAt,
     });
 
-    const lead = await prisma.lead.update({
-      where: { id },
-      data: { status, score },
+    // SCRM-001: a lead enters the Pipeline once it's Qualified (auto-create a deal), and
+    // its Won/Lost / re-open state keeps the deal's stage in sync. Status change + deal
+    // sync commit together so the lead and its pipeline deal can never diverge (audit fix).
+    const lead = await prisma.$transaction(async (tx) => {
+      const updated = await tx.lead.update({ where: { id }, data: { status, score } });
+      await syncPipelineDealForLead(tx, id, status, existing);
+      return updated;
     });
-
-    // SCRM-001: a lead enters the Pipeline once it's Qualified (auto-create a deal),
-    // and its terminal Won/Lost state keeps the deal's stage in sync.
-    await syncPipelineDealForLead(id, status, existing);
 
     await logActivity({
       userId: session.user.id as string,

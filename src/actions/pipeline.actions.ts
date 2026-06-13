@@ -348,7 +348,7 @@ export async function moveDeal(
 
     const deal = await prisma.deal.findUnique({
       where: { id: dealId },
-      select: { id: true, stageId: true, orderInStage: true, leadId: true },
+      select: { id: true, stageId: true, orderInStage: true, leadId: true, lead: { select: { assignedToId: true } } },
     });
 
     if (!deal) {
@@ -362,6 +362,13 @@ export async function moveDeal(
 
     if (!newStage) {
       return { success: false as const, error: "Target stage not found" };
+    }
+
+    // Moving a deal into Won also flips its lead to WON — enforce the same
+    // owner-required rule as updateLeadStatus (SCRM-004) so drag-and-drop can't
+    // create an un-owned won lead (audit fix).
+    if (newStage.isWonStage && !deal.lead?.assignedToId) {
+      return { success: false as const, error: "Assign an owner to this lead before moving the deal to Won." };
     }
 
     const oldStageId = deal.stageId;

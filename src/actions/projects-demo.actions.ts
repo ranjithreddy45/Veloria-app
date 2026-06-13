@@ -198,8 +198,12 @@ export async function clearDemoProjects(): Promise<Result<{ removed: number }>> 
   const dealIds = props.map((p) => p.dealId);
   const deals = await prisma.acqDeal.findMany({ where: { id: { in: dealIds } }, select: { id: true, leadId: true } });
   const leadIds = deals.map((d) => d.leadId);
-  // Delete children-first: project (cascades readiness/audit/capex/snags/photos/sign-offs) → property → deal → lead.
-  await prisma.acqOnboardingProject.deleteMany({ where: { id: { in: projects.map((p) => p.id) } } });
+  // Delete children-first. Onboarding tasks have NO cascade on their project FK, so
+  // they must be removed explicitly or the project delete hits an FK violation (audit fix).
+  const projectIds = projects.map((p) => p.id);
+  await prisma.acqOnboardingTask.deleteMany({ where: { projectId: { in: projectIds } } });
+  // Project delete then cascades readiness/audit/capex/snags/photos/sign-offs → property → deal → lead.
+  await prisma.acqOnboardingProject.deleteMany({ where: { id: { in: projectIds } } });
   await prisma.acqProperty.deleteMany({ where: { id: { in: propertyIds } } });
   await prisma.acqDeal.deleteMany({ where: { id: { in: dealIds } } });
   await prisma.acqLead.deleteMany({ where: { id: { in: leadIds } } });
