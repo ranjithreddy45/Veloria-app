@@ -6,6 +6,7 @@ import {
   escalateLeadSlaBreaches,
   escalateOverdueTasks,
 } from "@/lib/lead-pipeline";
+import { escalateAcqLeadSlaBreaches } from "@/lib/acq/sla-escalation";
 
 export const maxDuration = 120;
 
@@ -57,6 +58,11 @@ export async function GET(request: Request) {
     results.overdueTaskEscalations = await escalateOverdueTasks();
   } catch (e) {
     results.overdueTaskEscalations = `error: ${e instanceof Error ? e.message : "unknown"}`;
+  }
+  try {
+    results.bdSlaEscalations = await escalateAcqLeadSlaBreaches();
+  } catch (e) {
+    results.bdSlaEscalations = `error: ${e instanceof Error ? e.message : "unknown"}`;
   }
 
   return NextResponse.json({

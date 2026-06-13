@@ -3692,6 +3692,7 @@ model AcqLead {
   nextFollowupAt   DateTime?
   firstContactDue  DateTime
   firstContactAt   DateTime? // when the lead was first actually contacted — clears the SLA
+  slaEscalatedAt   DateTime? // set when an overdue first-contact SLA was escalated (idempotency)
   convertedDealId  String? // set on qualify (denormalized; deal.leadId is authoritative)
   deal             AcqDeal?      @relation("AcqDealOrigin")
   activities       AcqLeadActivity[]
