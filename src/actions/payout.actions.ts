@@ -13,6 +13,7 @@ import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
 import { notify } from "@/lib/notify";
 import { hasPermission } from "@/lib/permissions";
+import { postPayoutPaid, findDuplicatePayouts } from "@/lib/finance/payables";
 
 // ============================================================
 // Generate Reference Number
@@ -184,8 +185,27 @@ export async function createPayout(data: CreatePayoutInput) {
       actionUrl: `/payouts/${payout.id}`,
     });
 
+    // Duplicate-payment control (Rule 4): warn the maker if a near-identical
+    // payout to the same vendor was raised recently. Non-blocking — surfaced so
+    // the approver can double-check before money moves.
+    let duplicateWarning: string | undefined;
+    try {
+      const dupes = await findDuplicatePayouts({
+        vendorId: payoutData.vendorId || null,
+        amount: payoutData.amount,
+        type: payoutData.type,
+        excludePayoutId: payout.id,
+      });
+      if (dupes.length > 0) {
+        const refs = dupes.map((d) => d.referenceNumber ?? d.id).join(", ");
+        duplicateWarning = `Possible duplicate: ${dupes.length} recent payout(s) to this vendor for the same amount (${refs}). Verify before approving.`;
+      }
+    } catch (dupErr) {
+      console.error("[PAYOUT_DUP_CHECK_ERROR]", dupErr);
+    }
+
     revalidatePath("/payouts");
-    return { success: true as const, data: serialize(payout) };
+    return { success: true as const, data: serialize(payout), duplicateWarning };
   } catch (error) {
     console.error("[CREATE_PAYOUT_ERROR]", error);
     return { success: false as const, error: "Failed to create payout" };
@@ -303,6 +323,11 @@ export async function markPayoutPaid(id: string) {
       entityId: id,
       changes: { status: "PAID" },
     });
+
+    // Post the disbursement to the General Ledger (best-effort, idempotent).
+    postPayoutPaid(payout.id, session.user.id as string).catch((err) =>
+      console.error("[PAYOUT_GL_POST_ERROR]", err),
+    );
 
     notify({
       userId: session.user.id as string,
