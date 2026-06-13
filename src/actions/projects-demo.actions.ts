@@ -8,6 +8,7 @@ import { Prisma } from "@prisma/client";
 import { READINESS_CHECKLIST, readinessSeverity } from "@/lib/projects/readiness-config";
 import { OPS_AUDIT_CHECKLIST } from "@/lib/projects/ops-audit-config";
 import { computeCapex, defaultCapexInput } from "@/lib/projects/capex-calc";
+import { ONBOARDING_SEED_TASKS } from "@/lib/acq/constants";
 import { PROJECT_PHASES } from "@/lib/projects/phases";
 import { DEMO_SAMPLES, SAMPLE_TAG, type DemoSample } from "@/lib/projects/demo-data";
 
@@ -107,6 +108,18 @@ export async function seedDemoProjects(): Promise<Result<{ created: number }>> {
     const stamps = stampsFor(s, user.id, now);
     stamps.propertyId = property.id;
     const project = await prisma.acqOnboardingProject.create({ data: stamps, select: { id: true } });
+
+    // BD-side property onboarding checklist (6 seed tasks, as the real WON flow does),
+    // with completion proportional to how far the venue has progressed.
+    const onboardingDone =
+      s.phase === "LIVE" ? ONBOARDING_SEED_TASKS.length
+      : s.phase === "HANDOVER" ? 5
+      : s.phase === "OPS_AUDIT" ? 4
+      : s.phase === "EXECUTION" ? 2
+      : 0;
+    await prisma.acqOnboardingTask.createMany({
+      data: ONBOARDING_SEED_TASKS.map((title, i) => ({ projectId: project.id, title, done: i < onboardingDone })),
+    });
 
     // Readiness checklist (full set), resolved to the target percentage.
     if (s.phase !== "HANDOFF") {

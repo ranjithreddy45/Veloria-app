@@ -20,6 +20,7 @@ import {
   Sparkles,
   PhoneCall,
   Webhook,
+  Building2,
 } from "lucide-react";
 import {
   CommandDialog,
@@ -73,6 +74,10 @@ const TYPE_ICONS: Record<string, React.ElementType> = {
   contract: FileText,
   vendor: Users,
   package: FileText,
+  bd_lead: UserPlus,
+  bd_deal: Kanban,
+  bd_property: Building2,
+  bd_owner: Users,
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -85,6 +90,10 @@ const TYPE_LABELS: Record<string, string> = {
   contract: "Contracts",
   vendor: "Vendors",
   package: "Packages",
+  bd_lead: "BD Leads",
+  bd_deal: "BD Deals",
+  bd_property: "BD Properties",
+  bd_owner: "Hall Owners",
 };
 
 // ============================================================

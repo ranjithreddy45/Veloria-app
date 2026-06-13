@@ -2,6 +2,7 @@
 
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
+import { acqHasAnyAccess } from "@/lib/acq/rbac";
 
 // ============================================================
 // Global Search Types
@@ -9,7 +10,9 @@ import { prisma } from "@/lib/prisma";
 
 export type SearchResult = {
   id: string;
-  type: "contact" | "lead" | "booking" | "invoice" | "task" | "quote" | "contract" | "vendor" | "package";
+  type:
+    | "contact" | "lead" | "booking" | "invoice" | "task" | "quote" | "contract" | "vendor" | "package"
+    | "bd_lead" | "bd_deal" | "bd_property" | "bd_owner";
   title: string;
   subtitle: string;
   href: string;
@@ -32,6 +35,11 @@ export async function globalSearch(
     if (trimmed.length < 2) {
       return { success: true, data: [] };
     }
+
+    // BD records are only surfaced to users with acquisition access (the /bd/* and
+    // /owners/* routes are role-gated, so search must respect the same boundary).
+    const role = (session.user as { role?: string }).role ?? "";
+    const canBd = acqHasAnyAccess(role);
 
     const [contacts, leads, bookings, invoices, tasks, quotes, contracts, vendors, packages] = await Promise.all([
       // Contacts — search by name, email, phone, company
@@ -192,6 +200,68 @@ export async function globalSearch(
       }),
     ]);
 
+    // ---- BD records (acquisition) — only for users with BD access ----
+    const [bdLeads, bdDeals, bdProps, bdOwners] = canBd
+      ? await Promise.all([
+          prisma.acqLead.findMany({
+            where: {
+              deletedAt: null,
+              OR: [
+                { propertyName: { contains: trimmed, mode: "insensitive" } },
+                { ownerName: { contains: trimmed, mode: "insensitive" } },
+                { city: { contains: trimmed, mode: "insensitive" } },
+                { mobilePrimary: { contains: trimmed, mode: "insensitive" } },
+              ],
+            },
+            select: { id: true, propertyName: true, ownerName: true, city: true, status: true },
+            take: 5,
+            orderBy: { createdAt: "desc" },
+          }),
+          prisma.acqDeal.findMany({
+            where: {
+              deletedAt: null,
+              OR: [
+                { name: { contains: trimmed, mode: "insensitive" } },
+                { propertyName: { contains: trimmed, mode: "insensitive" } },
+                { ownerName: { contains: trimmed, mode: "insensitive" } },
+                { city: { contains: trimmed, mode: "insensitive" } },
+              ],
+            },
+            select: { id: true, name: true, propertyName: true, city: true, stage: true },
+            take: 5,
+            orderBy: { updatedAt: "desc" },
+          }),
+          prisma.acqProperty.findMany({
+            where: {
+              deletedAt: null,
+              OR: [
+                { propertyName: { contains: trimmed, mode: "insensitive" } },
+                { ownerName: { contains: trimmed, mode: "insensitive" } },
+                { city: { contains: trimmed, mode: "insensitive" } },
+                { address: { contains: trimmed, mode: "insensitive" } },
+              ],
+            },
+            select: { id: true, propertyName: true, ownerName: true, city: true, status: true },
+            take: 5,
+            orderBy: { createdAt: "desc" },
+          }),
+          prisma.hallOwner.findMany({
+            where: {
+              OR: [
+                { ownerName: { contains: trimmed, mode: "insensitive" } },
+                { companyName: { contains: trimmed, mode: "insensitive" } },
+                { email: { contains: trimmed, mode: "insensitive" } },
+                { phone: { contains: trimmed, mode: "insensitive" } },
+                { propertyCity: { contains: trimmed, mode: "insensitive" } },
+              ],
+            },
+            select: { id: true, ownerName: true, companyName: true, propertyCity: true, contractStatus: true },
+            take: 5,
+            orderBy: { ownerName: "asc" },
+          }),
+        ])
+      : [[], [], [], []];
+
     const results: SearchResult[] = [
       ...contacts.map((c) => ({
         id: c.id,
@@ -255,6 +325,34 @@ export async function globalSearch(
         title: p.name,
         subtitle: `${p.tier}${p.eventType ? ` · ${p.eventType}` : ""}`,
         href: `/packages/${p.id}`,
+      })),
+      ...bdLeads.map((l) => ({
+        id: l.id,
+        type: "bd_lead" as const,
+        title: l.propertyName,
+        subtitle: `${l.ownerName} · ${l.city} · ${l.status}`,
+        href: `/bd/leads/${l.id}`,
+      })),
+      ...bdDeals.map((d) => ({
+        id: d.id,
+        type: "bd_deal" as const,
+        title: d.name,
+        subtitle: `${d.propertyName} · ${d.city} · ${d.stage}`,
+        href: `/bd/deals/${d.id}`,
+      })),
+      ...bdProps.map((p) => ({
+        id: p.id,
+        type: "bd_property" as const,
+        title: p.propertyName,
+        subtitle: `${p.ownerName} · ${p.city} · ${p.status}`,
+        href: `/bd/properties/${p.id}`,
+      })),
+      ...bdOwners.map((o) => ({
+        id: o.id,
+        type: "bd_owner" as const,
+        title: o.ownerName,
+        subtitle: `${o.companyName ?? o.propertyCity ?? "Owner"} · ${o.contractStatus}`,
+        href: `/owners/${o.id}/edit`,
       })),
     ];
 

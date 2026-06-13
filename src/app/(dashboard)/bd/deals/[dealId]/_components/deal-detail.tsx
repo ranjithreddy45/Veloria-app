@@ -17,6 +17,7 @@ import {
   Pencil,
   Plus,
   ShieldCheck,
+  AlertTriangle,
 } from "lucide-react";
 import { requiresBdHeadApproval } from "@/lib/acq/domain";
 import { acqCan } from "@/lib/acq/rbac";
@@ -843,6 +844,14 @@ function EconomicsTab({
     }
   }
 
+  // Inline below-floor detection (mirrors the server-side requiresBdHeadApproval rule).
+  const belowBase = model === "MANAGEMENT" && baseFeePct !== "" && Number(baseFeePct) < 5;
+  const belowIncentive = model === "MANAGEMENT" && incentivePct !== "" && Number(incentivePct) < 15;
+  const belowRoyalty = model === "FRANCHISE" && royaltyPct !== "" && Number(royaltyPct) < 20;
+  const belowLockin = lockinYears !== "" && Number(lockinYears) < 3;
+  const anyBelowFloor = belowBase || belowIncentive || belowRoyalty || belowLockin;
+  const FLOOR_WARN = "Below floor — BD Head approval required before the contract can be sent.";
+
   return (
     <Card>
       <CardHeader>
@@ -877,12 +886,14 @@ function EconomicsTab({
                 value={baseFeePct}
                 onChange={setBaseFeePct}
                 disabled={frozen}
+                warn={belowBase ? FLOOR_WARN : undefined}
               />
               <NumField
                 label="Incentive %"
                 value={incentivePct}
                 onChange={setIncentivePct}
                 disabled={frozen}
+                warn={belowIncentive ? FLOOR_WARN : undefined}
               />
             </>
           ) : (
@@ -890,6 +901,7 @@ function EconomicsTab({
               label="Royalty %"
               value={royaltyPct}
               onChange={setRoyaltyPct}
+              warn={belowRoyalty ? FLOOR_WARN : undefined}
             />
           )}
 
@@ -903,6 +915,7 @@ function EconomicsTab({
             label="Lock-in (years)"
             value={lockinYears}
             onChange={setLockinYears}
+            warn={belowLockin ? FLOOR_WARN : undefined}
           />
           <NumField
             label="Expected monthly events"
@@ -977,6 +990,16 @@ function EconomicsTab({
           )}
         </div>
 
+        {anyBelowFloor && (
+          <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50/70 p-3 text-[12.5px] text-amber-800">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+            <span>
+              One or more terms are below floor. You can save these, but the deal will
+              require <strong>BD&nbsp;Head approval</strong> before the contract can be sent.
+            </span>
+          </div>
+        )}
+
         <div className="flex justify-end">
           <Button onClick={save} disabled={busy}>
             {busy && <Loader2 className="size-3.5 animate-spin" />}
@@ -993,21 +1016,26 @@ function NumField({
   value,
   onChange,
   disabled,
+  warn,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   disabled?: boolean;
+  warn?: string;
 }) {
   return (
     <div className="space-y-1.5">
-      <Label>{label}</Label>
+      <Label className={warn ? "text-amber-700" : undefined}>{label}</Label>
       <Input
         type="number"
         value={value}
         disabled={disabled}
+        aria-invalid={!!warn}
+        className={warn ? "border-amber-500 focus-visible:ring-amber-500" : undefined}
         onChange={(e) => onChange(e.target.value)}
       />
+      {warn && <p className="text-[11.5px] text-amber-700">{warn}</p>}
     </div>
   );
 }

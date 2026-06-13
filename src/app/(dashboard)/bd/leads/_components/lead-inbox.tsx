@@ -32,6 +32,7 @@ import {
   ACQ_PROPERTY_STAGE,
   ACQ_PROPERTY_STAGE_LABEL,
 } from "@/lib/acq/constants";
+import { isValidMobile } from "@/lib/acq/domain";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -498,9 +499,11 @@ function CreateLeadDialog({
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
+  const mobileInvalid = form.mobilePrimary.trim().length > 0 && !isValidMobile(form.mobilePrimary);
   const valid =
     form.ownerName.trim() &&
     form.mobilePrimary.trim() &&
+    !mobileInvalid &&
     form.propertyName.trim() &&
     form.city.trim() &&
     form.locality.trim();
@@ -618,7 +621,12 @@ function CreateLeadDialog({
                 onChange={(e) => set("mobilePrimary", e.target.value)}
                 placeholder="+91 98765 43210"
                 inputMode="tel"
+                aria-invalid={mobileInvalid}
+                className={mobileInvalid ? "border-red-500 focus-visible:ring-red-500" : undefined}
               />
+              {mobileInvalid && (
+                <p className="mt-1 text-[12px] text-red-600">Enter a valid mobile number (10–15 digits).</p>
+              )}
             </Field>
             <Field label="Alternate mobile">
               <Input

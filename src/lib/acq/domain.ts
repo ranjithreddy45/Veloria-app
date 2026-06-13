@@ -37,6 +37,14 @@ export function normalizeMobile(raw: string): string {
   return "+" + digits;
 }
 
+// A mobile is valid only if it carries a plausible number of digits (10 local up
+// to 15 for E.164 with country code). Guards against garbage like "abcdef" that
+// would normalise to "+" and silently defeat dedup. Used client- and server-side.
+export function isValidMobile(raw: string): boolean {
+  const digits = (raw || "").replace(/\D/g, "");
+  return digits.length >= 10 && digits.length <= 15;
+}
+
 // ------------------------------------------------------------
 // §5.3 — Evaluation scorecard (numeric model, exact).
 // ------------------------------------------------------------

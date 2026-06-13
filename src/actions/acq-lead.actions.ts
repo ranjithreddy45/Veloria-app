@@ -6,6 +6,7 @@ import { serialize } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 import {
   normalizeMobile,
+  isValidMobile,
   evaluateQualification,
   canDisqualify,
   addWorkingHours,
@@ -28,8 +29,8 @@ type Result<T> = { success: true; data: T } | { success: false; error: string };
 
 const leadInputSchema = z.object({
   ownerName: z.string().min(1).max(200),
-  mobilePrimary: z.string().min(6).max(20),
-  mobileAlternate: z.string().max(20).optional().or(z.literal("")),
+  mobilePrimary: z.string().min(6).max(20).refine(isValidMobile, "Enter a valid mobile number (10–15 digits)."),
+  mobileAlternate: z.string().max(20).refine((v) => !v || isValidMobile(v), "Enter a valid alternate mobile number.").optional().or(z.literal("")),
   email: z.string().email().optional().or(z.literal("")),
   propertyName: z.string().min(1).max(200),
   propertyType: z.enum(ACQ_PROPERTY_TYPE),
