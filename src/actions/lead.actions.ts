@@ -647,6 +647,46 @@ async function syncPipelineDealForLead(
   }
 }
 
+// FEAT-S-005 — the rep's active Sales leads bucketed by follow-up date into
+// Overdue / Today / Upcoming. Admins see the whole team; reps see their own.
+export async function getSalesFollowupQueue(): Promise<
+  { success: true; data: { overdue: unknown[]; today: unknown[]; upcoming: unknown[] } } | { success: false; error: string }
+> {
+  const session = await auth();
+  if (!session?.user) return { success: false, error: "Unauthorized" };
+  if (!hasPermission(session.user.role, "leads:read")) return { success: false, error: "Insufficient permissions" };
+  const role = session.user.role;
+  const isManager = role === "ADMIN" || role === "SUPER_ADMIN";
+  const where: Prisma.LeadWhereInput = {
+    status: { notIn: ["WON", "LOST"] },
+    followUpDate: { not: null },
+  };
+  if (!isManager) where.assignedToId = session.user.id as string;
+
+  const leads = await prisma.lead.findMany({
+    where,
+    select: {
+      id: true, title: true, status: true, estimatedValue: true, followUpDate: true,
+      contact: { select: { firstName: true, lastName: true } },
+      assignedTo: { select: { name: true } },
+    },
+    orderBy: { followUpDate: "asc" },
+    take: 300,
+  });
+
+  const now = new Date();
+  const startToday = new Date(now); startToday.setHours(0, 0, 0, 0);
+  const endToday = new Date(now); endToday.setHours(23, 59, 59, 999);
+  const overdue: typeof leads = [], today: typeof leads = [], upcoming: typeof leads = [];
+  for (const l of leads) {
+    const t = l.followUpDate!.getTime();
+    if (t < startToday.getTime()) overdue.push(l);
+    else if (t <= endToday.getTime()) today.push(l);
+    else upcoming.push(l);
+  }
+  return { success: true, data: serialize({ overdue, today, upcoming }) as { overdue: unknown[]; today: unknown[]; upcoming: unknown[] } };
+}
+
 export async function updateLeadStatus(id: string, status: LeadStatus) {
   try {
     const session = await auth();

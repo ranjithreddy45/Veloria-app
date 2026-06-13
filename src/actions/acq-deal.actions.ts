@@ -138,7 +138,19 @@ export async function updateAcqDeal(
     }
   }
 
+  // Record the commercials edits to the deal change-log (FEAT-007) so the thread shows
+  // before→after with actor + timestamp (mirrors editAcqDealOverview).
+  const logKeys = ["model", "baseFeePct", "incentivePct", "royaltyPct", "termYears", "lockinYears"];
+  const changes = logKeys
+    .filter((k) => k in data && String(data[k] ?? "—") !== String((deal as Record<string, unknown>)[k] ?? "—"))
+    .map((k) => `${k}: "${(deal as Record<string, unknown>)[k] ?? "—"}" → "${data[k] ?? "—"}"`);
+
   await prisma.acqDeal.update({ where: { id }, data });
+  if (changes.length > 0) {
+    await prisma.acqDealNote.create({
+      data: { dealId: id, noteType: "CHANGE_LOG", body: changes.join("\n"), authorId: user.id },
+    });
+  }
   revalidatePath(`/bd/deals/${id}`);
   revalidatePath("/bd/dashboard");
   return { success: true, data: { id } };
@@ -325,6 +337,9 @@ export async function approveAcqDeal(dealId: string): Promise<Result<{ id: strin
   await prisma.acqDeal.update({
     where: { id: dealId },
     data: { bdHeadApprovedById: user.id, bdHeadApprovedAt: new Date() },
+  });
+  await prisma.acqDealNote.create({
+    data: { dealId, noteType: "CHANGE_LOG", body: "BD Head approved the deal commercials.", authorId: user.id },
   });
   revalidatePath(`/bd/deals/${dealId}`);
   revalidatePath("/bd/dashboard");

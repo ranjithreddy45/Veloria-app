@@ -86,6 +86,12 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["leads:read"],
       },
       {
+        title: "Follow-ups",
+        href: "/leads/followups",
+        icon: "CalendarClock",
+        permissions: ["leads:read"],
+      },
+      {
         title: "Web Inquiries",
         href: "/inquiries",
         icon: "Inbox",
