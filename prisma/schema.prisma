@@ -4602,3 +4602,51 @@ model EmployeeWorkHistory {
 
   @@index([employeeId])
 }
+
+// Admin-configurable custom fields for employees (no code needed to add a field).
+// Definitions live here; values live in Employee.customFields JSON keyed by `key`.
+enum HrFieldType {
+  TEXT
+  NUMBER
+  DATE
+  SELECT
+  BOOLEAN
+}
+
+model HrCustomFieldDef {
+  id        String      @id @default(cuid())
+  key       String      @unique // stable machine key used in Employee.customFields
+  label     String
+  type      HrFieldType @default(TEXT)
+  options   String? // comma-separated choices for SELECT
+  required  Boolean     @default(false)
+  isActive  Boolean     @default(true)
+  order     Int         @default(0)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @default(now()) @updatedAt
+
+  @@index([isActive])
+}
+
+// Employee-initiated profile change requests → HR approves (edit-approval flow).
+enum ChangeRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model EmployeeChangeRequest {
+  id          String              @id @default(cuid())
+  employeeId  String
+  requestedBy String // userId of requester
+  changes     Json // { field: { from, to } }
+  note        String?
+  status      ChangeRequestStatus @default(PENDING)
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  reviewNote  String?
+  createdAt   DateTime            @default(now())
+
+  @@index([employeeId])
+  @@index([status])
+}

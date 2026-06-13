@@ -213,6 +213,18 @@ export const sidebarNavigation: NavItem[] = [
         icon: "Network",
         permissions: ["hr:read"],
       },
+      {
+        title: "Change Requests",
+        href: "/people/requests",
+        icon: "Inbox",
+        permissions: ["hr:approve"],
+      },
+      {
+        title: "Settings",
+        href: "/people/settings",
+        icon: "Settings",
+        permissions: ["hr:admin"],
+      },
     ],
   },
   {

@@ -13,11 +13,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getEmployee, getHrLookups } from "@/actions/hr-employee.actions";
 import { getStatutoryMasked } from "@/actions/hr-statutory.actions";
+import { getCustomFieldDefs } from "@/actions/hr-config.actions";
 import {
   EMPLOYEE_STATUS_LABELS, EMPLOYEE_STATUS_HUE, EMPLOYMENT_TYPE_LABELS,
 } from "@/lib/hr/constants";
 import { EmployeeEditDialog } from "./_components/employee-edit-dialog";
 import { StatutoryPanel } from "./_components/statutory-panel";
+import { CustomFieldsCard, RequestEditButton, type ActiveFieldDef } from "./_components/profile-extras";
 
 export const metadata: Metadata = { title: "Employee" };
 
@@ -25,13 +27,18 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
   if (!FEATURES.hr) notFound();
   const { id } = await params;
 
-  const [emp, lookups, session] = await Promise.all([getEmployee(id), getHrLookups(), auth()]);
+  const [emp, lookups, session, fieldDefs] = await Promise.all([
+    getEmployee(id), getHrLookups(), auth(), getCustomFieldDefs(true),
+  ]);
   if (!emp) notFound();
 
   const role = session?.user?.role ?? "";
   const canWrite = hasPermission(role, "hr:write");
   const canStatutory = hasPermission(role, "hr:statutory");
   const statutory = canStatutory ? await getStatutoryMasked(emp.id) : null;
+  const isSelf = !!emp.user && emp.user.id === session?.user?.id;
+  const activeDefs = fieldDefs as unknown as ActiveFieldDef[];
+  const customValues = (emp.customFields as Record<string, unknown>) ?? {};
 
   const name = `${emp.firstName} ${emp.lastName}`.trim();
   const initials = `${emp.firstName[0] ?? ""}${emp.lastName[0] ?? ""}`.toUpperCase();
@@ -64,29 +71,37 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
             {emp.workLocation && <span className="inline-flex items-center gap-1.5"><MapPin className="size-3.5" />{emp.workLocation}</span>}
           </div>
         </div>
-        {canWrite && (
-          <EmployeeEditDialog
-            employee={{
-              id: emp.id,
-              workEmail: emp.workEmail,
-              personalEmail: emp.personalEmail,
-              phone: emp.phone,
-              workLocation: emp.workLocation,
-              employmentType: emp.employmentType,
-              status: emp.status,
-              legalEntityId: emp.legalEntityId,
-              businessVerticalId: emp.businessVerticalId,
-              departmentId: emp.departmentId,
-              designationId: emp.designationId,
-              reportingManagerId: emp.reportingManagerId,
-            }}
-            entities={lookups.entities}
-            verticals={lookups.verticals}
-            departments={lookups.departments}
-            designations={lookups.designations}
-            managers={lookups.managers}
-          />
-        )}
+        <div className="flex items-center gap-2">
+          {isSelf && !canWrite && (
+            <RequestEditButton
+              employeeId={emp.id}
+              current={{ phone: emp.phone, personalEmail: emp.personalEmail, workLocation: emp.workLocation }}
+            />
+          )}
+          {canWrite && (
+            <EmployeeEditDialog
+              employee={{
+                id: emp.id,
+                workEmail: emp.workEmail,
+                personalEmail: emp.personalEmail,
+                phone: emp.phone,
+                workLocation: emp.workLocation,
+                employmentType: emp.employmentType,
+                status: emp.status,
+                legalEntityId: emp.legalEntityId,
+                businessVerticalId: emp.businessVerticalId,
+                departmentId: emp.departmentId,
+                designationId: emp.designationId,
+                reportingManagerId: emp.reportingManagerId,
+              }}
+              entities={lookups.entities}
+              verticals={lookups.verticals}
+              departments={lookups.departments}
+              designations={lookups.designations}
+              managers={lookups.managers}
+            />
+          )}
+        </div>
       </div>
 
       <Tabs defaultValue="overview">
@@ -135,6 +150,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
               )}
             </InfoCard>
           </div>
+          <CustomFieldsCard employeeId={emp.id} defs={activeDefs} values={customValues} canWrite={canWrite} />
           {emp.notes && (
             <InfoCard title="Notes"><p className="text-[13px] text-muted-foreground">{emp.notes}</p></InfoCard>
           )}
