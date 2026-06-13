@@ -4047,6 +4047,8 @@ model AcqOnboardingProject {
   auditLogs        ProjectAuditLog[]
   snags            ProjectSnag[]
   photos           ProjectPhoto[]
+  workPackages     ProjectWorkPackage[]
+  purchaseOrders   ProjectPurchaseOrder[]
 
   @@index([status])
   @@index([phase])
@@ -5424,4 +5426,76 @@ model ProjectRateCard {
   isActive        Boolean  @default(true)
   order           Int      @default(0)
   updatedAt       DateTime @default(now()) @updatedAt
+}
+
+// ============================================================
+// Projects Wave D — procurement: vendors, work packages, purchase
+// orders, budget variance (vs the CapEx estimate).
+// ============================================================
+model ProjectVendor {
+  id        String   @id @default(cuid())
+  name      String
+  trade     String? // Civil, Electrical, HVAC, Furniture, …
+  phone     String?
+  email     String?
+  gstin     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  purchaseOrders ProjectPurchaseOrder[]
+
+  @@index([isActive])
+}
+
+enum WorkPackageStatus {
+  PLANNED
+  IN_PROGRESS
+  DONE
+  ON_HOLD
+}
+
+model ProjectWorkPackage {
+  id           String              @id @default(cuid())
+  projectId    String
+  project      AcqOnboardingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title        String
+  categoryKey  String? // optional link to a rate-card category
+  budgetAmount Decimal             @default(0) @db.Decimal(14, 2)
+  status       WorkPackageStatus   @default(PLANNED)
+  order        Int                 @default(0)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @default(now()) @updatedAt
+
+  purchaseOrders ProjectPurchaseOrder[]
+
+  @@index([projectId])
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  ISSUED
+  RECEIVED
+  PAID
+  CANCELLED
+}
+
+model ProjectPurchaseOrder {
+  id            String               @id @default(cuid())
+  number        Int                  @unique @default(autoincrement())
+  projectId     String
+  project       AcqOnboardingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  workPackageId String?
+  workPackage   ProjectWorkPackage?  @relation(fields: [workPackageId], references: [id], onDelete: SetNull)
+  vendorId      String?
+  vendor        ProjectVendor?       @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  description   String
+  amount        Decimal              @default(0) @db.Decimal(14, 2)
+  status        PurchaseOrderStatus  @default(DRAFT)
+  issuedAt      DateTime?
+  note          String?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @default(now()) @updatedAt
+
+  @@index([projectId])
+  @@index([status])
 }
