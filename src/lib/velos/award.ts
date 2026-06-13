@@ -1,0 +1,112 @@
+// ============================================================
+// Velos award engine. NOT a server action — a helper imported by
+// server actions and triggers. Every points change flows through
+// here so it lands in the ledger (B4: never mutate a total directly).
+// ============================================================
+
+import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
+import { velosPeriod } from "./config";
+
+type Client = Prisma.TransactionClient | typeof prisma;
+
+export interface AwardInput {
+  userId: string;
+  eventType: string;
+  entityType: string;
+  entityId: string;
+  /** Override the configured points (assist credit = 25% of close, quest rewards). */
+  pointsOverride?: number;
+  /** Distinguish repeat awards of the same (entity,event) — e.g. daily streaks. */
+  keySuffix?: string;
+  note?: string;
+  at?: Date;
+}
+
+export interface AwardResult {
+  awarded: boolean;
+  points: number;
+}
+
+/**
+ * Idempotent points award. Inserts one signed ledger row; a duplicate
+ * (entityId+eventType[+suffix]) is silently ignored via the unique
+ * idempotencyKey — so re-firing the same event never double-awards.
+ */
+export async function awardVelos(client: Client, input: AwardInput): Promise<AwardResult> {
+  const cfg = await client.velosConfig.findUnique({ where: { eventType: input.eventType } });
+  // Unknown event types are ignored (config-driven; nothing hardcoded).
+  if (!cfg && input.pointsOverride === undefined) return { awarded: false, points: 0 };
+
+  const points = input.pointsOverride ?? cfg!.points;
+  if (points === 0) return { awarded: false, points: 0 }; // zero-value events are no-ops
+
+  const at = input.at ?? new Date();
+  const idempotencyKey = `${input.entityId}:${input.eventType}${input.keySuffix ? `:${input.keySuffix}` : ""}`;
+
+  try {
+    await client.velosLedger.create({
+      data: {
+        userId: input.userId,
+        eventType: input.eventType,
+        entityType: input.entityType,
+        entityId: input.entityId,
+        points,
+        awardedAt: at,
+        period: velosPeriod(at),
+        idempotencyKey,
+        note: input.note ?? null,
+      },
+    });
+    return { awarded: true, points };
+  } catch (e) {
+    // Unique-constraint hit → already awarded; idempotent no-op.
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return { awarded: false, points: 0 };
+    throw e;
+  }
+}
+
+/**
+ * Clawback for a cancelled / refunded deal (B5). Reverses ONLY sale-side
+ * (clawbackEligible) positive rows for the entity, as offsetting negative
+ * rows booked in the CURRENT period (keeps past leaderboards honest).
+ * Effort (e.g. site_visit_done) is left intact.
+ */
+export async function clawbackEntity(client: Client, entityId: string, note?: string): Promise<{ reversed: number; points: number }> {
+  // Which event types are sale-side / clawback-eligible.
+  const eligible = await client.velosConfig.findMany({ where: { clawbackEligible: true }, select: { eventType: true } });
+  const eligibleTypes = eligible.map((e) => e.eventType);
+  if (eligibleTypes.length === 0) return { reversed: 0, points: 0 };
+
+  const rows = await client.velosLedger.findMany({
+    where: { entityId, eventType: { in: eligibleTypes }, points: { gt: 0 } },
+  });
+
+  const now = new Date();
+  const period = velosPeriod(now);
+  let reversed = 0;
+  let points = 0;
+  for (const r of rows) {
+    try {
+      await client.velosLedger.create({
+        data: {
+          userId: r.userId,
+          eventType: "clawback",
+          entityType: "clawback",
+          entityId: r.entityId,
+          points: -r.points,
+          awardedAt: now,
+          period, // current period, NOT r.period (B5)
+          idempotencyKey: `${r.idempotencyKey}:clawback`,
+          note: note ?? `Reversal of ${r.eventType}`,
+        },
+      });
+      reversed++;
+      points += -r.points;
+    } catch (e) {
+      // Already clawed back — idempotent.
+      if (!(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002")) throw e;
+    }
+  }
+  return { reversed, points };
+}

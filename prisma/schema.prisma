@@ -376,6 +376,8 @@ model User {
   projectSignOffs           ProjectSignOff[]           @relation("SignOffApprover")
   // HR / People module — the Employee master record links back to this identity.
   hrEmployee                Employee?                  @relation("EmployeeUser")
+  // Velos motivation system
+  velosLedger               VelosLedger[]
 
   @@index([email])
   @@index([role])
@@ -5217,4 +5219,41 @@ model ShiftSwapRequest {
   @@index([status])
   @@index([requestedById])
   @@index([targetEmployeeId])
+}
+
+// ============================================================
+// Velos motivation / gamification system
+// ============================================================
+// Append-only points ledger — every award auditable & reversible.
+// idempotencyKey (unique per entity_id + event_type) makes awards idempotent:
+// re-firing the same pipeline-stage event inserts nothing extra.
+model VelosLedger {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventType      String // see VelosConfig.eventType
+  entityType     String // 'deal' | 'lead' | 'task' | 'payment' | 'kudos' | 'assist' | 'quest' | 'clawback'
+  entityId       String
+  points         Int // signed — can be negative (clawbacks)
+  awardedAt      DateTime @default(now())
+  period         String // 'YYYY-MM' for monthly leaderboard scoping
+  idempotencyKey String   @unique
+  note           String?
+  createdAt      DateTime @default(now())
+
+  @@index([userId, period])
+  @@index([period])
+  @@index([entityType, entityId])
+}
+
+// Config-driven point values — retune without a redeploy. Seeded from defaults.
+model VelosConfig {
+  id               String   @id @default(cuid())
+  eventType        String   @unique
+  points           Int
+  label            String
+  category         String   @default("general") // pipeline | lead_sla | ops | finance | peer | recovery
+  clawbackEligible Boolean  @default(false) // sale-side points reversed on cancel/refund
+  isEffort         Boolean  @default(false) // effort metric — never clawed back
+  updatedAt        DateTime @default(now()) @updatedAt
 }
