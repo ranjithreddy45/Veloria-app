@@ -58,25 +58,31 @@ export async function getAvailabilityGrid(dateISO: string): Promise<Result<Venue
     const vb = bookings.filter((b) => b.venueId === v.id);
     const vx = blackouts.filter((b) => b.venueId === v.id);
     const fullDayBooking = vb.find((b) => b.timeSlot === "FULL_DAY");
-    const fullDayBlackout = vx.find((b) => b.timeSlot === null);
+    const fullDayBlackout = vx.find((b) => b.timeSlot === null); // null timeSlot = whole-day blackout
     const anyPartialBooking = vb.some((b) => b.timeSlot !== "FULL_DAY");
+    const anyPartialBlackout = vx.some((b) => b.timeSlot !== null);
 
     const slots: Record<string, SlotCell> = {};
     for (const slot of SLOTS) {
-      // Blackout takes priority.
-      const bx = vx.find((b) => b.timeSlot === slot) || (fullDayBlackout && slot !== "FULL_DAY" ? fullDayBlackout : null) || (slot === "FULL_DAY" && (fullDayBlackout || vx.length) ? (fullDayBlackout ?? vx[0]) : null);
-      if (bx) {
-        slots[slot] = { status: "BLACKOUT", label: bx.reason || "Blackout", bookingId: null };
-        continue;
-      }
       if (slot === "FULL_DAY") {
-        if (fullDayBooking) {
+        // Only a whole-day blackout blacks out the FULL_DAY cell. A partial-slot
+        // blackout (or booking) just means the day can no longer be sold as one
+        // full-day block — surface that as "partially blocked", not a blackout.
+        if (fullDayBlackout) {
+          slots[slot] = { status: "BLACKOUT", label: fullDayBlackout.reason || "Blackout", bookingId: null };
+        } else if (fullDayBooking) {
           slots[slot] = { status: fullDayBooking.status as SlotCell["status"], label: `${fullDayBooking.bookingNumber} · ${fullDayBooking.eventName}`, bookingId: fullDayBooking.id };
-        } else if (anyPartialBooking) {
-          slots[slot] = { status: "HOLD", label: "Partially booked", bookingId: null };
+        } else if (anyPartialBooking || anyPartialBlackout) {
+          slots[slot] = { status: "HOLD", label: anyPartialBlackout && !anyPartialBooking ? "Partially blocked" : "Partially booked", bookingId: null };
         } else {
           slots[slot] = { status: "FREE", label: null, bookingId: null };
         }
+        continue;
+      }
+      // Partial slot: a whole-day blackout or a blackout for this specific slot wins.
+      const bx = fullDayBlackout || vx.find((b) => b.timeSlot === slot);
+      if (bx) {
+        slots[slot] = { status: "BLACKOUT", label: bx.reason || "Blackout", bookingId: null };
         continue;
       }
       // Partial slot: a FULL_DAY booking blocks it; else its own booking.

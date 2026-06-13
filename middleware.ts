@@ -24,6 +24,9 @@ const INTERNAL_ROLES = [
   "BD_HEAD",
   "OPERATIONS",
   "LEGAL",
+  // Projects team
+  "PROJECTS_EXEC",
+  "PROJECTS_HEAD",
 ] as const;
 
 /**
@@ -82,6 +85,7 @@ const INTERNAL_ROUTES = [
   "/crm",
   "/owners",
   "/bd",
+  "/projects",
 ];
 
 export default auth((req) => {

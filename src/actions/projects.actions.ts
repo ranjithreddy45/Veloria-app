@@ -10,9 +10,11 @@ import { computeCapex, validateCapexInput, type CapexInput, type CapexResult } f
 import { READINESS_CHECKLIST } from "@/lib/projects/readiness-config";
 import { OPS_AUDIT_CHECKLIST } from "@/lib/projects/ops-audit-config";
 import { Prisma } from "@prisma/client";
-import { PROJECT_PHASES } from "@/lib/projects/phases";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
+
+const READINESS_STATUSES = ["PENDING", "IN_PROGRESS", "DONE", "NA"];
+const AUDIT_STATUSES = ["PENDING", "PASS", "FAIL", "NA"];
 
 async function requireUser() {
   const session = await auth();
@@ -110,10 +112,18 @@ export async function getProject(id: string): Promise<Result<unknown>> {
 // ------------------------------------------------------------
 // Phase + assignment + checklist
 // ------------------------------------------------------------
+// Only the early, manual phases can be set freely. The later gated phases —
+// OPS_AUDIT, HANDOVER, LAUNCHED — are reached ONLY through requestOpsAudit,
+// completeOpsAudit, generateHandover and launchProject (which enforce their
+// preconditions), so the phase dropdown can't be used to skip the gates.
+const MANUAL_PHASES = ["PLANNING", "CAPEX", "EXECUTION"];
+
 export async function setProjectPhase(id: string, phase: string): Promise<Result<{ phase: string }>> {
   const user = await requireUser();
   if (!user || !can(user.role, "projects:update")) return { success: false, error: "Unauthorized" };
-  if (!(PROJECT_PHASES as readonly string[]).includes(phase)) return { success: false, error: "Invalid phase" };
+  if (!MANUAL_PHASES.includes(phase)) {
+    return { success: false, error: "That phase is reached via its workflow step (audit / handover / launch), not set directly." };
+  }
   const data: Prisma.AcqOnboardingProjectUpdateInput = { phase };
   if (phase === "EXECUTION") data.startedAt = new Date();
   await prisma.acqOnboardingProject.update({ where: { id }, data });
@@ -135,6 +145,7 @@ export async function assignProjectManager(id: string, userId: string | null): P
 export async function setReadinessItem(itemId: string, patch: { status?: string; notes?: string }): Promise<Result<{ id: string }>> {
   const user = await requireUser();
   if (!user || !can(user.role, "projects:update")) return { success: false, error: "Unauthorized" };
+  if (patch.status !== undefined && !READINESS_STATUSES.includes(patch.status)) return { success: false, error: "Invalid status" };
   const item = await prisma.venueReadinessItem.findUnique({ where: { id: itemId }, select: { projectId: true } });
   if (!item) return { success: false, error: "Item not found" };
   await prisma.venueReadinessItem.update({
@@ -172,6 +183,7 @@ export async function setOpsAuditItem(itemId: string, patch: { status?: string; 
   const user = await requireUser();
   // Operations (or admin) performs the audit.
   if (!user || !can(user.role, "projects:audit")) return { success: false, error: "Only the Operations team can audit." };
+  if (patch.status !== undefined && !AUDIT_STATUSES.includes(patch.status)) return { success: false, error: "Invalid status" };
   const item = await prisma.opsAuditItem.findUnique({ where: { id: itemId }, select: { projectId: true } });
   if (!item) return { success: false, error: "Item not found" };
   await prisma.opsAuditItem.update({

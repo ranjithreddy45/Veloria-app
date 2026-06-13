@@ -91,10 +91,10 @@ export function ProjectDetail({ project, perms }: { project: any; perms: Perms }
           {perms.canUpdate && project.phase !== "LAUNCHED" && (
             <div className="ml-auto flex items-center gap-2">
               <span className="text-xs text-muted-foreground">Set phase</span>
-              <Select value={project.phase} onValueChange={(v) => run("phase", () => setProjectPhase(project.id, v), "Phase updated.")}>
-                <SelectTrigger className="h-8 w-44"><SelectValue /></SelectTrigger>
+              <Select value={["PLANNING", "CAPEX", "EXECUTION"].includes(project.phase) ? project.phase : undefined} onValueChange={(v) => run("phase", () => setProjectPhase(project.id, v), "Phase updated.")}>
+                <SelectTrigger className="h-8 w-44"><SelectValue placeholder={PROJECT_PHASE_LABEL[project.phase]} /></SelectTrigger>
                 <SelectContent>
-                  {PROJECT_PHASES.map((ph) => <SelectItem key={ph} value={ph}>{PROJECT_PHASE_LABEL[ph]}</SelectItem>)}
+                  {["PLANNING", "CAPEX", "EXECUTION"].map((ph) => <SelectItem key={ph} value={ph}>{PROJECT_PHASE_LABEL[ph]}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
