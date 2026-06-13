@@ -88,11 +88,11 @@ export function ProjectDetail({ project, perms }: { project: any; perms: Perms }
               </div>
             );
           })}
-          {perms.canUpdate && project.phase !== "LAUNCHED" && (
+          {perms.canUpdate && ["PLANNING", "CAPEX", "EXECUTION"].includes(project.phase) && (
             <div className="ml-auto flex items-center gap-2">
               <span className="text-xs text-muted-foreground">Set phase</span>
-              <Select value={["PLANNING", "CAPEX", "EXECUTION"].includes(project.phase) ? project.phase : undefined} onValueChange={(v) => run("phase", () => setProjectPhase(project.id, v), "Phase updated.")}>
-                <SelectTrigger className="h-8 w-44"><SelectValue placeholder={PROJECT_PHASE_LABEL[project.phase]} /></SelectTrigger>
+              <Select value={project.phase} onValueChange={(v) => run("phase", () => setProjectPhase(project.id, v), "Phase updated.")}>
+                <SelectTrigger className="h-8 w-44"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {["PLANNING", "CAPEX", "EXECUTION"].map((ph) => <SelectItem key={ph} value={ph}>{PROJECT_PHASE_LABEL[ph]}</SelectItem>)}
                 </SelectContent>
@@ -184,8 +184,12 @@ export function ProjectDetail({ project, perms }: { project: any; perms: Perms }
           {audit.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center gap-3 py-8 text-center">
-                <p className="text-sm text-muted-foreground">When the venue is ready, request the Operations deep audit.</p>
-                {perms.canUpdate && (
+                <p className="text-sm text-muted-foreground">
+                  {project.phase === "EXECUTION"
+                    ? "When the venue is ready, request the Operations deep audit."
+                    : "Finish execution before requesting the Operations deep audit."}
+                </p>
+                {perms.canUpdate && project.phase === "EXECUTION" && (
                   <Button disabled={busy === "req"} onClick={() => run("req", () => requestOpsAudit(project.id), "Operations notified.")}>
                     <ShieldCheck className="h-4 w-4" /> Request Operations audit
                   </Button>

@@ -1,5 +1,6 @@
 "use server";
 
+import { randomBytes } from "crypto";
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/utils";
@@ -27,31 +28,48 @@ function can(role: string | undefined, perm: string) {
 
 // Lazily seed the readiness checklist the first time a project is opened (works
 // for projects created before this feature existed).
+// Seed once, idempotently. The count-then-insert is wrapped in a serializable
+// transaction so two near-simultaneous first opens of the same project can't both
+// pass the count===0 check and double-insert the checklist; the loser conflicts
+// and is safely ignored (the checklist already exists).
+type Tx = Prisma.TransactionClient;
+async function seedOnce(fn: (tx: Tx) => Promise<void>) {
+  try {
+    await prisma.$transaction(fn, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  } catch (e) {
+    if (!(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2034")) throw e;
+  }
+}
+
 async function ensureReadinessSeeded(projectId: string) {
-  const count = await prisma.venueReadinessItem.count({ where: { projectId } });
-  if (count > 0) return;
-  await prisma.venueReadinessItem.createMany({
-    data: READINESS_CHECKLIST.map((it, i) => ({
-      projectId,
-      category: it.category,
-      title: it.title,
-      standard: it.standard,
-      order: i,
-    })),
+  await seedOnce(async (tx) => {
+    const count = await tx.venueReadinessItem.count({ where: { projectId } });
+    if (count > 0) return;
+    await tx.venueReadinessItem.createMany({
+      data: READINESS_CHECKLIST.map((it, i) => ({
+        projectId,
+        category: it.category,
+        title: it.title,
+        standard: it.standard,
+        order: i,
+      })),
+    });
   });
 }
 
 async function ensureOpsAuditSeeded(projectId: string) {
-  const count = await prisma.opsAuditItem.count({ where: { projectId } });
-  if (count > 0) return;
-  await prisma.opsAuditItem.createMany({
-    data: OPS_AUDIT_CHECKLIST.map((it, i) => ({
-      projectId,
-      category: it.category,
-      title: it.title,
-      critical: it.critical,
-      order: i,
-    })),
+  await seedOnce(async (tx) => {
+    const count = await tx.opsAuditItem.count({ where: { projectId } });
+    if (count > 0) return;
+    await tx.opsAuditItem.createMany({
+      data: OPS_AUDIT_CHECKLIST.map((it, i) => ({
+        projectId,
+        category: it.category,
+        title: it.title,
+        critical: it.critical,
+        order: i,
+      })),
+    });
   });
 }
 
@@ -124,6 +142,14 @@ export async function setProjectPhase(id: string, phase: string): Promise<Result
   if (!MANUAL_PHASES.includes(phase)) {
     return { success: false, error: "That phase is reached via its workflow step (audit / handover / launch), not set directly." };
   }
+  // Don't allow regressing a project that has already entered the gated workflow
+  // (OPS_AUDIT/HANDOVER/LAUNCHED) — that would strand stale audit/handover stamps
+  // and let the launch button re-fire without a fresh audit.
+  const current = await prisma.acqOnboardingProject.findUnique({ where: { id }, select: { phase: true } });
+  if (!current) return { success: false, error: "Project not found" };
+  if (!MANUAL_PHASES.includes(current.phase)) {
+    return { success: false, error: "This project is past the manual phases; it advances only through the audit / handover / launch workflow." };
+  }
   const data: Prisma.AcqOnboardingProjectUpdateInput = { phase };
   if (phase === "EXECUTION") data.startedAt = new Date();
   await prisma.acqOnboardingProject.update({ where: { id }, data });
@@ -165,6 +191,13 @@ export async function setReadinessItem(itemId: string, patch: { status?: string;
 export async function requestOpsAudit(projectId: string): Promise<Result<{ id: string }>> {
   const user = await requireUser();
   if (!user || !can(user.role, "projects:update")) return { success: false, error: "Unauthorized" };
+  // Gate: the audit can only be requested once execution is complete. This keeps
+  // the phase machine honest — a project can't jump PLANNING/CAPEX → OPS_AUDIT.
+  const existing = await prisma.acqOnboardingProject.findUnique({ where: { id: projectId }, select: { phase: true } });
+  if (!existing) return { success: false, error: "Project not found" };
+  if (existing.phase !== "EXECUTION") {
+    return { success: false, error: "Finish execution before requesting the operations audit." };
+  }
   await ensureOpsAuditSeeded(projectId);
   await prisma.acqOnboardingProject.update({
     where: { id: projectId },
@@ -200,15 +233,25 @@ export async function setOpsAuditItem(itemId: string, patch: { status?: string; 
 export async function completeOpsAudit(projectId: string): Promise<Result<{ id: string }>> {
   const user = await requireUser();
   if (!user || !can(user.role, "projects:audit")) return { success: false, error: "Only the Operations team can sign off the audit." };
+  // The audit must actually be in progress: project in OPS_AUDIT with a seeded
+  // checklist. Otherwise an empty item list would vacuously "pass" the gate.
+  const project = await prisma.acqOnboardingProject.findUnique({ where: { id: projectId }, select: { phase: true, opsAuditRequestedAt: true } });
+  if (!project) return { success: false, error: "Project not found" };
+  if (project.phase !== "OPS_AUDIT" || !project.opsAuditRequestedAt) {
+    return { success: false, error: "Request the operations audit before signing it off." };
+  }
   const items = await prisma.opsAuditItem.findMany({ where: { projectId }, select: { critical: true, status: true } });
+  if (!items.length) return { success: false, error: "The audit checklist has not been started." };
   const blocking = items.filter((i) => i.critical && i.status !== "PASS" && i.status !== "NA");
   if (blocking.length) {
     return { success: false, error: `${blocking.length} critical audit item(s) are not yet passed.` };
   }
-  await prisma.acqOnboardingProject.update({
-    where: { id: projectId },
+  // Scope the transition to the expected phase so a concurrent change can't double-apply.
+  const res = await prisma.acqOnboardingProject.updateMany({
+    where: { id: projectId, phase: "OPS_AUDIT" },
     data: { opsAuditPassedAt: new Date(), opsAuditById: user.id, phase: "HANDOVER" },
   });
+  if (res.count === 0) return { success: false, error: "Project is no longer awaiting audit sign-off." };
   revalidatePath(`/projects/${projectId}`);
   return { success: true, data: { id: projectId } };
 }
@@ -219,9 +262,9 @@ export async function completeOpsAudit(projectId: string): Promise<Result<{ id: 
 export async function generateHandover(projectId: string): Promise<Result<{ id: string }>> {
   const user = await requireUser();
   if (!user || !can(user.role, "projects:approve")) return { success: false, error: "Only a Projects Head can submit the handover." };
-  const project = await prisma.acqOnboardingProject.findUnique({ where: { id: projectId }, select: { opsAuditPassedAt: true, property: { select: { propertyName: true } } } });
+  const project = await prisma.acqOnboardingProject.findUnique({ where: { id: projectId }, select: { phase: true, opsAuditPassedAt: true, property: { select: { propertyName: true } } } });
   if (!project) return { success: false, error: "Project not found" };
-  if (!project.opsAuditPassedAt) return { success: false, error: "The operations audit must pass before handover." };
+  if (project.phase !== "HANDOVER" || !project.opsAuditPassedAt) return { success: false, error: "The operations audit must pass before handover." };
   await prisma.acqOnboardingProject.update({
     where: { id: projectId },
     data: { handoverReportAt: new Date(), handoverById: user.id },
@@ -238,13 +281,14 @@ export async function generateHandover(projectId: string): Promise<Result<{ id: 
 export async function launchProject(projectId: string): Promise<Result<{ id: string }>> {
   const user = await requireUser();
   if (!user || !can(user.role, "projects:approve")) return { success: false, error: "Only a Projects Head can give the launch go-ahead." };
-  const project = await prisma.acqOnboardingProject.findUnique({ where: { id: projectId }, select: { handoverReportAt: true, propertyId: true, property: { select: { propertyName: true } } } });
+  const project = await prisma.acqOnboardingProject.findUnique({ where: { id: projectId }, select: { phase: true, handoverReportAt: true, propertyId: true, property: { select: { propertyName: true } } } });
   if (!project) return { success: false, error: "Project not found" };
-  if (!project.handoverReportAt) return { success: false, error: "Submit the handover report before launch." };
-  await prisma.$transaction([
-    prisma.acqOnboardingProject.update({ where: { id: projectId }, data: { phase: "LAUNCHED", launchedAt: new Date(), status: "COMPLETED", completedAt: new Date() } }),
-    prisma.acqProperty.update({ where: { id: project.propertyId }, data: { status: "AVAILABLE", availableAt: new Date() } }),
-  ]);
+  if (project.phase !== "HANDOVER" || !project.handoverReportAt) return { success: false, error: "Submit the handover report before launch." };
+  // Scope the project transition to the expected phase so a double-click or
+  // concurrent launch can't fire the side-effects (property AVAILABLE, notifications) twice.
+  const launched = await prisma.acqOnboardingProject.updateMany({ where: { id: projectId, phase: "HANDOVER" }, data: { phase: "LAUNCHED", launchedAt: new Date(), status: "COMPLETED", completedAt: new Date() } });
+  if (launched.count === 0) return { success: false, error: "Project is no longer awaiting launch." };
+  await prisma.acqProperty.update({ where: { id: project.propertyId }, data: { status: "AVAILABLE", availableAt: new Date() } });
   // Hand the baton to Sales & Marketing.
   const sales = await prisma.user.findMany({ where: { isActive: true, role: { in: ["SALES_EXEC", "EVENT_COORDINATOR", "SUPER_ADMIN", "ADMIN"] } }, select: { id: true } });
   for (const s of sales) {
@@ -268,19 +312,36 @@ export async function createCapex(projectId: string, input: CapexInput, notes?: 
   if (!user || !can(user.role, "projects:create")) return { success: false, error: "Unauthorized" };
   const errs = validateCapexInput(input);
   if (errs.length) return { success: false, error: errs.join(" ") };
-  const last = await prisma.acqCapexProjection.findFirst({ where: { projectId }, orderBy: { version: "desc" }, select: { version: true } });
-  const row = await prisma.acqCapexProjection.create({
-    data: {
-      projectId,
-      version: (last?.version ?? 0) + 1,
-      status: "DRAFT",
-      inputsJson: input as unknown as Prisma.InputJsonValue,
-      notes: notes || null,
-      createdById: user.id,
-      ...capexHeadline(input),
-    },
-    select: { id: true },
-  });
+  // Allocate the next version atomically. Under serializable isolation two
+  // concurrent creates can't read the same max version; the loser is retried
+  // rather than silently duplicating a version number.
+  let row: { id: string } | null = null;
+  for (let attempt = 0; attempt < 3 && !row; attempt++) {
+    try {
+      row = await prisma.$transaction(
+        async (tx) => {
+          const last = await tx.acqCapexProjection.findFirst({ where: { projectId }, orderBy: { version: "desc" }, select: { version: true } });
+          return tx.acqCapexProjection.create({
+            data: {
+              projectId,
+              version: (last?.version ?? 0) + 1,
+              status: "DRAFT",
+              inputsJson: input as unknown as Prisma.InputJsonValue,
+              notes: notes || null,
+              createdById: user.id,
+              ...capexHeadline(input),
+            },
+            select: { id: true },
+          });
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+      );
+    } catch (e) {
+      // P2034 = write conflict / serialization failure — retry. Anything else, surface.
+      if (!(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2034") || attempt === 2) throw e;
+    }
+  }
+  if (!row) return { success: false, error: "Could not create the projection, please retry." };
   revalidatePath(`/projects/${projectId}`);
   return { success: true, data: { id: row.id } };
 }
@@ -324,9 +385,12 @@ export async function approveCapex(id: string): Promise<Result<{ status: string 
     return { success: false, error: "You submitted this CapEx — a different head must approve it." };
   }
   const out = computeCapex(row.inputsJson as unknown as CapexInput);
+  // Opaque token so the owner-facing PDF link isn't a plain id-based IDOR. Stable
+  // once set so a re-approval doesn't invalidate a link already shared.
+  const shareToken = row.shareToken ?? randomBytes(24).toString("base64url");
   await prisma.acqCapexProjection.update({
     where: { id },
-    data: { status: "APPROVED", approvedById: user.id, approvedAt: new Date(), outputsJson: out as unknown as Prisma.InputJsonValue, pdfUrl: `/api/projects/capex/${id}/pdf` },
+    data: { status: "APPROVED", approvedById: user.id, approvedAt: new Date(), outputsJson: out as unknown as Prisma.InputJsonValue, shareToken, pdfUrl: `/api/projects/capex/${id}/pdf?token=${shareToken}` },
   });
   revalidatePath(`/projects/${row.projectId}`);
   return { success: true, data: { status: "APPROVED" } };
@@ -347,6 +411,7 @@ export async function rejectCapex(id: string, reason: string): Promise<Result<{ 
 export async function sendCapex(id: string, opts: { channel: "EMAIL" | "WHATSAPP" | "MANUAL"; to?: string }): Promise<Result<{ status: string }>> {
   const user = await requireUser();
   if (!user || !can(user.role, "projects:update")) return { success: false, error: "Unauthorized" };
+  if (!opts?.channel || !["EMAIL", "WHATSAPP", "MANUAL"].includes(opts.channel)) return { success: false, error: "Invalid channel." };
   const row = await prisma.acqCapexProjection.findUnique({ where: { id }, include: { project: { include: { property: { select: { ownerName: true } } } } } });
   if (!row) return { success: false, error: "Not found" };
   if (row.status !== "APPROVED" && row.status !== "SENT") return { success: false, error: "Approve the CapEx before sending." };

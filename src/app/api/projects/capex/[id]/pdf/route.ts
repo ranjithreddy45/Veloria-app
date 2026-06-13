@@ -1,24 +1,37 @@
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/../auth";
+import { hasPermission } from "@/lib/permissions";
 import { computeCapex, type CapexInput, type CapexResult } from "@/lib/projects/capex-calc";
 
 export const runtime = "nodejs";
 
 // Branded CapEx projection — shared with the venue owner (no login) once the
 // Projects Head has APPROVED it. Rendered from the frozen snapshot.
+// Access requires EITHER an authenticated internal session (projects:read/approve)
+// OR the opaque ?token= that matches the projection's shareToken — so the raw id
+// alone is not enough to read a venue's internal financials.
 const PLUM = "#2D1B3D";
 const GOLD = "#C9A96E";
 const IVORY = "#FAF7F2";
 const inr = (n: number) => "₹" + Math.round(n).toLocaleString("en-IN");
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
 
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const token = new URL(req.url).searchParams.get("token");
   const c = await prisma.acqCapexProjection.findUnique({
     where: { id },
     include: { project: { include: { property: { select: { propertyName: true, ownerName: true, city: true, locality: true } } } } },
   });
   if (!c) return new Response("Not available.", { status: 404 });
   if (c.status !== "APPROVED" && c.status !== "SENT") return new Response("This projection is not finalized.", { status: 403 });
+
+  // Authorize: internal staff via session, or the owner via the share token.
+  const session = await auth();
+  const role = (session?.user as { role?: string } | undefined)?.role;
+  const internalOk = !!session?.user && (role === "SUPER_ADMIN" || role === "ADMIN" || hasPermission(role ?? "", "projects:read") || hasPermission(role ?? "", "projects:approve"));
+  const tokenOk = !!token && !!c.shareToken && token === c.shareToken;
+  if (!internalOk && !tokenOk) return new Response("Unauthorized.", { status: 401 });
 
   const result: CapexResult = (c.outputsJson as unknown as CapexResult) || computeCapex(c.inputsJson as unknown as CapexInput);
   const prop = c.project.property;

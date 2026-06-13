@@ -118,16 +118,22 @@ export async function getAvailabilityMonth(year: number, month: number): Promise
   const [venues, bookings, blackouts] = await Promise.all([
     prisma.venue.findMany({ where: { isActive: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.booking.findMany({ where: { date: { gte: start, lte: end }, status: { not: "CANCELLED" } }, select: { venueId: true, date: true, timeSlot: true } }),
-    prisma.blackoutDate.findMany({ where: { date: { gte: start, lte: end } }, select: { venueId: true, date: true } }),
+    prisma.blackoutDate.findMany({ where: { date: { gte: start, lte: end } }, select: { venueId: true, date: true, timeSlot: true } }),
   ]);
 
   const rows: VenueMonth[] = venues.map((v) => {
     const days: MonthDay[] = [];
     for (let d = 1; d <= daysInMonth; d++) {
-      const dayBookings = bookings.filter((b) => b.venueId === v.id && new Date(b.date).getDate() === d);
+      // @db.Date values read back as UTC-midnight, so bucket by the UTC day to
+      // match the day grid (which filters on a local-midnight Date) in every TZ.
+      const dayBookings = bookings.filter((b) => b.venueId === v.id && new Date(b.date).getUTCDate() === d);
       const hasFull = dayBookings.some((b) => b.timeSlot === "FULL_DAY");
-      const booked = hasFull ? 3 : dayBookings.filter((b) => b.timeSlot !== "FULL_DAY").length;
-      const blackout = blackouts.some((b) => b.venueId === v.id && new Date(b.date).getDate() === d);
+      const dayBlackouts = blackouts.filter((b) => b.venueId === v.id && new Date(b.date).getUTCDate() === d);
+      // Only a whole-day blackout (timeSlot === null) blacks out the day, matching
+      // the day grid. Partial-slot blackouts fold into the occupancy count instead.
+      const blackout = dayBlackouts.some((b) => b.timeSlot === null);
+      const partialBlackouts = dayBlackouts.filter((b) => b.timeSlot !== null).length;
+      const booked = hasFull ? 3 : dayBookings.filter((b) => b.timeSlot !== "FULL_DAY").length + partialBlackouts;
       days.push({ day: d, booked: Math.min(3, booked), blackout });
     }
     return { venueId: v.id, venueName: v.name, days };

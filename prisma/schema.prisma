@@ -4054,6 +4054,7 @@ model AcqCapexProjection {
   approvedBy     User?     @relation("CapexApprovedBy", fields: [approvedById], references: [id])
   approvedAt     DateTime?
   rejectedReason String?
+  shareToken  String?    // opaque token for the owner's no-login PDF link, set at approval
   sentChannel String?
   sentTo      String?
   sentById    String?

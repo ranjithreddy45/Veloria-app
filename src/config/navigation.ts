@@ -115,25 +115,27 @@ export const sidebarNavigation: NavItem[] = [
     title: "Engagement",
     href: "/crm/cadences",
     icon: "Activity",
-    permissions: ["leads:read", "contacts:read"],
+    // /crm/* is gated by communications:read in middleware; gate the nav on the
+    // same permission so we never advertise a link that bounces to /not-authorized.
+    permissions: ["communications:read", "whatsapp:read"],
     children: [
       {
         title: "Cadences",
         href: "/crm/cadences",
         icon: "ListOrdered",
-        permissions: ["leads:read"],
+        permissions: ["communications:read"],
       },
       {
         title: "Sales Signals",
         href: "/crm/signals",
         icon: "Activity",
-        permissions: ["contacts:read", "leads:read"],
+        permissions: ["communications:read"],
       },
       {
         title: "Email Insights",
         href: "/crm/email-tracking",
         icon: "MailOpen",
-        permissions: ["contacts:read"],
+        permissions: ["communications:read"],
       },
       {
         title: "WhatsApp",
@@ -145,7 +147,7 @@ export const sidebarNavigation: NavItem[] = [
         title: "Call Log",
         href: "/crm/calls",
         icon: "Phone",
-        permissions: ["contacts:read", "leads:read"],
+        permissions: ["communications:read"],
       },
     ],
   },
