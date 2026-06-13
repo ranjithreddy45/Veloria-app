@@ -10,6 +10,7 @@ import { hasPermission } from "@/lib/permissions";
 import { computeCapex, validateCapexInput, type CapexInput, type CapexResult } from "@/lib/projects/capex-calc";
 import { READINESS_CHECKLIST } from "@/lib/projects/readiness-config";
 import { OPS_AUDIT_CHECKLIST } from "@/lib/projects/ops-audit-config";
+import { normalizePhase, phaseMatchValues, PROJECT_PHASES, type ProjectPhase } from "@/lib/projects/phases";
 import { Prisma } from "@prisma/client";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
@@ -20,10 +21,43 @@ const AUDIT_STATUSES = ["PENDING", "PASS", "FAIL", "NA"];
 async function requireUser() {
   const session = await auth();
   if (!session?.user?.id) return null;
-  return session.user as { id: string; role?: string };
+  return session.user as { id: string; role?: string; name?: string | null };
 }
 function can(role: string | undefined, perm: string) {
   return !!role && hasPermission(role, perm);
+}
+
+// --- audit trail + sign-off helpers -------------------------------------------
+type Actor = { id: string; name?: string | null };
+async function addAudit(
+  client: Prisma.TransactionClient | typeof prisma,
+  actor: Actor,
+  e: { projectId: string; action: string; entityType: string; entityId: string; before?: unknown; after?: unknown }
+) {
+  await client.projectAuditLog.create({
+    data: {
+      projectId: e.projectId,
+      actorId: actor.id,
+      actorName: actor.name ?? null,
+      action: e.action,
+      entityType: e.entityType,
+      entityId: e.entityId,
+      beforeJson: (e.before ?? undefined) as Prisma.InputJsonValue | undefined,
+      afterJson: (e.after ?? undefined) as Prisma.InputJsonValue | undefined,
+    },
+  });
+}
+async function recordSignOff(
+  client: Prisma.TransactionClient | typeof prisma,
+  e: { projectId: string; stage: string; decision: "APPROVED" | "REJECTED" | "REOPENED"; approverId: string; comment?: string }
+) {
+  await client.projectSignOff.create({
+    data: { projectId: e.projectId, stage: e.stage, decision: e.decision, approverId: e.approverId, comment: e.comment || null },
+  });
+}
+async function notifyRoles(roles: string[], n: { type: "TASK_ASSIGNED" | "SYSTEM"; title: string; message: string; actionUrl: string }) {
+  const users = await prisma.user.findMany({ where: { isActive: true, role: { in: roles as never } }, select: { id: true } });
+  for (const u of users) notify({ userId: u.id, ...n });
 }
 
 // Lazily seed the readiness checklist the first time a project is opened (works
@@ -93,7 +127,8 @@ export async function getProjects(): Promise<Result<unknown[]>> {
     const done = p.readinessItems.filter((r) => r.status === "DONE" || r.status === "NA").length;
     return {
       id: p.id,
-      phase: p.phase,
+      phase: normalizePhase(p.phase),
+      status: p.status,
       property: p.property,
       projectManager: p.projectManager,
       targetReadyDate: p.targetReadyDate,
@@ -113,7 +148,9 @@ export async function getProject(id: string): Promise<Result<unknown>> {
     include: {
       property: true,
       projectManager: { select: { id: true, name: true } },
+      bdOwner: { select: { name: true } },
       opsAuditBy: { select: { name: true } },
+      finalGoAheadBy: { select: { name: true } },
       handoverBy: { select: { name: true } },
       readinessItems: { orderBy: { order: "asc" } },
       opsAuditItems: { orderBy: { order: "asc" } },
@@ -121,40 +158,155 @@ export async function getProject(id: string): Promise<Result<unknown>> {
         orderBy: { createdAt: "desc" },
         include: { createdBy: { select: { name: true } }, approvedBy: { select: { name: true } } },
       },
+      signOffs: { orderBy: { createdAt: "desc" }, include: { approver: { select: { name: true } } } },
+      auditLogs: { orderBy: { createdAt: "desc" }, take: 50 },
     },
   });
   if (!row) return { success: false, error: "Project not found" };
-  return { success: true, data: serialize(row) };
+  // Surface the canonical stage to the UI while leaving the stored value intact
+  // (it's normalised to canonical on the next transition).
+  return { success: true, data: serialize({ ...row, phase: normalizePhase(row.phase) }) };
 }
 
 // ------------------------------------------------------------
-// Phase + assignment + checklist
+// Stage machine — every transition is gated, atomic, and writes a SignOff +
+// AuditLog. Stages advance only through these actions (no free phase-set);
+// backward moves go through reopenProject (Head/Admin only, logged).
 // ------------------------------------------------------------
-// Only the early, manual phases can be set freely. The later gated phases —
-// OPS_AUDIT, HANDOVER, LAUNCHED — are reached ONLY through requestOpsAudit,
-// completeOpsAudit, generateHandover and launchProject (which enforce their
-// preconditions), so the phase dropdown can't be used to skip the gates.
-const MANUAL_PHASES = ["PLANNING", "CAPEX", "EXECUTION"];
 
-export async function setProjectPhase(id: string, phase: string): Promise<Result<{ phase: string }>> {
+// Forward-stage completion stamps, used to clear state on reopen so re-advancing
+// re-runs every gate cleanly.
+const STAGE_STAMPS: Record<ProjectPhase, (keyof Prisma.AcqOnboardingProjectUncheckedUpdateInput)[]> = {
+  HANDOFF: ["handoffAcceptedAt"],
+  ASSESSMENT: ["assessmentDoneAt"],
+  CAPEX: ["ownerApproved", "ownerApprovedAt", "ownerApprovalProofUrl"],
+  EXECUTION: ["startedAt"],
+  INTERNAL_QC: ["qcReadyAt", "opsAuditRequestedAt"],
+  OPS_AUDIT: ["opsAuditPassedAt", "opsAuditById"],
+  FINAL_GO_AHEAD: ["finalGoAheadAt", "finalGoAheadById"],
+  HANDOVER: ["handoverReportAt", "handoverById", "opsAcknowledgedAt", "mgmtAcknowledgedAt"],
+  LIVE: ["launchedAt", "completedAt"],
+};
+
+// Atomically move a project from `from` to `to` (matching legacy phase values too),
+// recording the sign-off + audit entry in the same transaction.
+async function advanceStage(
+  user: Actor,
+  projectId: string,
+  from: ProjectPhase,
+  to: ProjectPhase,
+  stamp: Prisma.AcqOnboardingProjectUncheckedUpdateManyInput = {},
+  decision: "APPROVED" = "APPROVED"
+): Promise<boolean> {
+  return prisma.$transaction(async (tx) => {
+    const res = await tx.acqOnboardingProject.updateMany({
+      where: { id: projectId, phase: { in: phaseMatchValues(from) } },
+      data: { phase: to, ...stamp },
+    });
+    if (res.count === 0) return false;
+    await recordSignOff(tx, { projectId, stage: from, decision, approverId: user.id });
+    await addAudit(tx, user, { projectId, action: `phase:${from}->${to}`, entityType: "project", entityId: projectId, before: { phase: from }, after: { phase: to } });
+    return true;
+  });
+}
+
+const FUNDING_MODELS = ["OWNER", "VELORIA", "SPLIT"];
+
+// Edit the venue master data that drives the calculator + spec sheet.
+export async function updateProjectMaster(
+  id: string,
+  patch: { ownerContact?: string; fundingModel?: string | null; splitRatio?: number | null; hallCount?: number | null; totalCapacity?: number | null; totalSqft?: number | null; dealClosedDate?: string | null; targetReadyDate?: string | null; bdOwnerId?: string | null; notes?: string | null }
+): Promise<Result<{ id: string }>> {
   const user = await requireUser();
   if (!user || !can(user.role, "projects:update")) return { success: false, error: "Unauthorized" };
-  if (!MANUAL_PHASES.includes(phase)) {
-    return { success: false, error: "That phase is reached via its workflow step (audit / handover / launch), not set directly." };
-  }
-  // Don't allow regressing a project that has already entered the gated workflow
-  // (OPS_AUDIT/HANDOVER/LAUNCHED) — that would strand stale audit/handover stamps
-  // and let the launch button re-fire without a fresh audit.
-  const current = await prisma.acqOnboardingProject.findUnique({ where: { id }, select: { phase: true } });
-  if (!current) return { success: false, error: "Project not found" };
-  if (!MANUAL_PHASES.includes(current.phase)) {
-    return { success: false, error: "This project is past the manual phases; it advances only through the audit / handover / launch workflow." };
-  }
-  const data: Prisma.AcqOnboardingProjectUpdateInput = { phase };
-  if (phase === "EXECUTION") data.startedAt = new Date();
+  if (patch.fundingModel != null && patch.fundingModel !== "" && !FUNDING_MODELS.includes(patch.fundingModel)) return { success: false, error: "Invalid funding model." };
+  const data: Prisma.AcqOnboardingProjectUncheckedUpdateInput = {};
+  if (patch.ownerContact !== undefined) data.ownerContact = patch.ownerContact || null;
+  if (patch.fundingModel !== undefined) data.fundingModel = patch.fundingModel || null;
+  if (patch.splitRatio !== undefined) data.splitRatio = patch.splitRatio == null ? null : new Prisma.Decimal(patch.splitRatio);
+  if (patch.hallCount !== undefined) data.hallCount = patch.hallCount;
+  if (patch.totalCapacity !== undefined) data.totalCapacity = patch.totalCapacity;
+  if (patch.totalSqft !== undefined) data.totalSqft = patch.totalSqft;
+  if (patch.dealClosedDate !== undefined) data.dealClosedDate = patch.dealClosedDate ? new Date(patch.dealClosedDate) : null;
+  if (patch.targetReadyDate !== undefined) data.targetReadyDate = patch.targetReadyDate ? new Date(patch.targetReadyDate) : null;
+  if (patch.bdOwnerId !== undefined) data.bdOwnerId = patch.bdOwnerId || null;
+  if (patch.notes !== undefined) data.notes = patch.notes || null;
   await prisma.acqOnboardingProject.update({ where: { id }, data });
+  await addAudit(prisma, user, { projectId: id, action: "project.master.update", entityType: "project", entityId: id, after: patch });
   revalidatePath(`/projects/${id}`);
-  return { success: true, data: { phase } };
+  return { success: true, data: { id } };
+}
+
+// active (OPEN) / on-hold / cancelled. Cancelling needs Head/Admin.
+export async function setProjectStatus(id: string, status: "OPEN" | "ON_HOLD" | "CANCELLED"): Promise<Result<{ status: string }>> {
+  const user = await requireUser();
+  if (!user) return { success: false, error: "Unauthorized" };
+  if (!["OPEN", "ON_HOLD", "CANCELLED"].includes(status)) return { success: false, error: "Invalid status" };
+  const perm = status === "CANCELLED" ? "projects:approve" : "projects:update";
+  if (!can(user.role, perm)) return { success: false, error: "Unauthorized" };
+  const before = await prisma.acqOnboardingProject.findUnique({ where: { id }, select: { status: true } });
+  await prisma.acqOnboardingProject.update({ where: { id }, data: { status } });
+  await addAudit(prisma, user, { projectId: id, action: "project.status", entityType: "project", entityId: id, before, after: { status } });
+  revalidatePath(`/projects/${id}`);
+  revalidatePath("/projects");
+  return { success: true, data: { status } };
+}
+
+// Stage 1→2: PM accepts the BD handoff; readiness checklist is instantiated.
+export async function acceptHandoff(projectId: string): Promise<Result<{ phase: string }>> {
+  const user = await requireUser();
+  if (!user || !can(user.role, "projects:update")) return { success: false, error: "Unauthorized" };
+  const p = await prisma.acqOnboardingProject.findUnique({ where: { id: projectId }, select: { phase: true } });
+  if (!p) return { success: false, error: "Project not found" };
+  if (normalizePhase(p.phase) !== "HANDOFF") return { success: false, error: "This project has already been accepted into Projects." };
+  await ensureReadinessSeeded(projectId);
+  const ok = await advanceStage(user, projectId, "HANDOFF", "ASSESSMENT", { handoffAcceptedAt: new Date() });
+  if (!ok) return { success: false, error: "Project is no longer awaiting handoff." };
+  revalidatePath(`/projects/${projectId}`);
+  return { success: true, data: { phase: "ASSESSMENT" } };
+}
+
+// Stage 2→3: scoping done (standards checklist instantiated, gaps identified).
+export async function completeAssessment(projectId: string): Promise<Result<{ phase: string }>> {
+  const user = await requireUser();
+  if (!user || !can(user.role, "projects:update")) return { success: false, error: "Unauthorized" };
+  const p = await prisma.acqOnboardingProject.findUnique({ where: { id: projectId }, select: { phase: true } });
+  if (!p) return { success: false, error: "Project not found" };
+  if (normalizePhase(p.phase) !== "ASSESSMENT") return { success: false, error: "Assessment can only be completed from the Assessment stage." };
+  await ensureReadinessSeeded(projectId);
+  const ok = await advanceStage(user, projectId, "ASSESSMENT", "CAPEX", { assessmentDoneAt: new Date() });
+  if (!ok) return { success: false, error: "Project is no longer in Assessment." };
+  revalidatePath(`/projects/${projectId}`);
+  return { success: true, data: { phase: "CAPEX" } };
+}
+
+// Record the venue owner's approval of the CapEx + timeline (external sign-off,
+// captured by the PM with optional uploaded proof). Not a phase change.
+export async function recordOwnerApproval(projectId: string, proofUrl?: string): Promise<Result<{ ownerApproved: boolean }>> {
+  const user = await requireUser();
+  if (!user || !can(user.role, "projects:update")) return { success: false, error: "Unauthorized" };
+  const p = await prisma.acqOnboardingProject.findUnique({ where: { id: projectId }, select: { id: true } });
+  if (!p) return { success: false, error: "Project not found" };
+  await prisma.acqOnboardingProject.update({ where: { id: projectId }, data: { ownerApproved: true, ownerApprovedAt: new Date(), ownerApprovalProofUrl: proofUrl || null } });
+  await addAudit(prisma, user, { projectId, action: "owner.approved", entityType: "project", entityId: projectId, after: { ownerApproved: true, proofUrl: proofUrl || null } });
+  revalidatePath(`/projects/${projectId}`);
+  return { success: true, data: { ownerApproved: true } };
+}
+
+// Stage 3→4: begin fit-out. Requires an approved CapEx model + recorded owner approval.
+export async function startExecution(projectId: string): Promise<Result<{ phase: string }>> {
+  const user = await requireUser();
+  if (!user || !can(user.role, "projects:update")) return { success: false, error: "Unauthorized" };
+  const p = await prisma.acqOnboardingProject.findUnique({ where: { id: projectId }, select: { phase: true, ownerApproved: true } });
+  if (!p) return { success: false, error: "Project not found" };
+  if (normalizePhase(p.phase) !== "CAPEX") return { success: false, error: "Execution starts from the CapEx & Timeline stage." };
+  const approvedCapex = await prisma.acqCapexProjection.count({ where: { projectId, status: { in: ["APPROVED", "SENT"] } } });
+  if (!approvedCapex) return { success: false, error: "Approve a CapEx model before starting execution." };
+  if (!p.ownerApproved) return { success: false, error: "Record the owner's CapEx & timeline approval before starting execution." };
+  const ok = await advanceStage(user, projectId, "CAPEX", "EXECUTION", { startedAt: new Date() });
+  if (!ok) return { success: false, error: "Project is no longer in the CapEx stage." };
+  revalidatePath(`/projects/${projectId}`);
+  return { success: true, data: { phase: "EXECUTION" } };
 }
 
 export async function assignProjectManager(id: string, userId: string | null): Promise<Result<{ id: string }>> {
@@ -185,29 +337,40 @@ export async function setReadinessItem(itemId: string, patch: { status?: string;
   return { success: true, data: { id: itemId } };
 }
 
+// Stage 4→5: enter Internal QC. Exit criterion: every standards/readiness item
+// is resolved (DONE or N/A). (Wave D additionally requires all work packages complete.)
+export async function enterInternalQc(projectId: string): Promise<Result<{ phase: string }>> {
+  const user = await requireUser();
+  if (!user || !can(user.role, "projects:update")) return { success: false, error: "Unauthorized" };
+  const p = await prisma.acqOnboardingProject.findUnique({ where: { id: projectId }, select: { phase: true } });
+  if (!p) return { success: false, error: "Project not found" };
+  if (normalizePhase(p.phase) !== "EXECUTION") return { success: false, error: "Internal QC starts from the Execution stage." };
+  await ensureReadinessSeeded(projectId);
+  const items = await prisma.venueReadinessItem.findMany({ where: { projectId }, select: { status: true } });
+  const pending = items.filter((i) => i.status !== "DONE" && i.status !== "NA").length;
+  if (pending) return { success: false, error: `${pending} readiness item(s) still open — every standard must pass (or be marked N/A) before Internal QC.` };
+  const ok = await advanceStage(user, projectId, "EXECUTION", "INTERNAL_QC");
+  if (!ok) return { success: false, error: "Project is no longer in Execution." };
+  revalidatePath(`/projects/${projectId}`);
+  return { success: true, data: { phase: "INTERNAL_QC" } };
+}
+
 // ------------------------------------------------------------
-// Ops audit (Operations runs the deep audit before sign-off)
+// Stage 5→6: PM requests the Operations deep audit.
+// (Wave B additionally blocks on any open critical/major snag.)
 // ------------------------------------------------------------
 export async function requestOpsAudit(projectId: string): Promise<Result<{ id: string }>> {
   const user = await requireUser();
   if (!user || !can(user.role, "projects:update")) return { success: false, error: "Unauthorized" };
-  // Gate: the audit can only be requested once execution is complete. This keeps
-  // the phase machine honest — a project can't jump PLANNING/CAPEX → OPS_AUDIT.
-  const existing = await prisma.acqOnboardingProject.findUnique({ where: { id: projectId }, select: { phase: true } });
+  const existing = await prisma.acqOnboardingProject.findUnique({ where: { id: projectId }, select: { phase: true, property: { select: { propertyName: true } } } });
   if (!existing) return { success: false, error: "Project not found" };
-  if (existing.phase !== "EXECUTION") {
-    return { success: false, error: "Finish execution before requesting the operations audit." };
+  if (normalizePhase(existing.phase) !== "INTERNAL_QC") {
+    return { success: false, error: "Clear Internal QC before requesting the operations audit." };
   }
   await ensureOpsAuditSeeded(projectId);
-  await prisma.acqOnboardingProject.update({
-    where: { id: projectId },
-    data: { phase: "OPS_AUDIT", opsAuditRequestedAt: new Date() },
-  });
-  const project = await prisma.acqOnboardingProject.findUnique({ where: { id: projectId }, include: { property: { select: { propertyName: true } } } });
-  const ops = await prisma.user.findMany({ where: { isActive: true, role: { in: ["OPERATIONS", "SUPER_ADMIN", "ADMIN"] } }, select: { id: true } });
-  for (const o of ops) {
-    notify({ userId: o.id, type: "TASK_ASSIGNED", title: "Venue ready for ops audit", message: `${project?.property.propertyName ?? "A venue"} is ready — run the deep audit before launch.`, actionUrl: `/projects/${projectId}` });
-  }
+  const ok = await advanceStage(user, projectId, "INTERNAL_QC", "OPS_AUDIT", { qcReadyAt: new Date(), opsAuditRequestedAt: new Date() });
+  if (!ok) return { success: false, error: "Project is no longer in Internal QC." };
+  await notifyRoles(["OPERATIONS", "SUPER_ADMIN", "ADMIN"], { type: "TASK_ASSIGNED", title: "Venue ready for ops audit", message: `${existing.property.propertyName ?? "A venue"} cleared Internal QC — run the deep audit before launch.`, actionUrl: `/projects/${projectId}` });
   revalidatePath(`/projects/${projectId}`);
   return { success: true, data: { id: projectId } };
 }
@@ -230,14 +393,14 @@ export async function setOpsAuditItem(itemId: string, patch: { status?: string; 
   return { success: true, data: { id: itemId } };
 }
 
+// Stage 6→7: Ops signs off the audit — all critical items pass.
+// (Wave B additionally requires 100% of snags verified-closed.)
 export async function completeOpsAudit(projectId: string): Promise<Result<{ id: string }>> {
   const user = await requireUser();
   if (!user || !can(user.role, "projects:audit")) return { success: false, error: "Only the Operations team can sign off the audit." };
-  // The audit must actually be in progress: project in OPS_AUDIT with a seeded
-  // checklist. Otherwise an empty item list would vacuously "pass" the gate.
   const project = await prisma.acqOnboardingProject.findUnique({ where: { id: projectId }, select: { phase: true, opsAuditRequestedAt: true } });
   if (!project) return { success: false, error: "Project not found" };
-  if (project.phase !== "OPS_AUDIT" || !project.opsAuditRequestedAt) {
+  if (normalizePhase(project.phase) !== "OPS_AUDIT" || !project.opsAuditRequestedAt) {
     return { success: false, error: "Request the operations audit before signing it off." };
   }
   const items = await prisma.opsAuditItem.findMany({ where: { projectId }, select: { critical: true, status: true } });
@@ -246,57 +409,108 @@ export async function completeOpsAudit(projectId: string): Promise<Result<{ id: 
   if (blocking.length) {
     return { success: false, error: `${blocking.length} critical audit item(s) are not yet passed.` };
   }
-  // Scope the transition to the expected phase so a concurrent change can't double-apply.
-  const res = await prisma.acqOnboardingProject.updateMany({
-    where: { id: projectId, phase: "OPS_AUDIT" },
-    data: { opsAuditPassedAt: new Date(), opsAuditById: user.id, phase: "HANDOVER" },
-  });
-  if (res.count === 0) return { success: false, error: "Project is no longer awaiting audit sign-off." };
+  const ok = await advanceStage(user, projectId, "OPS_AUDIT", "FINAL_GO_AHEAD", { opsAuditPassedAt: new Date(), opsAuditById: user.id });
+  if (!ok) return { success: false, error: "Project is no longer awaiting audit sign-off." };
+  await notifyRoles(["PROJECTS_HEAD", "SUPER_ADMIN", "ADMIN"], { type: "SYSTEM", title: "Audit passed — awaiting final go-ahead", message: "Operations signed off the audit. The Projects Head can now give the launch go-ahead.", actionUrl: `/projects/${projectId}` });
   revalidatePath(`/projects/${projectId}`);
   return { success: true, data: { id: projectId } };
 }
 
-// ------------------------------------------------------------
-// Handover report + launch
-// ------------------------------------------------------------
-export async function generateHandover(projectId: string): Promise<Result<{ id: string }>> {
+// Stage 7→8: Projects Head gives the final go-ahead.
+// (Wave B additionally blocks while any critical/major snag is open.)
+export async function finalGoAhead(projectId: string): Promise<Result<{ id: string }>> {
   const user = await requireUser();
-  if (!user || !can(user.role, "projects:approve")) return { success: false, error: "Only a Projects Head can submit the handover." };
+  if (!user || !can(user.role, "projects:approve")) return { success: false, error: "Only a Projects Head can give the final go-ahead." };
   const project = await prisma.acqOnboardingProject.findUnique({ where: { id: projectId }, select: { phase: true, opsAuditPassedAt: true, property: { select: { propertyName: true } } } });
   if (!project) return { success: false, error: "Project not found" };
-  if (project.phase !== "HANDOVER" || !project.opsAuditPassedAt) return { success: false, error: "The operations audit must pass before handover." };
-  await prisma.acqOnboardingProject.update({
-    where: { id: projectId },
-    data: { handoverReportAt: new Date(), handoverById: user.id },
-  });
-  // Notify operations + management.
-  const recipients = await prisma.user.findMany({ where: { isActive: true, role: { in: ["OPERATIONS", "SUPER_ADMIN", "ADMIN"] } }, select: { id: true } });
-  for (const r of recipients) {
-    notify({ userId: r.id, type: "SYSTEM", title: "Venue handover report ready", message: `Handover report submitted for ${project.property.propertyName}.`, actionUrl: `/projects/${projectId}` });
+  if (normalizePhase(project.phase) !== "FINAL_GO_AHEAD" || !project.opsAuditPassedAt) {
+    return { success: false, error: "The operations audit must pass before the final go-ahead." };
   }
+  const ok = await advanceStage(user, projectId, "FINAL_GO_AHEAD", "HANDOVER", { finalGoAheadAt: new Date(), finalGoAheadById: user.id });
+  if (!ok) return { success: false, error: "Project is no longer awaiting the final go-ahead." };
+  await notifyRoles(["OPERATIONS", "SUPER_ADMIN", "ADMIN"], { type: "SYSTEM", title: "Final go-ahead given", message: `${project.property.propertyName} is cleared for handover & launch.`, actionUrl: `/projects/${projectId}` });
   revalidatePath(`/projects/${projectId}`);
   return { success: true, data: { id: projectId } };
 }
 
+// ------------------------------------------------------------
+// Handover report → acknowledgements → launch
+// ------------------------------------------------------------
+// Stage 8: PM submits the handover report (data is auto-compiled at render time).
+export async function generateHandover(projectId: string): Promise<Result<{ id: string }>> {
+  const user = await requireUser();
+  if (!user || !can(user.role, "projects:update")) return { success: false, error: "Unauthorized" };
+  const project = await prisma.acqOnboardingProject.findUnique({ where: { id: projectId }, select: { phase: true, finalGoAheadAt: true, property: { select: { propertyName: true } } } });
+  if (!project) return { success: false, error: "Project not found" };
+  if (normalizePhase(project.phase) !== "HANDOVER" || !project.finalGoAheadAt) return { success: false, error: "The final go-ahead must be given before the handover report." };
+  await prisma.acqOnboardingProject.update({ where: { id: projectId }, data: { handoverReportAt: new Date(), handoverById: user.id } });
+  await addAudit(prisma, user, { projectId, action: "handover.submit", entityType: "project", entityId: projectId });
+  await notifyRoles(["OPERATIONS", "SUPER_ADMIN", "ADMIN"], { type: "SYSTEM", title: "Venue handover report ready", message: `Handover report submitted for ${project.property.propertyName}. Please review & acknowledge.`, actionUrl: `/projects/${projectId}` });
+  revalidatePath(`/projects/${projectId}`);
+  return { success: true, data: { id: projectId } };
+}
+
+// Stage 8: Operations + Management acknowledge the handover report (dual gate).
+export async function acknowledgeHandover(projectId: string, by: "OPS" | "MGMT"): Promise<Result<{ id: string }>> {
+  const user = await requireUser();
+  if (!user) return { success: false, error: "Unauthorized" };
+  const perm = by === "OPS" ? "projects:audit" : "projects:approve";
+  if (!can(user.role, perm)) return { success: false, error: by === "OPS" ? "Only Operations can acknowledge on behalf of Ops." : "Only Management can acknowledge on behalf of Management." };
+  const project = await prisma.acqOnboardingProject.findUnique({ where: { id: projectId }, select: { phase: true, handoverReportAt: true } });
+  if (!project) return { success: false, error: "Project not found" };
+  if (normalizePhase(project.phase) !== "HANDOVER" || !project.handoverReportAt) return { success: false, error: "The handover report has not been submitted yet." };
+  await prisma.acqOnboardingProject.update({ where: { id: projectId }, data: by === "OPS" ? { opsAcknowledgedAt: new Date() } : { mgmtAcknowledgedAt: new Date() } });
+  await addAudit(prisma, user, { projectId, action: `handover.ack:${by}`, entityType: "project", entityId: projectId });
+  revalidatePath(`/projects/${projectId}`);
+  return { success: true, data: { id: projectId } };
+}
+
+// Stage 8→9: launch once the report is submitted and both acknowledgements are in.
 export async function launchProject(projectId: string): Promise<Result<{ id: string }>> {
   const user = await requireUser();
   if (!user || !can(user.role, "projects:approve")) return { success: false, error: "Only a Projects Head can give the launch go-ahead." };
-  const project = await prisma.acqOnboardingProject.findUnique({ where: { id: projectId }, select: { phase: true, handoverReportAt: true, propertyId: true, property: { select: { propertyName: true } } } });
+  const project = await prisma.acqOnboardingProject.findUnique({ where: { id: projectId }, select: { phase: true, handoverReportAt: true, opsAcknowledgedAt: true, mgmtAcknowledgedAt: true, propertyId: true, property: { select: { propertyName: true } } } });
   if (!project) return { success: false, error: "Project not found" };
-  if (project.phase !== "HANDOVER" || !project.handoverReportAt) return { success: false, error: "Submit the handover report before launch." };
-  // Scope the project transition to the expected phase so a double-click or
-  // concurrent launch can't fire the side-effects (property AVAILABLE, notifications) twice.
-  const launched = await prisma.acqOnboardingProject.updateMany({ where: { id: projectId, phase: "HANDOVER" }, data: { phase: "LAUNCHED", launchedAt: new Date(), status: "COMPLETED", completedAt: new Date() } });
-  if (launched.count === 0) return { success: false, error: "Project is no longer awaiting launch." };
+  if (normalizePhase(project.phase) !== "HANDOVER" || !project.handoverReportAt) return { success: false, error: "Submit the handover report before launch." };
+  if (!project.opsAcknowledgedAt || !project.mgmtAcknowledgedAt) return { success: false, error: "Both Operations and Management must acknowledge the handover report before launch." };
+  const ok = await advanceStage(user, projectId, "HANDOVER", "LIVE", { launchedAt: new Date(), status: "COMPLETED", completedAt: new Date() });
+  if (!ok) return { success: false, error: "Project is no longer awaiting launch." };
   await prisma.acqProperty.update({ where: { id: project.propertyId }, data: { status: "AVAILABLE", availableAt: new Date() } });
-  // Hand the baton to Sales & Marketing.
-  const sales = await prisma.user.findMany({ where: { isActive: true, role: { in: ["SALES_EXEC", "EVENT_COORDINATOR", "SUPER_ADMIN", "ADMIN"] } }, select: { id: true } });
-  for (const s of sales) {
-    notify({ userId: s.id, type: "SYSTEM", title: "New venue is live!", message: `${project.property.propertyName} has launched — start generating bookings.`, actionUrl: `/projects/${projectId}` });
-  }
+  await notifyRoles(["SALES_EXEC", "EVENT_COORDINATOR", "SUPER_ADMIN", "ADMIN"], { type: "SYSTEM", title: "New venue is live!", message: `${project.property.propertyName} has launched — start generating bookings.`, actionUrl: `/projects/${projectId}` });
   revalidatePath(`/projects/${projectId}`);
   revalidatePath("/projects");
   return { success: true, data: { id: projectId } };
+}
+
+// Backward move — Projects Head / Admin only, always logged. Clears the completion
+// stamps for the target stage and everything after it, so re-advancing re-runs gates.
+export async function reopenProject(projectId: string, toStage: string, reason: string): Promise<Result<{ phase: string }>> {
+  const user = await requireUser();
+  if (!user || !can(user.role, "projects:approve")) return { success: false, error: "Only a Projects Head or Admin can re-open a stage." };
+  if (!reason?.trim()) return { success: false, error: "A reason is required to re-open a stage." };
+  const target = normalizePhase(toStage);
+  const project = await prisma.acqOnboardingProject.findUnique({ where: { id: projectId }, select: { phase: true } });
+  if (!project) return { success: false, error: "Project not found" };
+  const current = normalizePhase(project.phase);
+  if (current === "LIVE") return { success: false, error: "A live venue can't be re-opened — Operations now owns it." };
+  const curIdx = PROJECT_PHASES.indexOf(current);
+  const tgtIdx = PROJECT_PHASES.indexOf(target);
+  if (tgtIdx >= curIdx) return { success: false, error: "Re-open can only move a project to an earlier stage." };
+  // Null out every completion stamp from the target stage onward.
+  const data: Prisma.AcqOnboardingProjectUncheckedUpdateInput = { phase: target, status: "OPEN" };
+  for (let i = tgtIdx; i < PROJECT_PHASES.length; i++) {
+    for (const f of STAGE_STAMPS[PROJECT_PHASES[i]]) {
+      (data as Record<string, unknown>)[f as string] = f === "ownerApproved" ? false : null;
+    }
+  }
+  await prisma.$transaction(async (tx) => {
+    await tx.acqOnboardingProject.update({ where: { id: projectId }, data });
+    await recordSignOff(tx, { projectId, stage: current, decision: "REOPENED", approverId: user.id, comment: reason.trim() });
+    await addAudit(tx, user, { projectId, action: `phase.reopen:${current}->${target}`, entityType: "project", entityId: projectId, before: { phase: current }, after: { phase: target, reason: reason.trim() } });
+  });
+  revalidatePath(`/projects/${projectId}`);
+  revalidatePath("/projects");
+  return { success: true, data: { phase: target } };
 }
 
 // ------------------------------------------------------------

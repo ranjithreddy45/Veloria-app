@@ -532,7 +532,7 @@ export async function transitionAcqDeal(
       createdPropertyId = property.id;
       await tx.acqDeal.update({ where: { id: dealId }, data: { propertyId: property.id } });
       const project = await tx.acqOnboardingProject.create({
-        data: { propertyId: property.id, status: "OPEN" },
+        data: { propertyId: property.id, status: "OPEN", bdOwnerId: user.id, dealClosedDate: new Date() },
         select: { id: true },
       });
       await tx.acqOnboardingTask.createMany({

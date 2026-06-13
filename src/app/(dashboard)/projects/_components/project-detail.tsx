@@ -4,14 +4,16 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
-  ArrowLeft, CheckCircle2, Loader2, Building2, ClipboardCheck, Calculator,
-  ShieldCheck, FileText, Rocket, Download,
+  ArrowLeft, CheckCircle2, Building2, ClipboardCheck, Calculator,
+  ShieldCheck, FileText, Rocket, Download, Lock, Undo2, BadgeCheck,
 } from "lucide-react";
 import {
   setReadinessItem, setOpsAuditItem, requestOpsAudit, completeOpsAudit,
-  generateHandover, launchProject, setProjectPhase, approveCapex, rejectCapex, sendCapex,
+  generateHandover, launchProject, approveCapex, rejectCapex, sendCapex,
+  acceptHandoff, completeAssessment, recordOwnerApproval, startExecution,
+  enterInternalQc, finalGoAhead, acknowledgeHandover, reopenProject,
 } from "@/actions/projects.actions";
-import { PROJECT_PHASES, PROJECT_PHASE_LABEL } from "@/lib/projects/phases";
+import { PROJECT_PHASES, PROJECT_PHASE_LABEL, PROJECT_PHASE_HINT, phaseIndex } from "@/lib/projects/phases";
 import type { CapexInput } from "@/lib/projects/capex-calc";
 import { StatusPill } from "@/components/shared/status-pill";
 import { Button } from "@/components/ui/button";
@@ -23,6 +25,7 @@ import {
 import { CapexCalculator } from "./capex-calculator";
 
 const inr = (n: number | string) => "₹" + Math.round(Number(n)).toLocaleString("en-IN");
+const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—");
 
 interface Perms { canUpdate: boolean; canApprove: boolean; canAudit: boolean }
 
@@ -30,6 +33,7 @@ interface Perms { canUpdate: boolean; canApprove: boolean; canAudit: boolean }
 export function ProjectDetail({ project, perms }: { project: any; perms: Perms }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
+  const [reopenTo, setReopenTo] = useState<string>("");
 
   async function run(key: string, fn: () => Promise<{ success: boolean; error?: string }>, ok: string) {
     setBusy(key);
@@ -46,11 +50,16 @@ export function ProjectDetail({ project, perms }: { project: any; perms: Perms }
   const readiness = project.readinessItems as { id: string; category: string; title: string; standard: string; status: string }[];
   const audit = project.opsAuditItems as { id: string; category: string; title: string; critical: boolean; status: string }[];
   const capexes = project.capexProjections as { id: string; version: number; status: string; totalCapex: string; estimatedWeeks: number; inputsJson: CapexInput; notes: string | null; createdBy?: { name: string | null } }[];
+  const signOffs = (project.signOffs ?? []) as { id: string; stage: string; decision: string; comment: string | null; createdAt: string; approver?: { name: string | null } }[];
 
+  const phase = project.phase as string;
+  const idx = phaseIndex(phase);
   const rDone = readiness.filter((r) => r.status === "DONE" || r.status === "NA").length;
   const rPct = readiness.length ? Math.round((rDone / readiness.length) * 100) : 0;
+  const readinessPending = readiness.filter((r) => r.status !== "DONE" && r.status !== "NA").length;
   const draftCapex = capexes.find((c) => c.status === "DRAFT");
   const approvedCapex = capexes.find((c) => c.status === "APPROVED" || c.status === "SENT");
+  const hasApprovedCapex = !!approvedCapex;
 
   const readinessByCat = readiness.reduce((acc, r) => {
     (acc[r.category] ??= []).push(r);
@@ -59,6 +68,76 @@ export function ProjectDetail({ project, perms }: { project: any; perms: Perms }
 
   const RSTATUS = ["PENDING", "IN_PROGRESS", "DONE", "NA"];
   const ASTATUS = ["PENDING", "PASS", "FAIL", "NA"];
+
+  // Stage action(s) for the current phase — each carries its own lock reason.
+  function StageAction() {
+    if (phase === "HANDOFF") {
+      return perms.canUpdate ? (
+        <Button disabled={busy === "stage"} onClick={() => run("stage", () => acceptHandoff(project.id), "Handoff accepted — assessment started.")}>
+          <BadgeCheck className="h-4 w-4" /> Accept handoff & start
+        </Button>
+      ) : <Locked text="Waiting for the Projects Manager to accept the handoff." />;
+    }
+    if (phase === "ASSESSMENT") {
+      return perms.canUpdate ? (
+        <Button disabled={busy === "stage"} onClick={() => run("stage", () => completeAssessment(project.id), "Assessment complete — CapEx stage.")}>
+          <CheckCircle2 className="h-4 w-4" /> Complete assessment & scoping
+        </Button>
+      ) : <Locked text="The PM is scoping the venue against Veloria standards." />;
+    }
+    if (phase === "CAPEX") {
+      return (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-muted-foreground">Owner approval:</span>
+            {project.ownerApproved ? <span className="text-emerald-600">recorded ✓ {fmtDate(project.ownerApprovedAt)}</span> : <span className="text-amber-600">pending</span>}
+            {perms.canUpdate && !project.ownerApproved && (
+              <Button size="sm" variant="outline" disabled={busy === "owner"} onClick={() => {
+                const proof = prompt("Link to the owner's approval proof (optional):") ?? undefined;
+                run("owner", () => recordOwnerApproval(project.id, proof || undefined), "Owner approval recorded.");
+              }}>Record owner approval</Button>
+            )}
+          </div>
+          {perms.canUpdate && (
+            hasApprovedCapex && project.ownerApproved ? (
+              <Button disabled={busy === "stage"} onClick={() => run("stage", () => startExecution(project.id), "Execution started.")}>
+                <Rocket className="h-4 w-4" /> Start execution / fit-out
+              </Button>
+            ) : (
+              <Locked text={!hasApprovedCapex ? "Build & get the Projects Head to approve a CapEx model first." : "Record the owner's CapEx & timeline approval to start execution."} />
+            )
+          )}
+        </div>
+      );
+    }
+    if (phase === "EXECUTION") {
+      return perms.canUpdate ? (
+        readinessPending === 0 && readiness.length > 0 ? (
+          <Button disabled={busy === "stage"} onClick={() => run("stage", () => enterInternalQc(project.id), "Entered Internal QC.")}>
+            <ClipboardCheck className="h-4 w-4" /> Move to Internal QC
+          </Button>
+        ) : <Locked text={`${readinessPending} readiness item(s) still open — every standard must pass (or be N/A) before Internal QC.`} />
+      ) : <Locked text="Fit-out in progress." />;
+    }
+    if (phase === "INTERNAL_QC") {
+      return perms.canUpdate ? (
+        <Button disabled={busy === "stage"} onClick={() => run("stage", () => requestOpsAudit(project.id), "Operations notified for the deep audit.")}>
+          <ShieldCheck className="h-4 w-4" /> Request Operations deep audit
+        </Button>
+      ) : <Locked text="PM self-audit (Internal QC) in progress." />;
+    }
+    if (phase === "OPS_AUDIT") return <Locked text="Operations is running the deep audit — see the Ops Audit tab." />;
+    if (phase === "FINAL_GO_AHEAD") {
+      return perms.canApprove ? (
+        <Button disabled={busy === "stage"} onClick={() => run("stage", () => finalGoAhead(project.id), "Final go-ahead given.")}>
+          <Rocket className="h-4 w-4" /> Give final go-ahead
+        </Button>
+      ) : <Locked text="Awaiting the Projects Head's final go-ahead." />;
+    }
+    if (phase === "HANDOVER") return <Locked text="Submit & acknowledge the handover report — see the Handover tab." />;
+    if (phase === "LIVE") return <p className="text-sm font-medium text-emerald-600">🎉 Venue is live and handed over to Operations & Sales.</p>;
+    return null;
+  }
 
   return (
     <div className="space-y-5">
@@ -70,17 +149,21 @@ export function ProjectDetail({ project, perms }: { project: any; perms: Perms }
             <p className="text-xs text-muted-foreground">{project.property.locality}, {project.property.city}</p>
           </div>
         </div>
-        <StatusPill label={PROJECT_PHASE_LABEL[project.phase] ?? project.phase} hue={project.phase === "LAUNCHED" ? "emerald" : "amber"} size="sm" />
+        <div className="flex items-center gap-2">
+          {project.status === "ON_HOLD" && <StatusPill label="On hold" hue="amber" size="sm" />}
+          {project.status === "CANCELLED" && <StatusPill label="Cancelled" hue="rose" size="sm" />}
+          <StatusPill label={PROJECT_PHASE_LABEL[phase] ?? phase} hue={phase === "LIVE" ? "emerald" : "amber"} size="sm" />
+        </div>
       </div>
 
-      {/* Phase stepper */}
+      {/* Stage stepper */}
       <Card>
-        <CardContent className="flex flex-wrap items-center gap-2 py-3">
+        <CardContent className="flex flex-wrap items-center gap-1.5 py-3">
           {PROJECT_PHASES.map((ph, i) => {
-            const active = project.phase === ph;
-            const done = (PROJECT_PHASES as readonly string[]).indexOf(project.phase) > i;
+            const active = i === idx;
+            const done = idx > i;
             return (
-              <div key={ph} className="flex items-center gap-2">
+              <div key={ph} className="flex items-center gap-1.5">
                 <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${active ? "bg-amber-100 text-amber-700" : done ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"}`}>
                   {PROJECT_PHASE_LABEL[ph]}
                 </span>
@@ -88,15 +171,29 @@ export function ProjectDetail({ project, perms }: { project: any; perms: Perms }
               </div>
             );
           })}
-          {perms.canUpdate && ["PLANNING", "CAPEX", "EXECUTION"].includes(project.phase) && (
-            <div className="ml-auto flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Set phase</span>
-              <Select value={project.phase} onValueChange={(v) => run("phase", () => setProjectPhase(project.id, v), "Phase updated.")}>
-                <SelectTrigger className="h-8 w-44"><SelectValue /></SelectTrigger>
+        </CardContent>
+      </Card>
+
+      {/* Workflow / next action */}
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-base">Workflow — {PROJECT_PHASE_LABEL[phase]}</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">{PROJECT_PHASE_HINT[phase]}</p>
+          <StageAction />
+          {/* Re-open (Head / Admin), logged */}
+          {perms.canApprove && idx > 0 && phase !== "LIVE" && (
+            <div className="flex items-center gap-2 border-t pt-3">
+              <span className="text-xs text-muted-foreground">Re-open to</span>
+              <Select value={reopenTo} onValueChange={setReopenTo}>
+                <SelectTrigger className="h-8 w-48"><SelectValue placeholder="earlier stage" /></SelectTrigger>
                 <SelectContent>
-                  {["PLANNING", "CAPEX", "EXECUTION"].map((ph) => <SelectItem key={ph} value={ph}>{PROJECT_PHASE_LABEL[ph]}</SelectItem>)}
+                  {PROJECT_PHASES.slice(0, idx).map((ph) => <SelectItem key={ph} value={ph}>{PROJECT_PHASE_LABEL[ph]}</SelectItem>)}
                 </SelectContent>
               </Select>
+              <Button size="sm" variant="outline" disabled={!reopenTo || busy === "reopen"} onClick={() => {
+                const reason = prompt("Reason for re-opening this stage?");
+                if (reason) run("reopen", () => reopenProject(project.id, reopenTo, reason), "Stage re-opened.");
+              }}><Undo2 className="h-4 w-4" /> Re-open</Button>
             </div>
           )}
         </CardContent>
@@ -108,6 +205,7 @@ export function ProjectDetail({ project, perms }: { project: any; perms: Perms }
           <TabsTrigger value="capex"><Calculator className="h-4 w-4" /> CapEx</TabsTrigger>
           <TabsTrigger value="audit"><ShieldCheck className="h-4 w-4" /> Ops Audit</TabsTrigger>
           <TabsTrigger value="handover"><FileText className="h-4 w-4" /> Handover</TabsTrigger>
+          <TabsTrigger value="log"><FileText className="h-4 w-4" /> Sign-offs</TabsTrigger>
         </TabsList>
 
         {/* READINESS */}
@@ -183,17 +281,8 @@ export function ProjectDetail({ project, perms }: { project: any; perms: Perms }
         <TabsContent value="audit" className="space-y-4">
           {audit.length === 0 ? (
             <Card>
-              <CardContent className="flex flex-col items-center gap-3 py-8 text-center">
-                <p className="text-sm text-muted-foreground">
-                  {project.phase === "EXECUTION"
-                    ? "When the venue is ready, request the Operations deep audit."
-                    : "Finish execution before requesting the Operations deep audit."}
-                </p>
-                {perms.canUpdate && project.phase === "EXECUTION" && (
-                  <Button disabled={busy === "req"} onClick={() => run("req", () => requestOpsAudit(project.id), "Operations notified.")}>
-                    <ShieldCheck className="h-4 w-4" /> Request Operations audit
-                  </Button>
-                )}
+              <CardContent className="py-8 text-center text-sm text-muted-foreground">
+                The Operations deep audit checklist appears once the PM requests the audit (after Internal QC).
               </CardContent>
             </Card>
           ) : (
@@ -215,12 +304,12 @@ export function ProjectDetail({ project, perms }: { project: any; perms: Perms }
                   ))}
                 </CardContent>
               </Card>
-              {perms.canAudit && !project.opsAuditPassedAt && (
+              {perms.canAudit && !project.opsAuditPassedAt && phase === "OPS_AUDIT" && (
                 <Button disabled={busy === "complete"} onClick={() => run("complete", () => completeOpsAudit(project.id), "Audit signed off.")}>
                   <CheckCircle2 className="h-4 w-4" /> Sign off audit (all critical passed)
                 </Button>
               )}
-              {project.opsAuditPassedAt && <p className="text-sm text-emerald-600">✓ Operations audit passed.</p>}
+              {project.opsAuditPassedAt && <p className="text-sm text-emerald-600">✓ Operations audit passed {fmtDate(project.opsAuditPassedAt)}{project.opsAuditBy?.name ? ` · ${project.opsAuditBy.name}` : ""}.</p>}
             </>
           )}
         </TabsContent>
@@ -230,29 +319,66 @@ export function ProjectDetail({ project, perms }: { project: any; perms: Perms }
           <Card>
             <CardHeader><CardTitle className="text-base">Handover & Launch</CardTitle></CardHeader>
             <CardContent className="space-y-3 text-sm">
-              <div className="flex items-center justify-between"><span className="text-muted-foreground">Readiness</span><span>{rPct}%</span></div>
-              <div className="flex items-center justify-between"><span className="text-muted-foreground">Ops audit</span><span>{project.opsAuditPassedAt ? "Passed ✓" : "Pending"}</span></div>
-              <div className="flex items-center justify-between"><span className="text-muted-foreground">Handover report</span><span>{project.handoverReportAt ? "Submitted ✓" : "Not yet"}</span></div>
+              <Row label="Readiness" value={`${rPct}%`} />
+              <Row label="Ops audit" value={project.opsAuditPassedAt ? "Passed ✓" : "Pending"} />
+              <Row label="Final go-ahead" value={project.finalGoAheadAt ? `Given ✓ ${fmtDate(project.finalGoAheadAt)}` : "Pending"} />
+              <Row label="Handover report" value={project.handoverReportAt ? `Submitted ✓ ${fmtDate(project.handoverReportAt)}` : "Not yet"} />
+              <Row label="Operations acknowledgement" value={project.opsAcknowledgedAt ? `Acknowledged ✓ ${fmtDate(project.opsAcknowledgedAt)}` : "Pending"} />
+              <Row label="Management acknowledgement" value={project.mgmtAcknowledgedAt ? `Acknowledged ✓ ${fmtDate(project.mgmtAcknowledgedAt)}` : "Pending"} />
               <div className="flex flex-wrap gap-2 pt-2">
                 {project.handoverReportAt && (
                   <Button asChild variant="outline"><a href={`/api/projects/${project.id}/handover/pdf`} target="_blank" rel="noopener noreferrer"><Download className="h-4 w-4" /> Handover report PDF</a></Button>
                 )}
-                {perms.canApprove && project.opsAuditPassedAt && !project.handoverReportAt && (
+                {perms.canUpdate && phase === "HANDOVER" && project.finalGoAheadAt && !project.handoverReportAt && (
                   <Button disabled={busy === "handover"} onClick={() => run("handover", () => generateHandover(project.id), "Handover submitted to Ops & Management.")}>
                     <FileText className="h-4 w-4" /> Submit handover report
                   </Button>
                 )}
-                {perms.canApprove && project.handoverReportAt && project.phase !== "LAUNCHED" && (
+                {perms.canAudit && project.handoverReportAt && !project.opsAcknowledgedAt && (
+                  <Button variant="outline" disabled={busy === "ackops"} onClick={() => run("ackops", () => acknowledgeHandover(project.id, "OPS"), "Ops acknowledged.")}>Acknowledge (Operations)</Button>
+                )}
+                {perms.canApprove && project.handoverReportAt && !project.mgmtAcknowledgedAt && (
+                  <Button variant="outline" disabled={busy === "ackmgmt"} onClick={() => run("ackmgmt", () => acknowledgeHandover(project.id, "MGMT"), "Management acknowledged.")}>Acknowledge (Management)</Button>
+                )}
+                {perms.canApprove && phase === "HANDOVER" && project.handoverReportAt && project.opsAcknowledgedAt && project.mgmtAcknowledgedAt && (
                   <Button disabled={busy === "launch"} onClick={() => run("launch", () => launchProject(project.id), "Venue launched — Sales notified!")}>
-                    <Rocket className="h-4 w-4" /> Give launch go-ahead
+                    <Rocket className="h-4 w-4" /> Launch venue
                   </Button>
                 )}
-                {project.phase === "LAUNCHED" && <p className="text-sm font-medium text-emerald-600">🎉 Venue is launched and live for Sales.</p>}
+                {phase === "LIVE" && <p className="text-sm font-medium text-emerald-600">🎉 Venue is launched and live for Sales.</p>}
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* SIGN-OFFS / AUDIT TRAIL */}
+        <TabsContent value="log" className="space-y-4">
+          <Card>
+            <CardHeader><CardTitle className="text-base">Sign-off history</CardTitle></CardHeader>
+            <CardContent className="space-y-1.5">
+              {signOffs.length === 0 ? (
+                <p className="py-4 text-center text-sm text-muted-foreground">No sign-offs recorded yet.</p>
+              ) : signOffs.map((s) => (
+                <div key={s.id} className="flex items-center justify-between gap-3 border-b py-1.5 text-sm last:border-0">
+                  <div>
+                    <span className="font-medium">{PROJECT_PHASE_LABEL[s.stage] ?? s.stage}</span>
+                    <StatusPill label={s.decision} hue={s.decision === "APPROVED" ? "emerald" : s.decision === "REOPENED" ? "amber" : "rose"} size="xs" className="ml-2" />
+                    {s.comment && <span className="block text-xs text-muted-foreground">{s.comment}</span>}
+                  </div>
+                  <span className="shrink-0 text-xs text-muted-foreground">{s.approver?.name ?? "—"} · {fmtDate(s.createdAt)}</span>
+                </div>
+              ))}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
     </div>
   );
+}
+
+function Locked({ text }: { text: string }) {
+  return <p className="flex items-center gap-1.5 text-sm text-muted-foreground"><Lock className="h-3.5 w-3.5" /> {text}</p>;
+}
+function Row({ label, value }: { label: string; value: string }) {
+  return <div className="flex items-center justify-between"><span className="text-muted-foreground">{label}</span><span>{value}</span></div>;
 }

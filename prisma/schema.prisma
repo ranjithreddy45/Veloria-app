@@ -367,6 +367,9 @@ model User {
   capexSubmitted        AcqCapexProjection[]      @relation("CapexSubmittedBy")
   capexApproved         AcqCapexProjection[]      @relation("CapexApprovedBy")
   capexSent             AcqCapexProjection[]      @relation("CapexSentBy")
+  projectsBdOwned       AcqOnboardingProject[]    @relation("ProjectBdOwner")
+  projectsFinalGoAhead  AcqOnboardingProject[]    @relation("ProjectFinalGoAhead")
+  projectSignOffs       ProjectSignOff[]          @relation("SignOffApprover")
 
   @@index([email])
   @@index([role])
@@ -3963,21 +3966,45 @@ model AcqOnboardingProject {
   id          String              @id @default(cuid())
   propertyId  String              @unique
   property    AcqProperty         @relation(fields: [propertyId], references: [id])
-  status      String              @default("OPEN") // OPEN | COMPLETED (legacy)
-  // Projects-team pipeline: PLANNING → CAPEX → EXECUTION → OPS_AUDIT → HANDOVER → LAUNCHED
-  phase             String    @default("PLANNING")
+  status      String              @default("OPEN") // OPEN | ON_HOLD | COMPLETED | CANCELLED
+  // 9-stage Projects pipeline (stored as strings; legacy values normalised in app):
+  // HANDOFF → ASSESSMENT → CAPEX → EXECUTION → INTERNAL_QC → OPS_AUDIT → FINAL_GO_AHEAD → HANDOVER → LIVE
+  phase             String    @default("HANDOFF")
   projectManagerId  String?
   projectManager    User?     @relation("ProjectManager", fields: [projectManagerId], references: [id])
-  targetReadyDate   DateTime?
-  startedAt         DateTime?
+
+  // Venue master data (drives the CapEx calculator + spec sheet)
+  ownerContact      String?
+  fundingModel      String?   // OWNER | VELORIA | SPLIT
+  splitRatio        Decimal?  @db.Decimal(5, 2) // owner's % when SPLIT
+  hallCount         Int?
+  totalCapacity     Int?
+  totalSqft         Int?
+  dealClosedDate    DateTime?
+  bdOwnerId         String?
+  bdOwner           User?     @relation("ProjectBdOwner", fields: [bdOwnerId], references: [id])
+
+  targetReadyDate   DateTime? // target launch date
+  startedAt         DateTime? // execution started
+  handoffAcceptedAt DateTime?
+  assessmentDoneAt  DateTime?
+  ownerApproved     Boolean   @default(false)
+  ownerApprovedAt   DateTime?
+  ownerApprovalProofUrl String?
+  qcReadyAt         DateTime? // PM marked ready for ops audit (internal QC done)
   opsAuditRequestedAt DateTime?
   opsAuditPassedAt    DateTime?
   opsAuditById        String?
   opsAuditBy          User?     @relation("ProjectOpsAuditor", fields: [opsAuditById], references: [id])
+  finalGoAheadAt      DateTime?
+  finalGoAheadById    String?
+  finalGoAheadBy      User?     @relation("ProjectFinalGoAhead", fields: [finalGoAheadById], references: [id])
   handoverReportAt    DateTime?
   handoverById        String?
   handoverBy          User?     @relation("ProjectHandover", fields: [handoverById], references: [id])
-  launchedAt          DateTime?
+  opsAcknowledgedAt   DateTime?
+  mgmtAcknowledgedAt  DateTime?
+  launchedAt          DateTime? // LIVE
   notes               String?   @db.Text
   createdAt   DateTime            @default(now())
   completedAt DateTime?
@@ -3987,9 +4014,45 @@ model AcqOnboardingProject {
   readinessItems VenueReadinessItem[]
   opsAuditItems  OpsAuditItem[]
   capexProjections AcqCapexProjection[]
+  signOffs       ProjectSignOff[]
+  auditLogs      ProjectAuditLog[]
 
   @@index([status])
   @@index([phase])
+}
+
+// Generic gate sign-off record — one per stage transition that needs approval.
+model ProjectSignOff {
+  id         String   @id @default(cuid())
+  projectId  String
+  project    AcqOnboardingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stage      String   // the stage being signed off / gate cleared
+  decision   String   // APPROVED | REJECTED | REOPENED
+  approverId String
+  approver   User     @relation("SignOffApprover", fields: [approverId], references: [id])
+  comment    String?  @db.Text
+  createdAt  DateTime @default(now())
+
+  @@index([projectId])
+}
+
+// Append-only audit trail (who / what / when / before→after). Never updated or deleted.
+// projectId is nullable + SetNull so the trail survives a soft-deleted project.
+model ProjectAuditLog {
+  id         String   @id @default(cuid())
+  projectId  String?
+  project    AcqOnboardingProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  actorId    String?
+  actorName  String?  // denormalised snapshot, survives user changes
+  action     String   // e.g. "phase.advance", "snag.verify_closed"
+  entityType String
+  entityId   String
+  beforeJson Json?
+  afterJson  Json?
+  createdAt  DateTime @default(now())
+
+  @@index([projectId])
+  @@index([entityType, entityId])
 }
 
 // A venue-readiness checklist line (interiors, bathrooms, fire-safety, lift…)

@@ -43,7 +43,7 @@ export function ProjectsTable({ rows }: { rows: ProjectRow[] }) {
               </TableCell>
               <TableCell className="text-muted-foreground">{r.property ? `${r.property.locality}, ${r.property.city}` : "—"}</TableCell>
               <TableCell>
-                <StatusPill label={PROJECT_PHASE_LABEL[r.phase] ?? r.phase} hue={r.phase === "LAUNCHED" ? "emerald" : "amber"} size="xs" />
+                <StatusPill label={PROJECT_PHASE_LABEL[r.phase] ?? r.phase} hue={r.phase === "LIVE" ? "emerald" : "amber"} size="xs" />
               </TableCell>
               <TableCell className="text-right tabular-nums">{r.readinessPct}%</TableCell>
               <TableCell>{r.projectManager?.name ?? <span className="text-muted-foreground">Unassigned</span>}</TableCell>
