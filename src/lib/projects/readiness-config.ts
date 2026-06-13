@@ -1,6 +1,15 @@
 // Auto-generated venue-readiness checklist (Veloria Grand standards).
 // Seeded per project; editable in-app. Categories cover interiors→signage.
 export interface ReadinessSeedItem { category: string; title: string; standard: string }
+
+// Severity if a standard fails — drives the snag raised from a failed item and the
+// stage gates. Life-safety / structural categories are CRITICAL; cosmetic are MINOR.
+export function readinessSeverity(category: string): "CRITICAL" | "MAJOR" | "MINOR" {
+  const c = category.toLowerCase();
+  if (/fire|electric|power|structur|lift|elevat|gas|hvac|plumb|water|security|safety/.test(c)) return "CRITICAL";
+  if (/signage|landscap|greenery|decor|branding|housekeep/.test(c)) return "MINOR";
+  return "MAJOR";
+}
 export const READINESS_CHECKLIST: ReadinessSeedItem[] = [
   { category: "Interiors", title: "Ceiling height & soffit clearance", standard: "Banquet pre-function and hall ceilings minimum 4.2m clear (3.0m under any beam/duct); no visible cabling, conduit, or stained POP. False ceiling joints flush, no sagging tiles." },
   { category: "Interiors", title: "False ceiling & cornice finish", standard: "Gypsum/POP cove ceilings crack-free, sanded smooth to touch, with concealed cove lighting channels; designer feature ceilings (chandeliable rings) load-tested to 1.5x chandelier weight." },

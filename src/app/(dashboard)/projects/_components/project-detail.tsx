@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   ArrowLeft, CheckCircle2, Building2, ClipboardCheck, Calculator,
-  ShieldCheck, FileText, Rocket, Download, Lock, Undo2, BadgeCheck,
+  ShieldCheck, FileText, Rocket, Download, Lock, Undo2, BadgeCheck, AlertTriangle,
 } from "lucide-react";
 import {
   setReadinessItem, setOpsAuditItem, requestOpsAudit, completeOpsAudit,
@@ -23,6 +23,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { CapexCalculator } from "./capex-calculator";
+import { SnagBoard } from "./snag-board";
 
 const inr = (n: number | string) => "₹" + Math.round(Number(n)).toLocaleString("en-IN");
 const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—");
@@ -51,6 +52,8 @@ export function ProjectDetail({ project, perms }: { project: any; perms: Perms }
   const audit = project.opsAuditItems as { id: string; category: string; title: string; critical: boolean; status: string }[];
   const capexes = project.capexProjections as { id: string; version: number; status: string; totalCapex: string; estimatedWeeks: number; inputsJson: CapexInput; notes: string | null; createdBy?: { name: string | null } }[];
   const signOffs = (project.signOffs ?? []) as { id: string; stage: string; decision: string; comment: string | null; createdAt: string; approver?: { name: string | null } }[];
+  const snags = (project.snags ?? []) as Parameters<typeof SnagBoard>[0]["snags"];
+  const openCMSnags = snags.filter((s) => ["CRITICAL", "MAJOR"].includes(s.severity) && s.status !== "VERIFIED_CLOSED").length;
 
   const phase = project.phase as string;
   const idx = phaseIndex(phase);
@@ -203,6 +206,7 @@ export function ProjectDetail({ project, perms }: { project: any; perms: Perms }
         <TabsList>
           <TabsTrigger value="readiness"><ClipboardCheck className="h-4 w-4" /> Readiness ({rPct}%)</TabsTrigger>
           <TabsTrigger value="capex"><Calculator className="h-4 w-4" /> CapEx</TabsTrigger>
+          <TabsTrigger value="snags"><AlertTriangle className="h-4 w-4" /> Snags{openCMSnags > 0 ? ` (${openCMSnags})` : ""}</TabsTrigger>
           <TabsTrigger value="audit"><ShieldCheck className="h-4 w-4" /> Ops Audit</TabsTrigger>
           <TabsTrigger value="handover"><FileText className="h-4 w-4" /> Handover</TabsTrigger>
           <TabsTrigger value="log"><FileText className="h-4 w-4" /> Sign-offs</TabsTrigger>
@@ -275,6 +279,11 @@ export function ProjectDetail({ project, perms }: { project: any; perms: Perms }
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        {/* SNAGS */}
+        <TabsContent value="snags" className="space-y-4">
+          <SnagBoard projectId={project.id} snags={snags} perms={{ canUpdate: perms.canUpdate, canAudit: perms.canAudit }} />
         </TabsContent>
 
         {/* OPS AUDIT */}

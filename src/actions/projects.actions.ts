@@ -8,7 +8,7 @@ import { revalidatePath } from "next/cache";
 import { notify } from "@/lib/notify";
 import { hasPermission } from "@/lib/permissions";
 import { computeCapex, validateCapexInput, type CapexInput, type CapexResult } from "@/lib/projects/capex-calc";
-import { READINESS_CHECKLIST } from "@/lib/projects/readiness-config";
+import { READINESS_CHECKLIST, readinessSeverity } from "@/lib/projects/readiness-config";
 import { OPS_AUDIT_CHECKLIST } from "@/lib/projects/ops-audit-config";
 import { normalizePhase, phaseMatchValues, PROJECT_PHASES, type ProjectPhase } from "@/lib/projects/phases";
 import { Prisma } from "@prisma/client";
@@ -60,6 +60,15 @@ async function notifyRoles(roles: string[], n: { type: "TASK_ASSIGNED" | "SYSTEM
   for (const u of users) notify({ userId: u.id, ...n });
 }
 
+// Snag gate helpers — a snag is "open" until Operations marks it verified-closed.
+const OPEN_SNAG_STATUSES = ["OPEN", "IN_PROGRESS", "FIXED_PENDING_VERIFICATION", "REOPENED"];
+async function countOpenCriticalMajorSnags(projectId: string): Promise<number> {
+  return prisma.projectSnag.count({ where: { projectId, status: { in: OPEN_SNAG_STATUSES }, severity: { in: ["CRITICAL", "MAJOR"] } } });
+}
+async function countUnverifiedSnags(projectId: string): Promise<number> {
+  return prisma.projectSnag.count({ where: { projectId, status: { not: "VERIFIED_CLOSED" } } });
+}
+
 // Lazily seed the readiness checklist the first time a project is opened (works
 // for projects created before this feature existed).
 // Seed once, idempotently. The count-then-insert is wrapped in a serializable
@@ -85,6 +94,7 @@ async function ensureReadinessSeeded(projectId: string) {
         category: it.category,
         title: it.title,
         standard: it.standard,
+        severity: readinessSeverity(it.category),
         order: i,
       })),
     });
@@ -160,6 +170,7 @@ export async function getProject(id: string): Promise<Result<unknown>> {
       },
       signOffs: { orderBy: { createdAt: "desc" }, include: { approver: { select: { name: true } } } },
       auditLogs: { orderBy: { createdAt: "desc" }, take: 50 },
+      snags: { include: { photos: { orderBy: { createdAt: "asc" } } }, orderBy: [{ status: "asc" }, { createdAt: "desc" }] },
     },
   });
   if (!row) return { success: false, error: "Project not found" };
@@ -367,6 +378,8 @@ export async function requestOpsAudit(projectId: string): Promise<Result<{ id: s
   if (normalizePhase(existing.phase) !== "INTERNAL_QC") {
     return { success: false, error: "Clear Internal QC before requesting the operations audit." };
   }
+  const openBlocking = await countOpenCriticalMajorSnags(projectId);
+  if (openBlocking) return { success: false, error: `${openBlocking} open critical/major snag(s) must be cleared before the operations audit.` };
   await ensureOpsAuditSeeded(projectId);
   const ok = await advanceStage(user, projectId, "INTERNAL_QC", "OPS_AUDIT", { qcReadyAt: new Date(), opsAuditRequestedAt: new Date() });
   if (!ok) return { success: false, error: "Project is no longer in Internal QC." };
@@ -409,6 +422,8 @@ export async function completeOpsAudit(projectId: string): Promise<Result<{ id: 
   if (blocking.length) {
     return { success: false, error: `${blocking.length} critical audit item(s) are not yet passed.` };
   }
+  const unverified = await countUnverifiedSnags(projectId);
+  if (unverified) return { success: false, error: `${unverified} snag(s) are not yet verified-closed — every snag must be closed before sign-off.` };
   const ok = await advanceStage(user, projectId, "OPS_AUDIT", "FINAL_GO_AHEAD", { opsAuditPassedAt: new Date(), opsAuditById: user.id });
   if (!ok) return { success: false, error: "Project is no longer awaiting audit sign-off." };
   await notifyRoles(["PROJECTS_HEAD", "SUPER_ADMIN", "ADMIN"], { type: "SYSTEM", title: "Audit passed — awaiting final go-ahead", message: "Operations signed off the audit. The Projects Head can now give the launch go-ahead.", actionUrl: `/projects/${projectId}` });
@@ -426,6 +441,8 @@ export async function finalGoAhead(projectId: string): Promise<Result<{ id: stri
   if (normalizePhase(project.phase) !== "FINAL_GO_AHEAD" || !project.opsAuditPassedAt) {
     return { success: false, error: "The operations audit must pass before the final go-ahead." };
   }
+  const blocking = await countOpenCriticalMajorSnags(projectId);
+  if (blocking) return { success: false, error: `${blocking} open critical/major snag(s) still block the final go-ahead.` };
   const ok = await advanceStage(user, projectId, "FINAL_GO_AHEAD", "HANDOVER", { finalGoAheadAt: new Date(), finalGoAheadById: user.id });
   if (!ok) return { success: false, error: "Project is no longer awaiting the final go-ahead." };
   await notifyRoles(["OPERATIONS", "SUPER_ADMIN", "ADMIN"], { type: "SYSTEM", title: "Final go-ahead given", message: `${project.property.propertyName} is cleared for handover & launch.`, actionUrl: `/projects/${projectId}` });

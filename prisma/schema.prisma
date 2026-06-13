@@ -4016,9 +4016,59 @@ model AcqOnboardingProject {
   capexProjections AcqCapexProjection[]
   signOffs       ProjectSignOff[]
   auditLogs      ProjectAuditLog[]
+  snags          ProjectSnag[]
+  photos         ProjectPhoto[]
 
   @@index([status])
   @@index([phase])
+}
+
+// The defect register — the heart of QC + the Ops deep audit.
+// open → in_progress → fixed_pending_verification → verified_closed (Ops-only) ; reopened.
+model ProjectSnag {
+  id           String   @id @default(cuid())
+  projectId    String
+  project      AcqOnboardingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title        String
+  description  String?  @db.Text
+  category     String
+  location     String?  // e.g. "Hall A — east wall"
+  severity     String   @default("MAJOR") // CRITICAL | MAJOR | MINOR
+  raisedInStage String  @default("INTERNAL_QC") // INTERNAL_QC | OPS_AUDIT
+  raisedById   String?
+  raisedByName String?
+  assignedVendorId String? // populated in Wave D
+  dueDate      DateTime?
+  status       String   @default("OPEN") // OPEN | IN_PROGRESS | FIXED_PENDING_VERIFICATION | VERIFIED_CLOSED | REOPENED
+  verifiedById String?
+  verifiedByName String?
+  verifiedAt   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+  photos       ProjectPhoto[]
+
+  @@index([projectId])
+  @@index([status])
+}
+
+// Photos / attachments (snag before/after, readiness evidence, general gallery).
+model ProjectPhoto {
+  id           String   @id @default(cuid())
+  projectId    String
+  project      AcqOnboardingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  snagId       String?
+  snag         ProjectSnag? @relation(fields: [snagId], references: [id], onDelete: Cascade)
+  entityType   String   @default("snag") // snag | readiness | general
+  entityId     String?
+  kind         String   @default("DURING") // BEFORE | DURING | AFTER
+  url          String   @db.Text // image/PDF data-URL or https link
+  caption      String?
+  uploadedById String?
+  uploadedByName String?
+  createdAt    DateTime @default(now())
+
+  @@index([projectId])
+  @@index([snagId])
 }
 
 // Generic gate sign-off record — one per stage transition that needs approval.
@@ -4064,6 +4114,7 @@ model VenueReadinessItem {
   category  String
   title     String
   standard  String   @db.Text
+  severity  String   @default("MAJOR") // CRITICAL | MAJOR | MINOR — severity if this standard fails
   status    String   @default("PENDING") // PENDING | IN_PROGRESS | DONE | NA
   notes     String?  @db.Text
   order     Int      @default(0)
