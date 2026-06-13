@@ -756,9 +756,10 @@ export async function getPipelineStats() {
           color: true,
           isWonStage: true,
           isLostStage: true,
+          probability: true,
           _count: { select: { deals: true } },
           deals: {
-            select: { value: true },
+            select: { value: true, probability: true },
           },
         },
       }),
@@ -774,18 +775,33 @@ export async function getPipelineStats() {
     const conversionRate =
       totalDeals > 0 ? Math.round((wonDeals / totalDeals) * 100) : 0;
 
-    const stageStats = stages.map((stage) => ({
-      id: stage.id,
-      name: stage.name,
-      color: stage.color,
-      isWonStage: stage.isWonStage,
-      isLostStage: stage.isLostStage,
-      dealCount: stage._count.deals,
-      totalValue: stage.deals.reduce(
-        (sum, deal) => sum + Number(deal.value),
-        0
-      ),
-    }));
+    const stageStats = stages.map((stage) => {
+      const totalValue = stage.deals.reduce((sum, deal) => sum + Number(deal.value), 0);
+      // Weighted value = Σ value × win-probability (deal's own, falling back to the
+      // stage's). Open stages only — won/lost don't carry forecast weight.
+      const weightedValue =
+        stage.isWonStage || stage.isLostStage
+          ? 0
+          : stage.deals.reduce((sum, deal) => {
+              const p = deal.probability ?? stage.probability ?? 0;
+              return sum + Number(deal.value) * (p / 100);
+            }, 0);
+      return {
+        id: stage.id,
+        name: stage.name,
+        color: stage.color,
+        isWonStage: stage.isWonStage,
+        isLostStage: stage.isLostStage,
+        probability: stage.probability,
+        dealCount: stage._count.deals,
+        totalValue,
+        weightedValue: Math.round(weightedValue),
+      };
+    });
+
+    // Open (non-won, non-lost) pipeline + its probability-weighted forecast.
+    const openValue = stageStats.filter((s) => !s.isWonStage && !s.isLostStage).reduce((sum, s) => sum + s.totalValue, 0);
+    const weightedForecast = stageStats.reduce((sum, s) => sum + s.weightedValue, 0);
 
     return {
       success: true as const,
@@ -794,6 +810,8 @@ export async function getPipelineStats() {
         totalValue,
         conversionRate,
         wonDeals,
+        openValue,
+        weightedForecast,
         stageStats,
       },
     };

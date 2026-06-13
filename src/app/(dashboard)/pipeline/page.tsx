@@ -26,6 +26,7 @@ export default async function PipelinePage() {
 
   const totalValue = stats?.totalValue ?? 0;
   const totalDeals = stats?.totalDeals ?? 0;
+  const weightedForecast = stats?.weightedForecast ?? 0;
   // Sum the value of all "won" stages from the per-stage breakdown.
   const wonValue =
     stats?.stageStats
@@ -66,6 +67,14 @@ export default async function PipelinePage() {
             <span className="text-foreground/80">
               <span className="font-semibold tabular-nums">{formatIndianCurrency(totalValue)}</span> open
             </span>
+            {weightedForecast > 0 && (
+              <>
+                <span className="h-3 w-px bg-border" />
+                <span className="text-indigo-600 dark:text-indigo-400">
+                  <span className="font-semibold tabular-nums">{formatIndianCurrency(weightedForecast)}</span> forecast
+                </span>
+              </>
+            )}
             {wonValue > 0 && (
               <>
                 <span className="h-3 w-px bg-border" />

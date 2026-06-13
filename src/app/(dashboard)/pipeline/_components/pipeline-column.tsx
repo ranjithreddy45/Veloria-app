@@ -73,6 +73,15 @@ export function PipelineColumn({
     [deals]
   );
 
+  // Probability-weighted forecast for this stage (open stages only).
+  const weightedValue = useMemo(
+    () =>
+      stage.isWonStage || stage.isLostStage
+        ? 0
+        : deals.reduce((sum, d) => sum + Number(d.value) * ((d.probability ?? 0) / 100), 0),
+    [deals, stage.isWonStage, stage.isLostStage]
+  );
+
   const [addDialogOpen, setAddDialogOpen] = React.useState(false);
 
   return (
@@ -102,8 +111,15 @@ export function PipelineColumn({
           </Badge>
         </div>
         {totalValue > 0 && (
-          <span className="text-[11.5px] font-semibold tabular-nums text-foreground/80">
-            ₹{formatIndianCurrency(totalValue)}
+          <span className="flex flex-col items-end leading-tight">
+            <span className="text-[11.5px] font-semibold tabular-nums text-foreground/80">
+              ₹{formatIndianCurrency(totalValue)}
+            </span>
+            {weightedValue > 0 && (
+              <span className="text-[10px] tabular-nums text-indigo-500" title="Probability-weighted forecast">
+                ~₹{formatIndianCurrency(Math.round(weightedValue))}
+              </span>
+            )}
           </span>
         )}
       </div>
