@@ -104,6 +104,19 @@ export const LEAVE_STATUS_LABELS: Record<string, string> = {
   PENDING: "Pending", APPROVED: "Approved", REJECTED: "Rejected", CANCELLED: "Cancelled",
 };
 
+// --- Attendance ---
+export const FULL_DAY_MINUTES = 8 * 60; // 8h → full present
+export const HALF_DAY_MINUTES = 4 * 60; // 4h → half day
+
+export const ATTENDANCE_STATUS_LABELS: Record<string, string> = {
+  PRESENT: "Present", ABSENT: "Absent", HALF_DAY: "Half day", WFH: "Work from home",
+  ON_LEAVE: "On leave", HOLIDAY: "Holiday", WEEKEND: "Weekend",
+};
+export const ATTENDANCE_STATUS_HUE: Record<string, "emerald" | "red" | "amber" | "sky" | "violet" | "slate"> = {
+  PRESENT: "emerald", ABSENT: "red", HALF_DAY: "amber", WFH: "sky",
+  ON_LEAVE: "violet", HOLIDAY: "slate", WEEKEND: "slate",
+};
+
 // Generate the next employee code given the current max numeric suffix.
 // Format: PPG-0001 (PropertyPlush Group). Pure helper for testability.
 export function nextEmpCode(existingCodes: string[]): string {

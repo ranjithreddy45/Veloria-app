@@ -4544,6 +4544,8 @@ model Employee {
   leaveRequests     LeaveRequest[]        @relation("LeaveEmployee")
   leaveApprovals    LeaveRequest[]        @relation("LeaveApprover")
   compOffs          CompOff[]
+  attendance        AttendanceRecord[]
+  regularizations   Regularization[]      @relation("RegnEmployee")
 
   @@index([legalEntityId])
   @@index([businessVerticalId])
@@ -4767,6 +4769,98 @@ model CompOff {
   expiryDate  DateTime?
   status      CompOffStatus @default(AVAILABLE)
   createdAt   DateTime      @default(now())
+
+  @@index([employeeId])
+  @@index([status])
+}
+
+// ============================================================
+// Attendance
+// ============================================================
+enum AttendanceSource {
+  WEB
+  MOBILE
+  BIOMETRIC
+  MANUAL
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  HALF_DAY
+  WFH
+  ON_LEAVE
+  HOLIDAY
+  WEEKEND
+}
+
+// Allowed check-in locations: geo radius + optional IP allow-list.
+model AttendanceSite {
+  id            String   @id @default(cuid())
+  name          String
+  legalEntityId String? // null = any entity
+  lat           Float?
+  lng           Float?
+  radiusMeters  Int      @default(200)
+  allowedIps    String? // comma-separated CIDR-less IPs; null = no IP restriction
+  allowWfh      Boolean  @default(true) // if true, check-in allowed off-site (marked WFH)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
+
+  @@index([isActive])
+}
+
+model AttendanceRecord {
+  id           String           @id @default(cuid())
+  employeeId   String
+  employee     Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  date         DateTime // UTC midnight of the attendance day
+  checkInAt    DateTime?
+  checkOutAt   DateTime?
+  checkInLat   Float?
+  checkInLng   Float?
+  checkInIp    String?
+  siteId       String?
+  source       AttendanceSource @default(WEB)
+  status       AttendanceStatus @default(PRESENT)
+  workedMinutes Int             @default(0)
+  selfieUrl    String?
+  isRegularized Boolean         @default(false)
+  note         String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @default(now()) @updatedAt
+
+  regularizations Regularization[]
+
+  @@unique([employeeId, date])
+  @@index([employeeId])
+  @@index([date])
+  @@index([status])
+}
+
+enum RegularizationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Regularization {
+  id                 String               @id @default(cuid())
+  employeeId         String
+  employee           Employee             @relation("RegnEmployee", fields: [employeeId], references: [id], onDelete: Cascade)
+  attendanceRecordId String?
+  attendanceRecord   AttendanceRecord?    @relation(fields: [attendanceRecordId], references: [id], onDelete: SetNull)
+  date               DateTime
+  requestedStatus    AttendanceStatus
+  requestedCheckIn   DateTime?
+  requestedCheckOut  DateTime?
+  reason             String
+  status             RegularizationStatus @default(PENDING)
+  approverId         String?
+  decidedAt          DateTime?
+  decisionNote       String?
+  createdAt          DateTime             @default(now())
 
   @@index([employeeId])
   @@index([status])
