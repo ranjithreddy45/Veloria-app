@@ -4540,6 +4540,10 @@ model Employee {
   emergencyContacts EmergencyContact[]
   education         EmployeeEducation[]
   workHistory       EmployeeWorkHistory[]
+  leaveBalances     LeaveBalance[]
+  leaveRequests     LeaveRequest[]        @relation("LeaveEmployee")
+  leaveApprovals    LeaveRequest[]        @relation("LeaveApprover")
+  compOffs          CompOff[]
 
   @@index([legalEntityId])
   @@index([businessVerticalId])
@@ -4646,6 +4650,123 @@ model EmployeeChangeRequest {
   reviewedAt  DateTime?
   reviewNote  String?
   createdAt   DateTime            @default(now())
+
+  @@index([employeeId])
+  @@index([status])
+}
+
+// ============================================================
+// Leave / Time-off
+// ============================================================
+enum LeaveRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+// FULL = whole day(s); halves only meaningful on the boundary days of a request.
+enum HalfDayPart {
+  FULL
+  FIRST_HALF
+  SECOND_HALF
+}
+
+model LeaveType {
+  id              String  @id @default(cuid())
+  name            String
+  code            String  @unique // CL, SL, EL, COMP, LOP ...
+  paid            Boolean @default(true)
+  accrualPerYear  Float   @default(0) // days credited per year (annual entitlement)
+  carryForwardMax Float   @default(0) // max days carried into next year
+  allowHalfDay    Boolean @default(true)
+  allowNegative   Boolean @default(false) // allow balance to go negative (→ LOP territory)
+  requiresApproval Boolean @default(true)
+  color           String  @default("blue") // StatusPill hue
+  isActive        Boolean @default(true)
+  order           Int     @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
+
+  balances LeaveBalance[]
+  requests LeaveRequest[]
+
+  @@index([isActive])
+}
+
+model Holiday {
+  id            String   @id @default(cuid())
+  date          DateTime
+  name          String
+  legalEntityId String? // null = applies to all entities
+  location      String? // null = all locations
+  year          Int
+  createdAt     DateTime @default(now())
+
+  @@index([year])
+  @@index([legalEntityId])
+}
+
+model LeaveBalance {
+  id            String    @id @default(cuid())
+  employeeId    String
+  employee      Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveTypeId   String
+  leaveType     LeaveType @relation(fields: [leaveTypeId], references: [id], onDelete: Cascade)
+  year          Int
+  entitled      Float     @default(0)
+  carriedForward Float    @default(0)
+  used          Float     @default(0)
+  pending       Float     @default(0)
+  updatedAt     DateTime  @default(now()) @updatedAt
+
+  @@unique([employeeId, leaveTypeId, year])
+  @@index([employeeId, year])
+}
+
+model LeaveRequest {
+  id            String             @id @default(cuid())
+  employeeId    String
+  employee      Employee           @relation("LeaveEmployee", fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveTypeId   String
+  leaveType     LeaveType          @relation(fields: [leaveTypeId], references: [id])
+  startDate     DateTime
+  endDate       DateTime
+  startPart     HalfDayPart        @default(FULL)
+  endPart       HalfDayPart        @default(FULL)
+  days          Float // computed working days (excludes weekends + holidays)
+  reason        String?
+  status        LeaveRequestStatus @default(PENDING)
+  approverId    String? // Employee id of the approver (org-chart manager or HR)
+  approver      Employee?          @relation("LeaveApprover", fields: [approverId], references: [id])
+  decidedAt     DateTime?
+  decisionNote  String?
+  escalatedAt   DateTime? // set when auto-escalated past a stale approver
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @default(now()) @updatedAt
+
+  @@index([employeeId])
+  @@index([approverId])
+  @@index([status])
+  @@index([startDate])
+}
+
+enum CompOffStatus {
+  AVAILABLE
+  USED
+  EXPIRED
+}
+
+model CompOff {
+  id          String        @id @default(cuid())
+  employeeId  String
+  employee    Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  workedDate  DateTime
+  days        Float         @default(1)
+  reason      String?
+  expiryDate  DateTime?
+  status      CompOffStatus @default(AVAILABLE)
+  createdAt   DateTime      @default(now())
 
   @@index([employeeId])
   @@index([status])

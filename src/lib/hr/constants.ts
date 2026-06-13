@@ -73,6 +73,37 @@ export function employeeName(e: { firstName: string; lastName: string }): string
   return `${e.firstName} ${e.lastName}`.trim();
 }
 
+// --- Leave types (default seed; admin-editable) ---
+export const LEAVE_TYPE_SEED = [
+  { name: "Casual Leave", code: "CL", paid: true, accrualPerYear: 12, carryForwardMax: 0, allowHalfDay: true, allowNegative: false, requiresApproval: true, color: "blue", order: 1 },
+  { name: "Sick Leave", code: "SL", paid: true, accrualPerYear: 12, carryForwardMax: 0, allowHalfDay: true, allowNegative: false, requiresApproval: true, color: "rose", order: 2 },
+  { name: "Earned Leave", code: "EL", paid: true, accrualPerYear: 18, carryForwardMax: 30, allowHalfDay: true, allowNegative: false, requiresApproval: true, color: "emerald", order: 3 },
+  { name: "Comp Off", code: "COMP", paid: true, accrualPerYear: 0, carryForwardMax: 0, allowHalfDay: true, allowNegative: false, requiresApproval: true, color: "violet", order: 4 },
+  { name: "Maternity Leave", code: "ML", paid: true, accrualPerYear: 182, carryForwardMax: 0, allowHalfDay: false, allowNegative: false, requiresApproval: true, color: "pink", order: 5 },
+  { name: "Loss of Pay", code: "LOP", paid: false, accrualPerYear: 0, carryForwardMax: 0, allowHalfDay: true, allowNegative: true, requiresApproval: true, color: "slate", order: 6 },
+] as const;
+
+// Fixed-date national / Karnataka holidays for 2026 (admin adds movable festivals).
+export const HOLIDAY_SEED_2026 = [
+  { date: "2026-01-01", name: "New Year's Day" },
+  { date: "2026-01-26", name: "Republic Day" },
+  { date: "2026-05-01", name: "May Day" },
+  { date: "2026-08-15", name: "Independence Day" },
+  { date: "2026-10-02", name: "Gandhi Jayanti" },
+  { date: "2026-11-01", name: "Kannada Rajyotsava" },
+  { date: "2026-12-25", name: "Christmas" },
+] as const;
+
+export const LEAVE_STATUS_HUE: Record<string, "amber" | "emerald" | "red" | "slate"> = {
+  PENDING: "amber",
+  APPROVED: "emerald",
+  REJECTED: "red",
+  CANCELLED: "slate",
+};
+export const LEAVE_STATUS_LABELS: Record<string, string> = {
+  PENDING: "Pending", APPROVED: "Approved", REJECTED: "Rejected", CANCELLED: "Cancelled",
+};
+
 // Generate the next employee code given the current max numeric suffix.
 // Format: PPG-0001 (PropertyPlush Group). Pure helper for testability.
 export function nextEmpCode(existingCodes: string[]): string {
