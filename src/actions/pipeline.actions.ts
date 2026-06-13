@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { serialize } from "@/lib/utils";
 import { hasPermission } from "@/lib/permissions";
 import { requestApprovalIfNeeded } from "@/lib/approval-engine";
+import { velosOnDealStage } from "@/lib/velos/triggers";
 
 // ============================================================
 // Types
@@ -348,7 +349,7 @@ export async function moveDeal(
 
     const deal = await prisma.deal.findUnique({
       where: { id: dealId },
-      select: { id: true, stageId: true, orderInStage: true, leadId: true, lead: { select: { assignedToId: true } } },
+      select: { id: true, stageId: true, orderInStage: true, leadId: true, assignedToId: true, lead: { select: { assignedToId: true } } },
     });
 
     if (!deal) {
@@ -357,7 +358,7 @@ export async function moveDeal(
 
     const newStage = await prisma.pipelineStage.findUnique({
       where: { id: newStageId },
-      select: { id: true, isWonStage: true, isLostStage: true },
+      select: { id: true, name: true, isWonStage: true, isLostStage: true },
     });
 
     if (!newStage) {
@@ -485,6 +486,18 @@ export async function moveDeal(
       } catch (e) {
         console.error("[DEAL_APPROVAL_ERROR]", e);
       }
+    }
+
+    // Velos: award the stage event to the deal owner (idempotent per deal+stage),
+    // or claw back sale-side points if the deal was lost. Best-effort — wrapped so
+    // a points failure can never affect the move (which is already committed).
+    if (isMovingStages) {
+      await velosOnDealStage({
+        dealId,
+        ownerId: deal.assignedToId ?? deal.lead?.assignedToId ?? null,
+        stageName: newStage.name,
+        isLostStage: newStage.isLostStage,
+      });
     }
 
     revalidatePath("/pipeline");

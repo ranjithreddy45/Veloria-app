@@ -4,6 +4,7 @@ import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
+import { velosOnLeadContact } from "@/lib/velos/triggers";
 import {
   normalizeMobile,
   isValidMobile,
@@ -276,7 +277,7 @@ export async function logAcqLeadContact(
   if (!user || !acqCan(user.role, "lead:write")) return { success: false, error: "Unauthorized" };
   if (!CONTACT_CHANNELS.includes(input.channel)) return { success: false, error: "Pick how you contacted them." };
   if (input.outcome && !CONTACT_OUTCOMES.includes(input.outcome)) return { success: false, error: "Invalid outcome." };
-  const lead = await prisma.acqLead.findFirst({ where: { id: leadId, deletedAt: null }, select: { status: true, firstContactAt: true } });
+  const lead = await prisma.acqLead.findFirst({ where: { id: leadId, deletedAt: null }, select: { status: true, firstContactAt: true, bdExecutiveId: true, createdAt: true, firstContactDue: true } });
   if (!lead) return { success: false, error: "Lead not found" };
 
   let next: Date | null = null;
@@ -310,6 +311,19 @@ export async function logAcqLeadContact(
       });
     }
   });
+  // Velos: speed-engine award on the FIRST contact only (the SLA race). Shipped
+  // with the quality gate (A5, governing the downstream close award). Best-effort.
+  if (!lead.firstContactAt && lead.bdExecutiveId) {
+    const now = Date.now();
+    const elapsedMin = (now - lead.createdAt.getTime()) / 60000;
+    await velosOnLeadContact({
+      leadId,
+      ownerId: lead.bdExecutiveId,
+      withinSla: now <= lead.firstContactDue.getTime(), // contacted before the SLA deadline
+      within15Min: elapsedMin <= 15,
+    });
+  }
+
   revalidatePath("/bd/leads");
   revalidatePath(`/bd/leads/${leadId}`);
   revalidatePath("/bd/dashboard");

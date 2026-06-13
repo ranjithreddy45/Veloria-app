@@ -3,6 +3,7 @@
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { velosOnPaymentCollected } from "@/lib/velos/triggers";
 import type { PaymentMethod, PaymentStatus } from "@prisma/client";
 import { serialize, formatINR } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
@@ -153,6 +154,7 @@ export async function recordPayment(data: {
         paidAmount: true,
         balanceDue: true,
         status: true,
+        dueDate: true,
       },
     });
 
@@ -271,6 +273,13 @@ export async function recordPayment(data: {
     // BookMyShow-style: if this payment covers the booking advance, the held
     // slot auto-confirms and the customer gets confirmations (best-effort).
     await maybeConfirmBookingOnPayment(data.invoiceId);
+
+    // Velos: reward on-time collection (finance). Best-effort.
+    await velosOnPaymentCollected({
+      paymentId: payment.id,
+      ownerId: session.user.id as string,
+      onOrBeforeDue: !invoice.dueDate || new Date() <= invoice.dueDate,
+    });
 
     revalidatePath("/invoices");
     revalidatePath(`/invoices/${data.invoiceId}`);

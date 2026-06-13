@@ -5,6 +5,7 @@ import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { taskSchema, type TaskInput } from "@/schemas/task.schema";
+import { velosOnTaskDone } from "@/lib/velos/triggers";
 
 // ============================================================
 // Get Tasks (Paginated + Search + Filters)
@@ -326,6 +327,11 @@ export async function updateTaskStatus(id: string, status: string) {
       },
     });
 
+    if (status === "DONE") {
+      const onTime = !task.dueDate || (task.completedAt ?? new Date()) <= task.dueDate;
+      await velosOnTaskDone({ taskId: task.id, ownerId: task.assigneeId, priority: task.priority, onTime });
+    }
+
     revalidatePath("/tasks");
     revalidatePath(`/tasks/${id}`);
     return { success: true as const, data: task };
@@ -362,6 +368,11 @@ export async function moveTask(
         completedAt: newStatus === "DONE" ? new Date() : null,
       },
     });
+
+    if (newStatus === "DONE") {
+      const onTime = !task.dueDate || (task.completedAt ?? new Date()) <= task.dueDate;
+      await velosOnTaskDone({ taskId: task.id, ownerId: task.assigneeId, priority: task.priority, onTime });
+    }
 
     revalidatePath("/tasks");
     return { success: true as const, data: task };
