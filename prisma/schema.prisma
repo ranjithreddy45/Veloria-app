@@ -4040,6 +4040,7 @@ model ProjectSnag {
   assignedVendorId String? // populated in Wave D
   dueDate      DateTime?
   status       String   @default("OPEN") // OPEN | IN_PROGRESS | FIXED_PENDING_VERIFICATION | VERIFIED_CLOSED | REOPENED
+  fixedPendingAt DateTime? // when the current fix cycle was marked fixed — scopes the after-photo gate
   verifiedById String?
   verifiedByName String?
   verifiedAt   DateTime?

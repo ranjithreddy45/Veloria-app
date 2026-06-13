@@ -120,7 +120,7 @@ function SnagRow({ snag, perms, busy, run }: { snag: Snag; perms: Perms; busy: s
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    if (file.size > 6_500_000) return toast.error("Image too large (max ~6MB). Try a smaller photo.");
+    if (file.size > 5_000_000) return toast.error("Image too large (max ~5MB). Try a smaller photo.");
     setUploading(true);
     const reader = new FileReader();
     reader.onload = async () => {

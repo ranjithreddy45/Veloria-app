@@ -95,8 +95,14 @@ export async function updateSnag(
   if (patch.status !== undefined && !EDITABLE_STATUSES.includes(patch.status)) {
     return { success: false, error: patch.status === "VERIFIED_CLOSED" ? "Use the verify action to close a snag." : "Invalid status." };
   }
-  const snag = await prisma.projectSnag.findUnique({ where: { id: snagId }, select: { projectId: true, status: true } });
+  const snag = await prisma.projectSnag.findUnique({ where: { id: snagId }, select: { projectId: true, status: true, severity: true } });
   if (!snag) return { success: false, error: "Snag not found" };
+  // A projects:update executor must not be able to self-clear a launch blocker by
+  // relabelling an open critical/major defect as minor — only Operations may downgrade.
+  const RANK: Record<string, number> = { CRITICAL: 3, MAJOR: 2, MINOR: 1 };
+  if (patch.severity !== undefined && (RANK[patch.severity] ?? 0) < (RANK[snag.severity] ?? 0) && !can(user.role, "projects:audit")) {
+    return { success: false, error: "Only Operations can lower the severity of an existing critical/major snag." };
+  }
   const data: Prisma.ProjectSnagUncheckedUpdateInput = {};
   if (patch.title !== undefined) data.title = patch.title.trim();
   if (patch.description !== undefined) data.description = patch.description?.trim() || null;
@@ -104,7 +110,12 @@ export async function updateSnag(
   if (patch.location !== undefined) data.location = patch.location?.trim() || null;
   if (patch.severity !== undefined) data.severity = patch.severity;
   if (patch.dueDate !== undefined) data.dueDate = patch.dueDate ? new Date(patch.dueDate) : null;
-  if (patch.status !== undefined) data.status = patch.status;
+  if (patch.status !== undefined) {
+    data.status = patch.status;
+    // Stamp / clear the fix-cycle marker so the after-photo gate only accepts fresh evidence.
+    if (patch.status === "FIXED_PENDING_VERIFICATION") data.fixedPendingAt = new Date();
+    else if (patch.status === "OPEN" || patch.status === "IN_PROGRESS" || patch.status === "REOPENED") data.fixedPendingAt = null;
+  }
   await prisma.projectSnag.update({ where: { id: snagId }, data });
   await audit(user, { projectId: snag.projectId, action: "snag.update", entityId: snagId, before: { status: snag.status }, after: patch });
   revalidatePath(`/projects/${snag.projectId}`);
@@ -115,11 +126,15 @@ export async function updateSnag(
 export async function verifySnag(snagId: string): Promise<Result<{ id: string }>> {
   const user = await requireUser();
   if (!user || !can(user.role, "projects:audit")) return { success: false, error: "Only Operations can verify-close a snag." };
-  const snag = await prisma.projectSnag.findUnique({ where: { id: snagId }, select: { projectId: true, status: true } });
+  const snag = await prisma.projectSnag.findUnique({ where: { id: snagId }, select: { projectId: true, status: true, fixedPendingAt: true } });
   if (!snag) return { success: false, error: "Snag not found" };
   if (snag.status !== "FIXED_PENDING_VERIFICATION") return { success: false, error: "The snag must be marked fixed (pending verification) first." };
-  const afterPhotos = await prisma.projectPhoto.count({ where: { snagId, kind: "AFTER" } });
-  if (!afterPhotos) return { success: false, error: "Attach an after-photo before verifying the fix." };
+  // The after-photo must be from THIS fix cycle (uploaded after it was marked fixed),
+  // so a stale photo from a prior cycle or one attached while open can't satisfy the gate.
+  const afterPhotos = snag.fixedPendingAt
+    ? await prisma.projectPhoto.count({ where: { snagId, kind: "AFTER", createdAt: { gte: snag.fixedPendingAt } } })
+    : 0;
+  if (!afterPhotos) return { success: false, error: "Attach a fresh after-photo of this fix before verifying." };
   await prisma.projectSnag.update({ where: { id: snagId }, data: { status: "VERIFIED_CLOSED", verifiedById: user.id, verifiedByName: user.name ?? null, verifiedAt: new Date() } });
   await audit(user, { projectId: snag.projectId, action: "snag.verify_closed", entityId: snagId, before: { status: snag.status }, after: { status: "VERIFIED_CLOSED" } });
   revalidatePath(`/projects/${snag.projectId}`);
@@ -132,7 +147,7 @@ export async function reopenSnag(snagId: string, reason: string): Promise<Result
   if (!reason?.trim()) return { success: false, error: "A reason is required to re-open a snag." };
   const snag = await prisma.projectSnag.findUnique({ where: { id: snagId }, select: { projectId: true, status: true } });
   if (!snag) return { success: false, error: "Snag not found" };
-  await prisma.projectSnag.update({ where: { id: snagId }, data: { status: "REOPENED", verifiedById: null, verifiedByName: null, verifiedAt: null } });
+  await prisma.projectSnag.update({ where: { id: snagId }, data: { status: "REOPENED", fixedPendingAt: null, verifiedById: null, verifiedByName: null, verifiedAt: null } });
   await audit(user, { projectId: snag.projectId, action: "snag.reopen", entityId: snagId, before: { status: snag.status }, after: { status: "REOPENED", reason: reason.trim() } });
   // Nudge the PM that a fix bounced.
   const pms = await prisma.user.findMany({ where: { isActive: true, role: { in: ["PROJECTS_EXEC", "PROJECTS_HEAD"] } }, select: { id: true } });

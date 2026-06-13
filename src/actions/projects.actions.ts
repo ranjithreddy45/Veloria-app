@@ -242,8 +242,10 @@ export async function updateProjectMaster(
   if (patch.targetReadyDate !== undefined) data.targetReadyDate = patch.targetReadyDate ? new Date(patch.targetReadyDate) : null;
   if (patch.bdOwnerId !== undefined) data.bdOwnerId = patch.bdOwnerId || null;
   if (patch.notes !== undefined) data.notes = patch.notes || null;
-  await prisma.acqOnboardingProject.update({ where: { id }, data });
-  await addAudit(prisma, user, { projectId: id, action: "project.master.update", entityType: "project", entityId: id, after: patch });
+  await prisma.$transaction(async (tx) => {
+    await tx.acqOnboardingProject.update({ where: { id }, data });
+    await addAudit(tx, user, { projectId: id, action: "project.master.update", entityType: "project", entityId: id, after: patch });
+  });
   revalidatePath(`/projects/${id}`);
   return { success: true, data: { id } };
 }
@@ -256,8 +258,10 @@ export async function setProjectStatus(id: string, status: "OPEN" | "ON_HOLD" | 
   const perm = status === "CANCELLED" ? "projects:approve" : "projects:update";
   if (!can(user.role, perm)) return { success: false, error: "Unauthorized" };
   const before = await prisma.acqOnboardingProject.findUnique({ where: { id }, select: { status: true } });
-  await prisma.acqOnboardingProject.update({ where: { id }, data: { status } });
-  await addAudit(prisma, user, { projectId: id, action: "project.status", entityType: "project", entityId: id, before, after: { status } });
+  await prisma.$transaction(async (tx) => {
+    await tx.acqOnboardingProject.update({ where: { id }, data: { status } });
+    await addAudit(tx, user, { projectId: id, action: "project.status", entityType: "project", entityId: id, before, after: { status } });
+  });
   revalidatePath(`/projects/${id}`);
   revalidatePath("/projects");
   return { success: true, data: { status } };
@@ -296,10 +300,13 @@ export async function completeAssessment(projectId: string): Promise<Result<{ ph
 export async function recordOwnerApproval(projectId: string, proofUrl?: string): Promise<Result<{ ownerApproved: boolean }>> {
   const user = await requireUser();
   if (!user || !can(user.role, "projects:update")) return { success: false, error: "Unauthorized" };
-  const p = await prisma.acqOnboardingProject.findUnique({ where: { id: projectId }, select: { id: true } });
+  const p = await prisma.acqOnboardingProject.findUnique({ where: { id: projectId }, select: { phase: true } });
   if (!p) return { success: false, error: "Project not found" };
-  await prisma.acqOnboardingProject.update({ where: { id: projectId }, data: { ownerApproved: true, ownerApprovedAt: new Date(), ownerApprovalProofUrl: proofUrl || null } });
-  await addAudit(prisma, user, { projectId, action: "owner.approved", entityType: "project", entityId: projectId, after: { ownerApproved: true, proofUrl: proofUrl || null } });
+  if (normalizePhase(p.phase) !== "CAPEX") return { success: false, error: "Owner approval is recorded during the CapEx & Timeline stage." };
+  await prisma.$transaction(async (tx) => {
+    await tx.acqOnboardingProject.update({ where: { id: projectId }, data: { ownerApproved: true, ownerApprovedAt: new Date(), ownerApprovalProofUrl: proofUrl || null } });
+    await addAudit(tx, user, { projectId, action: "owner.approved", entityType: "project", entityId: projectId, after: { ownerApproved: true, proofUrl: proofUrl || null } });
+  });
   revalidatePath(`/projects/${projectId}`);
   return { success: true, data: { ownerApproved: true } };
 }
@@ -460,8 +467,14 @@ export async function generateHandover(projectId: string): Promise<Result<{ id: 
   const project = await prisma.acqOnboardingProject.findUnique({ where: { id: projectId }, select: { phase: true, finalGoAheadAt: true, property: { select: { propertyName: true } } } });
   if (!project) return { success: false, error: "Project not found" };
   if (normalizePhase(project.phase) !== "HANDOVER" || !project.finalGoAheadAt) return { success: false, error: "The final go-ahead must be given before the handover report." };
-  await prisma.acqOnboardingProject.update({ where: { id: projectId }, data: { handoverReportAt: new Date(), handoverById: user.id } });
-  await addAudit(prisma, user, { projectId, action: "handover.submit", entityType: "project", entityId: projectId });
+  // Phase-scoped + audit in one tx, so a concurrent reopen can't strand the stamp or its log.
+  const ok = await prisma.$transaction(async (tx) => {
+    const r = await tx.acqOnboardingProject.updateMany({ where: { id: projectId, phase: { in: phaseMatchValues("HANDOVER") } }, data: { handoverReportAt: new Date(), handoverById: user.id } });
+    if (r.count === 0) return false;
+    await addAudit(tx, user, { projectId, action: "handover.submit", entityType: "project", entityId: projectId });
+    return true;
+  });
+  if (!ok) return { success: false, error: "Project is no longer in handover." };
   await notifyRoles(["OPERATIONS", "SUPER_ADMIN", "ADMIN"], { type: "SYSTEM", title: "Venue handover report ready", message: `Handover report submitted for ${project.property.propertyName}. Please review & acknowledge.`, actionUrl: `/projects/${projectId}` });
   revalidatePath(`/projects/${projectId}`);
   return { success: true, data: { id: projectId } };
@@ -476,8 +489,16 @@ export async function acknowledgeHandover(projectId: string, by: "OPS" | "MGMT")
   const project = await prisma.acqOnboardingProject.findUnique({ where: { id: projectId }, select: { phase: true, handoverReportAt: true } });
   if (!project) return { success: false, error: "Project not found" };
   if (normalizePhase(project.phase) !== "HANDOVER" || !project.handoverReportAt) return { success: false, error: "The handover report has not been submitted yet." };
-  await prisma.acqOnboardingProject.update({ where: { id: projectId }, data: by === "OPS" ? { opsAcknowledgedAt: new Date() } : { mgmtAcknowledgedAt: new Date() } });
-  await addAudit(prisma, user, { projectId, action: `handover.ack:${by}`, entityType: "project", entityId: projectId });
+  const ok = await prisma.$transaction(async (tx) => {
+    const r = await tx.acqOnboardingProject.updateMany({
+      where: { id: projectId, phase: { in: phaseMatchValues("HANDOVER") }, handoverReportAt: { not: null } },
+      data: by === "OPS" ? { opsAcknowledgedAt: new Date() } : { mgmtAcknowledgedAt: new Date() },
+    });
+    if (r.count === 0) return false;
+    await addAudit(tx, user, { projectId, action: `handover.ack:${by}`, entityType: "project", entityId: projectId });
+    return true;
+  });
+  if (!ok) return { success: false, error: "The project is no longer in handover or the report was withdrawn." };
   revalidatePath(`/projects/${projectId}`);
   return { success: true, data: { id: projectId } };
 }
