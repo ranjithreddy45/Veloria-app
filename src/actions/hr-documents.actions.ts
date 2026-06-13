@@ -177,7 +177,9 @@ export async function upsertDocumentTemplate(input: { id?: string; name: string;
 // Render a template against an employee's fields. Pure-ish (DB read only).
 export async function renderTemplate(templateId: string, employeeId: string): Promise<Result<{ text: string }>> {
   const u = await requireUser();
-  if (!can(u?.role, "hr:read")) return { success: false, error: "Not authorized." };
+  // Letter generation merges an individual's PII — restrict to HR who edit
+  // records, not read-only roles like AUDITOR (which holds hr:read for compliance).
+  if (!can(u?.role, "hr:write")) return { success: false, error: "Not authorized." };
   const [tpl, emp] = await Promise.all([
     prisma.hrDocumentTemplate.findUnique({ where: { id: templateId } }),
     prisma.employee.findUnique({

@@ -151,8 +151,15 @@ export async function completeJourney(id: string): Promise<Result<{ id: string }
   if (blockingOpen.length > 0)
     return { success: false, error: `${blockingOpen.length} blocking task(s) still open: ${blockingOpen.map((t) => t.title).join(", ")}` };
 
+  try {
   await prisma.$transaction(async (tx) => {
-    await tx.employeeJourney.update({ where: { id }, data: { status: "COMPLETED", completedAt: new Date() } });
+    // Conditionally flip IN_PROGRESS → COMPLETED; count 0 means another request
+    // already completed it, so abort to avoid double access-grant/revoke.
+    const flip = await tx.employeeJourney.updateMany({
+      where: { id, status: "IN_PROGRESS" },
+      data: { status: "COMPLETED", completedAt: new Date() },
+    });
+    if (flip.count === 0) throw new Error("ALREADY_CLOSED");
     if (journey.type === "ONBOARDING") {
       // Candidate → active employee; activate linked login if present.
       await tx.employee.update({ where: { id: journey.employeeId }, data: { status: "ACTIVE" } });
@@ -167,7 +174,11 @@ export async function completeJourney(id: string): Promise<Result<{ id: string }
       if (journey.employee.userId) await tx.user.update({ where: { id: journey.employee.userId }, data: { isActive: false } });
       await tx.activityLog.create({ data: { action: "OFFBOARDING_COMPLETED", entityType: "EMPLOYEE", entityId: journey.employeeId, userId: u!.id } });
     }
-  });
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  } catch (e) {
+    if (e instanceof Error && e.message === "ALREADY_CLOSED") return { success: false, error: "This journey was already completed." };
+    return { success: false, error: "Could not complete the journey." };
+  }
   revalidatePath("/people/lifecycle");
   revalidatePath(`/people/lifecycle/${id}`);
   revalidatePath(`/people/${journey.employeeId}`);
@@ -225,12 +236,23 @@ export async function submitCandidateDetails(token: string, input: { phone?: str
   if (invite.usedAt) return { success: false, error: "This link has already been used." };
   if (invite.expiresAt < new Date()) return { success: false, error: "This link has expired." };
 
-  await prisma.$transaction(async (tx) => {
-    await tx.employee.update({
-      where: { id: invite.employeeId },
-      data: { phone: input.phone?.trim() || undefined, personalEmail: input.personalEmail?.trim() || undefined },
-    });
-    await tx.candidatePortalInvite.update({ where: { id: invite.id }, data: { usedAt: new Date() } });
+  // Validate untrusted public input.
+  const phone = input.phone?.trim();
+  const personalEmail = input.personalEmail?.trim();
+  if (phone && !/^[+]?[\d\s()-]{7,20}$/.test(phone)) return { success: false, error: "Please enter a valid phone number." };
+  if (personalEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(personalEmail)) return { success: false, error: "Please enter a valid email address." };
+
+  // Atomically claim the single-use invite first — guards against concurrent
+  // double-submission (count 0 means another request already consumed it).
+  const claim = await prisma.candidatePortalInvite.updateMany({
+    where: { id: invite.id, usedAt: null },
+    data: { usedAt: new Date() },
+  });
+  if (claim.count === 0) return { success: false, error: "This link has already been used." };
+
+  await prisma.employee.update({
+    where: { id: invite.employeeId },
+    data: { phone: phone || undefined, personalEmail: personalEmail || undefined },
   });
   return { success: true, data: { ok: true } };
 }

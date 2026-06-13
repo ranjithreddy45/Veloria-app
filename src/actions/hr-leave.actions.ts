@@ -210,7 +210,7 @@ export async function applyLeave(input: ApplyLeaveInput): Promise<Result<{ id: s
         data: { action: "LEAVE_APPLIED", entityType: "LEAVE_REQUEST", entityId: req.id, userId: u.id, changes: { type: type.code, days } },
       });
       return req;
-    });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
     revalidatePath("/people/leave");
     revalidatePath("/people/leave/approvals");

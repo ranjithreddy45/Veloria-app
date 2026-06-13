@@ -290,6 +290,18 @@ export async function createEmployee(input: CreateEmployeeInput): Promise<Result
   const entity = await prisma.legalEntity.findUnique({ where: { id: input.legalEntityId } });
   if (!entity) return { success: false, error: "Selected legal entity no longer exists." };
 
+  // A reporting manager must be an existing, non-archived employee.
+  if (input.reportingManagerId) {
+    const mgr = await prisma.employee.findFirst({ where: { id: input.reportingManagerId, deletedAt: null }, select: { id: true } });
+    if (!mgr) return { success: false, error: "Selected reporting manager is not a valid active employee." };
+  }
+
+  // Reject a duplicate work email (the field isn't DB-unique on legacy data).
+  if (input.workEmail?.trim()) {
+    const dupe = await prisma.employee.findFirst({ where: { workEmail: input.workEmail.trim(), deletedAt: null }, select: { id: true } });
+    if (dupe) return { success: false, error: "An employee with that work email already exists." };
+  }
+
   const existingCodes = await prisma.employee.findMany({ select: { empCode: true } });
   const empCode = nextEmpCode(existingCodes.map((e) => e.empCode));
 
@@ -345,6 +357,21 @@ export async function updateEmployee(id: string, input: UpdateEmployeeInput): Pr
   if (input.reportingManagerId && input.reportingManagerId === id)
     return { success: false, error: "An employee cannot report to themselves." };
 
+  // A reporting manager must be an existing, non-archived employee.
+  if (input.reportingManagerId) {
+    const mgr = await prisma.employee.findFirst({ where: { id: input.reportingManagerId, deletedAt: null }, select: { id: true } });
+    if (!mgr) return { success: false, error: "Selected reporting manager is not a valid active employee." };
+  }
+
+  // Reject a duplicate work email on another employee.
+  if (input.workEmail?.trim()) {
+    const dupe = await prisma.employee.findFirst({
+      where: { workEmail: input.workEmail.trim(), deletedAt: null, id: { not: id } },
+      select: { id: true },
+    });
+    if (dupe) return { success: false, error: "Another employee already uses that work email." };
+  }
+
   const data: Prisma.EmployeeUpdateInput = {};
   if (input.firstName !== undefined) data.firstName = input.firstName.trim();
   if (input.lastName !== undefined) data.lastName = input.lastName.trim();
@@ -390,6 +417,10 @@ export async function archiveEmployee(id: string, reason?: string): Promise<Resu
       where: { id },
       data: { deletedAt: new Date(), status: "EXITED", dateOfExit: existing.dateOfExit ?? new Date() },
     });
+    // Unstrand pending approvals routed to this manager — clear the approver so
+    // they fall to the HR queue (which sees all pending) instead of a dead user.
+    await tx.leaveRequest.updateMany({ where: { approverId: id, status: "PENDING" }, data: { approverId: null } });
+    await tx.regularization.updateMany({ where: { approverId: id, status: "PENDING" }, data: { approverId: null } });
     await hrAudit(tx, u!.id, { action: "EMPLOYEE_ARCHIVED", entityId: id, changes: { reason: reason || null } });
   });
   revalidatePath("/people");
