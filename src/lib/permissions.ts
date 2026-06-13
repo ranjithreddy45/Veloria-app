@@ -96,6 +96,12 @@ export type Permission =
   | "projects:update"
   | "projects:approve"
   | "projects:audit"
+  // HR / People
+  | "hr:read"
+  | "hr:write"
+  | "hr:admin"
+  | "hr:approve"
+  | "hr:statutory"
   // Menu
   | "menu:read"
   | "menu:create"
@@ -337,6 +343,11 @@ export const ALL_PERMISSIONS: Permission[] = [
   "projects:update",
   "projects:approve",
   "projects:audit",
+  "hr:read",
+  "hr:write",
+  "hr:admin",
+  "hr:approve",
+  "hr:statutory",
   "menu:read",
   "menu:create",
   "menu:update",
@@ -540,6 +551,11 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "projects:update",
     "projects:approve",
     "projects:audit",
+    "hr:read",
+    "hr:write",
+    "hr:admin",
+    "hr:approve",
+    "hr:statutory",
     "menu:read",
     "menu:create",
     "menu:update",
@@ -915,6 +931,27 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "owners:read",
     "contracts:read",
   ],
+  // HR / People module roles
+  HR_MANAGER: [
+    "dashboard:read",
+    "hr:read",
+    "hr:write",
+    "hr:admin",
+    "hr:approve",
+    "hr:statutory",
+    "analytics:read",
+  ],
+  HR_EXECUTIVE: [
+    "dashboard:read",
+    "hr:read",
+    "hr:write",
+    "hr:approve",
+  ],
+  AUDITOR: [
+    "dashboard:read",
+    "hr:read",
+    "analytics:read",
+  ],
 };
 
 // ============================================================
@@ -928,6 +965,7 @@ export const ROUTE_PERMISSIONS: { prefix: string; permission: Permission }[] = [
   { prefix: "/settings/roles", permission: "users:manage-roles" },
   { prefix: "/bd", permission: "owners:read" },
   { prefix: "/projects", permission: "projects:read" },
+  { prefix: "/people", permission: "hr:read" },
   { prefix: "/owners", permission: "owners:read" },
   { prefix: "/leads", permission: "leads:read" },
   { prefix: "/pipeline", permission: "pipeline:read" },

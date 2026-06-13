@@ -196,6 +196,26 @@ export const sidebarNavigation: NavItem[] = [
     permissions: ["projects:read"],
   },
   {
+    title: "People",
+    href: "/people",
+    icon: "Users",
+    permissions: ["hr:read"],
+    children: [
+      {
+        title: "Directory",
+        href: "/people",
+        icon: "Contact",
+        permissions: ["hr:read"],
+      },
+      {
+        title: "Org Chart",
+        href: "/people/org",
+        icon: "Network",
+        permissions: ["hr:read"],
+      },
+    ],
+  },
+  {
     title: "Operations",
     href: "/tasks",
     icon: "Cog",

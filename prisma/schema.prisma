@@ -28,6 +28,10 @@ enum UserRole {
   // Projects team — readies an acquired venue to Veloria Grand standards
   PROJECTS_EXEC
   PROJECTS_HEAD
+  // HR / People module (shared identity)
+  HR_MANAGER
+  HR_EXECUTIVE
+  AUDITOR
 }
 
 enum ContactType {
@@ -278,35 +282,35 @@ enum ReminderStatus {
 // ============================================================
 
 model User {
-  id             String    @id @default(cuid())
-  name           String?
-  email          String    @unique
-  emailVerified  DateTime?
-  image          String?
-  hashedPassword String?
-  phone          String?
-  role           UserRole  @default(CLIENT)
-  isActive       Boolean   @default(true)
-  isVenueOwner   Boolean   @default(false)
-  ownedVenueIds  String[]
+  id                      String    @id @default(cuid())
+  name                    String?
+  email                   String    @unique
+  emailVerified           DateTime?
+  image                   String?
+  hashedPassword          String?
+  phone                   String?
+  role                    UserRole  @default(CLIENT)
+  isActive                Boolean   @default(true)
+  isVenueOwner            Boolean   @default(false)
+  ownedVenueIds           String[]
   // User notification preferences (per-event-type email/SMS toggles).
   // Shape: Array<{ key: string; emailEnabled: boolean; smsEnabled: boolean }>
   // Null = use system defaults.
   notificationPreferences Json?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
 
-  accounts        Account[]
-  sessions        Session[]
-  assignedLeads   Lead[]         @relation("AssignedTo")
-  createdLeads    Lead[]         @relation("CreatedBy")
-  assignedDeals   Deal[]         @relation("DealAssignee")
-  createdBookings Booking[]      @relation("BookingCreatedBy")
-  assignedTasks   Task[]         @relation("TaskAssignee")
-  createdTasks    Task[]         @relation("TaskCreator")
-  createdInvoices Invoice[]      @relation("InvoiceCreatedBy")
-  notifications   Notification[]
-  activityLogs    ActivityLog[]
+  accounts            Account[]
+  sessions            Session[]
+  assignedLeads       Lead[]            @relation("AssignedTo")
+  createdLeads        Lead[]            @relation("CreatedBy")
+  assignedDeals       Deal[]            @relation("DealAssignee")
+  createdBookings     Booking[]         @relation("BookingCreatedBy")
+  assignedTasks       Task[]            @relation("TaskAssignee")
+  createdTasks        Task[]            @relation("TaskCreator")
+  createdInvoices     Invoice[]         @relation("InvoiceCreatedBy")
+  notifications       Notification[]
+  activityLogs        ActivityLog[]
   createdQuotes       Quote[]           @relation("QuoteCreatedBy")
   createdContracts    Contract[]        @relation("ContractCreatedBy")
   createdOperations   EventOperation[]  @relation("OperationCreatedBy")
@@ -315,61 +319,63 @@ model User {
   staffProfile        StaffProfile?     @relation("StaffProfileRelation")
 
   // Event Execution & Accountability
-  executionPlansCreated  ExecutionPlan[]      @relation("ExecutionPlanCreatedBy")
-  executionTasksAssigned ExecutionTask[]      @relation("ExecutionTaskAssignee")
-  executionTaskApprovals ExecutionTask[]      @relation("ExecutionTaskApprover")
-  executionChecklistsDone ExecutionChecklist[] @relation("ChecklistCompletedBy")
-  taskProofsSubmitted    TaskProof[]          @relation("ProofSubmitter")
-  taskTimeLogs           TaskTimeLog[]        @relation("TimeLogUser")
-  escalationsAcknowledged Escalation[]        @relation("EscalationAcknowledger")
-  escalationsResolved    Escalation[]         @relation("EscalationResolver")
-  performanceScores      PerformanceScore[]   @relation("UserPerformanceScores")
-  badges                 Badge[]              @relation("UserBadges")
-  performanceIncentives  PerformanceIncentive[] @relation("UserIncentives")
-  referralsMade          Referral[]           @relation("UserReferrals")
-  savedViews             SavedView[]          @relation("UserSavedViews")
-  assignmentRules        AssignmentRule[]      @relation("AssignmentRuleUser")
-  macros                 Macro[]              @relation("UserMacros")
-  blueprints             Blueprint[]          @relation("UserBlueprints")
-  cadences               Cadence[]            @relation("UserCadences")
-  webforms               Webform[]            @relation("UserWebforms")
-  anomalyAcknowledgements AnomalyAlert[]      @relation("AnomalyAcknowledger")
-  deviceTokens            DeviceToken[]       @relation("UserDeviceTokens")
-  callLogs                CallLog[]           @relation("AgentCallLogs")
-  apiKeys                 ApiKey[]            @relation("UserApiKeys")
-  telephonyConfigs        TelephonyConfig[]   @relation("UserTelephonyConfigs")
-  whatsappConfigs         WhatsAppConfig[]    @relation("UserWhatsAppConfigs")
-  hallOwnersManaged       HallOwner[]         @relation("HallOwnerBD")
+  executionPlansCreated   ExecutionPlan[]        @relation("ExecutionPlanCreatedBy")
+  executionTasksAssigned  ExecutionTask[]        @relation("ExecutionTaskAssignee")
+  executionTaskApprovals  ExecutionTask[]        @relation("ExecutionTaskApprover")
+  executionChecklistsDone ExecutionChecklist[]   @relation("ChecklistCompletedBy")
+  taskProofsSubmitted     TaskProof[]            @relation("ProofSubmitter")
+  taskTimeLogs            TaskTimeLog[]          @relation("TimeLogUser")
+  escalationsAcknowledged Escalation[]           @relation("EscalationAcknowledger")
+  escalationsResolved     Escalation[]           @relation("EscalationResolver")
+  performanceScores       PerformanceScore[]     @relation("UserPerformanceScores")
+  badges                  Badge[]                @relation("UserBadges")
+  performanceIncentives   PerformanceIncentive[] @relation("UserIncentives")
+  referralsMade           Referral[]             @relation("UserReferrals")
+  savedViews              SavedView[]            @relation("UserSavedViews")
+  assignmentRules         AssignmentRule[]       @relation("AssignmentRuleUser")
+  macros                  Macro[]                @relation("UserMacros")
+  blueprints              Blueprint[]            @relation("UserBlueprints")
+  cadences                Cadence[]              @relation("UserCadences")
+  webforms                Webform[]              @relation("UserWebforms")
+  anomalyAcknowledgements AnomalyAlert[]         @relation("AnomalyAcknowledger")
+  deviceTokens            DeviceToken[]          @relation("UserDeviceTokens")
+  callLogs                CallLog[]              @relation("AgentCallLogs")
+  apiKeys                 ApiKey[]               @relation("UserApiKeys")
+  telephonyConfigs        TelephonyConfig[]      @relation("UserTelephonyConfigs")
+  whatsappConfigs         WhatsAppConfig[]       @relation("UserWhatsAppConfigs")
+  hallOwnersManaged       HallOwner[]            @relation("HallOwnerBD")
 
   // BD / Acquisition CRM relations
-  acqLeads                AcqLead[]            @relation("AcqLeadBdExec")
-  acqDeals                AcqDeal[]            @relation("AcqDealBdExec")
-  acqDealApprovals        AcqDeal[]            @relation("AcqDealBdHeadApprover")
-  acqPropertiesManaged    AcqProperty[]        @relation("AcqPropertyManager")
-  acqEvaluations          AcqEvaluation[]      @relation("AcqEvaluationBy")
-  acqAttachments          AcqAttachment[]      @relation("AcqAttachmentBy")
-  acqDealNotes            AcqDealNote[]        @relation("AcqDealNoteAuthor")
-  acqOnboardingTasks      AcqOnboardingTask[]  @relation("AcqOnboardingAssignee")
-  acqStageTransitions     AcqStageTransition[] @relation("AcqStageTransitionActor")
-  acqProjectionsSubmitted AcqProjection[]      @relation("AcqProjectionSubmittedBy")
-  acqProjectionsApproved  AcqProjection[]      @relation("AcqProjectionApprovedBy")
-  acqProjectionsSent      AcqProjection[]      @relation("AcqProjectionSentBy")
-  acqProjectionTransitions AcqProjectionTransition[] @relation("AcqProjectionTransitionActor")
-  salesQuotationsCreated   SalesQuotation[]          @relation("SalesQuotationCreatedBy")
-  salesQuotationsSubmitted SalesQuotation[]          @relation("SalesQuotationSubmittedBy")
-  salesQuotationsApproved  SalesQuotation[]          @relation("SalesQuotationApprovedBy")
-  salesQuotationsSent      SalesQuotation[]          @relation("SalesQuotationSentBy")
+  acqLeads                  AcqLead[]                  @relation("AcqLeadBdExec")
+  acqDeals                  AcqDeal[]                  @relation("AcqDealBdExec")
+  acqDealApprovals          AcqDeal[]                  @relation("AcqDealBdHeadApprover")
+  acqPropertiesManaged      AcqProperty[]              @relation("AcqPropertyManager")
+  acqEvaluations            AcqEvaluation[]            @relation("AcqEvaluationBy")
+  acqAttachments            AcqAttachment[]            @relation("AcqAttachmentBy")
+  acqDealNotes              AcqDealNote[]              @relation("AcqDealNoteAuthor")
+  acqOnboardingTasks        AcqOnboardingTask[]        @relation("AcqOnboardingAssignee")
+  acqStageTransitions       AcqStageTransition[]       @relation("AcqStageTransitionActor")
+  acqProjectionsSubmitted   AcqProjection[]            @relation("AcqProjectionSubmittedBy")
+  acqProjectionsApproved    AcqProjection[]            @relation("AcqProjectionApprovedBy")
+  acqProjectionsSent        AcqProjection[]            @relation("AcqProjectionSentBy")
+  acqProjectionTransitions  AcqProjectionTransition[]  @relation("AcqProjectionTransitionActor")
+  salesQuotationsCreated    SalesQuotation[]           @relation("SalesQuotationCreatedBy")
+  salesQuotationsSubmitted  SalesQuotation[]           @relation("SalesQuotationSubmittedBy")
+  salesQuotationsApproved   SalesQuotation[]           @relation("SalesQuotationApprovedBy")
+  salesQuotationsSent       SalesQuotation[]           @relation("SalesQuotationSentBy")
   salesQuotationTransitions SalesQuotationTransition[] @relation("SalesQuotationTransitionActor")
-  projectsManaged       AcqOnboardingProject[]    @relation("ProjectManager")
-  projectsAudited       AcqOnboardingProject[]    @relation("ProjectOpsAuditor")
-  projectsHandedOver    AcqOnboardingProject[]    @relation("ProjectHandover")
-  capexCreated          AcqCapexProjection[]      @relation("CapexCreatedBy")
-  capexSubmitted        AcqCapexProjection[]      @relation("CapexSubmittedBy")
-  capexApproved         AcqCapexProjection[]      @relation("CapexApprovedBy")
-  capexSent             AcqCapexProjection[]      @relation("CapexSentBy")
-  projectsBdOwned       AcqOnboardingProject[]    @relation("ProjectBdOwner")
-  projectsFinalGoAhead  AcqOnboardingProject[]    @relation("ProjectFinalGoAhead")
-  projectSignOffs       ProjectSignOff[]          @relation("SignOffApprover")
+  projectsManaged           AcqOnboardingProject[]     @relation("ProjectManager")
+  projectsAudited           AcqOnboardingProject[]     @relation("ProjectOpsAuditor")
+  projectsHandedOver        AcqOnboardingProject[]     @relation("ProjectHandover")
+  capexCreated              AcqCapexProjection[]       @relation("CapexCreatedBy")
+  capexSubmitted            AcqCapexProjection[]       @relation("CapexSubmittedBy")
+  capexApproved             AcqCapexProjection[]       @relation("CapexApprovedBy")
+  capexSent                 AcqCapexProjection[]       @relation("CapexSentBy")
+  projectsBdOwned           AcqOnboardingProject[]     @relation("ProjectBdOwner")
+  projectsFinalGoAhead      AcqOnboardingProject[]     @relation("ProjectFinalGoAhead")
+  projectSignOffs           ProjectSignOff[]           @relation("SignOffApprover")
+  // HR / People module — the Employee master record links back to this identity.
+  hrEmployee                Employee?                  @relation("EmployeeUser")
 
   @@index([email])
   @@index([role])
@@ -414,13 +420,13 @@ model VerificationToken {
 // Per-role permission overrides on top of the static defaults (editable in
 // Settings → Roles & Permissions). granted=true adds, granted=false removes.
 model RolePermission {
-  id         String   @id @default(cuid())
-  role       String
-  permission String
-  granted    Boolean  @default(true)
+  id          String   @id @default(cuid())
+  role        String
+  permission  String
+  granted     Boolean  @default(true)
   updatedById String?
-  updatedAt  DateTime @updatedAt
-  createdAt  DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
 
   @@unique([role, permission])
   @@index([role])
@@ -446,34 +452,34 @@ model OtpCode {
 // ============================================================
 
 model Contact {
-  id             String      @id @default(cuid())
-  firstName      String
-  lastName       String
-  email          String?
-  phone          String?
-  alternatePhone String?
-  company        String?
-  designation    String?
-  type           ContactType @default(INDIVIDUAL)
-  address        String?     @db.Text
-  city           String?
-  state          String?
-  pincode        String?
-  notes          String?     @db.Text
-  tags           String[]
-  isActive       Boolean     @default(true)
+  id               String      @id @default(cuid())
+  firstName        String
+  lastName         String
+  email            String?
+  phone            String?
+  alternatePhone   String?
+  company          String?
+  designation      String?
+  type             ContactType @default(INDIVIDUAL)
+  address          String?     @db.Text
+  city             String?
+  state            String?
+  pincode          String?
+  notes            String?     @db.Text
+  tags             String[]
+  isActive         Boolean     @default(true)
   // Customer 360 (spec §3.2) — vipCustomer/anniversary set by staff;
   // customerType, lifetimeBookings, totalRevenue, lastEventDate are
   // auto-rolled by the daily customer-360 cron.
-  customerType     String?   // "New" | "Repeat" | "VIP" | "Lost"
-  vipCustomer      Boolean   @default(false)
+  customerType     String? // "New" | "Repeat" | "VIP" | "Lost"
+  vipCustomer      Boolean     @default(false)
   anniversary      DateTime?
-  lifetimeBookings Int       @default(0)
-  totalRevenue     Decimal   @default(0) @db.Decimal(14, 2)
+  lifetimeBookings Int         @default(0)
+  totalRevenue     Decimal     @default(0) @db.Decimal(14, 2)
   lastEventDate    DateTime?
-  deletedAt      DateTime?   // soft-delete; auto-purged after 30 days by cron
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  deletedAt        DateTime? // soft-delete; auto-purged after 30 days by cron
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
 
   leads            Lead[]
   bookings         Booking[]
@@ -495,44 +501,44 @@ model Contact {
 }
 
 model Lead {
-  id             String     @id @default(cuid())
-  title          String
-  description    String?    @db.Text
-  status         LeadStatus @default(NEW)
-  source         LeadSource @default(WEBSITE)
-  score          Int        @default(0)
-  estimatedValue Decimal?   @db.Decimal(12, 2)
-  eventDate      DateTime?
-  eventType      String?
-  guestCount     Int?
-  followUpDate   DateTime?
-  lostReason     String?
+  id               String     @id @default(cuid())
+  title            String
+  description      String?    @db.Text
+  status           LeadStatus @default(NEW)
+  source           LeadSource @default(WEBSITE)
+  score            Int        @default(0)
+  estimatedValue   Decimal?   @db.Decimal(12, 2)
+  eventDate        DateTime?
+  eventType        String?
+  guestCount       Int?
+  followUpDate     DateTime?
+  lostReason       String?
   // Venue-specific inquiry fields (spec §3.1)
-  slot           String?    // "Lunch" | "Dinner"
-  vegNonVeg      String?    // "Veg Only" | "Non Veg Only" | "Both Veg & Non Veg" | "Jain"
-  perPlateBudget Decimal?   @db.Decimal(10, 2)
-  aiScore        Int?
-  aiScoreReason  String?    @db.Text
-  aiScoredAt     DateTime?
+  slot             String? // "Lunch" | "Dinner"
+  vegNonVeg        String? // "Veg Only" | "Non Veg Only" | "Both Veg & Non Veg" | "Jain"
+  perPlateBudget   Decimal?   @db.Decimal(10, 2)
+  aiScore          Int?
+  aiScoreReason    String?    @db.Text
+  aiScoredAt       DateTime?
   // Speed-to-lead SLA (§ Lever 1)
   firstContactDue  DateTime? // deadline for first response (set on capture)
   firstRespondedAt DateTime? // first outbound contact → stops the SLA clock
   slaEscalatedAt   DateTime? // breach escalated (dedupe so we alert once)
-  deletedAt      DateTime?  // soft-delete; auto-purged after 30 days by cron
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  deletedAt        DateTime? // soft-delete; auto-purged after 30 days by cron
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
 
   contactId        String
-  contact          Contact @relation(fields: [contactId], references: [id])
+  contact          Contact          @relation(fields: [contactId], references: [id])
   preferredVenueId String?
-  preferredVenue   Venue?  @relation("LeadPreferredVenue", fields: [preferredVenueId], references: [id])
-  assignedToId String?
-  assignedTo   User?   @relation("AssignedTo", fields: [assignedToId], references: [id])
-  createdById  String
-  createdBy    User    @relation("CreatedBy", fields: [createdById], references: [id])
-  deal         Deal?
-  quotes       Quote[]
-  salesQuotations SalesQuotation[]
+  preferredVenue   Venue?           @relation("LeadPreferredVenue", fields: [preferredVenueId], references: [id])
+  assignedToId     String?
+  assignedTo       User?            @relation("AssignedTo", fields: [assignedToId], references: [id])
+  createdById      String
+  createdBy        User             @relation("CreatedBy", fields: [createdById], references: [id])
+  deal             Deal?
+  quotes           Quote[]
+  salesQuotations  SalesQuotation[]
 
   @@index([status])
   @@index([assignedToId])
@@ -577,10 +583,10 @@ model Deal {
   updatedAt         DateTime  @updatedAt
 
   // AI Scoring fields
-  aiScore        Int?
-  aiScoreReason  String?   @db.Text
-  aiScoredAt     DateTime?
-  aiFactors      Json?
+  aiScore       Int?
+  aiScoreReason String?   @db.Text
+  aiScoredAt    DateTime?
+  aiFactors     Json?
 
   stageId      String
   stage        PipelineStage @relation(fields: [stageId], references: [id])
@@ -599,18 +605,18 @@ model Deal {
 // ============================================================
 
 model Venue {
-  id             String   @id @default(cuid())
-  name           String
-  description    String?  @db.Text
-  capacity       Int
-  pricePerSlot   Decimal  @db.Decimal(10, 2)
-  amenities      String[]
-  isActive       Boolean  @default(true)
-  parentVenueId  String?
-  parentVenue    Venue?   @relation("VenueHierarchy", fields: [parentVenueId], references: [id])
-  childVenues    Venue[]  @relation("VenueHierarchy")
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id            String   @id @default(cuid())
+  name          String
+  description   String?  @db.Text
+  capacity      Int
+  pricePerSlot  Decimal  @db.Decimal(10, 2)
+  amenities     String[]
+  isActive      Boolean  @default(true)
+  parentVenueId String?
+  parentVenue   Venue?   @relation("VenueHierarchy", fields: [parentVenueId], references: [id])
+  childVenues   Venue[]  @relation("VenueHierarchy")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   bookings          Booking[]
   blackoutDates     BlackoutDate[]
@@ -639,15 +645,15 @@ model Booking {
   currency        String        @default("INR")
 
   // Banquet commercials (mirrors Zoho Bookings/Deals custom fields)
-  hallBooked      String?       // specific hall/section within the venue
-  perPlatePrice   Decimal?      @db.Decimal(12, 2)
-  hallRental      Decimal?      @db.Decimal(12, 2)
-  decorCharges    Decimal?      @db.Decimal(12, 2)
-  otherServices   Decimal?      @db.Decimal(12, 2)
+  hallBooked    String? // specific hall/section within the venue
+  perPlatePrice Decimal? @db.Decimal(12, 2)
+  hallRental    Decimal? @db.Decimal(12, 2)
+  decorCharges  Decimal? @db.Decimal(12, 2)
+  otherServices Decimal? @db.Decimal(12, 2)
 
-  venueGroupId    String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  venueGroupId String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   venueId     String
   venue       Venue   @relation(fields: [venueId], references: [id])
@@ -658,32 +664,32 @@ model Booking {
   createdById String
   createdBy   User    @relation("BookingCreatedBy", fields: [createdById], references: [id])
 
-  invoices       Invoice[]
-  tasks          Task[]
-  contracts      Contract[]
-  bookingVendors BookingVendor[]
-  vendorBids     VendorBid[]
-  operation            EventOperation?
-  timeline             EventTimeline?
-  bookingMenu          BookingMenu?
-  guestList            GuestList?
-  resourceAllocations  ResourceAllocation[]
+  invoices              Invoice[]
+  tasks                 Task[]
+  contracts             Contract[]
+  bookingVendors        BookingVendor[]
+  vendorBids            VendorBid[]
+  operation             EventOperation?
+  timeline              EventTimeline?
+  bookingMenu           BookingMenu?
+  guestList             GuestList?
+  resourceAllocations   ResourceAllocation[]
   inventoryReservations InventoryReservation[]
-  shifts               Shift[]
-  seatingChart         SeatingChart?
-  rentalBookings       RentalBooking[]
-  payouts              Payout[]
-  insurancePolicies    InsurancePolicy[]
-  reviews              Review[]
+  shifts                Shift[]
+  seatingChart          SeatingChart?
+  rentalBookings        RentalBooking[]
+  payouts               Payout[]
+  insurancePolicies     InsurancePolicy[]
+  reviews               Review[]
 
   // Event Execution & Accountability
-  executionPlan        ExecutionPlan?
-  referralRewards      ReferralReward[]
+  executionPlan   ExecutionPlan?
+  referralRewards ReferralReward[]
 
   // Invitations & Reminders
-  guestInvitations     GuestInvitation[]
-  guestReminders       GuestReminder[]
-  reminderTemplates    ReminderTemplate[]
+  guestInvitations  GuestInvitation[]
+  guestReminders    GuestReminder[]
+  reminderTemplates ReminderTemplate[]
 
   @@unique([venueId, date, timeSlot])
   @@index([date])
@@ -718,7 +724,7 @@ model Task {
   priority    TaskPriority @default(MEDIUM)
   dueDate     DateTime?
   completedAt DateTime?
-  escalatedAt DateTime?    // overdue task escalated (dedupe)
+  escalatedAt DateTime? // overdue task escalated (dedupe)
   order       Int          @default(0)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
@@ -775,14 +781,14 @@ model Invoice {
   subtotal        Decimal       @db.Decimal(12, 2)
   discountPercent Decimal?      @db.Decimal(5, 2)
   discountAmount  Decimal?      @db.Decimal(12, 2)
-  cgstRate        Decimal       @db.Decimal(5, 2) @default(9)
-  sgstRate        Decimal       @db.Decimal(5, 2) @default(9)
-  igstRate        Decimal       @db.Decimal(5, 2) @default(0)
-  cgstAmount      Decimal       @db.Decimal(12, 2) @default(0)
-  sgstAmount      Decimal       @db.Decimal(12, 2) @default(0)
-  igstAmount      Decimal       @db.Decimal(12, 2) @default(0)
+  cgstRate        Decimal       @default(9) @db.Decimal(5, 2)
+  sgstRate        Decimal       @default(9) @db.Decimal(5, 2)
+  igstRate        Decimal       @default(0) @db.Decimal(5, 2)
+  cgstAmount      Decimal       @default(0) @db.Decimal(12, 2)
+  sgstAmount      Decimal       @default(0) @db.Decimal(12, 2)
+  igstAmount      Decimal       @default(0) @db.Decimal(12, 2)
   totalAmount     Decimal       @db.Decimal(12, 2)
-  paidAmount      Decimal       @db.Decimal(12, 2) @default(0)
+  paidAmount      Decimal       @default(0) @db.Decimal(12, 2)
   balanceDue      Decimal       @db.Decimal(12, 2)
   notes           String?       @db.Text
   terms           String?       @db.Text
@@ -802,7 +808,7 @@ model Invoice {
   lineItems          InvoiceLineItem[]
   payments           Payment[]
   installments       Installment[]
-  convertedFromQuote Quote? @relation("QuoteToInvoice")
+  convertedFromQuote Quote?            @relation("QuoteToInvoice")
 
   @@index([status])
   @@index([contactId])
@@ -915,19 +921,19 @@ enum PricingRuleType {
 }
 
 model PricingRule {
-  id          String          @id @default(cuid())
-  name        String
-  ruleType    PricingRuleType
-  multiplier  Decimal         @db.Decimal(5, 3)
-  conditions  Json?
-  startDate   DateTime?
-  endDate     DateTime?
-  dayOfWeek   Int?
+  id           String          @id @default(cuid())
+  name         String
+  ruleType     PricingRuleType
+  multiplier   Decimal         @db.Decimal(5, 3)
+  conditions   Json?
+  startDate    DateTime?
+  endDate      DateTime?
+  dayOfWeek    Int?
   minDaysAhead Int?
-  isActive    Boolean         @default(true)
-  priority    Int             @default(0)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  isActive     Boolean         @default(true)
+  priority     Int             @default(0)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
 
   venueId String
   venue   Venue  @relation(fields: [venueId], references: [id])
@@ -968,35 +974,35 @@ enum QuoteStatus {
 }
 
 model Quote {
-  id                 String      @id @default(cuid())
-  quoteNumber        String      @unique
-  title              String
-  status             QuoteStatus @default(DRAFT)
-  validUntil         DateTime
-  subtotal           Decimal     @db.Decimal(12, 2)
-  discountPercent    Decimal?    @db.Decimal(5, 2)
-  discountAmount     Decimal?    @db.Decimal(12, 2)
-  taxRate            Decimal     @db.Decimal(5, 2) @default(18)
-  taxAmount          Decimal     @db.Decimal(12, 2) @default(0)
-  totalAmount        Decimal     @db.Decimal(12, 2)
-  notes              String?     @db.Text
-  terms              String?     @db.Text
-  coverLetter        String?     @db.Text
-  sentAt             DateTime?
-  viewedAt           DateTime?
-  createdAt          DateTime    @default(now())
-  updatedAt          DateTime    @updatedAt
+  id              String      @id @default(cuid())
+  quoteNumber     String      @unique
+  title           String
+  status          QuoteStatus @default(DRAFT)
+  validUntil      DateTime
+  subtotal        Decimal     @db.Decimal(12, 2)
+  discountPercent Decimal?    @db.Decimal(5, 2)
+  discountAmount  Decimal?    @db.Decimal(12, 2)
+  taxRate         Decimal     @default(18) @db.Decimal(5, 2)
+  taxAmount       Decimal     @default(0) @db.Decimal(12, 2)
+  totalAmount     Decimal     @db.Decimal(12, 2)
+  notes           String?     @db.Text
+  terms           String?     @db.Text
+  coverLetter     String?     @db.Text
+  sentAt          DateTime?
+  viewedAt        DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 
   contactId          String
-  contact            Contact         @relation(fields: [contactId], references: [id])
+  contact            Contact       @relation(fields: [contactId], references: [id])
   leadId             String?
-  lead               Lead?           @relation(fields: [leadId], references: [id])
+  lead               Lead?         @relation(fields: [leadId], references: [id])
   packageId          String?
-  package            EventPackage?   @relation(fields: [packageId], references: [id])
+  package            EventPackage? @relation(fields: [packageId], references: [id])
   createdById        String
-  createdBy          User            @relation("QuoteCreatedBy", fields: [createdById], references: [id])
-  convertedInvoiceId String?         @unique
-  convertedInvoice   Invoice?        @relation("QuoteToInvoice", fields: [convertedInvoiceId], references: [id])
+  createdBy          User          @relation("QuoteCreatedBy", fields: [createdById], references: [id])
+  convertedInvoiceId String?       @unique
+  convertedInvoice   Invoice?      @relation("QuoteToInvoice", fields: [convertedInvoiceId], references: [id])
 
   lineItems QuoteLineItem[]
 
@@ -1032,20 +1038,20 @@ enum ContractStatus {
 }
 
 model Contract {
-  id              String         @id @default(cuid())
-  title           String
-  status          ContractStatus @default(DRAFT)
-  content         String         @db.Text
-  sentAt          DateTime?
-  signedAt        DateTime?
-  expiresAt       DateTime?
-  signerName      String?
-  signerEmail     String?
-  signatureData   String?        @db.Text
-  signedViaEsign  Boolean        @default(false)
-  notes           String?        @db.Text
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  id             String         @id @default(cuid())
+  title          String
+  status         ContractStatus @default(DRAFT)
+  content        String         @db.Text
+  sentAt         DateTime?
+  signedAt       DateTime?
+  expiresAt      DateTime?
+  signerName     String?
+  signerEmail    String?
+  signatureData  String?        @db.Text
+  signedViaEsign Boolean        @default(false)
+  notes          String?        @db.Text
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
   templateId  String?
   template    ContractTemplate? @relation(fields: [templateId], references: [id])
@@ -1179,10 +1185,10 @@ model Vendor {
 
   // Event Execution & Accountability
   executionTasks        ExecutionTask[]
-  performanceScores     PerformanceScore[]   @relation("VendorPerformanceScores")
-  badges                Badge[]              @relation("VendorBadges")
+  performanceScores     PerformanceScore[]     @relation("VendorPerformanceScores")
+  badges                Badge[]                @relation("VendorBadges")
   performanceIncentives PerformanceIncentive[] @relation("VendorIncentives")
-  referralsMade         Referral[]           @relation("VendorReferrals")
+  referralsMade         Referral[]             @relation("VendorReferrals")
 
   @@index([category])
   @@index([status])
@@ -1665,8 +1671,8 @@ model PayrollEntry {
   id          String        @id @default(cuid())
   month       String
   basePay     Decimal       @db.Decimal(12, 2)
-  overtimePay Decimal       @db.Decimal(12, 2) @default(0)
-  deductions  Decimal       @db.Decimal(12, 2) @default(0)
+  overtimePay Decimal       @default(0) @db.Decimal(12, 2)
+  deductions  Decimal       @default(0) @db.Decimal(12, 2)
   netPay      Decimal       @db.Decimal(12, 2)
   status      PayrollStatus @default(DRAFT)
   paidAt      DateTime?
@@ -1684,10 +1690,10 @@ model PayrollEntry {
 // 7.4 Seating Chart
 
 model SeatingChart {
-  id      String @id @default(cuid())
-  name    String
-  rows    Int
-  columns Int
+  id        String   @id @default(cuid())
+  name      String
+  rows      Int
+  columns   Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1824,10 +1830,10 @@ model Payout {
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
-  vendorId    String?
-  vendor      Vendor?  @relation(fields: [vendorId], references: [id])
-  bookingId   String?
-  booking     Booking? @relation(fields: [bookingId], references: [id])
+  vendorId     String?
+  vendor       Vendor?  @relation(fields: [vendorId], references: [id])
+  bookingId    String?
+  booking      Booking? @relation(fields: [bookingId], references: [id])
   approvedById String?
 
   @@index([status])
@@ -1838,14 +1844,14 @@ model Payout {
 // 8.2 Commission Tracking
 
 model CommissionRule {
-  id          String  @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String
   role        String?
   userId      String?
   bookingType String?
-  percentage  Decimal @db.Decimal(5, 2)
+  percentage  Decimal  @db.Decimal(5, 2)
   flatAmount  Decimal? @db.Decimal(12, 2)
-  isActive    Boolean @default(true)
+  isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -1874,16 +1880,16 @@ model CommissionEntry {
 // 8.3 Financial Forecasting & Budgeting
 
 model Budget {
-  id       String   @id @default(cuid())
-  name     String
-  venueId  String?
-  month    String
-  year     Int
-  revenue  Decimal  @db.Decimal(12, 2)
-  expenses Decimal  @db.Decimal(12, 2)
-  profit   Decimal  @db.Decimal(12, 2)
-  category String?
-  notes    String?  @db.Text
+  id        String   @id @default(cuid())
+  name      String
+  venueId   String?
+  month     String
+  year      Int
+  revenue   Decimal  @db.Decimal(12, 2)
+  expenses  Decimal  @db.Decimal(12, 2)
+  profit    Decimal  @db.Decimal(12, 2)
+  category  String?
+  notes     String?  @db.Text
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -2048,8 +2054,8 @@ model Communication {
   createdAt DateTime               @default(now())
 
   // Sentiment Analysis fields
-  sentiment      String?   // POSITIVE, NEUTRAL, NEGATIVE
-  sentimentScore Float?    // -1.0 to 1.0
+  sentiment      String? // POSITIVE, NEUTRAL, NEGATIVE
+  sentimentScore Float? // -1.0 to 1.0
   sentimentAt    DateTime?
 
   contactId   String
@@ -2068,13 +2074,13 @@ model Communication {
 // 9.4 WhatsApp Business (Placeholder)
 
 model WhatsAppMessage {
-  id           String                @id @default(cuid())
+  id           String                 @id @default(cuid())
   direction    CommunicationDirection @default(OUTBOUND)
-  content      String                @db.Text
+  content      String                 @db.Text
   templateName String?
-  status       WhatsAppMessageStatus @default(SENT)
+  status       WhatsAppMessageStatus  @default(SENT)
   whatsappId   String?
-  sentAt       DateTime              @default(now())
+  sentAt       DateTime               @default(now())
 
   contactId String
   contact   Contact @relation(fields: [contactId], references: [id])
@@ -2103,11 +2109,11 @@ model Referral {
   updatedAt          DateTime       @updatedAt
 
   referrerContactId String
-  referrerContact   Contact  @relation(fields: [referrerContactId], references: [id])
+  referrerContact   Contact @relation(fields: [referrerContactId], references: [id])
   referrerUserId    String?
-  referrerUser      User?    @relation("UserReferrals", fields: [referrerUserId], references: [id])
+  referrerUser      User?   @relation("UserReferrals", fields: [referrerUserId], references: [id])
   referrerVendorId  String?
-  referrerVendor    Vendor?  @relation("VendorReferrals", fields: [referrerVendorId], references: [id])
+  referrerVendor    Vendor? @relation("VendorReferrals", fields: [referrerVendorId], references: [id])
 
   rewards ReferralReward[]
 
@@ -2166,8 +2172,8 @@ model LoyaltyAccount {
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
-  contactId    String                @unique
-  contact      Contact               @relation(fields: [contactId], references: [id])
+  contactId    String               @unique
+  contact      Contact              @relation(fields: [contactId], references: [id])
   transactions LoyaltyTransaction[]
 }
 
@@ -2196,12 +2202,12 @@ enum SurveyQuestionType {
 }
 
 model Survey {
-  id          String           @id @default(cuid())
+  id          String   @id @default(cuid())
   title       String
-  description String?          @db.Text
-  isActive    Boolean          @default(true)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  description String?  @db.Text
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   questions SurveyQuestion[]
   responses SurveyResponse[]
@@ -2255,16 +2261,16 @@ model SurveyAnswer {
 // 10.3 Reviews & Ratings
 
 model Review {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   rating      Int
   title       String?
-  content     String   @db.Text
-  isPublic    Boolean  @default(false)
-  isApproved  Boolean  @default(false)
-  response    String?  @db.Text
+  content     String    @db.Text
+  isPublic    Boolean   @default(false)
+  isApproved  Boolean   @default(false)
+  response    String?   @db.Text
   respondedAt DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   contactId String
   contact   Contact @relation(fields: [contactId], references: [id])
@@ -2279,7 +2285,7 @@ model Review {
 // 10.4 Booking Widget (Embeddable)
 
 model WidgetInquiry {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   name        String
   email       String
   phone       String?
@@ -2287,10 +2293,10 @@ model WidgetInquiry {
   eventDate   DateTime?
   guestCount  Int?
   venueId     String?
-  message     String   @db.Text
-  source      String   @default("WIDGET")
-  isProcessed Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  message     String    @db.Text
+  source      String    @default("WIDGET")
+  isProcessed Boolean   @default(false)
+  createdAt   DateTime  @default(now())
 
   @@index([isProcessed])
   @@index([createdAt])
@@ -2392,16 +2398,16 @@ model Currency {
 
 // 12.4 Emergency Response
 model EmergencyProtocol {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   venueId        String?
   name           String
-  type           String   // FIRE, MEDICAL, WEATHER, SECURITY, POWER_OUTAGE, OTHER
-  procedures     String   @db.Text
-  contactNumbers Json?    // Array of { name, phone, role }
+  type           String // FIRE, MEDICAL, WEATHER, SECURITY, POWER_OUTAGE, OTHER
+  procedures     String    @db.Text
+  contactNumbers Json? // Array of { name, phone, role }
   lastReviewedAt DateTime?
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   incidents EmergencyIncident[]
 
@@ -2410,19 +2416,19 @@ model EmergencyProtocol {
 }
 
 model EmergencyIncident {
-  id          String    @id @default(cuid())
-  bookingId   String?
-  protocolId  String?
-  protocol    EmergencyProtocol? @relation(fields: [protocolId], references: [id])
-  type        String    // FIRE, MEDICAL, WEATHER, SECURITY, POWER_OUTAGE, OTHER
-  description String    @db.Text
-  severity    String    // HIGH, MEDIUM, LOW
-  status      String    @default("OPEN") // OPEN, RESPONDING, RESOLVED
-  resolvedAt  DateTime?
-  notes       String?   @db.Text
+  id           String             @id @default(cuid())
+  bookingId    String?
+  protocolId   String?
+  protocol     EmergencyProtocol? @relation(fields: [protocolId], references: [id])
+  type         String // FIRE, MEDICAL, WEATHER, SECURITY, POWER_OUTAGE, OTHER
+  description  String             @db.Text
+  severity     String // HIGH, MEDIUM, LOW
+  status       String             @default("OPEN") // OPEN, RESPONDING, RESOLVED
+  resolvedAt   DateTime?
+  notes        String?            @db.Text
   reportedById String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
 
   @@index([bookingId])
   @@index([status])
@@ -2430,21 +2436,21 @@ model EmergencyIncident {
 
 // 12.5 Document / File Management
 model Document {
-  id          String   @id @default(cuid())
-  name        String
-  fileName    String
-  mimeType    String
-  size        Int      // bytes
-  category    String   // CONTRACT, INVOICE, PHOTO, LICENSE, PERMIT, INSURANCE, OTHER
-  url         String?  @db.Text // External URL or storage path
-  isPublic    Boolean  @default(false)
-  bookingId   String?
-  contactId   String?
-  venueId     String?
+  id           String   @id @default(cuid())
+  name         String
+  fileName     String
+  mimeType     String
+  size         Int // bytes
+  category     String // CONTRACT, INVOICE, PHOTO, LICENSE, PERMIT, INSURANCE, OTHER
+  url          String?  @db.Text // External URL or storage path
+  isPublic     Boolean  @default(false)
+  bookingId    String?
+  contactId    String?
+  venueId      String?
   uploadedById String?
-  tags        String[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  tags         String[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@index([bookingId])
   @@index([contactId])
@@ -2476,12 +2482,12 @@ model SOPTemplate {
 }
 
 model SOPPhase {
-  id          String        @id @default(cuid())
+  id          String         @id @default(cuid())
   name        String
   phase       EventPhaseType
-  order       Int           @default(0)
-  description String?       @db.Text
-  createdAt   DateTime      @default(now())
+  order       Int            @default(0)
+  description String?        @db.Text
+  createdAt   DateTime       @default(now())
 
   templateId String
   template   SOPTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
@@ -2492,17 +2498,17 @@ model SOPPhase {
 }
 
 model SOPTaskDefinition {
-  id                String       @id @default(cuid())
-  title             String
-  description       String?      @db.Text
-  category          TaskCategory @default(GENERAL)
-  priority          TaskPriority @default(MEDIUM)
-  estimatedMinutes  Int?
-  isMandatory       Boolean      @default(false)
-  requiresApproval  Boolean      @default(false)
-  requiresProof     Boolean      @default(false)
-  order             Int          @default(0)
-  checklistItems    Json?
+  id                 String       @id @default(cuid())
+  title              String
+  description        String?      @db.Text
+  category           TaskCategory @default(GENERAL)
+  priority           TaskPriority @default(MEDIUM)
+  estimatedMinutes   Int?
+  isMandatory        Boolean      @default(false)
+  requiresApproval   Boolean      @default(false)
+  requiresProof      Boolean      @default(false)
+  order              Int          @default(0)
+  checklistItems     Json?
   dependsOnTaskOrder Int?
 
   phaseId String
@@ -2514,21 +2520,21 @@ model SOPTaskDefinition {
 // 13.2 Execution Plan (instantiated for a booking)
 
 model ExecutionPlan {
-  id          String          @id @default(cuid())
-  status      OperationStatus @default(PLANNING)
-  eventDate   DateTime        @db.Date
-  startTime   String?
-  endTime     String?
-  notes       String?         @db.Text
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  id        String          @id @default(cuid())
+  status    OperationStatus @default(PLANNING)
+  eventDate DateTime        @db.Date
+  startTime String?
+  endTime   String?
+  notes     String?         @db.Text
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
 
-  bookingId     String   @unique
-  booking       Booking  @relation(fields: [bookingId], references: [id])
+  bookingId     String       @unique
+  booking       Booking      @relation(fields: [bookingId], references: [id])
   sopTemplateId String?
   sopTemplate   SOPTemplate? @relation(fields: [sopTemplateId], references: [id])
   createdById   String
-  createdBy     User     @relation("ExecutionPlanCreatedBy", fields: [createdById], references: [id])
+  createdBy     User         @relation("ExecutionPlanCreatedBy", fields: [createdById], references: [id])
 
   phases ExecutionPhase[]
 
@@ -2558,28 +2564,28 @@ model ExecutionPhase {
 }
 
 model ExecutionTask {
-  id                String              @id @default(cuid())
-  title             String
-  description       String?             @db.Text
-  category          TaskCategory        @default(GENERAL)
-  priority          TaskPriority        @default(MEDIUM)
-  status            ExecutionTaskStatus @default(NOT_STARTED)
-  estimatedMinutes  Int?
-  slaStartBy        DateTime?
-  slaFinishBy       DateTime?
-  actualStart       DateTime?
-  actualEnd         DateTime?
-  isMandatory       Boolean             @default(false)
-  requiresApproval  Boolean             @default(false)
-  isApproved        Boolean             @default(false)
-  approvedById      String?
-  approvedBy        User?               @relation("ExecutionTaskApprover", fields: [approvedById], references: [id])
-  approvedAt        DateTime?
-  requiresProof     Boolean             @default(false)
-  delayReason       String?             @db.Text
-  order             Int                 @default(0)
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
+  id               String              @id @default(cuid())
+  title            String
+  description      String?             @db.Text
+  category         TaskCategory        @default(GENERAL)
+  priority         TaskPriority        @default(MEDIUM)
+  status           ExecutionTaskStatus @default(NOT_STARTED)
+  estimatedMinutes Int?
+  slaStartBy       DateTime?
+  slaFinishBy      DateTime?
+  actualStart      DateTime?
+  actualEnd        DateTime?
+  isMandatory      Boolean             @default(false)
+  requiresApproval Boolean             @default(false)
+  isApproved       Boolean             @default(false)
+  approvedById     String?
+  approvedBy       User?               @relation("ExecutionTaskApprover", fields: [approvedById], references: [id])
+  approvedAt       DateTime?
+  requiresProof    Boolean             @default(false)
+  delayReason      String?             @db.Text
+  order            Int                 @default(0)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
 
   // Dependencies
   dependsOnTaskId String?
@@ -2656,7 +2662,7 @@ model TaskTimeLog {
 // 13.3 Escalation Matrix
 
 model EscalationRule {
-  id                    String       @id @default(cuid())
+  id                    String          @id @default(cuid())
   name                  String
   category              TaskCategory
   priority              TaskPriority
@@ -2664,9 +2670,9 @@ model EscalationRule {
   level                 EscalationLevel
   notifyUserIds         String[]
   notifyRoles           String[]
-  isActive              Boolean      @default(true)
-  createdAt             DateTime     @default(now())
-  updatedAt             DateTime     @updatedAt
+  isActive              Boolean         @default(true)
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
 
   escalations Escalation[]
 
@@ -2691,7 +2697,7 @@ model Escalation {
   updatedAt        DateTime         @updatedAt
 
   taskId String
-  task   ExecutionTask  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  task   ExecutionTask   @relation(fields: [taskId], references: [id], onDelete: Cascade)
   ruleId String?
   rule   EscalationRule? @relation(fields: [ruleId], references: [id])
 
@@ -2706,14 +2712,14 @@ model Escalation {
 model PerformanceScore {
   id                  String   @id @default(cuid())
   period              String
-  onTimeRate          Decimal  @db.Decimal(5, 2) @default(0)
-  qualityScore        Decimal  @db.Decimal(5, 2) @default(0)
+  onTimeRate          Decimal  @default(0) @db.Decimal(5, 2)
+  qualityScore        Decimal  @default(0) @db.Decimal(5, 2)
   reworkCount         Int      @default(0)
   escalationCount     Int      @default(0)
   avgResponseMinutes  Int      @default(0)
   totalTasksCompleted Int      @default(0)
   totalTasksAssigned  Int      @default(0)
-  overallScore        Decimal  @db.Decimal(5, 2) @default(0)
+  overallScore        Decimal  @default(0) @db.Decimal(5, 2)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -2790,14 +2796,14 @@ model ReferralRewardRule {
 }
 
 model ReferralReward {
-  id          String              @id @default(cuid())
+  id          String               @id @default(cuid())
   status      ReferralRewardStatus @default(REWARD_PENDING)
   rewardType  String
-  rewardValue Decimal             @db.Decimal(12, 2)
+  rewardValue Decimal              @db.Decimal(12, 2)
   paidAt      DateTime?
   paymentRef  String?
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
 
   referralId String
   referral   Referral            @relation(fields: [referralId], references: [id], onDelete: Cascade)
@@ -2850,15 +2856,15 @@ model GuestInvitation {
 }
 
 model GuestReminder {
-  id                String        @id @default(cuid())
+  id                String         @id @default(cuid())
   stage             ReminderStage
   status            ReminderStatus @default(REMINDER_PENDING)
   scheduledFor      DateTime
   sentAt            DateTime?
   whatsappMessageId String?
   failReason        String?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
 
   guestId   String
   guest     Guest   @relation(fields: [guestId], references: [id], onDelete: Cascade)
@@ -2892,7 +2898,7 @@ model ReminderTemplate {
 model SavedView {
   id         String   @id @default(cuid())
   name       String
-  entityType String   // CONTACT, LEAD, DEAL, TASK, INVOICE
+  entityType String // CONTACT, LEAD, DEAL, TASK, INVOICE
   filters    Json     @default("[]")
   sortBy     String?
   sortOrder  String?  @default("desc")
@@ -2904,7 +2910,7 @@ model SavedView {
   updatedAt  DateTime @updatedAt
 
   createdById String
-  createdBy   User @relation("UserSavedViews", fields: [createdById], references: [id])
+  createdBy   User   @relation("UserSavedViews", fields: [createdById], references: [id])
 
   @@index([entityType])
   @@index([createdById])
@@ -2942,7 +2948,7 @@ model Macro {
   id          String   @id @default(cuid())
   name        String
   description String?
-  entityType  String   // LEAD, CONTACT, DEAL, BOOKING
+  entityType  String // LEAD, CONTACT, DEAL, BOOKING
   icon        String   @default("Zap")
   color       String   @default("#6366f1")
   actions     Json     @default("[]") // [{type, config}]
@@ -2952,7 +2958,7 @@ model Macro {
   updatedAt   DateTime @updatedAt
 
   createdById String
-  createdBy   User @relation("UserMacros", fields: [createdById], references: [id])
+  createdBy   User   @relation("UserMacros", fields: [createdById], references: [id])
 
   @@index([entityType, isActive])
   @@index([createdById])
@@ -2965,7 +2971,7 @@ model Macro {
 model ScoringRuleSet {
   id          String   @id @default(cuid())
   name        String
-  entityType  String   // LEAD, CONTACT, DEAL
+  entityType  String // LEAD, CONTACT, DEAL
   description String?  @db.Text
   isActive    Boolean  @default(true)
   maxScore    Int      @default(100)
@@ -2978,13 +2984,13 @@ model ScoringRuleSet {
 }
 
 model ScoringRule {
-  id         String  @id @default(cuid())
+  id         String   @id @default(cuid())
   name       String
-  category   String  // FIELD_BASED, ACTIVITY_BASED, PROFILE_COMPLETENESS, DECAY
-  points     Int     // positive=add, negative=deduct
-  conditions Json    @default("[]") // [{field, operator, value}]
-  isActive   Boolean @default(true)
-  order      Int     @default(0)
+  category   String // FIELD_BASED, ACTIVITY_BASED, PROFILE_COMPLETENESS, DECAY
+  points     Int // positive=add, negative=deduct
+  conditions Json     @default("[]") // [{field, operator, value}]
+  isActive   Boolean  @default(true)
+  order      Int      @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -3000,17 +3006,17 @@ model ScoringRule {
 // ============================================================
 
 model Blueprint {
-  id          String  @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String
-  entityType  String  // LEAD, DEAL, BOOKING
-  description String? @db.Text
-  isActive    Boolean @default(true)
-  isPublished Boolean @default(false)
+  entityType  String // LEAD, DEAL, BOOKING
+  description String?  @db.Text
+  isActive    Boolean  @default(true)
+  isPublished Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   createdById String
-  createdBy   User @relation("UserBlueprints", fields: [createdById], references: [id])
+  createdBy   User   @relation("UserBlueprints", fields: [createdById], references: [id])
 
   transitions BlueprintTransition[]
 
@@ -3020,9 +3026,9 @@ model Blueprint {
 
 model BlueprintTransition {
   id              String   @id @default(cuid())
-  fromStatus      String   // e.g. "NEW", "CONTACTED" for Lead; stageId for Deal
+  fromStatus      String // e.g. "NEW", "CONTACTED" for Lead; stageId for Deal
   toStatus        String
-  name            String?  // Display name e.g. "Qualify Lead"
+  name            String? // Display name e.g. "Qualify Lead"
   requiredFields  Json     @default("[]") // ["estimatedValue", "eventType"]
   requiredActions Json     @default("[]") // ["LOG_COMMUNICATION"]
   allowedRoles    String[] // UserRole values allowed to execute
@@ -3043,7 +3049,7 @@ model BlueprintTransition {
 
 model BlueprintTransitionLog {
   id           String   @id @default(cuid())
-  entityType   String   // LEAD, DEAL, BOOKING
+  entityType   String // LEAD, DEAL, BOOKING
   entityId     String
   fromStatus   String
   toStatus     String
@@ -3068,15 +3074,15 @@ model Cadence {
   name               String
   description        String?  @db.Text
   status             String   @default("DRAFT") // DRAFT, ACTIVE, PAUSED, ARCHIVED
-  entityType         String   @default("LEAD")  // LEAD or CONTACT
-  exitCriteria       Json     @default("[]")     // [{type, values}]
+  entityType         String   @default("LEAD") // LEAD or CONTACT
+  exitCriteria       Json     @default("[]") // [{type, values}]
   autoEnroll         Boolean  @default(false)
-  autoEnrollCriteria Json?                       // [{field, operator, value}]
+  autoEnrollCriteria Json? // [{field, operator, value}]
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
   createdById String
-  createdBy   User @relation("UserCadences", fields: [createdById], references: [id])
+  createdBy   User   @relation("UserCadences", fields: [createdById], references: [id])
 
   steps       CadenceStep[]
   enrollments CadenceEnrollment[]
@@ -3087,14 +3093,14 @@ model Cadence {
 }
 
 model CadenceStep {
-  id        String   @id @default(cuid())
-  stepType  String   // SEND_EMAIL, CREATE_TASK, SEND_WHATSAPP, WAIT, LOG_NOTE
-  order     Int
-  config    Json     @default("{}") // Step-specific config
-  delayDays Int      @default(0)
-  delayHours Int     @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  stepType   String // SEND_EMAIL, CREATE_TASK, SEND_WHATSAPP, WAIT, LOG_NOTE
+  order      Int
+  config     Json     @default("{}") // Step-specific config
+  delayDays  Int      @default(0)
+  delayHours Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   cadenceId String
   cadence   Cadence @relation(fields: [cadenceId], references: [id], onDelete: Cascade)
@@ -3138,7 +3144,7 @@ model CadenceEnrollmentStep {
   enrollmentId String
   enrollment   CadenceEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
   stepId       String
-  step         CadenceStep @relation(fields: [stepId], references: [id])
+  step         CadenceStep       @relation(fields: [stepId], references: [id])
 
   @@index([enrollmentId])
   @@index([stepId])
@@ -3151,7 +3157,7 @@ model CadenceEnrollmentStep {
 model ApprovalRule {
   id          String   @id @default(cuid())
   name        String
-  entityType  String   // QUOTE, DEAL, BOOKING
+  entityType  String // QUOTE, DEAL, BOOKING
   description String?  @db.Text
   isActive    Boolean  @default(true)
   priority    Int      @default(0)
@@ -3170,7 +3176,7 @@ model ApprovalChainStep {
   id           String  @id @default(cuid())
   order        Int
   approverType String  @default("USER") // USER or ROLE
-  approverId   String  // userId or role name
+  approverId   String // userId or role name
   isOptional   Boolean @default(false)
 
   ruleId String
@@ -3180,14 +3186,14 @@ model ApprovalChainStep {
 }
 
 model ApprovalRequest {
-  id            String    @id @default(cuid())
-  status        String    @default("PENDING_APPROVAL") // PENDING_APPROVAL, APPROVED, REJECTED, DELEGATED, CANCELLED
-  entityType    String    // QUOTE, DEAL, BOOKING
-  entityId      String
-  currentStep   Int       @default(0)
-  submittedAt   DateTime  @default(now())
-  resolvedAt    DateTime?
-  metadata      Json?     // Snapshot of entity data
+  id          String    @id @default(cuid())
+  status      String    @default("PENDING_APPROVAL") // PENDING_APPROVAL, APPROVED, REJECTED, DELEGATED, CANCELLED
+  entityType  String // QUOTE, DEAL, BOOKING
+  entityId    String
+  currentStep Int       @default(0)
+  submittedAt DateTime  @default(now())
+  resolvedAt  DateTime?
+  metadata    Json? // Snapshot of entity data
 
   ruleId        String
   rule          ApprovalRule @relation(fields: [ruleId], references: [id])
@@ -3201,11 +3207,11 @@ model ApprovalRequest {
 }
 
 model ApprovalDecision {
-  id            String   @id @default(cuid())
-  action        String   // APPROVE, REJECT, DELEGATE
-  comment       String?  @db.Text
-  stepOrder     Int
-  decidedAt     DateTime @default(now())
+  id        String   @id @default(cuid())
+  action    String // APPROVE, REJECT, DELEGATE
+  comment   String?  @db.Text
+  stepOrder Int
+  decidedAt DateTime @default(now())
 
   requestId     String
   request       ApprovalRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
@@ -3225,14 +3231,14 @@ model Webform {
   name            String
   slug            String   @unique
   description     String?  @db.Text
-  fields          Json     // Array of field definitions
-  styling         Json?    // Optional custom styling
+  fields          Json // Array of field definitions
+  styling         Json? // Optional custom styling
   thankYouUrl     String?
   thankYouMessage String?  @db.Text
   notifyUserIds   String[] // User IDs to notify on submission
-  autoAssignTo    String?  // User ID for auto-assignment
+  autoAssignTo    String? // User ID for auto-assignment
   defaultSource   String   @default("WEBSITE")
-  honeypotField   String?  // Anti-spam field name
+  honeypotField   String? // Anti-spam field name
   isActive        Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -3249,7 +3255,7 @@ model Webform {
 
 model WebformSubmission {
   id        String   @id @default(cuid())
-  data      Json     // Submitted form data
+  data      Json // Submitted form data
   ipAddress String?
   userAgent String?  @db.Text
   isSpam    Boolean  @default(false)
@@ -3270,10 +3276,10 @@ model WebformSubmission {
 // ============================================================
 
 model EmailTrackingPixel {
-  id              String   @id @default(cuid())
-  recipientEmail  String
-  campaignId      String?
-  createdAt       DateTime @default(now())
+  id             String   @id @default(cuid())
+  recipientEmail String
+  campaignId     String?
+  createdAt      DateTime @default(now())
 
   communicationId String        @unique
   communication   Communication @relation(fields: [communicationId], references: [id], onDelete: Cascade)
@@ -3288,7 +3294,7 @@ model EmailTrackingPixel {
 
 model EmailTrackingEvent {
   id         String   @id @default(cuid())
-  type       String   // EMAIL_OPEN, LINK_CLICK
+  type       String // EMAIL_OPEN, LINK_CLICK
   ipAddress  String?
   userAgent  String?  @db.Text
   linkUrl    String?  @db.Text
@@ -3307,23 +3313,23 @@ model EmailTrackingEvent {
 // ============================================================
 
 model AnomalyAlert {
-  id              String   @id @default(cuid())
-  type            String   // REVENUE_DROP, REVENUE_SPIKE, LEAD_VOLUME_CHANGE, BOOKING_CANCELLATION_CLUSTER, PAYMENT_DELAY, CONVERSION_RATE_DROP
-  severity        String   // LOW, MEDIUM, HIGH, CRITICAL
-  title           String
-  description     String   @db.Text
-  entityType      String?  // Lead, Deal, Booking, Payment, etc.
-  entityId        String?
-  metric          String?
-  expectedValue   Float?
-  actualValue     Float?
+  id               String    @id @default(cuid())
+  type             String // REVENUE_DROP, REVENUE_SPIKE, LEAD_VOLUME_CHANGE, BOOKING_CANCELLATION_CLUSTER, PAYMENT_DELAY, CONVERSION_RATE_DROP
+  severity         String // LOW, MEDIUM, HIGH, CRITICAL
+  title            String
+  description      String    @db.Text
+  entityType       String? // Lead, Deal, Booking, Payment, etc.
+  entityId         String?
+  metric           String?
+  expectedValue    Float?
+  actualValue      Float?
   deviationPercent Float?
-  detectedAt      DateTime @default(now())
-  acknowledgedAt  DateTime?
+  detectedAt       DateTime  @default(now())
+  acknowledgedAt   DateTime?
   acknowledgedById String?
-  acknowledgedBy  User?    @relation("AnomalyAcknowledger", fields: [acknowledgedById], references: [id])
-  resolvedAt      DateTime?
-  isActive        Boolean  @default(true)
+  acknowledgedBy   User?     @relation("AnomalyAcknowledger", fields: [acknowledgedById], references: [id])
+  resolvedAt       DateTime?
+  isActive         Boolean   @default(true)
 
   @@index([type])
   @@index([severity])
@@ -3348,7 +3354,7 @@ model PasswordResetToken {
 model DeviceToken {
   id        String   @id @default(cuid())
   token     String   @unique
-  platform  String   // "ios" | "android"
+  platform  String // "ios" | "android"
   userId    String
   user      User     @relation("UserDeviceTokens", fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
@@ -3362,24 +3368,24 @@ model DeviceToken {
 // ============================================================
 
 model CallLog {
-  id              String           @id @default(cuid())
+  id              String          @id @default(cuid())
   disposition     CallDisposition
-  durationSeconds Int              @default(0)
+  durationSeconds Int             @default(0)
   recordingUrl    String?
   externalCallId  String?
-  notes           String?          @db.Text
+  notes           String?         @db.Text
   tags            String[]
   followUpDate    DateTime?
-  followUpNotes   String?          @db.Text
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  followUpNotes   String?         @db.Text
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
-  communicationId String           @unique
-  communication   Communication    @relation(fields: [communicationId], references: [id], onDelete: Cascade)
+  communicationId String        @unique
+  communication   Communication @relation(fields: [communicationId], references: [id], onDelete: Cascade)
   contactId       String
-  contact         Contact          @relation(fields: [contactId], references: [id])
+  contact         Contact       @relation(fields: [contactId], references: [id])
   agentId         String
-  agent           User             @relation("AgentCallLogs", fields: [agentId], references: [id])
+  agent           User          @relation("AgentCallLogs", fields: [agentId], references: [id])
 
   @@index([contactId])
   @@index([agentId])
@@ -3393,17 +3399,17 @@ model CallLog {
 // ============================================================
 
 model ApiKey {
-  id          String   @id @default(cuid())
-  name        String
-  keyHash     String
-  prefix      String   // First 8 chars for display
-  isActive    Boolean  @default(true)
-  lastUsedAt  DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String    @id @default(cuid())
+  name       String
+  keyHash    String
+  prefix     String // First 8 chars for display
+  isActive   Boolean   @default(true)
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   createdById String
-  createdBy   User     @relation("UserApiKeys", fields: [createdById], references: [id])
+  createdBy   User   @relation("UserApiKeys", fields: [createdById], references: [id])
 
   @@index([keyHash])
   @@index([isActive])
@@ -3440,8 +3446,8 @@ model TelephonyConfig {
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
-  createdById   String
-  createdBy     User              @relation("UserTelephonyConfigs", fields: [createdById], references: [id])
+  createdById String
+  createdBy   User   @relation("UserTelephonyConfigs", fields: [createdById], references: [id])
 
   @@index([isActive])
 }
@@ -3592,9 +3598,9 @@ enum AcqLeadSource {
 // Development/operational stage of the property a lead is about.
 enum AcqPropertyStage {
   OPERATIONAL // already a running venue
-  CONVERSION  // existing building being converted to a venue
-  BROWNFIELD  // redeveloping an existing site
-  GREENFIELD  // new build on undeveloped land
+  CONVERSION // existing building being converted to a venue
+  BROWNFIELD // redeveloping an existing site
+  GREENFIELD // new build on undeveloped land
 }
 
 // Seating-capacity bucket for quick filtering/qualification.
@@ -3662,43 +3668,43 @@ enum AcqLostReason {
 }
 
 model AcqLead {
-  id               String        @id @default(cuid())
-  ownerName        String
-  mobilePrimary    String // E.164 normalized
-  mobileAlternate  String?
-  email            String?
-  propertyName     String
-  propertyType     AcqPropertyType
-  city             String
-  locality         String
-  seatingTheatre   Int?
-  seatingFloating  Int?
-  seatingRange     AcqSeatingRange?  // bucketed capacity (50-100, 100-150, …)
-  propertyStage    AcqPropertyStage? // operational / conversion / brownfield / greenfield
-  notes            String?           @db.Text
+  id                  String               @id @default(cuid())
+  ownerName           String
+  mobilePrimary       String // E.164 normalized
+  mobileAlternate     String?
+  email               String?
+  propertyName        String
+  propertyType        AcqPropertyType
+  city                String
+  locality            String
+  seatingTheatre      Int?
+  seatingFloating     Int?
+  seatingRange        AcqSeatingRange? // bucketed capacity (50-100, 100-150, …)
+  propertyStage       AcqPropertyStage? // operational / conversion / brownfield / greenfield
+  notes               String?              @db.Text
   // Qualification checklist (§ qualify gate) — persisted so the lead dashboard
   // can show progress toward qualification.
   qualSeating100      Boolean?
   qualOwnerInterested Boolean?
   qualAgreeRenovate   Boolean?
   qualPhotosReady     Boolean?
-  leadSource       AcqLeadSource
-  ownerType        AcqOwnerType
-  bdExecutiveId    String
-  bdExecutive      User          @relation("AcqLeadBdExec", fields: [bdExecutiveId], references: [id])
-  status           AcqLeadStatus @default(NEW)
-  disqualifyReason AcqDisqualifyReason?
-  contactAttempts  Int           @default(0)
-  nextFollowupAt   DateTime?
-  firstContactDue  DateTime
-  firstContactAt   DateTime? // when the lead was first actually contacted — clears the SLA
-  slaEscalatedAt   DateTime? // set when an overdue first-contact SLA was escalated (idempotency)
-  convertedDealId  String? // set on qualify (denormalized; deal.leadId is authoritative)
-  deal             AcqDeal?      @relation("AcqDealOrigin")
-  activities       AcqLeadActivity[]
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  deletedAt        DateTime?
+  leadSource          AcqLeadSource
+  ownerType           AcqOwnerType
+  bdExecutiveId       String
+  bdExecutive         User                 @relation("AcqLeadBdExec", fields: [bdExecutiveId], references: [id])
+  status              AcqLeadStatus        @default(NEW)
+  disqualifyReason    AcqDisqualifyReason?
+  contactAttempts     Int                  @default(0)
+  nextFollowupAt      DateTime?
+  firstContactDue     DateTime
+  firstContactAt      DateTime? // when the lead was first actually contacted — clears the SLA
+  slaEscalatedAt      DateTime? // set when an overdue first-contact SLA was escalated (idempotency)
+  convertedDealId     String? // set on qualify (denormalized; deal.leadId is authoritative)
+  deal                AcqDeal?             @relation("AcqDealOrigin")
+  activities          AcqLeadActivity[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  deletedAt           DateTime?
 
   @@index([status])
   @@index([city])
@@ -3709,25 +3715,25 @@ model AcqLead {
 
 // Contact-log / activity timeline for a BD lead (channel + outcome + note per touch).
 model AcqLeadActivity {
-  id         String   @id @default(cuid())
-  leadId     String
-  lead       AcqLead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  channel    String   // CALL | WHATSAPP | EMAIL | VISIT | NOTE
-  outcome    String?  // CONNECTED | NO_ANSWER | INTERESTED | NOT_INTERESTED | CALLBACK | ...
-  note       String?  @db.Text
-  actorId    String?
-  actorName  String?
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  leadId    String
+  lead      AcqLead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  channel   String // CALL | WHATSAPP | EMAIL | VISIT | NOTE
+  outcome   String? // CONNECTED | NO_ANSWER | INTERESTED | NOT_INTERESTED | CALLBACK | ...
+  note      String?  @db.Text
+  actorId   String?
+  actorName String?
+  createdAt DateTime @default(now())
 
   @@index([leadId])
 }
 
 model AcqDeal {
-  id          String       @id @default(cuid())
-  name        String
-  leadId      String       @unique
-  lead        AcqLead      @relation("AcqDealOrigin", fields: [leadId], references: [id])
-  stage       AcqDealStage @default(QUALIFIED)
+  id     String       @id @default(cuid())
+  name   String
+  leadId String       @unique
+  lead   AcqLead      @relation("AcqDealOrigin", fields: [leadId], references: [id])
+  stage  AcqDealStage @default(QUALIFIED)
 
   // Owner + venue snapshot (copied from lead at creation)
   ownerName       String
@@ -3744,47 +3750,47 @@ model AcqDeal {
   avgEventsPerMonth          Decimal? @db.Decimal(6, 2)
   peakRateCard               Decimal? @db.Decimal(12, 2)
 
-  banquetSizeSft  Int? // venue size (sqft) — shown on the board card
+  banquetSizeSft Int? // venue size (sqft) — shown on the board card
 
   // Commercials
-  model               AcqDealModel?
-  baseFeePct          Decimal? @db.Decimal(5, 2)
-  incentivePct        Decimal? @db.Decimal(5, 2)
-  royaltyPct          Decimal? @db.Decimal(5, 2)
-  termYears           Int?
-  lockinYears         Int?
-  isExclusive         Boolean?
-  expectedMonthlyEvents Decimal? @db.Decimal(6, 2)
-  projectedFeeValue   Decimal? @db.Decimal(12, 2)
+  model                 AcqDealModel?
+  baseFeePct            Decimal?      @db.Decimal(5, 2)
+  incentivePct          Decimal?      @db.Decimal(5, 2)
+  royaltyPct            Decimal?      @db.Decimal(5, 2)
+  termYears             Int?
+  lockinYears           Int?
+  isExclusive           Boolean?
+  expectedMonthlyEvents Decimal?      @db.Decimal(6, 2)
+  projectedFeeValue     Decimal?      @db.Decimal(12, 2)
   // Once frozen, base fee / incentive / term are locked (post-agreement).
-  economicsFrozenAt   DateTime?
+  economicsFrozenAt     DateTime?
 
   // Scoring
   evalScore  Int?
   evalPassed Boolean?
 
   // Contract
-  contractStatus              AcqContractStatus @default(NOT_SENT)
-  signatoryAuthorityVerified  Boolean           @default(false)
-  gpaDocumentUrl              String?
+  contractStatus             AcqContractStatus @default(NOT_SENT)
+  signatoryAuthorityVerified Boolean           @default(false)
+  gpaDocumentUrl             String?
 
   // Approvals
   bdHeadApprovedById String?
-  bdHeadApprovedBy   User?    @relation("AcqDealBdHeadApprover", fields: [bdHeadApprovedById], references: [id])
+  bdHeadApprovedBy   User?     @relation("AcqDealBdHeadApprover", fields: [bdHeadApprovedById], references: [id])
   bdHeadApprovedAt   DateTime?
 
   // Outcome
-  lostReason  AcqLostReason?
-  reengageAt  DateTime?
-  wonAt       DateTime?
-  propertyId  String? // denormalized; property.dealId is authoritative
-  property    AcqProperty? @relation("AcqDealProperty")
+  lostReason AcqLostReason?
+  reengageAt DateTime?
+  wonAt      DateTime?
+  propertyId String? // denormalized; property.dealId is authoritative
+  property   AcqProperty?   @relation("AcqDealProperty")
 
   expectedCloseDate DateTime?
   bdExecutiveId     String
-  bdExecutive       User     @relation("AcqDealBdExec", fields: [bdExecutiveId], references: [id])
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  bdExecutive       User      @relation("AcqDealBdExec", fields: [bdExecutiveId], references: [id])
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
   deletedAt         DateTime?
 
   evaluations AcqEvaluation[]
@@ -3882,20 +3888,20 @@ enum AcqContractLifecycle {
 }
 
 model AcqContract {
-  id             String  @id @default(cuid())
+  id             String   @id @default(cuid())
   contractNumber String? // VG-CON-YYYY-NNN (generated server-side)
   title          String
-  dealId        String? // source deal (create-from-deal)
-  ownerName     String
-  ownerEmail    String?
-  ownerPhone    String?
-  propertyName  String
-  model         String? // MANAGEMENT | FRANCHISE
-  baseFeePct    Decimal? @db.Decimal(5, 2)
-  incentivePct  Decimal? @db.Decimal(5, 2)
-  termYears     Int?
-  contractValue Decimal? @db.Decimal(14, 2)
-  body          String?  @db.Text
+  dealId         String? // source deal (create-from-deal)
+  ownerName      String
+  ownerEmail     String?
+  ownerPhone     String?
+  propertyName   String
+  model          String? // MANAGEMENT | FRANCHISE
+  baseFeePct     Decimal? @db.Decimal(5, 2)
+  incentivePct   Decimal? @db.Decimal(5, 2)
+  termYears      Int?
+  contractValue  Decimal? @db.Decimal(14, 2)
+  body           String?  @db.Text
 
   phase  AcqContractPhase     @default(AUTHORING)
   status AcqContractLifecycle @default(DRAFT)
@@ -3981,61 +3987,61 @@ model AcqDealNote {
 }
 
 model AcqOnboardingProject {
-  id          String              @id @default(cuid())
-  propertyId  String              @unique
-  property    AcqProperty         @relation(fields: [propertyId], references: [id])
-  status      String              @default("OPEN") // OPEN | ON_HOLD | COMPLETED | CANCELLED
+  id               String      @id @default(cuid())
+  propertyId       String      @unique
+  property         AcqProperty @relation(fields: [propertyId], references: [id])
+  status           String      @default("OPEN") // OPEN | ON_HOLD | COMPLETED | CANCELLED
   // 9-stage Projects pipeline (stored as strings; legacy values normalised in app):
   // HANDOFF → ASSESSMENT → CAPEX → EXECUTION → INTERNAL_QC → OPS_AUDIT → FINAL_GO_AHEAD → HANDOVER → LIVE
-  phase             String    @default("HANDOFF")
-  projectManagerId  String?
-  projectManager    User?     @relation("ProjectManager", fields: [projectManagerId], references: [id])
+  phase            String      @default("HANDOFF")
+  projectManagerId String?
+  projectManager   User?       @relation("ProjectManager", fields: [projectManagerId], references: [id])
 
   // Venue master data (drives the CapEx calculator + spec sheet)
-  ownerContact      String?
-  fundingModel      String?   // OWNER | VELORIA | SPLIT
-  splitRatio        Decimal?  @db.Decimal(5, 2) // owner's % when SPLIT
-  hallCount         Int?
-  totalCapacity     Int?
-  totalSqft         Int?
-  dealClosedDate    DateTime?
-  bdOwnerId         String?
-  bdOwner           User?     @relation("ProjectBdOwner", fields: [bdOwnerId], references: [id])
+  ownerContact   String?
+  fundingModel   String? // OWNER | VELORIA | SPLIT
+  splitRatio     Decimal?  @db.Decimal(5, 2) // owner's % when SPLIT
+  hallCount      Int?
+  totalCapacity  Int?
+  totalSqft      Int?
+  dealClosedDate DateTime?
+  bdOwnerId      String?
+  bdOwner        User?     @relation("ProjectBdOwner", fields: [bdOwnerId], references: [id])
 
-  targetReadyDate   DateTime? // target launch date
-  startedAt         DateTime? // execution started
-  handoffAcceptedAt DateTime?
-  assessmentDoneAt  DateTime?
-  ownerApproved     Boolean   @default(false)
-  ownerApprovedAt   DateTime?
+  targetReadyDate       DateTime? // target launch date
+  startedAt             DateTime? // execution started
+  handoffAcceptedAt     DateTime?
+  assessmentDoneAt      DateTime?
+  ownerApproved         Boolean   @default(false)
+  ownerApprovedAt       DateTime?
   ownerApprovalProofUrl String?
-  qcReadyAt         DateTime? // PM marked ready for ops audit (internal QC done)
-  opsAuditRequestedAt DateTime?
-  opsAuditPassedAt    DateTime?
-  opsAuditById        String?
-  opsAuditBy          User?     @relation("ProjectOpsAuditor", fields: [opsAuditById], references: [id])
-  finalGoAheadAt      DateTime?
-  finalGoAheadById    String?
-  finalGoAheadBy      User?     @relation("ProjectFinalGoAhead", fields: [finalGoAheadById], references: [id])
-  handoverReportAt    DateTime?
-  handoverById        String?
-  handoverBy          User?     @relation("ProjectHandover", fields: [handoverById], references: [id])
-  opsAcknowledgedAt   DateTime?
-  mgmtAcknowledgedAt  DateTime?
-  launchedAt          DateTime? // LIVE
-  notes               String?   @db.Text
-  createdAt   DateTime            @default(now())
-  completedAt DateTime?
-  updatedAt   DateTime            @default(now()) @updatedAt
+  qcReadyAt             DateTime? // PM marked ready for ops audit (internal QC done)
+  opsAuditRequestedAt   DateTime?
+  opsAuditPassedAt      DateTime?
+  opsAuditById          String?
+  opsAuditBy            User?     @relation("ProjectOpsAuditor", fields: [opsAuditById], references: [id])
+  finalGoAheadAt        DateTime?
+  finalGoAheadById      String?
+  finalGoAheadBy        User?     @relation("ProjectFinalGoAhead", fields: [finalGoAheadById], references: [id])
+  handoverReportAt      DateTime?
+  handoverById          String?
+  handoverBy            User?     @relation("ProjectHandover", fields: [handoverById], references: [id])
+  opsAcknowledgedAt     DateTime?
+  mgmtAcknowledgedAt    DateTime?
+  launchedAt            DateTime? // LIVE
+  notes                 String?   @db.Text
+  createdAt             DateTime  @default(now())
+  completedAt           DateTime?
+  updatedAt             DateTime  @default(now()) @updatedAt
 
-  tasks         AcqOnboardingTask[]
-  readinessItems VenueReadinessItem[]
-  opsAuditItems  OpsAuditItem[]
+  tasks            AcqOnboardingTask[]
+  readinessItems   VenueReadinessItem[]
+  opsAuditItems    OpsAuditItem[]
   capexProjections AcqCapexProjection[]
-  signOffs       ProjectSignOff[]
-  auditLogs      ProjectAuditLog[]
-  snags          ProjectSnag[]
-  photos         ProjectPhoto[]
+  signOffs         ProjectSignOff[]
+  auditLogs        ProjectAuditLog[]
+  snags            ProjectSnag[]
+  photos           ProjectPhoto[]
 
   @@index([status])
   @@index([phase])
@@ -4044,27 +4050,27 @@ model AcqOnboardingProject {
 // The defect register — the heart of QC + the Ops deep audit.
 // open → in_progress → fixed_pending_verification → verified_closed (Ops-only) ; reopened.
 model ProjectSnag {
-  id           String   @id @default(cuid())
-  projectId    String
-  project      AcqOnboardingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  title        String
-  description  String?  @db.Text
-  category     String
-  location     String?  // e.g. "Hall A — east wall"
-  severity     String   @default("MAJOR") // CRITICAL | MAJOR | MINOR
-  raisedInStage String  @default("INTERNAL_QC") // INTERNAL_QC | OPS_AUDIT
-  raisedById   String?
-  raisedByName String?
+  id               String               @id @default(cuid())
+  projectId        String
+  project          AcqOnboardingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title            String
+  description      String?              @db.Text
+  category         String
+  location         String? // e.g. "Hall A — east wall"
+  severity         String               @default("MAJOR") // CRITICAL | MAJOR | MINOR
+  raisedInStage    String               @default("INTERNAL_QC") // INTERNAL_QC | OPS_AUDIT
+  raisedById       String?
+  raisedByName     String?
   assignedVendorId String? // populated in Wave D
-  dueDate      DateTime?
-  status       String   @default("OPEN") // OPEN | IN_PROGRESS | FIXED_PENDING_VERIFICATION | VERIFIED_CLOSED | REOPENED
-  fixedPendingAt DateTime? // when the current fix cycle was marked fixed — scopes the after-photo gate
-  verifiedById String?
-  verifiedByName String?
-  verifiedAt   DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @default(now()) @updatedAt
-  photos       ProjectPhoto[]
+  dueDate          DateTime?
+  status           String               @default("OPEN") // OPEN | IN_PROGRESS | FIXED_PENDING_VERIFICATION | VERIFIED_CLOSED | REOPENED
+  fixedPendingAt   DateTime? // when the current fix cycle was marked fixed — scopes the after-photo gate
+  verifiedById     String?
+  verifiedByName   String?
+  verifiedAt       DateTime?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @default(now()) @updatedAt
+  photos           ProjectPhoto[]
 
   @@index([projectId])
   @@index([status])
@@ -4072,19 +4078,19 @@ model ProjectSnag {
 
 // Photos / attachments (snag before/after, readiness evidence, general gallery).
 model ProjectPhoto {
-  id           String   @id @default(cuid())
-  projectId    String
-  project      AcqOnboardingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  snagId       String?
-  snag         ProjectSnag? @relation(fields: [snagId], references: [id], onDelete: Cascade)
-  entityType   String   @default("snag") // snag | readiness | general
-  entityId     String?
-  kind         String   @default("DURING") // BEFORE | DURING | AFTER
-  url          String   @db.Text // image/PDF data-URL or https link
-  caption      String?
-  uploadedById String?
+  id             String               @id @default(cuid())
+  projectId      String
+  project        AcqOnboardingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  snagId         String?
+  snag           ProjectSnag?         @relation(fields: [snagId], references: [id], onDelete: Cascade)
+  entityType     String               @default("snag") // snag | readiness | general
+  entityId       String?
+  kind           String               @default("DURING") // BEFORE | DURING | AFTER
+  url            String               @db.Text // image/PDF data-URL or https link
+  caption        String?
+  uploadedById   String?
   uploadedByName String?
-  createdAt    DateTime @default(now())
+  createdAt      DateTime             @default(now())
 
   @@index([projectId])
   @@index([snagId])
@@ -4092,15 +4098,15 @@ model ProjectPhoto {
 
 // Generic gate sign-off record — one per stage transition that needs approval.
 model ProjectSignOff {
-  id         String   @id @default(cuid())
+  id         String               @id @default(cuid())
   projectId  String
   project    AcqOnboardingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  stage      String   // the stage being signed off / gate cleared
-  decision   String   // APPROVED | REJECTED | REOPENED
+  stage      String // the stage being signed off / gate cleared
+  decision   String // APPROVED | REJECTED | REOPENED
   approverId String
-  approver   User     @relation("SignOffApprover", fields: [approverId], references: [id])
-  comment    String?  @db.Text
-  createdAt  DateTime @default(now())
+  approver   User                 @relation("SignOffApprover", fields: [approverId], references: [id])
+  comment    String?              @db.Text
+  createdAt  DateTime             @default(now())
 
   @@index([projectId])
 }
@@ -4108,17 +4114,17 @@ model ProjectSignOff {
 // Append-only audit trail (who / what / when / before→after). Never updated or deleted.
 // projectId is nullable + SetNull so the trail survives a soft-deleted project.
 model ProjectAuditLog {
-  id         String   @id @default(cuid())
+  id         String                @id @default(cuid())
   projectId  String?
   project    AcqOnboardingProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
   actorId    String?
-  actorName  String?  // denormalised snapshot, survives user changes
-  action     String   // e.g. "phase.advance", "snag.verify_closed"
+  actorName  String? // denormalised snapshot, survives user changes
+  action     String // e.g. "phase.advance", "snag.verify_closed"
   entityType String
   entityId   String
   beforeJson Json?
   afterJson  Json?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime              @default(now())
 
   @@index([projectId])
   @@index([entityType, entityId])
@@ -4127,33 +4133,33 @@ model ProjectAuditLog {
 // A venue-readiness checklist line (interiors, bathrooms, fire-safety, lift…)
 // against a Veloria Grand standard. Seeded per project from config.
 model VenueReadinessItem {
-  id        String   @id @default(cuid())
+  id        String               @id @default(cuid())
   projectId String
   project   AcqOnboardingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
   category  String
   title     String
-  standard  String   @db.Text
-  severity  String   @default("MAJOR") // CRITICAL | MAJOR | MINOR — severity if this standard fails
-  status    String   @default("PENDING") // PENDING | IN_PROGRESS | DONE | NA
-  notes     String?  @db.Text
-  order     Int      @default(0)
-  updatedAt DateTime @default(now()) @updatedAt
+  standard  String               @db.Text
+  severity  String               @default("MAJOR") // CRITICAL | MAJOR | MINOR — severity if this standard fails
+  status    String               @default("PENDING") // PENDING | IN_PROGRESS | DONE | NA
+  notes     String?              @db.Text
+  order     Int                  @default(0)
+  updatedAt DateTime             @default(now()) @updatedAt
 
   @@index([projectId])
 }
 
 // Operations deep-audit line, run before launch sign-off.
 model OpsAuditItem {
-  id        String   @id @default(cuid())
+  id        String               @id @default(cuid())
   projectId String
   project   AcqOnboardingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
   category  String
   title     String
-  critical  Boolean  @default(false)
-  status    String   @default("PENDING") // PENDING | PASS | FAIL | NA
-  notes     String?  @db.Text
-  order     Int      @default(0)
-  updatedAt DateTime @default(now()) @updatedAt
+  critical  Boolean              @default(false)
+  status    String               @default("PENDING") // PENDING | PASS | FAIL | NA
+  notes     String?              @db.Text
+  order     Int                  @default(0)
+  updatedAt DateTime             @default(now()) @updatedAt
 
   @@index([projectId])
 }
@@ -4168,17 +4174,17 @@ enum CapexStatus {
 }
 
 model AcqCapexProjection {
-  id          String      @id @default(cuid())
-  projectId   String
-  project     AcqOnboardingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  version     Int         @default(1)
-  status      CapexStatus @default(DRAFT)
-  inputsJson  Json        // CapexInput
-  outputsJson Json?       // CapexResult, frozen at approval
-  totalCapex  Decimal     @default(0) @db.Decimal(14, 2)
-  estimatedWeeks Int      @default(0)
-  notes       String?     @db.Text
-  pdfUrl      String?
+  id             String               @id @default(cuid())
+  projectId      String
+  project        AcqOnboardingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  version        Int                  @default(1)
+  status         CapexStatus          @default(DRAFT)
+  inputsJson     Json // CapexInput
+  outputsJson    Json? // CapexResult, frozen at approval
+  totalCapex     Decimal              @default(0) @db.Decimal(14, 2)
+  estimatedWeeks Int                  @default(0)
+  notes          String?              @db.Text
+  pdfUrl         String?
 
   submittedById  String?
   submittedBy    User?     @relation("CapexSubmittedBy", fields: [submittedById], references: [id])
@@ -4187,12 +4193,12 @@ model AcqCapexProjection {
   approvedBy     User?     @relation("CapexApprovedBy", fields: [approvedById], references: [id])
   approvedAt     DateTime?
   rejectedReason String?
-  shareToken  String?    // opaque token for the owner's no-login PDF link, set at approval
-  sentChannel String?
-  sentTo      String?
-  sentById    String?
-  sentBy      User?      @relation("CapexSentBy", fields: [sentById], references: [id])
-  sentAt      DateTime?
+  shareToken     String? // opaque token for the owner's no-login PDF link, set at approval
+  sentChannel    String?
+  sentTo         String?
+  sentById       String?
+  sentBy         User?     @relation("CapexSentBy", fields: [sentById], references: [id])
+  sentAt         DateTime?
 
   createdById String
   createdBy   User     @relation("CapexCreatedBy", fields: [createdById], references: [id])
@@ -4260,23 +4266,23 @@ enum AcqProjectionSendMethod {
 }
 
 model AcqProjection {
-  id         String              @id @default(cuid())
-  dealId     String
-  deal       AcqDeal             @relation(fields: [dealId], references: [id])
-  version    Int                 @default(1)
-  modelType  AcqProjectionModel
-  status     AcqProjectionStatus @default(DRAFT)
-  inputsJson Json // raw BD-entered inputs
+  id          String              @id @default(cuid())
+  dealId      String
+  deal        AcqDeal             @relation(fields: [dealId], references: [id])
+  version     Int                 @default(1)
+  modelType   AcqProjectionModel
+  status      AcqProjectionStatus @default(DRAFT)
+  inputsJson  Json // raw BD-entered inputs
   outputsJson Json? // full 5yr base+best grid; frozen at APPROVED
-  pdfUrl     String?
+  pdfUrl      String?
 
   // approval
-  submittedById String?
-  submittedBy   User?     @relation("AcqProjectionSubmittedBy", fields: [submittedById], references: [id])
-  submittedAt   DateTime?
-  approvedById  String?
-  approvedBy    User?     @relation("AcqProjectionApprovedBy", fields: [approvedById], references: [id])
-  approvedAt    DateTime?
+  submittedById  String?
+  submittedBy    User?     @relation("AcqProjectionSubmittedBy", fields: [submittedById], references: [id])
+  submittedAt    DateTime?
+  approvedById   String?
+  approvedBy     User?     @relation("AcqProjectionApprovedBy", fields: [approvedById], references: [id])
+  approvedAt     DateTime?
   rejectedReason String?
 
   // send
@@ -4284,7 +4290,7 @@ model AcqProjection {
   sentChannel String?
   sentTo      String?
   sentById    String?
-  sentBy      User?     @relation("AcqProjectionSentBy", fields: [sentById], references: [id])
+  sentBy      User?                    @relation("AcqProjectionSentBy", fields: [sentById], references: [id])
   sentAt      DateTime?
 
   createdAt DateTime @default(now())
@@ -4416,4 +4422,183 @@ model SalesQuotationTransition {
   createdAt   DateTime       @default(now())
 
   @@index([quotationId])
+}
+
+// ============================================================
+// HR / People module — shared Identity & Org core (HR_MODULE_SPEC).
+// Employee is the master record; it LINKS to User (does not fork it).
+// All additive; multi-entity (LegalEntity) + BusinessVertical are separate dims.
+// ============================================================
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERN
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  ONBOARDING
+  ON_LEAVE
+  EXITED
+  SUSPENDED
+}
+
+model LegalEntity {
+  id             String     @id @default(cuid())
+  name           String
+  shortCode      String?
+  isIncorporated Boolean    @default(true) // Nextura Ventures = partnership firm → false
+  isActive       Boolean    @default(true)
+  order          Int        @default(0)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @default(now()) @updatedAt
+  employees      Employee[]
+
+  @@index([isActive])
+}
+
+model BusinessVertical {
+  id        String     @id @default(cuid())
+  name      String
+  isActive  Boolean    @default(true)
+  order     Int        @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @default(now()) @updatedAt
+  employees Employee[]
+
+  @@index([isActive])
+}
+
+model Department {
+  id        String     @id @default(cuid())
+  name      String
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @default(now()) @updatedAt
+  employees Employee[]
+
+  @@index([isActive])
+}
+
+model HrDesignation {
+  id        String     @id @default(cuid())
+  name      String
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @default(now()) @updatedAt
+  employees Employee[]
+
+  @@index([isActive])
+}
+
+model Employee {
+  id            String    @id @default(cuid())
+  empCode       String    @unique
+  firstName     String
+  lastName      String
+  personalEmail String?
+  workEmail     String?
+  phone         String?
+  dob           DateTime?
+  gender        String?
+  photoUrl      String?
+
+  // Identity link — the SAME user that other modules (Projects etc.) reference.
+  userId String? @unique
+  user   User?   @relation("EmployeeUser", fields: [userId], references: [id])
+
+  // Two independent org dimensions.
+  legalEntityId      String
+  legalEntity        LegalEntity       @relation(fields: [legalEntityId], references: [id])
+  businessVerticalId String?
+  businessVertical   BusinessVertical? @relation(fields: [businessVerticalId], references: [id])
+  departmentId       String?
+  department         Department?       @relation(fields: [departmentId], references: [id])
+  designationId      String?
+  designation        HrDesignation?    @relation(fields: [designationId], references: [id])
+
+  employmentType EmploymentType @default(FULL_TIME)
+  dateOfJoining  DateTime?
+  dateOfExit     DateTime?
+  workLocation   String?
+  status         EmployeeStatus @default(ONBOARDING)
+
+  // Org chart / approval routing — self relation.
+  reportingManagerId String?
+  reportingManager   Employee?  @relation("EmployeeReports", fields: [reportingManagerId], references: [id])
+  reports            Employee[] @relation("EmployeeReports")
+
+  customFields Json? // admin-configurable extra fields
+  notes        String?   @db.Text
+  deletedAt    DateTime? // soft-delete only
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+
+  statutory         EmployeeStatutory?
+  emergencyContacts EmergencyContact[]
+  education         EmployeeEducation[]
+  workHistory       EmployeeWorkHistory[]
+
+  @@index([legalEntityId])
+  @@index([businessVerticalId])
+  @@index([departmentId])
+  @@index([reportingManagerId])
+  @@index([status])
+  @@index([deletedAt])
+}
+
+// Statutory PII — restricted access. Values are stored ENCRYPTED at rest (AES-GCM
+// via the hr-crypto lib); never store plaintext PAN/Aadhaar/bank here.
+model EmployeeStatutory {
+  id             String   @id @default(cuid())
+  employeeId     String   @unique
+  employee       Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  panEnc         String?
+  aadhaarEnc     String?
+  uan            String? // PF UAN (less sensitive — stored plain)
+  esi            String?
+  pf             String?
+  pt             String?
+  bankAccountEnc String?
+  bankIfsc       String?
+  updatedAt      DateTime @default(now()) @updatedAt
+}
+
+model EmergencyContact {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  name       String
+  relation   String?
+  phone      String?
+  createdAt  DateTime @default(now())
+
+  @@index([employeeId])
+}
+
+model EmployeeEducation {
+  id          String   @id @default(cuid())
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  institution String
+  degree      String?
+  year        Int?
+  createdAt   DateTime @default(now())
+
+  @@index([employeeId])
+}
+
+model EmployeeWorkHistory {
+  id         String    @id @default(cuid())
+  employeeId String
+  employee   Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  company    String
+  title      String?
+  fromDate   DateTime?
+  toDate     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([employeeId])
 }
