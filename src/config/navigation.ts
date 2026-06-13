@@ -382,6 +382,18 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["finance:read"],
       },
       {
+        title: "Bank & Reconcile",
+        href: "/finance/bank",
+        icon: "Landmark",
+        permissions: ["finance:read"],
+      },
+      {
+        title: "Reports",
+        href: "/finance/reports",
+        icon: "TrendingUp",
+        permissions: ["finance:read"],
+      },
+      {
         title: "Invoices",
         href: "/invoices",
         icon: "FileText",

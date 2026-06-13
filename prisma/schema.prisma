@@ -5531,7 +5531,9 @@ model FinAccount {
   order         Int            @default(0)
   createdAt     DateTime       @default(now())
 
-  lines FinJournalLine[]
+  lines        FinJournalLine[]
+  bankAccounts FinBankAccount[] @relation("FinBankGl")
+  reconRules   FinReconRule[]   @relation("FinReconRuleAcct")
 
   @@index([type])
   @@index([entityId])
@@ -5630,4 +5632,72 @@ model FinSequence {
   nextNum  Int    @default(1)
 
   @@unique([entityId, series, fy])
+}
+
+// ============================================================
+// Bank import + reconciliation (Finance W4)
+// ============================================================
+
+// A real-world bank account, mapped to its GL cash/bank account (1020 etc.).
+model FinBankAccount {
+  id             String       @id @default(cuid())
+  entityId       String       @default("BILLION")
+  name           String
+  bankName       String?
+  accountNo      String? // last 4 / masked
+  glAccountId    String
+  glAccount      FinAccount   @relation("FinBankGl", fields: [glAccountId], references: [id])
+  openingBalance Decimal      @default(0) @db.Decimal(18, 2)
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  txns           FinBankTxn[]
+
+  @@index([entityId])
+}
+
+enum FinBankTxnStatus {
+  UNMATCHED
+  MATCHED
+  RECONCILED
+  IGNORED
+}
+
+// One imported bank-statement line. credit = money INTO the bank, debit = money
+// OUT. dedupeHash makes re-importing the same statement idempotent.
+model FinBankTxn {
+  id             String           @id @default(cuid())
+  bankAccountId  String
+  bankAccount    FinBankAccount   @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+  date           DateTime
+  description    String
+  reference      String?
+  debit          Decimal          @default(0) @db.Decimal(18, 2)
+  credit         Decimal          @default(0) @db.Decimal(18, 2)
+  runningBalance Decimal?         @db.Decimal(18, 2)
+  status         FinBankTxnStatus @default(UNMATCHED)
+  matchedEntryId String? // FinJournalEntry this reconciles to
+  importBatch    String?
+  dedupeHash     String
+  createdAt      DateTime         @default(now())
+
+  @@unique([bankAccountId, dedupeHash])
+  @@index([bankAccountId, status])
+  @@index([date])
+}
+
+// Learned categorization rule: when a bank line description contains `match`,
+// suggest posting it against `accountId`. `hits` ranks competing rules.
+model FinReconRule {
+  id           String     @id @default(cuid())
+  entityId     String     @default("BILLION")
+  match        String // lowercase substring matched against the description
+  accountId    String
+  account      FinAccount @relation("FinReconRuleAcct", fields: [accountId], references: [id])
+  direction    String? // "CREDIT" | "DEBIT" | null (any)
+  counterparty String?
+  hits         Int        @default(1)
+  createdById  String?
+  createdAt    DateTime   @default(now())
+
+  @@index([entityId])
 }

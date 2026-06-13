@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { COA_TEMPLATE } from "@/lib/finance/coa-seed";
 import { postJournalEntry, reverseJournalEntry, fyForDate, periodForDate, type JournalLineInput } from "@/lib/finance/ledger";
+import { buildProfitAndLoss, buildBalanceSheet, type AccountType } from "@/lib/finance/reports";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -174,4 +175,49 @@ export async function setPeriodStatus(fy: string, period: number, status: "OPEN"
   await prisma.activityLog.create({ data: { action: `FIN_PERIOD_${status}`, entityType: "FIN_PERIOD", entityId: p.id, userId: u!.id, changes: { fy, period } } });
   revalidatePath("/finance");
   return { success: true, data: { ok: true } };
+}
+
+// ============================================================
+// Reports — P&L, Balance Sheet, FY list (derived from POSTED lines).
+// ============================================================
+
+// Per-account summed POSTED debits/credits, optionally scoped to an FY.
+async function summedAccounts(fy?: string) {
+  const grouped = await prisma.finJournalLine.groupBy({
+    by: ["accountId"],
+    where: { entry: { status: "POSTED", ...(fy ? { fy } : {}) } },
+    _sum: { debit: true, credit: true },
+  });
+  const accounts = await prisma.finAccount.findMany({ select: { id: true, code: true, name: true, type: true } });
+  const byId = new Map(accounts.map((a) => [a.id, a]));
+  return grouped.map((g) => {
+    const a = byId.get(g.accountId);
+    return { code: a?.code ?? "?", name: a?.name ?? "?", type: (a?.type ?? "ASSET") as AccountType, debit: Number(g._sum.debit ?? 0), credit: Number(g._sum.credit ?? 0) };
+  });
+}
+
+export async function getFinFiscalYears(): Promise<string[]> {
+  const u = await requireUser();
+  if (!canFinance(u?.role)) return [];
+  const rows = await prisma.finJournalEntry.findMany({ where: { status: "POSTED" }, distinct: ["fy"], select: { fy: true }, orderBy: { fy: "desc" } });
+  const list = rows.map((r) => r.fy);
+  const current = fyForDate(new Date());
+  if (!list.includes(current)) list.unshift(current);
+  return list;
+}
+
+export async function getProfitAndLoss(fy?: string) {
+  const u = await requireUser();
+  if (!canFinance(u?.role)) return { income: [], expense: [], totalIncome: 0, totalExpense: 0, netProfit: 0 };
+  return buildProfitAndLoss(await summedAccounts(fy));
+}
+
+export async function getBalanceSheet(fy?: string) {
+  const u = await requireUser();
+  if (!canFinance(u?.role)) return { assets: [], liabilities: [], equity: [], totalAssets: 0, totalLiabilities: 0, totalEquity: 0, retainedEarnings: 0, balanced: true };
+  // Balance Sheet is cumulative — assets/liabilities/equity from ALL posted
+  // lines; retained earnings = cumulative net profit (income − expense) to date.
+  const all = await summedAccounts();
+  const pl = buildProfitAndLoss(all);
+  return buildBalanceSheet(all, pl.netProfit);
 }
