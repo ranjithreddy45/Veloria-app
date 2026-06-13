@@ -5324,3 +5324,85 @@ model QuestProgress {
   @@unique([questId, userId])
   @@index([userId])
 }
+
+// ============================================================
+// HR Help Desk (P1) — tickets, SLA, agent routing, knowledge base.
+// Actor ids are User ids (any staff); resolved via manual lookups.
+// ============================================================
+enum HelpdeskStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING
+  RESOLVED
+  CLOSED
+}
+
+enum HelpdeskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model HelpdeskCategory {
+  id        String   @id @default(cuid())
+  name      String
+  slaHours  Int      @default(24)
+  isActive  Boolean  @default(true)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  tickets  HelpdeskTicket[]
+  articles HelpdeskArticle[]
+
+  @@index([isActive])
+}
+
+model HelpdeskTicket {
+  id             String           @id @default(cuid())
+  number         Int              @unique @default(autoincrement())
+  subject        String
+  description    String           @db.Text
+  categoryId     String?
+  category       HelpdeskCategory? @relation(fields: [categoryId], references: [id])
+  requesterId    String // User id of the raiser
+  assigneeId     String? // User id of the agent
+  status         HelpdeskStatus   @default(OPEN)
+  priority       HelpdeskPriority @default(MEDIUM)
+  slaDueAt       DateTime?
+  firstRespondedAt DateTime?
+  resolvedAt     DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @default(now()) @updatedAt
+
+  comments HelpdeskComment[]
+
+  @@index([requesterId])
+  @@index([assigneeId])
+  @@index([status])
+}
+
+model HelpdeskComment {
+  id        String   @id @default(cuid())
+  ticketId  String
+  ticket    HelpdeskTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId  String // User id
+  body      String   @db.Text
+  isInternal Boolean @default(false) // agent-only note
+  createdAt DateTime @default(now())
+
+  @@index([ticketId])
+}
+
+model HelpdeskArticle {
+  id          String   @id @default(cuid())
+  title       String
+  body        String   @db.Text
+  categoryId  String?
+  category    HelpdeskCategory? @relation(fields: [categoryId], references: [id])
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([isPublished])
+}
