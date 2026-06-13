@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
 import { hasPermission } from "@/lib/permissions";
+import { humanizeWhatsAppContent } from "@/lib/whatsapp-render";
 import {
   sendWhatsAppMessageSchema,
   bulkSendWhatsAppSchema,
@@ -57,9 +58,12 @@ export async function sendWhatsAppMessage(data: SendWhatsAppMessageInput) {
       return { success: false as const, error: "Contact does not have a phone number" };
     }
 
-    // Build message content
-    const messageContent =
-      content || `[Template: ${templateName}] ${JSON.stringify(params || {})}`;
+    // Build message content — store a readable line, never a raw JSON params blob.
+    const messageContent = content
+      ? content
+      : templateName
+        ? humanizeWhatsAppContent(`[Template: ${templateName}] ${JSON.stringify(params || {})}`)
+        : "WhatsApp message";
 
     // Call the placeholder WhatsApp integration
     const result = await sendWhatsApp({
@@ -378,7 +382,7 @@ export async function bulkSendWhatsApp(data: BulkSendWhatsAppInput) {
           params: params || undefined,
         });
 
-        const messageContent = `[Template: ${templateName}] ${JSON.stringify(params || {})}`;
+        const messageContent = humanizeWhatsAppContent(`[Template: ${templateName}] ${JSON.stringify(params || {})}`);
 
         await prisma.whatsAppMessage.create({
           data: {

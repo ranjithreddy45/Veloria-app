@@ -24,6 +24,7 @@ import { recordPayment } from "./payment.actions";
 
 const U = Date.now();
 let adminId: string;
+let approverId: string;
 let contactId: string;
 let venueId: string;
 let templateId: string;
@@ -40,6 +41,13 @@ beforeAll(async () => {
     select: { id: true },
   });
   adminId = admin.id;
+
+  // A second approver — quotations now require approver ≠ submitter (SCRM-007).
+  const approver = await prisma.user.create({
+    data: { name: "Quote Approver", email: `quote-approver-${U}@t.local`, role: "ADMIN", phone: "+919900000001", isActive: true },
+    select: { id: true },
+  });
+  approverId = approver.id;
 
   const contact = await prisma.contact.create({
     data: { firstName: "Ravi", lastName: "Kumar", phone: `+9198${String(U).slice(-8)}`, email: `cust-${U}@t.local` },
@@ -114,7 +122,9 @@ afterAll(async () => {
   const taskWhere = { OR: [{ creatorId: adminId }, ...(bookingId ? [{ bookingId }] : [])] };
   await prisma.checklistItem.deleteMany({ where: { task: taskWhere } });
   await prisma.task.deleteMany({ where: taskWhere });
-  await prisma.user.deleteMany({ where: { id: adminId } });
+  await prisma.activityLog.deleteMany({ where: { userId: approverId } });
+  await prisma.notification.deleteMany({ where: { userId: approverId } });
+  await prisma.user.deleteMany({ where: { id: { in: [adminId, approverId] } } });
 });
 
 describe("Sales quotation → booking → payment → confirm → ops (E2E)", () => {
@@ -132,7 +142,9 @@ describe("Sales quotation → booking → payment → confirm → ops (E2E)", ()
     expect(Math.round(Number(row!.grandTotal))).toBe(130074);
 
     expect((await submitSalesQuotation(quotationId)).success).toBe(true);
+    setActor(approverId, "ADMIN"); // approver must differ from submitter
     expect((await approveSalesQuotation(quotationId)).success).toBe(true);
+    setActor(adminId, "ADMIN");
     const approved = await prisma.salesQuotation.findUnique({ where: { id: quotationId }, select: { status: true, outputsJson: true } });
     expect(approved!.status).toBe("APPROVED");
     expect(approved!.outputsJson).toBeTruthy(); // frozen snapshot
@@ -162,7 +174,9 @@ describe("Sales quotation → booking → payment → confirm → ops (E2E)", ()
     expect(q2.success).toBe(true);
     if (!q2.success) return;
     await submitSalesQuotation(q2.data.id);
+    setActor(approverId, "ADMIN");
     await approveSalesQuotation(q2.data.id);
+    setActor(adminId, "ADMIN");
     const res = await blockSlotFromQuotation(q2.data.id, { venueId, dateISO: "2026-09-01", timeSlot: "FULL_DAY" });
     expect(res.success).toBe(false); // FULL_DAY conflicts with the existing EVENING booking
     await prisma.salesQuotationTransition.deleteMany({ where: { quotationId: q2.data.id } });

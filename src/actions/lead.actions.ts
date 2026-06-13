@@ -604,6 +604,11 @@ export async function updateLeadStatus(id: string, status: LeadStatus) {
       return { success: false as const, error: "Lead not found" };
     }
 
+    // A lead can't be marked Won without an owner (SCRM-004) — accountability for the close.
+    if (status === "WON" && !existing.assignedToId) {
+      return { success: false as const, error: "Assign an owner to this lead before marking it Won." };
+    }
+
     // Recalculate score with new status
     const score = calculateLeadScore({
       estimatedValue: existing.estimatedValue

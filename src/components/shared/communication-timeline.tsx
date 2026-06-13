@@ -29,6 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LogCommunicationDialog } from "@/components/shared/log-communication-dialog";
+import { humanizeWhatsAppContent } from "@/lib/whatsapp-render";
 
 // ============================================================
 // Props
@@ -217,9 +218,10 @@ export function CommunicationTimeline({
                           </p>
                         )}
 
-                        {/* Content preview */}
+                        {/* Content preview — WhatsApp template payloads are rendered
+                            readable (no raw JSON braces leak to the timeline). */}
                         <p className="mt-1 text-sm text-muted-foreground line-clamp-3 whitespace-pre-wrap">
-                          {comm.content}
+                          {humanizeWhatsAppContent(comm.content)}
                         </p>
 
                         {/* Contact name (when viewing from booking context) */}
