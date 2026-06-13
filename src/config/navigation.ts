@@ -244,6 +244,12 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["hr:read"],
       },
       {
+        title: "Shifts",
+        href: "/people/shifts",
+        icon: "CalendarClock",
+        permissions: ["hr:read"],
+      },
+      {
         title: "Change Requests",
         href: "/people/requests",
         icon: "Inbox",

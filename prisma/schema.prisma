@@ -4552,6 +4552,9 @@ model Employee {
   goals             Goal[]
   reviewsAbout      AppraisalReview[]     @relation("ReviewSubject")
   reviewsGiven      AppraisalReview[]     @relation("ReviewAuthor")
+  shiftAssignments  ShiftAssignment[]
+  swapRequests      ShiftSwapRequest[]    @relation("SwapRequester")
+  swapTargets       ShiftSwapRequest[]    @relation("SwapTarget")
 
   @@index([legalEntityId])
   @@index([businessVerticalId])
@@ -5156,4 +5159,62 @@ model AppraisalReview {
   @@unique([cycleId, employeeId, reviewerId, kind])
   @@index([cycleId, employeeId])
   @@index([reviewerId, status])
+}
+
+// ============================================================
+// Shift Management (HR workforce shifts — distinct from event-staff Shift)
+// ============================================================
+model HrShift {
+  id        String   @id @default(cuid())
+  name      String
+  startTime String // "09:00"
+  endTime   String // "18:00"
+  color     String   @default("blue")
+  isActive  Boolean  @default(true)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  assignments ShiftAssignment[]
+
+  @@index([isActive])
+}
+
+model ShiftAssignment {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  shiftId    String
+  shift      HrShift  @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  date       DateTime // UTC midnight of the rostered day
+  createdAt  DateTime @default(now())
+
+  swapRequests ShiftSwapRequest[]
+
+  @@unique([employeeId, date])
+  @@index([date])
+  @@index([shiftId])
+}
+
+enum ShiftSwapStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model ShiftSwapRequest {
+  id             String          @id @default(cuid())
+  assignmentId   String
+  assignment     ShiftAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  requestedById  String
+  requestedBy    Employee        @relation("SwapRequester", fields: [requestedById], references: [id], onDelete: Cascade)
+  targetEmployeeId String
+  targetEmployee Employee        @relation("SwapTarget", fields: [targetEmployeeId], references: [id], onDelete: Cascade)
+  reason         String?
+  status         ShiftSwapStatus @default(PENDING)
+  decidedAt      DateTime?
+  createdAt      DateTime        @default(now())
+
+  @@index([status])
+  @@index([requestedById])
+  @@index([targetEmployeeId])
 }
