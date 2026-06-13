@@ -204,7 +204,7 @@ const SECTIONS: Record<string, string> = {
   "/bd/dashboard": "Sales & CRM",
   "/contacts": "Sales & CRM",
   "/crm/cadences": "Sales & CRM",
-  "/bookings": "Delivery & Ops",
+  "/bookings": "Sales & CRM",
   "/projects": "Delivery & Ops",
   "/tasks": "Delivery & Ops",
   "/people": "People",
