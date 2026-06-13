@@ -224,6 +224,44 @@ export async function updateAcqLead(
 }
 
 // ------------------------------------------------------------
+// Follow-up queue (FEAT-002): the rep's active leads bucketed by next-follow-up date
+// into Overdue / Today / Upcoming. Managers (BD Head / admin) see the whole team.
+// ------------------------------------------------------------
+export async function getFollowupQueue(): Promise<Result<{ overdue: unknown[]; today: unknown[]; upcoming: unknown[] }>> {
+  const user = await requireUser();
+  if (!user || !acqHasAnyAccess(user.role)) return { success: false, error: "Unauthorized" };
+  const isManager = ["BD_HEAD", "ADMIN", "SUPER_ADMIN"].includes(user.role ?? "");
+  const where: Record<string, unknown> = {
+    deletedAt: null,
+    status: { in: ["NEW", "CONTACTED"] },
+    nextFollowupAt: { not: null },
+  };
+  if (!isManager) where.bdExecutiveId = user.id;
+
+  const leads = await prisma.acqLead.findMany({
+    where,
+    select: {
+      id: true, ownerName: true, propertyName: true, city: true, status: true,
+      nextFollowupAt: true, contactAttempts: true, bdExecutive: { select: { name: true } },
+    },
+    orderBy: { nextFollowupAt: "asc" },
+    take: 300,
+  });
+
+  const now = new Date();
+  const startToday = new Date(now); startToday.setHours(0, 0, 0, 0);
+  const endToday = new Date(now); endToday.setHours(23, 59, 59, 999);
+  const overdue: typeof leads = [], today: typeof leads = [], upcoming: typeof leads = [];
+  for (const l of leads) {
+    const t = l.nextFollowupAt!.getTime();
+    if (t < startToday.getTime()) overdue.push(l);
+    else if (t <= endToday.getTime()) today.push(l);
+    else upcoming.push(l);
+  }
+  return { success: true, data: serialize({ overdue, today, upcoming }) as { overdue: unknown[]; today: unknown[]; upcoming: unknown[] } };
+}
+
+// ------------------------------------------------------------
 // Log a contact touch (BUG-007): channel + outcome + note → activity timeline,
 // increments contact attempts, stamps first-contact (clears SLA), optional follow-up.
 // ------------------------------------------------------------
