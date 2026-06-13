@@ -267,6 +267,12 @@ export const sidebarNavigation: NavItem[] = [
         icon: "Settings",
         permissions: ["hr:admin"],
       },
+      // P2 — roadmap stubs (nav present, "coming soon").
+      { title: "Timesheets", href: "/people/timesheets", icon: "Clock", permissions: ["hr:read"] },
+      { title: "OKR", href: "/people/okr", icon: "Target", permissions: ["hr:read"] },
+      { title: "Compensation", href: "/people/compensation", icon: "IndianRupee", permissions: ["hr:read"] },
+      { title: "Learning", href: "/people/lms", icon: "Award", permissions: ["hr:read"] },
+      { title: "Engagement", href: "/people/engagement", icon: "Star", permissions: ["hr:read"] },
     ],
   },
   {
