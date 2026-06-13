@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { maybeConfirmBookingOnPayment } from "@/lib/sales/confirm-booking";
+import { postPaymentReceived } from "@/lib/finance/receivables";
 
 // Prisma tx client type is broad; keep it loose to avoid importing internals.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -68,6 +69,12 @@ export async function applyRazorpayCapture(opts: {
   });
 
   if (!credited) return { ok: true, invoiceId: payment.invoiceId, alreadyProcessed: true };
+
+  // Post the cash receipt to the General Ledger (best-effort, idempotent —
+  // covers both the browser-verify and webhook paths from this one place).
+  postPaymentReceived(payment.id).catch((err) =>
+    console.error("[PAYMENT_GL_POST_ERROR]", err),
+  );
 
   // BookMyShow-style: confirm the held slot once the advance is covered.
   await maybeConfirmBookingOnPayment(payment.invoiceId);

@@ -10,6 +10,7 @@ import { serialize, formatINR } from "@/lib/utils";
 import { calculateInvoiceTotals } from "@/lib/invoice-calc";
 import { logActivity } from "@/lib/activity-logger";
 import { notify } from "@/lib/notify";
+import { postInvoiceIssued } from "@/lib/finance/receivables";
 import { sendEmail } from "@/lib/email";
 import { invoiceSentEmail } from "@/lib/email-templates/invoice-sent";
 import { format } from "date-fns";
@@ -483,6 +484,12 @@ export async function sendInvoice(id: string) {
       entityType: "Invoice",
       entityId: invoice.id,
     });
+
+    // Recognise revenue in the General Ledger (best-effort: no-op if Finance
+    // isn't set up yet; never blocks sending the invoice).
+    postInvoiceIssued(invoice.id, session.user.id as string).catch((err) =>
+      console.error("[INVOICE_GL_POST_ERROR]", err),
+    );
 
     notify({
       userId: session.user.id as string,

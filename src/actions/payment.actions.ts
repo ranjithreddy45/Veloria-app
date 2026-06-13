@@ -15,6 +15,7 @@ import { hasPermission } from "@/lib/permissions";
 import { maybeConfirmBookingOnPayment } from "@/lib/sales/confirm-booking";
 import { isSafeReceiptUrl } from "@/lib/sales/receipt";
 import { applyRazorpayCapture } from "@/lib/payments/apply-capture";
+import { postPaymentReceived } from "@/lib/finance/receivables";
 
 // ============================================================
 // Helper: Generate Receipt Number (RCP-YYYY-NNNN)
@@ -270,6 +271,12 @@ export async function recordPayment(data: {
       console.error("[PAYMENT_EMAIL_ERROR]", emailErr);
     }
 
+    // Post the cash receipt to the General Ledger (best-effort: no-op if
+    // Finance isn't set up; never blocks recording the payment).
+    postPaymentReceived(payment.id, session.user.id as string).catch((err) =>
+      console.error("[PAYMENT_GL_POST_ERROR]", err),
+    );
+
     // BookMyShow-style: if this payment covers the booking advance, the held
     // slot auto-confirms and the customer gets confirmations (best-effort).
     await maybeConfirmBookingOnPayment(data.invoiceId);
@@ -349,6 +356,11 @@ export async function verifyPaymentProof(paymentId: string) {
       entityType: "Payment",
       entityId: paymentId,
     });
+
+    // Post the verified cash receipt to the General Ledger (best-effort).
+    postPaymentReceived(paymentId, session.user.id as string).catch((err) =>
+      console.error("[PAYMENT_GL_POST_ERROR]", err),
+    );
 
     // Same BookMyShow-style confirm + customer notifications as a recorded payment.
     await maybeConfirmBookingOnPayment(payment.invoice.id);
