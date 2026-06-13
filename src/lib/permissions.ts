@@ -46,6 +46,8 @@ export type Permission =
   | "payments:create"
   | "payments:update"
   | "payments:refund"
+  // Finance module (double-entry GL)
+  | "finance:read"
   // Settings
   | "settings:read"
   | "settings:update"
@@ -303,6 +305,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   "payments:create",
   "payments:update",
   "payments:refund",
+  "finance:read",
   "settings:read",
   "settings:update",
   "settings:venues",
@@ -522,6 +525,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "payments:create",
     "payments:update",
     "payments:refund",
+    "finance:read",
     "pricing:read",
     "pricing:manage",
     "quotes:read",
@@ -810,6 +814,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "payments:create",
     "payments:update",
     "payments:refund",
+    "finance:read",
     "pricing:read",
     "quotes:read",
     "contracts:read",
@@ -978,6 +983,7 @@ export const ROUTE_PERMISSIONS: { prefix: string; permission: Permission }[] = [
   { prefix: "/tasks", permission: "tasks:read" },
   { prefix: "/invoices", permission: "invoices:read" },
   { prefix: "/payments", permission: "payments:read" },
+  { prefix: "/finance", permission: "finance:read" },
   { prefix: "/payouts", permission: "payouts:read" },
   { prefix: "/commissions", permission: "commissions:read" },
   { prefix: "/insurance", permission: "insurance:read" },

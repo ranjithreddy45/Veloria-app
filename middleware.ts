@@ -55,6 +55,7 @@ const INTERNAL_ROUTES = [
   "/tasks",
   "/invoices",
   "/payments",
+  "/finance",
   "/reports",
   "/settings",
   "/notifications",

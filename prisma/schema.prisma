@@ -5499,3 +5499,135 @@ model ProjectPurchaseOrder {
   @@index([projectId])
   @@index([status])
 }
+
+// ============================================================
+// FINANCE MODULE (standalone, double-entry GL). All Fin*-prefixed to
+// avoid colliding with the event-side Invoice/Payment/Vendor/Budget.
+// entityId is a FIELD (default BILLION) — never hardcoded; no multi-entity.
+// Money = Decimal(18,2), never float. Balance invariant enforced at the
+// DB layer (deferred constraint trigger, POSTED entries only) + app layer.
+// ============================================================
+enum FinAccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  INCOME
+  EXPENSE
+}
+
+model FinAccount {
+  id            String         @id @default(cuid())
+  entityId      String         @default("BILLION")
+  code          String         @unique
+  name          String
+  type          FinAccountType
+  subtype       String?
+  parentId      String?
+  parent        FinAccount?    @relation("FinAccountTree", fields: [parentId], references: [id])
+  children      FinAccount[]   @relation("FinAccountTree")
+  isActive      Boolean        @default(true)
+  isControl     Boolean        @default(false)
+  taxDefault    String?
+  order         Int            @default(0)
+  createdAt     DateTime       @default(now())
+
+  lines FinJournalLine[]
+
+  @@index([type])
+  @@index([entityId])
+}
+
+enum FinPeriodStatus {
+  OPEN
+  CLOSED
+  LOCKED
+}
+
+model FinPeriod {
+  id         String          @id @default(cuid())
+  fy         String // e.g. "2026-27"
+  period     Int // 1-12 (Apr=1 for Indian FY)
+  status     FinPeriodStatus @default(OPEN)
+  closedById String?
+  closedAt   DateTime?
+  createdAt  DateTime        @default(now())
+
+  entries FinJournalEntry[]
+
+  @@unique([fy, period])
+}
+
+enum FinJournalStatus {
+  DRAFT
+  POSTED
+  REVERSED
+}
+
+enum FinSourceModule {
+  MANUAL
+  RECEIVABLE
+  PAYABLE
+  BANK
+  PAYROLL
+  REVENUE
+  TAX
+}
+
+model FinJournalEntry {
+  id           String           @id @default(cuid())
+  entityId     String           @default("BILLION")
+  entryNo      String // gapless per FY, allocated transactionally
+  fy           String
+  date         DateTime
+  narration    String?
+  sourceModule FinSourceModule  @default(MANUAL)
+  sourceRefId  String?
+  status       FinJournalStatus @default(DRAFT)
+  reversalOfId String? // this entry reverses that one
+  reversedById String? // this entry was reversed by that one
+  periodId     String?
+  period       FinPeriod?       @relation(fields: [periodId], references: [id])
+  postedById   String?
+  postedAt     DateTime?
+  createdById  String?
+  createdAt    DateTime         @default(now())
+
+  lines FinJournalLine[]
+
+  @@unique([fy, entryNo])
+  @@index([status])
+  @@index([date])
+  @@index([sourceModule, sourceRefId])
+}
+
+model FinJournalLine {
+  id          String          @id @default(cuid())
+  entryId     String
+  entry       FinJournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  accountId   String
+  account     FinAccount      @relation(fields: [accountId], references: [id])
+  debit       Decimal         @default(0) @db.Decimal(18, 2)
+  credit      Decimal         @default(0) @db.Decimal(18, 2)
+  venueId     String?
+  eventId     String?
+  costCenter  String?
+  taxCode     String?
+  narration   String?
+  lineOrder   Int             @default(0)
+
+  @@index([entryId])
+  @@index([accountId])
+  @@index([venueId])
+  @@index([eventId])
+}
+
+// Document-number counter — gapless per (entity, fy, series), bumped transactionally.
+model FinSequence {
+  id       String @id @default(cuid())
+  entityId String @default("BILLION")
+  series   String // "JE" | "INV" | "BILL" | "PO" | "RCT" ...
+  fy       String
+  nextNum  Int    @default(1)
+
+  @@unique([entityId, series, fy])
+}

@@ -373,8 +373,14 @@ export const sidebarNavigation: NavItem[] = [
     title: "Finance",
     href: "/invoices",
     icon: "IndianRupee",
-    permissions: ["invoices:read", "payments:read", "payouts:read", "commissions:read", "insurance:read"],
+    permissions: ["invoices:read", "payments:read", "payouts:read", "commissions:read", "insurance:read", "finance:read"],
     children: [
+      {
+        title: "General Ledger",
+        href: "/finance",
+        icon: "Scale",
+        permissions: ["finance:read"],
+      },
       {
         title: "Invoices",
         href: "/invoices",
