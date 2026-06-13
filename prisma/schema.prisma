@@ -5406,3 +5406,22 @@ model HelpdeskArticle {
 
   @@index([isPublished])
 }
+
+// ============================================================
+// Projects Wave C — DB-backed CapEx rate card (admin-editable global
+// defaults that the calculator seeds from). Gantt durations + luxury
+// floors live alongside each line. Seeded from capex-calc constants.
+// ============================================================
+model ProjectRateCard {
+  id              String   @id @default(cuid())
+  categoryKey     String   @unique // matches CAPEX_CATEGORIES key
+  label           String
+  basis           String // AREA | UNIT | LUMPSUM
+  rate            Decimal  @db.Decimal(14, 2)
+  unitLabel       String
+  durationWeeks   Int      @default(0) // drives the Gantt timeline
+  luxuryMinPerSqft Decimal? @db.Decimal(10, 2) // amber floor for AREA categories
+  isActive        Boolean  @default(true)
+  order           Int      @default(0)
+  updatedAt       DateTime @default(now()) @updatedAt
+}

@@ -194,6 +194,10 @@ export const sidebarNavigation: NavItem[] = [
     href: "/projects",
     icon: "Building2",
     permissions: ["projects:read"],
+    children: [
+      { title: "Venues", href: "/projects", icon: "Building2", permissions: ["projects:read"] },
+      { title: "CapEx Rate Card", href: "/projects/rate-card", icon: "Calculator", permissions: ["projects:read"] },
+    ],
   },
   {
     title: "People",
