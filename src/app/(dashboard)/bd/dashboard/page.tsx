@@ -15,12 +15,15 @@ import { PageHeader } from "@/components/layout/page-header";
 import { PageHelp } from "@/lib/page-help";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  ACQ_DEAL_STAGE,
   ACQ_DEAL_STAGE_LABEL,
   type AcqDealStage,
 } from "@/lib/acq/constants";
 
 export const metadata: Metadata = { title: "BD Dashboard" };
+
+// Always recompute from live data — the funnel/KPIs must never serve a stale cached
+// payload (BUG-001). Mutations also revalidatePath("/bd/dashboard").
+export const dynamic = "force-dynamic";
 
 // ------------------------------------------------------------
 // Serialized row shapes (subset of fields this view consumes).
@@ -74,7 +77,7 @@ interface FunnelRow {
 }
 
 function FunnelBar({ row, max }: { row: FunnelRow; max: number }) {
-  const pct = max > 0 ? Math.round((row.count / max) * 100) : 0;
+  const pct = max > 0 ? Math.min(100, Math.round((row.count / max) * 100)) : 0;
   return (
     <div className="flex items-center gap-3">
       <div className="w-28 shrink-0 truncate text-[13px] text-muted-foreground sm:w-40">
@@ -115,31 +118,31 @@ export default async function BdDashboardPage() {
     (p) => p.status === "AVAILABLE"
   ).length;
 
-  // ---- Funnel ----
-  const dealsByStage = ACQ_DEAL_STAGE.reduce<Record<AcqDealStage, number>>(
-    (acc, stage) => {
-      acc[stage] = 0;
-      return acc;
-    },
-    {} as Record<AcqDealStage, number>
-  );
-  for (const d of deals) {
-    if ((ACQ_DEAL_STAGE as readonly string[]).includes(d.stage)) {
-      dealsByStage[d.stage as AcqDealStage] += 1;
-    }
-  }
+  // ---- Funnel (cumulative: each stage counts records that reached AT LEAST it,
+  // so the funnel is always monotonic — a deal that jumped to WON still counts
+  // toward every earlier stage). LOST/ON_HOLD are terminal and excluded here;
+  // lost deals are summarised in the Loss-reasons panel. (BUG-002) ----
+  const LINEAR_STAGES = [
+    "QUALIFIED", "EVALUATION", "EVALUATION_COMPLETED", "PROPOSAL_SENT",
+    "NEGOTIATION", "CONTRACT_SENT", "SIGNED", "WON",
+  ] as const;
+  const linearOf = (stage: string) => (LINEAR_STAGES as readonly string[]).indexOf(stage);
+  const dealFunnel = LINEAR_STAGES.map((stage, i) => ({
+    label: ACQ_DEAL_STAGE_LABEL[stage as AcqDealStage],
+    count: deals.filter((d) => {
+      const li = linearOf(d.stage);
+      return li >= 0 && li >= i; // reached at least this stage
+    }).length,
+  }));
 
   const funnel: FunnelRow[] = [
     { label: "Leads (total)", count: totalLeads },
     { label: "Qualified Leads", count: qualifiedLeads },
-    ...ACQ_DEAL_STAGE.map((stage) => ({
-      label: ACQ_DEAL_STAGE_LABEL[stage],
-      count: dealsByStage[stage],
-    })),
-    { label: "Won Deals", count: wonDeals },
+    ...dealFunnel,
     { label: "Properties Available", count: availableProperties },
   ];
-  const funnelMax = funnel.reduce((m, r) => Math.max(m, r.count), 0);
+  // Bars scale to the top of the funnel so widths are visually non-increasing.
+  const funnelMax = funnel.length > 0 ? funnel[0].count : 0;
 
   // ---- Loss reasons ----
   const lostDeals = deals.filter((d) => d.stage === "LOST");

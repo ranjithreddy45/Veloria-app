@@ -170,6 +170,7 @@ export async function createAcqLead(input: AcqLeadInput): Promise<
   });
 
   revalidatePath("/bd/leads");
+  revalidatePath("/bd/dashboard");
   return { success: true, data: { id: lead.id } };
 }
 
@@ -213,6 +214,7 @@ export async function updateAcqLead(
     });
   }
   revalidatePath("/bd/leads");
+  revalidatePath("/bd/dashboard");
   return { success: true, data: { id } };
 }
 
@@ -278,6 +280,7 @@ export async function qualifyAcqLead(
   });
 
   revalidatePath("/bd/leads");
+  revalidatePath("/bd/dashboard");
   revalidatePath("/bd/deals");
   return { success: true, data: { dealId: result.id } };
 }
@@ -317,6 +320,7 @@ export async function disqualifyAcqLead(
     data: { entity: "LEAD", entityId: id, fromState: lead.status, toState: "DISQUALIFIED", actorId: user.id, reason },
   });
   revalidatePath("/bd/leads");
+  revalidatePath("/bd/dashboard");
   return { success: true, data: { id } };
 }
 
@@ -384,6 +388,7 @@ export async function editAcqLead(
 
   await prisma.acqLead.update({ where: { id }, data });
   revalidatePath("/bd/leads");
+  revalidatePath("/bd/dashboard");
   revalidatePath(`/bd/leads/${id}`);
   return { success: true, data: { id } };
 }
@@ -406,6 +411,7 @@ export async function deleteAcqLead(id: string): Promise<Result<{ id: string }>>
     data: { entity: "LEAD", entityId: id, fromState: lead.status, toState: lead.status, actorId: user.id, reason: "Lead deleted" },
   });
   revalidatePath("/bd/leads");
+  revalidatePath("/bd/dashboard");
   return { success: true, data: { id } };
 }
 
@@ -446,6 +452,7 @@ export async function reassignAcqLead(
     },
   });
   revalidatePath("/bd/leads");
+  revalidatePath("/bd/dashboard");
   revalidatePath(`/bd/leads/${id}`);
   return { success: true, data: { id } };
 }

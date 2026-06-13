@@ -140,6 +140,7 @@ export async function updateAcqDeal(
 
   await prisma.acqDeal.update({ where: { id }, data });
   revalidatePath(`/bd/deals/${id}`);
+  revalidatePath("/bd/dashboard");
   return { success: true, data: { id } };
 }
 
@@ -168,6 +169,7 @@ export async function setAcqDealEconomicsFrozen(
     data: { economicsFrozenAt: frozen ? new Date() : null },
   });
   revalidatePath(`/bd/deals/${id}`);
+  revalidatePath("/bd/dashboard");
   return { success: true, data: { id } };
 }
 
@@ -210,6 +212,7 @@ export async function submitAcqEvaluation(
     },
   });
   revalidatePath(`/bd/deals/${dealId}`);
+  revalidatePath("/bd/dashboard");
   return { success: true, data: { totalScore, passed } };
 }
 
@@ -229,6 +232,7 @@ export async function addAcqAttachment(
     select: { id: true },
   });
   revalidatePath(`/bd/deals/${dealId}`);
+  revalidatePath("/bd/dashboard");
   return { success: true, data: { id: att.id } };
 }
 
@@ -262,6 +266,7 @@ export async function addAcqNote(
   }
 
   revalidatePath(`/bd/deals/${dealId}`);
+  revalidatePath("/bd/dashboard");
   return { success: true, data: { id: note.id } };
 }
 
@@ -300,6 +305,7 @@ export async function markAcqContractSigned(dealId: string): Promise<Result<{ id
   if (deal.contractStatus !== "SENT") return { success: false, error: "Contract must be SENT before it can be marked signed." };
   await prisma.acqDeal.update({ where: { id: dealId }, data: { contractStatus: "SIGNED" } });
   revalidatePath(`/bd/deals/${dealId}`);
+  revalidatePath("/bd/dashboard");
   return { success: true, data: { id: dealId } };
 }
 
@@ -321,6 +327,7 @@ export async function approveAcqDeal(dealId: string): Promise<Result<{ id: strin
     data: { bdHeadApprovedById: user.id, bdHeadApprovedAt: new Date() },
   });
   revalidatePath(`/bd/deals/${dealId}`);
+  revalidatePath("/bd/dashboard");
   return { success: true, data: { id: dealId } };
 }
 
@@ -385,6 +392,7 @@ export async function editAcqDealOverview(
     },
   });
   revalidatePath(`/bd/deals/${dealId}`);
+  revalidatePath("/bd/dashboard");
   return { success: true, data: { id: dealId } };
 }
 
@@ -565,6 +573,7 @@ export async function transitionAcqDeal(
 
   revalidatePath("/bd/deals");
   revalidatePath(`/bd/deals/${dealId}`);
+  revalidatePath("/bd/dashboard");
   revalidatePath("/bd/properties");
   return { success: true, data: { stage: toStage } };
 }

@@ -136,5 +136,6 @@ export async function markPropertyAvailable(propertyId: string): Promise<Result<
 
   revalidatePath("/bd/properties");
   revalidatePath(`/bd/properties/${propertyId}`);
+  revalidatePath("/bd/dashboard");
   return { success: true, data: { status: "AVAILABLE" } };
 }

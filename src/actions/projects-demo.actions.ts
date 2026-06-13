@@ -92,6 +92,10 @@ export async function seedDemoProjects(): Promise<Result<{ created: number }>> {
       },
       select: { id: true },
     });
+    // These samples represent venues already WON & converted, so the lead must be
+    // QUALIFIED and linked to its deal — otherwise it pollutes active-lead lists,
+    // the SLA-breach count, and the funnel (it would show as a fresh NEW/overdue lead).
+    await prisma.acqLead.update({ where: { id: lead.id }, data: { status: "QUALIFIED", convertedDealId: deal.id } });
     const property = await prisma.acqProperty.create({
       data: {
         dealId: deal.id, propertyName: s.propertyName, propertyType: s.propertyType, ownerName: s.ownerName,
@@ -163,8 +167,12 @@ export async function seedDemoProjects(): Promise<Result<{ created: number }>> {
     created++;
   }
 
-  revalidatePath("/projects");
+  revalidatePathsAfterDemoChange();
   return { success: true, data: { created } };
+}
+
+function revalidatePathsAfterDemoChange() {
+  for (const p of ["/projects", "/bd/dashboard", "/bd/leads", "/bd/deals", "/bd/properties"]) revalidatePath(p);
 }
 
 export async function clearDemoProjects(): Promise<Result<{ removed: number }>> {
@@ -182,6 +190,6 @@ export async function clearDemoProjects(): Promise<Result<{ removed: number }>> 
   await prisma.acqProperty.deleteMany({ where: { id: { in: propertyIds } } });
   await prisma.acqDeal.deleteMany({ where: { id: { in: dealIds } } });
   await prisma.acqLead.deleteMany({ where: { id: { in: leadIds } } });
-  revalidatePath("/projects");
+  revalidatePathsAfterDemoChange();
   return { success: true, data: { removed: projects.length } };
 }
