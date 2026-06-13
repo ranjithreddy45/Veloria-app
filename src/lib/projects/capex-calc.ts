@@ -38,6 +38,20 @@ export const CAPEX_CATEGORIES: CapexCategory[] = [
 
 export const DEFAULT_CONTINGENCY_PCT = 12;
 
+// Indicative build duration per category (weeks) — drives the Gantt-style timeline.
+export const CAPEX_DURATION_WEEKS: Record<string, number> = {
+  civil_interiors: 9, false_ceiling: 3, bathrooms_washrooms: 5, flooring_carpet: 4,
+  painting: 3, electrical_wiring: 6, lighting: 3, hvac_airconditioning: 6, furniture: 4,
+  fire_safety: 4, lift_elevator: 8, landscaping_exterior_entrance: 6, av_systems: 3, branding_signage: 2,
+};
+
+// Luxury floor (₹ per sq ft) for AREA categories — below this the spec is under-built
+// for a premium venue, so the calculator flags it (amber). Point 4/5 of the spec.
+export const CAPEX_LUXURY_MIN_PER_SQFT: Record<string, number> = {
+  civil_interiors: 1100, false_ceiling: 170, flooring_carpet: 280, painting: 50,
+  electrical_wiring: 220, lighting: 170, hvac_airconditioning: 1250, fire_safety: 130,
+};
+
 export const CAPEX_CATEGORY_BY_KEY: Record<string, CapexCategory> = Object.fromEntries(
   CAPEX_CATEGORIES.map((c) => [c.key, c])
 );
@@ -65,6 +79,8 @@ export interface CapexResultLine {
   qty: number;
   unitLabel: string;
   amount: number;
+  durationWeeks: number; // indicative build time — feeds the timeline
+  belowLuxury: boolean; // AREA rate is under the luxury floor for this category
 }
 
 export interface CapexResult {
@@ -115,7 +131,13 @@ export function computeCapex(
       qty = 1;
       amount = r0(rate);
     }
-    lines.push({ key: cat.key, label: cat.label, basis: cat.basis, rate, qty, unitLabel: cat.unitLabel, amount });
+    const luxMin = CAPEX_LUXURY_MIN_PER_SQFT[cat.key];
+    const belowLuxury = cat.basis === "AREA" && luxMin != null && rate < luxMin;
+    lines.push({
+      key: cat.key, label: cat.label, basis: cat.basis, rate, qty, unitLabel: cat.unitLabel, amount,
+      durationWeeks: CAPEX_DURATION_WEEKS[cat.key] ?? 0,
+      belowLuxury,
+    });
   }
 
   const subtotal = lines.reduce((s, l) => s + l.amount, 0);

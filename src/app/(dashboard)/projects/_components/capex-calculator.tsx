@@ -191,6 +191,34 @@ export function CapexCalculator({ projectId, capexId, initialInput, initialNotes
             </div>
           </CardContent>
         </Card>
+
+        {/* Gantt-style build timeline */}
+        {result.lines.length > 0 && (
+          <Card>
+            <CardHeader><CardTitle className="text-base">Build timeline</CardTitle></CardHeader>
+            <CardContent className="space-y-1.5">
+              {result.lines.map((l) => {
+                const maxDur = Math.max(1, ...result.lines.map((x) => x.durationWeeks));
+                return (
+                  <div key={l.key} className="text-xs">
+                    <div className="flex justify-between gap-2"><span className="truncate text-muted-foreground">{l.label}</span><span className="shrink-0 tabular-nums">{l.durationWeeks}w</span></div>
+                    <div className="h-2 overflow-hidden rounded bg-muted"><div className="h-full rounded bg-[#C9A96E]" style={{ width: `${(l.durationWeeks / maxDur) * 100}%` }} /></div>
+                  </div>
+                );
+              })}
+              <p className="pt-1 text-[11px] text-muted-foreground">Target ~{result.estimatedWeeks} weeks once parallelised; civil/HVAC/lift are the critical path.</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Luxury-benchmark flags */}
+        {result.lines.some((l) => l.belowLuxury) && (
+          <div className="rounded-md border border-amber-300 bg-amber-50/70 p-3 text-xs text-amber-800">
+            <strong>Below luxury benchmark:</strong>{" "}
+            {result.lines.filter((l) => l.belowLuxury).map((l) => l.label).join(", ")} — these rates are under the premium-finish floor and may under-spec the venue. Raise the rate or confirm the spec.
+          </div>
+        )}
+
         {!readOnly && (
           <div className="flex flex-col gap-2">
             <Button onClick={() => save(true)} disabled={saving}>
