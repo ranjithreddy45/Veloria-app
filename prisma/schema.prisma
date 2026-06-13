@@ -378,6 +378,8 @@ model User {
   hrEmployee                Employee?                  @relation("EmployeeUser")
   // Velos motivation system
   velosLedger               VelosLedger[]
+  kudosGiven                Kudos[]                    @relation("KudosFrom")
+  kudosReceived             Kudos[]                    @relation("KudosTo")
 
   @@index([email])
   @@index([role])
@@ -5256,4 +5258,18 @@ model VelosConfig {
   clawbackEligible Boolean  @default(false) // sale-side points reversed on cancel/refund
   isEffort         Boolean  @default(false) // effort metric — never clawed back
   updatedAt        DateTime @default(now()) @updatedAt
+}
+
+// Peer recognition (B6) — kudos write a +kudos_received ledger row to the receiver.
+model Kudos {
+  id         String   @id @default(cuid())
+  fromUserId String
+  fromUser   User     @relation("KudosFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUserId   String
+  toUser     User     @relation("KudosTo", fields: [toUserId], references: [id], onDelete: Cascade)
+  note       String
+  createdAt  DateTime @default(now())
+
+  @@index([toUserId])
+  @@index([fromUserId, createdAt])
 }

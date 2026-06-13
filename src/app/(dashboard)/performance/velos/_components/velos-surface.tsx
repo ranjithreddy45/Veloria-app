@@ -11,6 +11,12 @@ import { StatusPill } from "@/components/shared/status-pill";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { seedVelosConfig, updateVelosPoints } from "@/actions/velos.actions";
+import { giveKudos } from "@/actions/velos-peer.actions";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Heart } from "lucide-react";
 
 interface Pace { thisPeriod: number; lastPeriod: number; projected: number; goal: number; onTrack: boolean; pctOfGoal: number }
 interface Team { team: number; target: number; pct: number }
@@ -20,11 +26,16 @@ interface Cfg { id: string; eventType: string; points: number; label: string; ca
 
 const TIER_HUE: Record<string, string> = { BRONZE: "text-amber-700 bg-amber-50 ring-amber-200", SILVER: "text-slate-600 bg-slate-50 ring-slate-200", GOLD: "text-amber-600 bg-amber-50 ring-amber-200", PLATINUM: "text-violet-700 bg-violet-50 ring-violet-200" };
 
+interface KudosItem { id: string; note: string; from: string; fromImg: string | null; to: string; toImg: string | null }
+interface Teammate { id: string; name: string | null; image: string | null }
+
 export function VelosSurface({
   pace, team, identity, leaderboard, config, myId, canAdmin, needsSeed,
+  kudosFeed, kudosRemaining, teammates,
 }: {
   pace: Pace | null; team: Team | null; identity: Identity | null; leaderboard: LbRow[];
   config: Cfg[]; myId: string; canAdmin: boolean; needsSeed: boolean;
+  kudosFeed: KudosItem[]; kudosRemaining: number; teammates: Teammate[];
 }) {
   if (needsSeed) {
     return canAdmin ? <SeedPanel /> : (
@@ -133,8 +144,82 @@ export function VelosSurface({
         )}
       </div>
 
+      <KudosWall feed={kudosFeed} remaining={kudosRemaining} teammates={teammates} />
+
       {canAdmin && <ConfigPanel config={config} />}
     </div>
+  );
+}
+
+function KudosWall({ feed, remaining, teammates }: { feed: KudosItem[]; remaining: number; teammates: Teammate[] }) {
+  return (
+    <div className="rounded-xl border bg-card">
+      <div className="flex items-center justify-between border-b px-4 py-3">
+        <div className="flex items-center gap-2 text-[13px] font-semibold"><Heart className="size-4 text-rose-500" /> Kudos wall</div>
+        <GiveKudosDialog remaining={remaining} teammates={teammates} />
+      </div>
+      {feed.length === 0 ? (
+        <div className="p-8 text-center text-sm text-muted-foreground">No kudos yet. Recognise a teammate who helped you out — it carries a small Velos reward.</div>
+      ) : (
+        <div className="divide-y">
+          {feed.map((k) => (
+            <div key={k.id} className="flex items-start gap-3 px-4 py-2.5">
+              <Avatar size="sm"><AvatarImage src={k.fromImg || undefined} /><AvatarFallback className="bg-primary/10 text-[10px] text-primary">{k.from.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}</AvatarFallback></Avatar>
+              <div className="min-w-0 flex-1 text-[13px]">
+                <span className="font-medium">{k.from}</span> <span className="text-muted-foreground">recognised</span> <span className="font-medium">{k.to}</span>
+                <p className="text-[12.5px] text-muted-foreground">“{k.note}”</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GiveKudosDialog({ remaining, teammates }: { remaining: number; teammates: Teammate[] }) {
+  const router = useRouter();
+  const [open, setOpen] = React.useState(false);
+  const [to, setTo] = React.useState("");
+  const [note, setNote] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  async function submit() {
+    setError(null);
+    if (!to) { setError("Pick a teammate."); return; }
+    if (!note.trim()) { setError("Add a short note."); return; }
+    setBusy(true);
+    const res = await giveKudos(to, note);
+    setBusy(false);
+    if (!res.success) { setError(res.error); return; }
+    setOpen(false); setTo(""); setNote(""); router.refresh();
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" className="gap-1.5" disabled={remaining <= 0}><Heart className="size-3.5" /> Give kudos{remaining > 0 ? ` (${remaining} left)` : " (none left)"}</Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Give kudos</DialogTitle>
+          <DialogDescription>Recognise a teammate. They get a small Velos reward. {remaining} left this week.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 py-2">
+          <Select value={to} onValueChange={setTo}>
+            <SelectTrigger><SelectValue placeholder="Teammate" /></SelectTrigger>
+            <SelectContent>{teammates.map((t) => <SelectItem key={t.id} value={t.id}>{t.name ?? "—"}</SelectItem>)}</SelectContent>
+          </Select>
+          <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Saved the Sharma wedding setup…" />
+        </div>
+        {error && <p className="text-sm text-red-600">{error}</p>}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>Cancel</Button>
+          <Button onClick={submit} disabled={busy} className="gap-1.5">{busy && <Loader2 className="size-4 animate-spin" />} Send</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

@@ -6,6 +6,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { awardVelos, clawbackEntity } from "./award";
+import { VELOS_TUNING } from "./config";
 
 // Resilient pipeline-stage → Velos event mapping (matches on the stage name,
 // which is admin-editable, so we normalise + substring-match rather than rely
@@ -58,9 +59,31 @@ export async function velosOnDealStage(opts: {
     if (!eventType) return;
     // Quality gate on the closing award (A5).
     if (eventType === "event_executed" && !(await qualityGatePasses(opts.dealId))) return;
-    await awardVelos(prisma, { userId: ownerId, eventType, entityType: "deal", entityId: opts.dealId });
+    const res = await awardVelos(prisma, { userId: ownerId, eventType, entityType: "deal", entityId: opts.dealId });
+
+    // Assist credit (B6): on a fresh close, anyone who did the earlier site-visit
+    // work on this deal — and isn't the closer — shares 25% of the close points.
+    if (res.awarded && eventType === "contract_signed") {
+      await awardAssistCredit(opts.dealId, ownerId, res.points);
+    }
   } catch {
     /* never break the move */
+  }
+}
+
+async function awardAssistCredit(dealId: string, closerId: string, closePoints: number): Promise<void> {
+  const share = Math.round(closePoints * VELOS_TUNING.ASSIST_SHARE);
+  if (share <= 0) return;
+  const priors = await prisma.velosLedger.findMany({
+    where: { entityId: dealId, eventType: { in: ["site_visit_done", "site_visit_scheduled"] } },
+    select: { userId: true },
+  });
+  const assisters = [...new Set(priors.map((p) => p.userId))].filter((id) => id !== closerId);
+  for (const assisterId of assisters) {
+    await awardVelos(prisma, {
+      userId: assisterId, eventType: "assist_credit", entityType: "assist", entityId: dealId,
+      pointsOverride: share, keySuffix: assisterId, note: "Assist on close",
+    });
   }
 }
 

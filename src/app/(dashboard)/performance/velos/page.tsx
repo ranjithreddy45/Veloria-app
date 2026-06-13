@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import {
   getPersonalPace, getTeamTarget, getIdentityProgress, getLeaderboard, getVelosConfig,
 } from "@/actions/velos.actions";
+import { getKudosFeed, getTeammates } from "@/actions/velos-peer.actions";
 import { VelosSurface } from "./_components/velos-surface";
 
 export const metadata: Metadata = { title: "Velos" };
@@ -15,8 +16,9 @@ export default async function VelosPage() {
   const role = session.user.role ?? "";
   const canAdmin = role === "SUPER_ADMIN" || role === "ADMIN";
 
-  const [pace, team, identity, leaderboard, config] = await Promise.all([
+  const [pace, team, identity, leaderboard, config, kudos, teammates] = await Promise.all([
     getPersonalPace(), getTeamTarget(), getIdentityProgress(), getLeaderboard(), getVelosConfig(),
+    getKudosFeed(), getTeammates(),
   ]);
 
   return (
@@ -35,6 +37,9 @@ export default async function VelosPage() {
         myId={session.user.id}
         canAdmin={canAdmin}
         needsSeed={config.length === 0}
+        kudosFeed={kudos.feed as never}
+        kudosRemaining={kudos.remaining}
+        teammates={teammates as never}
       />
     </div>
   );
