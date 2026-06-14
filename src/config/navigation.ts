@@ -18,6 +18,12 @@ export const sidebarNavigation: NavItem[] = [
     permissions: ["dashboard:read"],
   },
   {
+    title: "My Work",
+    href: "/my-work",
+    icon: "ClipboardList",
+    permissions: ["dashboard:read"],
+  },
+  {
     title: "BD CRM",
     href: "/bd/dashboard",
     icon: "Building2",

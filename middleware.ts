@@ -48,6 +48,7 @@ const VENDOR_PORTAL_ROLES = ["VENDOR", "SUPER_ADMIN", "ADMIN"] as const;
  */
 const INTERNAL_ROUTES = [
   "/dashboard",
+  "/my-work",
   "/contacts",
   "/leads",
   "/pipeline",
