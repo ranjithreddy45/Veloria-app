@@ -136,10 +136,23 @@ export async function getBookings(params?: {
       prisma.booking.count({ where }),
     ]);
 
+    // Derived display flag: a HOLD/TENTATIVE whose event date has already
+    // passed is effectively a dead hold. We never mutate the stored status —
+    // this is a read-only hint the UI can surface as "Hold — expired".
+    // Compare on the calendar day (local midnight) to stay TZ-safe.
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const serialized = serialize(bookings).map((b) => ({
+      ...b,
+      isExpiredHold:
+        (b.status === "HOLD" || b.status === "TENTATIVE") &&
+        new Date(b.date) < todayStart,
+    }));
+
     return {
       success: true as const,
       data: {
-        data: serialize(bookings),
+        data: serialized,
         total,
         page,
         limit,

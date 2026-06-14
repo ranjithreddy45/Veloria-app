@@ -46,6 +46,7 @@ interface WhatsAppMsg {
   templateName: string | null;
   status: string;
   whatsappId: string | null;
+  failureReason: string | null;
   sentAt: string;
   contactId: string;
 }
@@ -249,6 +250,17 @@ export function InboxChatView({ conversation, onBack }: InboxChatViewProps) {
                   <p className="whitespace-pre-wrap text-sm leading-relaxed">
                     {msg.content}
                   </p>
+
+                  {/* Failure reason — surface why a send failed instead of a
+                      silent error (E-3). */}
+                  {msg.direction === "OUTBOUND" &&
+                    msg.status === "FAILED" &&
+                    msg.failureReason && (
+                      <div className="mt-1.5 flex items-start gap-1 rounded bg-red-50 px-2 py-1 text-[11px] leading-snug text-red-700 dark:bg-red-950/40 dark:text-red-300">
+                        <XCircle className="mt-0.5 size-3 shrink-0" />
+                        <span>{msg.failureReason}</span>
+                      </div>
+                    )}
 
                   {/* Timestamp + status */}
                   <div

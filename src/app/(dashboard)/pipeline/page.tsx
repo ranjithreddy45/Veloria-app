@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { HelpHint } from "@/components/layout/help-hint";
 import { PipelineBoard } from "./_components/pipeline-board";
 import { ScoreAllDealsButton } from "./_components/score-all-deals-button";
+import { SyncLeadsButton } from "./_components/sync-leads-button";
 
 export const metadata: Metadata = { title: "Sales Pipeline" };
 
@@ -88,6 +89,7 @@ export default async function PipelinePage() {
         }
         description="Drag deals through stages — values and probability auto-update."
       >
+        <SyncLeadsButton />
         <ScoreAllDealsButton />
       </PageHeader>
 

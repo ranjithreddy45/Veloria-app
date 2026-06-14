@@ -23,6 +23,29 @@ interface ScoreBreakdown {
   }[];
 }
 
+// Closed leads (Won/Lost) are no longer in the nurture funnel. They must not
+// earn early-stage/"event soon" points or take the "stale NEW" penalty — those
+// factors only describe an open lead that still needs working (S-3).
+function isClosedStatus(status?: string | null): boolean {
+  return status === "WON" || status === "LOST";
+}
+
+// True only when an event date is set AND lies in the future, within `months`
+// from now. `differenceInMonths` truncates toward zero, so a date a few days in
+// the past would return 0 and be mistakenly credited — guard with an explicit
+// future check so only genuinely upcoming events score (S-5).
+function isEventWithinMonths(
+  eventDate: Date | string | null | undefined,
+  now: Date,
+  months: number
+): boolean {
+  if (!eventDate) return false;
+  const d = new Date(eventDate);
+  if (Number.isNaN(d.getTime())) return false;
+  if (d.getTime() <= now.getTime()) return false; // past/now never counts
+  return differenceInMonths(d, now) <= months;
+}
+
 // ============================================================
 // Lead Scoring Algorithm
 // ============================================================
@@ -42,6 +65,7 @@ interface ScoreBreakdown {
 export function calculateLeadScore(lead: LeadData): number {
   let score = 0;
   const now = new Date();
+  const closed = isClosedStatus(lead.status);
 
   // +20 if budget >= 2,00,000
   const budget = lead.estimatedValue ? Number(lead.estimatedValue) : 0;
@@ -49,13 +73,10 @@ export function calculateLeadScore(lead: LeadData): number {
     score += 20;
   }
 
-  // +15 if event date is within 3 months
-  if (lead.eventDate) {
-    const eventDate = new Date(lead.eventDate);
-    const monthsUntilEvent = differenceInMonths(eventDate, now);
-    if (monthsUntilEvent >= 0 && monthsUntilEvent <= 3) {
-      score += 15;
-    }
+  // +15 if event date is within 3 months (future only). A closed lead's event
+  // proximity is no longer a buying signal, so skip it for Won/Lost.
+  if (!closed && isEventWithinMonths(lead.eventDate, now, 3)) {
+    score += 15;
   }
 
   // +10 if responded to follow-up (has followUpDate)
@@ -73,12 +94,13 @@ export function calculateLeadScore(lead: LeadData): number {
     score += 10;
   }
 
-  // -10 if no eventDate
-  if (!lead.eventDate) {
+  // -10 if no eventDate (skip for closed leads — not a follow-up signal anymore)
+  if (!closed && !lead.eventDate) {
     score -= 10;
   }
 
-  // -20 if status is still NEW and created > 7 days ago
+  // -20 if status is still NEW and created > 7 days ago. By definition this only
+  // applies to NEW leads, so closed leads are never penalised here.
   if (lead.status === "NEW" && lead.createdAt) {
     const createdDate = new Date(lead.createdAt);
     const daysSinceCreation = differenceInDays(now, createdDate);
@@ -99,6 +121,7 @@ export function calculateLeadScoreWithBreakdown(
   lead: LeadData
 ): ScoreBreakdown {
   const now = new Date();
+  const closed = isClosedStatus(lead.status);
   const factors: ScoreBreakdown["factors"] = [];
 
   // Budget check
@@ -110,13 +133,8 @@ export function calculateLeadScoreWithBreakdown(
     applied: hasBudget,
   });
 
-  // Event date proximity check
-  let eventDateNear = false;
-  if (lead.eventDate) {
-    const eventDate = new Date(lead.eventDate);
-    const monthsUntilEvent = differenceInMonths(eventDate, now);
-    eventDateNear = monthsUntilEvent >= 0 && monthsUntilEvent <= 3;
-  }
+  // Event date proximity check (future only; not credited for closed leads)
+  const eventDateNear = !closed && isEventWithinMonths(lead.eventDate, now, 3);
   factors.push({
     label: "Event within 3 months",
     points: 15,
@@ -148,15 +166,15 @@ export function calculateLeadScoreWithBreakdown(
     applied: hasLargeGuestCount,
   });
 
-  // No event date penalty
-  const noEventDate = !lead.eventDate;
+  // No event date penalty (skip for closed leads)
+  const noEventDate = !closed && !lead.eventDate;
   factors.push({
     label: "No event date set (penalty)",
     points: -10,
     applied: noEventDate,
   });
 
-  // Stale NEW lead penalty
+  // Stale NEW lead penalty (only ever applies while status is NEW)
   let isStaleNew = false;
   if (lead.status === "NEW" && lead.createdAt) {
     const createdDate = new Date(lead.createdAt);

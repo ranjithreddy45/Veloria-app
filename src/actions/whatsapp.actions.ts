@@ -15,6 +15,7 @@ import {
 } from "@/schemas/whatsapp.schema";
 import {
   sendWhatsApp,
+  getWhatsAppApiConfig,
   WHATSAPP_TEMPLATES,
 } from "@/lib/integrations/whatsapp";
 
@@ -74,18 +75,24 @@ export async function sendWhatsAppMessage(data: SendWhatsAppMessageInput) {
     });
 
     if (!result.success) {
-      // Create a FAILED record
+      // Capture the provider/error reason so it surfaces in the UI instead of a
+      // silent failure (E-3). `result.error` is the Meta Cloud API message or a
+      // "not configured" hint from the integration layer.
+      const reason = result.error || "Send failed (no reason returned by provider).";
       await prisma.whatsAppMessage.create({
         data: {
           direction: "OUTBOUND",
           content: messageContent,
           templateName: templateName || null,
           status: "FAILED",
+          failureReason: reason,
           contactId,
         },
       });
 
-      return { success: false as const, error: "Failed to send WhatsApp message" };
+      revalidatePath(`/contacts/${contactId}`);
+      revalidatePath("/whatsapp");
+      return { success: false as const, error: reason };
     }
 
     // Create a SENT record
@@ -249,11 +256,15 @@ export async function getConversationsList(search?: string) {
     const conversations: ConversationSummary[] = contacts
       .map((c) => {
         const lastMsg = c.whatsappMessages[0];
+        // Render a friendly preview — older rows may store the raw
+        // `[Template: …] {json}` payload; humanize it (E-4). Falls back to a
+        // clean "Template Label" if the JSON is missing/unparseable.
+        const preview = humanizeWhatsAppContent(lastMsg?.content);
         return {
           contactId: c.id,
           contactName: `${c.firstName} ${c.lastName ?? ""}`.trim(),
           contactPhone: c.phone ?? "",
-          lastMessage: lastMsg?.content?.slice(0, 100) ?? "",
+          lastMessage: preview.slice(0, 100),
           lastMessageAt: lastMsg?.sentAt?.toISOString() ?? "",
           lastDirection: (lastMsg?.direction ?? "OUTBOUND") as "INBOUND" | "OUTBOUND",
           lastStatus: lastMsg?.status ?? "SENT",
@@ -285,6 +296,7 @@ export interface WhatsAppStatsData {
   total: number;
   deliveryRate: number;
   readRate: number;
+  configured: boolean;
 }
 
 export async function getWhatsAppStats() {
@@ -298,10 +310,17 @@ export async function getWhatsAppStats() {
       return { success: false as const, error: "You do not have permission to view WhatsApp stats" };
     }
 
-    const counts = await prisma.whatsAppMessage.groupBy({
-      by: ["status"],
-      _count: { id: true },
-    });
+    // Tallies derive directly from the actual message rows' statuses, so the
+    // Sent/Delivered/Read/Failed cards always reconcile with what's in the DB
+    // (E-3). `total` is the true row count, not a sum that could drift.
+    const [counts, total, config] = await Promise.all([
+      prisma.whatsAppMessage.groupBy({
+        by: ["status"],
+        _count: { id: true },
+      }),
+      prisma.whatsAppMessage.count(),
+      getWhatsAppApiConfig(),
+    ]);
 
     const statusMap: Record<string, number> = {};
     for (const row of counts) {
@@ -312,7 +331,8 @@ export async function getWhatsAppStats() {
     const delivered = statusMap["DELIVERED"] ?? 0;
     const read = statusMap["READ"] ?? 0;
     const failed = statusMap["FAILED"] ?? 0;
-    const total = sent + delivered + read + failed;
+    // Rates are computed over messages that actually left our side (excludes
+    // failed), so a batch of pure failures reads as 0% rather than NaN.
     const successTotal = sent + delivered + read;
 
     const stats: WhatsAppStatsData = {
@@ -323,6 +343,7 @@ export async function getWhatsAppStats() {
       total,
       deliveryRate: successTotal > 0 ? Math.round(((delivered + read) / successTotal) * 100) : 0,
       readRate: successTotal > 0 ? Math.round((read / successTotal) * 100) : 0,
+      configured: config !== null,
     };
 
     return { success: true as const, data: stats };
@@ -391,6 +412,9 @@ export async function bulkSendWhatsApp(data: BulkSendWhatsAppInput) {
             templateName,
             status: result.success ? "SENT" : "FAILED",
             whatsappId: result.messageId || null,
+            failureReason: result.success
+              ? null
+              : result.error || "Send failed (no reason returned by provider).",
             contactId: contact.id,
           },
         });
@@ -400,7 +424,26 @@ export async function bulkSendWhatsApp(data: BulkSendWhatsAppInput) {
         } else {
           failedCount++;
         }
-      } catch {
+      } catch (e) {
+        // Record the message as FAILED with the thrown reason so the count
+        // reconciles with actual rows (E-3) rather than vanishing.
+        const reason = e instanceof Error ? e.message : "Unexpected send error.";
+        try {
+          await prisma.whatsAppMessage.create({
+            data: {
+              direction: "OUTBOUND",
+              content: humanizeWhatsAppContent(
+                `[Template: ${templateName}] ${JSON.stringify(params || {})}`
+              ),
+              templateName,
+              status: "FAILED",
+              failureReason: reason,
+              contactId: contact.id,
+            },
+          });
+        } catch {
+          // If even the row write fails, still tally it so counts stay honest.
+        }
         failedCount++;
       }
     }

@@ -25,15 +25,20 @@ export function LeadsStatStrip({ data }: { data: StatLead[] }) {
     const total = data.length;
     let hot = 0;
     let won = 0;
+    let lost = 0;
     let pipeline = 0;
     for (const l of data) {
       if (l.status === "QUALIFIED" || l.score >= HOT_SCORE) hot += 1;
       if (l.status === "WON") won += 1;
+      if (l.status === "LOST") lost += 1;
       if (l.status !== "LOST" && l.status !== "WON") {
         pipeline += Number(l.estimatedValue ?? 0);
       }
     }
-    const winRate = total > 0 ? Math.round((won / total) * 100) : 0;
+    // Win rate = won / closed (won + lost). Open leads must not dilute it, and
+    // with no closed leads there's no rate to show yet (S-2).
+    const closed = won + lost;
+    const winRate = closed > 0 ? Math.round((won / closed) * 100) : null;
     return { total, hot, won, pipeline, winRate };
   }, [data]);
 
@@ -58,8 +63,8 @@ export function LeadsStatStrip({ data }: { data: StatLead[] }) {
         value={stats.won.toLocaleString("en-IN")}
         accent="emerald"
         icon={<TrophyIcon className="size-4" />}
-        pct={stats.winRate}
-        sub={`${stats.winRate}% win rate`}
+        pct={stats.winRate ?? undefined}
+        sub={stats.winRate === null ? "No closed leads yet" : `${stats.winRate}% win rate`}
       />
       <StatTile
         label="Pipeline value"

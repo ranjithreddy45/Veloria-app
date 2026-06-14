@@ -130,6 +130,16 @@ export function LeadForm({ contacts, venues = [], users = [], lead }: LeadFormPr
         router.push(isEditing ? `/leads/${lead.id}` : "/leads");
         router.refresh();
       } else {
+        // Surface server-side field errors back onto the form so the user sees
+        // exactly which field was rejected (S-7).
+        const details = (result as { details?: Record<string, string[] | undefined> }).details;
+        if (details) {
+          for (const [name, messages] of Object.entries(details)) {
+            if (messages?.[0]) {
+              form.setError(name as keyof LeadInput, { type: "server", message: messages[0] });
+            }
+          }
+        }
         toast.error(result.error);
       }
     } catch {
@@ -139,9 +149,21 @@ export function LeadForm({ contacts, venues = [], users = [], lead }: LeadFormPr
     }
   }
 
+  // react-hook-form silently blocks submit when client validation fails; without
+  // this the user gets no feedback on an empty/invalid form. Surface a toast and
+  // focus the first offending field (S-7). Inline <FormMessage/> errors also show.
+  function onInvalid(errors: Record<string, unknown>) {
+    const count = Object.keys(errors).length;
+    toast.error(
+      count === 1
+        ? "Please fix the highlighted field before saving."
+        : `Please fix ${count} highlighted fields before saving.`
+    );
+  }
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-6">
         {/* Lead Details */}
         <Card>
           <CardHeader>
@@ -357,6 +379,8 @@ export function LeadForm({ contacts, venues = [], users = [], lead }: LeadFormPr
                   <FormControl>
                     <Input
                       type="number"
+                      min={1}
+                      step={1}
                       placeholder="e.g., 200"
                       value={field.value ?? ""}
                       onChange={(e) => {
@@ -383,6 +407,7 @@ export function LeadForm({ contacts, venues = [], users = [], lead }: LeadFormPr
                       </span>
                       <Input
                         type="number"
+                        min={0}
                         placeholder="e.g., 500000"
                         className="pl-8"
                         value={field.value ?? ""}

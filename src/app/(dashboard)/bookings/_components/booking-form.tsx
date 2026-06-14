@@ -232,6 +232,9 @@ export function BookingForm({
   const selectedVenue = venues.find((v) => v.id === watchedVenueId);
 
   async function onSubmit(data: BookingInput) {
+    // Guard against a double-click racing a second create through before the
+    // first request settles / navigation kicks in.
+    if (isPending) return;
     setIsPending(true);
     try {
       const result = isEditing
@@ -244,18 +247,18 @@ export function BookingForm({
             ? "Booking updated successfully"
             : "Booking created successfully"
         );
-        if (isEditing) {
-          router.push(`/bookings/${booking.id}`);
-        } else {
-          router.push("/bookings");
-        }
+        // Redirect to the created/updated booking and keep the button busy
+        // through navigation so a second submit can't create a duplicate.
+        const targetId = isEditing ? booking.id : result.data.id;
+        router.push(`/bookings/${targetId}`);
         router.refresh();
-      } else {
-        toast.error(result.error);
+        return; // leave isPending=true; the page is unmounting
       }
+
+      toast.error(result.error);
+      setIsPending(false);
     } catch {
       toast.error("Something went wrong. Please try again.");
-    } finally {
       setIsPending(false);
     }
   }
@@ -323,8 +326,14 @@ export function BookingForm({
                       type="number"
                       min="1"
                       placeholder="e.g., 200"
-                      {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                      name={field.name}
+                      ref={field.ref}
+                      onBlur={field.onBlur}
+                      value={field.value === 0 ? "" : field.value ?? ""}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        field.onChange(val === "" ? 0 : parseInt(val, 10));
+                      }}
                     />
                   </FormControl>
                   <FormMessage />

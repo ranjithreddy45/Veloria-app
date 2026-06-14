@@ -152,6 +152,51 @@ export async function getSalesQuotation(id: string): Promise<Result<unknown>> {
 }
 
 // ------------------------------------------------------------
+// Pending quote approvals (for the /approvals queue).
+// Quote approvals live as a SalesQuotation status (PENDING_APPROVAL) with
+// transitions — NOT as generic ApprovalRequest rows — so the generic approvals
+// queue can't see them. This surfaces them for anyone who can approve quotes.
+// ------------------------------------------------------------
+export interface PendingQuoteApproval {
+  id: string;
+  quoteNumber: string;
+  version: number;
+  clientName: string | null;
+  occasion: string | null;
+  eventDate: string | null;
+  grandTotal: number;
+  submittedAt: string | null;
+  submittedByName: string | null;
+  submittedById: string | null;
+}
+
+export async function getPendingQuoteApprovals(): Promise<Result<PendingQuoteApproval[]>> {
+  const user = await requireUser();
+  if (!user || !can(user.role, "quotes:approve")) {
+    // Not an approver — nothing to surface (don't error; this runs alongside the generic queue).
+    return { success: true, data: [] };
+  }
+  const rows = await prisma.salesQuotation.findMany({
+    where: { status: "PENDING_APPROVAL" },
+    include: { submittedBy: { select: { id: true, name: true } } },
+    orderBy: { submittedAt: "desc" },
+  });
+  const data: PendingQuoteApproval[] = rows.map((r) => ({
+    id: r.id,
+    quoteNumber: r.quoteNumber,
+    version: r.version,
+    clientName: r.clientName,
+    occasion: r.occasion,
+    eventDate: r.eventDate ? r.eventDate.toISOString() : null,
+    grandTotal: Number(r.grandTotal),
+    submittedAt: r.submittedAt ? r.submittedAt.toISOString() : null,
+    submittedByName: r.submittedBy?.name ?? null,
+    submittedById: r.submittedById,
+  }));
+  return { success: true, data };
+}
+
+// ------------------------------------------------------------
 // Create draft
 // ------------------------------------------------------------
 export async function createSalesQuotation(

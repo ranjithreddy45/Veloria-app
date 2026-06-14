@@ -78,7 +78,7 @@ export function AIScoreCard({
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2 text-base">
           <SparklesIcon className="size-4" />
-          AI Score
+          AI Insight
         </CardTitle>
         <Button
           size="sm"
@@ -109,6 +109,12 @@ export function AIScoreCard({
                     : "Low Priority"}
               </Badge>
             </div>
+
+            <p className="text-muted-foreground mt-1 text-xs">
+              Advisory assessment only — the rule-based{" "}
+              <span className="font-medium">Lead Score</span> below is what drives
+              prioritisation and sorting.
+            </p>
 
             {aiScoredAt && (
               <p className="text-muted-foreground mt-2 text-xs">

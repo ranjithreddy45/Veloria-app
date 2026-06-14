@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { AlertTriangle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { WhatsAppStats } from "./whatsapp-stats";
 import { ConversationList } from "./conversation-list";
@@ -70,6 +71,21 @@ export function WhatsAppInbox({
         help={<PageHelp id="whatsapp" />}
         description="Manage WhatsApp conversations with your contacts."
       />
+
+      {/* Integration status note: explain mysterious failures up front. */}
+      {initialStats && !initialStats.configured && (
+        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+          <div>
+            <p className="font-medium">WhatsApp Business API not configured</p>
+            <p className="text-xs text-amber-700 dark:text-amber-400/90">
+              Messages can&apos;t send until credentials are set up in Settings →
+              Integrations → WhatsApp. Outgoing messages will be recorded as
+              failed with the reason shown on each message.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Stats */}
       <WhatsAppStats stats={initialStats} />

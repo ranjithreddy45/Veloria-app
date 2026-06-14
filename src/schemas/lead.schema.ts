@@ -42,17 +42,27 @@ export const leadSchema = z.object({
     .or(z.literal("")),
   eventDate: z.coerce
     .date()
+    .refine(
+      (d) => {
+        // Event date can't be in the past — compare on the calendar day in the
+        // server's TZ so "today" is always valid regardless of time-of-day (S-5/S-6).
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return d.getTime() >= today.getTime();
+      },
+      { message: "Event date cannot be in the past." }
+    )
     .optional()
     .nullable(),
   guestCount: z
     .number()
     .int("Guest count must be a whole number")
-    .positive("Guest count must be positive")
+    .min(1, "Guest count must be at least 1")
     .optional()
     .nullable(),
   estimatedValue: z
     .number()
-    .positive("Estimated value must be positive")
+    .min(0, "Estimated value cannot be negative")
     .optional()
     .nullable(),
   // Venue-specific inquiry fields (spec §3.1)

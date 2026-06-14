@@ -19,6 +19,19 @@ type LeadStatus = "NEW" | "CONTACTED" | "QUALIFIED" | "PROPOSAL_SENT" | "NEGOTIA
 // Roles a lead can be assigned to (mirrors the new/edit form's user list).
 const ASSIGNABLE_ROLES = ["SALES_EXEC", "EVENT_COORDINATOR", "ADMIN", "SUPER_ADMIN"];
 
+// Next business day (skips Sat/Sun) at 09:00 local — used as a default
+// follow-up when a lead is created without one, so active leads always surface
+// in the Sales Follow-ups queue instead of silently falling out of it (S-11).
+function nextBusinessDay(from: Date = new Date()): Date {
+  const d = new Date(from);
+  d.setDate(d.getDate() + 1);
+  // Sat (6) -> Mon, Sun (0) -> Mon
+  if (d.getDay() === 6) d.setDate(d.getDate() + 2);
+  else if (d.getDay() === 0) d.setDate(d.getDate() + 1);
+  d.setHours(9, 0, 0, 0);
+  return d;
+}
+
 // Returns an error string if the id is not a real, active, assignable user; null if OK.
 async function assigneeInvalid(userId: string): Promise<string | null> {
   const u = await prisma.user.findUnique({
@@ -244,6 +257,8 @@ export async function createLead(data: LeadInput) {
         description: leadData.description || null,
         score,
         firstContactDue: leadSlaDeadline(),
+        // Default next follow-up so the lead lands in the Follow-ups queue (S-11).
+        followUpDate: nextBusinessDay(),
         ...(leadData.assignedToId ? { assignedToId: leadData.assignedToId } : {}),
         createdById: session.user.id as string,
       },
@@ -345,6 +360,23 @@ export async function updateLead(
     const existing = await prisma.lead.findUnique({ where: { id } });
     if (!existing) {
       return { success: false as const, error: "Lead not found" };
+    }
+
+    // Server-side guards (updateLead doesn't run the full leadSchema). Reject
+    // negative numbers (S-8) and an event date before the lead's createdAt (S-6).
+    if (data.guestCount != null && (!Number.isInteger(data.guestCount) || data.guestCount < 1)) {
+      return { success: false as const, error: "Guest count must be a whole number of at least 1." };
+    }
+    if (data.estimatedValue != null && Number(data.estimatedValue) < 0) {
+      return { success: false as const, error: "Estimated value cannot be negative." };
+    }
+    if (data.eventDate) {
+      const ev = new Date(data.eventDate);
+      const created = new Date(existing.createdAt);
+      const createdDay = new Date(created); createdDay.setHours(0, 0, 0, 0);
+      if (!Number.isNaN(ev.getTime()) && ev.getTime() < createdDay.getTime()) {
+        return { success: false as const, error: "Event date cannot be before the lead was created." };
+      }
     }
 
     // Build update data
@@ -721,11 +753,20 @@ export async function updateLeadStatus(id: string, status: LeadStatus) {
       createdAt: existing.createdAt,
     });
 
+    // Keep active leads visible in the Follow-ups queue: if a lead moves to an
+    // open/working status and still has no follow-up scheduled, default one to
+    // the next business day so it never silently drops out (S-11).
+    const statusData: { status: LeadStatus; score: number; followUpDate?: Date } = { status, score };
+    const OPEN_FOR_FOLLOWUP: LeadStatus[] = ["CONTACTED", "QUALIFIED", "PROPOSAL_SENT", "NEGOTIATION"];
+    if (OPEN_FOR_FOLLOWUP.includes(status) && !existing.followUpDate) {
+      statusData.followUpDate = nextBusinessDay();
+    }
+
     // SCRM-001: a lead enters the Pipeline once it's Qualified (auto-create a deal), and
     // its Won/Lost / re-open state keeps the deal's stage in sync. Status change + deal
     // sync commit together so the lead and its pipeline deal can never diverge (audit fix).
     const lead = await prisma.$transaction(async (tx) => {
-      const updated = await tx.lead.update({ where: { id }, data: { status, score } });
+      const updated = await tx.lead.update({ where: { id }, data: statusData });
       await syncPipelineDealForLead(tx, id, status, existing);
       return updated;
     });
@@ -744,5 +785,46 @@ export async function updateLeadStatus(id: string, status: LeadStatus) {
   } catch (error) {
     console.error("[UPDATE_LEAD_STATUS_ERROR]", error);
     return { success: false as const, error: "Failed to update lead status" };
+  }
+}
+
+// ============================================================
+// Backfill: ensure every open/won lead has a pipeline Deal (audit S-9).
+// The lead→Deal bridge only fires on updateLeadStatus, so leads that were
+// seeded or imported directly into an open/won status never produced a Deal —
+// which is why the Pipeline board looked empty while Leads had records. This
+// idempotent action (managers only) creates the missing Deals using the same
+// sync logic; running it twice is a no-op.
+// ============================================================
+export async function backfillLeadPipeline() {
+  try {
+    const session = await auth();
+    if (!session?.user) return { success: false as const, error: "Unauthorized" };
+    if (!hasPermission(session.user.role, "pipeline:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
+    const PIPELINE_STATUSES: LeadStatus[] = ["QUALIFIED", "PROPOSAL_SENT", "NEGOTIATION", "WON", "LOST"];
+    const leads = await prisma.lead.findMany({
+      where: { status: { in: PIPELINE_STATUSES }, deletedAt: null, deal: { is: null } },
+      select: { id: true, title: true, estimatedValue: true, assignedToId: true, status: true },
+    });
+
+    let created = 0;
+    for (const l of leads) {
+      await prisma.$transaction(async (tx) => {
+        const before = await tx.deal.findUnique({ where: { leadId: l.id }, select: { id: true } });
+        await syncPipelineDealForLead(tx, l.id, l.status, { title: l.title, estimatedValue: l.estimatedValue, assignedToId: l.assignedToId });
+        const after = await tx.deal.findUnique({ where: { leadId: l.id }, select: { id: true } });
+        if (!before && after) created++;
+      });
+    }
+
+    revalidatePath("/pipeline");
+    revalidatePath("/leads");
+    return { success: true as const, data: { scanned: leads.length, created } };
+  } catch (error) {
+    console.error("[BACKFILL_LEAD_PIPELINE_ERROR]", error);
+    return { success: false as const, error: "Failed to backfill pipeline deals" };
   }
 }

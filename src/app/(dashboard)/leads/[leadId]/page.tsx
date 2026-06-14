@@ -329,9 +329,14 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
           {/* Score Card */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <TrendingUpIcon className="size-4" />
-                Lead Score
+              <CardTitle className="flex flex-col gap-0.5 text-base">
+                <span className="flex items-center gap-2">
+                  <TrendingUpIcon className="size-4" />
+                  Lead Score
+                </span>
+                <span className="text-muted-foreground text-xs font-normal">
+                  Authoritative — used for prioritisation &amp; sorting
+                </span>
               </CardTitle>
             </CardHeader>
             <CardContent>

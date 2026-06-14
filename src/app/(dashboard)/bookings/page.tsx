@@ -34,13 +34,14 @@ export default async function BookingsPage() {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-  // A booking still "in play" — anything that isn't cancelled or completed.
-  const isActive = (s: string) => s !== "CANCELLED" && s !== "COMPLETED";
+  // Confirmed (and beyond) is real, earned revenue. HOLD/TENTATIVE are
+  // unconfirmed pipeline, and CANCELLED is gone — neither counts as revenue.
+  const isConfirmedRevenue = (s: string) =>
+    s === "CONFIRMED" || s === "IN_PROGRESS" || s === "COMPLETED";
+  const isPipelineHold = (s: string) => s === "HOLD" || s === "TENTATIVE";
 
   const confirmedCount = bookings.filter((b) => b.status === "CONFIRMED").length;
-  const pendingCount = bookings.filter(
-    (b) => b.status === "HOLD" || b.status === "TENTATIVE"
-  ).length;
+  const pendingCount = bookings.filter((b) => isPipelineHold(b.status)).length;
 
   const thisMonthBookings = bookings.filter((b) => {
     const d = new Date(b.date);
@@ -48,9 +49,14 @@ export default async function BookingsPage() {
   });
   const thisMonthCount = thisMonthBookings.length;
 
-  // Pipeline revenue across active bookings (excludes cancelled/completed).
-  const activeRevenue = bookings
-    .filter((b) => isActive(b.status))
+  // Headline revenue: confirmed-only (CONFIRMED/IN_PROGRESS/COMPLETED).
+  const confirmedRevenue = bookings
+    .filter((b) => isConfirmedRevenue(b.status))
+    .reduce((sum, b) => sum + Number(b.totalAmount ?? 0), 0);
+
+  // Unconfirmed pipeline value sitting on holds/tentatives — shown separately.
+  const holdsValue = bookings
+    .filter((b) => isPipelineHold(b.status))
     .reduce((sum, b) => sum + Number(b.totalAmount ?? 0), 0);
 
   const fmtCurrency = (n: number) => {
@@ -127,13 +133,6 @@ export default async function BookingsPage() {
             sub={`of ${bookings.length} bookings`}
           />
           <StatTile
-            label="Awaiting confirmation"
-            value={pendingCount}
-            accent="amber"
-            icon={<ClockIcon className="size-4" />}
-            sub="on hold or tentative"
-          />
-          <StatTile
             label="This month"
             value={thisMonthCount}
             accent="indigo"
@@ -141,11 +140,18 @@ export default async function BookingsPage() {
             sub="events scheduled"
           />
           <StatTile
-            label="Active revenue"
-            value={fmtCurrency(activeRevenue)}
+            label="Confirmed revenue"
+            value={fmtCurrency(confirmedRevenue)}
             accent="violet"
             icon={<IndianRupeeIcon className="size-4" />}
-            sub="across open bookings"
+            sub="confirmed bookings only"
+          />
+          <StatTile
+            label="Pipeline / holds"
+            value={fmtCurrency(holdsValue)}
+            accent="amber"
+            icon={<ClockIcon className="size-4" />}
+            sub={`${pendingCount} on hold or tentative`}
           />
         </div>
       )}

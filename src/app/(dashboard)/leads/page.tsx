@@ -20,9 +20,10 @@ export default async function LeadsPage() {
   const result = await getLeads({ limit: 500 });
   const leads = result.success ? result.data.data : [];
 
-  // Total pipeline value (only counting non-lost leads)
+  // Pipeline value = open leads only (exclude Won and Lost). One definition
+  // everywhere — this matches the "Pipeline value" KPI card exactly (S-1).
   const pipelineValue = leads
-    .filter((l) => l.status !== "LOST")
+    .filter((l) => l.status !== "LOST" && l.status !== "WON")
     .reduce((sum, l) => sum + Number(l.estimatedValue ?? 0), 0);
 
   const fmtCurrency = (n: number) => {

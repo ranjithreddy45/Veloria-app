@@ -60,6 +60,20 @@ export async function scoreLeadWithAI(
     throw new Error(`Lead not found: ${leadId}`);
   }
 
+  // Closed leads (Won/Lost) are out of the nurture funnel — they must not be
+  // scored as early-stage prospects or flagged for "re-engagement" (S-3).
+  // Short-circuit with a deterministic, status-accurate assessment.
+  if (lead.status === "WON" || lead.status === "LOST") {
+    const won = lead.status === "WON";
+    const score = won ? 100 : 0;
+    const reason =
+      `AI Score: ${score}/100\n\n` +
+      (won
+        ? "This lead is Won — already converted. No further prioritisation needed."
+        : "This lead is Lost — closed out. It is excluded from active nurture and follow-up scoring.");
+    return { score, reason };
+  }
+
   let score = 0;
   const reasons: string[] = [];
 

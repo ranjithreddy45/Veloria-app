@@ -2085,6 +2085,7 @@ model WhatsAppMessage {
   templateName String?
   status       WhatsAppMessageStatus  @default(SENT)
   whatsappId   String?
+  failureReason String?               @db.Text
   sentAt       DateTime               @default(now())
 
   contactId String

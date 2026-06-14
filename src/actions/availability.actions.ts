@@ -45,14 +45,30 @@ export async function getAvailabilityGrid(dateISO: string): Promise<Result<Venue
   const date = localDate(dateISO);
   if (Number.isNaN(date.getTime())) return { success: false, error: "Invalid date." };
 
-  const [venues, bookings, blackouts] = await Promise.all([
+  // `Booking.date`/`BlackoutDate.date` are `@db.Date`, which Prisma reads back as
+  // UTC-midnight regardless of how the row was written. An exact-equality filter
+  // (`where: { date }`) against a *local*-midnight Date is therefore brittle across
+  // timezones and would miss real bookings — which is exactly why this grid showed
+  // booked slots as "Available" while the month heatmap (a range scan bucketed by
+  // UTC day) and the New Booking form's conflict check both saw them correctly.
+  // Scan the full UTC day and bucket by `getUTCDate()`, identical to the heatmap,
+  // so the grid derives occupancy from the same bookings the form blocks on.
+  const dayStart = new Date(dateISO + "T00:00:00.000Z");
+  const dayEnd = new Date(dateISO + "T23:59:59.999Z");
+  const targetUTCDay = dayStart.getUTCDate();
+
+  const [venues, allBookings, allBlackouts] = await Promise.all([
     prisma.venue.findMany({ where: { isActive: true }, select: { id: true, name: true, capacity: true }, orderBy: { name: "asc" } }),
     prisma.booking.findMany({
-      where: { date, status: { not: "CANCELLED" } },
-      select: { id: true, venueId: true, timeSlot: true, status: true, bookingNumber: true, eventName: true },
+      // Match the form's conflict semantics: any non-CANCELLED booking occupies a slot.
+      where: { date: { gte: dayStart, lte: dayEnd }, status: { not: "CANCELLED" } },
+      select: { id: true, venueId: true, date: true, timeSlot: true, status: true, bookingNumber: true, eventName: true },
     }),
-    prisma.blackoutDate.findMany({ where: { date }, select: { venueId: true, timeSlot: true, reason: true } }),
+    prisma.blackoutDate.findMany({ where: { date: { gte: dayStart, lte: dayEnd } }, select: { venueId: true, date: true, timeSlot: true, reason: true } }),
   ]);
+
+  const bookings = allBookings.filter((b) => new Date(b.date).getUTCDate() === targetUTCDay);
+  const blackouts = allBlackouts.filter((b) => new Date(b.date).getUTCDate() === targetUTCDay);
 
   const rows: VenueRow[] = venues.map((v) => {
     const vb = bookings.filter((b) => b.venueId === v.id);
@@ -109,11 +125,12 @@ export interface VenueMonth { venueId: string; venueName: string; days: MonthDay
 
 export async function getAvailabilityMonth(year: number, month: number): Promise<Result<{ days: number; rows: VenueMonth[] }>> {
   if (!(await requireRead())) return { success: false, error: "Unauthorized" };
-  const start = new Date(year, month - 1, 1);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(year, month, 0); // last day of month
-  end.setHours(23, 59, 59, 999);
-  const daysInMonth = end.getDate();
+  // Scan in UTC to match how `@db.Date` reads back (UTC-midnight) and how each day
+  // is bucketed below (getUTCDate). Using a local-tz range here would drop or
+  // double-count the boundary days (1st/last) under a non-UTC server.
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const start = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
+  const end = new Date(Date.UTC(year, month - 1, daysInMonth, 23, 59, 59, 999));
 
   const [venues, bookings, blackouts] = await Promise.all([
     prisma.venue.findMany({ where: { isActive: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),

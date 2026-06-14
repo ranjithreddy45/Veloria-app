@@ -89,6 +89,7 @@ export function TrackingDashboard({
     {
       label: "Emails Tracked",
       value: stats?.totalTracked ?? 0,
+      hint: "Sent with a tracking pixel",
       icon: MailIcon,
       iconBg: "bg-blue-100",
       iconColor: "text-blue-600",
@@ -97,6 +98,7 @@ export function TrackingDashboard({
     {
       label: "Total Opens",
       value: stats?.totalOpens ?? 0,
+      hint: "Open events recorded",
       icon: EyeIcon,
       iconBg: "bg-green-100",
       iconColor: "text-green-600",
@@ -105,6 +107,7 @@ export function TrackingDashboard({
     {
       label: "Total Clicks",
       value: stats?.totalClicks ?? 0,
+      hint: "Link-click events recorded",
       icon: MousePointerClickIcon,
       iconBg: "bg-purple-100",
       iconColor: "text-purple-600",
@@ -113,6 +116,7 @@ export function TrackingDashboard({
     {
       label: "Open Rate",
       value: `${(stats?.openRate ?? 0).toFixed(1)}%`,
+      hint: "Opened ÷ tracked",
       icon: PercentIcon,
       iconBg: "bg-amber-100",
       iconColor: "text-amber-600",
@@ -121,6 +125,7 @@ export function TrackingDashboard({
     {
       label: "Click Rate",
       value: `${(stats?.clickRate ?? 0).toFixed(1)}%`,
+      hint: "Clicked ÷ tracked",
       icon: TargetIcon,
       iconBg: "bg-rose-100",
       iconColor: "text-rose-600",
@@ -191,6 +196,9 @@ export function TrackingDashboard({
                   <p className={`text-2xl font-bold ${c.valueColor}`}>
                     {c.value}
                   </p>
+                  {c.hint && (
+                    <p className="mt-0.5 text-[10px] text-zinc-400">{c.hint}</p>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -205,9 +213,29 @@ export function TrackingDashboard({
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Recent Events</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Opens and link clicks. A tracked email only appears here once the
+                recipient opens it or clicks a link.
+              </p>
             </CardHeader>
             <CardContent>
-              <TrackingEventsTable data={events} />
+              {events.length === 0 && (stats?.totalTracked ?? 0) > 0 ? (
+                <div className="py-10 text-center">
+                  <EyeIcon className="mx-auto mb-3 size-10 text-zinc-300" />
+                  <p className="text-sm text-zinc-500">
+                    {stats?.totalTracked} email
+                    {stats?.totalTracked === 1 ? "" : "s"} tracked ·{" "}
+                    {stats?.totalOpens ?? 0} open
+                    {(stats?.totalOpens ?? 0) === 1 ? "" : "s"} so far.
+                  </p>
+                  <p className="mt-1 text-xs text-zinc-400">
+                    No opens or clicks recorded yet — events show up here as
+                    recipients engage.
+                  </p>
+                </div>
+              ) : (
+                <TrackingEventsTable data={events} />
+              )}
             </CardContent>
           </Card>
         </div>

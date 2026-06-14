@@ -92,6 +92,28 @@ describe("calculateLeadScore", () => {
     );
   });
 
+  it("does not credit a past event date as 'within 3 months' (S-5)", () => {
+    const past = new Date();
+    past.setMonth(past.getMonth() - 1); // 1 month ago
+    const { factors } = calculateLeadScoreWithBreakdown({ eventDate: past });
+    const eventFactor = factors.find((f) => f.label.includes("Event within"));
+    expect(eventFactor?.applied).toBe(false);
+  });
+
+  it("does not penalise or early-stage-score a closed (Won) lead (S-3)", () => {
+    const old = new Date();
+    old.setDate(old.getDate() - 30);
+    const { factors } = calculateLeadScoreWithBreakdown({
+      status: "WON",
+      createdAt: old,
+      eventDate: null,
+    });
+    const stale = factors.find((f) => f.label.includes("Stale NEW"));
+    const noEvent = factors.find((f) => f.label.includes("No event date"));
+    expect(stale?.applied).toBe(false);
+    expect(noEvent?.applied).toBe(false);
+  });
+
   it("breakdown marks the correct factors as applied", () => {
     const { factors } = calculateLeadScoreWithBreakdown({
       estimatedValue: 300000,

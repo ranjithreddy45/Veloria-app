@@ -34,6 +34,14 @@ function heatColor(booked: number, blackout: boolean) {
   if (booked === 1) return "bg-amber-300";
   return "bg-emerald-100";
 }
+// Tooltip text MUST be derived from the same `booked`/`blackout` that drives the
+// color (heatColor), so an orange/amber cell can never read "0 slots booked".
+function heatLabel(booked: number, blackout: boolean) {
+  if (blackout) return "blackout";
+  if (booked >= 3) return "fully booked";
+  if (booked === 0) return "free";
+  return `${booked} slot${booked === 1 ? "" : "s"} booked`;
+}
 
 export function AvailabilityBoard({ initialDate }: { initialDate: string }) {
   const [dateISO, setDateISO] = useState(initialDate);
@@ -160,7 +168,7 @@ export function AvailabilityBoard({ initialDate }: { initialDate: string }) {
                           <td key={d.day} className="px-px py-px">
                             <button
                               onClick={() => setDateISO(isoOf(new Date(year, month - 1, d.day)))}
-                              title={`${monthName.split(" ")[0]} ${d.day} — ${d.blackout ? "blackout" : d.booked + " slot(s) booked"}`}
+                              title={`${monthName.split(" ")[0]} ${d.day} — ${heatLabel(d.booked, d.blackout)}`}
                               className={`h-5 w-5 rounded-sm ${heatColor(d.booked, d.blackout)} hover:ring-2 hover:ring-primary`}
                             />
                           </td>

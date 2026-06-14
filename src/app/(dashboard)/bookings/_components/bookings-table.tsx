@@ -47,6 +47,7 @@ interface BookingRow {
   eventName: string;
   eventType: string;
   status: string;
+  isExpiredHold?: boolean;
   date: Date | string;
   timeSlot: string;
   guestCount: number;
@@ -220,12 +221,21 @@ export function BookingsTable({ data }: BookingsTableProps) {
     {
       accessorKey: "status",
       header: "Status",
-      cell: ({ row }) => (
-        <StatusBadge
-          status={row.original.status}
-          colorMap={BOOKING_STATUS_COLORS}
-        />
-      ),
+      cell: ({ row }) =>
+        row.original.isExpiredHold ? (
+          // Past-dated hold: surface a derived "expired" badge (data unchanged).
+          <StatusBadge
+            status={row.original.status}
+            colorMap={BOOKING_STATUS_COLORS}
+            label="Hold — expired"
+            className="border-red-200 bg-red-50 text-red-700"
+          />
+        ) : (
+          <StatusBadge
+            status={row.original.status}
+            colorMap={BOOKING_STATUS_COLORS}
+          />
+        ),
     },
     {
       accessorKey: "totalAmount",
