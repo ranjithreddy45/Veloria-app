@@ -1,12 +1,12 @@
 import {
   IndianRupeeIcon,
   ClockIcon,
-  AlertTriangleIcon,
+  CalendarIcon,
 } from "lucide-react";
-import { getPayments, getPaymentStats } from "@/actions/payment.actions";
+import { getPayments } from "@/actions/payment.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { PageHelp } from "@/lib/page-help";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatTile } from "@/components/ui/stat-tile";
 import { PaymentsTable } from "./_components/payments-table";
 import { formatINR } from "@/lib/utils";
 
@@ -15,67 +15,69 @@ export const metadata = {
 };
 
 export default async function PaymentsPage() {
-  const [paymentsResult, statsResult] = await Promise.all([
-    getPayments(),
-    getPaymentStats(),
-  ]);
+  const paymentsResult = await getPayments();
 
   const payments = paymentsResult.success
     ? paymentsResult.data?.data ?? []
     : [];
-  const stats = statsResult.success
-    ? statsResult.data
-    : { todayCollections: 0, pendingPayments: 0, overdueAmount: 0 };
+
+  // ---- Derive headline metrics from existing fields (amount/status/paidAt) ----
+  const toNumber = (v: unknown): number => {
+    if (typeof v === "number") return v;
+    if (v == null) return 0;
+    const n = Number(typeof v === "string" ? v : (v as { toString(): string }).toString());
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  let collectedTotal = 0;
+  let pendingCount = 0;
+  let thisMonth = 0;
+
+  for (const p of payments) {
+    const amount = toNumber(p.amount);
+    if (p.status === "COMPLETED") {
+      collectedTotal += amount;
+      const when = p.paidAt ?? p.createdAt;
+      if (when && new Date(when) >= monthStart) thisMonth += amount;
+    }
+    if (p.status === "PENDING" || p.status === "PROCESSING") pendingCount += 1;
+  }
 
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow={`FINANCE · ${payments.length} payments · ${formatINR(collectedTotal)} collected`}
         title="Payments"
         help={<PageHelp id="payments" />}
         description="Track payment collections, pending and overdue amounts."
       />
 
-      {/* KPI Cards */}
+      {/* KPI strip */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Today&apos;s Collections
-            </CardTitle>
-            <IndianRupeeIcon className="size-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-700">
-              {formatINR(stats?.todayCollections ?? 0)}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Pending Payments
-            </CardTitle>
-            <ClockIcon className="size-4 text-amber-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-amber-700">
-              {formatINR(stats?.pendingPayments ?? 0)}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Overdue Amount
-            </CardTitle>
-            <AlertTriangleIcon className="size-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-700">
-              {formatINR(stats?.overdueAmount ?? 0)}
-            </div>
-          </CardContent>
-        </Card>
+        <StatTile
+          label="Collected"
+          value={formatINR(collectedTotal)}
+          accent="emerald"
+          icon={<IndianRupeeIcon className="size-4" />}
+          sub="Completed payments"
+        />
+        <StatTile
+          label="Pending"
+          value={pendingCount}
+          accent="amber"
+          icon={<ClockIcon className="size-4" />}
+          sub="Awaiting completion"
+        />
+        <StatTile
+          label="This month"
+          value={formatINR(thisMonth)}
+          accent="indigo"
+          icon={<CalendarIcon className="size-4" />}
+          sub="Collected since the 1st"
+        />
       </div>
 
       <PaymentsTable data={payments} />

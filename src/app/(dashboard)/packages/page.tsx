@@ -6,7 +6,8 @@ import { getPackages } from "@/actions/package.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
-import { PackageCard } from "./_components/package-card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PackagesCatalog } from "./_components/packages-catalog";
 
 export const metadata: Metadata = { title: "Event Packages" };
 
@@ -19,9 +20,14 @@ export default async function PackagesPage() {
 
   const packages = result.success ? result.data.data : [];
 
+  const total = packages.length;
+  const active = packages.filter((p) => p.isActive).length;
+  const eyebrow = `CATALOG · ${total} ${total === 1 ? "PACKAGE" : "PACKAGES"} · ${active} ACTIVE`;
+
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow={eyebrow}
         title="Event Packages"
         help={<PageHelp id="packages" />}
         description="Manage your event packages and pricing tiers."
@@ -35,27 +41,23 @@ export default async function PackagesPage() {
       </PageHeader>
 
       {packages.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 dark:border-zinc-800">
-          <PackageIcon className="size-10 text-zinc-400 mb-4" />
-          <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-            No packages yet
-          </h3>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 mb-4">
-            Create your first event package to get started.
-          </p>
-          <Button asChild>
-            <Link href="/packages/new">
-              <PlusIcon className="mr-2 size-4" />
-              Create Package
-            </Link>
-          </Button>
+        <div className="rounded-xl border border-dashed bg-card shadow-card">
+          <EmptyState
+            icon={<PackageIcon className="size-5" />}
+            title="No packages yet"
+            description="Create your first event package to get started."
+            action={
+              <Button asChild>
+                <Link href="/packages/new">
+                  <PlusIcon className="mr-2 size-4" />
+                  Create Package
+                </Link>
+              </Button>
+            }
+          />
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {packages.map((pkg) => (
-            <PackageCard key={pkg.id} pkg={pkg} />
-          ))}
-        </div>
+        <PackagesCatalog packages={packages} />
       )}
     </div>
   );

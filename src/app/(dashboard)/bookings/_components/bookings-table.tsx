@@ -15,6 +15,10 @@ import {
 import { toast } from "sonner";
 
 import { DataTable, DataTableColumnHeader } from "@/components/shared/data-table";
+import {
+  FacetFilterRail,
+  type FacetDef,
+} from "@/components/shared/facet-filter-rail";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -65,9 +69,63 @@ interface BookingsTableProps {
 // BookingsTable Component
 // ============================================================
 
+// Pretty-print SCREAMING_SNAKE enum values (e.g. WEDDING_RECEPTION → Wedding
+// Reception, ON_HOLD → On Hold).
+function titleCase(value: string): string {
+  return value
+    .toLowerCase()
+    .split(/[_\s]+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+// Stable YYYY-MM key + human label for the Month facet, ordered most-recent
+// first via the leading sort key embedded in the value.
+function monthKey(date: Date | string): string | null {
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return null;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function monthLabel(key: string): string {
+  const [y, m] = key.split("-").map(Number);
+  if (!y || !m) return key;
+  return new Date(y, m - 1, 1).toLocaleDateString("en-IN", {
+    month: "short",
+    year: "numeric",
+  });
+}
+
 export function BookingsTable({ data }: BookingsTableProps) {
   const router = useRouter();
   const [cancellingId, setCancellingId] = React.useState<string | null>(null);
+  const [filtered, setFiltered] = React.useState<BookingRow[]>(data);
+
+  // Keep the filtered view in sync when the parent supplies new rows.
+  React.useEffect(() => {
+    setFiltered(data);
+  }, [data]);
+
+  const facets = React.useMemo<FacetDef<BookingRow>[]>(
+    () => [
+      { key: "status", label: "Status", get: (b) => b.status, format: titleCase },
+      { key: "venue", label: "Venue", get: (b) => b.venue?.name },
+      {
+        key: "eventType",
+        label: "Event type",
+        get: (b) => b.eventType,
+        format: titleCase,
+      },
+      {
+        key: "month",
+        label: "Month",
+        get: (b) => monthKey(b.date),
+        format: monthLabel,
+      },
+    ],
+    [],
+  );
 
   async function handleCancel(bookingId: string) {
     setCancellingId(bookingId);
@@ -258,12 +316,22 @@ export function BookingsTable({ data }: BookingsTableProps) {
   }
 
   return (
-    <DataTable
-      columns={columns}
-      data={data}
-      searchKey="bookingNumber"
-      searchPlaceholder="Search by booking number..."
-      toolbarExtra={<ExportButton />}
-    />
+    <div className="flex items-start gap-4">
+      <FacetFilterRail
+        items={data}
+        facets={facets}
+        onChange={setFiltered}
+        className="hidden lg:block"
+      />
+      <div className="min-w-0 flex-1">
+        <DataTable
+          columns={columns}
+          data={filtered}
+          searchKey="bookingNumber"
+          searchPlaceholder="Search by booking number..."
+          toolbarExtra={<ExportButton />}
+        />
+      </div>
+    </div>
   );
 }

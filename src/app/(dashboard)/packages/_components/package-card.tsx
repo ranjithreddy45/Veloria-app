@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
-  PackageIcon,
   ListIcon,
   MoreVerticalIcon,
   PencilIcon,
@@ -122,13 +121,18 @@ export function PackageCard({ pkg }: PackageCardProps) {
 
   return (
     <>
-      <Card className="group relative flex flex-col transition-shadow hover:shadow-md">
+      <Card className="group relative flex flex-col shadow-card transition-shadow hover:shadow-card-hover">
         <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
             <StatusBadge
               status={pkg.tier}
               colorMap={PACKAGE_TIER_COLORS}
             />
+            {pkg.eventType && (
+              <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                {pkg.eventType}
+              </span>
+            )}
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -188,25 +192,17 @@ export function PackageCard({ pkg }: PackageCardProps) {
             </p>
           )}
 
-          {/* Event Type */}
-          {pkg.eventType && (
-            <div className="flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400">
-              <PackageIcon className="size-3.5 shrink-0" />
-              <span className="truncate">{pkg.eventType}</span>
-            </div>
-          )}
-
           {/* Item Count */}
-          <div className="flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400">
+          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <ListIcon className="size-3.5 shrink-0" />
-            <span>
+            <span className="tabular-nums">
               {pkg._count.items} {pkg._count.items === 1 ? "item" : "items"}
             </span>
           </div>
 
           {/* Price & Active Toggle */}
           <div className="mt-auto flex items-center justify-between border-t pt-3 dark:border-zinc-800">
-            <p className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
+            <p className="text-lg font-bold tabular-nums text-zinc-900 dark:text-zinc-100">
               {formatINR(pkg.basePrice)}
             </p>
             <div className="flex items-center gap-2">

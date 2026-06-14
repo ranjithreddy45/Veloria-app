@@ -27,8 +27,10 @@ import {
   TagIcon as BulkTagIcon,
 } from "@/components/shared/bulk-action-bar";
 import { LeadStatusPill, LeadSourcePill } from "@/components/shared/status-pill";
+import { FacetFilterRail, type FacetDef } from "@/components/shared/facet-filter-rail";
 import { ScoreBar } from "@/components/shared/score-bar";
 import { DotAvatar } from "@/components/shared/dot-avatar";
+import { LeadsStatStrip } from "./leads-stat-strip";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -460,6 +462,39 @@ const columns: ColumnDef<LeadWithContact>[] = [
 ];
 
 // ============================================================
+// Faceted filter rail — derived from existing fields only
+// ============================================================
+
+function titleCase(raw: string): string {
+  return raw
+    .toLowerCase()
+    .split("_")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+const leadFacets: FacetDef<LeadWithContact>[] = [
+  {
+    key: "status",
+    label: "Status",
+    get: (l) => l.status,
+    format: titleCase,
+    max: 8,
+  },
+  {
+    key: "source",
+    label: "Source",
+    get: (l) => l.source,
+    format: titleCase,
+  },
+  {
+    key: "owner",
+    label: "Owner",
+    get: (l) => l.assignedTo?.name ?? "Unassigned",
+  },
+];
+
+// ============================================================
 // Toolbar buttons
 // ============================================================
 
@@ -534,10 +569,13 @@ export function LeadsTable({ data }: LeadsTableProps) {
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("ALL");
   const [selectedRows, setSelectedRows] = React.useState<LeadWithContact[]>([]);
 
+  // Post-tab rows feed the facet rail; the rail's output feeds the table.
   const filtered = React.useMemo(() => {
     if (statusFilter === "ALL") return data;
     return data.filter((l) => l.status === statusFilter);
   }, [data, statusFilter]);
+
+  const [facetFiltered, setFacetFiltered] = React.useState<LeadWithContact[]>(filtered);
 
   const selectedIds = React.useMemo(
     () => selectedRows.map((r) => r.id),
@@ -641,38 +679,49 @@ export function LeadsTable({ data }: LeadsTableProps) {
   }, []);
 
   return (
-    <>
+    <div className="space-y-4">
+      <LeadsStatStrip data={data} />
       <StatusTabs
         data={data}
         active={statusFilter}
         onChange={setStatusFilter}
       />
-      <DataTable
-        columns={columns}
-        data={filtered}
-        searchKey="identity"
-        searchPlaceholder="Search leads…"
-        enableRowSelection
-        onSelectionChange={setSelectedRows}
-        getRowId={(row) => row.id}
-        toolbarExtra={
-          <div className="flex items-center gap-2">
-            <SavedViewSelector
-              entityType="LEAD"
-              getCurrentState={getCurrentState}
-              onViewSelect={handleViewSelect}
-            />
-            <AIScoreAllButton />
-            <ExportButton />
-          </div>
-        }
-      />
+      <div className="flex items-start gap-4">
+        <FacetFilterRail
+          className="hidden lg:block"
+          items={filtered}
+          facets={leadFacets}
+          onChange={setFacetFiltered}
+        />
+        <div className="min-w-0 flex-1">
+          <DataTable
+            columns={columns}
+            data={facetFiltered}
+            searchKey="identity"
+            searchPlaceholder="Search leads…"
+            enableRowSelection
+            onSelectionChange={setSelectedRows}
+            getRowId={(row) => row.id}
+            toolbarExtra={
+              <div className="flex items-center gap-2">
+                <SavedViewSelector
+                  entityType="LEAD"
+                  getCurrentState={getCurrentState}
+                  onViewSelect={handleViewSelect}
+                />
+                <AIScoreAllButton />
+                <ExportButton />
+              </div>
+            }
+          />
+        </div>
+      </div>
       <BulkActionBar
         selectedCount={selectedRows.length}
         selectedIds={selectedIds}
         actions={bulkActions}
         onClearSelection={() => setSelectedRows([])}
       />
-    </>
+    </div>
   );
 }

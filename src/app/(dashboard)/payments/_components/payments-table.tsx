@@ -7,7 +7,6 @@ import { format } from "date-fns";
 import { EyeIcon, MoreHorizontalIcon, DownloadIcon } from "lucide-react";
 import { toast } from "sonner";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -19,7 +18,13 @@ import {
   DataTable,
   DataTableColumnHeader,
 } from "@/components/shared/data-table";
-import { PAYMENT_STATUS_COLORS } from "@/lib/constants";
+import {
+  FacetFilterRail,
+  type FacetDef,
+} from "@/components/shared/facet-filter-rail";
+import { StatusPill, type Hue } from "@/components/shared/status-pill";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ReceiptIcon } from "lucide-react";
 import { formatINR } from "@/lib/utils";
 import { exportPayments } from "@/actions/export.actions";
 import { toCSV, downloadCSV } from "@/lib/csv-export";
@@ -51,15 +56,39 @@ type PaymentRow = {
 };
 
 // ============================================================
-// Format Helpers
+// Format Helpers — StatusPill hue/label maps for status + method
 // ============================================================
 
-const METHOD_COLORS: Record<string, string> = {
-  CASH: "bg-green-100 text-green-800 border-green-200",
-  BANK_TRANSFER: "bg-blue-100 text-blue-800 border-blue-200",
-  CHEQUE: "bg-purple-100 text-purple-800 border-purple-200",
-  UPI: "bg-indigo-100 text-indigo-800 border-indigo-200",
-  RAZORPAY: "bg-cyan-100 text-cyan-800 border-cyan-200",
+const STATUS_HUE: Record<string, Hue> = {
+  COMPLETED: "emerald",
+  PENDING: "amber",
+  PROCESSING: "blue",
+  FAILED: "red",
+  REFUNDED: "violet",
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  COMPLETED: "Completed",
+  PENDING: "Pending",
+  PROCESSING: "Processing",
+  FAILED: "Failed",
+  REFUNDED: "Refunded",
+};
+
+const METHOD_HUE: Record<string, Hue> = {
+  CASH: "emerald",
+  BANK_TRANSFER: "blue",
+  CHEQUE: "purple",
+  UPI: "indigo",
+  RAZORPAY: "cyan",
+};
+
+const METHOD_LABEL: Record<string, string> = {
+  CASH: "Cash",
+  BANK_TRANSFER: "Bank Transfer",
+  CHEQUE: "Cheque",
+  UPI: "UPI",
+  RAZORPAY: "Razorpay",
 };
 
 // ============================================================
@@ -123,11 +152,13 @@ const columns: ColumnDef<PaymentRow, unknown>[] = [
     header: "Method",
     cell: ({ row }) => {
       const method = row.original.method;
-      const colors = METHOD_COLORS[method] || "";
       return (
-        <Badge variant="outline" className={`${colors} border text-xs`}>
-          {method.replace("_", " ")}
-        </Badge>
+        <StatusPill
+          label={METHOD_LABEL[method] ?? method.replace(/_/g, " ")}
+          hue={METHOD_HUE[method] ?? "neutral"}
+          size="xs"
+          noDot
+        />
       );
     },
   },
@@ -136,11 +167,12 @@ const columns: ColumnDef<PaymentRow, unknown>[] = [
     header: "Status",
     cell: ({ row }) => {
       const status = row.original.status;
-      const colors = PAYMENT_STATUS_COLORS[status] || "";
       return (
-        <Badge variant="outline" className={`${colors} border text-xs`}>
-          {status}
-        </Badge>
+        <StatusPill
+          label={STATUS_LABEL[status] ?? status}
+          hue={STATUS_HUE[status] ?? "neutral"}
+          size="xs"
+        />
       );
     },
   },
@@ -223,14 +255,59 @@ function ExportButton() {
   );
 }
 
+// ============================================================
+// Facets — Status + Method (live counts derived by the rail)
+// ============================================================
+
+const PAYMENT_FACETS: FacetDef<PaymentRow>[] = [
+  {
+    key: "status",
+    label: "Status",
+    get: (p) => p.status,
+    format: (v) => STATUS_LABEL[v] ?? v,
+  },
+  {
+    key: "method",
+    label: "Method",
+    get: (p) => p.method,
+    format: (v) => METHOD_LABEL[v] ?? v.replace(/_/g, " "),
+  },
+];
+
 export function PaymentsTable({ data }: PaymentsTableProps) {
+  const [faceted, setFaceted] = React.useState<PaymentRow[]>(data);
+
+  React.useEffect(() => setFaceted(data), [data]);
+
+  if (data.length === 0) {
+    return (
+      <div className="rounded-xl border bg-card shadow-card">
+        <EmptyState
+          icon={<ReceiptIcon className="size-5" />}
+          title="No payments yet"
+          description="Recorded and collected payments will appear here once invoices are paid."
+        />
+      </div>
+    );
+  }
+
   return (
-    <DataTable
-      columns={columns}
-      data={data}
-      searchKey="receiptNumber"
-      searchPlaceholder="Search payments..."
-      toolbarExtra={<ExportButton />}
-    />
+    <div className="flex items-start gap-4">
+      <FacetFilterRail
+        items={data}
+        facets={PAYMENT_FACETS}
+        onChange={setFaceted}
+        className="hidden lg:block"
+      />
+      <div className="min-w-0 flex-1">
+        <DataTable
+          columns={columns}
+          data={faceted}
+          searchKey="receiptNumber"
+          searchPlaceholder="Search payments..."
+          toolbarExtra={<ExportButton />}
+        />
+      </div>
+    </div>
   );
 }

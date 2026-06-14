@@ -17,7 +17,7 @@ import {
 import { toast } from "sonner";
 
 import { DataTable, DataTableColumnHeader } from "@/components/shared/data-table";
-import { StatusBadge } from "@/components/shared/status-badge";
+import { StatusPill, type Hue } from "@/components/shared/status-pill";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -42,13 +42,12 @@ import {
   sendCampaign,
   cancelCampaign,
 } from "@/actions/campaign.actions";
-import { CAMPAIGN_STATUS_COLORS } from "@/lib/constants";
 
 // ============================================================
 // Campaign Type
 // ============================================================
 
-interface Campaign {
+export interface Campaign {
   id: string;
   name: string;
   subject: string;
@@ -59,6 +58,36 @@ interface Campaign {
   totalOpened: number;
   totalClicked: number;
   createdAt: string;
+}
+
+// ============================================================
+// Status Pill mapping
+// ============================================================
+
+const CAMPAIGN_STATUS_HUE: Record<string, Hue> = {
+  DRAFT: "slate",
+  SCHEDULED: "blue",
+  SENDING: "amber",
+  SENT: "emerald",
+  CANCELLED: "red",
+};
+
+const CAMPAIGN_STATUS_LABEL: Record<string, string> = {
+  DRAFT: "Draft",
+  SCHEDULED: "Scheduled",
+  SENDING: "Sending",
+  SENT: "Sent",
+  CANCELLED: "Cancelled",
+};
+
+function CampaignStatusPill({ status }: { status: string }) {
+  return (
+    <StatusPill
+      label={CAMPAIGN_STATUS_LABEL[status] ?? status}
+      hue={CAMPAIGN_STATUS_HUE[status] ?? "neutral"}
+      size="xs"
+    />
+  );
 }
 
 // ============================================================
@@ -219,12 +248,7 @@ const columns: ColumnDef<Campaign>[] = [
   {
     accessorKey: "status",
     header: "Status",
-    cell: ({ row }) => (
-      <StatusBadge
-        status={row.getValue("status")}
-        colorMap={CAMPAIGN_STATUS_COLORS}
-      />
-    ),
+    cell: ({ row }) => <CampaignStatusPill status={row.getValue("status")} />,
   },
   {
     id: "sent",
@@ -232,7 +256,7 @@ const columns: ColumnDef<Campaign>[] = [
     cell: ({ row }) => {
       const campaign = row.original;
       return (
-        <span className="text-muted-foreground">
+        <span className="tabular-nums text-muted-foreground">
           {campaign.totalSent > 0
             ? campaign.totalSent.toLocaleString("en-IN")
             : "--"}
@@ -246,7 +270,7 @@ const columns: ColumnDef<Campaign>[] = [
     cell: ({ row }) => {
       const campaign = row.original;
       return (
-        <span className="text-muted-foreground">
+        <span className="tabular-nums text-muted-foreground">
           {campaign.totalOpened > 0
             ? campaign.totalOpened.toLocaleString("en-IN")
             : "--"}
@@ -260,7 +284,7 @@ const columns: ColumnDef<Campaign>[] = [
     cell: ({ row }) => {
       const campaign = row.original;
       return (
-        <span className="text-muted-foreground">
+        <span className="tabular-nums text-muted-foreground">
           {campaign.totalClicked > 0
             ? campaign.totalClicked.toLocaleString("en-IN")
             : "--"}

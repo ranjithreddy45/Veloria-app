@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { CAMPAIGN_STATUS_COLORS } from "@/lib/constants";
-import { CampaignStats } from "../_components/campaign-stats";
+import { CampaignPerformance } from "../_components/campaign-stats";
 import { CampaignActions } from "./_components/campaign-actions";
 
 export const metadata: Metadata = { title: "Campaign Details" };
@@ -81,7 +81,7 @@ export default async function CampaignDetailPage({
 
       {/* Stats (only if sent) */}
       {campaign.status === "SENT" && (
-        <CampaignStats
+        <CampaignPerformance
           totalSent={campaign.totalSent}
           totalOpened={campaign.totalOpened}
           totalClicked={campaign.totalClicked}

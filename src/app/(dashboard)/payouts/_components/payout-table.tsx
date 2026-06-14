@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { type ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
-import { EyeIcon, MoreHorizontalIcon } from "lucide-react";
+import { EyeIcon, MoreHorizontalIcon, WalletIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,15 +18,16 @@ import {
   DataTable,
   DataTableColumnHeader,
 } from "@/components/shared/data-table";
-import { StatusBadge } from "@/components/shared/status-badge";
-import { PAYOUT_STATUS_COLORS, PAYOUT_TYPE_LABELS } from "@/lib/constants";
+import { StatusPill, type Hue } from "@/components/shared/status-pill";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PAYOUT_TYPE_LABELS } from "@/lib/constants";
 import { formatINR } from "@/lib/utils";
 
 // ============================================================
 // Types
 // ============================================================
 
-type PayoutRow = {
+export type PayoutRow = {
   id: string;
   referenceNumber: string | null;
   amount: number;
@@ -44,6 +45,24 @@ type PayoutRow = {
     bookingNumber: string;
     eventName: string;
   } | null;
+};
+
+// ============================================================
+// Status presentation
+// ============================================================
+
+const PAYOUT_STATUS_HUE: Record<string, Hue> = {
+  PENDING: "amber",
+  APPROVED: "blue",
+  PAID: "emerald",
+  CANCELLED: "rose",
+};
+
+const PAYOUT_STATUS_LABEL: Record<string, string> = {
+  PENDING: "Pending",
+  APPROVED: "Approved",
+  PAID: "Paid",
+  CANCELLED: "Cancelled",
 };
 
 // ============================================================
@@ -123,7 +142,7 @@ const columns: ColumnDef<PayoutRow, unknown>[] = [
       <DataTableColumnHeader column={column} title="Amount" />
     ),
     cell: ({ row }) => (
-      <span className="font-medium text-green-700">
+      <span className="font-medium tabular-nums text-emerald-700 dark:text-emerald-400">
         {formatINR(row.original.amount)}
       </span>
     ),
@@ -132,9 +151,11 @@ const columns: ColumnDef<PayoutRow, unknown>[] = [
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => (
-      <StatusBadge
-        status={row.original.status}
-        colorMap={PAYOUT_STATUS_COLORS}
+      <StatusPill
+        label={
+          PAYOUT_STATUS_LABEL[row.original.status] ?? row.original.status
+        }
+        hue={PAYOUT_STATUS_HUE[row.original.status] ?? "neutral"}
       />
     ),
   },
@@ -186,6 +207,18 @@ interface PayoutTableProps {
 }
 
 export function PayoutTable({ data }: PayoutTableProps) {
+  if (data.length === 0) {
+    return (
+      <div className="rounded-xl border border-border/70 bg-card shadow-card">
+        <EmptyState
+          icon={<WalletIcon className="size-5" />}
+          title="No payouts found"
+          description="Vendor payments, owner payouts, and commissions will appear here once created."
+        />
+      </div>
+    );
+  }
+
   return (
     <DataTable
       columns={columns}

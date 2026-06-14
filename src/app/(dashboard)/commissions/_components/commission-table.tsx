@@ -7,6 +7,7 @@ import {
   MoreHorizontalIcon,
   CheckCircleIcon,
   BanknoteIcon,
+  ReceiptIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -21,13 +22,17 @@ import {
   DataTable,
   DataTableColumnHeader,
 } from "@/components/shared/data-table";
-import { StatusBadge } from "@/components/shared/status-badge";
-import { COMMISSION_STATUS_COLORS } from "@/lib/constants";
+import {
+  FacetFilterRail,
+  type FacetDef,
+} from "@/components/shared/facet-filter-rail";
+import { EmptyState } from "@/components/ui/empty-state";
 import { formatINR } from "@/lib/utils";
 import {
   approveCommission,
   markCommissionPaid,
 } from "@/actions/commission.actions";
+import { CommissionStatusPill } from "./commission-stats";
 
 // ============================================================
 // Types
@@ -152,7 +157,9 @@ const columns: ColumnDef<CommissionEntryRow, unknown>[] = [
       <DataTableColumnHeader column={column} title="Invoice Amount" />
     ),
     cell: ({ row }) => (
-      <span className="font-medium">{formatINR(row.original.invoiceAmount)}</span>
+      <span className="font-medium tabular-nums">
+        {formatINR(row.original.invoiceAmount)}
+      </span>
     ),
   },
   {
@@ -161,7 +168,7 @@ const columns: ColumnDef<CommissionEntryRow, unknown>[] = [
       <DataTableColumnHeader column={column} title="Commission" />
     ),
     cell: ({ row }) => (
-      <span className="font-medium text-green-700">
+      <span className="font-medium tabular-nums text-emerald-700 dark:text-emerald-400">
         {formatINR(row.original.commissionAmount)}
       </span>
     ),
@@ -169,12 +176,7 @@ const columns: ColumnDef<CommissionEntryRow, unknown>[] = [
   {
     accessorKey: "status",
     header: "Status",
-    cell: ({ row }) => (
-      <StatusBadge
-        status={row.original.status}
-        colorMap={COMMISSION_STATUS_COLORS}
-      />
-    ),
+    cell: ({ row }) => <CommissionStatusPill status={row.original.status} />,
   },
   {
     accessorKey: "createdAt",
@@ -206,13 +208,61 @@ interface CommissionTableProps {
   data: CommissionEntryRow[];
 }
 
+const STATUS_LABEL: Record<string, string> = {
+  PENDING: "Pending",
+  APPROVED: "Approved",
+  PAID: "Paid",
+};
+
+const facets: FacetDef<CommissionEntryRow>[] = [
+  {
+    key: "status",
+    label: "Status",
+    get: (row) => row.status,
+    format: (value) => STATUS_LABEL[value] ?? value,
+  },
+  {
+    key: "rule",
+    label: "Rule",
+    get: (row) => row.rule.name,
+  },
+];
+
 export function CommissionTable({ data }: CommissionTableProps) {
+  const [filtered, setFiltered] = React.useState<CommissionEntryRow[]>(data);
+
+  React.useEffect(() => {
+    setFiltered(data);
+  }, [data]);
+
+  if (data.length === 0) {
+    return (
+      <div className="rounded-xl border bg-card shadow-card">
+        <EmptyState
+          icon={<ReceiptIcon className="size-5" />}
+          title="No commission entries yet"
+          description="Commission entries appear here once bookings are matched against your active rules."
+        />
+      </div>
+    );
+  }
+
   return (
-    <DataTable
-      columns={columns}
-      data={data}
-      searchKey="ruleName"
-      searchPlaceholder="Search by rule name..."
-    />
+    <div className="flex gap-4">
+      <FacetFilterRail
+        items={data}
+        facets={facets}
+        onChange={setFiltered}
+        className="hidden lg:block"
+      />
+      <div className="min-w-0 flex-1">
+        <DataTable
+          columns={columns}
+          data={filtered}
+          searchKey="ruleName"
+          searchPlaceholder="Search by rule name..."
+        />
+      </div>
+    </div>
   );
 }

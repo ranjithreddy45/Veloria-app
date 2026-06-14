@@ -10,8 +10,13 @@ import { PageHeader } from "@/components/layout/page-header";
 import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { formatINR } from "@/lib/utils";
 import { CommissionTable } from "./_components/commission-table";
 import { CommissionRuleForm } from "./_components/commission-rule-form";
+import {
+  CommissionStatStrip,
+  computeCommissionTotals,
+} from "./_components/commission-stats";
 
 export const metadata: Metadata = { title: "Commissions" };
 
@@ -28,10 +33,13 @@ export default async function CommissionsPage() {
   const entries = entriesResult.success ? entriesResult.data : [];
   const rules = rulesResult.success ? rulesResult.data : [];
 
+  const totals = computeCommissionTotals(entries);
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Commissions"
+        eyebrow={`${totals.count} ${totals.count === 1 ? "entry" : "entries"} · ${formatINR(totals.total)} total · ${formatINR(totals.pending)} pending`}
         help={<PageHelp id="commissions" />}
         description="Track commission entries and manage commission rules."
       >
@@ -49,7 +57,8 @@ export default async function CommissionsPage() {
           <TabsTrigger value="rules">Rules</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="entries">
+        <TabsContent value="entries" className="space-y-4">
+          <CommissionStatStrip totals={totals} />
           <CommissionTable data={entries} />
         </TabsContent>
 

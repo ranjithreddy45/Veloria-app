@@ -6,9 +6,11 @@ import { getCampaigns } from "@/actions/campaign.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
-import { CampaignTable } from "./_components/campaign-table";
+import { CampaignBoard } from "./_components/campaign-board";
 
 export const metadata: Metadata = { title: "Campaigns" };
+
+const ACTIVE_STATUSES = new Set(["DRAFT", "SCHEDULED", "SENDING"]);
 
 // ============================================================
 // Campaigns List Page
@@ -19,9 +21,16 @@ export default async function CampaignsPage() {
 
   const campaigns = result.success ? result.data : [];
 
+  const total = campaigns.length;
+  const active = campaigns.filter((c) => ACTIVE_STATUSES.has(c.status)).length;
+  const eyebrow = `MARKETING · ${total} ${
+    total === 1 ? "campaign" : "campaigns"
+  } · ${active} active`;
+
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow={eyebrow}
         title="Campaigns"
         help={<PageHelp id="campaigns" />}
         description="Create and manage automated email marketing campaigns."
@@ -33,7 +42,7 @@ export default async function CampaignsPage() {
           </Link>
         </Button>
       </PageHeader>
-      <CampaignTable data={campaigns} />
+      <CampaignBoard data={campaigns} />
     </div>
   );
 }

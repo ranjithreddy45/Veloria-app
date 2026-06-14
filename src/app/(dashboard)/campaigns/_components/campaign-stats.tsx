@@ -1,85 +1,122 @@
 "use client";
 
 import {
+  MegaphoneIcon,
+  RadioIcon,
   MailIcon,
   EyeIcon,
   MousePointerClickIcon,
-  PercentIcon,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatTile } from "@/components/ui/stat-tile";
 
 // ============================================================
 // Campaign Stats Props
 // ============================================================
 
 interface CampaignStatsProps {
+  totalCampaigns: number;
+  activeCount: number;
+  totalSent: number;
+  totalOpened: number;
+}
+
+// ============================================================
+// CampaignStats — StatTile strip for the Campaigns landing
+// ============================================================
+
+export function CampaignStats({
+  totalCampaigns,
+  activeCount,
+  totalSent,
+  totalOpened,
+}: CampaignStatsProps) {
+  const openRate = totalSent > 0 ? (totalOpened / totalSent) * 100 : 0;
+
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <StatTile
+        label="Total campaigns"
+        value={totalCampaigns.toLocaleString("en-IN")}
+        accent="indigo"
+        icon={<MegaphoneIcon className="size-4" />}
+      />
+      <StatTile
+        label="Active"
+        value={activeCount.toLocaleString("en-IN")}
+        accent="amber"
+        icon={<RadioIcon className="size-4" />}
+        sub="Draft, scheduled or sending"
+      />
+      <StatTile
+        label="Reached"
+        value={totalSent.toLocaleString("en-IN")}
+        accent="blue"
+        icon={<MailIcon className="size-4" />}
+        sub="Recipients sent across all campaigns"
+      />
+      <StatTile
+        label="Open rate"
+        value={`${openRate.toFixed(1)}%`}
+        accent="emerald"
+        icon={<EyeIcon className="size-4" />}
+        pct={openRate}
+        sub={`${totalOpened.toLocaleString("en-IN")} opens`}
+      />
+    </div>
+  );
+}
+
+// ============================================================
+// CampaignPerformance — per-campaign StatTile strip (detail page)
+// ============================================================
+
+interface CampaignPerformanceProps {
   totalSent: number;
   totalOpened: number;
   totalClicked: number;
 }
 
-// ============================================================
-// CampaignStats Component
-// ============================================================
-
-export function CampaignStats({
+export function CampaignPerformance({
   totalSent,
   totalOpened,
   totalClicked,
-}: CampaignStatsProps) {
-  const openRate =
-    totalSent > 0 ? ((totalOpened / totalSent) * 100).toFixed(1) : "0.0";
-  const clickRate =
-    totalSent > 0 ? ((totalClicked / totalSent) * 100).toFixed(1) : "0.0";
-
-  const stats = [
-    {
-      title: "Total Sent",
-      value: totalSent.toLocaleString("en-IN"),
-      icon: MailIcon,
-      color: "text-blue-600",
-      bg: "bg-blue-50",
-    },
-    {
-      title: "Opened",
-      value: totalOpened.toLocaleString("en-IN"),
-      icon: EyeIcon,
-      color: "text-emerald-600",
-      bg: "bg-emerald-50",
-    },
-    {
-      title: "Clicked",
-      value: totalClicked.toLocaleString("en-IN"),
-      icon: MousePointerClickIcon,
-      color: "text-purple-600",
-      bg: "bg-purple-50",
-    },
-    {
-      title: "Open Rate",
-      value: `${openRate}%`,
-      icon: PercentIcon,
-      color: "text-amber-600",
-      bg: "bg-amber-50",
-    },
-  ];
+}: CampaignPerformanceProps) {
+  const openRate = totalSent > 0 ? (totalOpened / totalSent) * 100 : 0;
+  const clickRate = totalSent > 0 ? (totalClicked / totalSent) * 100 : 0;
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {stats.map((stat) => (
-        <Card key={stat.title}>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              {stat.title}
-            </CardTitle>
-            <div className={`rounded-md p-2 ${stat.bg}`}>
-              <stat.icon className={`size-4 ${stat.color}`} />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{stat.value}</p>
-          </CardContent>
-        </Card>
-      ))}
+      <StatTile
+        label="Sent"
+        value={totalSent.toLocaleString("en-IN")}
+        accent="blue"
+        icon={<MailIcon className="size-4" />}
+      />
+      <StatTile
+        label="Opened"
+        value={totalOpened.toLocaleString("en-IN")}
+        accent="emerald"
+        icon={<EyeIcon className="size-4" />}
+        pct={openRate}
+        sub={`${openRate.toFixed(1)}% open rate`}
+      />
+      <StatTile
+        label="Clicked"
+        value={totalClicked.toLocaleString("en-IN")}
+        accent="violet"
+        icon={<MousePointerClickIcon className="size-4" />}
+        pct={clickRate}
+        sub={`${clickRate.toFixed(1)}% click rate`}
+      />
+      <StatTile
+        label="Click-to-open"
+        value={`${
+          totalOpened > 0 ? ((totalClicked / totalOpened) * 100).toFixed(1) : "0.0"
+        }%`}
+        accent="amber"
+        icon={<MousePointerClickIcon className="size-4" />}
+        sub="Clicks per open"
+      />
     </div>
   );
 }

@@ -11,10 +11,12 @@ import {
   SendIcon,
   Trash2Icon,
   DownloadIcon,
+  FileTextIcon,
 } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { StatusPill, type Hue } from "@/components/shared/status-pill";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,7 +28,6 @@ import {
   DataTable,
   DataTableColumnHeader,
 } from "@/components/shared/data-table";
-import { INVOICE_STATUS_COLORS } from "@/lib/constants";
 import { formatINR } from "@/lib/utils";
 import { sendInvoice, deleteInvoice } from "@/actions/invoice.actions";
 import { exportInvoices } from "@/actions/export.actions";
@@ -38,7 +39,7 @@ import { toast } from "sonner";
 // Types
 // ============================================================
 
-type InvoiceRow = {
+export type InvoiceRow = {
   id: string;
   invoiceNumber: string;
   status: string;
@@ -58,6 +59,30 @@ type InvoiceRow = {
     bookingNumber: string;
     eventName: string;
   } | null;
+};
+
+// ============================================================
+// Status presentation
+// ============================================================
+
+const INVOICE_STATUS_HUE: Record<string, Hue> = {
+  DRAFT: "slate",
+  SENT: "blue",
+  PARTIALLY_PAID: "amber",
+  PAID: "emerald",
+  OVERDUE: "rose",
+  CANCELLED: "neutral",
+  REFUNDED: "violet",
+};
+
+const INVOICE_STATUS_LABEL: Record<string, string> = {
+  DRAFT: "Draft",
+  SENT: "Sent",
+  PARTIALLY_PAID: "Partially Paid",
+  PAID: "Paid",
+  OVERDUE: "Overdue",
+  CANCELLED: "Cancelled",
+  REFUNDED: "Refunded",
 };
 
 // ============================================================
@@ -156,14 +181,16 @@ function useColumns(): ColumnDef<InvoiceRow, unknown>[] {
         <DataTableColumnHeader column={column} title="Total" />
       ),
       cell: ({ row }) => (
-        <span className="font-medium">{formatINR(row.original.totalAmount)}</span>
+        <span className="font-medium tabular-nums">
+          {formatINR(row.original.totalAmount)}
+        </span>
       ),
     },
     {
       accessorKey: "paidAmount",
       header: "Paid",
       cell: ({ row }) => (
-        <span className="text-green-700">
+        <span className="tabular-nums text-emerald-700 dark:text-emerald-400">
           {formatINR(row.original.paidAmount)}
         </span>
       ),
@@ -174,7 +201,13 @@ function useColumns(): ColumnDef<InvoiceRow, unknown>[] {
       cell: ({ row }) => {
         const balance = Number(row.original.balanceDue?.toString() ?? 0);
         return (
-          <span className={balance > 0 ? "font-medium text-red-600" : ""}>
+          <span
+            className={
+              balance > 0
+                ? "font-medium tabular-nums text-rose-600 dark:text-rose-400"
+                : "tabular-nums text-muted-foreground"
+            }
+          >
             {formatINR(row.original.balanceDue)}
           </span>
         );
@@ -185,11 +218,11 @@ function useColumns(): ColumnDef<InvoiceRow, unknown>[] {
       header: "Status",
       cell: ({ row }) => {
         const status = row.original.status;
-        const colors = INVOICE_STATUS_COLORS[status] || "";
         return (
-          <Badge variant="outline" className={`${colors} border`}>
-            {status.replace("_", " ")}
-          </Badge>
+          <StatusPill
+            label={INVOICE_STATUS_LABEL[status] ?? status.replace(/_/g, " ")}
+            hue={INVOICE_STATUS_HUE[status] ?? "neutral"}
+          />
         );
       },
     },
@@ -281,6 +314,18 @@ function ExportButton() {
 
 export function InvoicesTable({ data }: InvoicesTableProps) {
   const columns = useColumns();
+
+  if (data.length === 0) {
+    return (
+      <div className="rounded-xl border bg-card shadow-card">
+        <EmptyState
+          icon={<FileTextIcon className="size-5" />}
+          title="No invoices found"
+          description="No invoices match the current filters. Adjust the filters or create a new invoice to get started."
+        />
+      </div>
+    );
+  }
 
   return (
     <DataTable
