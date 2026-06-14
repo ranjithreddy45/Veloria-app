@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Loader2, CalendarOff, X } from "lucide-react";
+import { Plus, Loader2, CalendarOff, X, CalendarDays, PartyPopper } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,7 +16,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { StatusPill } from "@/components/shared/status-pill";
-import { formatDate } from "@/lib/utils";
+import { formatDate, cn } from "@/lib/utils";
 import { LEAVE_STATUS_HUE, LEAVE_STATUS_LABELS } from "@/lib/hr/constants";
 import { applyLeave, cancelLeave } from "@/actions/hr-leave.actions";
 
@@ -30,34 +30,92 @@ interface RequestRow {
   leaveType: { name: string; code: string; color: string };
   approver: { firstName: string; lastName: string } | null;
 }
+interface HolidayItem { id: string; name: string; date: string }
+
+// Colored icon-chip per leave type (static classes for Tailwind).
+const CHIP: Record<string, string> = {
+  blue: "bg-blue-100 text-blue-600 dark:bg-blue-950/50 dark:text-blue-300",
+  indigo: "bg-indigo-100 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-300",
+  violet: "bg-violet-100 text-violet-600 dark:bg-violet-950/50 dark:text-violet-300",
+  emerald: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-300",
+  teal: "bg-teal-100 text-teal-600 dark:bg-teal-950/50 dark:text-teal-300",
+  cyan: "bg-cyan-100 text-cyan-600 dark:bg-cyan-950/50 dark:text-cyan-300",
+  amber: "bg-amber-100 text-amber-600 dark:bg-amber-950/50 dark:text-amber-300",
+  orange: "bg-orange-100 text-orange-600 dark:bg-orange-950/50 dark:text-orange-300",
+  rose: "bg-rose-100 text-rose-600 dark:bg-rose-950/50 dark:text-rose-300",
+  pink: "bg-pink-100 text-pink-600 dark:bg-pink-950/50 dark:text-pink-300",
+  slate: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
+};
 
 export function LeaveHome({
-  balances, requests, types,
+  balances, requests, types, holidays = [],
 }: {
-  balances: Balance[]; requests: RequestRow[]; types: LeaveType[];
+  balances: Balance[]; requests: RequestRow[]; types: LeaveType[]; holidays?: HolidayItem[];
 }) {
+  const bookedThisYear = balances.reduce((s, b) => s + b.used, 0);
+  const pendingTotal = balances.reduce((s, b) => s + b.pending, 0);
+
   return (
     <div className="space-y-5">
+      {/* Summary line + apply */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {balances.map((b) => {
-            const available = b.entitled + b.carriedForward - b.used - b.pending;
-            return (
-              <div key={b.id} className="rounded-xl border bg-card p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-[12px] font-medium text-muted-foreground">{b.leaveType.name}</span>
-                  <StatusPill label={b.leaveType.code} hue={b.leaveType.color as never} size="xs" />
-                </div>
-                <div className="mt-2 text-2xl font-semibold tabular-nums">{available}</div>
-                <div className="mt-0.5 text-[11.5px] text-muted-foreground">
-                  available · {b.used} used{b.pending > 0 ? ` · ${b.pending} pending` : ""}
-                </div>
-              </div>
-            );
-          })}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px]">
+          <span className="text-muted-foreground">Booked this year <span className="font-semibold tabular-nums text-foreground">{bookedThisYear}</span></span>
+          <span className="h-3 w-px bg-border" />
+          <span className="text-muted-foreground">Pending <span className="font-semibold tabular-nums text-foreground">{pendingTotal}</span></span>
         </div>
         <ApplyLeaveDialog types={types} />
       </div>
+
+      {/* Leave-type balance cards */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+        {balances.map((b) => {
+          const available = b.entitled + b.carriedForward - b.used - b.pending;
+          return (
+            <div key={b.id} className="rounded-xl border border-border/70 bg-card p-4 shadow-card transition-shadow duration-200 hover:shadow-card-hover">
+              <div className="flex items-center justify-between">
+                <span className={cn("flex size-9 items-center justify-center rounded-lg", CHIP[b.leaveType.color] ?? CHIP.slate)}>
+                  <CalendarDays className="size-4" />
+                </span>
+                <StatusPill label={b.leaveType.code} hue={b.leaveType.color as never} size="xs" />
+              </div>
+              <div className="mt-2.5 truncate text-[12.5px] font-medium" title={b.leaveType.name}>{b.leaveType.name}</div>
+              <div className="mt-1.5 flex items-end justify-between">
+                <div>
+                  <div className="text-2xl font-semibold leading-none tabular-nums">{available}</div>
+                  <div className="mt-1 text-[11px] text-muted-foreground">Available</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-base font-semibold leading-none tabular-nums text-muted-foreground">{b.used}</div>
+                  <div className="mt-1 text-[11px] text-muted-foreground">Booked</div>
+                </div>
+              </div>
+              {b.pending > 0 && <div className="mt-2 text-[11px] text-amber-600 dark:text-amber-400">{b.pending} pending approval</div>}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Upcoming holidays */}
+      {holidays.length > 0 && (
+        <div className="rounded-xl border border-border/70 bg-card shadow-card">
+          <div className="flex items-center gap-2 border-b px-4 py-3 text-[13px] font-semibold">
+            <PartyPopper className="size-4 text-[#C9A96E]" /> Upcoming holidays
+          </div>
+          <ul className="divide-y">
+            {holidays.map((h) => (
+              <li key={h.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                <span className="flex items-center gap-2.5 text-[13px] font-medium">
+                  <CalendarDays className="size-3.5 text-muted-foreground" /> {h.name}
+                </span>
+                <span className="text-[12.5px] text-muted-foreground">
+                  {new Date(h.date).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="rounded-xl border bg-card">
         <div className="border-b px-4 py-3 text-[13px] font-semibold">My leave requests</div>

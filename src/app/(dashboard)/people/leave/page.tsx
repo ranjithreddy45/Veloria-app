@@ -7,7 +7,7 @@ import { hasPermission } from "@/lib/permissions";
 import { FEATURES } from "@/config/features";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
-import { getMyLeaveDashboard, getLeaveTypes } from "@/actions/hr-leave.actions";
+import { getMyLeaveDashboard, getLeaveTypes, getHolidays } from "@/actions/hr-leave.actions";
 import { LeaveHome } from "./_components/leave-home";
 import { LeaveSetup } from "./_components/leave-setup";
 
@@ -20,8 +20,20 @@ export default async function LeavePage() {
   const canApprove = hasPermission(role, "hr:approve");
   const canAdmin = hasPermission(role, "hr:admin");
 
-  const [dashboard, types] = await Promise.all([getMyLeaveDashboard(), getLeaveTypes(true)]);
+  const [dashboard, types, holidays] = await Promise.all([
+    getMyLeaveDashboard(),
+    getLeaveTypes(true),
+    getHolidays(),
+  ]);
   const needsSetup = types.length === 0;
+
+  // Upcoming holidays only (today onwards), serialized for the client.
+  const startToday = new Date();
+  startToday.setHours(0, 0, 0, 0);
+  const upcomingHolidays = holidays
+    .filter((h) => new Date(h.date) >= startToday)
+    .slice(0, 6)
+    .map((h) => ({ id: h.id, name: h.name, date: new Date(h.date).toISOString() }));
 
   return (
     <div className="space-y-5">
@@ -60,6 +72,7 @@ export default async function LeavePage() {
           balances={dashboard.balances as never}
           requests={dashboard.requests as never}
           types={types as never}
+          holidays={upcomingHolidays}
         />
       )}
     </div>
