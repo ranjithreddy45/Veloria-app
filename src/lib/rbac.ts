@@ -10,6 +10,7 @@ import { ROLE_PERMISSIONS } from "@/lib/permissions";
 /** Roles whose access is editable in the UI (admins are always full-access). */
 export const EDITABLE_ROLES = [
   "SALES_EXEC",
+  "SALES_HEAD",
   "EVENT_COORDINATOR",
   "FINANCE",
   "STAFF",

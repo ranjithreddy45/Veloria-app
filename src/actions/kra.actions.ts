@@ -12,7 +12,7 @@ type Result<T> = { success: true; data: T } | { success: false; error: string };
 
 // Managers who can create/evaluate scorecards. Sales Head/GM aren't distinct
 // roles in this app, so admins + BD Head + HR manager hold the evaluator seat.
-const KRA_MANAGE_ROLES = ["SUPER_ADMIN", "ADMIN", "BD_HEAD", "HR_MANAGER"];
+const KRA_MANAGE_ROLES = ["SUPER_ADMIN", "ADMIN", "BD_HEAD", "SALES_HEAD", "HR_MANAGER"];
 const SALES_ROLES = ["SALES_EXEC", "BD_EXECUTIVE"];
 
 async function requireUser() {

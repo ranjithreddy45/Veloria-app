@@ -10,7 +10,7 @@ import * as React from "react";
 import Link from "next/link";
 import {
   Search, Building2, MapPin, Bell, Users, ShieldCheck, History, Siren,
-  Kanban, Target, UserCheck, GitBranch, Percent, Gift, Workflow, CheckSquare,
+  Kanban, Target, UserCheck, GitBranch, Percent, Gift, Workflow, CheckSquare, SlidersHorizontal,
   AlertOctagon, Zap, FileText, FileSignature, ClipboardCheck, FileInput,
   Plug, MessageCircle, Phone, Calendar, Share2, Calculator, IndianRupee,
   Trash2, ChevronRight, type LucideIcon,
@@ -46,6 +46,7 @@ const CATEGORIES: Category[] = [
       { label: "Blueprints", href: "/settings/blueprints", icon: GitBranch, desc: "Stage process guards" },
       { label: "Commissions", href: "/settings/commissions", icon: Percent, desc: "Payout rules" },
       { label: "Referral Rules", href: "/settings/referral-rules", icon: Gift, desc: "Referral rewards" },
+      { label: "BD CRM Config", href: "/settings/bd-config", icon: SlidersHorizontal, desc: "Acquisition floors & sign-off thresholds" },
     ],
   },
   {

@@ -118,7 +118,7 @@ export async function createUser(data: {
         name: data.name,
         email: data.email.toLowerCase(),
         hashedPassword,
-        role: data.role as "SUPER_ADMIN" | "ADMIN" | "SALES_EXEC" | "EVENT_COORDINATOR" | "FINANCE" | "STAFF",
+        role: data.role as "SUPER_ADMIN" | "ADMIN" | "SALES_EXEC" | "SALES_HEAD" | "EVENT_COORDINATOR" | "FINANCE" | "STAFF",
         phone: data.phone || null,
       },
     });
@@ -166,7 +166,7 @@ export async function updateUser(
     if (data.name !== undefined) updateData.name = data.name;
     if (data.phone !== undefined) updateData.phone = data.phone || null;
     if (data.role !== undefined) {
-      updateData.role = data.role as "SUPER_ADMIN" | "ADMIN" | "SALES_EXEC" | "EVENT_COORDINATOR" | "FINANCE" | "STAFF";
+      updateData.role = data.role as "SUPER_ADMIN" | "ADMIN" | "SALES_EXEC" | "SALES_HEAD" | "EVENT_COORDINATOR" | "FINANCE" | "STAFF";
     }
 
     const user = await prisma.user.update({

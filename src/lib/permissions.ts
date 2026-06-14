@@ -748,6 +748,71 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "ai:use",
   ],
 
+  // Sales Head / GM — manager over SALES_EXEC (Corporate + Inside Sales reps).
+  // Superset of SALES_EXEC plus manager-level sales capabilities
+  // (lead reassignment/deletion, pipeline management, quote approval, team analytics & performance oversight).
+  SALES_HEAD: [
+    // --- everything SALES_EXEC has ---
+    "performance:read", // own + team KRA scorecard / performance area
+    "contacts:read",
+    "contacts:create",
+    "contacts:update",
+    "leads:read",
+    "leads:create",
+    "leads:update",
+    "pipeline:read",
+    "pipeline:update",
+    "bookings:read",
+    "bookings:create",
+    "bookings:update",
+    "tasks:read",
+    "tasks:create",
+    "tasks:update",
+    "invoices:read",
+    "payments:read",
+    "pricing:read",
+    "quotes:read",
+    "quotes:create",
+    "quotes:update",
+    "quotes:send",
+    "contracts:read",
+    "packages:read",
+    "vendors:read",
+    "communications:read",
+    "communications:create",
+    "whatsapp:read",
+    "whatsapp:send",
+    "referrals:read",
+    "referrals:create",
+    "campaigns:read",
+    "dashboard:read",
+    "loyalty:read",
+    "reviews:read",
+    "gallery:read",
+    "tastings:read",
+    "tastings:create",
+    "analytics:read",
+    "competitors:read",
+    "referrals:manage",
+    "referrals:rewards",
+    "referrals:assets",
+    "invitations:read",
+    "ai:use",
+    // --- manager-level sales additions ---
+    "leads:delete", // remove junk/duplicate leads for the team
+    "leads:assign", // reassign leads across reps
+    "tasks:assign", // assign follow-up tasks to reps
+    "pipeline:manage", // manage stages / team pipeline
+    "quotes:approve", // approve quotes raised by reps
+    "contracts:create",
+    "contracts:update",
+    "contracts:send",
+    "dashboard:analytics", // team analytics dashboard
+    "analytics:advanced", // advanced sales analytics
+    "performance:manage", // run / oversee team performance (KRA)
+    "invitations:send",
+  ],
+
   EVENT_COORDINATOR: [
     "contacts:read",
     "leads:read",

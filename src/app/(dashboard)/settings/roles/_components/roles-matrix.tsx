@@ -10,6 +10,7 @@ import { setRolePermission } from "@/actions/rbac.actions";
 
 const ROLE_LABEL: Record<string, string> = {
   SALES_EXEC: "Sales Exec",
+  SALES_HEAD: "Sales Head",
   EVENT_COORDINATOR: "Event Coord.",
   FINANCE: "Finance",
   STAFF: "Staff",

@@ -33,7 +33,7 @@ export default async function NewLeadPage() {
   const users = await prisma.user.findMany({
     where: {
       isActive: true,
-      role: { in: ["SALES_EXEC", "EVENT_COORDINATOR", "ADMIN", "SUPER_ADMIN"] },
+      role: { in: ["SALES_EXEC", "SALES_HEAD", "EVENT_COORDINATOR", "ADMIN", "SUPER_ADMIN"] },
     },
     select: { id: true, name: true },
     orderBy: { name: "asc" },

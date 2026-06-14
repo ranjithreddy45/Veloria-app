@@ -88,6 +88,7 @@ const USER_ROLES = [
   { value: "SUPER_ADMIN", label: "Super Admin" },
   { value: "ADMIN", label: "Admin" },
   { value: "SALES_EXEC", label: "Sales Executive" },
+  { value: "SALES_HEAD", label: "Sales Head" },
   { value: "EVENT_COORDINATOR", label: "Event Coordinator" },
   { value: "FINANCE", label: "Finance" },
   { value: "STAFF", label: "Staff" },

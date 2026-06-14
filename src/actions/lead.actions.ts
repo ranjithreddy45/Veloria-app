@@ -17,7 +17,7 @@ import { after } from "next/server";
 type LeadStatus = "NEW" | "CONTACTED" | "QUALIFIED" | "PROPOSAL_SENT" | "NEGOTIATION" | "WON" | "LOST";
 
 // Roles a lead can be assigned to (mirrors the new/edit form's user list).
-const ASSIGNABLE_ROLES = ["SALES_EXEC", "EVENT_COORDINATOR", "ADMIN", "SUPER_ADMIN"];
+const ASSIGNABLE_ROLES = ["SALES_EXEC", "SALES_HEAD", "EVENT_COORDINATOR", "ADMIN", "SUPER_ADMIN"];
 
 // Next business day (skips Sat/Sun) at 09:00 local — used as a default
 // follow-up when a lead is created without one, so active leads always surface
@@ -688,7 +688,7 @@ export async function getSalesFollowupQueue(): Promise<
   if (!session?.user) return { success: false, error: "Unauthorized" };
   if (!hasPermission(session.user.role, "leads:read")) return { success: false, error: "Insufficient permissions" };
   const role = session.user.role;
-  const isManager = role === "ADMIN" || role === "SUPER_ADMIN";
+  const isManager = role === "ADMIN" || role === "SUPER_ADMIN" || role === "SALES_HEAD";
   const where: Prisma.LeadWhereInput = {
     status: { notIn: ["WON", "LOST"] },
     followUpDate: { not: null },
