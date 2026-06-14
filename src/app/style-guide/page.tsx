@@ -10,7 +10,9 @@
 import * as React from "react";
 import { Check, Inbox, ShieldAlert } from "lucide-react";
 import { Donut } from "@/components/ui/donut";
+import { StatTile } from "@/components/ui/stat-tile";
 import { EmptyState } from "@/components/ui/empty-state";
+import { IndianRupee, CalendarCheck, Users, Trophy, Target, Flame } from "lucide-react";
 import { SegmentedControl, type SegmentOption } from "@/components/ui/segmented-control";
 import { StatusPill } from "@/components/shared/status-pill";
 import { WorkflowStepper, type Step } from "@/app/(dashboard)/projects/_components/workflow-stepper";
@@ -71,6 +73,32 @@ export default function StyleGuidePage() {
         <h1 className="text-2xl font-semibold">Projects — design foundation</h1>
         <p className="text-sm text-muted-foreground">Phase 0 tokens &amp; primitives + the composed Workflow stepper and Readiness checklist.</p>
       </header>
+
+      <Section title="Colorful KPI tiles (StatTile) — gamified progress">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <StatTile label="Revenue (MTD)" value="₹18.4L" accent="emerald" icon={<IndianRupee className="size-4" />} delta={12} deltaLabel="%" />
+          <StatTile label="Bookings" value="34" accent="blue" icon={<CalendarCheck className="size-4" />} sub="6 this week" />
+          <StatTile label="Goal progress" value="72%" accent="violet" icon={<Target className="size-4" />} pct={72} />
+          <StatTile label="Day streak" value="9" accent="amber" icon={<Flame className="size-4" />} sub="Keep it going!" />
+          <StatTile label="Team Velos" value="1,240" accent="pink" icon={<Trophy className="size-4" />} pct={88} />
+          <StatTile label="New leads" value="21" accent="cyan" icon={<Users className="size-4" />} delta={-3} />
+          <StatTile label="On-time %" value="94%" accent="teal" icon={<Target className="size-4" />} pct={94} />
+          <StatTile label="At risk" value="2" accent="rose" icon={<Flame className="size-4" />} sub="Needs attention" />
+        </div>
+      </Section>
+
+      <Section title="Module accent palette">
+        <div className="flex flex-wrap gap-2">
+          {[
+            ["Sales & CRM", "bg-blue-500"], ["Delivery & Ops", "bg-amber-500"], ["People", "bg-violet-500"],
+            ["Catalog & Finance", "bg-emerald-500"], ["Marketing", "bg-pink-500"], ["Workspace", "bg-cyan-500"],
+          ].map(([label, dot]) => (
+            <span key={label} className="inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-xs font-medium shadow-card">
+              <span className={`size-2 rounded-full ${dot}`} /> {label}
+            </span>
+          ))}
+        </div>
+      </Section>
 
       <Section title="Donut · health bands">
         <div className="flex items-center gap-6">

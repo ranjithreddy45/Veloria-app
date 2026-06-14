@@ -16,6 +16,8 @@ interface DonutProps {
   thickness?: number; // stroke width px
   /** Tailwind text-* class driving the arc color (currentColor). */
   colorClass?: string;
+  /** Tailwind stroke-* class for the unfilled track (override on dark surfaces). */
+  trackClass?: string;
   /** Hide the centered % label (e.g. very small donuts). */
   hideLabel?: boolean;
   label?: string; // override center text
@@ -28,6 +30,7 @@ export function Donut({
   size = 48,
   thickness = 5,
   colorClass = "text-primary",
+  trackClass = "stroke-muted",
   hideLabel,
   label,
   className,
@@ -49,7 +52,7 @@ export function Donut({
         <circle
           cx={size / 2} cy={size / 2} r={r}
           fill="none" strokeWidth={thickness}
-          className="stroke-muted"
+          className={trackClass}
         />
         <circle
           cx={size / 2} cy={size / 2} r={r}

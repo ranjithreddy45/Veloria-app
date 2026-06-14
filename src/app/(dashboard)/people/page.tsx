@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Users, UserCheck, UserPlus, Plane, Building2, Upload } from "lucide-react";
+import { Upload, SearchX, UserPlus2 } from "lucide-react";
 import { auth } from "@/../auth";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { hasPermission } from "@/lib/permissions";
 import { FEATURES } from "@/config/features";
 import { PageHeader } from "@/components/layout/page-header";
 import { getEmployees, getEmployeeStats, getHrLookups } from "@/actions/hr-employee.actions";
 import { DirectoryFilters } from "./_components/directory-filters";
 import { DirectoryTable, type DirectoryRow } from "./_components/directory-table";
+import { HeadcountStrip } from "./_components/headcount-strip";
 import { EmployeeFormDialog } from "./_components/employee-form-dialog";
 import { SeedFoundation } from "./_components/seed-foundation";
 
@@ -79,13 +81,13 @@ export default async function PeoplePage({ searchParams }: PageProps) {
       ) : (
         <>
           {stats && (
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-              <StatCard icon={<Users className="size-4" />} label="Total employees" value={stats.total} accent />
-              <StatCard icon={<UserCheck className="size-4" />} label="Active" value={stats.active} />
-              <StatCard icon={<UserPlus className="size-4" />} label="Onboarding" value={stats.onboarding} />
-              <StatCard icon={<Plane className="size-4" />} label="On leave" value={stats.onLeave} />
-              <StatCard icon={<Building2 className="size-4" />} label="Legal entities" value={stats.entityCount} />
-            </div>
+            <HeadcountStrip
+              total={stats.total}
+              active={stats.active}
+              onboarding={stats.onboarding}
+              onLeave={stats.onLeave}
+              entityCount={stats.entityCount}
+            />
           )}
 
           <DirectoryFilters
@@ -95,13 +97,20 @@ export default async function PeoplePage({ searchParams }: PageProps) {
           />
 
           {list.rows.length === 0 ? (
-            <div className="rounded-xl border border-dashed p-12 text-center">
-              <p className="text-sm font-medium">No employees match these filters.</p>
-              <p className="mt-1 text-[13px] text-muted-foreground">
-                {sp.q || sp.entity || sp.status
-                  ? "Try clearing the filters."
-                  : "Add your first employee to get started."}
-              </p>
+            <div className="rounded-xl border border-dashed bg-card">
+              {sp.q || sp.entity || sp.vertical || sp.dept || sp.status ? (
+                <EmptyState
+                  icon={<SearchX className="size-5" />}
+                  title="No employees match these filters"
+                  description="Try clearing the search or filters to see the full directory."
+                />
+              ) : (
+                <EmptyState
+                  icon={<UserPlus2 className="size-5" />}
+                  title="No employees yet"
+                  description="Add your first employee to get started — the same record powers Projects, approvals and access everywhere."
+                />
+              )}
             </div>
           ) : (
             <DirectoryTable
@@ -113,22 +122,6 @@ export default async function PeoplePage({ searchParams }: PageProps) {
           )}
         </>
       )}
-    </div>
-  );
-}
-
-function StatCard({
-  icon, label, value, accent,
-}: {
-  icon: React.ReactNode; label: string; value: number; accent?: boolean;
-}) {
-  return (
-    <div className="rounded-xl border bg-card p-4 transition-shadow hover:shadow-sm">
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <span className={accent ? "text-primary" : ""}>{icon}</span>
-        <span className="text-[12px] font-medium">{label}</span>
-      </div>
-      <div className="mt-2 text-2xl font-semibold tabular-nums tracking-tight">{value}</div>
     </div>
   );
 }

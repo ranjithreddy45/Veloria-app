@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusPill } from "@/components/shared/status-pill";
+import { Donut } from "@/components/ui/donut";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { seedVelosConfig, updateVelosPoints } from "@/actions/velos.actions";
@@ -53,29 +54,42 @@ export function VelosSurface({
     <div className="space-y-5">
       {/* Personal Pace — the primary view (motivates all eight) */}
       {pace && (
-        <div className="rounded-2xl border bg-gradient-to-br from-[#2D1B3D] to-[#43295c] p-5 text-white">
+        <div className="overflow-hidden rounded-2xl border-0 bg-gradient-to-br from-[#2D1B3D] to-[#43295c] p-5 text-white shadow-card">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-[12.5px] font-medium text-white/70"><TrendingUp className="size-4" /> Your pace this month</div>
             <StatusPill label={pace.onTrack ? "On track" : "Push needed"} hue={pace.onTrack ? "emerald" : "amber"} size="sm" />
           </div>
-          <div className="mt-3 flex flex-wrap items-end gap-x-8 gap-y-3">
-            <div>
-              <div className="text-[36px] font-bold leading-none tabular-nums">{pace.thisPeriod}</div>
-              <div className="mt-1 text-[11.5px] text-white/60">Velos this month</div>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-6">
+            <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
+              <div>
+                <div className="text-[40px] font-bold leading-none tabular-nums">{pace.thisPeriod}</div>
+                <div className="mt-1 text-[11.5px] text-white/60">Velos this month</div>
+              </div>
+              <div>
+                <div className="text-xl font-semibold tabular-nums text-white/90">{pace.lastPeriod}</div>
+                <div className="text-[11.5px] text-white/60">Your last month</div>
+              </div>
+              <div>
+                <div className="flex items-center gap-1 text-xl font-semibold tabular-nums text-white/90">
+                  {pace.projected}
+                  {pace.projected > pace.lastPeriod && <ArrowUp className="size-4 text-emerald-300" />}
+                </div>
+                <div className="text-[11.5px] text-white/60">Projected end of month</div>
+              </div>
             </div>
-            <div>
-              <div className="text-xl font-semibold tabular-nums text-white/90">{pace.lastPeriod}</div>
-              <div className="text-[11.5px] text-white/60">Your last month</div>
-            </div>
-            <div>
-              <div className="text-xl font-semibold tabular-nums text-white/90">{pace.projected}</div>
-              <div className="text-[11.5px] text-white/60">Projected end of month</div>
-            </div>
-          </div>
-          <div className="mt-4">
-            <div className="mb-1 flex justify-between text-[11px] text-white/60"><span>vs your goal ({pace.goal})</span><span>{pace.pctOfGoal}%</span></div>
-            <div className="h-2 w-full overflow-hidden rounded-full bg-white/15">
-              <div className="h-full rounded-full bg-[#C9A96E] transition-all" style={{ width: `${Math.min(100, pace.pctOfGoal)}%` }} />
+            {/* Goal ring — the at-a-glance "am I winning?" signal */}
+            <div className="flex items-center gap-3">
+              <Donut
+                value={Math.min(100, pace.pctOfGoal)}
+                size={84} thickness={8}
+                colorClass="text-[#C9A96E]" trackClass="stroke-white/15"
+                ariaLabel={`${pace.pctOfGoal}% of your goal`}
+              />
+              <div className="text-[11.5px] leading-tight text-white/70">
+                <div className="font-medium text-white/90">Goal {pace.goal}</div>
+                <div>{pace.pctOfGoal}% there</div>
+                <div className="mt-0.5 text-white/55">{Math.max(0, pace.goal - pace.thisPeriod)} to go</div>
+              </div>
             </div>
           </div>
         </div>
@@ -97,12 +111,12 @@ export function VelosSurface({
             </div>
             <p className="mt-3 text-[12.5px] text-muted-foreground">Unlocked: <span className="text-foreground">{identity.unlock}</span></p>
             {identity.next ? (
-              <div className="mt-3">
-                <div className="mb-1 flex justify-between text-[11px] text-muted-foreground"><span>Next: {identity.next.identity}</span><span>{identity.next.toNext} to go</span></div>
-                <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                  <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${identity.pctToNext}%` }} />
+              <div className="mt-4 flex items-center gap-3">
+                <Donut value={identity.pctToNext} size={52} thickness={6} colorClass="text-primary" ariaLabel={`${identity.pctToNext}% to ${identity.next.identity}`} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex justify-between text-[11px] text-muted-foreground"><span>Next: <span className="font-medium text-foreground">{identity.next.identity}</span></span><span>{identity.next.toNext} to go</span></div>
+                  <p className="mt-1 text-[11.5px] text-muted-foreground">Unlocks: {identity.next.unlock}</p>
                 </div>
-                <p className="mt-1.5 text-[11.5px] text-muted-foreground">Unlocks: {identity.next.unlock}</p>
               </div>
             ) : <p className="mt-3 text-[12.5px] font-medium text-violet-700">Top tier reached — Rainmaker 🏆</p>}
           </div>
@@ -110,16 +124,18 @@ export function VelosSurface({
 
         {/* Team vs Target */}
         {team && (
-          <div className="rounded-xl border bg-card p-5">
+          <div className="rounded-xl border bg-card p-5 shadow-card">
             <div className="mb-3 flex items-center gap-2 text-[12.5px] font-semibold text-muted-foreground"><Target className="size-4" /> Team vs target</div>
-            <div className="flex items-end justify-between">
-              <div className="text-3xl font-bold tabular-nums">{team.team}</div>
-              <div className="text-[12.5px] text-muted-foreground">target {team.target}</div>
+            <div className="flex items-center gap-4">
+              <Donut value={Math.min(100, team.pct)} size={64} thickness={7} colorClass={team.pct >= 100 ? "text-emerald-500" : team.pct >= 60 ? "text-[#C9A96E]" : "text-amber-500"} ariaLabel={`${team.pct}% of team target`} />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-end justify-between">
+                  <div className="text-3xl font-bold tabular-nums">{team.team}</div>
+                  <div className="text-[12.5px] text-muted-foreground">target {team.target}</div>
+                </div>
+                <p className="mt-1.5 text-[12px] text-muted-foreground">{team.pct}% of the team&rsquo;s shared goal — we hit this together.</p>
+              </div>
             </div>
-            <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-muted">
-              <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${team.pct}%` }} />
-            </div>
-            <p className="mt-2 text-[12px] text-muted-foreground">{team.pct}% of the team’s shared goal — we hit this together.</p>
           </div>
         )}
       </div>
@@ -133,9 +149,12 @@ export function VelosSurface({
           <div className="divide-y">
             {leaderboard.map((r, i) => {
               const mostImproved = leaderboard.length > 1 && r.delta === Math.max(...leaderboard.map((x) => x.delta)) && r.delta > 0;
+              const medal = i === 0 ? "text-[#C9A96E]" : i === 1 ? "text-slate-400" : i === 2 ? "text-amber-700" : null;
               return (
-                <div key={r.userId} className={cn("flex items-center gap-3 px-4 py-2.5", r.userId === myId && "bg-primary/5")}>
-                  <span className="w-5 text-center text-[13px] font-semibold text-muted-foreground tabular-nums">{i + 1}</span>
+                <div key={r.userId} className={cn("flex items-center gap-3 px-4 py-2.5 transition-premium hover:bg-muted/30", r.userId === myId && "bg-primary/5")}>
+                  <span className="flex w-5 items-center justify-center text-[13px] font-semibold text-muted-foreground tabular-nums">
+                    {medal ? <Medal className={cn("size-4", medal)} /> : i + 1}
+                  </span>
                   <Avatar size="sm"><AvatarImage src={r.image || undefined} /><AvatarFallback className="bg-primary/10 text-[10px] text-primary">{r.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}</AvatarFallback></Avatar>
                   <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium">{r.name}{r.userId === myId && <span className="ml-1.5 text-[11px] text-muted-foreground">(you)</span>}</span>
                   {mostImproved && <StatusPill label="Most improved" hue="emerald" size="xs" />}

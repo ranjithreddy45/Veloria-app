@@ -221,6 +221,19 @@ const SECTIONS: Record<string, string> = {
   "/settings": "System",
 };
 
+// A signature color per section — gives the whole app a colorful, navigable
+// identity (each band reads at a glance, and it makes coming back to check
+// progress feel lively rather than monochrome).
+const SECTION_DOT: Record<string, string> = {
+  "Sales & CRM": "bg-blue-500",
+  "Delivery & Ops": "bg-amber-500",
+  "People": "bg-violet-500",
+  "Catalog & Finance": "bg-emerald-500",
+  "Marketing & Insights": "bg-pink-500",
+  "Workspace": "bg-cyan-500",
+  "System": "bg-slate-400",
+};
+
 // ============================================================
 // Role display map
 // ============================================================
@@ -427,7 +440,8 @@ export function AppSidebar() {
                   return (
                     <Fragment key={item.href}>
                       {showHeader && (
-                        <SidebarGroupLabel className="mt-3 mb-0.5 px-2 text-[10.5px] font-medium uppercase tracking-[0.08em] text-sidebar-foreground/40">
+                        <SidebarGroupLabel className="mt-3 mb-0.5 flex items-center gap-1.5 px-2 text-[10.5px] font-medium uppercase tracking-[0.08em] text-sidebar-foreground/45">
+                          <span className={cn("size-1.5 rounded-full", SECTION_DOT[section] ?? "bg-muted-foreground/40")} />
                           {section}
                         </SidebarGroupLabel>
                       )}

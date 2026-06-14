@@ -5,11 +5,17 @@ import {
   CalendarCheck,
   UserPlus,
   CheckSquare,
-  ArrowUpRight,
-  ArrowDownRight,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Donut } from "@/components/ui/donut";
+import { StatusPill, type Hue } from "@/components/shared/status-pill";
+import {
+  healthBarClass,
+  healthTextClass,
+} from "@/lib/projects/ui";
 import { cn } from "@/lib/utils";
 import { Sparkline, synthesizeSeries } from "./sparkline";
 
@@ -43,7 +49,7 @@ interface KpiCardsProps {
 }
 
 // ============================================================
-// Currency formatting helper
+// Currency formatting helper — compact Indian notation for the big value
 // ============================================================
 
 function formatIndianCurrency(amount: number): string {
@@ -54,22 +60,86 @@ function formatIndianCurrency(amount: number): string {
 }
 
 // ============================================================
-// KPI Card — minimal frame, sparkline + comparison row
+// Shared card chrome
 // ============================================================
 
-type Trend = "up" | "down" | "flat";
-
-interface KpiDef {
-  key: string;
-  title: string;
-  value: string;
-  changeLabel: string;
-  changeContext: string;
-  trend: Trend;
-  icon: LucideIcon;
-  series: number[];
-  color: string;
+function CardShell({
+  index,
+  children,
+}: {
+  index: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <Card
+      className={cn(
+        "group card-hover-tint relative overflow-hidden rounded-xl border border-border bg-card shadow-card transition-shadow hover:shadow-card-hover",
+        `animate-stagger-${index + 1}`
+      )}
+    >
+      <CardContent className="p-4">{children}</CardContent>
+    </Card>
+  );
 }
+
+function CardHead({
+  title,
+  Icon,
+  tint,
+}: {
+  title: string;
+  Icon: LucideIcon;
+  tint: string;
+}) {
+  return (
+    <div className="flex items-center justify-between">
+      <p className="text-[11.5px] font-medium uppercase tracking-[0.05em] text-muted-foreground">
+        {title}
+      </p>
+      <span
+        className={cn(
+          "flex size-7 items-center justify-center rounded-lg bg-muted/60 transition-colors",
+          tint
+        )}
+      >
+        <Icon className="size-3.5" strokeWidth={1.9} />
+      </span>
+    </div>
+  );
+}
+
+/** Trend delta chip: arrow + percentage, green up / rose down / muted flat. */
+function DeltaChip({
+  changePercent,
+  context,
+}: {
+  changePercent: number;
+  context: string;
+}) {
+  const flat = changePercent === 0;
+  const up = changePercent > 0;
+  const TrendIcon = up ? ArrowUp : ArrowDown;
+  return (
+    <div className="mt-1.5 flex items-center justify-between border-t border-border/60 pt-2 text-[11.5px]">
+      <span
+        className={cn(
+          "inline-flex items-center gap-0.5 font-medium tabular-nums",
+          flat && "text-muted-foreground",
+          !flat && up && "text-emerald-600 dark:text-emerald-400",
+          !flat && !up && "text-rose-600 dark:text-rose-400"
+        )}
+      >
+        {!flat && <TrendIcon className="size-3" strokeWidth={2.5} />}
+        {`${changePercent >= 0 ? "+" : ""}${changePercent}%`}
+      </span>
+      <span className="text-muted-foreground">{context}</span>
+    </div>
+  );
+}
+
+// ============================================================
+// KPI Cards — a motivating progress cockpit
+// ============================================================
 
 export function KpiCards({
   revenue,
@@ -78,121 +148,149 @@ export function KpiCards({
   tasks,
   revenueHistory,
 }: KpiCardsProps) {
-  const taskTrend: Trend =
-    tasks.overdue === 0 ? "flat" : tasks.overdue > 0 ? "down" : "up";
+  // Task completion: how much of today's load is already cleared.
+  const tasksDone = Math.max(0, tasks.total - tasks.pending);
+  const completionPct =
+    tasks.total > 0 ? Math.round((tasksDone / tasks.total) * 100) : 100;
+  const conversionPct = Math.round(leads.conversionRate);
 
-  const cards: KpiDef[] = [
-    {
-      key: "revenue",
-      title: "Revenue this month",
-      value: `₹${formatIndianCurrency(revenue.thisMonth)}`,
-      changeLabel: `${revenue.changePercent >= 0 ? "+" : ""}${revenue.changePercent}%`,
-      changeContext: "vs last month",
-      trend: revenue.changePercent >= 0 ? "up" : "down",
-      icon: IndianRupee,
-      series:
-        revenueHistory && revenueHistory.length
-          ? revenueHistory
-          : synthesizeSeries(revenue.thisMonth, revenue.changePercent),
-      color: "oklch(0.55 0.18 270)",
-    },
-    {
-      key: "bookings",
-      title: "Active bookings",
-      value: bookings.active.toString(),
-      changeLabel: `${bookings.changePercent >= 0 ? "+" : ""}${bookings.changePercent}%`,
-      changeContext: `${bookings.thisMonth} new this month`,
-      trend: bookings.changePercent >= 0 ? "up" : "down",
-      icon: CalendarCheck,
-      series: synthesizeSeries(bookings.active, bookings.changePercent),
-      color: "oklch(0.6 0.13 220)",
-    },
-    {
-      key: "leads",
-      title: "New leads",
-      value: leads.newThisMonth.toString(),
-      changeLabel: `${leads.changePercent >= 0 ? "+" : ""}${leads.changePercent}%`,
-      changeContext: "vs last month",
-      trend: leads.changePercent >= 0 ? "up" : "down",
-      icon: UserPlus,
-      series: synthesizeSeries(Math.max(leads.newThisMonth, 3), leads.changePercent),
-      color: "oklch(0.6 0.13 195)",
-    },
-    {
-      key: "tasks",
-      title: "Pending tasks",
-      value: tasks.pending.toString(),
-      changeLabel:
-        tasks.overdue > 0 ? `${tasks.overdue} overdue` : "On track",
-      changeContext: `of ${tasks.total} total`,
-      trend: taskTrend,
-      icon: CheckSquare,
-      series: synthesizeSeries(tasks.pending, -Math.min(50, tasks.overdue * 5)),
-      color: tasks.overdue > 0 ? "oklch(0.6 0.18 25)" : "oklch(0.55 0.13 145)",
-    },
-  ];
+  const revenueSeries =
+    revenueHistory && revenueHistory.length
+      ? revenueHistory
+      : synthesizeSeries(revenue.thisMonth, revenue.changePercent);
 
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {cards.map((card, index) => {
-        const Icon = card.icon;
-        const trendUp = card.trend === "up";
-        const trendFlat = card.trend === "flat";
-        const TrendIcon = trendUp ? ArrowUpRight : ArrowDownRight;
+      {/* ---- Revenue: big value + live sparkline + MoM delta ---- */}
+      <CardShell index={0}>
+        <CardHead
+          title="Revenue this month"
+          Icon={IndianRupee}
+          tint="text-violet-600 group-hover:bg-violet-500/10 dark:text-violet-400"
+        />
+        <p className="mt-2 text-[26px] font-semibold leading-none tracking-[-0.02em] text-foreground tabular-nums">
+          ₹{formatIndianCurrency(revenue.thisMonth)}
+        </p>
+        <div className="mt-3 -mx-1 h-9">
+          <Sparkline
+            id="revenue"
+            series={revenueSeries}
+            color="oklch(0.55 0.18 270)"
+            height={36}
+          />
+        </div>
+        <DeltaChip changePercent={revenue.changePercent} context="vs last month" />
+      </CardShell>
 
-        return (
-          <Card
-            key={card.key}
-            className={cn(
-              "group card-hover-tint relative overflow-hidden border border-border bg-card shadow-none",
-              `animate-stagger-${index + 1}`
-            )}
-          >
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <p className="text-[11.5px] font-medium uppercase tracking-[0.05em] text-muted-foreground">
-                  {card.title}
-                </p>
-                <Icon
-                  className="size-3.5 text-muted-foreground/55 transition-colors group-hover:text-foreground/70"
-                  strokeWidth={1.8}
-                />
-              </div>
-              <p className="mt-2 text-[26px] font-semibold leading-none tracking-[-0.02em] text-foreground tabular-nums">
-                {card.value}
-              </p>
+      {/* ---- Active bookings: value + new-this-month pill + MoM delta ---- */}
+      <CardShell index={1}>
+        <CardHead
+          title="Active bookings"
+          Icon={CalendarCheck}
+          tint="text-sky-600 group-hover:bg-sky-500/10 dark:text-sky-400"
+        />
+        <div className="mt-2 flex items-end justify-between gap-2">
+          <p className="text-[26px] font-semibold leading-none tracking-[-0.02em] text-foreground tabular-nums">
+            {bookings.active}
+          </p>
+          {bookings.thisMonth > 0 && (
+            <StatusPill
+              hue="sky"
+              size="xs"
+              noDot
+              label={`+${bookings.thisMonth} new`}
+            />
+          )}
+        </div>
+        <div className="mt-3 -mx-1 h-9">
+          <Sparkline
+            id="bookings"
+            series={synthesizeSeries(bookings.active, bookings.changePercent)}
+            color="oklch(0.6 0.13 220)"
+            height={36}
+          />
+        </div>
+        <DeltaChip
+          changePercent={bookings.changePercent}
+          context="vs last month"
+        />
+      </CardShell>
 
-              {/* Sparkline */}
-              <div className="mt-3 -mx-1 h-9">
-                <Sparkline
-                  id={card.key}
-                  series={card.series}
-                  color={card.color}
-                  height={36}
-                />
-              </div>
+      {/* ---- New leads: value + conversion-rate Donut (goal-style) ---- */}
+      <CardShell index={2}>
+        <CardHead
+          title="New leads"
+          Icon={UserPlus}
+          tint="text-teal-600 group-hover:bg-teal-500/10 dark:text-teal-400"
+        />
+        <div className="mt-2 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[26px] font-semibold leading-none tracking-[-0.02em] text-foreground tabular-nums">
+              {leads.newThisMonth}
+            </p>
+            <p className="mt-2 text-[11.5px] text-muted-foreground">
+              conversion rate
+            </p>
+          </div>
+          <Donut
+            value={conversionPct}
+            size={56}
+            thickness={6}
+            colorClass={healthTextClass(conversionPct)}
+            ariaLabel={`${conversionPct}% lead conversion rate`}
+          />
+        </div>
+        <DeltaChip changePercent={leads.changePercent} context="vs last month" />
+      </CardShell>
 
-              {/* Footer change row */}
-              <div className="mt-1.5 flex items-center justify-between border-t border-border/60 pt-2 text-[11.5px]">
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1 font-medium tabular-nums",
-                    trendFlat && "text-muted-foreground",
-                    !trendFlat && trendUp && "text-emerald-600 dark:text-emerald-400",
-                    !trendFlat && !trendUp && "text-destructive"
-                  )}
-                >
-                  {!trendFlat && (
-                    <TrendIcon className="size-3" strokeWidth={2.5} />
-                  )}
-                  {card.changeLabel}
-                </span>
-                <span className="text-muted-foreground">{card.changeContext}</span>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
+      {/* ---- Tasks: pending value + completion bar + status pill ---- */}
+      <CardShell index={3}>
+        <CardHead
+          title="Pending tasks"
+          Icon={CheckSquare}
+          tint={cn(
+            "group-hover:bg-muted",
+            tasks.overdue > 0
+              ? "text-rose-600 dark:text-rose-400 group-hover:bg-rose-500/10"
+              : "text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-500/10"
+          )}
+        />
+        <div className="mt-2 flex items-end justify-between gap-2">
+          <p className="text-[26px] font-semibold leading-none tracking-[-0.02em] text-foreground tabular-nums">
+            {tasks.pending}
+          </p>
+          <StatusPill
+            hue={tasks.overdue > 0 ? ("rose" as Hue) : ("emerald" as Hue)}
+            size="xs"
+            label={
+              tasks.overdue > 0 ? `${tasks.overdue} overdue` : "On track"
+            }
+          />
+        </div>
+
+        {/* Completion bar — share of today's tasks already cleared */}
+        <div className="mt-3.5">
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground tabular-nums">
+            <span>{completionPct}% complete</span>
+            <span>
+              {tasksDone}/{tasks.total}
+            </span>
+          </div>
+          <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className={cn(
+                "h-full rounded-full transition-[width] duration-500 ease-out",
+                healthBarClass(completionPct)
+              )}
+              style={{ width: `${completionPct}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="mt-2.5 border-t border-border/60 pt-2 text-[11.5px] text-muted-foreground">
+          {tasks.total} total tasks
+        </div>
+      </CardShell>
     </div>
   );
 }
