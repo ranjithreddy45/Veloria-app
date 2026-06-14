@@ -497,6 +497,12 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["performance:read"],
         children: [
           {
+            title: "KRA Scorecards",
+            href: "/performance/kra",
+            icon: "ClipboardList",
+            permissions: ["performance:read"],
+          },
+          {
             title: "Velos",
             href: "/performance/velos",
             icon: "Sparkles",

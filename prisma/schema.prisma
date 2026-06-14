@@ -6008,3 +6008,42 @@ model RecOffer {
 
   @@index([candidateId])
 }
+
+// ============================================================
+// KRA monthly performance scorecards (sales roles).
+// Plain string user IDs (no back-relations on User), like Rec*/Fin*.
+// Computed snapshot stored as JSON + denormalized columns for querying.
+// ============================================================
+model KraScorecard {
+  id               String    @id @default(cuid())
+  employeeId       String // User being evaluated
+  role             String // KraRole: BDM | CORPORATE_SALES | INSIDE_SALES
+  period           String // "YYYY-MM"
+  rampMonth        Int       @default(3)
+  status           String    @default("DRAFT") // DRAFT | SUBMITTED | ACKNOWLEDGED
+
+  autoMetrics      Json // { autoKey: value }  (snapshot at generation/recompute)
+  manualEntries    Json // { kpiRef: value }
+  lineItems        Json // computed per-KPI breakdown
+  gateDetail       Json // gate requirements snapshot
+
+  totalScore       Int       @default(0)
+  totalMax         Int       @default(100)
+  gatePassed       Boolean   @default(false)
+  band             String? // grade A+/A/B/C/D
+  basePct          Int       @default(0)
+  multiplierFactor Float?
+  finalPayoutPct   Float     @default(0)
+
+  managerNote      String?
+  createdById      String
+  submittedAt      DateTime?
+  acknowledgedAt   DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@unique([employeeId, period])
+  @@index([role, period])
+  @@index([employeeId])
+  @@index([period, status])
+}

@@ -700,6 +700,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   ],
 
   SALES_EXEC: [
+    "performance:read", // own KRA scorecard + performance area
     "contacts:read",
     "contacts:create",
     "contacts:update",
@@ -889,6 +890,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "owners:create",
     "owners:update",
     "contacts:read",
+    "performance:read", // own KRA scorecard + performance area
   ],
   BD_HEAD: [
     "dashboard:read",
