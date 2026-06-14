@@ -122,7 +122,8 @@ export async function detectAnomalies(): Promise<Result<{ created: number; check
     for (const e of entries) {
       const total = e.lines.reduce((sum, l) => sum + Number(l.debit), 0);
       if (total < 100000) continue;
-      if (total % 50000 !== 0) continue;
+      // Compare in integer paise — float % can mis-fire on 149999.99999999.
+      if (Math.round(total * 100) % 5000000 !== 0) continue;
       push({
         type: "ROUND_AMOUNT",
         severity: "LOW",

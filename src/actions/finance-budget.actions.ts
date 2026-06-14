@@ -22,13 +22,15 @@ async function requireUser() {
   return session.user as { id: string; role?: string };
 }
 const canFinance = (r?: string) => !!r && FINANCE_ROLES.includes(r);
+// AUDITOR has finance:read (read-only accountant portal) — reads must honour it.
+const canFinanceRead = (r?: string) => !!r && (FINANCE_ROLES.includes(r) || r === "AUDITOR");
 
 // ------------------------------------------------------------
 // Reads
 // ------------------------------------------------------------
 export async function getBudgets() {
   const u = await requireUser();
-  if (!canFinance(u?.role)) return [];
+  if (!canFinanceRead(u?.role)) return [];
   const budgets = await prisma.finBudget.findMany({
     include: { lines: { select: { id: true, accountCode: true, period: true, amount: true } } },
     orderBy: [{ fy: "desc" }, { createdAt: "desc" }],
@@ -52,7 +54,7 @@ export async function getBudgets() {
 // Income + expense accounts only — the ones you budget against.
 export async function getAccountsForBudget() {
   const u = await requireUser();
-  if (!canFinance(u?.role)) return [];
+  if (!canFinanceRead(u?.role)) return [];
   const accounts = await prisma.finAccount.findMany({
     where: { isActive: true, type: { in: ["INCOME", "EXPENSE"] } },
     select: { code: true, name: true, type: true },
@@ -145,7 +147,7 @@ export async function getBudgetVariance(budgetId: string): Promise<{
 }> {
   const empty = { rows: [], totals: { budget: 0, actual: 0, variance: 0, pct: 0 } };
   const u = await requireUser();
-  if (!canFinance(u?.role)) return empty;
+  if (!canFinanceRead(u?.role)) return empty;
   if (!budgetId) return empty;
 
   const budget = await prisma.finBudget.findUnique({

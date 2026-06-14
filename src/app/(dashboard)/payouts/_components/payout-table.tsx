@@ -204,16 +204,21 @@ const columns: ColumnDef<PayoutRow, unknown>[] = [
 
 interface PayoutTableProps {
   data: PayoutRow[];
+  isFiltered?: boolean;
 }
 
-export function PayoutTable({ data }: PayoutTableProps) {
+export function PayoutTable({ data, isFiltered }: PayoutTableProps) {
   if (data.length === 0) {
     return (
       <div className="rounded-xl border border-border/70 bg-card shadow-card">
         <EmptyState
           icon={<WalletIcon className="size-5" />}
-          title="No payouts found"
-          description="Vendor payments, owner payouts, and commissions will appear here once created."
+          title={isFiltered ? "No payouts match the current filters" : "No payouts found"}
+          description={
+            isFiltered
+              ? "Try clearing or widening the filters in the rail to the left."
+              : "Vendor payments, owner payouts, and commissions will appear here once created."
+          }
         />
       </div>
     );

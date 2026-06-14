@@ -92,7 +92,8 @@ export async function getVenueEventPnl() {
   for (const l of lines) {
     const debit = n(l.debit);
     const credit = n(l.credit);
-    const type = l.account.type;
+    const type = l.account?.type;
+    if (!type) continue; // skip any line with a dangling account join
 
     const apply = (map: Map<string, Bucket>, key: string) => {
       const b = map.get(key) ?? { income: 0, expense: 0 };

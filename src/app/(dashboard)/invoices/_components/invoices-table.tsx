@@ -165,7 +165,7 @@ function useColumns(): ColumnDef<InvoiceRow, unknown>[] {
         <DataTableColumnHeader column={column} title="Issue Date" />
       ),
       cell: ({ row }) =>
-        format(new Date(row.original.issueDate), "dd MMM yyyy"),
+        row.original.issueDate ? format(new Date(row.original.issueDate), "dd MMM yyyy") : "—",
     },
     {
       accessorKey: "dueDate",
@@ -173,7 +173,7 @@ function useColumns(): ColumnDef<InvoiceRow, unknown>[] {
         <DataTableColumnHeader column={column} title="Due Date" />
       ),
       cell: ({ row }) =>
-        format(new Date(row.original.dueDate), "dd MMM yyyy"),
+        row.original.dueDate ? format(new Date(row.original.dueDate), "dd MMM yyyy") : "—",
     },
     {
       accessorKey: "totalAmount",

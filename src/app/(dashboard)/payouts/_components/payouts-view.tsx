@@ -49,7 +49,7 @@ export function PayoutsView({ data }: { data: PayoutRow[] }) {
         className="hidden lg:block"
       />
       <div className="min-w-0 flex-1">
-        <PayoutTable data={filtered} />
+        <PayoutTable data={filtered} isFiltered={filtered.length !== data.length} />
       </div>
     </div>
   );

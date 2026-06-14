@@ -17,6 +17,8 @@ async function requireUser() {
 const FINANCE_ROLES = ["SUPER_ADMIN", "ADMIN", "FINANCE"];
 function canFinance(role?: string) { return !!role && FINANCE_ROLES.includes(role); }
 function canFinanceAdmin(role?: string) { return role === "SUPER_ADMIN" || role === "ADMIN"; }
+// AUDITOR holds finance:read (read-only accountant portal + investor pack route).
+function canFinanceRead(role?: string) { return canFinance(role) || role === "AUDITOR"; }
 
 // ============================================================
 // Setup — CoA seed + current period + DB-layer balance guard (Rule 1).
@@ -78,13 +80,13 @@ async function installLedgerGuard(): Promise<void> {
 // ============================================================
 export async function getFinAccounts() {
   const u = await requireUser();
-  if (!canFinance(u?.role)) return [];
+  if (!canFinanceRead(u?.role)) return [];
   return prisma.finAccount.findMany({ where: { isActive: true }, orderBy: { code: "asc" } });
 }
 
 export async function getCurrentPeriod() {
   const u = await requireUser();
-  if (!canFinance(u?.role)) return null;
+  if (!canFinanceRead(u?.role)) return null;
   const now = new Date();
   const fy = fyForDate(now), period = periodForDate(now);
   const p = await prisma.finPeriod.findUnique({ where: { fy_period: { fy, period } } });
@@ -93,7 +95,7 @@ export async function getCurrentPeriod() {
 
 export async function getJournalEntries(limit = 50) {
   const u = await requireUser();
-  if (!canFinance(u?.role)) return [];
+  if (!canFinanceRead(u?.role)) return [];
   const entries = await prisma.finJournalEntry.findMany({
     orderBy: { date: "desc" }, take: limit,
     include: { lines: { include: { account: { select: { code: true, name: true } } }, orderBy: { lineOrder: "asc" } } },
@@ -108,7 +110,7 @@ export async function getJournalEntries(limit = 50) {
 // Trial balance — net per account from POSTED lines; must always balance.
 export async function getTrialBalance() {
   const u = await requireUser();
-  if (!canFinance(u?.role)) return { rows: [], totalDebit: 0, totalCredit: 0, balanced: true };
+  if (!canFinanceRead(u?.role)) return { rows: [], totalDebit: 0, totalCredit: 0, balanced: true };
   const grouped = await prisma.finJournalLine.groupBy({
     by: ["accountId"],
     where: { entry: { status: "POSTED" } },
@@ -198,7 +200,7 @@ async function summedAccounts(fy?: string) {
 
 export async function getFinFiscalYears(): Promise<string[]> {
   const u = await requireUser();
-  if (!canFinance(u?.role)) return [];
+  if (!canFinanceRead(u?.role)) return [];
   const rows = await prisma.finJournalEntry.findMany({ where: { status: "POSTED" }, distinct: ["fy"], select: { fy: true }, orderBy: { fy: "desc" } });
   const list = rows.map((r) => r.fy);
   const current = fyForDate(new Date());
@@ -208,13 +210,13 @@ export async function getFinFiscalYears(): Promise<string[]> {
 
 export async function getProfitAndLoss(fy?: string) {
   const u = await requireUser();
-  if (!canFinance(u?.role)) return { income: [], expense: [], totalIncome: 0, totalExpense: 0, netProfit: 0 };
+  if (!canFinanceRead(u?.role)) return { income: [], expense: [], totalIncome: 0, totalExpense: 0, netProfit: 0 };
   return buildProfitAndLoss(await summedAccounts(fy));
 }
 
 export async function getBalanceSheet(fy?: string) {
   const u = await requireUser();
-  if (!canFinance(u?.role)) return { assets: [], liabilities: [], equity: [], totalAssets: 0, totalLiabilities: 0, totalEquity: 0, retainedEarnings: 0, balanced: true };
+  if (!canFinanceRead(u?.role)) return { assets: [], liabilities: [], equity: [], totalAssets: 0, totalLiabilities: 0, totalEquity: 0, retainedEarnings: 0, balanced: true };
   // Balance Sheet is cumulative — assets/liabilities/equity from ALL posted
   // lines; retained earnings = cumulative net profit (income − expense) to date.
   const all = await summedAccounts();

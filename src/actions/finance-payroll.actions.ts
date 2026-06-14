@@ -28,6 +28,8 @@ async function requireUser() {
   return session.user as { id: string; role?: string };
 }
 const canFinance = (r?: string) => !!r && FINANCE_ROLES.includes(r);
+// AUDITOR has finance:read (read-only accountant portal) — reads must honour it.
+const canFinanceRead = (r?: string) => !!r && (FINANCE_ROLES.includes(r) || r === "AUDITOR");
 
 const dec = (n: number) => new Prisma.Decimal(n.toFixed(2));
 
@@ -36,7 +38,7 @@ const dec = (n: number) => new Prisma.Decimal(n.toFixed(2));
 // ------------------------------------------------------------
 export async function getEmployees() {
   const u = await requireUser();
-  if (!canFinance(u?.role)) return [];
+  if (!canFinanceRead(u?.role)) return [];
   const rows = await prisma.finEmployee.findMany({ orderBy: [{ isActive: "desc" }, { name: "asc" }] });
   return rows.map((e) => ({
     id: e.id,
@@ -89,7 +91,7 @@ export async function createEmployee(input: {
 // ------------------------------------------------------------
 export async function getPayrollRuns() {
   const u = await requireUser();
-  if (!canFinance(u?.role)) return [];
+  if (!canFinanceRead(u?.role)) return [];
   const rows = await prisma.finPayrollRun.findMany({
     orderBy: [{ fy: "desc" }, { period: "desc" }],
     include: { _count: { select: { payslips: true } } },

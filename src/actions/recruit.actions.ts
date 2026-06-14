@@ -124,7 +124,9 @@ export async function setJobStatus(id: string, status: string): Promise<Result<{
   if (!(REC_JOB_STATUSES as readonly string[]).includes(status)) return { success: false, error: "Invalid status." };
   await prisma.recJobOpening.update({
     where: { id },
-    data: { status: status as Prisma.RecJobOpeningUpdateInput["status"], filledAt: status === "FILLED" ? new Date() : null },
+    // Only stamp filledAt when filling; leave it untouched on other transitions
+    // so historical time-to-fill data survives an ON_HOLD/INACTIVE move.
+    data: { status: status as Prisma.RecJobOpeningUpdateInput["status"], ...(status === "FILLED" ? { filledAt: new Date() } : {}) },
   });
   revalidatePath("/recruitment/jobs");
   revalidatePath("/recruitment");

@@ -23,6 +23,10 @@ export type OpenRole = {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Public free-text comes from an unauthenticated form — cap every field so a
+// scripted client can't push unbounded strings into the internal ATS.
+const cap = (s: string, n: number) => (s.length > n ? s.slice(0, n) : s);
+
 function shortDescription(text: string | null): string | null {
   if (!text) return null;
   const trimmed = text.trim();
@@ -96,17 +100,19 @@ export async function applyToRole(
   jobOpeningId: string,
   input: ApplyInput,
 ): Promise<Result<{ applicationId: string }>> {
-  const firstName = input.firstName?.trim();
-  const lastName = input.lastName?.trim();
-  const email = input.email?.trim().toLowerCase();
-  const phone = input.phone?.trim() || null;
-  const city = input.city?.trim() || null;
+  const firstName = cap(input.firstName?.trim() ?? "", 80);
+  const lastName = cap(input.lastName?.trim() ?? "", 80);
+  const email = cap(input.email?.trim().toLowerCase() ?? "", 254);
+  const phone = input.phone?.trim() ? cap(input.phone.trim(), 30) : null;
+  const city = input.city?.trim() ? cap(input.city.trim(), 80) : null;
 
   // Basic validation.
   if (!firstName) return { success: false, error: "First name is required." };
   if (!lastName) return { success: false, error: "Last name is required." };
   if (!email) return { success: false, error: "Email is required." };
   if (!EMAIL_RE.test(email)) return { success: false, error: "Please enter a valid email address." };
+  if (phone && !/^[0-9+()\-\s]{6,20}$/.test(phone))
+    return { success: false, error: "Please enter a valid phone number." };
 
   // Role must exist and be open.
   const role = await prisma.recJobOpening.findFirst({
@@ -122,17 +128,11 @@ export async function applyToRole(
 
   let candidateId: string;
   if (existing) {
+    // SECURITY: this endpoint is unauthenticated. Reuse the existing candidate
+    // ONLY to link the new application — never overwrite their stored identity
+    // (name/phone/city) from public input, or anyone who knows an email could
+    // silently corrupt that candidate's profile in the internal ATS.
     candidateId = existing.id;
-    // Keep their details fresh from the latest application.
-    await prisma.recCandidate.update({
-      where: { id: existing.id },
-      data: {
-        firstName,
-        lastName,
-        ...(phone ? { phone } : {}),
-        ...(city ? { city } : {}),
-      },
-    });
   } else {
     const candidate = await prisma.recCandidate.create({
       data: {

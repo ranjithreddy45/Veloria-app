@@ -18,8 +18,11 @@ async function requireRole(): Promise<string | undefined> {
   return (session?.user as { role?: string } | undefined)?.role;
 }
 const FINANCE_ROLES = ["SUPER_ADMIN", "ADMIN", "FINANCE"];
+// AUDITOR holds finance:read (read-only accountant portal) and passes the page
+// guard — read actions must honour that or the portal renders empty/zeroed.
+const FINANCE_READ_ROLES = [...FINANCE_ROLES, "AUDITOR"];
 function canFinance(role?: string) {
-  return !!role && FINANCE_ROLES.includes(role);
+  return !!role && FINANCE_READ_ROLES.includes(role);
 }
 
 // FY-aware sum of POSTED debits/credits for a single account, looked up by code.
@@ -108,6 +111,7 @@ export async function getTaxSummary(fy?: string): Promise<TaxSummary> {
       gstin: true,
       placeOfSupply: true,
       subtotal: true,
+      discountAmount: true,
       cgstAmount: true,
       sgstAmount: true,
       igstAmount: true,
@@ -115,7 +119,9 @@ export async function getTaxSummary(fy?: string): Promise<TaxSummary> {
   });
 
   const rows = invoices.map((inv) => {
-    const taxable = Number(inv.subtotal);
+    // GST is charged on the post-discount value — net the discount out of the
+    // taxable base so GSTR-1 outward value isn't overstated.
+    const taxable = Math.max(0, Number(inv.subtotal) - Number(inv.discountAmount ?? 0));
     const cgst = Number(inv.cgstAmount);
     const sgst = Number(inv.sgstAmount);
     const igst = Number(inv.igstAmount);
