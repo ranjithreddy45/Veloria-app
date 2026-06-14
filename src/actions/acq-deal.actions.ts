@@ -522,6 +522,28 @@ export async function transitionAcqDeal(
       break;
     }
     case "WON": {
+      // A deal must not become terminal-Won without agreed commercials (P-1).
+      // The normal path enforces this at PROPOSAL_SENT, but guard here too so
+      // Won self-defends against imports / future legal-transition shortcuts.
+      if (!deal.model) return { success: false, error: "Set the commercial model before marking the deal Won.", code: 422 };
+      if (deal.model === "MANAGEMENT" && (deal.baseFeePct == null || deal.incentivePct == null)) {
+        return { success: false, error: "A Won management deal needs base fee % and incentive %.", code: 422 };
+      }
+      if (deal.model === "FRANCHISE" && deal.royaltyPct == null) {
+        return { success: false, error: "A Won franchise deal needs a royalty %.", code: 422 };
+      }
+      if (deal.termYears == null) return { success: false, error: "Set the term (years) before marking the deal Won.", code: 422 };
+      if (deal.projectedFeeValue == null) {
+        return { success: false, error: "Set the projected fee value before marking the deal Won.", code: 422 };
+      }
+      // Large-deal sign-off (P-2): a high-value Won needs explicit BD Head approval.
+      if (Number(deal.projectedFeeValue) >= cfg.LARGE_DEAL_SIGNOFF_VALUE && !deal.bdHeadApprovedById) {
+        return {
+          success: false,
+          error: `Deals at or above ₹${(cfg.LARGE_DEAL_SIGNOFF_VALUE / 100000).toFixed(1)}L need BD Head sign-off before they can be marked Won.`,
+          code: 422,
+        };
+      }
       data.wonAt = new Date();
       break;
     }

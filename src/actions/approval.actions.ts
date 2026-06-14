@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/../auth";
+import { revalidatePath } from "next/cache";
 import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/utils";
@@ -243,6 +244,7 @@ export async function createApprovalRule(
       userId: session.user.id,
     });
 
+    revalidatePath("/settings/approval-rules");
     return { success: true as const, data: serialize(rule) as unknown as ApprovalRuleData };
   } catch (error) {
     console.error("createApprovalRule error:", error);
@@ -322,6 +324,8 @@ export async function updateApprovalRule(
       userId: session.user.id,
     });
 
+    revalidatePath("/settings/approval-rules");
+    revalidatePath(`/settings/approval-rules/${id}`);
     return { success: true as const, data: serialize(rule) as unknown as ApprovalRuleData };
   } catch (error) {
     console.error("updateApprovalRule error:", error);
@@ -352,6 +356,8 @@ export async function deleteApprovalRule(
       userId: session.user.id,
     });
 
+    revalidatePath("/settings/approval-rules");
+    revalidatePath(`/settings/approval-rules/${id}`);
     return { success: true as const };
   } catch (error) {
     console.error("deleteApprovalRule error:", error);
@@ -386,6 +392,8 @@ export async function toggleApprovalRule(
       userId: session.user.id,
     });
 
+    revalidatePath("/settings/approval-rules");
+    revalidatePath(`/settings/approval-rules/${id}`);
     return { success: true as const };
   } catch (error) {
     console.error("toggleApprovalRule error:", error);
@@ -621,6 +629,8 @@ export async function approveRequest(
       userId: session.user.id,
     });
 
+    revalidatePath("/approvals");
+    revalidatePath(`/approvals/${requestId}`);
     return { success: true as const };
   } catch (error) {
     console.error("approveRequest error:", error);
@@ -703,6 +713,8 @@ export async function rejectRequest(
       userId: session.user.id,
     });
 
+    revalidatePath("/approvals");
+    revalidatePath(`/approvals/${requestId}`);
     return { success: true as const };
   } catch (error) {
     console.error("rejectRequest error:", error);
@@ -779,6 +791,8 @@ export async function delegateRequest(
       userId: session.user.id,
     });
 
+    revalidatePath("/approvals");
+    revalidatePath(`/approvals/${requestId}`);
     return { success: true as const };
   } catch (error) {
     console.error("delegateRequest error:", error);
@@ -827,6 +841,8 @@ export async function cancelApprovalRequest(
       userId: session.user.id,
     });
 
+    revalidatePath("/approvals");
+    revalidatePath(`/approvals/${requestId}`);
     return { success: true as const };
   } catch (error) {
     console.error("cancelApprovalRequest error:", error);

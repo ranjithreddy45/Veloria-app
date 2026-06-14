@@ -221,6 +221,7 @@ export async function updateAcqLead(
   }
   revalidatePath("/bd/leads");
   revalidatePath("/bd/dashboard");
+  revalidatePath("/bd/followups");
   return { success: true, data: { id } };
 }
 
@@ -327,6 +328,7 @@ export async function logAcqLeadContact(
   revalidatePath("/bd/leads");
   revalidatePath(`/bd/leads/${leadId}`);
   revalidatePath("/bd/dashboard");
+  revalidatePath("/bd/followups");
   return { success: true, data: { id: leadId } };
 }
 
@@ -392,7 +394,9 @@ export async function qualifyAcqLead(
   });
 
   revalidatePath("/bd/leads");
+  revalidatePath(`/bd/leads/${id}`);
   revalidatePath("/bd/dashboard");
+  revalidatePath("/bd/followups");
   revalidatePath("/bd/deals");
   return { success: true, data: { dealId: result.id } };
 }
@@ -432,7 +436,9 @@ export async function disqualifyAcqLead(
     data: { entity: "LEAD", entityId: id, fromState: lead.status, toState: "DISQUALIFIED", actorId: user.id, reason },
   });
   revalidatePath("/bd/leads");
+  revalidatePath(`/bd/leads/${id}`);
   revalidatePath("/bd/dashboard");
+  revalidatePath("/bd/followups");
   return { success: true, data: { id } };
 }
 
@@ -524,6 +530,7 @@ export async function deleteAcqLead(id: string): Promise<Result<{ id: string }>>
   });
   revalidatePath("/bd/leads");
   revalidatePath("/bd/dashboard");
+  revalidatePath("/bd/followups");
   return { success: true, data: { id } };
 }
 
@@ -565,6 +572,7 @@ export async function reassignAcqLead(
   });
   revalidatePath("/bd/leads");
   revalidatePath("/bd/dashboard");
+  revalidatePath("/bd/followups");
   revalidatePath(`/bd/leads/${id}`);
   return { success: true, data: { id } };
 }

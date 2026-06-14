@@ -443,6 +443,14 @@ export async function markAcqContractSignedCLM(id: string): Promise<Result<{ id:
   // Can't jump DRAFT→SIGNED and bypass approval; must be approved/sent first.
   if (c.status !== "APPROVED" && c.status !== "NEGOTIATED")
     return { success: false, error: "Get manager approval and send the contract before marking it signed." };
+  // Require signature evidence (P-5): either the e-sign provider reports SIGNED,
+  // or an executed document has been attached. Don't mark signed on nothing.
+  if (c.esignStatus !== "SIGNED") {
+    const docCount = await prisma.acqContractDocument.count({ where: { contractId: id } });
+    if (docCount === 0) {
+      return { success: false, error: "Attach the executed agreement (or complete e-sign) before marking the contract signed." };
+    }
+  }
   await prisma.acqContract.update({
     where: { id },
     data: { status: "SIGNED", phase: "POST_EXECUTION", signedAt: new Date(), esignStatus: "SIGNED" },

@@ -33,7 +33,6 @@ import {
   terminateAcqContract,
   addAcqContractDocument,
   addAcqContractNote,
-  setAcqContractPhase,
   updateAcqContract,
   submitContractForApproval,
   rejectAcqContract,
@@ -228,38 +227,12 @@ export function ContractDetail({ contract, userRole }: { contract: ContractFull;
             {contract.status === "ACTIVE" && canApprove && (
               <TerminateBox contractId={contract.id} busy={busy} run={run} />
             )}
-            {/* Phase nudge */}
-            {canMove && contract.status !== "TERMINATED" && (
-              <div className="border-t border-border/50 pt-2">
-                <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Move phase</Label>
-                <div className="flex flex-wrap gap-1.5 pt-1.5">
-                  {ACQ_CONTRACT_PHASE.map((p, ti) => {
-                    // Mirror the server gate (audit O-3/O-6): no skipping forward,
-                    // forward steps need the right status, backward needs approver.
-                    const approved = contract.status === "APPROVED" || contract.status === "NEGOTIATED";
-                    let reason = "";
-                    if (ti < phaseIdx) {
-                      if (!canApprove) reason = "Only a BD Head can roll a contract back.";
-                    } else if (ti > phaseIdx + 1) {
-                      reason = "Phases can't be skipped — advance one step at a time.";
-                    } else if (ti === phaseIdx + 1) {
-                      if ((p === "NEGOTIATION" || p === "EXECUTION") && !approved) reason = "Needs BD Head approval first.";
-                      if (p === "POST_EXECUTION" && contract.status !== "SIGNED") reason = "Mark the contract signed first.";
-                    }
-                    const isCurrent = p === contract.phase;
-                    const blocked = !isCurrent && reason !== "";
-                    return (
-                      <button key={p} disabled={busy !== null || isCurrent || blocked}
-                        title={blocked ? reason : undefined}
-                        onClick={() => run("phase", () => setAcqContractPhase(contract.id, p), "Phase updated")}
-                        className={`rounded border px-2 py-0.5 text-[11.5px] ${isCurrent ? "border-foreground/20 bg-muted text-foreground" : blocked ? "cursor-not-allowed border-border/50 text-muted-foreground/40" : "border-border text-muted-foreground hover:bg-muted/50"}`}>
-                        {ACQ_CONTRACT_PHASE_LABEL[p]}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+            {/* The contract advances only through the gated lifecycle actions
+                above (Submit → Approve → Send → Sign → Activate → Terminate),
+                which keep phase and status in lockstep. The old free-form
+                "Move phase" control was removed (audit P-4/P-7/P-9/O-3): it let
+                phase and status desync and skip approvals. The read-only stepper
+                at the top shows progress. */}
           </CardContent>
         </Card>
       </div>

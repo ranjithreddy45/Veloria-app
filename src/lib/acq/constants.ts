@@ -143,6 +143,8 @@ export const ACQ_CONFIG_DEFAULTS = {
   ONBOARDING_SLA_DAYS: 7,
   REENGAGE_DAYS: 90,
   EVALUATION_PASS_THRESHOLD: 70,
+  // A Won deal at/above this projected fee value needs BD Head sign-off (P-2).
+  LARGE_DEAL_SIGNOFF_VALUE: 1500000,
 } as const;
 export type AcqConfigKey = keyof typeof ACQ_CONFIG_DEFAULTS;
 

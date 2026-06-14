@@ -163,6 +163,7 @@ export async function moveHallOwnerStage(id: string, status: string) {
       changes: { contractStatus: status },
     });
     revalidatePath("/owners");
+    revalidatePath(`/owners/${id}`);
     return { success: true as const };
   } catch (error) {
     console.error("[MOVE_HALL_OWNER_ERROR]", error);

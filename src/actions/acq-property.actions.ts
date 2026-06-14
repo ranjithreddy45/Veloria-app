@@ -68,6 +68,7 @@ export async function setAcqOnboardingTaskDone(taskId: string, done: boolean): P
     data: remaining === 0 ? { status: "COMPLETED", completedAt: new Date() } : { status: "OPEN", completedAt: null },
   });
 
+  revalidatePath("/bd/properties");
   revalidatePath(`/bd/properties/${task.project.propertyId}`);
   return { success: true, data: { id: taskId } };
 }
@@ -78,6 +79,7 @@ export async function assignPropertyManager(propertyId: string, managerId: strin
   const mgr = await prisma.user.findUnique({ where: { id: managerId }, select: { id: true } });
   if (!mgr) return { success: false, error: "Manager not found" };
   await prisma.acqProperty.update({ where: { id: propertyId }, data: { propertyManagerId: managerId } });
+  revalidatePath("/bd/properties");
   revalidatePath(`/bd/properties/${propertyId}`);
   return { success: true, data: { id: propertyId } };
 }
