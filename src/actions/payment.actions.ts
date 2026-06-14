@@ -196,42 +196,62 @@ export async function recordPayment(data: {
       return { success: false as const, error: "Unsupported receipt — use an image, PDF or https link." };
     }
 
-    const receiptNumber = await generateReceiptNumber();
-
     // Atomic: create the payment and CREDIT the invoice with a relative
     // increment (not an absolute write from a stale read), then re-read inside
     // the same transaction to set balance/status — so concurrent payments can't
     // clobber each other and lose money.
-    const { payment, newPaidAmount, newBalanceDue } = await prisma.$transaction(async (tx) => {
-      const created = await tx.payment.create({
-        data: {
-          invoiceId: data.invoiceId,
-          amount: data.amount,
-          method: data.method,
-          status: "COMPLETED",
-          transactionId: data.transactionId || null,
-          receiptNumber,
-          notes: data.notes || null,
-          receiptUrl: data.receiptUrl || null,
-          receiptUploadedAt: data.receiptUrl ? new Date() : null,
-          paidAt: new Date(),
-        },
-      });
-      const credited = await tx.invoice.update({
-        where: { id: data.invoiceId },
-        data: { paidAmount: { increment: data.amount } },
-        select: { totalAmount: true, paidAmount: true },
-      });
-      const paid = Number(credited.paidAmount);
-      const bal = Number(credited.totalAmount) - paid;
-      await tx.invoice.update({
-        where: { id: data.invoiceId },
-        data: { balanceDue: Math.max(0, bal), status: bal <= 0.01 ? "PAID" : "PARTIALLY_PAID" },
-      });
-      // Flip fully-covered installments PENDING→COMPLETED in the same tx.
-      await allocatePaidAmountToInstallments(tx, data.invoiceId, paid);
-      return { payment: created, newPaidAmount: paid, newBalanceDue: bal };
-    });
+    //
+    // The RCP-YYYY-NNNN receipt number is allocated INSIDE a P2002 retry loop:
+    // two concurrent records can read the same max and mint a duplicate, so on a
+    // unique violation we re-allocate (mirroring the booking-number pattern).
+    // NOTE: Payment.receiptNumber is NOT @unique in the schema (and per the task
+    // we don't add the constraint), so P2002 can't fire today — re-reading the
+    // max each attempt narrows the window but can't fully guarantee uniqueness
+    // under true concurrency; a @unique index would be required. The catch is
+    // kept so the retry resolves correctly if the column is later made unique.
+    let txResult: { payment: Awaited<ReturnType<typeof prisma.payment.create>>; newPaidAmount: number; newBalanceDue: number } | null = null;
+    let receiptNumber = "";
+    let lastErr: unknown = null;
+    for (let attempt = 0; attempt < 5 && txResult === null; attempt++) {
+      receiptNumber = await generateReceiptNumber();
+      try {
+        txResult = await prisma.$transaction(async (tx) => {
+          const created = await tx.payment.create({
+            data: {
+              invoiceId: data.invoiceId,
+              amount: data.amount,
+              method: data.method,
+              status: "COMPLETED",
+              transactionId: data.transactionId || null,
+              receiptNumber,
+              notes: data.notes || null,
+              receiptUrl: data.receiptUrl || null,
+              receiptUploadedAt: data.receiptUrl ? new Date() : null,
+              paidAt: new Date(),
+            },
+          });
+          const credited = await tx.invoice.update({
+            where: { id: data.invoiceId },
+            data: { paidAmount: { increment: data.amount } },
+            select: { totalAmount: true, paidAmount: true },
+          });
+          const paid = Number(credited.paidAmount);
+          const bal = Number(credited.totalAmount) - paid;
+          await tx.invoice.update({
+            where: { id: data.invoiceId },
+            data: { balanceDue: Math.max(0, bal), status: bal <= 0.01 ? "PAID" : "PARTIALLY_PAID" },
+          });
+          // Flip fully-covered installments PENDING→COMPLETED in the same tx.
+          await allocatePaidAmountToInstallments(tx, data.invoiceId, paid);
+          return { payment: created, newPaidAmount: paid, newBalanceDue: bal };
+        });
+      } catch (e) {
+        lastErr = e;
+        if ((e as { code?: string }).code !== "P2002") throw e;
+      }
+    }
+    if (txResult === null) throw lastErr ?? new Error("Could not allocate a receipt number");
+    const { payment, newPaidAmount, newBalanceDue } = txResult;
 
     await logActivity({
       userId: session.user.id as string,
@@ -336,31 +356,51 @@ export async function verifyPaymentProof(paymentId: string) {
     if (payment.invoice.status === "CANCELLED")
       return { success: false as const, error: "Invoice is cancelled" };
 
-    const receiptNumber = payment.receiptNumber || (await generateReceiptNumber());
-
     // Atomic + idempotent: only the writer that flips this PENDING row proceeds
     // to credit the invoice (relative increment, re-read for status) — so a
     // double-verify can't double-count.
-    const verified = await prisma.$transaction(async (tx) => {
-      const flip = await tx.payment.updateMany({
-        where: { id: paymentId, status: "PENDING" },
-        data: { status: "COMPLETED", paidAt: new Date(), receiptNumber },
-      });
-      if (flip.count !== 1) return false; // someone else verified it first
-      const credited = await tx.invoice.update({
-        where: { id: payment.invoice.id },
-        data: { paidAmount: { increment: Number(payment.amount) } },
-        select: { totalAmount: true, paidAmount: true },
-      });
-      const bal = Number(credited.totalAmount) - Number(credited.paidAmount);
-      await tx.invoice.update({
-        where: { id: payment.invoice.id },
-        data: { balanceDue: Math.max(0, bal), status: bal <= 0.01 ? "PAID" : "PARTIALLY_PAID" },
-      });
-      // Flip fully-covered installments PENDING→COMPLETED in the same tx.
-      await allocatePaidAmountToInstallments(tx, payment.invoice.id, Number(credited.paidAmount));
-      return true;
-    });
+    //
+    // If the payment has no receipt number yet we allocate RCP-YYYY-NNNN inside
+    // a P2002 retry loop (re-allocating on a unique violation, mirroring the
+    // booking-number pattern). NOTE: Payment.receiptNumber is NOT @unique (and
+    // per the task we don't add the constraint), so P2002 can't fire today — the
+    // re-read narrows the window but can't fully guarantee uniqueness under true
+    // concurrency; a @unique index would be required. The catch is kept so the
+    // retry resolves correctly if the column is later made unique.
+    let receiptNumber = payment.receiptNumber || "";
+    let verified: boolean | null = null;
+    let lastErr: unknown = null;
+    for (let attempt = 0; attempt < 5 && verified === null; attempt++) {
+      if (!payment.receiptNumber) receiptNumber = await generateReceiptNumber();
+      try {
+        verified = await prisma.$transaction(async (tx) => {
+          const flip = await tx.payment.updateMany({
+            where: { id: paymentId, status: "PENDING" },
+            data: { status: "COMPLETED", paidAt: new Date(), receiptNumber },
+          });
+          if (flip.count !== 1) return false; // someone else verified it first
+          const credited = await tx.invoice.update({
+            where: { id: payment.invoice.id },
+            data: { paidAmount: { increment: Number(payment.amount) } },
+            select: { totalAmount: true, paidAmount: true },
+          });
+          const bal = Number(credited.totalAmount) - Number(credited.paidAmount);
+          await tx.invoice.update({
+            where: { id: payment.invoice.id },
+            data: { balanceDue: Math.max(0, bal), status: bal <= 0.01 ? "PAID" : "PARTIALLY_PAID" },
+          });
+          // Flip fully-covered installments PENDING→COMPLETED in the same tx.
+          await allocatePaidAmountToInstallments(tx, payment.invoice.id, Number(credited.paidAmount));
+          return true;
+        });
+      } catch (e) {
+        lastErr = e;
+        // A pre-existing receipt number can't collide on re-run, so a P2002 there
+        // is unexpected; only retry the freshly-allocated case.
+        if ((e as { code?: string }).code !== "P2002" || payment.receiptNumber) throw e;
+      }
+    }
+    if (verified === null) throw lastErr ?? new Error("Could not allocate a receipt number");
     if (!verified) return { success: false as const, error: "This payment was just verified by someone else" };
 
     await logActivity({

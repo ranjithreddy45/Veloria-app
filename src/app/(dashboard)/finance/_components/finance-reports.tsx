@@ -72,7 +72,7 @@ export function FinanceReports({
         {/* Profit & Loss */}
         <TabsContent value="pl" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
-            <Card className="border-0 shadow-card"><CardHeader className="pb-2"><CardTitle className="text-sm">Income</CardTitle></CardHeader><CardContent className="px-0"><LineTable rows={pl.income} total={pl.totalIncome} totalLabel="Total income" /></CardContent></Card>
+            <Card className="border-0 shadow-card"><CardHeader className="pb-2"><CardTitle className="text-sm">Income</CardTitle><p className="text-[11px] text-muted-foreground">Recognized (accrual)</p></CardHeader><CardContent className="px-0"><LineTable rows={pl.income} total={pl.totalIncome} totalLabel="Total income" /></CardContent></Card>
             <Card className="border-0 shadow-card"><CardHeader className="pb-2"><CardTitle className="text-sm">Expenses</CardTitle></CardHeader><CardContent className="px-0"><LineTable rows={pl.expense} total={pl.totalExpense} totalLabel="Total expenses" /></CardContent></Card>
           </div>
           <Card className="border-0 shadow-card">

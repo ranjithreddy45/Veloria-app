@@ -172,36 +172,59 @@ export async function createAcqContract(
   const ownerName = d.ownerName || (dealDefaults.ownerName as string) || "Owner";
   const propertyName = d.propertyName || (dealDefaults.propertyName as string) || "Property";
 
-  // Sequential contract number: VG-CON-YYYY-NNN (year-scoped count).
+  // Sequential contract number: VG-CON-YYYY-NNN (year-scoped count). Two
+  // concurrent creates can compute the same count+1, so allocate inside a retry
+  // loop that catches a P2002 unique violation and re-allocates with the
+  // incremented suffix — mirroring the booking/quote number pattern.
+  //
+  // NOTE: AcqContract.contractNumber is NOT @unique in the schema (and per the
+  // task we don't add the constraint). Without it P2002 can't fire, so the loop
+  // re-queries the live count each attempt and bumps the suffix by the attempt
+  // index — this shrinks the duplicate window but cannot fully guarantee
+  // uniqueness under true concurrency; a @unique index would be required for
+  // that. The P2002 catch is kept so the retry resolves correctly if the column
+  // is later made unique.
   const year = new Date().getFullYear();
   const yearStart = new Date(year, 0, 1);
-  const countThisYear = await prisma.acqContract.count({ where: { createdAt: { gte: yearStart } } });
-  const contractNumber = `VG-CON-${year}-${String(countThisYear + 1).padStart(3, "0")}`;
 
-  const contract = await prisma.acqContract.create({
-    data: {
-      contractNumber,
-      title: d.title || `Management Agreement — ${propertyName}`,
-      dealId: d.dealId || null,
-      ownerName,
-      ownerEmail: d.ownerEmail || null,
-      ownerPhone: d.ownerPhone || null,
-      propertyName,
-      model: (dealDefaults.model as string) ?? null,
-      baseFeePct: (dealDefaults.baseFeePct as never) ?? null,
-      incentivePct: (dealDefaults.incentivePct as never) ?? null,
-      termYears: (dealDefaults.termYears as number) ?? null,
-      contractValue:
-        d.contractValue != null ? d.contractValue : ((dealDefaults.contractValue as never) ?? null),
-      body: d.body || null,
-      signByDate: d.signByDate ? new Date(d.signByDate) : null,
-      bdExecutiveId: (dealDefaults.bdExecutiveId as string) || user.id,
-      createdById: user.id,
-      phase: "AUTHORING",
-      status: "DRAFT",
-    },
-    select: { id: true },
-  });
+  let contract: { id: string } | null = null;
+  let lastErr: unknown = null;
+  for (let attempt = 0; attempt < 5 && !contract; attempt++) {
+    const countThisYear = await prisma.acqContract.count({ where: { createdAt: { gte: yearStart } } });
+    const contractNumber = `VG-CON-${year}-${String(countThisYear + 1 + attempt).padStart(3, "0")}`;
+    try {
+      contract = await prisma.acqContract.create({
+        data: {
+          contractNumber,
+          title: d.title || `Management Agreement — ${propertyName}`,
+          dealId: d.dealId || null,
+          ownerName,
+          ownerEmail: d.ownerEmail || null,
+          ownerPhone: d.ownerPhone || null,
+          propertyName,
+          model: (dealDefaults.model as string) ?? null,
+          baseFeePct: (dealDefaults.baseFeePct as never) ?? null,
+          incentivePct: (dealDefaults.incentivePct as never) ?? null,
+          termYears: (dealDefaults.termYears as number) ?? null,
+          contractValue:
+            d.contractValue != null ? d.contractValue : ((dealDefaults.contractValue as never) ?? null),
+          body: d.body || null,
+          signByDate: d.signByDate ? new Date(d.signByDate) : null,
+          bdExecutiveId: (dealDefaults.bdExecutiveId as string) || user.id,
+          createdById: user.id,
+          phase: "AUTHORING",
+          status: "DRAFT",
+        },
+        select: { id: true },
+      });
+    } catch (e) {
+      lastErr = e;
+      // Only retry on a unique violation (fires once contractNumber is @unique);
+      // anything else is a real error and should propagate.
+      if ((e as { code?: string }).code !== "P2002") throw e;
+    }
+  }
+  if (!contract) throw lastErr ?? new Error("Could not allocate a contract number");
   await logActivity(contract.id, user.id, "AUTHORED", "Contract created");
   revalidatePath("/bd/contracts");
   return { success: true, data: { id: contract.id } };

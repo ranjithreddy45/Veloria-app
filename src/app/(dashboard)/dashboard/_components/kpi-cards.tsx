@@ -171,6 +171,9 @@ export function KpiCards({
         <p className="mt-2 text-[26px] font-semibold leading-none tracking-[-0.02em] text-foreground tabular-nums">
           ₹{formatIndianCurrency(revenue.thisMonth)}
         </p>
+        <p className="mt-1.5 text-[11px] text-muted-foreground">
+          Cash collected — payments received
+        </p>
         <div className="mt-3 -mx-1 h-9">
           <Sparkline
             id="revenue"

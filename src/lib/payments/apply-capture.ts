@@ -99,33 +99,55 @@ export async function applyRazorpayCapture(opts: {
     return { ok: true, invoiceId: payment.invoiceId, alreadyProcessed: true };
   }
 
-  const credited = await prisma.$transaction(async (tx) => {
-    const receiptNumber = await nextReceiptNumber(tx);
-    const flip = await tx.payment.updateMany({
-      where: { id: payment.id, status: { not: "COMPLETED" } },
-      data: {
-        status: "COMPLETED",
-        transactionId: opts.razorpayPaymentId || undefined,
-        razorpaySignature: opts.razorpaySignature || undefined,
-        receiptNumber,
-        paidAt: new Date(),
-      },
-    });
-    if (flip.count !== 1) return false; // another path already processed it
-    const inv = await tx.invoice.update({
-      where: { id: payment.invoiceId },
-      data: { paidAmount: { increment: Number(payment.amount) } },
-      select: { totalAmount: true, paidAmount: true },
-    });
-    const bal = Number(inv.totalAmount) - Number(inv.paidAmount);
-    await tx.invoice.update({
-      where: { id: payment.invoiceId },
-      data: { balanceDue: Math.max(0, bal), status: bal <= 0.01 ? "PAID" : "PARTIALLY_PAID" },
-    });
-    // Flip fully-covered installments PENDING→COMPLETED in the same tx.
-    await allocatePaidAmountToInstallments(tx, payment.invoiceId, Number(inv.paidAmount));
-    return true;
-  });
+  // Allocate the RCP-YYYY-NNNN receipt number and apply the capture inside one
+  // transaction, wrapped in a retry loop: two concurrent captures can read the
+  // same max receiptNumber and mint a duplicate. On a P2002 unique violation we
+  // retry, re-reading the max (mirroring the booking-number pattern).
+  //
+  // NOTE: Payment.receiptNumber is NOT @unique in the schema (and per the task
+  // we don't add the constraint), so P2002 can't fire today — the in-transaction
+  // re-read narrows the window but cannot fully guarantee uniqueness under true
+  // concurrency; a @unique index would be required for that. The catch is kept
+  // so the retry resolves correctly if the column is later made unique.
+  let credited: boolean | null = null;
+  let lastErr: unknown = null;
+  for (let attempt = 0; attempt < 5 && credited === null; attempt++) {
+    try {
+      credited = await prisma.$transaction(async (tx) => {
+        const receiptNumber = await nextReceiptNumber(tx);
+        const flip = await tx.payment.updateMany({
+          where: { id: payment.id, status: { not: "COMPLETED" } },
+          data: {
+            status: "COMPLETED",
+            transactionId: opts.razorpayPaymentId || undefined,
+            razorpaySignature: opts.razorpaySignature || undefined,
+            receiptNumber,
+            paidAt: new Date(),
+          },
+        });
+        if (flip.count !== 1) return false; // another path already processed it
+        const inv = await tx.invoice.update({
+          where: { id: payment.invoiceId },
+          data: { paidAmount: { increment: Number(payment.amount) } },
+          select: { totalAmount: true, paidAmount: true },
+        });
+        const bal = Number(inv.totalAmount) - Number(inv.paidAmount);
+        await tx.invoice.update({
+          where: { id: payment.invoiceId },
+          data: { balanceDue: Math.max(0, bal), status: bal <= 0.01 ? "PAID" : "PARTIALLY_PAID" },
+        });
+        // Flip fully-covered installments PENDING→COMPLETED in the same tx.
+        await allocatePaidAmountToInstallments(tx, payment.invoiceId, Number(inv.paidAmount));
+        return true;
+      });
+    } catch (e) {
+      lastErr = e;
+      // Only retry on a unique violation (fires once receiptNumber is @unique);
+      // anything else is a real error and should propagate.
+      if ((e as { code?: string }).code !== "P2002") throw e;
+    }
+  }
+  if (credited === null) throw lastErr ?? new Error("Could not allocate a receipt number");
 
   if (!credited) return { ok: true, invoiceId: payment.invoiceId, alreadyProcessed: true };
 

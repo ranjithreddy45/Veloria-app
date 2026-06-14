@@ -33,6 +33,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { convertDealToBooking } from "@/actions/pipeline.actions";
 import { getVenues } from "@/actions/booking.actions";
+import { formatINR } from "@/lib/utils";
 import type { DealItem } from "./pipeline-board";
 
 // ============================================================
@@ -62,14 +63,6 @@ const TIME_SLOTS = [
   { value: "EVENING", label: "Evening" },
   { value: "FULL_DAY", label: "Full Day" },
 ] as const;
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
 
 // ============================================================
 // Component
@@ -227,7 +220,7 @@ export function ConvertDealDialog({
             )}
             <span className="flex items-center gap-1">
               <IndianRupee className="size-3" />
-              {formatCurrency(deal.value)}
+              {formatINR(deal.value)}
             </span>
           </div>
         </div>

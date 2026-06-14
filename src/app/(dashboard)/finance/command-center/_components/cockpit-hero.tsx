@@ -38,7 +38,7 @@ export function CockpitHero({ fy, cashPosition, mtdRevenue, mtdExpense, mtdNet }
 
           <div className="flex flex-wrap gap-6">
             <HeroStat label="Net profit · MTD" value={formatINR(mtdNet)} accent={profitable ? "text-emerald-300" : "text-rose-300"} />
-            <HeroStat label="Revenue · MTD" value={formatINR(mtdRevenue)} accent="text-white" />
+            <HeroStat label="Revenue · MTD" value={formatINR(mtdRevenue)} accent="text-white" sub="Recognized (accrual)" />
             <HeroStat label="Expense · MTD" value={formatINR(mtdExpense)} accent="text-white" />
           </div>
         </div>
@@ -62,11 +62,12 @@ export function CockpitHero({ fy, cashPosition, mtdRevenue, mtdExpense, mtdNet }
   );
 }
 
-function HeroStat({ label, value, accent }: { label: string; value: string; accent: string }) {
+function HeroStat({ label, value, accent, sub }: { label: string; value: string; accent: string; sub?: string }) {
   return (
     <div>
       <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-white/55">{label}</p>
       <p className={`mt-1 text-xl font-semibold tabular-nums ${accent}`}>{value}</p>
+      {sub && <p className="mt-0.5 text-[10.5px] text-white/45">{sub}</p>}
     </div>
   );
 }

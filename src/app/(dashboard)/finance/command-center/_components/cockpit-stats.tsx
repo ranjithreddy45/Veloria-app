@@ -29,7 +29,7 @@ export function CockpitStats({ cashPosition, mtdRevenue, mtdExpense, mtdNet }: C
         value={formatINR(mtdRevenue)}
         accent="blue"
         icon={<TrendingUp className="size-4" />}
-        sub="Income posted this period"
+        sub="Recognized (accrual) — income posted"
       />
       <StatTile
         label="Expense · MTD"

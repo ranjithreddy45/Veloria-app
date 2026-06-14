@@ -7,8 +7,7 @@ import { Loader2, CheckCircle2, FileText } from "lucide-react";
 import { verifyPaymentProof } from "@/actions/payment.actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-const inr = (n: number) => "₹" + Math.round(n).toLocaleString("en-IN");
+import { formatINR } from "@/lib/utils";
 
 interface Proof {
   id: string;
@@ -81,7 +80,7 @@ export function PendingProofs({ payments }: { payments: Proof[] }) {
         {proofs.map((p) => (
           <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-background p-2 text-sm">
             <div>
-              <span className="font-medium tabular-nums">{inr(Number(p.amount))}</span>
+              <span className="font-medium tabular-nums">{formatINR(p.amount)}</span>
               <span className="text-muted-foreground"> · {p.method.replace("_", " ")}</span>
               {p.notes && <span className="block text-xs text-muted-foreground">{p.notes}</span>}
             </div>

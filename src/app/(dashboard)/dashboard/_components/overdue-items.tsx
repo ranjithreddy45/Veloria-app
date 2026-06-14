@@ -14,7 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { cn, formatINR } from "@/lib/utils";
 import type {
   OverduePayment,
   OverdueTask,
@@ -40,15 +40,6 @@ const PRIORITY_DOT: Record<string, string> = {
   HIGH: "bg-orange-500",
   URGENT: "bg-red-600",
 };
-
-// ============================================================
-// Currency helper
-// ============================================================
-
-function formatCurrency(amount: number | { toNumber?: () => number }): string {
-  const num = typeof amount === "number" ? amount : Number(amount);
-  return `\u20B9${num.toLocaleString("en-IN")}`;
-}
 
 // ============================================================
 // Overdue Items Component
@@ -155,7 +146,7 @@ export function OverdueItems({ tasks, payments }: OverdueItemsProps) {
                       </span>
                       <span>·</span>
                       <span className="font-medium text-foreground/80 tabular-nums">
-                        {formatCurrency(payment.balanceDue)}
+                        {formatINR(payment.balanceDue)}
                       </span>
                     </div>
                   </div>

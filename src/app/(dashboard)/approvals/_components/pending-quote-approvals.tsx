@@ -33,8 +33,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
-
-const inr = (n: number) => "₹" + Math.round(n).toLocaleString("en-IN");
+import { formatINR } from "@/lib/utils";
 
 interface Props {
   quotes: PendingQuoteApproval[];
@@ -123,7 +122,7 @@ export function PendingQuoteApprovals({ quotes: initial }: Props) {
                 </div>
                 <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-zinc-500">
                   {q.occasion && <span>{q.occasion}</span>}
-                  <span className="font-medium text-zinc-700">{inr(q.grandTotal)}</span>
+                  <span className="font-medium text-zinc-700">{formatINR(q.grandTotal)}</span>
                   <span>
                     By:{" "}
                     <span className="font-medium">{q.submittedByName ?? "Unknown"}</span>
