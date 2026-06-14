@@ -274,6 +274,14 @@ function fmtDate(iso: string): string {
     : d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
 }
 
+// Single source of truth for the deal change-log. Both the Overview "Change log"
+// panel and the Negotiation thread derive from this so the two surfaces can never
+// drift (O-10): CHANGE_LOG notes are the system-written edit history (economics,
+// overview, approvals), kept separate from human negotiation/internal notes.
+const isChangeLogNote = (n: AcqNoteRow) => n.noteType === "CHANGE_LOG";
+const selectChangeLog = (notes: AcqNoteRow[]) => notes.filter(isChangeLogNote);
+const selectHumanNotes = (notes: AcqNoteRow[]) => notes.filter((n) => !isChangeLogNote(n));
+
 // ============================================================
 // Component
 // ============================================================
@@ -527,7 +535,8 @@ function OverviewTab({
   const [editOpen, setEditOpen] = useState(false);
   const canApprove = acqCan(userRole, "bdhead:approve");
   const canEdit = acqCan(userRole, "lead:write");
-  const changeLog = deal.notes.filter((n) => n.noteType === "CHANGE_LOG");
+  // Shared selector (see isChangeLogNote) — identical history to the Negotiation tab.
+  const changeLog = selectChangeLog(deal.notes);
   const seating = [num(deal.seatingTheatre), num(deal.seatingFloating)]
     .filter((n) => n != null)
     .map((n, i) => `${n} ${i === 0 ? "theatre" : "floating"}`)
@@ -1450,11 +1459,16 @@ function NegotiationTab({
           </div>
         </div>
 
+        {/* Human notes only; the edit history lives in Overview's Change log
+            (shared selector — see selectChangeLog) so the two never contradict. */}
+        {(() => {
+        const humanNotes = selectHumanNotes(deal.notes);
+        return (
         <div className="space-y-2 border-t border-border/60 pt-3">
-          {deal.notes.length === 0 ? (
+          {humanNotes.length === 0 ? (
             <p className="text-[12.5px] text-muted-foreground">No notes yet.</p>
           ) : (
-            deal.notes.map((n) => (
+            humanNotes.map((n) => (
               <div
                 key={n.id}
                 className="rounded-md border border-border/60 p-3"
@@ -1476,6 +1490,8 @@ function NegotiationTab({
             ))
           )}
         </div>
+        );
+        })()}
       </CardContent>
     </Card>
   );

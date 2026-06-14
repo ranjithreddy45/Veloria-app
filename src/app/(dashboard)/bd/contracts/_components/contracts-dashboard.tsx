@@ -56,6 +56,12 @@ export interface DealOption {
   id: string;
   name: string;
   propertyName: string;
+  ownerName?: string;
+  contractValue?: number | null;
+  model?: string | null;
+  baseFeePct?: number | null;
+  incentivePct?: number | null;
+  termYears?: number | null;
 }
 
 const STATUS_HUE: Record<string, "slate" | "blue" | "indigo" | "emerald" | "amber" | "rose"> = {
@@ -333,7 +339,21 @@ function CreateContractDialog({ deals, open, onOpenChange }: { deals: DealOption
     }
   }, [open]);
 
-  const fromDeal = !!dealId;
+  const selectedDeal = deals.find((d) => d.id === dealId);
+
+  // Pre-fill the form from the chosen deal so known commercials aren't re-keyed
+  // (audit O-1/O-2). Owner email/phone aren't carried on the deal, so they stay
+  // manual. The user can still override any pre-filled value before creating.
+  function selectDeal(id: string) {
+    setDealId(id);
+    const d = deals.find((x) => x.id === id);
+    if (d) {
+      setOwnerName(d.ownerName ?? "");
+      setPropertyName(d.propertyName ?? "");
+      setTitle(`Management Agreement — ${d.propertyName}`);
+      setContractValue(d.contractValue != null ? String(d.contractValue) : "");
+    }
+  }
 
   async function create() {
     setBusy(true);
@@ -369,7 +389,7 @@ function CreateContractDialog({ deals, open, onOpenChange }: { deals: DealOption
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
             <Label>From deal (auto-populate)</Label>
-            <Select value={dealId || undefined} onValueChange={setDealId}>
+            <Select value={dealId || undefined} onValueChange={selectDeal}>
               <SelectTrigger className="w-full"><SelectValue placeholder="Select an agreed deal (optional)…" /></SelectTrigger>
               <SelectContent>
                 {deals.length === 0 ? (
@@ -379,13 +399,18 @@ function CreateContractDialog({ deals, open, onOpenChange }: { deals: DealOption
                 )}
               </SelectContent>
             </Select>
+            {selectedDeal && (
+              <p className="rounded-md bg-muted/50 px-2.5 py-1.5 text-[12px] text-muted-foreground">
+                Inheriting from deal:{" "}
+                <span className="font-medium text-foreground">{selectedDeal.model ?? "model —"}</span>
+                {" · "}base {selectedDeal.baseFeePct != null ? `${selectedDeal.baseFeePct}%` : "—"}
+                {" · "}incentive {selectedDeal.incentivePct != null ? `${selectedDeal.incentivePct}%` : "—"}
+                {" · "}term {selectedDeal.termYears != null ? `${selectedDeal.termYears}y` : "—"}. Owner email & phone aren’t on the deal — add them below.
+              </p>
+            )}
           </div>
-          {!fromDeal && (
-            <>
-              <div className="space-y-1.5"><Label>Owner name</Label><Input value={ownerName} onChange={(e) => setOwnerName(e.target.value)} /></div>
-              <div className="space-y-1.5"><Label>Property name</Label><Input value={propertyName} onChange={(e) => setPropertyName(e.target.value)} /></div>
-            </>
-          )}
+          <div className="space-y-1.5"><Label>Owner name</Label><Input value={ownerName} onChange={(e) => setOwnerName(e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>Property name</Label><Input value={propertyName} onChange={(e) => setPropertyName(e.target.value)} /></div>
           <div className="space-y-1.5 sm:col-span-2"><Label>Title (optional)</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Management Agreement — …" /></div>
           <div className="space-y-1.5"><Label>Owner email</Label><Input type="email" value={ownerEmail} onChange={(e) => setOwnerEmail(e.target.value)} /></div>
           <div className="space-y-1.5"><Label>Owner phone</Label><Input value={ownerPhone} onChange={(e) => setOwnerPhone(e.target.value)} /></div>

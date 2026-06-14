@@ -118,6 +118,9 @@ export function ContractDetail({ contract, userRole }: { contract: ContractFull;
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-[20px] font-semibold tracking-tight text-foreground">{contract.title}</h1>
               <StatusPill label={ACQ_CONTRACT_LIFECYCLE_LABEL[contract.status as keyof typeof ACQ_CONTRACT_LIFECYCLE_LABEL] ?? contract.status} hue={STATUS_HUE[contract.status] ?? "slate"} size="xs" />
+              <span className="inline-flex items-center rounded-full border border-border bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                {ACQ_CONTRACT_PHASE_LABEL[contract.phase as keyof typeof ACQ_CONTRACT_PHASE_LABEL] ?? contract.phase}
+              </span>
             </div>
             <p className="text-[13px] text-muted-foreground">{contract.propertyName} · {contract.ownerName}</p>
           </div>
@@ -230,12 +233,30 @@ export function ContractDetail({ contract, userRole }: { contract: ContractFull;
               <div className="border-t border-border/50 pt-2">
                 <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Move phase</Label>
                 <div className="flex flex-wrap gap-1.5 pt-1.5">
-                  {ACQ_CONTRACT_PHASE.map((p) => (
-                    <button key={p} disabled={busy !== null} onClick={() => run("phase", () => setAcqContractPhase(contract.id, p), "Phase updated")}
-                      className={`rounded border px-2 py-0.5 text-[11.5px] ${p === contract.phase ? "border-foreground/20 bg-muted text-foreground" : "border-border text-muted-foreground hover:bg-muted/50"}`}>
-                      {ACQ_CONTRACT_PHASE_LABEL[p]}
-                    </button>
-                  ))}
+                  {ACQ_CONTRACT_PHASE.map((p, ti) => {
+                    // Mirror the server gate (audit O-3/O-6): no skipping forward,
+                    // forward steps need the right status, backward needs approver.
+                    const approved = contract.status === "APPROVED" || contract.status === "NEGOTIATED";
+                    let reason = "";
+                    if (ti < phaseIdx) {
+                      if (!canApprove) reason = "Only a BD Head can roll a contract back.";
+                    } else if (ti > phaseIdx + 1) {
+                      reason = "Phases can't be skipped — advance one step at a time.";
+                    } else if (ti === phaseIdx + 1) {
+                      if ((p === "NEGOTIATION" || p === "EXECUTION") && !approved) reason = "Needs BD Head approval first.";
+                      if (p === "POST_EXECUTION" && contract.status !== "SIGNED") reason = "Mark the contract signed first.";
+                    }
+                    const isCurrent = p === contract.phase;
+                    const blocked = !isCurrent && reason !== "";
+                    return (
+                      <button key={p} disabled={busy !== null || isCurrent || blocked}
+                        title={blocked ? reason : undefined}
+                        onClick={() => run("phase", () => setAcqContractPhase(contract.id, p), "Phase updated")}
+                        className={`rounded border px-2 py-0.5 text-[11.5px] ${isCurrent ? "border-foreground/20 bg-muted text-foreground" : blocked ? "cursor-not-allowed border-border/50 text-muted-foreground/40" : "border-border text-muted-foreground hover:bg-muted/50"}`}>
+                        {ACQ_CONTRACT_PHASE_LABEL[p]}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PlusIcon, Building2 } from "lucide-react";
-import { getHallOwners } from "@/actions/hall-owner.actions";
+import { getHallOwners, computeAnnualPipeline } from "@/actions/hall-owner.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
@@ -19,9 +19,9 @@ export default async function HallOwnersPage() {
   const result = await getHallOwners();
   const owners = (result.success && result.data ? result.data : []) as OwnerItem[];
 
-  const pipelineValue = owners
-    .filter((o) => o.contractStatus !== "CHURNED")
-    .reduce((sum, o) => sum + Number(o.minimumMonthlyGuarantee ?? 0) * 12, 0);
+  // O-8: annualize per commercial model (lease/floor) and disclose owners that
+  // can't be honestly annualized rather than silently summing them as ₹0.
+  const { total: pipelineValue, notAnnualized } = computeAnnualPipeline(owners);
 
   return (
     <div className="space-y-5">
@@ -42,6 +42,11 @@ export default async function HallOwnersPage() {
                   <span className="font-semibold tabular-nums">{fmtCr(pipelineValue)}</span> annual lease pipeline
                 </span>
               </>
+            )}
+            {notAnnualized > 0 && (
+              <span className="text-muted-foreground/80" title="Revenue-share / management-fee owners with no fixed monthly guarantee — no revenue base on record to annualize honestly.">
+                +{notAnnualized} owner{notAnnualized === 1 ? "" : "s"} (not annualized)
+              </span>
             )}
           </div>
         }

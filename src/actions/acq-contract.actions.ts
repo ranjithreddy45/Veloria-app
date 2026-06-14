@@ -257,17 +257,51 @@ export async function restoreAcqContractVersion(
 // ------------------------------------------------------------
 // Lifecycle — phase + status moves (with activity log)
 // ------------------------------------------------------------
+// Ordered lifecycle. Forward progression must go one step at a time and clear
+// the same governance gates as the dedicated lifecycle actions — the free-form
+// "Move phase" control must NOT let a draft jump straight to Execution and
+// retroactively green-check Approval/Negotiation (audit O-3).
+const CONTRACT_PHASE_ORDER = ["AUTHORING", "APPROVAL", "NEGOTIATION", "EXECUTION", "POST_EXECUTION"] as const;
+type ContractPhase = (typeof CONTRACT_PHASE_ORDER)[number];
+
 export async function setAcqContractPhase(
   id: string,
-  phase: "AUTHORING" | "APPROVAL" | "NEGOTIATION" | "EXECUTION" | "POST_EXECUTION"
+  phase: ContractPhase
 ): Promise<Result<{ id: string }>> {
   const user = await requireUser();
   if (!user || !acqCan(user.role, "deal:transition")) return { success: false, error: "Unauthorized" };
   const c = await prisma.acqContract.findFirst({ where: { id, deletedAt: null } });
   if (!c) return { success: false, error: "Contract not found" };
+
+  const from = CONTRACT_PHASE_ORDER.indexOf(c.phase as ContractPhase);
+  const to = CONTRACT_PHASE_ORDER.indexOf(phase);
+  if (to < 0) return { success: false, error: "Invalid phase." };
+  if (to === from) return { success: true, data: { id } }; // no-op
+
+  if (to < from) {
+    // Backward moves are corrections — restricted to a BD Head / manager.
+    if (!acqCan(user.role, "bdhead:approve")) {
+      return { success: false, error: "Only a BD Head / manager can roll a contract back to an earlier phase." };
+    }
+  } else {
+    // No skipping: one step forward at a time, via the lifecycle gates.
+    if (to - from > 1) {
+      return { success: false, error: "Phases can't be skipped — move it forward one step at a time (Submit → Approve → Send → Sign)." };
+    }
+    // A contract can't reach owner-facing negotiation or execution until a BD
+    // Head has approved it (which is also where the below-floor sign-off lives).
+    if ((phase === "NEGOTIATION" || phase === "EXECUTION") && c.status !== "APPROVED" && c.status !== "NEGOTIATED") {
+      return { success: false, error: "The contract must be approved by a BD Head before it can move to that phase." };
+    }
+    if (phase === "POST_EXECUTION" && c.status !== "SIGNED") {
+      return { success: false, error: "Mark the contract signed before moving it to post-execution." };
+    }
+  }
+
   await prisma.acqContract.update({ where: { id }, data: { phase } });
-  await logActivity(id, user.id, "NEGOTIATION", `Phase → ${phase}`);
+  await logActivity(id, user.id, "PHASE_CHANGE", `Phase → ${phase}`);
   revalidatePath(`/bd/contracts/${id}`);
+  revalidatePath("/bd/contracts");
   return { success: true, data: { id } };
 }
 
@@ -503,9 +537,21 @@ export async function addAcqContractDocument(
 ): Promise<Result<{ id: string }>> {
   const user = await requireUser();
   if (!user || !acqCan(user.role, "lead:write")) return { success: false, error: "Unauthorized" };
-  if (!input.url) return { success: false, error: "URL required" };
+  const url = (input.url ?? "").trim();
+  if (!url) return { success: false, error: "URL required" };
+  // Must be a real absolute http(s) link, not a bare string that renders as a
+  // broken in-app path (audit O-7).
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return { success: false, error: "Enter a valid link starting with https:// (or http://)." };
+  }
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    return { success: false, error: "Document links must use https:// (or http://)." };
+  }
   const doc = await prisma.acqContractDocument.create({
-    data: { contractId: id, url: input.url, label: input.label || null, uploadedById: user.id },
+    data: { contractId: id, url, label: input.label || null, uploadedById: user.id },
     select: { id: true },
   });
   await logActivity(id, user.id, "NOTE", `Document added: ${input.label ?? "file"}`);
@@ -564,12 +610,39 @@ export async function remindContractSignings(): Promise<number> {
 }
 
 // Won deals available to turn into a contract.
-export async function getContractableDeals(): Promise<{ id: string; name: string; propertyName: string }[]> {
+export type ContractableDeal = {
+  id: string;
+  name: string;
+  propertyName: string;
+  ownerName: string;
+  contractValue: number | null;
+  model: string | null;
+  baseFeePct: number | null;
+  incentivePct: number | null;
+  termYears: number | null;
+};
+
+// Returns agreed deals plus the commercials the contract should inherit, so the
+// create-contract form can pre-fill instead of forcing a re-key (audit O-1/O-2).
+export async function getContractableDeals(): Promise<ContractableDeal[]> {
   const deals = await prisma.acqDeal.findMany({
     where: { deletedAt: null, stage: { in: ["SIGNED", "WON", "CONTRACT_SENT", "NEGOTIATION"] } },
-    select: { id: true, name: true, propertyName: true },
+    select: {
+      id: true, name: true, propertyName: true, ownerName: true,
+      projectedFeeValue: true, model: true, baseFeePct: true, incentivePct: true, termYears: true,
+    },
     orderBy: { updatedAt: "desc" },
     take: 200,
   });
-  return deals;
+  return deals.map((d) => ({
+    id: d.id,
+    name: d.name,
+    propertyName: d.propertyName,
+    ownerName: d.ownerName,
+    contractValue: d.projectedFeeValue != null ? Number(d.projectedFeeValue) : null,
+    model: d.model ?? null,
+    baseFeePct: d.baseFeePct != null ? Number(d.baseFeePct) : null,
+    incentivePct: d.incentivePct != null ? Number(d.incentivePct) : null,
+    termYears: d.termYears ?? null,
+  }));
 }

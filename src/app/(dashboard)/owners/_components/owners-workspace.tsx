@@ -261,7 +261,7 @@ export function OwnersWorkspace({ owners }: { owners: OwnerItem[] }) {
                 {filtered.map((o) => (
                   <Link
                     key={o.id}
-                    href={`/owners/${o.id}/edit`}
+                    href={`/owners/${o.id}`}
                     className="group/row flex items-center px-3 py-2.5 transition-colors hover:bg-muted/40"
                   >
                     <div className="flex min-w-0 flex-1 items-center gap-2.5">
@@ -344,7 +344,7 @@ export function OwnersWorkspace({ owners }: { owners: OwnerItem[] }) {
                     {items.map((o) => (
                       <Link
                         key={o.id}
-                        href={`/owners/${o.id}/edit`}
+                        href={`/owners/${o.id}`}
                         className="block rounded-md border border-border bg-card p-2.5 transition hover:border-primary/40"
                       >
                         <div className="flex items-center gap-2">
