@@ -19,6 +19,7 @@ import { toast } from "sonner";
 
 import { DataTable, DataTableColumnHeader, getSelectionColumn } from "@/components/shared/data-table";
 import { SavedViewSelector, type SavedViewState } from "@/components/shared/saved-view-selector";
+import { FacetFilterRail, type FacetDef } from "@/components/shared/facet-filter-rail";
 import type { SavedViewData } from "@/actions/saved-view.actions";
 import { BulkActionBar, TrashIcon as BulkTrashIcon, TagIcon } from "@/components/shared/bulk-action-bar";
 import { StatusPill } from "@/components/shared/status-pill";
@@ -74,6 +75,14 @@ interface Contact {
   createdAt: Date | string;
   updatedAt: Date | string;
 }
+
+// Zoho-style "Filter by" facets — all derived from existing contact fields.
+const CONTACT_FACETS: FacetDef<Contact>[] = [
+  { key: "status", label: "Status", get: (c) => (c.isActive ? "Active" : "Inactive") },
+  { key: "city", label: "City", get: (c) => c.city, max: 8 },
+  { key: "state", label: "State", get: (c) => c.state, max: 8 },
+  { key: "tags", label: "Tags", get: (c) => c.tags, max: 10 },
+];
 
 // ============================================================
 // Identity cell — avatar + name + company/designation subtitle
@@ -425,6 +434,8 @@ export function ContactsTable({ data }: ContactsTableProps) {
   const [selectedRows, setSelectedRows] = React.useState<Contact[]>([]);
   const [bulkWhatsAppOpen, setBulkWhatsAppOpen] = React.useState(false);
   const [bulkWhatsAppIds, setBulkWhatsAppIds] = React.useState<string[]>([]);
+  // Rows after the faceted "Filter by" rail (seeded with all rows).
+  const [faceted, setFaceted] = React.useState<Contact[]>(data);
 
   const filtered = React.useMemo(() => {
     if (typeFilter === "ALL") return data;
@@ -518,25 +529,35 @@ export function ContactsTable({ data }: ContactsTableProps) {
   return (
     <>
       <TypeTabs data={data} active={typeFilter} onChange={setTypeFilter} />
-      <DataTable
-        columns={columns}
-        data={filtered}
-        searchKey="name"
-        searchPlaceholder="Search contacts…"
-        enableRowSelection
-        onSelectionChange={setSelectedRows}
-        getRowId={(row) => row.id}
-        toolbarExtra={
-          <div className="flex items-center gap-2">
-            <SavedViewSelector
-              entityType="CONTACT"
-              getCurrentState={getCurrentState}
-              onViewSelect={handleViewSelect}
-            />
-            <ExportButton />
-          </div>
-        }
-      />
+      <div className="flex items-start gap-4">
+        <FacetFilterRail
+          items={filtered}
+          facets={CONTACT_FACETS}
+          onChange={setFaceted}
+          className="hidden lg:block"
+        />
+        <div className="min-w-0 flex-1">
+          <DataTable
+            columns={columns}
+            data={faceted}
+            searchKey="name"
+            searchPlaceholder="Search contacts…"
+            enableRowSelection
+            onSelectionChange={setSelectedRows}
+            getRowId={(row) => row.id}
+            toolbarExtra={
+              <div className="flex items-center gap-2">
+                <SavedViewSelector
+                  entityType="CONTACT"
+                  getCurrentState={getCurrentState}
+                  onViewSelect={handleViewSelect}
+                />
+                <ExportButton />
+              </div>
+            }
+          />
+        </div>
+      </div>
       <BulkActionBar
         selectedCount={selectedRows.length}
         selectedIds={selectedIds}
