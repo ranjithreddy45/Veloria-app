@@ -63,17 +63,45 @@ export async function postInvoiceIssued(invoiceId: string, byId?: string): Promi
         return { posted: false, reason: "invoice-amounts-inconsistent" };
       }
 
-      const [arId, revId, gstId] = await Promise.all([
+      const [arId, revId, gstId, advId] = await Promise.all([
         accountId(tx, FIN_ACCOUNT_CODES.debtors),
         accountId(tx, FIN_ACCOUNT_CODES.venueRental),
         accountId(tx, FIN_ACCOUNT_CODES.gstOutput),
+        accountId(tx, FIN_ACCOUNT_CODES.customerAdvances),
       ]);
       if (!arId || !revId || !gstId) return { posted: false, reason: "accounts-missing" };
 
-      const lines: JournalLineInput[] = [
-        { accountId: arId, debit: total, narration: `Invoice ${inv.invoiceNumber}` },
-        { accountId: revId, credit: revenue, narration: "Event revenue" },
-      ];
+      // Payments recorded BEFORE this invoice's revenue was recognised credited
+      // Customer Advances (a liability) rather than clearing AR. Net those out now
+      // so AR isn't overstated: reclassify the advance against this invoice.
+      //   Dr Customer Advances (advance)   ← clears the liability
+      //   Dr Accounts Receivable (total − advance)
+      //     Cr Revenue / Cr GST
+      // The reclass is bounded by the invoice total and stays balanced.
+      let advance = 0;
+      if (advId) {
+        const payments = await tx.payment.findMany({ where: { invoiceId: inv.id }, select: { id: true } });
+        const payIds = payments.map((p) => p.id);
+        if (payIds.length > 0) {
+          const advLines = await tx.finJournalLine.findMany({
+            where: {
+              accountId: advId,
+              entry: { status: "POSTED", sourceModule: "RECEIVABLE", sourceRefId: { in: payIds } },
+            },
+            select: { credit: true, debit: true },
+          });
+          // Net credit (advances booked) minus any prior debit (already reclassified).
+          const net = advLines.reduce((s, l) => s + Number(l.credit) - Number(l.debit), 0);
+          advance = Math.min(Math.max(net, 0), total);
+          advance = Math.round(advance * 100) / 100;
+        }
+      }
+
+      const arDebit = Math.round((total - advance) * 100) / 100;
+      const lines: JournalLineInput[] = [];
+      if (advance > 0 && advId) lines.push({ accountId: advId, debit: advance, narration: "Apply advance" });
+      if (arDebit > 0) lines.push({ accountId: arId, debit: arDebit, narration: `Invoice ${inv.invoiceNumber}` });
+      lines.push({ accountId: revId, credit: revenue, narration: "Event revenue" });
       if (gst > 0) lines.push({ accountId: gstId, credit: gst, narration: "GST output" });
 
       const res = await postWithinTx(tx, {

@@ -497,7 +497,9 @@ export async function getIncentives(params?: {
       return { success: false as const, error: "Unauthorized" };
     }
 
-    if (!hasPermission(session.user.role, "performance:read")) {
+    // Incentive/bonus amounts are management-only — gate on performance:manage
+    // to match the nav (a read-only rep must not see all staff/vendor payouts).
+    if (!hasPermission(session.user.role, "performance:manage")) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 

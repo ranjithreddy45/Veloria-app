@@ -29,6 +29,9 @@ const JOBS = [
   "acq-sla",
   "invoice-due",
   "contract-reminders",
+  "project-escalation", // Projects SLA escalation (was never wired — audit)
+  "velos-slump", // Velos slump-catch sweep (was never wired — audit)
+  "hold-expiry", // cancel expired booking HOLDs so they stop blocking slots
 ] as const;
 
 function getBaseUrl(): string {

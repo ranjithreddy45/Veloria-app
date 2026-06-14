@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { notify } from "@/lib/notify";
 import { logActivity } from "@/lib/activity-logger";
 import { acqCan, acqHasAnyAccess } from "@/lib/acq/rbac";
+import { Prisma } from "@prisma/client";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -85,6 +86,53 @@ export async function assignPropertyManager(propertyId: string, managerId: strin
 }
 
 // ------------------------------------------------------------
+// BD → Bookings bridge: every published property must have a bookable Venue.
+// Idempotent — if property.venueId is already set, it's a no-op (never creates a
+// second venue for the same property). Run inside the same tx as the status flip.
+// Exported async because this is a "use server" file.
+// ------------------------------------------------------------
+type EnsureVenueProperty = {
+  id: string;
+  venueId: string | null;
+  propertyName: string;
+  city: string;
+  locality: string;
+  address: string | null;
+  seatingTheatre: number | null;
+  seatingFloating: number | null;
+};
+
+export async function ensureVenueForProperty(
+  tx: Prisma.TransactionClient,
+  property: EnsureVenueProperty,
+): Promise<string> {
+  // Idempotency guard #1: in-memory — property already carries a venue id.
+  if (property.venueId) return property.venueId;
+
+  // Idempotency guard #2: re-read inside the tx in case venueId was set
+  // concurrently (the in-param may be stale).
+  const fresh = await tx.acqProperty.findUnique({
+    where: { id: property.id },
+    select: { venueId: true },
+  });
+  if (fresh?.venueId) return fresh.venueId;
+
+  const capacity = property.seatingTheatre ?? property.seatingFloating ?? 0;
+  const venue = await tx.venue.create({
+    data: {
+      name: property.propertyName,
+      description: [property.address, property.locality, property.city].filter(Boolean).join(", ") || null,
+      capacity,
+      pricePerSlot: 0,
+      amenities: [],
+      isActive: true,
+    },
+  });
+  await tx.acqProperty.update({ where: { id: property.id }, data: { venueId: venue.id } });
+  return venue.id;
+}
+
+// ------------------------------------------------------------
 // §6.2 — THE critical gate: ONBOARDING → AVAILABLE notifies Sales.
 // Allowed only when onboarding is COMPLETED and a manager is assigned.
 // ------------------------------------------------------------
@@ -118,11 +166,13 @@ export async function markPropertyAvailable(propertyId: string): Promise<Result<
     await tx.acqStageTransition.create({
       data: { entity: "PROPERTY", entityId: propertyId, fromState: "ONBOARDING", toState: "AVAILABLE", actorId: user.id },
     });
+    // BD → Bookings bridge: guarantee a bookable Venue exists before Sales is notified.
+    await ensureVenueForProperty(tx, property);
   });
 
   // §6.2 — Notify Sales (the ONLY event that exposes bookable inventory).
   const sales = await prisma.user.findMany({
-    where: { isActive: true, role: { in: ["SALES_EXEC", "SUPER_ADMIN", "ADMIN"] } },
+    where: { isActive: true, role: { in: ["SALES_EXEC", "SALES_HEAD", "SUPER_ADMIN", "ADMIN"] } },
     select: { id: true },
   });
   for (const u of sales) {

@@ -1,12 +1,69 @@
 "use server";
 
 import { auth } from "@/../auth";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { serialize } from "@/lib/utils";
 import { hasPermission } from "@/lib/permissions";
 import { requestApprovalIfNeeded } from "@/lib/approval-engine";
 import { velosOnDealStage } from "@/lib/velos/triggers";
+import { calculateLeadScore } from "@/lib/lead-scoring";
+
+// ============================================================
+// Open-funnel status ordering (mirrors the LeadStatus enum). Used to avoid
+// backward-clobbering a lead's status when a deal is created/moved/deleted.
+// ============================================================
+
+const STATUS_ORDER = [
+  "NEW",
+  "CONTACTED",
+  "QUALIFIED",
+  "PROPOSAL_SENT",
+  "NEGOTIATION",
+  "WON",
+  "LOST",
+] as const;
+
+function statusRank(status: string | null | undefined): number {
+  const i = STATUS_ORDER.indexOf((status ?? "") as (typeof STATUS_ORDER)[number]);
+  return i === -1 ? 0 : i;
+}
+
+// Map an open (non-won/non-lost) pipeline stage to a sensible lead status by its
+// position in the pipeline: early stages → QUALIFIED, later stages → PROPOSAL_SENT
+// / NEGOTIATION. Used so dragging a deal forward/backward labels the lead sanely.
+function openStageToLeadStatus(
+  stageOrder: number,
+  totalOpenStages: number
+): "QUALIFIED" | "PROPOSAL_SENT" | "NEGOTIATION" {
+  if (totalOpenStages <= 0) return "QUALIFIED";
+  const frac = stageOrder / Math.max(totalOpenStages - 1, 1);
+  if (frac >= 0.66) return "NEGOTIATION";
+  if (frac >= 0.33) return "PROPOSAL_SENT";
+  return "QUALIFIED";
+}
+
+// Recompute and persist a lead's score for a (possibly) new status, matching the
+// calculateLeadScore input shape used in lead.actions.ts.
+async function recomputeLeadScore(
+  tx: Prisma.TransactionClient,
+  leadId: string,
+  status: string
+) {
+  const lead = await tx.lead.findUnique({ where: { id: leadId } });
+  if (!lead) return;
+  const score = calculateLeadScore({
+    estimatedValue: lead.estimatedValue ? Number(lead.estimatedValue) : null,
+    eventDate: lead.eventDate as Date | null,
+    followUpDate: lead.followUpDate as Date | null,
+    source: lead.source as string | null,
+    guestCount: lead.guestCount as number | null,
+    status,
+    createdAt: lead.createdAt as Date | null,
+  });
+  await tx.lead.update({ where: { id: leadId }, data: { score } });
+}
 
 // ============================================================
 // Types
@@ -150,7 +207,7 @@ export async function createDeal(data: CreateDealInput) {
     }
 
     const role = (session.user as { role?: string }).role ?? "";
-    if (!hasPermission(role, "pipeline:manage")) {
+    if (!hasPermission(role, "pipeline:update")) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
@@ -236,11 +293,18 @@ export async function createDeal(data: CreateDealInput) {
       },
     });
 
-    // Update lead status to reflect pipeline entry
-    await prisma.lead.update({
-      where: { id: data.leadId },
-      data: { status: "QUALIFIED" },
-    });
+    // Update lead status to reflect pipeline entry — but only advance it. If the
+    // lead is already further along (PROPOSAL_SENT / NEGOTIATION / WON), don't
+    // clobber it backward to QUALIFIED. Recompute the score on any change.
+    if (statusRank(lead.status) < statusRank("QUALIFIED")) {
+      await prisma.$transaction(async (tx) => {
+        await tx.lead.update({
+          where: { id: data.leadId },
+          data: { status: "QUALIFIED" },
+        });
+        await recomputeLeadScore(tx, data.leadId, "QUALIFIED");
+      });
+    }
 
     revalidatePath("/pipeline");
     revalidatePath("/leads");
@@ -263,7 +327,7 @@ export async function updateDeal(id: string, data: UpdateDealInput) {
     }
 
     const role = (session.user as { role?: string }).role ?? "";
-    if (!hasPermission(role, "pipeline:manage")) {
+    if (!hasPermission(role, "pipeline:update")) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
@@ -343,13 +407,13 @@ export async function moveDeal(
     }
 
     const role = (session.user as { role?: string }).role ?? "";
-    if (!hasPermission(role, "pipeline:manage")) {
+    if (!hasPermission(role, "pipeline:update")) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
     const deal = await prisma.deal.findUnique({
       where: { id: dealId },
-      select: { id: true, stageId: true, orderInStage: true, leadId: true, assignedToId: true, lead: { select: { assignedToId: true } } },
+      select: { id: true, stageId: true, orderInStage: true, leadId: true, assignedToId: true, lead: { select: { assignedToId: true, status: true } } },
     });
 
     if (!deal) {
@@ -358,12 +422,21 @@ export async function moveDeal(
 
     const newStage = await prisma.pipelineStage.findUnique({
       where: { id: newStageId },
-      select: { id: true, name: true, isWonStage: true, isLostStage: true },
+      select: { id: true, name: true, order: true, isWonStage: true, isLostStage: true },
     });
 
     if (!newStage) {
       return { success: false as const, error: "Target stage not found" };
     }
+
+    // For an open-stage move we map stage position → lead status. Build the
+    // ordered list of open stages so we can rank the target within it.
+    const openStages = await prisma.pipelineStage.findMany({
+      where: { isWonStage: false, isLostStage: false },
+      orderBy: { order: "asc" },
+      select: { id: true },
+    });
+    const openIndex = openStages.findIndex((s) => s.id === newStageId);
 
     // Moving a deal into Won also flips its lead to WON — enforce the same
     // owner-required rule as updateLeadStatus (SCRM-004) so drag-and-drop can't
@@ -454,22 +527,31 @@ export async function moveDeal(
         data: dealUpdate,
       });
 
-      // Update lead status based on new stage
+      // Update lead status based on new stage, and recompute the lead score on
+      // any status change (matches lead.actions.ts behaviour).
+      let nextStatus: string | null = null;
       if (newStage.isWonStage) {
-        await tx.lead.update({
-          where: { id: deal.leadId },
-          data: { status: "WON" },
-        });
+        nextStatus = "WON";
       } else if (newStage.isLostStage) {
-        await tx.lead.update({
-          where: { id: deal.leadId },
-          data: { status: "LOST" },
-        });
+        nextStatus = "LOST";
       } else if (isMovingStages) {
+        // Map the open stage's position to a sensible status instead of forcing
+        // NEGOTIATION on every move (which mislabels backward drags). Never push a
+        // lead backward past its current status either.
+        const mapped = openStageToLeadStatus(
+          openIndex === -1 ? 0 : openIndex,
+          openStages.length
+        );
+        nextStatus =
+          statusRank(mapped) >= statusRank(deal.lead?.status) ? mapped : null;
+      }
+
+      if (nextStatus) {
         await tx.lead.update({
           where: { id: deal.leadId },
-          data: { status: "NEGOTIATION" },
+          data: { status: nextStatus as Prisma.LeadUpdateInput["status"] },
         });
+        await recomputeLeadScore(tx, deal.leadId, nextStatus);
       }
     });
 
@@ -576,13 +658,13 @@ export async function deleteDeal(id: string) {
     }
 
     const role = (session.user as { role?: string }).role ?? "";
-    if (!hasPermission(role, "pipeline:manage")) {
+    if (!hasPermission(role, "pipeline:update")) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
     const deal = await prisma.deal.findUnique({
       where: { id },
-      select: { id: true, leadId: true },
+      select: { id: true, leadId: true, lead: { select: { status: true } } },
     });
 
     if (!deal) {
@@ -591,11 +673,10 @@ export async function deleteDeal(id: string) {
 
     await prisma.$transaction(async (tx) => {
       await tx.deal.delete({ where: { id } });
-      // Revert lead status
-      await tx.lead.update({
-        where: { id: deal.leadId },
-        data: { status: "QUALIFIED" },
-      });
+      // Don't downgrade the lead's status on deal deletion — a WON lead must not
+      // be bumped back to QUALIFIED. Leave the status as-is; just recompute its
+      // score in case scoring inputs depend on the (unchanged) status.
+      await recomputeLeadScore(tx, deal.leadId, deal.lead?.status ?? "QUALIFIED");
     });
 
     revalidatePath("/pipeline");
@@ -927,7 +1008,7 @@ export async function convertDealToBooking(data: {
     }
 
     const role = (session.user as { role?: string }).role ?? "";
-    if (!hasPermission(role, "pipeline:manage")) {
+    if (!hasPermission(role, "pipeline:update")) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
@@ -963,29 +1044,8 @@ export async function convertDealToBooking(data: {
       };
     }
 
-    // Generate booking number with retry for uniqueness (avoids TOCTOU race)
     const year = new Date().getFullYear();
     const bkPrefix = `BK-${year}-`;
-    let bookingNumber: string | null = null;
-
-    for (let attempt = 0; attempt < 5; attempt++) {
-      const count = await prisma.booking.count();
-      const candidate = `${bkPrefix}${String(count + 1 + attempt).padStart(4, "0")}`;
-
-      const existing = await prisma.booking.findFirst({
-        where: { bookingNumber: candidate },
-      });
-
-      if (!existing) {
-        bookingNumber = candidate;
-        break;
-      }
-    }
-
-    if (!bookingNumber) {
-      // Fallback: use timestamp-based unique number
-      bookingNumber = `BK-${Date.now()}`;
-    }
 
     const bookingDate = new Date(data.date);
     bookingDate.setHours(0, 0, 0, 0);
@@ -1048,34 +1108,54 @@ export async function convertDealToBooking(data: {
       };
     }
 
-    // Create booking in a transaction
-    const booking = await prisma.$transaction(async (tx) => {
-      const newBooking = await tx.booking.create({
-        data: {
-          bookingNumber,
-          eventName: data.eventName,
-          eventType: deal.lead.eventType || "OTHER",
-          date: bookingDate,
-          timeSlot: data.timeSlot as "MORNING" | "AFTERNOON" | "EVENING" | "FULL_DAY",
-          guestCount: data.guestCount,
-          totalAmount: data.totalAmount,
-          specialRequests: data.specialRequests || null,
-          venueId: data.venueId,
-          contactId: deal.lead.contact!.id,
-          dealId: deal.id,
-          createdById: session.user!.id as string,
-          status: "CONFIRMED",
-        },
-      });
+    // Create booking in a transaction. The booking number is allocated INSIDE
+    // the txn (count + create together) and the whole txn is retried on a P2002
+    // unique-violation, so two concurrent conversions can't claim the same number.
+    let booking: { id: string; bookingNumber: string } | null = null;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        booking = await prisma.$transaction(async (tx) => {
+          const count = await tx.booking.count();
+          const bookingNumber = `${bkPrefix}${String(count + 1 + attempt).padStart(4, "0")}`;
 
-      // Update lead status
-      await tx.lead.update({
-        where: { id: deal.leadId },
-        data: { status: "WON" },
-      });
+          const newBooking = await tx.booking.create({
+            data: {
+              bookingNumber,
+              eventName: data.eventName,
+              eventType: deal.lead.eventType || "OTHER",
+              date: bookingDate,
+              timeSlot: data.timeSlot as "MORNING" | "AFTERNOON" | "EVENING" | "FULL_DAY",
+              guestCount: data.guestCount,
+              totalAmount: data.totalAmount,
+              specialRequests: data.specialRequests || null,
+              venueId: data.venueId,
+              contactId: deal.lead.contact!.id,
+              dealId: deal.id,
+              createdById: session.user!.id as string,
+              status: "CONFIRMED",
+            },
+          });
 
-      return newBooking;
-    });
+          // Update lead status
+          await tx.lead.update({
+            where: { id: deal.leadId },
+            data: { status: "WON" },
+          });
+
+          return newBooking;
+        });
+        break;
+      } catch (e) {
+        // Retry only on a bookingNumber unique-collision; rethrow anything else.
+        const code = (e as { code?: string })?.code;
+        if (code === "P2002" && attempt < 4) continue;
+        throw e;
+      }
+    }
+
+    if (!booking) {
+      return { success: false as const, error: "Failed to allocate a booking number" };
+    }
 
     revalidatePath("/pipeline");
     revalidatePath("/bookings");
@@ -1110,7 +1190,9 @@ export async function getTeamMembers() {
     const users = await prisma.user.findMany({
       where: {
         isActive: true,
-        role: { in: ["SUPER_ADMIN", "ADMIN", "SALES_EXEC"] },
+        // Match lead.actions.ts ASSIGNABLE_ROLES so the new Sales Head (and
+        // Event Coordinators) can be assigned deals/tasks.
+        role: { in: ["SUPER_ADMIN", "ADMIN", "SALES_HEAD", "SALES_EXEC", "EVENT_COORDINATOR"] },
       },
       select: {
         id: true,

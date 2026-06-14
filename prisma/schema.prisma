@@ -1831,6 +1831,7 @@ model Payout {
   type            PayoutType
   description     String?
   referenceNumber String?
+  createdById     String? // maker — blocks self-approval (maker-checker)
   paidAt          DateTime?
   notes           String?      @db.Text
   createdAt       DateTime     @default(now())
@@ -3785,6 +3786,9 @@ model AcqDeal {
   bdHeadApprovedById String?
   bdHeadApprovedBy   User?     @relation("AcqDealBdHeadApprover", fields: [bdHeadApprovedById], references: [id])
   bdHeadApprovedAt   DateTime?
+  // Distinct large-deal (≥ threshold) sign-off, separate from below-floor approval.
+  largeDealSignoffById String?
+  largeDealSignoffAt   DateTime?
 
   // Outcome
   lostReason AcqLostReason?
@@ -3820,6 +3824,8 @@ model AcqProperty {
   address           String?
   city              String
   locality          String
+  // The bookable Venue created when this property is published (BD → Bookings bridge).
+  venueId           String?
   seatingTheatre    Int?
   seatingFloating   Int?
   status            AcqPropertyStatus @default(ONBOARDING)

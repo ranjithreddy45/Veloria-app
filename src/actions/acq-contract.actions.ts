@@ -377,7 +377,10 @@ export async function sendAcqContractToOwner(
   }
 
   await logActivity(id, user.id, "SENT_FOR_SIGN", `Sent to owner via ${channel.toLowerCase()}`);
-  await prisma.acqContract.update({ where: { id }, data: { phase: "NEGOTIATION" } });
+  // Move into the NEGOTIATED status (not just the phase) so the negotiation state
+  // and signing-reminder filters work, and markSigned isn't reachable straight
+  // after approve without an actual send to the owner.
+  await prisma.acqContract.update({ where: { id }, data: { status: "NEGOTIATED", phase: "NEGOTIATION" } });
   revalidatePath(`/bd/contracts/${id}`);
   return { success: true, data: { sent } };
 }
@@ -390,6 +393,11 @@ export async function approveAcqContract(id: string): Promise<Result<{ id: strin
   }
   const c = await prisma.acqContract.findFirst({ where: { id, deletedAt: null } });
   if (!c) return { success: false, error: "Contract not found" };
+  // Only a draft can be approved — never re-approve a signed/active/terminated
+  // (or already-negotiated) contract, which would downgrade its status/phase.
+  if (c.status !== "DRAFT") {
+    return { success: false, error: "Only a draft contract can be approved." };
+  }
   await prisma.acqContract.update({
     where: { id },
     data: { status: "APPROVED", phase: "APPROVAL", approvedById: user.id, approvedAt: new Date() },
@@ -633,6 +641,8 @@ export type ContractableDeal = {
 // Returns agreed deals plus the commercials the contract should inherit, so the
 // create-contract form can pre-fill instead of forcing a re-key (audit O-1/O-2).
 export async function getContractableDeals(): Promise<ContractableDeal[]> {
+  const user = await requireUser();
+  if (!user || !acqHasAnyAccess(user.role)) return [];
   const deals = await prisma.acqDeal.findMany({
     where: { deletedAt: null, stage: { in: ["SIGNED", "WON", "CONTRACT_SENT", "NEGOTIATION"] } },
     select: {

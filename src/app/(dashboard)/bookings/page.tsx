@@ -9,7 +9,7 @@ import {
   IndianRupeeIcon,
 } from "lucide-react";
 
-import { getBookings } from "@/actions/booking.actions";
+import { getBookings, getBookingStats } from "@/actions/booking.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { HelpHint } from "@/components/layout/help-hint";
 import { Button } from "@/components/ui/button";
@@ -25,39 +25,33 @@ export const metadata: Metadata = { title: "Bookings" };
 export default async function BookingsPage() {
   // Ceiling lets the client table page through rows without the default-50
   // cutoff, while keeping the payload far lighter than 1000.
-  const result = await getBookings({ limit: 500 });
+  const [result, statsResult] = await Promise.all([
+    getBookings({ limit: 500 }),
+    getBookingStats(),
+  ]);
 
   const bookings = result.success ? result.data.data : [];
 
-  // ---- Summary metrics (derived from already-loaded rows only) ----
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  // ---- Headline metrics: DB-wide aggregates, not the 500-row slice ----
+  // Summing the loaded rows would understate every KPI once the table grows
+  // past the page ceiling, so the tiles read from getBookingStats instead.
+  const stats = statsResult.success
+    ? statsResult.data
+    : {
+        total: bookings.length,
+        confirmedCount: 0,
+        pendingCount: 0,
+        thisMonthCount: 0,
+        confirmedRevenue: 0,
+        holdsValue: 0,
+      };
 
-  // Confirmed (and beyond) is real, earned revenue. HOLD/TENTATIVE are
-  // unconfirmed pipeline, and CANCELLED is gone — neither counts as revenue.
-  const isConfirmedRevenue = (s: string) =>
-    s === "CONFIRMED" || s === "IN_PROGRESS" || s === "COMPLETED";
-  const isPipelineHold = (s: string) => s === "HOLD" || s === "TENTATIVE";
-
-  const confirmedCount = bookings.filter((b) => b.status === "CONFIRMED").length;
-  const pendingCount = bookings.filter((b) => isPipelineHold(b.status)).length;
-
-  const thisMonthBookings = bookings.filter((b) => {
-    const d = new Date(b.date);
-    return d >= monthStart && d < nextMonthStart && b.status !== "CANCELLED";
-  });
-  const thisMonthCount = thisMonthBookings.length;
-
-  // Headline revenue: confirmed-only (CONFIRMED/IN_PROGRESS/COMPLETED).
-  const confirmedRevenue = bookings
-    .filter((b) => isConfirmedRevenue(b.status))
-    .reduce((sum, b) => sum + Number(b.totalAmount ?? 0), 0);
-
-  // Unconfirmed pipeline value sitting on holds/tentatives — shown separately.
-  const holdsValue = bookings
-    .filter((b) => isPipelineHold(b.status))
-    .reduce((sum, b) => sum + Number(b.totalAmount ?? 0), 0);
+  const totalCount = stats.total;
+  const confirmedCount = stats.confirmedCount;
+  const pendingCount = stats.pendingCount;
+  const thisMonthCount = stats.thisMonthCount;
+  const confirmedRevenue = stats.confirmedRevenue;
+  const holdsValue = stats.holdsValue;
 
   const fmtCurrency = (n: number) => {
     if (n >= 10000000) return `₹${(n / 10000000).toFixed(2)} Cr`;
@@ -66,7 +60,7 @@ export default async function BookingsPage() {
     return `₹${n.toLocaleString("en-IN")}`;
   };
 
-  const hasData = bookings.length > 0;
+  const hasData = totalCount > 0;
 
   return (
     <div className="space-y-6">
@@ -77,7 +71,7 @@ export default async function BookingsPage() {
             <span>Operations · Calendar</span>
             <span className="h-3 w-px bg-border" />
             <span className="text-foreground/80">
-              <span className="font-semibold tabular-nums">{bookings.length}</span> total
+              <span className="font-semibold tabular-nums">{totalCount}</span> total
             </span>
             <span className="h-3 w-px bg-border" />
             <span className="text-foreground/80">
@@ -130,7 +124,7 @@ export default async function BookingsPage() {
             value={confirmedCount}
             accent="emerald"
             icon={<CalendarCheckIcon className="size-4" />}
-            sub={`of ${bookings.length} bookings`}
+            sub={`of ${totalCount} bookings`}
           />
           <StatTile
             label="This month"

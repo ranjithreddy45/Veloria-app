@@ -28,7 +28,9 @@ function buildMetrics(role: string, auto: Record<string, unknown>, manual: Recor
   const merged: Record<string, KraMetricValue> = { ...(auto as Record<string, KraMetricValue>), ...(manual as Record<string, KraMetricValue>) };
   if (role === "CORPORATE_SALES" || role === "INSIDE_SALES") {
     const a3 = manual["A3"];
-    if (a3 !== undefined && a3 !== null && a3 !== "") merged["payment_full_pct"] = a3 === "BALANCE" ? 0 : 100;
+    // Only ALL_ON_TIME reflects true 100% pre-event on-time collection; any
+    // recovered/balance band must fall below the gate threshold.
+    if (a3 !== undefined && a3 !== null && a3 !== "") merged["payment_full_pct"] = a3 === "ALL_ON_TIME" ? 100 : 0;
   }
   return merged;
 }

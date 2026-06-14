@@ -190,7 +190,7 @@ export async function createApprovalRule(
       return { success: false as const, error: "Unauthorized" };
     }
 
-    if (!hasPermission(session.user.role, "settings:read")) {
+    if (!hasPermission(session.user.role, "settings:update")) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
@@ -266,7 +266,7 @@ export async function updateApprovalRule(
       return { success: false as const, error: "Unauthorized" };
     }
 
-    if (!hasPermission(session.user.role, "settings:read")) {
+    if (!hasPermission(session.user.role, "settings:update")) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
@@ -342,7 +342,7 @@ export async function deleteApprovalRule(
       return { success: false as const, error: "Unauthorized" };
     }
 
-    if (!hasPermission(session.user.role, "settings:read")) {
+    if (!hasPermission(session.user.role, "settings:update")) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
@@ -375,7 +375,7 @@ export async function toggleApprovalRule(
       return { success: false as const, error: "Unauthorized" };
     }
 
-    if (!hasPermission(session.user.role, "settings:read")) {
+    if (!hasPermission(session.user.role, "settings:update")) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
@@ -436,7 +436,11 @@ export async function getMyPendingApprovals(): Promise<
 
     // Filter to requests where the current user is the active approver
     const myApprovals = pendingRequests.filter((request) => {
-      const currentChainStep = request.rule.approverChain[request.currentStep];
+      // Chain steps are ordered by `order`, which may be non-contiguous —
+      // select by matching `order` to currentStep, not by array index.
+      const currentChainStep = request.rule.approverChain.find(
+        (s) => s.order === request.currentStep
+      );
       if (!currentChainStep) return false;
 
       // Check for delegation — if the last decision is a DELEGATE to this user
@@ -481,12 +485,54 @@ export async function getPendingApprovalsCount(): Promise<
       return { success: false as const, error: "Unauthorized" };
     }
 
-    const result = await getMyPendingApprovals();
-    if (!result.success) {
-      return { success: false as const, error: result.error };
-    }
+    const userId = session.user.id;
+    const userRole = (session.user as { role?: string }).role ?? "";
 
-    return { success: true as const, data: result.data.length };
+    // Lighter than getMyPendingApprovals: skip the user-enrichment pipeline and
+    // only load the fields needed to decide whether the user is the active
+    // approver, then count the matches. Powers the nav badge.
+    const pendingRequests = await prisma.approvalRequest.findMany({
+      where: { status: "PENDING_APPROVAL" },
+      select: {
+        currentStep: true,
+        rule: {
+          select: {
+            approverChain: {
+              orderBy: { order: "asc" },
+              select: { order: true, approverType: true, approverId: true },
+            },
+          },
+        },
+        decisions: {
+          orderBy: { decidedAt: "asc" },
+          select: { action: true, delegatedToId: true },
+        },
+      },
+    });
+
+    const count = pendingRequests.filter((request) => {
+      // Chain steps are ordered by `order` (possibly non-contiguous) — match
+      // by `order`, not array index.
+      const currentChainStep = request.rule.approverChain.find(
+        (s) => s.order === request.currentStep
+      );
+      if (!currentChainStep) return false;
+
+      const lastDecision = request.decisions[request.decisions.length - 1];
+      if (lastDecision?.action === "DELEGATE" && lastDecision.delegatedToId === userId) {
+        return true;
+      }
+
+      if (currentChainStep.approverType === "USER") {
+        return currentChainStep.approverId === userId;
+      }
+      if (currentChainStep.approverType === "ROLE") {
+        return currentChainStep.approverId === userRole;
+      }
+      return false;
+    }).length;
+
+    return { success: true as const, data: count };
   } catch (error) {
     console.error("getPendingApprovalsCount error:", error);
     return { success: false as const, error: "Failed to count pending approvals" };
@@ -553,7 +599,7 @@ function approverAuthError(
   request: {
     currentStep: number;
     submittedById: string;
-    rule: { approverChain: { approverType: string; approverId: string }[] };
+    rule: { approverChain: { order: number; approverType: string; approverId: string }[] };
     decisions: { action: string; delegatedToId: string | null }[];
   },
   userId: string,
@@ -562,7 +608,9 @@ function approverAuthError(
   const isAdmin = userRole === "SUPER_ADMIN" || userRole === "ADMIN";
   // Integrity: no one approves their own request (admins included).
   if (request.submittedById === userId) return "You can't act on your own approval request.";
-  const step = request.rule.approverChain[request.currentStep];
+  // Chain steps are ordered by `order` (possibly non-contiguous) — select by
+  // matching `order` to currentStep, not by array index.
+  const step = request.rule.approverChain.find((s) => s.order === request.currentStep);
   const last = request.decisions[request.decisions.length - 1];
   const delegatedToMe = last?.action === "DELEGATE" && last.delegatedToId === userId;
   const isStepApprover =

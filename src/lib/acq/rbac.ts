@@ -28,6 +28,7 @@ const MATRIX: Record<AcqAction, ReadonlySet<string>> = {
     "BD_HEAD",
     "OPERATIONS",
     "SALES_EXEC",
+    "SALES_HEAD",
   ]),
 };
 
@@ -49,6 +50,7 @@ export function acqHasAnyAccess(role: string | null | undefined): boolean {
     "OPERATIONS",
     "LEGAL",
     "SALES_EXEC",
+    "SALES_HEAD",
     "PROJECTS_EXEC",
     "PROJECTS_HEAD",
   ].includes(role);

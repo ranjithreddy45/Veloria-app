@@ -32,6 +32,10 @@ export interface PostInput {
 }
 
 const paise = (n: number | undefined) => Math.round((n ?? 0) * 100);
+// Build a Decimal from the SAME paise integer that validateBalanced sums, so a
+// validated entry can never disagree with what's persisted (and the DB balance
+// trigger). Never construct money Decimals straight from toFixed (different rounding).
+const decimalFromPaise = (n: number | undefined) => new Prisma.Decimal(paise(n)).div(100);
 
 // Pure validation — used by the engine and unit-tested independently.
 export function validateBalanced(lines: JournalLineInput[]): { ok: boolean; error?: string } {
@@ -102,8 +106,8 @@ export async function postWithinTx(tx: Tx, input: PostInput): Promise<{ id: stri
       lines: {
         create: input.lines.map((l, i) => ({
           accountId: l.accountId,
-          debit: new Prisma.Decimal((l.debit ?? 0).toFixed(2)),
-          credit: new Prisma.Decimal((l.credit ?? 0).toFixed(2)),
+          debit: decimalFromPaise(l.debit),
+          credit: decimalFromPaise(l.credit),
           venueId: l.venueId ?? null, eventId: l.eventId ?? null,
           costCenter: l.costCenter ?? null, taxCode: l.taxCode ?? null,
           narration: l.narration ?? null, lineOrder: i,

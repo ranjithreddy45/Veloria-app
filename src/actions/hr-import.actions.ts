@@ -16,13 +16,6 @@ function can(role: string | undefined, perm: string) {
   return !!role && hasPermission(role, perm);
 }
 
-// The columns we accept (header names, case-insensitive, spaces/underscores ignored).
-export const IMPORT_COLUMNS = [
-  "firstName", "lastName", "workEmail", "personalEmail", "phone",
-  "legalEntity", "businessVertical", "department", "designation",
-  "employmentType", "dateOfJoining", "workLocation", "reportingManagerCode", "status",
-] as const;
-
 const EMPLOYMENT_TYPES = ["FULL_TIME", "PART_TIME", "CONTRACT", "INTERN"];
 const STATUSES = ["ACTIVE", "ONBOARDING", "ON_LEAVE", "EXITED", "SUSPENDED"];
 

@@ -54,6 +54,24 @@ async function generateBookingNumber(): Promise<string> {
 // formatINR is in @/lib/utils
 
 // ============================================================
+// Helper: UTC day range for @db.Date conflict matching
+// ============================================================
+//
+// `Booking.date`/`BlackoutDate.date` are `@db.Date`, which Prisma reads back as
+// UTC-midnight regardless of how the row was written. Matching with a local-
+// midnight Date via exact equality (`where: { date }`) is brittle across
+// timezones — on a non-UTC server it can target the wrong calendar day and
+// either miss an existing booking (double-book) or block a free slot. Scan the
+// full UTC day instead, identical to availability.actions getAvailabilityGrid.
+function utcDayRange(date: Date): { gte: Date; lt: Date; utcDay: number } {
+  const gte = new Date(
+    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0)
+  );
+  const lt = new Date(gte.getTime() + 24 * 60 * 60 * 1000);
+  return { gte, lt, utcDay: gte.getUTCDate() };
+}
+
+// ============================================================
 // Get Bookings (Paginated + Filtered)
 // ============================================================
 
@@ -166,6 +184,81 @@ export async function getBookings(params?: {
 }
 
 // ============================================================
+// Get Booking Stats (DB-wide, not capped by a row slice)
+// ============================================================
+//
+// Headline KPI tiles must reflect every booking, not just the first N rows the
+// list page loads. Aggregate/count directly in the DB so the numbers stay
+// correct past the page's row ceiling.
+
+export async function getBookingStats() {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "bookings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+    const confirmedRevenueStatuses: BookingStatus[] = [
+      "CONFIRMED",
+      "IN_PROGRESS",
+      "COMPLETED",
+    ];
+    const pipelineStatuses: BookingStatus[] = ["HOLD", "TENTATIVE"];
+
+    const [
+      total,
+      confirmedCount,
+      pendingCount,
+      thisMonthCount,
+      confirmedRevenueAgg,
+      holdsValueAgg,
+    ] = await Promise.all([
+      prisma.booking.count(),
+      prisma.booking.count({ where: { status: "CONFIRMED" } }),
+      prisma.booking.count({ where: { status: { in: pipelineStatuses } } }),
+      prisma.booking.count({
+        where: {
+          date: { gte: monthStart, lt: nextMonthStart },
+          status: { not: "CANCELLED" },
+        },
+      }),
+      prisma.booking.aggregate({
+        where: { status: { in: confirmedRevenueStatuses } },
+        _sum: { totalAmount: true },
+      }),
+      prisma.booking.aggregate({
+        where: { status: { in: pipelineStatuses } },
+        _sum: { totalAmount: true },
+      }),
+    ]);
+
+    return {
+      success: true as const,
+      data: {
+        total,
+        confirmedCount,
+        pendingCount,
+        thisMonthCount,
+        // Decimal → Number for the client.
+        confirmedRevenue: Number(confirmedRevenueAgg._sum.totalAmount ?? 0),
+        holdsValue: Number(holdsValueAgg._sum.totalAmount ?? 0),
+      },
+    };
+  } catch (error) {
+    console.error("[GET_BOOKING_STATS_ERROR]", error);
+    return { success: false as const, error: "Failed to fetch booking stats" };
+  }
+}
+
+// ============================================================
 // Get Single Booking
 // ============================================================
 
@@ -242,15 +335,14 @@ export async function checkAvailability(
       return { success: false as const, error: "Insufficient permissions" };
     }
 
-    // Normalize date to start of day for consistent comparison
-    const bookingDate = new Date(date);
-    bookingDate.setHours(0, 0, 0, 0);
+    // Match by UTC day range (not local-midnight equality) — see utcDayRange.
+    const { gte, lt, utcDay } = utcDayRange(new Date(date));
 
     // Check for existing booking
-    const existingBooking = await prisma.booking.findFirst({
+    const existingBookings = await prisma.booking.findMany({
       where: {
         venueId,
-        date: bookingDate,
+        date: { gte, lt },
         status: { notIn: ["CANCELLED"] },
         OR: [
           { timeSlot },
@@ -266,14 +358,17 @@ export async function checkAvailability(
             : []),
         ],
       },
-      select: { id: true, bookingNumber: true, eventName: true, timeSlot: true },
+      select: { id: true, bookingNumber: true, eventName: true, timeSlot: true, date: true },
     });
+    const existingBooking = existingBookings.find(
+      (b) => new Date(b.date).getUTCDate() === utcDay
+    );
 
     // Check for blackout dates
-    const blackout = await prisma.blackoutDate.findFirst({
+    const blackouts = await prisma.blackoutDate.findMany({
       where: {
         venueId,
-        date: bookingDate,
+        date: { gte, lt },
         OR: [
           { timeSlot: null }, // Full day blackout
           { timeSlot }, // Specific slot blackout
@@ -286,7 +381,9 @@ export async function checkAvailability(
             : []),
         ],
       },
+      select: { date: true, reason: true },
     });
+    const blackout = blackouts.find((b) => new Date(b.date).getUTCDate() === utcDay);
 
     if (blackout) {
       return {
@@ -362,6 +459,8 @@ export async function createBooking(data: BookingInput) {
 
     const bookingDate = new Date(bookingData.date);
     bookingDate.setHours(0, 0, 0, 0);
+    // UTC day window for the @db.Date conflict scan (see utcDayRange).
+    const { gte: dayGte, lt: dayLt, utcDay: bookingUTCDay } = utcDayRange(bookingDate);
 
     // Slot-conflict OR covering the cross-slot overlap the @@unique constraint
     // can't express: requested slot taken, OR an existing FULL_DAY blocks any
@@ -384,11 +483,11 @@ export async function createBooking(data: BookingInput) {
     try {
       booking = await prisma.$transaction(
         async (tx) => {
-          const clash = await tx.booking.findFirst({
-            where: { venueId: bookingData.venueId, date: bookingDate, status: { notIn: ["CANCELLED"] }, OR: conflictOr },
-            select: { id: true },
+          const clashes = await tx.booking.findMany({
+            where: { venueId: bookingData.venueId, date: { gte: dayGte, lt: dayLt }, status: { notIn: ["CANCELLED"] }, OR: conflictOr },
+            select: { id: true, date: true },
           });
-          if (clash) throw new Error("SLOT_TAKEN");
+          if (clashes.some((c) => new Date(c.date).getUTCDate() === bookingUTCDay)) throw new Error("SLOT_TAKEN");
           return tx.booking.create({
             data: {
               bookingNumber,
@@ -550,6 +649,15 @@ export async function updateBooking(id: string, data: BookingInput) {
       return { success: false as const, error: "Booking not found" };
     }
 
+    // A cancelled or completed booking is terminal — editing it could silently
+    // re-activate it and re-occupy a slot that's since been freed/rebooked.
+    if (existing.status === "CANCELLED") {
+      return { success: false as const, error: "Cannot edit a cancelled booking" };
+    }
+    if (existing.status === "COMPLETED") {
+      return { success: false as const, error: "Cannot edit a completed booking" };
+    }
+
     const bookingData = parsed.data;
     const bookingDate = new Date(bookingData.date);
     bookingDate.setHours(0, 0, 0, 0);
@@ -561,12 +669,15 @@ export async function updateBooking(id: string, data: BookingInput) {
       existing.timeSlot !== bookingData.timeSlot;
 
     if (dateChanged) {
+      // Match by UTC day range (not local-midnight equality) — see utcDayRange.
+      const { gte, lt, utcDay } = utcDayRange(bookingDate);
+
       // Check for conflicts excluding the current booking
-      const conflict = await prisma.booking.findFirst({
+      const conflicts = await prisma.booking.findMany({
         where: {
           id: { not: id },
           venueId: bookingData.venueId,
-          date: bookingDate,
+          date: { gte, lt },
           status: { notIn: ["CANCELLED"] },
           OR: [
             { timeSlot: bookingData.timeSlot as TimeSlot },
@@ -580,7 +691,9 @@ export async function updateBooking(id: string, data: BookingInput) {
               : []),
           ],
         },
+        select: { id: true, date: true },
       });
+      const conflict = conflicts.some((c) => new Date(c.date).getUTCDate() === utcDay);
 
       if (conflict) {
         return {
@@ -737,6 +850,17 @@ export async function releaseHold(bookingId: string) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
+    const existing = await prisma.booking.findUnique({ where: { id: bookingId } });
+    if (!existing) {
+      return { success: false as const, error: "Booking not found" };
+    }
+
+    // Only a HOLD can be released. Releasing a CONFIRMED/COMPLETED/etc. booking
+    // here would silently cancel a live booking.
+    if (existing.status !== "HOLD") {
+      return { success: false as const, error: "Only a booking on hold can be released" };
+    }
+
     const booking = await prisma.booking.update({
       where: { id: bookingId },
       data: {
@@ -759,7 +883,11 @@ export async function releaseHold(bookingId: string) {
 // Get Bookings for Calendar
 // ============================================================
 
-export async function getBookingsForCalendar(month: number, year: number) {
+export async function getBookingsForCalendar(
+  month: number,
+  year: number,
+  venueId?: string
+) {
   try {
     const session = await auth();
     if (!session?.user) {
@@ -776,6 +904,9 @@ export async function getBookingsForCalendar(month: number, year: number) {
     const bookings = await prisma.booking.findMany({
       where: {
         date: { gte: startDate, lte: endDate },
+        // Exclude cancelled bookings to match the grid/heatmap occupancy view.
+        status: { not: "CANCELLED" },
+        ...(venueId ? { venueId } : {}),
       },
       select: {
         id: true,

@@ -214,12 +214,17 @@ export async function getProfitAndLoss(fy?: string) {
   return buildProfitAndLoss(await summedAccounts(fy));
 }
 
-export async function getBalanceSheet(fy?: string) {
+// A Balance Sheet is a point-in-time (as-of-today) snapshot — it is inherently
+// cumulative (opening balances + all movement to date), not FY-scoped like the
+// P&L. Honouring an `fy` here would need an opening-balance / equity rollforward;
+// rather than ship a half-correct FY filter we take NO fy param and label the
+// statement "cumulative / as-of-today" so the report can't contradict itself.
+export async function getBalanceSheet() {
   const u = await requireUser();
-  if (!canFinanceRead(u?.role)) return { assets: [], liabilities: [], equity: [], totalAssets: 0, totalLiabilities: 0, totalEquity: 0, retainedEarnings: 0, balanced: true };
+  if (!canFinanceRead(u?.role)) return { assets: [], liabilities: [], equity: [], totalAssets: 0, totalLiabilities: 0, totalEquity: 0, retainedEarnings: 0, balanced: true, asOf: new Date().toISOString(), basis: "cumulative" as const };
   // Balance Sheet is cumulative — assets/liabilities/equity from ALL posted
   // lines; retained earnings = cumulative net profit (income − expense) to date.
   const all = await summedAccounts();
   const pl = buildProfitAndLoss(all);
-  return buildBalanceSheet(all, pl.netProfit);
+  return { ...buildBalanceSheet(all, pl.netProfit), asOf: new Date().toISOString(), basis: "cumulative" as const };
 }

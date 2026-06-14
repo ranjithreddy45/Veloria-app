@@ -14,7 +14,7 @@ import { format } from "date-fns";
 import { hasPermission } from "@/lib/permissions";
 import { maybeConfirmBookingOnPayment } from "@/lib/sales/confirm-booking";
 import { isSafeReceiptUrl } from "@/lib/sales/receipt";
-import { applyRazorpayCapture } from "@/lib/payments/apply-capture";
+import { applyRazorpayCapture, allocatePaidAmountToInstallments } from "@/lib/payments/apply-capture";
 import { postPaymentReceived } from "@/lib/finance/receivables";
 
 // ============================================================
@@ -174,6 +174,15 @@ export async function recordPayment(data: {
       };
     }
 
+    // Cash can only be taken against an issued invoice — never a DRAFT (still
+    // editable) or any other non-collectable state. Allow SENT/PARTIALLY_PAID/OVERDUE.
+    if (!["SENT", "PARTIALLY_PAID", "OVERDUE"].includes(invoice.status)) {
+      return {
+        success: false as const,
+        error: "Invoice must be sent before a payment can be recorded",
+      };
+    }
+
     const balanceDue = Number(invoice.balanceDue);
     if (data.amount > balanceDue + 0.01) {
       return {
@@ -219,6 +228,8 @@ export async function recordPayment(data: {
         where: { id: data.invoiceId },
         data: { balanceDue: Math.max(0, bal), status: bal <= 0.01 ? "PAID" : "PARTIALLY_PAID" },
       });
+      // Flip fully-covered installments PENDING→COMPLETED in the same tx.
+      await allocatePaidAmountToInstallments(tx, data.invoiceId, paid);
       return { payment: created, newPaidAmount: paid, newBalanceDue: bal };
     });
 
@@ -346,6 +357,8 @@ export async function verifyPaymentProof(paymentId: string) {
         where: { id: payment.invoice.id },
         data: { balanceDue: Math.max(0, bal), status: bal <= 0.01 ? "PAID" : "PARTIALLY_PAID" },
       });
+      // Flip fully-covered installments PENDING→COMPLETED in the same tx.
+      await allocatePaidAmountToInstallments(tx, payment.invoice.id, Number(credited.paidAmount));
       return true;
     });
     if (!verified) return { success: false as const, error: "This payment was just verified by someone else" };

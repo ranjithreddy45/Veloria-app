@@ -11,7 +11,7 @@ import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { hasPermission } from "@/lib/permissions";
-import { postJournalEntry } from "@/lib/finance/ledger";
+import { postWithinTx, fyForDate, periodForDate } from "@/lib/finance/ledger";
 import { FIN_ACCOUNT_CODES } from "@/lib/finance/coa-seed";
 
 const DEP_EXPENSE_CODE = FIN_ACCOUNT_CODES.depreciation ?? "5500";
@@ -200,38 +200,56 @@ export async function runDepreciation(assetId: string): Promise<Result<{ amount:
   if (!expenseAcct) return { success: false, error: `Depreciation expense account (${DEP_EXPENSE_CODE}) not found. Seed the chart of accounts.` };
   if (!accumAcct) return { success: false, error: `Accumulated depreciation account (${ACCUM_DEP_CODE}) not found. Seed the chart of accounts.` };
 
-  // Post a balanced JE (Σdebit = Σcredit) so it passes the DB balance trigger.
-  let entry: { id: string };
+  // Idempotency: one depreciation charge per (asset, accounting month). Deterministic
+  // sourceRefId so re-running the same month is a no-op rather than a double-charge.
+  const runDate = new Date();
+  const period = `${fyForDate(runDate)}-P${periodForDate(runDate)}`;
+  const sourceRefId = `${asset.id}:${period}`;
+
+  const fullyDepreciated = Math.round((accumulated + amount) * 100) / 100 >= depreciableBase - 0.005;
+
   try {
-    entry = await postJournalEntry({
-      date: new Date(),
-      narration: `Depreciation — ${asset.name}`,
-      sourceModule: "MANUAL",
-      createdById: u!.id,
-      lines: [
-        { accountId: expenseAcct.id, debit: amount },
-        { accountId: accumAcct.id, credit: amount },
-      ],
+    // ONE transaction: idempotency check + balanced JE post + depreciation-entry +
+    // asset update. If anything fails, nothing is persisted (no orphaned JE).
+    const result = await prisma.$transaction(async (tx) => {
+      const existing = await tx.finJournalEntry.findFirst({
+        where: { sourceModule: "MANUAL", sourceRefId },
+        select: { id: true },
+      });
+      if (existing) return { skipped: true as const };
+
+      // Post a balanced JE (Σdebit = Σcredit) so it passes the DB balance trigger.
+      const entry = await postWithinTx(tx, {
+        date: runDate,
+        narration: `Depreciation — ${asset.name} (${period})`,
+        sourceModule: "MANUAL",
+        sourceRefId,
+        createdById: u!.id,
+        lines: [
+          { accountId: expenseAcct.id, debit: amount },
+          { accountId: accumAcct.id, credit: amount },
+        ],
+      });
+
+      await tx.finDepreciationEntry.create({
+        data: { assetId: asset.id, date: runDate, amount, journalEntryId: entry.id },
+      });
+      await tx.finAsset.update({
+        where: { id: asset.id },
+        data: {
+          accumulatedDep: { increment: amount },
+          status: fullyDepreciated ? "FULLY_DEPRECIATED" : asset.status,
+        },
+      });
+      return { skipped: false as const };
     });
+
+    if (result.skipped) {
+      return { success: false, error: `Depreciation for ${period} has already been posted for this asset.` };
+    }
   } catch (e) {
     return { success: false, error: e instanceof Error ? e.message : "Failed to post depreciation journal." };
   }
-
-  const newAccumulated = Math.round((accumulated + amount) * 100) / 100;
-  const fullyDepreciated = newAccumulated >= depreciableBase - 0.005;
-
-  await prisma.$transaction([
-    prisma.finDepreciationEntry.create({
-      data: { assetId: asset.id, date: new Date(), amount, journalEntryId: entry.id },
-    }),
-    prisma.finAsset.update({
-      where: { id: asset.id },
-      data: {
-        accumulatedDep: { increment: amount },
-        status: fullyDepreciated ? "FULLY_DEPRECIATED" : asset.status,
-      },
-    }),
-  ]);
 
   revalidatePath("/finance/assets");
   return { success: true, data: { amount, fullyDepreciated } };

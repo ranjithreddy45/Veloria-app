@@ -115,6 +115,14 @@ export async function acknowledgeDocument(documentId: string): Promise<Result<{ 
   const empId = await myEmployeeId(u.id);
   if (!empId) return { success: false, error: "Your account isn't linked to an employee record." };
 
+  // Only active, org-wide documents that actually require acknowledgement can be acked.
+  const doc = await prisma.hrDocument.findUnique({
+    where: { id: documentId },
+    select: { scope: true, isActive: true, requiresAck: true },
+  });
+  if (!doc || !doc.isActive) return { success: false, error: "Document not found." };
+  if (doc.scope !== "ORG" || !doc.requiresAck) return { success: false, error: "This document doesn't require acknowledgement." };
+
   await prisma.documentAcknowledgement.upsert({
     where: { documentId_employeeId: { documentId, employeeId: empId } },
     create: { documentId, employeeId: empId },

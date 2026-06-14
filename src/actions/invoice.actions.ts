@@ -346,34 +346,36 @@ export async function updateInvoice(id: string, data: InvoiceInput) {
     const paidAmount = Number(existing.paidAmount);
     const balanceDue = calc.totalAmount - paidAmount;
 
-    // Delete old line items and create new ones
-    await prisma.invoiceLineItem.deleteMany({ where: { invoiceId: id } });
-
-    const invoice = await prisma.invoice.update({
-      where: { id },
-      data: {
-        dueDate: invoiceData.dueDate,
-        subtotal: calc.subtotal,
-        discountPercent: calc.discountPercent || null,
-        discountAmount: calc.discountAmount || null,
-        cgstRate: calc.cgstRate,
-        sgstRate: calc.sgstRate,
-        igstRate: calc.igstRate,
-        cgstAmount: calc.cgstAmount,
-        sgstAmount: calc.sgstAmount,
-        igstAmount: calc.igstAmount,
-        totalAmount: calc.totalAmount,
-        balanceDue,
-        notes: invoiceData.notes || null,
-        terms: invoiceData.terms || null,
-        gstin: invoiceData.gstin || null,
-        placeOfSupply: invoiceData.placeOfSupply || null,
-        contactId: invoiceData.contactId,
-        bookingId: invoiceData.bookingId || null,
-        lineItems: {
-          create: calc.lineItems,
+    // Delete old line items + write new totals/lines atomically, so a mid-flight
+    // failure can't leave the invoice with zero line items and stale totals.
+    const invoice = await prisma.$transaction(async (tx) => {
+      await tx.invoiceLineItem.deleteMany({ where: { invoiceId: id } });
+      return tx.invoice.update({
+        where: { id },
+        data: {
+          dueDate: invoiceData.dueDate,
+          subtotal: calc.subtotal,
+          discountPercent: calc.discountPercent || null,
+          discountAmount: calc.discountAmount || null,
+          cgstRate: calc.cgstRate,
+          sgstRate: calc.sgstRate,
+          igstRate: calc.igstRate,
+          cgstAmount: calc.cgstAmount,
+          sgstAmount: calc.sgstAmount,
+          igstAmount: calc.igstAmount,
+          totalAmount: calc.totalAmount,
+          balanceDue,
+          notes: invoiceData.notes || null,
+          terms: invoiceData.terms || null,
+          gstin: invoiceData.gstin || null,
+          placeOfSupply: invoiceData.placeOfSupply || null,
+          contactId: invoiceData.contactId,
+          bookingId: invoiceData.bookingId || null,
+          lineItems: {
+            create: calc.lineItems,
+          },
         },
-      },
+      });
     });
 
     await logActivity({
@@ -583,11 +585,36 @@ export async function createInstallmentPlan(
 
     const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
-      select: { totalAmount: true },
+      select: {
+        totalAmount: true,
+        paidAmount: true,
+        status: true,
+        installments: { select: { status: true } },
+      },
     });
 
     if (!invoice) {
       return { success: false as const, error: "Invoice not found" };
+    }
+
+    // Don't (re)build a plan for an invoice that's settled or dead.
+    if (invoice.status === "PAID" || invoice.status === "CANCELLED") {
+      return {
+        success: false as const,
+        error: `Cannot change the installment plan of a ${invoice.status.toLowerCase()} invoice`,
+      };
+    }
+
+    // Don't wipe a plan that already has money against it — deleteMany +
+    // recreate-as-PENDING would silently un-pay collected installments.
+    const hasPaidAllocation =
+      Number(invoice.paidAmount) > 0 ||
+      invoice.installments.some((i) => i.status === "COMPLETED");
+    if (hasPaidAllocation) {
+      return {
+        success: false as const,
+        error: "This invoice already has payments — its installment plan can no longer be replaced",
+      };
     }
 
     const totalInstallments = installments.reduce(
@@ -603,20 +630,21 @@ export async function createInstallmentPlan(
       };
     }
 
-    // Delete existing installments
-    await prisma.installment.deleteMany({ where: { invoiceId } });
-
-    // Create new installments
-    await prisma.installment.createMany({
-      data: installments.map((inst, index) => ({
-        invoiceId,
-        label: inst.label,
-        amount: inst.amount,
-        dueDate: new Date(inst.dueDate),
-        status: "PENDING",
-        order: index,
-      })),
-    });
+    // Idempotent-safe: delete + recreate in one transaction so a mid-failure
+    // can't leave the invoice with a half-built plan.
+    await prisma.$transaction([
+      prisma.installment.deleteMany({ where: { invoiceId } }),
+      prisma.installment.createMany({
+        data: installments.map((inst, index) => ({
+          invoiceId,
+          label: inst.label,
+          amount: inst.amount,
+          dueDate: new Date(inst.dueDate),
+          status: "PENDING",
+          order: index,
+        })),
+      }),
+    ]);
 
     revalidatePath(`/invoices/${invoiceId}`);
     return { success: true as const, data: { count: installments.length } };

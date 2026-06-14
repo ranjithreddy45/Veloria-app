@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
 import { hasPermission } from "@/lib/permissions";
+import { createLead } from "@/actions/lead.actions";
 
 // ============================================================
 // Get Widget Inquiries (Paginated + Filters)
@@ -109,9 +110,10 @@ export async function processInquiry(id: string) {
     const firstName = nameParts[0] || inquiry.name;
     const lastName = nameParts.slice(1).join(" ") || "";
 
-    // Check if contact already exists by email
+    // Check if contact already exists by email — exclude soft-deleted contacts
+    // so we never attach a new lead to an invisible (trashed) contact.
     let contact = await prisma.contact.findFirst({
-      where: { email: inquiry.email },
+      where: { email: inquiry.email, deletedAt: null },
     });
 
     if (!contact) {
@@ -128,19 +130,36 @@ export async function processInquiry(id: string) {
       });
     }
 
-    // Create a lead from the inquiry
-    const lead = await prisma.lead.create({
-      data: {
-        title: `Widget Inquiry - ${inquiry.name}`,
-        contactId: contact.id,
-        source: "WEBSITE",
-        eventType: inquiry.eventType || null,
-        eventDate: inquiry.eventDate || null,
-        guestCount: inquiry.guestCount || null,
-        description: inquiry.message,
-        createdById: session.user.id as string,
-      },
+    // Create the lead through the SAME path manual leads use (createLead) so a
+    // web inquiry gets a real score, a 15-min SLA firstContactDue, a default
+    // next-business-day followUpDate, assignment-rule evaluation, and the
+    // LEAD_CREATED intake workflow — instead of becoming an invisible, unscored,
+    // never-followed-up cold lead. Drop a past eventDate (createLead validates
+    // it can't be in the past) rather than failing the whole conversion.
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const eventDate =
+      inquiry.eventDate && inquiry.eventDate.getTime() >= today.getTime()
+        ? inquiry.eventDate
+        : null;
+
+    const leadResult = await createLead({
+      title: `Widget Inquiry - ${inquiry.name}`,
+      contactId: contact.id,
+      source: "WEBSITE",
+      eventType: inquiry.eventType || "",
+      eventDate,
+      guestCount: inquiry.guestCount ?? null,
+      description: inquiry.message,
     });
+
+    if (!leadResult.success) {
+      return {
+        success: false as const,
+        error: leadResult.error || "Failed to create lead from inquiry",
+      };
+    }
+    const lead = leadResult.data;
 
     // Mark inquiry as processed
     await prisma.widgetInquiry.update({

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PlusIcon } from "lucide-react";
 
-import { getLeads } from "@/actions/lead.actions";
+import { getLeads, getLeadStats } from "@/actions/lead.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { HelpHint } from "@/components/layout/help-hint";
 import { Button } from "@/components/ui/button";
@@ -17,14 +17,18 @@ export const metadata: Metadata = { title: "Leads" };
 export default async function LeadsPage() {
   // Ceiling lets the client-side table page through records without the
   // default-50 cutoff, while keeping the payload far lighter than 1000.
-  const result = await getLeads({ limit: 500 });
+  const [result, statsResult] = await Promise.all([
+    getLeads({ limit: 500 }),
+    getLeadStats(),
+  ]);
   const leads = result.success ? result.data.data : [];
 
-  // Pipeline value = open leads only (exclude Won and Lost). One definition
-  // everywhere — this matches the "Pipeline value" KPI card exactly (S-1).
-  const pipelineValue = leads
-    .filter((l) => l.status !== "LOST" && l.status !== "WON")
-    .reduce((sum, l) => sum + Number(l.estimatedValue ?? 0), 0);
+  // KPIs come from a dedicated DB aggregate, NOT the paginated rows above —
+  // otherwise both counts would silently undercount past the 500-row ceiling.
+  // total = all active leads; pipelineValue = Σ estimatedValue over open
+  // statuses (excludes Won/Lost), matching the Pipeline value definition (S-1).
+  const totalLeads = statsResult.success ? statsResult.data.total : leads.length;
+  const pipelineValue = statsResult.success ? statsResult.data.pipelineValue : 0;
 
   const fmtCurrency = (n: number) => {
     if (n >= 10000000) return `₹${(n / 10000000).toFixed(2)} Cr`;
@@ -62,7 +66,7 @@ export default async function LeadsPage() {
             <span>CRM · Pipeline</span>
             <span className="h-3 w-px bg-border" />
             <span className="text-foreground/80">
-              <span className="font-semibold tabular-nums">{leads.length}</span> total
+              <span className="font-semibold tabular-nums">{totalLeads}</span> total
             </span>
             {pipelineValue > 0 && (
               <>

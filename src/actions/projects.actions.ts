@@ -12,6 +12,7 @@ import { READINESS_CHECKLIST, readinessSeverity } from "@/lib/projects/readiness
 import { OPS_AUDIT_CHECKLIST } from "@/lib/projects/ops-audit-config";
 import { normalizePhase, phaseMatchValues, PROJECT_PHASES, type ProjectPhase } from "@/lib/projects/phases";
 import { Prisma } from "@prisma/client";
+import { ensureVenueForProperty } from "@/actions/acq-property.actions";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -507,14 +508,18 @@ export async function acknowledgeHandover(projectId: string, by: "OPS" | "MGMT")
 export async function launchProject(projectId: string): Promise<Result<{ id: string }>> {
   const user = await requireUser();
   if (!user || !can(user.role, "projects:approve")) return { success: false, error: "Only a Projects Head can give the launch go-ahead." };
-  const project = await prisma.acqOnboardingProject.findUnique({ where: { id: projectId }, select: { phase: true, handoverReportAt: true, opsAcknowledgedAt: true, mgmtAcknowledgedAt: true, propertyId: true, property: { select: { propertyName: true } } } });
+  const project = await prisma.acqOnboardingProject.findUnique({ where: { id: projectId }, select: { phase: true, handoverReportAt: true, opsAcknowledgedAt: true, mgmtAcknowledgedAt: true, propertyId: true, property: { select: { id: true, venueId: true, propertyName: true, city: true, locality: true, address: true, seatingTheatre: true, seatingFloating: true } } } });
   if (!project) return { success: false, error: "Project not found" };
   if (normalizePhase(project.phase) !== "HANDOVER" || !project.handoverReportAt) return { success: false, error: "Submit the handover report before launch." };
   if (!project.opsAcknowledgedAt || !project.mgmtAcknowledgedAt) return { success: false, error: "Both Operations and Management must acknowledge the handover report before launch." };
   const ok = await advanceStage(user, projectId, "HANDOVER", "LIVE", { launchedAt: new Date(), status: "COMPLETED", completedAt: new Date() });
   if (!ok) return { success: false, error: "Project is no longer awaiting launch." };
-  await prisma.acqProperty.update({ where: { id: project.propertyId }, data: { status: "AVAILABLE", availableAt: new Date() } });
-  await notifyRoles(["SALES_EXEC", "EVENT_COORDINATOR", "SUPER_ADMIN", "ADMIN"], { type: "SYSTEM", title: "New venue is live!", message: `${project.property.propertyName} has launched — start generating bookings.`, actionUrl: `/projects/${projectId}` });
+  // Flip to AVAILABLE and guarantee a bookable Venue in one tx (BD → Bookings bridge).
+  await prisma.$transaction(async (tx) => {
+    await tx.acqProperty.update({ where: { id: project.propertyId }, data: { status: "AVAILABLE", availableAt: new Date() } });
+    await ensureVenueForProperty(tx, project.property);
+  });
+  await notifyRoles(["SALES_EXEC", "SALES_HEAD", "EVENT_COORDINATOR", "SUPER_ADMIN", "ADMIN"], { type: "SYSTEM", title: "New venue is live!", message: `${project.property.propertyName} has launched — start generating bookings.`, actionUrl: `/projects/${projectId}` });
   revalidatePath(`/projects/${projectId}`);
   revalidatePath("/projects");
   return { success: true, data: { id: projectId } };

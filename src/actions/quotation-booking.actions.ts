@@ -6,7 +6,31 @@ import { revalidatePath } from "next/cache";
 import { notify } from "@/lib/notify";
 import { hasPermission } from "@/lib/permissions";
 import { checkAvailability, createBooking } from "@/actions/booking.actions";
+import { updateLeadStatus } from "@/actions/lead.actions";
+import { updateDeal } from "@/actions/pipeline.actions";
 import { BOOKABLE_SLOTS, SLOT_LABEL, plannerSlotToEnum, type TimeSlotEnum } from "@/lib/sales/slot";
+
+// Push quote economics into the linked lead's deal and advance the lead to
+// PROPOSAL_SENT. Best-effort: a quote with no lead / no deal never fails the op.
+async function syncLeadFromQuotation(
+  leadId: string | null | undefined,
+  grandTotal: unknown
+): Promise<void> {
+  if (!leadId) return;
+  try {
+    const value = Number(grandTotal ?? 0);
+    const deal = await prisma.deal.findUnique({ where: { leadId }, select: { id: true } });
+    if (deal && value > 0) await updateDeal(deal.id, { value });
+    const lead = await prisma.lead.findUnique({ where: { id: leadId }, select: { status: true } });
+    const FUNNEL_ORDER = ["NEW", "CONTACTED", "QUALIFIED", "PROPOSAL_SENT", "NEGOTIATION", "WON"];
+    const cur = lead ? FUNNEL_ORDER.indexOf(lead.status) : -1;
+    if (cur >= 0 && cur < FUNNEL_ORDER.indexOf("PROPOSAL_SENT")) {
+      await updateLeadStatus(leadId, "PROPOSAL_SENT" as never);
+    }
+  } catch (e) {
+    console.error("[QUOTE_LEAD_SYNC_ERROR]", e);
+  }
+}
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -85,6 +109,12 @@ export async function blockSlotFromQuotation(
   if (q.bookingId) return { success: false, error: "This quotation already has a booked slot." };
   if (!opts.venueId) return { success: false, error: "Select a venue to block." };
 
+  // A zero/blank grand total would mint a ₹0 (previously ₹1) booking that
+  // pollutes revenue — refuse it outright.
+  const grandTotal = Number(q.grandTotal) || 0;
+  if (grandTotal <= 0)
+    return { success: false, error: "This quotation has no grand total — recompute it before blocking a slot." };
+
   const dateStr = opts.dateISO || (q.eventDate ? q.eventDate.toISOString().slice(0, 10) : "");
   const date = parseLocalDate(dateStr);
   if (Number.isNaN(date.getTime())) return { success: false, error: "Select a valid event date." };
@@ -101,6 +131,28 @@ export async function blockSlotFromQuotation(
   // then fails (otherwise an orphan contact would linger on the quotation).
   let contactId = q.contact?.id ?? null;
   let mintedContactId: string | null = null;
+  if (!contactId) {
+    // Reuse an existing non-deleted contact matching the quote's email/phone
+    // before minting a new one, so we don't spawn duplicate/zombie contacts.
+    const email = q.clientEmail?.trim() || null;
+    const phone = q.clientPhone?.trim() || null;
+    if (email || phone) {
+      const existing = await prisma.contact.findFirst({
+        where: {
+          deletedAt: null,
+          OR: [
+            ...(email ? [{ email }] : []),
+            ...(phone ? [{ phone }] : []),
+          ],
+        },
+        select: { id: true },
+      });
+      if (existing) {
+        contactId = existing.id;
+        await prisma.salesQuotation.update({ where: { id: quotationId }, data: { contactId } });
+      }
+    }
+  }
   if (!contactId) {
     const name = (q.clientName || "Guest").trim();
     const [firstName, ...rest] = name.split(/\s+/);
@@ -126,7 +178,7 @@ export async function blockSlotFromQuotation(
     date,
     timeSlot,
     guestCount: Math.max(1, q.guestCount || 1),
-    totalAmount: Number(q.grandTotal) || 1,
+    totalAmount: grandTotal,
     internalNotes: `Auto-created from quotation ${q.quoteNumber}.`,
   });
 
@@ -171,7 +223,11 @@ export async function blockSlotFromQuotation(
     actionUrl: `/bookings/${bookingId}`,
   });
 
+  // Flow quote economics into the pipeline + advance the lead (best-effort).
+  await syncLeadFromQuotation(q.leadId, q.grandTotal);
+
   revalidatePath(`/quotations/${quotationId}`);
   revalidatePath("/availability");
+  if (q.leadId) revalidatePath(`/leads/${q.leadId}`);
   return { success: true, data: { bookingId } };
 }

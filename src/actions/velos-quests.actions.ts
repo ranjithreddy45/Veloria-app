@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { awardVelos } from "@/lib/velos/award";
 import { VELOS_TUNING } from "@/lib/velos/config";
+import { isValidCronSecret } from "@/lib/cron-auth";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -15,6 +16,15 @@ async function requireUser() {
 }
 function isAdmin(role?: string) {
   return role === "SUPER_ADMIN" || role === "ADMIN";
+}
+
+// Org-wide point/quest mutations must be triggered by an authenticated admin
+// OR by the cron runner presenting a valid CRON_SECRET. Without this, these
+// exported server actions would be callable by anyone.
+async function authorizeAdminOrCron(cronSecret?: string): Promise<boolean> {
+  if (isValidCronSecret(cronSecret)) return true;
+  const u = await requireUser();
+  return isAdmin(u?.role);
 }
 
 // Lifetime points → is this user Silver+ (can self-select quests)? Mirrors tiers.
@@ -118,7 +128,8 @@ export async function seedStarterQuests(): Promise<Result<{ created: number }>> 
 // their own 8-week baseline, OR they've had no win in N days, surface a small
 // effort-based recovery quest so a dry stretch still produces wins.
 // ============================================================
-export async function runSlumpCatch(): Promise<{ created: number; checked: number }> {
+export async function runSlumpCatch(cronSecret?: string): Promise<{ created: number; checked: number }> {
+  if (!(await authorizeAdminOrCron(cronSecret))) return { created: 0, checked: 0 };
   const now = Date.now();
   const eightWeeksAgo = new Date(now - 56 * 86400000);
   const sevenDaysAgo = new Date(now - 7 * 86400000);
@@ -172,7 +183,8 @@ export async function runSlumpCatch(): Promise<{ created: number; checked: numbe
 }
 
 // Grant team-quest rewards once when the target is met (idempotent via ledger key).
-export async function settleTeamQuests(): Promise<{ settled: number }> {
+export async function settleTeamQuests(cronSecret?: string): Promise<{ settled: number }> {
+  if (!(await authorizeAdminOrCron(cronSecret))) return { settled: 0 };
   const teamQuests = await prisma.quest.findMany({ where: { status: "ACTIVE", scope: "TEAM" } });
   let settled = 0;
   for (const q of teamQuests) {

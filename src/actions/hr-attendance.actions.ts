@@ -206,6 +206,11 @@ export async function requestRegularization(input: {
   const date = new Date(input.date + "T00:00:00.000Z");
   if (isNaN(date.getTime())) return { success: false, error: "Invalid date." };
 
+  // Only statuses an employee may legitimately request a correction to.
+  const ALLOWED_REG_STATUSES = ["PRESENT", "HALF_DAY", "WFH", "ON_LEAVE"] as const;
+  if (!ALLOWED_REG_STATUSES.includes(input.requestedStatus as (typeof ALLOWED_REG_STATUSES)[number]))
+    return { success: false, error: "Invalid requested status." };
+
   const rec = await prisma.attendanceRecord.findUnique({ where: { employeeId_date: { employeeId: emp.id, date } } });
 
   const reg = await prisma.regularization.create({

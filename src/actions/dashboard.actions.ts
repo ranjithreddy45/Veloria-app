@@ -265,9 +265,11 @@ export async function getDashboardStats(): Promise<Serialized<DashboardStats>> {
       },
       select: { amount: true, paidAt: true },
     }),
-    // Bookings grouped by event type
+    // Bookings grouped by event type (exclude cancelled, to match the other
+    // booking counts on this dashboard — audit consistency fix)
     prisma.booking.groupBy({
       by: ["eventType"],
+      where: { status: { not: "CANCELLED" } },
       _count: { id: true },
     }),
   ]);

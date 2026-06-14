@@ -346,6 +346,33 @@ export async function approveAcqDeal(dealId: string): Promise<Result<{ id: strin
   return { success: true, data: { id: dealId } };
 }
 
+// Dedicated large-deal WON sign-off (P-2). Distinct from the below-floor
+// CONTRACT_SENT approval (bdHeadApprovedById): a high-value Won needs its own
+// explicit BD Head stamp so one approval can't silently satisfy both gates.
+export async function signoffLargeDeal(dealId: string): Promise<Result<{ id: string }>> {
+  const user = await requireUser();
+  if (!user || !acqCan(user.role, "bdhead:approve")) return { success: false, error: "Only BD Head / Admin can sign off a large deal." };
+  const deal = await prisma.acqDeal.findFirst({ where: { id: dealId, deletedAt: null } });
+  if (!deal) return { success: false, error: "Deal not found" };
+  // Idempotency: don't re-stamp an already-signed-off deal.
+  if (deal.largeDealSignoffById) {
+    return { success: true, data: { id: dealId } };
+  }
+  if (deal.projectedFeeValue == null) {
+    return { success: false, error: "Set the projected fee value before signing off." };
+  }
+  await prisma.acqDeal.update({
+    where: { id: dealId },
+    data: { largeDealSignoffById: user.id, largeDealSignoffAt: new Date() },
+  });
+  await prisma.acqDealNote.create({
+    data: { dealId, noteType: "CHANGE_LOG", body: "BD Head signed off the large deal for Won.", authorId: user.id },
+  });
+  revalidatePath(`/bd/deals/${dealId}`);
+  revalidatePath("/bd/dashboard");
+  return { success: true, data: { id: dealId } };
+}
+
 // ------------------------------------------------------------
 // Edit Overview details (BD team) — logs every change for transparency
 // ------------------------------------------------------------
@@ -536,8 +563,10 @@ export async function transitionAcqDeal(
       if (deal.projectedFeeValue == null) {
         return { success: false, error: "Set the projected fee value before marking the deal Won.", code: 422 };
       }
-      // Large-deal sign-off (P-2): a high-value Won needs explicit BD Head approval.
-      if (Number(deal.projectedFeeValue) >= cfg.LARGE_DEAL_SIGNOFF_VALUE && !deal.bdHeadApprovedById) {
+      // Large-deal sign-off (P-2): a high-value Won needs its own dedicated BD
+      // Head sign-off (largeDealSignoffById) — NOT the below-floor CONTRACT_SENT
+      // approval (bdHeadApprovedById), so one approval can't satisfy both gates.
+      if (Number(deal.projectedFeeValue) >= cfg.LARGE_DEAL_SIGNOFF_VALUE && !deal.largeDealSignoffById) {
         return {
           success: false,
           error: `Deals at or above ₹${(cfg.LARGE_DEAL_SIGNOFF_VALUE / 100000).toFixed(1)}L need BD Head sign-off before they can be marked Won.`,

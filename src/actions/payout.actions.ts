@@ -167,6 +167,7 @@ export async function createPayout(data: CreatePayoutInput) {
         vendorId: payoutData.vendorId || null,
         bookingId: payoutData.bookingId || null,
         notes: payoutData.notes || null,
+        createdById: session.user.id as string,
       },
     });
 
@@ -245,6 +246,15 @@ export async function approvePayout(id: string) {
       return {
         success: false as const,
         error: "Only pending payouts can be approved",
+      };
+    }
+
+    // Segregation of duties (maker-checker): the user who created a payout
+    // cannot approve it — applies to admins too.
+    if (existing.createdById && existing.createdById === (session.user.id as string)) {
+      return {
+        success: false as const,
+        error: "You can't approve a payout you created.",
       };
     }
 
@@ -557,6 +567,10 @@ export async function getVendorsForPayout() {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role as string, "payouts:read")) {
+      return { success: false as const, error: "Not authorized to view vendors" };
+    }
+
     const vendors = await prisma.vendor.findMany({
       where: { status: "ACTIVE" },
       select: {
@@ -583,6 +597,10 @@ export async function getBookingsForPayout() {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role as string, "payouts:read")) {
+      return { success: false as const, error: "Not authorized to view bookings" };
     }
 
     const bookings = await prisma.booking.findMany({

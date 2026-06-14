@@ -98,6 +98,9 @@ export async function detectAnomalies(): Promise<Result<{ created: number; check
     for (const g of groups) {
       const count = g._count._all;
       if (count <= 1) continue;
+      // Skip invoice-less groups: refId=null would collapse unrelated payments
+      // into one bogus anomaly. Only same-invoice duplicates are meaningful.
+      if (!g.invoiceId) continue;
       const amount = Number(g.amount);
       // Anchor the anomaly to the invoice so re-runs dedupe cleanly.
       push({

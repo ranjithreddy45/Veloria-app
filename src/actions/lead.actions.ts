@@ -16,6 +16,17 @@ import { after } from "next/server";
 // LeadStatus enum values matching Prisma schema
 type LeadStatus = "NEW" | "CONTACTED" | "QUALIFIED" | "PROPOSAL_SENT" | "NEGOTIATION" | "WON" | "LOST";
 
+// Allowed filter values — an invalid enum string passed straight to Prisma throws
+// a generic error, so we validate against these sets and ignore unknown values.
+const LEAD_STATUS_VALUES = new Set<string>([
+  "NEW", "CONTACTED", "QUALIFIED", "PROPOSAL_SENT", "NEGOTIATION", "WON", "LOST",
+]);
+const LEAD_SOURCE_VALUES = new Set<string>([
+  "WEBSITE", "REFERRAL", "SOCIAL_MEDIA", "WALK_IN", "PHONE_INQUIRY", "EMAIL",
+  "EVENT", "PARTNER", "ADVERTISEMENT", "FACEBOOK_ADS", "GOOGLE_ADS", "INDIAMART",
+  "JUSTDIAL", "WEDMEGOOD", "INSTAGRAM", "WHATSAPP", "OTHER",
+]);
+
 // Roles a lead can be assigned to (mirrors the new/edit form's user list).
 const ASSIGNABLE_ROLES = ["SALES_EXEC", "SALES_HEAD", "EVENT_COORDINATOR", "ADMIN", "SUPER_ADMIN"];
 
@@ -89,11 +100,13 @@ export async function getLeads(params?: {
       ];
     }
 
-    if (params?.status) {
+    // Validate enum filters before querying — an unknown string would otherwise
+    // make Prisma throw and surface as a generic "Failed to fetch leads".
+    if (params?.status && LEAD_STATUS_VALUES.has(params.status)) {
       where.status = params.status;
     }
 
-    if (params?.source) {
+    if (params?.source && LEAD_SOURCE_VALUES.has(params.source)) {
       where.source = params.source;
     }
 
@@ -139,6 +152,46 @@ export async function getLeads(params?: {
   } catch (error) {
     console.error("[GET_LEADS_ERROR]", error);
     return { success: false as const, error: "Failed to fetch leads" };
+  }
+}
+
+// ============================================================
+// Get Lead Stats (aggregate KPIs — not capped by pagination)
+// ============================================================
+
+// Header KPIs must reflect ALL leads, not the paginated slice the list renders,
+// so they're computed with DB aggregates here. `total` = every active lead;
+// `pipelineValue` = Σ estimatedValue over OPEN statuses only (excludes WON/LOST),
+// matching the "Pipeline value" definition used elsewhere (S-1).
+export async function getLeadStats() {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "leads:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
+    const [total, openAgg] = await Promise.all([
+      prisma.lead.count({ where: { deletedAt: null } }),
+      prisma.lead.aggregate({
+        where: { deletedAt: null, status: { notIn: ["WON", "LOST"] } },
+        _sum: { estimatedValue: true },
+      }),
+    ]);
+
+    return {
+      success: true as const,
+      data: {
+        total,
+        pipelineValue: Number(openAgg._sum.estimatedValue ?? 0),
+      },
+    };
+  } catch (error) {
+    console.error("[GET_LEAD_STATS_ERROR]", error);
+    return { success: false as const, error: "Failed to fetch lead stats" };
   }
 }
 
@@ -357,7 +410,10 @@ export async function updateLead(
       return { success: false as const, error: "Insufficient permissions" };
     }
 
-    const existing = await prisma.lead.findUnique({ where: { id } });
+    const existing = await prisma.lead.findUnique({
+      where: { id },
+      include: { deal: { select: { id: true } } },
+    });
     if (!existing) {
       return { success: false as const, error: "Lead not found" };
     }
@@ -436,17 +492,38 @@ export async function updateLead(
 
     updateData.score = calculateLeadScore(mergedForScoring);
 
-    const lead = await prisma.lead.update({
-      where: { id },
-      data: updateData,
-      include: {
-        contact: {
-          select: { id: true, firstName: true, lastName: true },
+    // Keep the linked pipeline Deal's money in sync: when estimatedValue actually
+    // changes on a lead that already has a Deal, update deal.value in the SAME
+    // transaction so the lead and its pipeline deal can never report different
+    // amounts. Decimal compare via Number to avoid Prisma.Decimal identity quirks.
+    const newEstimated =
+      data.estimatedValue !== undefined ? data.estimatedValue || null : undefined;
+    const estimatedChanged =
+      newEstimated !== undefined &&
+      Number(newEstimated ?? 0) !==
+        Number(existing.estimatedValue ? Number(existing.estimatedValue) : 0);
+    const shouldSyncDeal = !!existing.deal && estimatedChanged;
+
+    const lead = await prisma.$transaction(async (tx) => {
+      const updated = await tx.lead.update({
+        where: { id },
+        data: updateData,
+        include: {
+          contact: {
+            select: { id: true, firstName: true, lastName: true },
+          },
+          assignedTo: {
+            select: { id: true, name: true, email: true },
+          },
         },
-        assignedTo: {
-          select: { id: true, name: true, email: true },
-        },
-      },
+      });
+      if (shouldSyncDeal) {
+        await tx.deal.update({
+          where: { id: existing.deal!.id },
+          data: { value: Number(newEstimated ?? 0) },
+        });
+      }
+      return updated;
     });
 
     await logActivity({
@@ -469,6 +546,7 @@ export async function updateLead(
 
     revalidatePath("/leads");
     revalidatePath(`/leads/${id}`);
+    if (shouldSyncDeal) revalidatePath("/pipeline");
     return { success: true as const, data: serialize(lead) };
   } catch (error) {
     console.error("[UPDATE_LEAD_ERROR]", error);
@@ -804,7 +882,11 @@ export async function backfillLeadPipeline() {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
-    const PIPELINE_STATUSES: LeadStatus[] = ["QUALIFIED", "PROPOSAL_SENT", "NEGOTIATION", "WON", "LOST"];
+    // Only statuses that syncPipelineDealForLead actually creates a deal for.
+    // LOST is excluded: the sync only moves an EXISTING deal to the lost stage and
+    // never creates one for a lost-without-deal lead, so scanning LOST here would
+    // inflate the "scanned" count with leads that can never produce a deal.
+    const PIPELINE_STATUSES: LeadStatus[] = ["QUALIFIED", "PROPOSAL_SENT", "NEGOTIATION", "WON"];
     const leads = await prisma.lead.findMany({
       where: { status: { in: PIPELINE_STATUSES }, deletedAt: null, deal: { is: null } },
       select: { id: true, title: true, estimatedValue: true, assignedToId: true, status: true },

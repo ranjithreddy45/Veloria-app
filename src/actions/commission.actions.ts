@@ -14,6 +14,18 @@ import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
 import { notify } from "@/lib/notify";
 import { hasPermission } from "@/lib/permissions";
+import { Prisma } from "@prisma/client";
+
+// Sentinel used to abort the Serializable transaction when a duplicate
+// (bookingId, ruleId) commission is detected inside the critical section.
+class DuplicateCommissionError extends Error {}
+
+// Postgres serialization failures surface as Prisma error code P2034.
+function isSerializationError(err: unknown): boolean {
+  return (
+    err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2034"
+  );
+}
 
 // ============================================================
 // Get Commission Rules
@@ -173,7 +185,11 @@ export async function deleteCommissionRule(id: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
-    if (!hasPermission(session.user.role, "commissions:create")) {
+    // Deleting a commission rule is destructive and irreversible — gate it
+    // behind admins only. No dedicated "commissions:delete" permission exists
+    // in the Permission union, so we restrict by role.
+    const role = session.user.role as string;
+    if (role !== "SUPER_ADMIN" && role !== "ADMIN") {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
@@ -298,6 +314,16 @@ export async function calculateCommission(data: CalculateCommissionInput) {
       return { success: false as const, error: "Commission rule is inactive" };
     }
 
+    // Validate the beneficiary: the client-supplied userId must reference a
+    // real, active user before we create a payable / notify them.
+    const beneficiary = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, isActive: true },
+    });
+    if (!beneficiary || !beneficiary.isActive) {
+      return { success: false as const, error: "Invalid or inactive commission beneficiary." };
+    }
+
     // Derive the base amount from the BOOKING server-side — never trust a
     // client-supplied invoiceAmount (which could inflate a payout).
     const booking = await prisma.booking.findUnique({
@@ -309,33 +335,53 @@ export async function calculateCommission(data: CalculateCommissionInput) {
     }
     const invoiceAmount = Number(booking.totalAmount);
 
-    // Idempotency: one commission per (booking, rule) — block duplicates.
-    const existing = await prisma.commissionEntry.findFirst({
-      where: { bookingId, ruleId },
-      select: { id: true },
-    });
-    if (existing) {
-      return { success: false as const, error: "A commission already exists for this booking and rule." };
-    }
-
     // Calculate commission: percentage of invoice amount + optional flat amount
     const percentageAmount = (invoiceAmount * Number(rule.percentage)) / 100;
     const flatAmount = rule.flatAmount ? Number(rule.flatAmount) : 0;
     const commissionAmount = percentageAmount + flatAmount;
 
-    const entry = await prisma.commissionEntry.create({
-      data: {
-        invoiceAmount,
-        commissionAmount,
-        status: "PENDING",
-        ruleId,
-        userId,
-        bookingId,
-      },
-      include: {
-        rule: { select: { id: true, name: true, percentage: true } },
-      },
-    });
+    // Idempotency under concurrency: there is no DB @@unique on
+    // (bookingId, ruleId), so the existence-check + create must run inside a
+    // single Serializable transaction. Two concurrent calls cannot both pass
+    // the guard — the loser fails serialization and is reported as a duplicate.
+    let entry;
+    try {
+      entry = await prisma.$transaction(
+        async (tx) => {
+          const existing = await tx.commissionEntry.findFirst({
+            where: { bookingId, ruleId },
+            select: { id: true },
+          });
+          if (existing) {
+            throw new DuplicateCommissionError();
+          }
+          return tx.commissionEntry.create({
+            data: {
+              invoiceAmount,
+              commissionAmount,
+              status: "PENDING",
+              ruleId,
+              userId,
+              bookingId,
+            },
+            include: {
+              rule: { select: { id: true, name: true, percentage: true } },
+            },
+          });
+        },
+        { isolationLevel: "Serializable" },
+      );
+    } catch (txErr) {
+      if (txErr instanceof DuplicateCommissionError) {
+        return { success: false as const, error: "A commission already exists for this booking and rule." };
+      }
+      // Serialization failure from a concurrent insert of the same pair also
+      // means a duplicate — surface it the same way rather than as a 500.
+      if (isSerializationError(txErr)) {
+        return { success: false as const, error: "A commission already exists for this booking and rule." };
+      }
+      throw txErr;
+    }
 
     logActivity({
       userId: session.user.id,

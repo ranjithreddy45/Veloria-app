@@ -13,6 +13,8 @@ import {
   validateQuotationInput,
   type QuotationInput,
 } from "@/lib/sales/quotation-calc";
+import { updateLeadStatus } from "@/actions/lead.actions";
+import { updateDeal } from "@/actions/pipeline.actions";
 import { Prisma } from "@prisma/client";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string; code?: number };
@@ -62,6 +64,35 @@ function headline(input: QuotationInput, meta: QuotationMeta) {
     grandTotal: new Prisma.Decimal(out.grandTotal),
     notes: meta.notes?.trim() || null,
   };
+}
+
+// Quote -> pipeline bridge. When a quote is approved/sent or its slot is
+// blocked, push the quote economics into the linked lead's deal and advance
+// the lead status so the funnel reflects the proposal. Best-effort: a quote
+// with no lead, or a lead with no deal, must never fail the quote operation.
+async function syncLeadFromQuotation(
+  leadId: string | null | undefined,
+  grandTotal: Prisma.Decimal | number | null | undefined
+): Promise<void> {
+  if (!leadId) return;
+  try {
+    const value = Number(grandTotal ?? 0);
+    // Mirror the quote total onto the lead's deal (deal.leadId is @unique).
+    const deal = await prisma.deal.findUnique({ where: { leadId }, select: { id: true } });
+    if (deal && value > 0) {
+      await updateDeal(deal.id, { value });
+    }
+    // Advance the lead to PROPOSAL_SENT (no-op if already there or further).
+    const lead = await prisma.lead.findUnique({ where: { id: leadId }, select: { status: true } });
+    const FUNNEL_ORDER = ["NEW", "CONTACTED", "QUALIFIED", "PROPOSAL_SENT", "NEGOTIATION", "WON"];
+    const cur = lead ? FUNNEL_ORDER.indexOf(lead.status) : -1;
+    const target = FUNNEL_ORDER.indexOf("PROPOSAL_SENT");
+    if (cur >= 0 && cur < target) {
+      await updateLeadStatus(leadId, "PROPOSAL_SENT" as never);
+    }
+  } catch (e) {
+    console.error("[QUOTE_LEAD_SYNC_ERROR]", e);
+  }
 }
 
 function isSerializationFailure(e: unknown): boolean {
@@ -360,8 +391,11 @@ export async function approveSalesQuotation(id: string): Promise<Result<{ status
       actionUrl: `/quotations/${id}`,
     });
   }
+  // Flow quote economics into the pipeline and advance the lead (best-effort).
+  await syncLeadFromQuotation(row.leadId, out.grandTotal);
   revalidatePath("/quotations");
   revalidatePath(`/quotations/${id}`);
+  if (row.leadId) revalidatePath(`/leads/${row.leadId}`);
   return { success: true, data: { status: "APPROVED" } };
 }
 
@@ -507,6 +541,10 @@ export async function deleteSalesQuotation(id: string): Promise<Result<{ id: str
   if (!user || !can(user.role, "quotes:delete")) return { success: false, error: "Unauthorized" };
   const row = await prisma.salesQuotation.findUnique({ where: { id } });
   if (!row) return { success: false, error: "Quotation not found" };
+  // A quotation with a blocked slot owns a booking — deleting it would orphan
+  // that booking (and leave the slot held). Refuse for everyone, admins included.
+  if (row.bookingId)
+    return { success: false, error: "This quotation has a blocked slot — cancel the booking before deleting." };
   if (row.status !== "DRAFT" && !isAdmin(user.role))
     return { success: false, error: "Only a draft quotation can be deleted." };
   await prisma.salesQuotationTransition.deleteMany({ where: { quotationId: id } });

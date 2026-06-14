@@ -17,8 +17,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const slump = await runSlumpCatch();
-    const team = await settleTeamQuests();
+    const slump = await runSlumpCatch(process.env.CRON_SECRET);
+    const team = await settleTeamQuests(process.env.CRON_SECRET);
     return NextResponse.json({ ok: true, recoveryQuestsCreated: slump.created, usersChecked: slump.checked, teamQuestsSettled: team.settled });
   } catch (e) {
     console.error("[VELOS_SLUMP_CRON_ERROR]", e);

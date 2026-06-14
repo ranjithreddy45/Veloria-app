@@ -2,6 +2,63 @@ import { prisma } from "@/lib/prisma";
 import { maybeConfirmBookingOnPayment } from "@/lib/sales/confirm-booking";
 import { postPaymentReceived } from "@/lib/finance/receivables";
 
+/**
+ * Allocate an invoice's cumulative paidAmount across its Installments,
+ * oldest-due-first, and flip every fully-covered installment to COMPLETED
+ * (setting paidAt). A partially-covered installment stays PENDING.
+ *
+ * Idempotent: derives state purely from the current paidAmount, so it can run
+ * after every payment-apply path without double-counting. Money is Decimal —
+ * we compare with Number() and a 1-paisa tolerance to avoid float drift.
+ *
+ * Must be called INSIDE the same transaction that updated paidAmount. Pass the
+ * already-credited paidAmount so we don't re-read a stale row.
+ *
+ * eslint-disable-next-line @typescript-eslint/no-explicit-any
+ */
+export async function allocatePaidAmountToInstallments(
+  // Prisma tx client type is broad; keep it loose to avoid importing internals.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  tx: any,
+  invoiceId: string,
+  paidAmount: number,
+): Promise<void> {
+  const installments: { id: string; amount: unknown; status: string; paidAt: Date | null }[] =
+    await tx.installment.findMany({
+      where: { invoiceId },
+      orderBy: { dueDate: "asc" },
+      select: { id: true, amount: true, status: true, paidAt: true },
+    });
+  if (installments.length === 0) return;
+
+  let remaining = paidAmount;
+  const now = new Date();
+  for (const inst of installments) {
+    const amt = Number(inst.amount);
+    if (remaining + 0.01 >= amt) {
+      // Fully covered.
+      remaining -= amt;
+      if (inst.status !== "COMPLETED") {
+        await tx.installment.update({
+          where: { id: inst.id },
+          data: { status: "COMPLETED", paidAt: inst.paidAt ?? now },
+        });
+      }
+    } else {
+      // Partially covered (or nothing left) — leave PENDING. If a prior run had
+      // marked it COMPLETED but allocation no longer covers it, revert so state
+      // stays truthful to paidAmount.
+      if (inst.status === "COMPLETED") {
+        await tx.installment.update({
+          where: { id: inst.id },
+          data: { status: "PENDING", paidAt: null },
+        });
+      }
+      remaining = 0;
+    }
+  }
+}
+
 // Prisma tx client type is broad; keep it loose to avoid importing internals.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function nextReceiptNumber(tx: any): Promise<string> {
@@ -65,6 +122,8 @@ export async function applyRazorpayCapture(opts: {
       where: { id: payment.invoiceId },
       data: { balanceDue: Math.max(0, bal), status: bal <= 0.01 ? "PAID" : "PARTIALLY_PAID" },
     });
+    // Flip fully-covered installments PENDING→COMPLETED in the same tx.
+    await allocatePaidAmountToInstallments(tx, payment.invoiceId, Number(inv.paidAmount));
     return true;
   });
 

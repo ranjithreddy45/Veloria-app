@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { Upload, CheckCircle2, AlertTriangle, XCircle, Loader2, FileSpreadsheet, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  previewImport, commitImport, IMPORT_COLUMNS,
+  previewImport, commitImport,
   type ImportRowInput, type ImportPreview,
 } from "@/actions/hr-import.actions";
+import { IMPORT_COLUMNS } from "@/lib/hr/import-columns";
 
 // Minimal RFC-4180-ish CSV parser (handles quoted fields, commas, newlines).
 function parseCsv(text: string): ImportRowInput[] {

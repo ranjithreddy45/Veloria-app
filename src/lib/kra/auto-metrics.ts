@@ -60,7 +60,7 @@ export async function resolveAutoMetrics(employeeId: string, role: KraRole, peri
     // Proposal conversion = quotations that became bookings / quotations sent.
     const sent = await safe(() => prisma.salesQuotation.count({ where: { createdById: employeeId, sentAt: inMonth } }), null);
     const converted = await safe(() => prisma.salesQuotation.count({ where: { createdById: employeeId, sentAt: inMonth, OR: [{ status: "APPROVED" }, { bookingId: { not: null } }] } }), null);
-    m.proposal_conversion = sent && sent > 0 ? Math.round(((converted ?? 0) / sent) * 100) : 0;
+    m.proposal_conversion = sent && sent > 0 ? Math.min(100, Math.round(((converted ?? 0) / sent) * 100)) : 0;
 
     if (role === "INSIDE_SALES") {
       // First-response SLA: of leads this rep owns that arrived this month and
