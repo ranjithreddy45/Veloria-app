@@ -35,7 +35,7 @@ export function PageHeader({
           </div>
         )}
         <div className="flex items-center gap-2">
-          <h1 className="text-[24px] font-semibold leading-none tracking-[-0.025em] text-foreground">
+          <h1 className="text-[26px] font-medium leading-[1.12] tracking-[-0.01em] text-foreground">
             {title}
           </h1>
           {help}
