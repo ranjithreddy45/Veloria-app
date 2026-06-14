@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PlusIcon, Building2 } from "lucide-react";
-import { getHallOwners, computeAnnualPipeline } from "@/actions/hall-owner.actions";
+import { getHallOwners } from "@/actions/hall-owner.actions";
+import { computeAnnualPipeline } from "@/lib/acq/pipeline";
 import { PageHeader } from "@/components/layout/page-header";
 import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
