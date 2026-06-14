@@ -251,6 +251,36 @@ export const sidebarNavigation: NavItem[] = [
       },
     ],
   },
+  // New operational modules (banded under Delivery & Ops / Sales).
+  {
+    title: "Event Operations",
+    href: "/beo",
+    icon: "ClipboardList",
+    permissions: ["beo:read", "kitchen:read"],
+    children: [
+      { title: "Function Sheets (BEO)", href: "/beo", icon: "FileText", permissions: ["beo:read"] },
+      { title: "Kitchen & F&B", href: "/kitchen", icon: "UtensilsCrossed", permissions: ["kitchen:read"] },
+    ],
+  },
+  {
+    title: "Supply Chain",
+    href: "/procurement",
+    icon: "Package",
+    permissions: ["procurement:read", "logistics:read"],
+    children: [
+      { title: "Procurement", href: "/procurement", icon: "Package", permissions: ["procurement:read"] },
+      { title: "Logistics & Dispatch", href: "/logistics", icon: "Truck", permissions: ["logistics:read"] },
+    ],
+  },
+  {
+    title: "Support",
+    href: "/support",
+    icon: "Inbox",
+    permissions: ["support:read"],
+    children: [
+      { title: "Tickets", href: "/support", icon: "Inbox", permissions: ["support:read"] },
+    ],
+  },
   {
     title: "Recruitment",
     href: "/recruitment",

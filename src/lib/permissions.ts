@@ -92,6 +92,17 @@ export type Permission =
   | "operations:read"
   | "operations:create"
   | "operations:update"
+  // Event Operations + supply chain + support (new ops modules)
+  | "beo:read"
+  | "beo:write"
+  | "kitchen:read"
+  | "kitchen:write"
+  | "procurement:read"
+  | "procurement:write"
+  | "support:read"
+  | "support:write"
+  | "logistics:read"
+  | "logistics:write"
   // Projects (venue readiness)
   | "projects:read"
   | "projects:create"
@@ -343,6 +354,16 @@ export const ALL_PERMISSIONS: Permission[] = [
   "operations:read",
   "operations:create",
   "operations:update",
+  "beo:read",
+  "beo:write",
+  "kitchen:read",
+  "kitchen:write",
+  "procurement:read",
+  "procurement:write",
+  "support:read",
+  "support:write",
+  "logistics:read",
+  "logistics:write",
   "projects:read",
   "projects:create",
   "projects:update",
@@ -701,6 +722,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
 
   SALES_EXEC: [
     "performance:read", // own KRA scorecard + performance area
+    "support:read", "support:write", // field customer issues
     "contacts:read",
     "contacts:create",
     "contacts:update",
@@ -814,6 +836,8 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   ],
 
   EVENT_COORDINATOR: [
+    "beo:read", "beo:write", "kitchen:read", "kitchen:write",
+    "support:read", "support:write", "logistics:read",
     "contacts:read",
     "leads:read",
     "bookings:read",
@@ -875,6 +899,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   ],
 
   FINANCE: [
+    "procurement:read", "procurement:write",
     "contacts:read",
     "bookings:read",
     "invoices:read",
@@ -966,6 +991,9 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "contacts:read",
   ],
   OPERATIONS: [
+    "beo:read", "beo:write", "kitchen:read", "kitchen:write",
+    "procurement:read", "procurement:write", "support:read", "support:write",
+    "logistics:read", "logistics:write",
     "dashboard:read",
     "owners:read",
     "operations:read",
@@ -1063,6 +1091,11 @@ export const ROUTE_PERMISSIONS: { prefix: string; permission: Permission }[] = [
   { prefix: "/invoices", permission: "invoices:read" },
   { prefix: "/payments", permission: "payments:read" },
   { prefix: "/finance", permission: "finance:read" },
+  { prefix: "/beo", permission: "beo:read" },
+  { prefix: "/kitchen", permission: "kitchen:read" },
+  { prefix: "/procurement", permission: "procurement:read" },
+  { prefix: "/support", permission: "support:read" },
+  { prefix: "/logistics", permission: "logistics:read" },
   { prefix: "/payouts", permission: "payouts:read" },
   { prefix: "/commissions", permission: "commissions:read" },
   { prefix: "/insurance", permission: "insurance:read" },
