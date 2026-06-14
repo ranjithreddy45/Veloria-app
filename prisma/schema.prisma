@@ -5802,3 +5802,135 @@ model RecApplication {
   @@index([jobOpeningId])
   @@index([candidateId])
 }
+
+// ============================================================
+// Finance W6–W13 — budgets, fixed assets, payroll, anomalies.
+// All Fin*-prefixed. GL-posting flows go through postJournalEntry (ledger.ts);
+// the deferred balance trigger rejects any unbalanced entry at the DB layer.
+// ============================================================
+
+model FinBudget {
+  id          String          @id @default(cuid())
+  entityId    String          @default("BILLION")
+  fy          String
+  name        String
+  status      String          @default("ACTIVE") // ACTIVE | ARCHIVED
+  createdById String?
+  createdAt   DateTime        @default(now())
+  lines       FinBudgetLine[]
+
+  @@index([fy])
+}
+
+model FinBudgetLine {
+  id          String    @id @default(cuid())
+  budgetId    String
+  budget      FinBudget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  accountCode String // FinAccount.code
+  period      Int       @default(0) // 0 = annual, 1–12 = month (Apr=1)
+  amount      Decimal   @db.Decimal(18, 2)
+
+  @@index([budgetId])
+}
+
+model FinAsset {
+  id              String                 @id @default(cuid())
+  entityId        String                 @default("BILLION")
+  name            String
+  category        String? // Fit-out, Equipment, Furniture…
+  cost            Decimal                @db.Decimal(18, 2)
+  salvageValue    Decimal                @default(0) @db.Decimal(18, 2)
+  purchaseDate    DateTime
+  usefulLifeMonths Int                   @default(60)
+  method          String                 @default("STRAIGHT_LINE")
+  accumulatedDep  Decimal                @default(0) @db.Decimal(18, 2)
+  status          String                 @default("ACTIVE") // ACTIVE | DISPOSED | FULLY_DEPRECIATED
+  venueId         String?
+  createdById     String?
+  createdAt       DateTime               @default(now())
+  depreciation    FinDepreciationEntry[]
+
+  @@index([status])
+}
+
+model FinDepreciationEntry {
+  id             String   @id @default(cuid())
+  assetId        String
+  asset          FinAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  date           DateTime
+  amount         Decimal  @db.Decimal(18, 2)
+  journalEntryId String?
+  createdAt      DateTime @default(now())
+
+  @@index([assetId])
+}
+
+model FinEmployee {
+  id          String       @id @default(cuid())
+  entityId    String       @default("BILLION")
+  name        String
+  designation String?
+  department  String?
+  ctcMonthly  Decimal      @db.Decimal(18, 2)
+  basicPct    Int          @default(50) // % of gross treated as basic (for PF)
+  pan         String?
+  bankLast4   String?
+  isActive    Boolean      @default(true)
+  createdById String?
+  createdAt   DateTime     @default(now())
+  payslips    FinPayslip[]
+
+  @@index([isActive])
+}
+
+model FinPayrollRun {
+  id             String       @id @default(cuid())
+  entityId       String       @default("BILLION")
+  fy             String
+  period         Int // month, Apr=1
+  label          String // e.g. "Apr 2026"
+  status         String       @default("DRAFT") // DRAFT | POSTED
+  totalGross     Decimal      @default(0) @db.Decimal(18, 2)
+  totalDeductions Decimal     @default(0) @db.Decimal(18, 2)
+  totalNet       Decimal      @default(0) @db.Decimal(18, 2)
+  journalEntryId String?
+  createdById    String?
+  createdAt      DateTime     @default(now())
+  payslips       FinPayslip[]
+
+  @@unique([fy, period])
+}
+
+model FinPayslip {
+  id         String        @id @default(cuid())
+  runId      String
+  run        FinPayrollRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  employeeId String
+  employee   FinEmployee   @relation(fields: [employeeId], references: [id])
+  gross      Decimal       @db.Decimal(18, 2)
+  tds        Decimal       @default(0) @db.Decimal(18, 2)
+  pf         Decimal       @default(0) @db.Decimal(18, 2)
+  esi        Decimal       @default(0) @db.Decimal(18, 2)
+  pt         Decimal       @default(0) @db.Decimal(18, 2)
+  net        Decimal       @db.Decimal(18, 2)
+  createdAt  DateTime      @default(now())
+
+  @@index([runId])
+}
+
+model FinAnomaly {
+  id           String   @id @default(cuid())
+  entityId     String   @default("BILLION")
+  type         String // DUPLICATE_PAYMENT | ROUND_AMOUNT | WEEKEND_LARGE | UNBALANCED | OUTLIER
+  severity     String   @default("MEDIUM") // LOW | MEDIUM | HIGH
+  message      String
+  refType      String? // PAYMENT | JOURNAL | INVOICE…
+  refId        String?
+  amount       Decimal? @db.Decimal(18, 2)
+  status       String   @default("OPEN") // OPEN | RESOLVED | IGNORED
+  detectedAt   DateTime @default(now())
+  resolvedById String?
+
+  @@index([status])
+  @@index([type])
+}

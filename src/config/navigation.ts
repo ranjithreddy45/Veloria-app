@@ -375,6 +375,13 @@ export const sidebarNavigation: NavItem[] = [
         icon: "TrendingUp",
         permissions: ["finance:read"],
       },
+      { title: "Tax & Compliance", href: "/finance/tax", icon: "Percent", permissions: ["finance:read"] },
+      { title: "Cash Flow", href: "/finance/cash-flow", icon: "LineChart", permissions: ["finance:read"] },
+      { title: "Command Center", href: "/finance/command-center", icon: "Gauge", permissions: ["finance:read"] },
+      { title: "Budgets", href: "/finance/budgets", icon: "Calculator", permissions: ["finance:read"] },
+      { title: "Fixed Assets", href: "/finance/assets", icon: "Boxes", permissions: ["finance:read"] },
+      { title: "Payroll", href: "/finance/payroll", icon: "Banknote", permissions: ["finance:read"] },
+      { title: "Anomalies", href: "/finance/anomalies", icon: "ShieldCheck", permissions: ["finance:read"] },
       {
         title: "Invoices",
         href: "/invoices",
