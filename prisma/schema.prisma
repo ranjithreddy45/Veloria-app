@@ -5701,3 +5701,104 @@ model FinReconRule {
 
   @@index([entityId])
 }
+
+// ============================================================
+// Recruitment / ATS module (Rec*-prefixed to avoid collisions).
+// Job openings → candidates → applications (candidate × opening, staged).
+// User links are stored as plain IDs and resolved in the action layer, so the
+// large User model needs no back-relations.
+// ============================================================
+
+enum RecJobStatus {
+  IN_PROGRESS
+  ON_HOLD
+  INACTIVE
+  FILLED
+  CANCELLED
+}
+
+enum RecCandidateStage {
+  NEW
+  IN_REVIEW
+  AVAILABLE
+  ENGAGED
+  OFFERED
+  HIRED
+  REJECTED
+}
+
+// Application pipeline stages (the Hiring Pipeline columns).
+enum RecAppStage {
+  SCREENING
+  SUBMISSIONS
+  INTERVIEW
+  OFFERED
+  HIRED
+  REJECTED
+  ARCHIVED
+}
+
+model RecJobOpening {
+  id                 String       @id @default(cuid())
+  entityId           String       @default("BILLION")
+  postingTitle       String
+  department         String?
+  city               String?
+  hiringManagerId    String? // User id (resolved in action layer)
+  assignedRecruiterId String? // User id
+  targetDate         DateTime?
+  status             RecJobStatus @default(IN_PROGRESS)
+  numberOfPositions  Int          @default(1)
+  description        String?      @db.Text
+  filledAt           DateTime?
+  createdById        String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  applications RecApplication[]
+
+  @@index([status])
+  @@index([department])
+}
+
+model RecCandidate {
+  id          String            @id @default(cuid())
+  entityId    String            @default("BILLION")
+  firstName   String
+  lastName    String
+  email       String?
+  phone       String?
+  city        String?
+  source      String? // Imported, Referral, Career site, LinkedIn…
+  rating      Int               @default(0) // 0–5
+  stage       RecCandidateStage @default(NEW)
+  ownerId     String? // User id
+  resumeUrl   String?           @db.Text
+  notes       String?           @db.Text
+  createdById String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  applications RecApplication[]
+
+  @@index([stage])
+  @@index([ownerId])
+}
+
+model RecApplication {
+  id           String        @id @default(cuid())
+  candidateId  String
+  candidate    RecCandidate  @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  jobOpeningId String
+  jobOpening   RecJobOpening @relation(fields: [jobOpeningId], references: [id], onDelete: Cascade)
+  stage        RecAppStage   @default(SCREENING)
+  rating       Int           @default(0)
+  createdById  String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@unique([candidateId, jobOpeningId])
+  @@index([stage])
+  @@index([jobOpeningId])
+  @@index([candidateId])
+}

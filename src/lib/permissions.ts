@@ -103,6 +103,8 @@ export type Permission =
   | "hr:write"
   | "hr:admin"
   | "hr:approve"
+  | "recruit:read"
+  | "recruit:write"
   | "hr:statutory"
   // Menu
   | "menu:read"
@@ -350,6 +352,8 @@ export const ALL_PERMISSIONS: Permission[] = [
   "hr:write",
   "hr:admin",
   "hr:approve",
+  "recruit:read",
+  "recruit:write",
   "hr:statutory",
   "menu:read",
   "menu:create",
@@ -560,6 +564,8 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "hr:admin",
     "hr:approve",
     "hr:statutory",
+    "recruit:read",
+    "recruit:write",
     "menu:read",
     "menu:create",
     "menu:update",
@@ -944,6 +950,8 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "hr:admin",
     "hr:approve",
     "hr:statutory",
+    "recruit:read",
+    "recruit:write",
     "analytics:read",
   ],
   HR_EXECUTIVE: [
@@ -951,6 +959,8 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "hr:read",
     "hr:write",
     "hr:approve",
+    "recruit:read",
+    "recruit:write",
   ],
   AUDITOR: [
     "dashboard:read",
@@ -971,6 +981,7 @@ export const ROUTE_PERMISSIONS: { prefix: string; permission: Permission }[] = [
   { prefix: "/bd", permission: "owners:read" },
   { prefix: "/projects", permission: "projects:read" },
   { prefix: "/people", permission: "hr:read" },
+  { prefix: "/recruitment", permission: "recruit:read" },
   { prefix: "/owners", permission: "owners:read" },
   { prefix: "/leads", permission: "leads:read" },
   { prefix: "/pipeline", permission: "pipeline:read" },

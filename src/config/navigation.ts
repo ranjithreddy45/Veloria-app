@@ -252,6 +252,18 @@ export const sidebarNavigation: NavItem[] = [
     ],
   },
   {
+    title: "Recruitment",
+    href: "/recruitment",
+    icon: "Briefcase",
+    permissions: ["recruit:read"],
+    children: [
+      { title: "Overview", href: "/recruitment", icon: "Gauge", permissions: ["recruit:read"] },
+      { title: "Job Openings", href: "/recruitment/jobs", icon: "Briefcase", permissions: ["recruit:read"] },
+      { title: "Candidates", href: "/recruitment/candidates", icon: "Users", permissions: ["recruit:read"] },
+      { title: "Applications", href: "/recruitment/applications", icon: "ClipboardList", permissions: ["recruit:read"] },
+    ],
+  },
+  {
     title: "People",
     href: "/people",
     icon: "Users",
