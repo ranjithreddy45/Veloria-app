@@ -459,9 +459,12 @@ export function Candidates({
                             </AvatarFallback>
                           </Avatar>
                           <div className="min-w-0 leading-tight">
-                            <span className="block truncate text-[13px] font-medium text-foreground">
+                            <a
+                              href={`/recruitment/candidates/${row.id}`}
+                              className="block truncate text-[13px] font-medium text-foreground hover:text-primary hover:underline"
+                            >
                               {row.name}
-                            </span>
+                            </a>
                             {row.email && (
                               <span className="block truncate text-[11.5px] text-muted-foreground">
                                 {row.email}

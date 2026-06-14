@@ -966,6 +966,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "dashboard:read",
     "hr:read",
     "analytics:read",
+    "finance:read", // accountant portal — read-only access to Finance
   ],
 };
 

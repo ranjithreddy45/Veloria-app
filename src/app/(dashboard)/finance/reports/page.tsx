@@ -3,6 +3,7 @@ import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
 import { getProfitAndLoss, getBalanceSheet, getTrialBalance, getFinFiscalYears } from "@/actions/finance.actions";
 import { FinanceReports } from "../_components/finance-reports";
+import { InvestorPackButton } from "../_components/investor-pack-button";
 
 export const metadata = { title: "Finance Reports · Veloria Grand" };
 
@@ -23,9 +24,12 @@ export default async function FinanceReportsPage({ searchParams }: { searchParam
 
   return (
     <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Financial reports</h1>
-        <p className="text-sm text-muted-foreground">Profit &amp; Loss, Balance Sheet and Trial Balance — derived live from the posted ledger.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Financial reports</h1>
+          <p className="text-sm text-muted-foreground">Profit &amp; Loss, Balance Sheet and Trial Balance — derived live from the posted ledger.</p>
+        </div>
+        <InvestorPackButton fy={fy} />
       </div>
       <FinanceReports fy={fy} fiscalYears={fiscalYears} pl={pl} bs={bs} tb={tb} />
     </div>

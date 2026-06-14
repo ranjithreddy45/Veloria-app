@@ -5934,3 +5934,77 @@ model FinAnomaly {
   @@index([status])
   @@index([type])
 }
+
+// ============================================================
+// Finishing wave — e-invoice (mock adapter), recruitment interviews/offers.
+// Relationless FK strings (indexed) so no back-relations on big/Rec* models.
+// ============================================================
+
+enum FinEInvoiceStatus {
+  PENDING
+  GENERATED
+  CANCELLED
+  FAILED
+}
+
+model FinEInvoice {
+  id          String            @id @default(cuid())
+  invoiceId   String            @unique
+  irn         String? // Invoice Reference Number (IRP)
+  ackNo       String?
+  qrData      String?           @db.Text
+  status      FinEInvoiceStatus @default(PENDING)
+  errorMsg    String?
+  generatedAt DateTime?
+  createdById String?
+  createdAt   DateTime          @default(now())
+
+  @@index([status])
+}
+
+enum RecInterviewStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+model RecInterview {
+  id            String             @id @default(cuid())
+  candidateId   String
+  applicationId String?
+  round         String // Phone | Technical | HR | Final
+  mode          String             @default("VIDEO") // IN_PERSON | VIDEO | PHONE
+  scheduledAt   DateTime
+  interviewerId String? // User id
+  status        RecInterviewStatus @default(SCHEDULED)
+  rating        Int                @default(0)
+  feedback      String?            @db.Text
+  createdById   String?
+  createdAt     DateTime           @default(now())
+
+  @@index([candidateId])
+  @@index([scheduledAt])
+}
+
+enum RecOfferStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  DECLINED
+  WITHDRAWN
+}
+
+model RecOffer {
+  id           String         @id @default(cuid())
+  candidateId  String
+  jobOpeningId String?
+  ctc          Decimal        @db.Decimal(18, 2)
+  joiningDate  DateTime?
+  status       RecOfferStatus @default(DRAFT)
+  notes        String?        @db.Text
+  createdById  String?
+  createdAt    DateTime       @default(now())
+
+  @@index([candidateId])
+}

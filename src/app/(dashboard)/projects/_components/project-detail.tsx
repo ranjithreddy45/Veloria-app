@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   ArrowLeft, CheckCircle2, Building2, ClipboardCheck, Calculator,
-  ShieldCheck, FileText, Rocket, Download, Lock, Undo2, BadgeCheck, AlertTriangle,
+  ShieldCheck, FileText, Rocket, Lock, Undo2, BadgeCheck, AlertTriangle,
 } from "lucide-react";
 import {
   requestOpsAudit, approveCapex, rejectCapex, sendCapex,
@@ -22,6 +22,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { CapexCalculator } from "./capex-calculator";
+import { CapexVersionCard } from "./capex-version-card";
 import { SnagBoard } from "./snag-board";
 import { WorkflowStepper, type Step } from "./workflow-stepper";
 import { ReadinessPanel } from "./readiness-panel";
@@ -237,37 +238,28 @@ export function ProjectDetail({ project, perms }: { project: any; perms: Perms }
             </Card>
           )}
           {capexes.length > 0 && (
-            <Card>
-              <CardHeader><CardTitle className="text-base">All versions</CardTitle></CardHeader>
-              <CardContent className="space-y-2">
-                {capexes.map((c) => (
-                  <div key={c.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-2 text-sm">
-                    <div>
-                      <span className="font-medium">v{c.version}</span> · <span className="tabular-nums">{inr(c.totalCapex)}</span> · {c.estimatedWeeks} wks
-                      <StatusPill label={c.status.replace("_", " ")} hue={c.status === "APPROVED" || c.status === "SENT" ? "emerald" : c.status === "PENDING_APPROVAL" ? "amber" : "slate"} size="xs" className="ml-2" />
-                    </div>
-                    <div className="flex gap-2">
-                      {(c.status === "APPROVED" || c.status === "SENT") && (
-                        <Button asChild variant="outline" size="sm"><a href={`/api/projects/capex/${c.id}/pdf`} target="_blank" rel="noopener noreferrer"><Download className="h-4 w-4" /> PDF</a></Button>
-                      )}
-                      {c.status === "PENDING_APPROVAL" && perms.canApprove && (
-                        <>
-                          <Button size="sm" disabled={busy === c.id} onClick={() => run(c.id, () => approveCapex(c.id), "Approved.")}><CheckCircle2 className="h-4 w-4" /> Approve</Button>
-                          <Button size="sm" variant="outline" disabled={busy === c.id} onClick={() => { const r = prompt("Reason to return for changes?"); if (r) run(c.id, () => rejectCapex(c.id, r), "Returned."); }}>Return</Button>
-                        </>
-                      )}
-                      {(c.status === "APPROVED" || c.status === "SENT") && perms.canUpdate && (
-                        <Button size="sm" disabled={busy === c.id} onClick={() => {
-                          if (confirm(`Email this CapEx projection (v${c.version}, ${inr(c.totalCapex)}) to the owner?`)) {
-                            run(c.id, () => sendCapex(c.id, { channel: "EMAIL" }), "Sent to owner.");
-                          }
-                        }}>Send to owner</Button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+            <div className="space-y-3">
+              <h3 className="text-sm font-medium text-muted-foreground">All versions</h3>
+              {capexes.map((c) => (
+                <CapexVersionCard
+                  key={c.id}
+                  capex={c}
+                  busy={busy === c.id}
+                  canApprove={perms.canApprove}
+                  canUpdate={perms.canUpdate}
+                  onApprove={() => run(c.id, () => approveCapex(c.id), "Approved.")}
+                  onReturn={() => {
+                    const r = prompt("Reason to return for changes?");
+                    if (r) run(c.id, () => rejectCapex(c.id, r), "Returned.");
+                  }}
+                  onSend={() => {
+                    if (confirm(`Email this CapEx projection (v${c.version}, ${inr(c.totalCapex)}) to the owner?`)) {
+                      run(c.id, () => sendCapex(c.id, { channel: "EMAIL" }), "Sent to owner.");
+                    }
+                  }}
+                />
+              ))}
+            </div>
           )}
           {perms.canUpdate && (draftCapex || !approvedCapex) && (
             <Card>
