@@ -8,6 +8,7 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fraunces), ui-serif, Georgia, "Times New Roman", serif;
   --font-mono: var(--font-geist-mono);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -75,11 +76,11 @@
 
   /* Surfaces — neutral, no color cast */
   --background: oklch(1 0 0);              /* pure white */
-  --foreground: oklch(0.205 0 0);          /* zinc-900 */
+  --foreground: oklch(0.21 0.014 312);          /* zinc-900 */
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.205 0 0);
+  --card-foreground: oklch(0.21 0.014 312);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.21 0.014 312);
 
   /* Single restrained indigo accent (#4f46e5 ballpark) */
   --primary: oklch(0.52 0.18 270);
@@ -87,11 +88,11 @@
 
   /* Quiet secondary / muted */
   --secondary: oklch(0.97 0 0);            /* zinc-50 */
-  --secondary-foreground: oklch(0.205 0 0);
+  --secondary-foreground: oklch(0.21 0.014 312);
   --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.55 0 0);     /* zinc-500 */
+  --muted-foreground: oklch(0.52 0.016 312); /* softer, faintly warm gray */
   --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --accent-foreground: oklch(0.21 0.014 312);
 
   --destructive: oklch(0.55 0.2 27);
 
@@ -120,7 +121,7 @@
   --sidebar-primary: oklch(0.52 0.18 270);
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.94 0 0);       /* hover */
-  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-accent-foreground: oklch(0.21 0.014 312);
   --sidebar-border: oklch(0.92 0 0);
   --sidebar-ring: oklch(0.52 0.18 270);
 }
@@ -192,14 +193,17 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-  h1 { font-size: 1.5rem; line-height: 1.2; letter-spacing: -0.022em; font-weight: 600; }
-  h2 { font-size: 1.125rem; line-height: 1.3; letter-spacing: -0.014em; font-weight: 600; }
+  /* Headings use the editorial serif for a premium, hospitality feel.
+   * Body / UI text stays Inter for clarity at small sizes. */
+  h1 { font-family: var(--font-fraunces), ui-serif, Georgia, "Times New Roman", serif; font-size: 1.6rem; line-height: 1.15; letter-spacing: -0.01em; font-weight: 560; }
+  h2 { font-family: var(--font-fraunces), ui-serif, Georgia, "Times New Roman", serif; font-size: 1.2rem; line-height: 1.25; letter-spacing: -0.006em; font-weight: 560; }
   h3 { font-size: 0.9375rem; line-height: 1.4; letter-spacing: -0.008em; font-weight: 600; }
   /* Tabular numerals everywhere a number reads */
   .tabular-nums, [class*="tabular"] {
     font-variant-numeric: tabular-nums;
   }
 }
+
 
 /*
  * ============================================================
