@@ -4,7 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { FileTextIcon, UtensilsCrossedIcon, Loader2Icon } from "lucide-react";
+import {
+  FileTextIcon,
+  UtensilsCrossedIcon,
+  Loader2Icon,
+  FileSignatureIcon,
+  ShoppingCartIcon,
+  TruckIcon,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { createBeo } from "@/actions/beo.actions";
@@ -23,9 +30,10 @@ interface Props {
   covers: number;
   beoId: string | null;
   kitchenPlanId: string | null;
+  contractId: string | null;
 }
 
-export function BookingOpsLinks({ bookingId, covers, beoId, kitchenPlanId }: Props) {
+export function BookingOpsLinks({ bookingId, covers, beoId, kitchenPlanId, contractId }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState<null | "beo" | "kitchen">(null);
 
@@ -100,6 +108,36 @@ export function BookingOpsLinks({ bookingId, covers, beoId, kitchenPlanId }: Pro
           Create Kitchen Plan
         </Button>
       )}
+
+      {contractId ? (
+        <Button variant="outline" size="sm" asChild>
+          <Link href={`/contracts/${contractId}`}>
+            <FileSignatureIcon className="mr-1.5 size-4" />
+            Contract
+          </Link>
+        </Button>
+      ) : (
+        <Button variant="outline" size="sm" asChild>
+          <Link href={`/contracts/new?bookingId=${bookingId}`}>
+            <FileSignatureIcon className="mr-1.5 size-4" />
+            Create Contract
+          </Link>
+        </Button>
+      )}
+
+      <Button variant="outline" size="sm" asChild>
+        <Link href={`/procurement?bookingId=${bookingId}`}>
+          <ShoppingCartIcon className="mr-1.5 size-4" />
+          Raise Procurement
+        </Link>
+      </Button>
+
+      <Button variant="outline" size="sm" asChild>
+        <Link href={`/logistics?bookingId=${bookingId}`}>
+          <TruckIcon className="mr-1.5 size-4" />
+          Create Dispatch
+        </Link>
+      </Button>
     </>
   );
 }

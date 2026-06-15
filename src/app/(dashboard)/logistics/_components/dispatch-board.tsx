@@ -57,13 +57,20 @@ export function DispatchBoard({
   dispatches,
   events,
   canWrite,
+  initialBookingId,
 }: {
   dispatches: DispatchDTO[];
   events: EventOption[];
   canWrite: boolean;
+  initialBookingId?: string | null;
 }) {
   const router = useRouter();
   const [dialogOpen, setDialogOpen] = React.useState(false);
+
+  // Auto-open the New Dispatch dialog when arriving from a booking.
+  React.useEffect(() => {
+    if (canWrite && initialBookingId) setDialogOpen(true);
+  }, [canWrite, initialBookingId]);
 
   const stats = React.useMemo(() => {
     const planned = dispatches.filter((d) => d.status === "PLANNED").length;
@@ -116,6 +123,7 @@ export function DispatchBoard({
             open={dialogOpen}
             onOpenChange={setDialogOpen}
             events={events}
+            initialBookingId={initialBookingId}
             trigger={
               <Button size="sm">
                 <Plus className="size-4" /> New dispatch
@@ -209,16 +217,18 @@ function NewDispatchDialog({
   onOpenChange,
   events,
   trigger,
+  initialBookingId,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   events: EventOption[];
   trigger: React.ReactNode;
+  initialBookingId?: string | null;
 }) {
   const router = useRouter();
   const [submitting, setSubmitting] = React.useState(false);
 
-  const [bookingId, setBookingId] = React.useState("");
+  const [bookingId, setBookingId] = React.useState(initialBookingId ?? "");
   const [fromLocation, setFromLocation] = React.useState("");
   const [toLocation, setToLocation] = React.useState("");
   const [scheduledAt, setScheduledAt] = React.useState("");

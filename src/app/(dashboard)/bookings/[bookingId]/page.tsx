@@ -81,7 +81,7 @@ export default async function BookingDetailPage({
   const opsReady = ["CONFIRMED", "IN_PROGRESS", "COMPLETED"].includes(
     booking.status
   );
-  const [existingBeo, existingKitchen] = opsReady
+  const [existingBeo, existingKitchen, existingContract] = opsReady
     ? await Promise.all([
         prisma.beo.findFirst({
           where: { bookingId: booking.id },
@@ -93,8 +93,13 @@ export default async function BookingDetailPage({
           select: { id: true },
           orderBy: { createdAt: "desc" },
         }),
+        prisma.contract.findFirst({
+          where: { bookingId: booking.id },
+          select: { id: true },
+          orderBy: { createdAt: "desc" },
+        }),
       ])
-    : [null, null];
+    : [null, null, null];
 
   return (
     <div className="space-y-6">
@@ -193,6 +198,7 @@ export default async function BookingDetailPage({
             covers={booking.guestCount}
             beoId={existingBeo?.id ?? null}
             kitchenPlanId={existingKitchen?.id ?? null}
+            contractId={existingContract?.id ?? null}
           />
         )}
       </div>

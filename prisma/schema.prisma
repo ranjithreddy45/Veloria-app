@@ -6141,6 +6141,7 @@ model PurchaseRequisition {
   prNumber      String                    @unique
   title         String
   status        String                    @default("PENDING") // PENDING | APPROVED | ORDERED | RECEIVED | REJECTED
+  bookingId     String? // optional event link (procurement raised for a specific booking)
   vendorId      String?
   department    String?
   neededBy      DateTime?
@@ -6156,6 +6157,7 @@ model PurchaseRequisition {
   items         PurchaseRequisitionItem[]
 
   @@index([status])
+  @@index([bookingId])
 }
 
 model PurchaseRequisitionItem {

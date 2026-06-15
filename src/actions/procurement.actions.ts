@@ -205,6 +205,7 @@ async function allocatePrNumber(): Promise<string> {
 // ------------------------------------------------------------
 export async function createPurchaseRequisition(input: {
   title: string;
+  bookingId?: string | null;
   vendorId?: string | null;
   department?: string | null;
   neededBy?: string | null;
@@ -238,6 +239,7 @@ export async function createPurchaseRequisition(input: {
           prNumber,
           title,
           status: "PENDING",
+          bookingId: input.bookingId || null,
           vendorId: input.vendorId || null,
           department: input.department?.trim() || null,
           neededBy,

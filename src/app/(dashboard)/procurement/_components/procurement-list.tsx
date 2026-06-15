@@ -42,9 +42,11 @@ const NO_VENDOR = "__none__";
 export function ProcurementList({
   requisitions,
   canWrite,
+  presetBooking,
 }: {
   requisitions: PRDTO[];
   canWrite: boolean;
+  presetBooking?: { id: string; label: string } | null;
 }) {
   const open = requisitions.filter((r) => r.status !== "RECEIVED" && r.status !== "REJECTED").length;
   const pending = requisitions.filter((r) => r.status === "PENDING").length;
@@ -74,7 +76,7 @@ export function ProcurementList({
         <CardContent className="p-0">
           <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
             <h2 className="text-sm font-semibold">All requisitions</h2>
-            {canWrite && <NewRequisitionDialog />}
+            {canWrite && <NewRequisitionDialog presetBooking={presetBooking ?? null} />}
           </div>
 
           {requisitions.length === 0 ? (
@@ -139,19 +141,24 @@ function emptyItem(): DraftItem {
   return { name: "", quantity: "1", unit: "", unitPrice: "0" };
 }
 
-function NewRequisitionDialog() {
+function NewRequisitionDialog({ presetBooking }: { presetBooking?: { id: string; label: string } | null }) {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [vendors, setVendors] = React.useState<{ id: string; name: string }[]>([]);
   const [loadingVendors, setLoadingVendors] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
 
-  const [title, setTitle] = React.useState("");
+  const [title, setTitle] = React.useState(presetBooking ? `Procurement — ${presetBooking.label}` : "");
   const [vendorId, setVendorId] = React.useState(NO_VENDOR);
   const [department, setDepartment] = React.useState("");
   const [neededBy, setNeededBy] = React.useState("");
   const [notes, setNotes] = React.useState("");
   const [items, setItems] = React.useState<DraftItem[]>([emptyItem()]);
+
+  // Auto-open + prefill when arriving from a booking ("Raise Procurement").
+  React.useEffect(() => {
+    if (presetBooking) setOpen(true);
+  }, [presetBooking]);
 
   React.useEffect(() => {
     if (!open || vendors.length > 0) return;
@@ -213,6 +220,7 @@ function NewRequisitionDialog() {
     setSubmitting(true);
     const res = await createPurchaseRequisition({
       title: title.trim(),
+      bookingId: presetBooking?.id ?? null,
       vendorId: vendorId === NO_VENDOR ? null : vendorId,
       department: department.trim() || null,
       neededBy: neededBy || null,
@@ -250,6 +258,11 @@ function NewRequisitionDialog() {
         </DialogHeader>
 
         <div className="flex max-h-[60vh] flex-col gap-4 overflow-y-auto py-1 pr-1">
+          {presetBooking && (
+            <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs text-indigo-800 dark:border-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-300">
+              Linked to event <span className="font-medium">{presetBooking.label}</span>
+            </div>
+          )}
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="pr-title">Title</Label>
             <Input
