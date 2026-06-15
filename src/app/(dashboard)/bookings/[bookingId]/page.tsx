@@ -506,18 +506,31 @@ export default async function BookingDetailPage({
                   Invoices
                 </span>
               </CardTitle>
+              <Button size="sm" asChild>
+                <Link href={`/invoices/new?bookingId=${booking.id}`}>
+                  <FileTextIcon className="mr-2 size-4" />
+                  Generate Invoice
+                </Link>
+              </Button>
             </CardHeader>
             <CardContent>
               {booking.invoices.length === 0 ? (
-                <p className="text-muted-foreground py-8 text-center text-sm">
-                  No invoices created for this booking yet.
-                </p>
+                <div className="text-muted-foreground py-8 text-center text-sm">
+                  <p>No invoices created for this booking yet.</p>
+                  <Button variant="outline" size="sm" className="mt-3" asChild>
+                    <Link href={`/invoices/new?bookingId=${booking.id}`}>
+                      <FileTextIcon className="mr-2 size-4" />
+                      Generate Invoice
+                    </Link>
+                  </Button>
+                </div>
               ) : (
                 <div className="space-y-3">
                   {booking.invoices.map((invoice) => (
-                      <div
+                      <Link
                         key={invoice.id}
-                        className="flex items-center justify-between rounded-lg border p-3"
+                        href={`/invoices/${invoice.id}`}
+                        className="hover:bg-muted/50 flex items-center justify-between rounded-lg border p-3 transition-colors"
                       >
                         <div>
                           <p className="font-medium">{invoice.invoiceNumber}</p>
@@ -544,7 +557,7 @@ export default async function BookingDetailPage({
                             colorMap={INVOICE_STATUS_COLORS}
                           />
                         </div>
-                      </div>
+                      </Link>
                     )
                   )}
                 </div>
