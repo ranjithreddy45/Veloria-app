@@ -135,6 +135,12 @@ export default async function InvoicePdfPage({ params }: InvoicePdfPageProps) {
           dangerouslySetInnerHTML={{
             __html: `
               window.onload = function() {
+                // Hide the brand logo gracefully if /logo.png isn't present yet.
+                document.querySelectorAll('img.brand-logo').forEach(function(i) {
+                  var hide = function() { i.style.display = 'none'; };
+                  i.onerror = hide;
+                  if (i.complete && i.naturalWidth === 0) hide();
+                });
                 if (window.location.search.includes('auto=1')) {
                   setTimeout(function() { window.print(); }, 500);
                 }
@@ -160,6 +166,13 @@ export default async function InvoicePdfPage({ params }: InvoicePdfPageProps) {
           {/* Header */}
           <div className="header">
             <div className="company">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/logo.png"
+                alt="Veloria Grand"
+                className="brand-logo"
+                style={{ height: "48px", width: "auto", marginBottom: "8px", display: "block" }}
+              />
               <h1>Veloria Grand</h1>
               <p>Premium Event & Banquet Services</p>
               <p>

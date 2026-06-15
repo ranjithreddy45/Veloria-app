@@ -57,12 +57,22 @@ export function KitchenDetail({
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <Link
-          href="/kitchen"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" /> All plans
-        </Link>
+        <div className="flex items-center justify-between gap-2">
+          <Link
+            href="/kitchen"
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="size-4" /> All plans
+          </Link>
+          {plan.beoId && (
+            <Link
+              href={`/beo/${plan.beoId}`}
+              className="inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+            >
+              View Function Sheet (BEO)
+            </Link>
+          )}
+        </div>
       </div>
 
       <Header plan={plan} canWrite={canWrite} onChange={refresh} />

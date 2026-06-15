@@ -13,7 +13,7 @@ import {
   MapPin,
 } from "lucide-react";
 
-import { createDispatch, type DispatchDTO } from "@/actions/logistics.actions";
+import { createDispatch, getInventoryOptions, type DispatchDTO } from "@/actions/logistics.actions";
 import { formatDate } from "@/lib/utils";
 
 import { StatTile } from "@/components/ui/stat-tile";
@@ -210,7 +210,8 @@ export function DispatchBoard({
 // ============================================================
 // New-dispatch dialog
 // ============================================================
-type DraftItem = { name: string; quantity: string; returnable: boolean };
+type DraftItem = { name: string; quantity: string; returnable: boolean; inventoryItemId?: string };
+type InvOption = { id: string; label: string; availableQty: number };
 
 function NewDispatchDialog({
   open,
@@ -238,6 +239,18 @@ function NewDispatchDialog({
   const [items, setItems] = React.useState<DraftItem[]>([
     { name: "", quantity: "1", returnable: true },
   ]);
+  const [invOptions, setInvOptions] = React.useState<InvOption[]>([]);
+
+  React.useEffect(() => {
+    if (!open) return;
+    let active = true;
+    getInventoryOptions().then((res) => {
+      if (active && res.success) setInvOptions(res.data);
+    });
+    return () => {
+      active = false;
+    };
+  }, [open]);
 
   function reset() {
     setBookingId("");
@@ -267,6 +280,7 @@ function NewDispatchDialog({
         name: it.name.trim(),
         quantity: Math.max(1, Number.parseInt(it.quantity, 10) || 1),
         returnable: it.returnable,
+        inventoryItemId: it.inventoryItemId || null,
       }))
       .filter((it) => it.name.length > 0);
     if (cleaned.length === 0) {
@@ -409,6 +423,30 @@ function NewDispatchDialog({
                       className="w-20"
                       aria-label="Quantity"
                     />
+                    {invOptions.length > 0 && (
+                      <select
+                        value={it.inventoryItemId ?? ""}
+                        onChange={(e) => {
+                          const id = e.target.value;
+                          const opt = invOptions.find((o) => o.id === id);
+                          setItem(idx, {
+                            inventoryItemId: id || undefined,
+                            ...(opt && !it.name.trim()
+                              ? { name: opt.label.split(" · ")[0] }
+                              : {}),
+                          });
+                        }}
+                        className="h-9 w-44 rounded-md border bg-background px-2 text-xs"
+                        aria-label="Link a stock item (auto-adjusts inventory)"
+                      >
+                        <option value="">No stock link</option>
+                        {invOptions.map((o) => (
+                          <option key={o.id} value={o.id}>
+                            {o.label}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                     <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Switch
                         checked={it.returnable}

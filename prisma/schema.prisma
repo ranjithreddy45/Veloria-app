@@ -6189,6 +6189,7 @@ model SupportTicket {
   assignedToId String?
   createdById  String
   resolvedAt   DateTime?
+  slaEscalatedAt DateTime? // SLA breach escalated (dedupe so we alert once)
   createdAt    DateTime               @default(now())
   updatedAt    DateTime               @updatedAt
   messages     SupportTicketMessage[]
@@ -6240,11 +6241,13 @@ model DispatchItem {
   dispatchId  String
   dispatch    DispatchOrder @relation(fields: [dispatchId], references: [id], onDelete: Cascade)
   name        String
+  inventoryItemId String?   // optional link to a stock item — drives auto stock movements
   quantity    Int           @default(1)
   returnable  Boolean       @default(true)
   returnedQty Int           @default(0)
 
   @@index([dispatchId])
+  @@index([inventoryItemId])
 }
 
 // ============================================================

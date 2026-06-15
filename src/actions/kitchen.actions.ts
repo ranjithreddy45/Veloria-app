@@ -267,9 +267,17 @@ export async function createKitchenPlan(input: {
       ? Math.floor(input.covers)
       : booking.guestCount ?? 0;
 
+  // Auto-link to the booking's Function Sheet (BEO) if one exists, so the
+  // kitchen plan and the run-of-show are tied to the same event.
+  const beo = await prisma.beo.findFirst({
+    where: { bookingId: booking.id },
+    select: { id: true },
+  });
+
   const created = await prisma.kitchenPlan.create({
     data: {
       bookingId: booking.id,
+      beoId: beo?.id ?? null,
       covers,
       status: "PLANNED",
       estFoodCost: 0,

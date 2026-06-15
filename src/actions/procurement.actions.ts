@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { hasPermission } from "@/lib/permissions";
 import { Prisma } from "@prisma/client";
+import { postPurchaseReceived } from "@/lib/finance/procurement";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -484,6 +485,13 @@ export async function markReceived(id: string): Promise<Result<{ id: string }>> 
     }),
     prisma.purchaseRequisitionItem.updateMany({ where: { prId: id }, data: { received: true } }),
   ]);
+
+  // Accrue the expense + payable in the GL (idempotent, best-effort — never
+  // blocks the receipt if Finance isn't set up).
+  await postPurchaseReceived(id, u.id).catch((e) =>
+    console.error("[PROCUREMENT_GL_BRIDGE_ERROR]", e)
+  );
+
   revalidatePath(`/procurement/${id}`);
   revalidatePath("/procurement");
   return { success: true, data: { id } };

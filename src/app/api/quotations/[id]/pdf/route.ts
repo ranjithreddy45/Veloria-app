@@ -113,7 +113,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   <div class="doc">
     <div class="actions"><button onclick="window.print()">Save as PDF / Print</button></div>
     <div class="header">
-      <div class="brand">Veloria Grand<small>Premium Event Venues</small></div>
+      <div class="brand"><img src="/logo.png" alt="Veloria Grand" style="height:44px;width:auto;display:block;margin-bottom:6px" onerror="this.style.display='none'"/>Veloria Grand<small>Premium Event Venues</small></div>
       <div class="title">Event Quotation<small>${esc(q.quoteNumber)} · v${q.version}</small></div>
     </div>
 

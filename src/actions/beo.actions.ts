@@ -266,6 +266,12 @@ export async function createBeo(input: { bookingId: string; covers?: number }): 
   const booking = await prisma.booking.findUnique({ where: { id: input.bookingId }, select: { id: true, guestCount: true } });
   if (!booking) return { success: false, error: "Booking not found" };
 
+  // Idempotent: one Function Sheet per booking. If one already exists (e.g.
+  // auto-created when the booking was confirmed), return it rather than
+  // creating a duplicate.
+  const existingBeo = await prisma.beo.findFirst({ where: { bookingId: input.bookingId }, select: { id: true } });
+  if (existingBeo) return { success: true, data: { id: existingBeo.id } };
+
   const year = new Date().getFullYear();
   const covers = input.covers != null && Number.isFinite(input.covers) ? input.covers : booking.guestCount ?? null;
 

@@ -55,6 +55,7 @@ export const COA_TEMPLATE: CoaSeed[] = [
   { code: "5200", name: "Rent", type: "EXPENSE", subtype: "Overhead" },
   { code: "5210", name: "Utilities (Power/Water)", type: "EXPENSE", subtype: "Overhead" },
   { code: "5220", name: "Repairs & Maintenance", type: "EXPENSE", subtype: "Overhead" },
+  { code: "5230", name: "Supplies & Consumables (Procurement)", type: "EXPENSE", subtype: "Overhead" },
   { code: "5300", name: "Marketing & Advertising", type: "EXPENSE", subtype: "Overhead" },
   { code: "5400", name: "Bank Charges", type: "EXPENSE", subtype: "Finance" },
   { code: "5500", name: "Depreciation", type: "EXPENSE", subtype: "NonCash" },
@@ -68,5 +69,5 @@ export const FIN_ACCOUNT_CODES = {
   ownerPayouts: "2400", salariesPayable: "2230", pfPayable: "2200", esiPayable: "2210",
   ptPayable: "2220", retained: "3100", openingEquity: "3900",
   venueRental: "4010", managementFee: "4020", cateringCommission: "4030", decorCommission: "4040",
-  salaries: "5100", bankCharges: "5400", depreciation: "5500",
+  salaries: "5100", bankCharges: "5400", depreciation: "5500", procurementExpense: "5230",
 } as const;

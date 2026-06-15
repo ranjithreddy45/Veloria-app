@@ -39,6 +39,7 @@ function itemDTO(i: {
   quantity: number;
   returnable: boolean;
   returnedQty: number;
+  inventoryItemId: string | null;
 }) {
   return {
     id: i.id,
@@ -47,6 +48,7 @@ function itemDTO(i: {
     quantity: i.quantity,
     returnable: i.returnable,
     returnedQty: i.returnedQty,
+    inventoryItemId: i.inventoryItemId,
   };
 }
 
@@ -195,10 +197,35 @@ export async function getBookableEvents(): Promise<
   };
 }
 
+// Active stock items for the optional per-line inventory link. Linking a line
+// drives the auto stock-out on dispatch and stock-restore on return.
+export async function getInventoryOptions(): Promise<
+  Result<{ id: string; label: string; availableQty: number }[]>
+> {
+  const u = await requireUser();
+  if (!u) return { success: false, error: "Unauthorized" };
+  if (!canRead(u.role)) return { success: false, error: "Not authorized" };
+
+  const rows = await prisma.inventoryItem.findMany({
+    where: { isActive: true },
+    select: { id: true, name: true, sku: true, availableQty: true },
+    orderBy: { name: "asc" },
+    take: 500,
+  });
+  return {
+    success: true,
+    data: rows.map((r) => ({
+      id: r.id,
+      label: `${r.name}${r.sku ? ` (${r.sku})` : ""} · ${r.availableQty} avail`,
+      availableQty: r.availableQty,
+    })),
+  };
+}
+
 // ------------------------------------------------------------
 // Create
 // ------------------------------------------------------------
-type ItemInput = { name: string; quantity: number; returnable: boolean };
+type ItemInput = { name: string; quantity: number; returnable: boolean; inventoryItemId?: string | null };
 
 // Allocate the next DSP-YYYY-NNN number via count()+1, with a P2002 retry loop
 // so concurrent creates don't collide on the @unique dispatchNumber.
@@ -230,6 +257,7 @@ async function createWithNumber(
               name: it.name,
               quantity: it.quantity,
               returnable: it.returnable,
+              inventoryItemId: it.inventoryItemId ?? null,
             })),
           },
         },
@@ -272,6 +300,7 @@ export async function createDispatch(input: {
       name: (it.name ?? "").trim(),
       quantity: Math.max(1, Math.floor(Number(it.quantity) || 1)),
       returnable: !!it.returnable,
+      inventoryItemId: it.inventoryItemId || null,
     }))
     .filter((it) => it.name.length > 0);
   if (items.length === 0)
@@ -396,6 +425,7 @@ export async function addDispatchItem(
       name,
       quantity: Math.max(1, Math.floor(Number(item.quantity) || 1)),
       returnable: !!item.returnable,
+      inventoryItemId: item.inventoryItemId || null,
     },
     select: { id: true },
   });
@@ -405,7 +435,7 @@ export async function addDispatchItem(
 
 export async function updateDispatchItem(
   itemId: string,
-  patch: { name?: string; quantity?: number; returnable?: boolean },
+  patch: { name?: string; quantity?: number; returnable?: boolean; inventoryItemId?: string | null },
 ): Promise<Result<{ id: string }>> {
   const u = await requireUser();
   if (!u) return { success: false, error: "Unauthorized" };
@@ -428,6 +458,7 @@ export async function updateDispatchItem(
   if (patch.quantity !== undefined)
     data.quantity = Math.max(1, Math.floor(Number(patch.quantity) || 1));
   if (patch.returnable !== undefined) data.returnable = !!patch.returnable;
+  if (patch.inventoryItemId !== undefined) data.inventoryItemId = patch.inventoryItemId || null;
 
   await prisma.dispatchItem.update({ where: { id: itemId }, data });
   revalidatePath(`/logistics/${item.dispatchId}`);
@@ -473,7 +504,7 @@ export async function markDispatched(
 
   const d = await prisma.dispatchOrder.findUnique({
     where: { id },
-    select: { status: true },
+    select: { status: true, items: { select: { inventoryItemId: true, quantity: true } } },
   });
   if (!d) return { success: false, error: "Dispatch not found" };
   if (d.status !== "PLANNED")
@@ -482,9 +513,25 @@ export async function markDispatched(
       error: "Only a planned dispatch can be marked dispatched.",
     };
 
-  await prisma.dispatchOrder.update({
-    where: { id },
-    data: { status: "DISPATCHED", dispatchedAt: new Date() },
+  // Move stock out for any line linked to an inventory item. Runs once on the
+  // PLANNED→DISPATCHED transition (guarded above), so it can't double-decrement.
+  await prisma.$transaction(async (tx) => {
+    await tx.dispatchOrder.update({
+      where: { id },
+      data: { status: "DISPATCHED", dispatchedAt: new Date() },
+    });
+    for (const it of d.items) {
+      if (!it.inventoryItemId) continue;
+      const inv = await tx.inventoryItem.findUnique({
+        where: { id: it.inventoryItemId },
+        select: { availableQty: true },
+      });
+      if (!inv) continue;
+      await tx.inventoryItem.update({
+        where: { id: it.inventoryItemId },
+        data: { availableQty: Math.max(0, inv.availableQty - it.quantity) },
+      });
+    }
   });
   revalidatePath("/logistics");
   revalidatePath(`/logistics/${id}`);
@@ -550,14 +597,30 @@ export async function recordReturn(
   const newQty = new Map(d.items.map((it) => [it.id, it.returnedQty]));
   for (const up of updates) newQty.set(up.id, up.returnedQty);
 
-  await prisma.$transaction([
-    ...updates.map((up) =>
-      prisma.dispatchItem.update({
+  await prisma.$transaction(async (tx) => {
+    for (const up of updates) {
+      const item = byId.get(up.id)!;
+      await tx.dispatchItem.update({
         where: { id: up.id },
         data: { returnedQty: up.returnedQty },
-      }),
-    ),
-  ]);
+      });
+      // Restore stock by the newly-returned delta (not the absolute total), so
+      // repeated/partial return entries never over-credit the inventory.
+      const delta = up.returnedQty - item.returnedQty;
+      if (delta !== 0 && item.inventoryItemId) {
+        const inv = await tx.inventoryItem.findUnique({
+          where: { id: item.inventoryItemId },
+          select: { availableQty: true, totalQuantity: true },
+        });
+        if (inv) {
+          await tx.inventoryItem.update({
+            where: { id: item.inventoryItemId },
+            data: { availableQty: Math.min(inv.totalQuantity, Math.max(0, inv.availableQty + delta)) },
+          });
+        }
+      }
+    }
+  });
 
   // All returnable items fully returned? (non-returnable items are ignored)
   const returnable = d.items.filter((it) => it.returnable);
