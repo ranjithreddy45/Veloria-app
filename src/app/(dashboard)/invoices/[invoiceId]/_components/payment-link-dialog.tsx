@@ -45,6 +45,7 @@ interface PaymentLinkData {
   contactEmail: string | null;
   contactPhone: string | null;
   mode: "razorpay" | "portal";
+  fallbackReason?: string;
 }
 
 export function PaymentLinkDialog({
@@ -232,6 +233,14 @@ export function PaymentLinkDialog({
                 </p>
               </div>
             </div>
+
+            {/* Fallback notice — Razorpay rejected, portal link used instead */}
+            {linkData.fallbackReason && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
+                {linkData.fallbackReason} The customer can still pay through the
+                secure in-app portal.
+              </div>
+            )}
 
             {/* Link + copy */}
             <div className="flex items-center gap-2">

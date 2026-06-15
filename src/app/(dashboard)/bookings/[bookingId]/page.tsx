@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 
 import { getBooking } from "@/actions/booking.actions";
+import { prisma } from "@/lib/prisma";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,7 @@ import {
 } from "@/lib/constants";
 import { CommunicationTimeline } from "@/components/shared/communication-timeline";
 import { BookingActions } from "./_components/booking-actions";
+import { BookingOpsLinks } from "./_components/booking-ops-links";
 import { formatINR } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Booking Details" };
@@ -72,6 +74,27 @@ export default async function BookingDetailPage({
 
   const holdExpired =
     booking.holdExpiresAt && isPast(new Date(booking.holdExpiresAt));
+
+  // Event-ops handoff: once a booking is confirmed, ops staff can spin up the
+  // day-of documents straight from here. Look up any that already exist so we
+  // offer "View" instead of creating duplicates.
+  const opsReady = ["CONFIRMED", "IN_PROGRESS", "COMPLETED"].includes(
+    booking.status
+  );
+  const [existingBeo, existingKitchen] = opsReady
+    ? await Promise.all([
+        prisma.beo.findFirst({
+          where: { bookingId: booking.id },
+          select: { id: true },
+          orderBy: { createdAt: "desc" },
+        }),
+        prisma.kitchenPlan.findFirst({
+          where: { bookingId: booking.id },
+          select: { id: true },
+          orderBy: { createdAt: "desc" },
+        }),
+      ])
+    : [null, null];
 
   return (
     <div className="space-y-6">
@@ -164,6 +187,14 @@ export default async function BookingDetailPage({
             Day Of Timeline
           </Link>
         </Button>
+        {opsReady && (
+          <BookingOpsLinks
+            bookingId={booking.id}
+            covers={booking.guestCount}
+            beoId={existingBeo?.id ?? null}
+            kitchenPlanId={existingKitchen?.id ?? null}
+          />
+        )}
       </div>
 
       {/* Tabs */}

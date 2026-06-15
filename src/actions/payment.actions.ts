@@ -771,7 +771,37 @@ export async function generatePaymentLink(
       };
     }
 
-    const paymentLink = await razorpay.paymentLink.create(linkData);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let paymentLink: any;
+    try {
+      paymentLink = await razorpay.paymentLink.create(linkData);
+    } catch (rzpErr) {
+      // Razorpay rejected the request — most commonly the account isn't yet
+      // activated for Payment Links, KYC is pending, or the keys are test-mode
+      // without link permission. Rather than hard-fail, fall back to the in-app
+      // portal payment link so the team ALWAYS gets a shareable link, and tell
+      // them why Razorpay wasn't used.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const e = rzpErr as any;
+      const reason =
+        e?.error?.description || e?.description || e?.message || "Razorpay rejected the request";
+      console.error("[RAZORPAY_PAYMENT_LINK_CREATE_ERROR]", e?.error || e);
+
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      return {
+        success: true as const,
+        data: {
+          shortUrl: `${baseUrl}/portal/invoices?invoice=${invoice.invoiceNumber}`,
+          amount: balanceDue,
+          invoiceNumber: invoice.invoiceNumber,
+          contactName: `${invoice.contact.firstName} ${invoice.contact.lastName ?? ""}`.trim(),
+          contactEmail: invoice.contact.email,
+          contactPhone: invoice.contact.phone,
+          mode: "portal" as const,
+          fallbackReason: `Razorpay unavailable (${reason}) — generated an in-app portal link instead.`,
+        },
+      };
+    }
 
     logActivity({
       userId: session.user.id as string,
@@ -781,16 +811,14 @@ export async function generatePaymentLink(
       changes: {
         invoiceNumber: invoice.invoiceNumber,
         amount: balanceDue,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        linkId: (paymentLink as any).id,
+        linkId: paymentLink?.id,
       },
     });
 
     return {
       success: true as const,
       data: {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        shortUrl: (paymentLink as any).short_url as string,
+        shortUrl: paymentLink.short_url as string,
         amount: balanceDue,
         invoiceNumber: invoice.invoiceNumber,
         contactName: `${invoice.contact.firstName} ${invoice.contact.lastName ?? ""}`.trim(),
