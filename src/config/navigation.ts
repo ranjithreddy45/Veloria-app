@@ -138,6 +138,12 @@ export const sidebarNavigation: NavItem[] = [
     permissions: ["communications:read", "whatsapp:read"],
     children: [
       {
+        title: "Inbox",
+        href: "/crm/inbox",
+        icon: "Inbox",
+        permissions: ["communications:read"],
+      },
+      {
         title: "Cadences",
         href: "/crm/cadences",
         icon: "ListOrdered",
@@ -160,6 +166,12 @@ export const sidebarNavigation: NavItem[] = [
         href: "/whatsapp",
         icon: "MessageCircle",
         permissions: ["whatsapp:read"],
+      },
+      {
+        title: "SMS",
+        href: "/crm/sms",
+        icon: "MessageSquare",
+        permissions: ["sms:read"],
       },
       {
         title: "Call Log",

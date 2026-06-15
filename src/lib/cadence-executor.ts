@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity-logger";
 import { sendEmail } from "@/lib/email";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
+import { sendSms } from "@/lib/integrations/sms";
 import { processEmailForTracking } from "@/lib/email-tracking";
 
 // ============================================================
@@ -182,6 +183,18 @@ export async function processDueCadenceSteps(): Promise<{
                 template: config.templateId,
               }).catch((err) => console.error("[CADENCE_WHATSAPP_ERROR]", err));
             }
+          }
+          break;
+        }
+
+        case "SEND_SMS": {
+          // Best-effort SMS step. sendSms is graceful when unconfigured (it
+          // records a FAILED row and returns an error rather than throwing),
+          // so this never breaks the cadence run. Fire-and-forget.
+          if (contactId && contact?.phone) {
+            sendSms(contact.phone, config.message ?? config.content ?? "", {
+              contactId,
+            }).catch((err) => console.error("[CADENCE_SMS_ERROR]", err));
           }
           break;
         }

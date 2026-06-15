@@ -994,6 +994,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "beo:read", "beo:write", "kitchen:read", "kitchen:write",
     "procurement:read", "procurement:write", "support:read", "support:write",
     "logistics:read", "logistics:write",
+    "communications:read", "communications:create", "sms:read", "sms:manage", "whatsapp:read",
     "dashboard:read",
     "owners:read",
     "operations:read",

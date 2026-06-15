@@ -6244,3 +6244,31 @@ model DispatchItem {
 
   @@index([dispatchId])
 }
+
+// ============================================================
+// SMS — outbound message log (mirrors WhatsAppMessage). Provider is
+// env-configured (graceful no-op when unset); delivery status tracked.
+// ============================================================
+enum SmsMessageStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  FAILED
+}
+
+model SmsMessage {
+  id            String                 @id @default(cuid())
+  direction     CommunicationDirection @default(OUTBOUND)
+  content       String                 @db.Text
+  status        SmsMessageStatus       @default(SENT)
+  providerId    String?
+  failureReason String?                @db.Text
+  toNumber      String?
+  sentAt        DateTime               @default(now())
+
+  contactId String? // plain id (no back-relation), like the Rec*/ops pattern
+
+  @@index([contactId])
+  @@index([sentAt])
+  @@index([status])
+}

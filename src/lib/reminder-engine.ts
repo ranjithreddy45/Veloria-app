@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
+import { sendSms, isSmsConfigured } from "@/lib/integrations/sms";
 import { getDefaultTemplate, buildReminderMessage } from "@/lib/reminder-templates";
 
 const STAGE_DAYS: Record<string, number> = {
@@ -141,17 +142,36 @@ export async function processReminder(reminderId: string): Promise<boolean> {
       message,
     });
 
+    // SMS fallback: if WhatsApp didn't go out but an SMS provider is
+    // configured, reach the guest over SMS instead. Best-effort and guarded —
+    // sendSms never throws and records its own SmsMessage row.
+    let smsFellBack = false;
+    if (!result.success && isSmsConfigured()) {
+      try {
+        const smsResult = await sendSms(reminder.guest.phone, message);
+        smsFellBack = smsResult.success;
+      } catch {
+        // Ignore — fall through to the WhatsApp outcome below.
+      }
+    }
+
+    const delivered = result.success || smsFellBack;
+
     await prisma.guestReminder.update({
       where: { id: reminderId },
       data: {
-        status: result.success ? "REMINDER_SENT" : "REMINDER_FAILED",
-        sentAt: result.success ? new Date() : undefined,
+        status: delivered ? "REMINDER_SENT" : "REMINDER_FAILED",
+        sentAt: delivered ? new Date() : undefined,
         whatsappMessageId: result.messageId || null,
-        failReason: result.success ? null : "WhatsApp send failed",
+        failReason: delivered
+          ? null
+          : smsFellBack
+            ? null
+            : "WhatsApp send failed",
       },
     });
 
-    return result.success;
+    return delivered;
   } catch (error) {
     await prisma.guestReminder.update({
       where: { id: reminderId },
