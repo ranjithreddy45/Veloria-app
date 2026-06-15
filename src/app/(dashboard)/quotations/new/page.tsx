@@ -19,6 +19,11 @@ export default async function NewQuotationPage({
         id: true,
         title: true,
         contactId: true,
+        eventType: true,
+        eventDate: true,
+        guestCount: true,
+        slot: true,
+        preferredVenueId: true,
         contact: { select: { firstName: true, lastName: true, phone: true, email: true } },
       },
       orderBy: { createdAt: "desc" },
@@ -40,19 +45,27 @@ export default async function NewQuotationPage({
     clientEmail: l.contact?.email ?? null,
   }));
 
-  // Optional prefill from ?leadId= (e.g. "Create quotation" on a lead). The
-  // empty `id` keeps this a CREATE flow — only the customer meta is prefilled.
-  const pre = leadId ? leads.find((l) => l.id === leadId) : undefined;
-  const initial = pre
+  // Optional prefill from ?leadId= ("Create Quotation" on a lead). The empty
+  // `id` keeps this a CREATE flow. We carry over everything the team already
+  // collected on the lead — customer, event details and guest count — so the
+  // rep only has to pick packages and pricing.
+  const preRaw = leadId ? leadsRaw.find((l) => l.id === leadId) : undefined;
+  const initial = preRaw
     ? {
         id: "",
-        input: { guestCount: 0 },
+        input: { guestCount: preRaw.guestCount ?? 0 },
         meta: {
-          leadId: pre.id,
-          contactId: pre.contactId,
-          clientName: pre.clientName ?? undefined,
-          clientPhone: pre.clientPhone ?? undefined,
-          clientEmail: pre.clientEmail ?? undefined,
+          leadId: preRaw.id,
+          contactId: preRaw.contactId,
+          venueId: preRaw.preferredVenueId ?? null,
+          clientName:
+            [preRaw.contact?.firstName, preRaw.contact?.lastName].filter(Boolean).join(" ") ||
+            undefined,
+          clientPhone: preRaw.contact?.phone ?? undefined,
+          clientEmail: preRaw.contact?.email ?? undefined,
+          occasion: preRaw.eventType ?? undefined,
+          eventDate: preRaw.eventDate ? preRaw.eventDate.toISOString() : null,
+          timeSlot: preRaw.slot ?? undefined,
         },
       }
     : undefined;

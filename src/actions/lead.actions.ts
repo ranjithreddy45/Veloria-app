@@ -229,6 +229,17 @@ export async function getLead(id: string) {
             stage: { select: { name: true, color: true } },
           },
         },
+        salesQuotations: {
+          select: {
+            id: true,
+            quoteNumber: true,
+            version: true,
+            status: true,
+            grandTotal: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: "desc" },
+        },
       },
     });
 

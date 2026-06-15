@@ -13,6 +13,7 @@ import {
   TagIcon,
   ClockIcon,
   TrendingUpIcon,
+  FileTextIcon,
 } from "lucide-react";
 
 import { getLead } from "@/actions/lead.actions";
@@ -117,6 +118,12 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
             contactEmail={lead.contact.email}
           />
           <MacroButton entityType="LEAD" entityId={lead.id} />
+          <Button size="sm" asChild>
+            <Link href={`/quotations/new?leadId=${lead.id}`}>
+              <FileTextIcon className="mr-2 size-4" />
+              Create Quotation
+            </Link>
+          </Button>
           <Button size="sm" variant="outline" asChild>
             <Link href={`/leads/${lead.id}/edit`}>
               <PencilIcon className="mr-2 size-4" />
@@ -286,6 +293,68 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                   )}
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Quotations raised from this lead */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-base">Quotations</CardTitle>
+              <Button size="sm" variant="outline" asChild>
+                <Link href={`/quotations/new?leadId=${lead.id}`}>
+                  <FileTextIcon className="mr-2 size-4" />
+                  New Quotation
+                </Link>
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {lead.salesQuotations && lead.salesQuotations.length > 0 ? (
+                <div className="divide-y">
+                  {lead.salesQuotations.map((q) => (
+                    <Link
+                      key={q.id}
+                      href={`/quotations/${q.id}`}
+                      className="hover:bg-muted/50 -mx-2 flex items-center justify-between gap-3 rounded px-2 py-2.5 transition-colors"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">
+                          {q.quoteNumber}
+                          {q.version > 1 && (
+                            <span className="text-muted-foreground font-normal">
+                              {" "}
+                              · v{q.version}
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-muted-foreground text-xs">
+                          {format(new Date(q.createdAt), "dd MMM yyyy")}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-semibold">
+                          {formatCurrency(q.grandTotal)}
+                        </span>
+                        <StatusBadge
+                          status={q.status}
+                          colorMap={{
+                            DRAFT: "bg-muted text-foreground border-border",
+                            PENDING_APPROVAL: "bg-amber-100 text-amber-800 border-amber-200",
+                            APPROVED: "bg-green-100 text-green-800 border-green-200",
+                            SENT: "bg-blue-100 text-blue-800 border-blue-200",
+                            REJECTED: "bg-red-100 text-red-800 border-red-200",
+                          }}
+                        />
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-sm">
+                  No quotations yet. Once you&apos;ve collected the event details,
+                  click <span className="font-medium">New Quotation</span> to build
+                  one — the customer and event info will be pre-filled.
+                </p>
+              )}
             </CardContent>
           </Card>
 
