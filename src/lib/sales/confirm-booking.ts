@@ -14,7 +14,7 @@ const SLOT_LABEL: Record<string, string> = {
 };
 
 /**
- * BookMyShow-style auto-confirm: once a verified payment covers the 10%
+ * BookMyShow-style auto-confirm: once a verified payment covers the 20%
  * booking advance, the HOLD booking flips to CONFIRMED — locking the slot —
  * and the customer is sent confirmations across every available channel
  * (email + SMS + WhatsApp). Idempotent (only acts on a HOLD booking) and
@@ -52,12 +52,12 @@ export async function maybeConfirmBookingOnPayment(invoiceId: string): Promise<v
     const b = invoice?.booking;
     if (!b || b.status !== "HOLD") return;
 
-    // The booking advance is 10% of the value. Anchor the threshold on the
-    // INVOICE total (the same number the 10% installment was computed from),
+    // The booking advance is 20% of the value. Anchor the threshold on the
+    // INVOICE total (the same number the 20% installment was computed from),
     // not the booking total — the two can differ by a rupee of GST rounding,
-    // and the installment is round(invoiceTotal × 0.10). The ₹1 tolerance then
+    // and the installment is round(invoiceTotal × 0.20). The ₹1 tolerance then
     // guarantees an exact first-installment payment always clears the bar.
-    const threshold = Number(invoice.totalAmount) * 0.1 - 1;
+    const threshold = Number(invoice.totalAmount) * 0.2 - 1;
     if (Number(invoice.paidAmount) < threshold) return;
 
     await prisma.booking.update({ where: { id: b.id }, data: { status: "CONFIRMED" } });

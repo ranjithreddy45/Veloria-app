@@ -140,20 +140,20 @@ function findById<T extends { id: string }>(arr: T[], id?: string): T | undefine
 
 /**
  * The planner's 3-stage payment terms, computed on the grand total:
- *  1. 10% to block the slot (on the booking day)
- *  2. 50% — 15 days before the event
- *  3. Balance (40%) — 2 hours before the event
+ *  1. 20% to block the slot (on the booking day)
+ *  2. 60% — 15 days before the event
+ *  3. Balance (20%) — 2 hours before the event
  * The final installment is computed as the remainder so the three
  * always sum to exactly the grand total (no rounding drift).
  */
 export function buildPaymentSchedule(grandTotal: number): PaymentInstallment[] {
-  const block = r2(grandTotal * 0.1);
-  const mid = r2(grandTotal * 0.5);
+  const block = r2(grandTotal * 0.2);
+  const mid = r2(grandTotal * 0.6);
   const balance = grandTotal - block - mid;
   return [
-    { label: "Booking advance", pct: 10, amount: block, dueHint: "On the day of booking — blocks the slot" },
-    { label: "Part payment", pct: 50, amount: mid, dueHint: "15 days before the event" },
-    { label: "Final balance", pct: 40, amount: balance, dueHint: "2 hours before the event" },
+    { label: "Booking advance", pct: 20, amount: block, dueHint: "On the day of booking — blocks the slot" },
+    { label: "Part payment", pct: 60, amount: mid, dueHint: "15 days before the event" },
+    { label: "Final balance", pct: 20, amount: balance, dueHint: "2 hours before the event" },
   ];
 }
 

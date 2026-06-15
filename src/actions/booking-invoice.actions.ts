@@ -20,7 +20,7 @@ async function requireUser() {
  * Tax is the planner's 5% (CGST 2.5% + SGST 2.5%) so the invoice matches the
  * customer-facing quotation. Line items are broken out on a PER-PLATE basis
  * (food = rate/plate × guests); fixed services stay as single units. An
- * installment plan mirrors the 10% / 50% / 40% payment terms, with due dates
+ * installment plan mirrors the 20% / 60% / 20% payment terms, with due dates
  * anchored on the event date.
  */
 export async function createBookingInvoiceFromQuotation(
@@ -102,7 +102,7 @@ export async function createBookingInvoiceFromQuotation(
       sgstRate: 2.5,
       igstRate: 0,
       notes: `Generated from quotation ${q.quoteNumber}. Effective per-plate: ₹${effectivePerPlate.toLocaleString("en-IN")} (grand total ÷ ${guests} guests).`,
-      terms: "Payment terms: 10% to block the slot, 50% fifteen days before the event, balance two hours before the event.",
+      terms: "Payment terms: 20% to block the slot, 60% fifteen days before the event, balance two hours before the event.",
     });
 
     if (!inv.success || !inv.data) {
@@ -112,23 +112,28 @@ export async function createBookingInvoiceFromQuotation(
     const invData = inv.data as { id: string; totalAmount: number | string };
     const invoiceId = invData.id;
 
-    // 10 / 50 / 40 installment schedule anchored on the event date. Base the
+    // 20 / 60 / 20 installment schedule anchored on the event date. Base the
     // split on the INVOICE total (not the quotation's) so the three installments
     // sum to it exactly — createInstallmentPlan rejects any drift.
     const grand = Number(invData.totalAmount);
-    const block = Math.round(grand * 0.1);
-    const mid = Math.round(grand * 0.5);
+    const block = Math.round(grand * 0.2);
+    const mid = Math.round(grand * 0.6);
     const balance = grand - block - mid;
 
+    // Part payment falls 15 days before the event; the final balance falls
+    // 2 hours before the event start. Without an event date we fall back to
+    // relative offsets so the plan still validates.
     const event = q.eventDate ? new Date(q.eventDate) : null;
     const midDue = event ? new Date(event) : new Date(Date.now() + 15 * 86400000);
     if (event) midDue.setDate(midDue.getDate() - 15);
-    const balanceDue = event ? new Date(event) : new Date(Date.now() + 30 * 86400000);
+    const balanceDue = event
+      ? new Date(event.getTime() - 2 * 60 * 60 * 1000)
+      : new Date(Date.now() + 30 * 86400000);
 
     const plan = await createInstallmentPlan(invoiceId, [
-      { label: "Booking advance (10%) — blocks the slot", amount: block, dueDate: new Date() },
-      { label: "Part payment (50%) — 15 days before event", amount: mid, dueDate: midDue },
-      { label: "Final balance (40%) — before the event", amount: balance, dueDate: balanceDue },
+      { label: "Booking advance (20%) — blocks the slot", amount: block, dueDate: new Date() },
+      { label: "Part payment (60%) — 15 days before event", amount: mid, dueDate: midDue },
+      { label: "Final balance (20%) — 2 hours before event", amount: balance, dueDate: balanceDue },
     ]);
     if (!plan.success) {
       // Roll back the just-created invoice so we don't leave one without a plan.

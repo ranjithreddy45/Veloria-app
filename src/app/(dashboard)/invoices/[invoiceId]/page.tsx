@@ -93,6 +93,7 @@ export default async function InvoiceDetailPage({
               <InstallmentPlanDialog
                 invoiceId={invoice.id}
                 totalAmount={Number(invoice.totalAmount)}
+                eventDate={invoice.booking?.date ?? null}
               />
             )}
         </div>

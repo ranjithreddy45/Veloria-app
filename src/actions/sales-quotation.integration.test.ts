@@ -183,7 +183,7 @@ describe("Sales quotation → booking → payment → confirm → ops (E2E)", ()
     await prisma.salesQuotation.delete({ where: { id: q2.data.id } });
   });
 
-  it("generates a 5%-tax, per-plate invoice with a 10/50/40 plan", async () => {
+  it("generates a 5%-tax, per-plate invoice with a 20/60/20 plan", async () => {
     const res = await createBookingInvoiceFromQuotation(quotationId);
     expect(res.success).toBe(true);
     if (!res.success) return;
@@ -200,15 +200,15 @@ describe("Sales quotation → booking → payment → confirm → ops (E2E)", ()
     const food = inv!.lineItems.find((l) => l.description.startsWith("Food Plan"))!;
     expect(Number(food.quantity)).toBe(120);
     expect(Number(food.unitPrice)).toBe(699);
-    // 10 / 50 / 40 installments that sum to the total.
+    // 20 / 60 / 20 installments that sum to the total.
     expect(inv!.installments.length).toBe(3);
     const sum = inv!.installments.reduce((s, i) => s + Number(i.amount), 0);
     expect(Math.round(sum)).toBe(130074);
-    expect(Math.round(Number(inv!.installments[0].amount))).toBe(Math.round(130074 * 0.1));
+    expect(Math.round(Number(inv!.installments[0].amount))).toBe(Math.round(130074 * 0.2));
   });
 
-  it("auto-confirms the slot and stamps ops tasks once the 10% advance is paid", async () => {
-    const advance = Math.round(130074 * 0.1); // 13,007
+  it("auto-confirms the slot and stamps ops tasks once the 20% advance is paid", async () => {
+    const advance = Math.round(130074 * 0.2); // 26,015
     const pay = await recordPayment({ invoiceId, amount: advance, method: "UPI", notes: "Booking advance" });
     expect(pay.success).toBe(true);
 

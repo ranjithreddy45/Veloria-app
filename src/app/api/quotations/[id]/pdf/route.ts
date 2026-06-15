@@ -158,9 +158,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
     <h2>Payment Terms</h2>
     <p class="terms">
-      1. To block the slot — 10% on the day of booking.<br/>
-      2. 50% — 15 days before the event.<br/>
-      3. Balance — 2 hours before the event.
+      1. To block the slot — 20% on the day of booking.<br/>
+      2. 60% — 15 days before the event.<br/>
+      3. Balance (20%) — 2 hours before the event.
     </p>
 
     ${q.notes ? `<h2>Remarks</h2><p class="terms">${esc(q.notes)}</p>` : ""}

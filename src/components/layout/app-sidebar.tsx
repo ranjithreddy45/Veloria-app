@@ -114,6 +114,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { BrandLogo } from "@/components/layout/brand-logo";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // ============================================================
@@ -418,16 +419,30 @@ export function AppSidebar() {
           href="/dashboard"
           className="flex items-center gap-2.5 transition-opacity hover:opacity-80"
         >
-          <div className="logo-chip flex size-7 shrink-0 items-center justify-center rounded-md text-primary-foreground">
+          {/* Collapsed (icon-only) sidebar — compact mark */}
+          <div className="logo-chip hidden size-7 shrink-0 items-center justify-center rounded-md text-primary-foreground group-data-[collapsible=icon]:flex">
             <Gem className="size-3.5" strokeWidth={2.5} />
           </div>
-          <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-            <span className="text-[13.5px] font-semibold tracking-[-0.012em] text-sidebar-accent-foreground">
-              Veloria Grand
-            </span>
-            <span className="text-[10.5px] font-medium tracking-wide text-sidebar-foreground/45">
-              Venue Management
-            </span>
+          {/* Expanded sidebar — full wordmark, falls back to mark + text */}
+          <div className="flex items-center gap-2.5 group-data-[collapsible=icon]:hidden">
+            <BrandLogo
+              className="h-8 w-auto max-w-[180px] object-contain object-left"
+              fallback={
+                <>
+                  <div className="logo-chip flex size-7 shrink-0 items-center justify-center rounded-md text-primary-foreground">
+                    <Gem className="size-3.5" strokeWidth={2.5} />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[13.5px] font-semibold tracking-[-0.012em] text-sidebar-accent-foreground">
+                      Veloria Grand
+                    </span>
+                    <span className="text-[10.5px] font-medium tracking-wide text-sidebar-foreground/45">
+                      Venue Management
+                    </span>
+                  </div>
+                </>
+              }
+            />
           </div>
         </Link>
       </SidebarHeader>

@@ -76,11 +76,11 @@ export function SlotBlockCard({ quotationId, venues, defaultVenueId, defaultDate
           ) : (
             <Button size="sm" className="w-full" onClick={genInvoice} disabled={invoicing}>
               {invoicing ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-              Generate booking invoice (10% to confirm)
+              Generate booking invoice (20% to confirm)
             </Button>
           )}
           <p className="text-xs text-muted-foreground">
-            Collect the 10% advance on the invoice — once paid, the slot auto-confirms and the customer is notified.
+            Collect the 20% advance on the invoice — once paid, the slot auto-confirms and the customer is notified.
           </p>
         </CardContent>
       </Card>
@@ -185,7 +185,7 @@ export function SlotBlockCard({ quotationId, venues, defaultVenueId, defaultDate
           Block this slot
         </Button>
         <p className="text-xs text-muted-foreground">
-          Creates a held booking for the customer. Next: collect the 10% booking advance to confirm.
+          Creates a held booking for the customer. Next: collect the 20% booking advance to confirm.
         </p>
       </CardContent>
     </Card>

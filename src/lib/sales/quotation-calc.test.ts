@@ -106,11 +106,12 @@ describe("computeQuotation — discount", () => {
 });
 
 describe("buildPaymentSchedule", () => {
-  it("splits 10/50/40 and always sums to the grand total", () => {
+  it("splits 20/60/20 and always sums to the grand total", () => {
     const sched = buildPaymentSchedule(130074);
-    expect(sched.map((s) => s.pct)).toEqual([10, 50, 40]);
-    expect(sched[0].amount).toBe(13007);
-    expect(sched[1].amount).toBe(65037);
+    expect(sched.map((s) => s.pct)).toEqual([20, 60, 20]);
+    expect(sched[0].amount).toBe(26015); // round(130074 × 0.20)
+    expect(sched[1].amount).toBe(78044); // round(130074 × 0.60)
+    expect(sched[2].amount).toBe(26015); // remainder
     expect(sched.reduce((s, i) => s + i.amount, 0)).toBe(130074); // no drift
   });
 });
