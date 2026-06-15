@@ -644,12 +644,19 @@ export async function getPaymentStats() {
 }
 
 // ============================================================
-// Generate Razorpay Payment Link
+// Generate Payment Link
+// ------------------------------------------------------------
+// Produces a shareable link to the customer portal, where the customer pays
+// the invoice through the Razorpay payment GATEWAY (checkout) — see
+// src/app/(portal)/portal/invoices. Razorpay is used purely as the gateway at
+// pay-time; we deliberately do NOT use Razorpay's separate "Payment Links"
+// product (which needs separate account activation). This makes link
+// generation independent of any Razorpay account state.
 // ============================================================
 
 export async function generatePaymentLink(
   invoiceId: string,
-  options?: {
+  _options?: {
     acceptPartial?: boolean;
     expiresInDays?: number;
     notifyCustomer?: boolean;
@@ -665,44 +672,6 @@ export async function generatePaymentLink(
       return { success: false as const, error: "Forbidden" };
     }
 
-    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-      // Fallback: generate a portal payment link (no Razorpay needed)
-      const invoice = await prisma.invoice.findUnique({
-        where: { id: invoiceId },
-        select: {
-          id: true,
-          invoiceNumber: true,
-          totalAmount: true,
-          balanceDue: true,
-          status: true,
-          contact: {
-            select: { firstName: true, lastName: true, email: true, phone: true },
-          },
-        },
-      });
-
-      if (!invoice) {
-        return { success: false as const, error: "Invoice not found" };
-      }
-
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-      const portalLink = `${baseUrl}/portal/invoices?invoice=${invoice.invoiceNumber}`;
-
-      return {
-        success: true as const,
-        data: {
-          shortUrl: portalLink,
-          amount: Number(invoice.balanceDue),
-          invoiceNumber: invoice.invoiceNumber,
-          contactName: `${invoice.contact.firstName} ${invoice.contact.lastName ?? ""}`.trim(),
-          contactEmail: invoice.contact.email,
-          contactPhone: invoice.contact.phone,
-          mode: "portal" as const,
-        },
-      };
-    }
-
-    // Full Razorpay Payment Link mode
     const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
       select: {
@@ -711,7 +680,6 @@ export async function generatePaymentLink(
         totalAmount: true,
         balanceDue: true,
         status: true,
-        dueDate: true,
         contact: {
           select: { firstName: true, lastName: true, email: true, phone: true },
         },
@@ -731,100 +699,27 @@ export async function generatePaymentLink(
       return { success: false as const, error: "No balance due" };
     }
 
-    const Razorpay = (await import("razorpay")).default;
-    const razorpay = new Razorpay({
-      key_id: process.env.RAZORPAY_KEY_ID,
-      key_secret: process.env.RAZORPAY_KEY_SECRET,
-    });
-
-    const amountInPaise = Math.round(balanceDue * 100);
-    const expiresInDays = options?.expiresInDays ?? 7;
-    const expireBy = Math.floor(Date.now() / 1000) + expiresInDays * 86400;
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const linkData: any = {
-      amount: amountInPaise,
-      currency: "INR",
-      accept_partial: options?.acceptPartial ?? true,
-      reference_id: invoice.id,
-      description: `Payment for Invoice ${invoice.invoiceNumber}`,
-      expire_by: expireBy,
-      notify: {
-        sms: options?.notifyCustomer ?? true,
-        email: options?.notifyCustomer ?? true,
-      },
-      reminder_enable: true,
-      notes: {
-        invoiceId: invoice.id,
-        invoiceNumber: invoice.invoiceNumber,
-      },
-      callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/portal/invoices?payment=success`,
-      callback_method: "get",
-    };
-
-    // Add customer info if available
-    if (invoice.contact.email || invoice.contact.phone) {
-      linkData.customer = {
-        name: `${invoice.contact.firstName} ${invoice.contact.lastName ?? ""}`.trim(),
-        email: invoice.contact.email || undefined,
-        contact: invoice.contact.phone || undefined,
-      };
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let paymentLink: any;
-    try {
-      paymentLink = await razorpay.paymentLink.create(linkData);
-    } catch (rzpErr) {
-      // Razorpay rejected the request — most commonly the account isn't yet
-      // activated for Payment Links, KYC is pending, or the keys are test-mode
-      // without link permission. Rather than hard-fail, fall back to the in-app
-      // portal payment link so the team ALWAYS gets a shareable link, and tell
-      // them why Razorpay wasn't used.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const e = rzpErr as any;
-      const reason =
-        e?.error?.description || e?.description || e?.message || "Razorpay rejected the request";
-      console.error("[RAZORPAY_PAYMENT_LINK_CREATE_ERROR]", e?.error || e);
-
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-      return {
-        success: true as const,
-        data: {
-          shortUrl: `${baseUrl}/portal/invoices?invoice=${invoice.invoiceNumber}`,
-          amount: balanceDue,
-          invoiceNumber: invoice.invoiceNumber,
-          contactName: `${invoice.contact.firstName} ${invoice.contact.lastName ?? ""}`.trim(),
-          contactEmail: invoice.contact.email,
-          contactPhone: invoice.contact.phone,
-          mode: "portal" as const,
-          fallbackReason: `Razorpay unavailable (${reason}) — generated an in-app portal link instead.`,
-        },
-      };
-    }
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const shortUrl = `${baseUrl}/portal/invoices?invoice=${invoice.invoiceNumber}`;
 
     logActivity({
       userId: session.user.id as string,
       action: "generated_payment_link",
       entityType: "Invoice",
       entityId: invoiceId,
-      changes: {
-        invoiceNumber: invoice.invoiceNumber,
-        amount: balanceDue,
-        linkId: paymentLink?.id,
-      },
+      changes: { invoiceNumber: invoice.invoiceNumber, amount: balanceDue },
     });
 
     return {
       success: true as const,
       data: {
-        shortUrl: paymentLink.short_url as string,
+        shortUrl,
         amount: balanceDue,
         invoiceNumber: invoice.invoiceNumber,
         contactName: `${invoice.contact.firstName} ${invoice.contact.lastName ?? ""}`.trim(),
         contactEmail: invoice.contact.email,
         contactPhone: invoice.contact.phone,
-        mode: "razorpay" as const,
+        mode: "portal" as const,
       },
     };
   } catch (error) {
