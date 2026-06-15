@@ -18,6 +18,7 @@ import {
   PartyPopper,
 } from "lucide-react";
 import { getStorefrontVenues } from "@/actions/storefront.actions";
+import { BrandLogo } from "@/components/layout/brand-logo";
 import { VenueImage } from "../_components/venue-image";
 import { formatPrice } from "../_components/format";
 
@@ -47,12 +48,17 @@ export default async function GuestHomePage() {
       {/* ---- Sticky top bar: location + search ---- */}
       <header className="sticky top-0 z-30 bg-gradient-to-br from-violet-700 via-violet-600 to-fuchsia-600 px-4 pb-4 pt-[calc(var(--sat)+0.9rem)] text-white shadow-lg shadow-violet-900/20">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <MapPin className="size-4 text-white/90" />
-            <div className="leading-tight">
-              <div className="text-[13px] font-bold">Veloria Grand</div>
-              <div className="text-[11px] text-white/75">Bangalore · Premium venues</div>
-            </div>
+          <div className="flex items-center gap-2">
+            <BrandLogo
+              className="h-7 w-auto max-w-[130px] rounded-md bg-white/95 px-2 py-1 object-contain"
+              fallback={
+                <>
+                  <MapPin className="size-4 text-white/90" />
+                  <div className="text-[13px] font-bold leading-tight">Veloria Grand</div>
+                </>
+              }
+            />
+            <div className="text-[11px] leading-tight text-white/75">Bangalore · Premium venues</div>
           </div>
           <span className="flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm">
             <Star className="size-3 fill-amber-300 text-amber-300" /> 4.8

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { auth } from "@/../auth";
 import { Gem } from "lucide-react";
 import { PortalNav } from "./portal-nav";
+import { BrandLogo } from "@/components/layout/brand-logo";
 
 export default async function PortalLayout({
   children,
@@ -25,12 +26,19 @@ export default async function PortalLayout({
             href="/portal"
             className="flex items-center gap-2.5 transition-opacity hover:opacity-80"
           >
-            <div className="flex size-8 items-center justify-center rounded-lg bg-zinc-950 text-white dark:bg-zinc-100 dark:text-zinc-900">
-              <Gem className="size-4" />
-            </div>
-            <span className="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
-              Veloria Grand
-            </span>
+            <BrandLogo
+              className="h-9 w-auto max-w-[200px] object-contain object-left"
+              fallback={
+                <>
+                  <div className="flex size-8 items-center justify-center rounded-lg bg-zinc-950 text-white dark:bg-zinc-100 dark:text-zinc-900">
+                    <Gem className="size-4" />
+                  </div>
+                  <span className="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+                    Veloria Grand
+                  </span>
+                </>
+              }
+            />
           </Link>
 
           {/* Navigation + logout */}

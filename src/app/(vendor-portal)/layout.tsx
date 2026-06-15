@@ -4,6 +4,7 @@ import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
 import { Store } from "lucide-react";
 import { VendorPortalNav } from "./vendor-portal-nav";
+import { BrandLogo } from "@/components/layout/brand-logo";
 
 export default async function VendorPortalLayout({
   children,
@@ -31,17 +32,22 @@ export default async function VendorPortalLayout({
             href="/vendor-portal"
             className="flex items-center gap-2.5 transition-opacity hover:opacity-80"
           >
-            <div className="flex size-8 items-center justify-center rounded-lg bg-violet-600 text-white dark:bg-violet-500">
-              <Store className="size-4" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-lg font-bold leading-tight tracking-tight text-zinc-900 dark:text-zinc-100">
-                Veloria Grand
-              </span>
-              <span className="text-[10px] font-medium uppercase tracking-widest text-violet-600 dark:text-violet-400">
-                Vendor Portal
-              </span>
-            </div>
+            <BrandLogo
+              className="h-9 w-auto max-w-[200px] object-contain object-left"
+              fallback={
+                <div className="flex items-center gap-2.5">
+                  <div className="flex size-8 items-center justify-center rounded-lg bg-violet-600 text-white dark:bg-violet-500">
+                    <Store className="size-4" />
+                  </div>
+                  <span className="text-lg font-bold leading-tight tracking-tight text-zinc-900 dark:text-zinc-100">
+                    Veloria Grand
+                  </span>
+                </div>
+              }
+            />
+            <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-widest text-violet-600 dark:bg-violet-950/40 dark:text-violet-400">
+              Vendor Portal
+            </span>
           </Link>
 
           {/* Navigation + logout */}
