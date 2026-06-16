@@ -12,6 +12,7 @@ import {
   Mail,
   MessageCircle,
   Send,
+  Trash2,
   XCircle,
 } from "lucide-react";
 
@@ -23,6 +24,7 @@ import {
   sendSalesQuotation,
   submitSalesQuotation,
   newSalesQuotationVersion,
+  deleteSalesQuotation,
 } from "@/actions/sales-quotation.actions";
 
 import { StatusPill } from "@/components/shared/status-pill";
@@ -199,6 +201,23 @@ export function QuotationDetail({ quote, perms, leads, venues }: Props) {
               </Button>
             )}
           </>
+        )}
+        {perms.canEdit && (
+          <Button
+            variant="outline"
+            className="text-destructive hover:text-destructive"
+            disabled={busy}
+            onClick={() => {
+              if (!confirm("Delete this quotation? This cannot be undone.")) return;
+              run(async () => {
+                const res = await deleteSalesQuotation(quote.id);
+                if (res.success) router.push("/quotations");
+                return res;
+              }, "Quotation deleted.");
+            }}
+          >
+            <Trash2 className="h-4 w-4" /> Delete
+          </Button>
         )}
       </div>
 

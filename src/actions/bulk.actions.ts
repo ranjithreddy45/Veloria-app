@@ -92,8 +92,14 @@ export async function bulkDeleteContacts(
       return { success: false as const, error: parsed.error.issues[0]?.message ?? "Validation failed" };
     }
 
-    const result = await prisma.contact.deleteMany({
-      where: { id: { in: parsed.data.ids } },
+    // Soft-delete (set deletedAt) rather than a hard deleteMany: contacts are
+    // referenced by leads/bookings/invoices via FKs, so a hard delete throws a
+    // constraint violation ("Failed to delete contacts"). Soft-delete is
+    // reversible from Trash and never orphans a referencing row. Only touch
+    // rows not already trashed so the count is accurate.
+    const result = await prisma.contact.updateMany({
+      where: { id: { in: parsed.data.ids }, deletedAt: null },
+      data: { deletedAt: new Date() },
     });
 
     for (const id of parsed.data.ids) {
@@ -105,6 +111,8 @@ export async function bulkDeleteContacts(
       });
     }
 
+    revalidatePath("/contacts");
+    revalidatePath("/settings/trash");
     return { success: true as const, data: { count: result.count } };
   } catch (error) {
     console.error("bulkDeleteContacts error:", error);
@@ -228,8 +236,13 @@ export async function bulkDeleteLeads(
       return { success: false as const, error: parsed.error.issues[0]?.message ?? "Validation failed" };
     }
 
-    const result = await prisma.lead.deleteMany({
-      where: { id: { in: parsed.data.ids } },
+    // Soft-delete (set deletedAt) rather than a hard deleteMany: leads are
+    // referenced by deals/quotations/activities via FKs, so a hard delete
+    // throws a constraint violation ("Failed to delete leads"). Soft-delete is
+    // reversible from Trash and matches the single-row deleteLead path.
+    const result = await prisma.lead.updateMany({
+      where: { id: { in: parsed.data.ids }, deletedAt: null },
+      data: { deletedAt: new Date() },
     });
 
     for (const id of parsed.data.ids) {
@@ -241,6 +254,8 @@ export async function bulkDeleteLeads(
       });
     }
 
+    revalidatePath("/leads");
+    revalidatePath("/settings/trash");
     return { success: true as const, data: { count: result.count } };
   } catch (error) {
     console.error("bulkDeleteLeads error:", error);
