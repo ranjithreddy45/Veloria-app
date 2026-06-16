@@ -513,13 +513,20 @@ export async function markDispatched(
       error: "Only a planned dispatch can be marked dispatched.",
     };
 
-  // Move stock out for any line linked to an inventory item. Runs once on the
-  // PLANNED→DISPATCHED transition (guarded above), so it can't double-decrement.
+  // Move stock out for any line linked to an inventory item. The status flip is
+  // a conditional updateMany INSIDE the txn (keyed on status=PLANNED), so two
+  // concurrent calls can't both decrement — the loser sees count 0 and the txn
+  // makes no stock change.
+  let raced = false;
   await prisma.$transaction(async (tx) => {
-    await tx.dispatchOrder.update({
-      where: { id },
+    const flip = await tx.dispatchOrder.updateMany({
+      where: { id, status: "PLANNED" },
       data: { status: "DISPATCHED", dispatchedAt: new Date() },
     });
+    if (flip.count === 0) {
+      raced = true;
+      return;
+    }
     for (const it of d.items) {
       if (!it.inventoryItemId) continue;
       const inv = await tx.inventoryItem.findUnique({
@@ -533,6 +540,7 @@ export async function markDispatched(
       });
     }
   });
+  if (raced) return { success: false, error: "This dispatch was already marked dispatched." };
   revalidatePath("/logistics");
   revalidatePath(`/logistics/${id}`);
   return { success: true, data: { id } };
@@ -651,7 +659,10 @@ export async function cancelDispatch(
 
   const d = await prisma.dispatchOrder.findUnique({
     where: { id },
-    select: { status: true },
+    select: {
+      status: true,
+      items: { select: { inventoryItemId: true, quantity: true, returnedQty: true } },
+    },
   });
   if (!d) return { success: false, error: "Dispatch not found" };
   if (d.status !== "PLANNED" && d.status !== "DISPATCHED")
@@ -660,9 +671,33 @@ export async function cancelDispatch(
       error: "Only a planned or dispatched order can be cancelled.",
     };
 
-  await prisma.dispatchOrder.update({
-    where: { id },
-    data: { status: "CANCELLED" },
+  // If the order had already gone out (DISPATCHED), stock was decremented on
+  // dispatch — cancelling means the goods didn't actually leave, so restore the
+  // outstanding (not-yet-returned) quantity for each linked line. A conditional
+  // updateMany keeps the flip+restore once-only. PLANNED orders never moved
+  // stock, so there's nothing to restore.
+  const wasDispatched = d.status === "DISPATCHED";
+  await prisma.$transaction(async (tx) => {
+    const flip = await tx.dispatchOrder.updateMany({
+      where: { id, status: d.status },
+      data: { status: "CANCELLED" },
+    });
+    if (flip.count === 0) return; // raced — someone else changed the status
+    if (!wasDispatched) return;
+    for (const it of d.items) {
+      if (!it.inventoryItemId) continue;
+      const outstanding = Math.max(0, it.quantity - it.returnedQty);
+      if (outstanding === 0) continue;
+      const inv = await tx.inventoryItem.findUnique({
+        where: { id: it.inventoryItemId },
+        select: { availableQty: true, totalQuantity: true },
+      });
+      if (!inv) continue;
+      await tx.inventoryItem.update({
+        where: { id: it.inventoryItemId },
+        data: { availableQty: Math.min(inv.totalQuantity, inv.availableQty + outstanding) },
+      });
+    }
   });
   revalidatePath("/logistics");
   revalidatePath(`/logistics/${id}`);

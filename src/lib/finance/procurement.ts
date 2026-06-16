@@ -58,53 +58,65 @@ async function ensureAccount(tx: Tx, code: string): Promise<string | null> {
 }
 
 /**
- * Post the accrual for a received Purchase Requisition.
- * Keyed on the PR id; safe to call repeatedly.
+ * Core accrual logic, run inside a caller-provided transaction. Returns a
+ * BridgeResult for EXPECTED non-posts (not-seeded, already-posted, etc.) so the
+ * caller's transaction can still commit, but lets unexpected DB errors THROW so
+ * the caller can roll back. Keyed on the PR id; safe to call repeatedly.
+ */
+export async function postPurchaseReceivedWithinTx(
+  tx: Tx,
+  prId: string,
+  byId?: string,
+): Promise<BridgeResult> {
+  const accountCount = await tx.finAccount.count();
+  if (accountCount === 0) return { posted: false, reason: "not-seeded" };
+  if (await alreadyPosted(tx, prId)) return { posted: false, reason: "already-posted" };
+
+  const pr = await tx.purchaseRequisition.findUnique({
+    where: { id: prId },
+    select: { id: true, prNumber: true, totalAmount: true, status: true, vendorId: true },
+  });
+  if (!pr) return { posted: false, reason: "pr-not-found" };
+  if (pr.status !== "RECEIVED") return { posted: false, reason: "not-received" };
+
+  const amount = Number(pr.totalAmount);
+  if (amount <= 0) return { posted: false, reason: "non-positive-amount" };
+
+  const [expenseId, payableId] = await Promise.all([
+    ensureAccount(tx, FIN_ACCOUNT_CODES.procurementExpense),
+    ensureAccount(tx, FIN_ACCOUNT_CODES.creditors),
+  ]);
+  if (!expenseId || !payableId) return { posted: false, reason: "accounts-missing" };
+
+  let vendorName = "vendor";
+  if (pr.vendorId) {
+    const v = await tx.vendor.findUnique({ where: { id: pr.vendorId }, select: { name: true } });
+    if (v?.name) vendorName = v.name;
+  }
+
+  const lines: JournalLineInput[] = [
+    { accountId: expenseId, debit: amount, narration: `${pr.prNumber} — ${vendorName}` },
+    { accountId: payableId, credit: amount, narration: `Payable — ${vendorName} (${pr.prNumber})` },
+  ];
+
+  const res = await postWithinTx(tx, {
+    date: new Date(),
+    narration: `Procurement received — ${pr.prNumber}`,
+    sourceModule: "PAYABLE",
+    sourceRefId: sourceRef(pr.id),
+    createdById: byId ?? null,
+    lines,
+  });
+  return { posted: true, entryId: res.id, entryNo: res.entryNo };
+}
+
+/**
+ * Standalone best-effort post (opens its own transaction, never throws).
+ * Kept for retries/sweeps; the receipt action posts within its own txn instead.
  */
 export async function postPurchaseReceived(prId: string, byId?: string): Promise<BridgeResult> {
   try {
-    return await prisma.$transaction(async (tx) => {
-      const accountCount = await tx.finAccount.count();
-      if (accountCount === 0) return { posted: false, reason: "not-seeded" } as BridgeResult;
-      if (await alreadyPosted(tx, prId)) return { posted: false, reason: "already-posted" };
-
-      const pr = await tx.purchaseRequisition.findUnique({
-        where: { id: prId },
-        select: { id: true, prNumber: true, totalAmount: true, status: true, vendorId: true },
-      });
-      if (!pr) return { posted: false, reason: "pr-not-found" };
-      if (pr.status !== "RECEIVED") return { posted: false, reason: "not-received" };
-
-      const amount = Number(pr.totalAmount);
-      if (amount <= 0) return { posted: false, reason: "non-positive-amount" };
-
-      const [expenseId, payableId] = await Promise.all([
-        ensureAccount(tx, FIN_ACCOUNT_CODES.procurementExpense),
-        ensureAccount(tx, FIN_ACCOUNT_CODES.creditors),
-      ]);
-      if (!expenseId || !payableId) return { posted: false, reason: "accounts-missing" };
-
-      let vendorName = "vendor";
-      if (pr.vendorId) {
-        const v = await tx.vendor.findUnique({ where: { id: pr.vendorId }, select: { name: true } });
-        if (v?.name) vendorName = v.name;
-      }
-
-      const lines: JournalLineInput[] = [
-        { accountId: expenseId, debit: amount, narration: `${pr.prNumber} — ${vendorName}` },
-        { accountId: payableId, credit: amount, narration: `Payable — ${vendorName} (${pr.prNumber})` },
-      ];
-
-      const res = await postWithinTx(tx, {
-        date: new Date(),
-        narration: `Procurement received — ${pr.prNumber}`,
-        sourceModule: "PAYABLE",
-        sourceRefId: sourceRef(pr.id),
-        createdById: byId ?? null,
-        lines,
-      });
-      return { posted: true, entryId: res.id, entryNo: res.entryNo };
-    });
+    return await prisma.$transaction((tx) => postPurchaseReceivedWithinTx(tx, prId, byId));
   } catch (e) {
     return { posted: false, reason: e instanceof Error ? e.message : "post-failed" };
   }

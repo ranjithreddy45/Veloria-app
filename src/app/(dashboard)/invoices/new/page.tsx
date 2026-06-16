@@ -53,10 +53,15 @@ export default async function NewInvoicePage({
           },
         ],
         discountPercent: 0,
-        cgstRate: 9,
-        sgstRate: 9,
+        // GST defaults to 0 on a booking prefill: the booking total is the
+        // agreed all-in price and may already be tax-inclusive, so applying a
+        // rate on top would silently over-charge. The rep sets the correct GST
+        // (or splits the amount into base + tax) against the live total before
+        // saving — invoices are reviewed as DRAFT first.
+        cgstRate: 0,
+        sgstRate: 0,
         igstRate: 0,
-        notes: "",
+        notes: "Booking total prefilled as the line amount — set GST as applicable (the total may already include tax).",
         terms:
           "1. Payment is due within 30 days of invoice date.\n2. Late payments may attract interest at 18% per annum.\n3. All disputes are subject to local jurisdiction.",
         gstin: "",

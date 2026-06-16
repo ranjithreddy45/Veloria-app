@@ -45,6 +45,18 @@ export default async function NewQuotationPage({
     clientEmail: l.contact?.email ?? null,
   }));
 
+  // The lead stores its slot as "Lunch"/"Dinner"; the quotation time-slot picker
+  // uses "11am to 3pm"/"5pm to 10pm"/"Full Day". Map so the prefill actually
+  // lands on a valid option (otherwise the dropdown silently shows blank).
+  const mapSlotToTimeSlot = (slot?: string | null): string | undefined => {
+    if (!slot) return undefined;
+    const s = slot.toLowerCase();
+    if (s.includes("lunch")) return "11am to 3pm";
+    if (s.includes("dinner")) return "5pm to 10pm";
+    if (s.includes("full")) return "Full Day";
+    return slot; // already a valid value
+  };
+
   // Optional prefill from ?leadId= ("Create Quotation" on a lead). The empty
   // `id` keeps this a CREATE flow. We carry over everything the team already
   // collected on the lead — customer, event details and guest count — so the
@@ -65,7 +77,7 @@ export default async function NewQuotationPage({
           clientEmail: preRaw.contact?.email ?? undefined,
           occasion: preRaw.eventType ?? undefined,
           eventDate: preRaw.eventDate ? preRaw.eventDate.toISOString() : null,
-          timeSlot: preRaw.slot ?? undefined,
+          timeSlot: mapSlotToTimeSlot(preRaw.slot),
         },
       }
     : undefined;

@@ -69,7 +69,7 @@ export async function GET(request: Request) {
         userId,
         type: "SLA_WARNING",
         title: `Support SLA breached — ${t.ticketNumber}`,
-        message: `"${t.subject}" (${t.priority}) has passed its ${slaHours}h response SLA and is still ${"unresolved"}.`,
+        message: `"${t.subject}" (${t.priority}) has passed its ${slaHours}h response SLA and is still unresolved.`,
         actionUrl: `/support/${t.id}`,
       });
     }

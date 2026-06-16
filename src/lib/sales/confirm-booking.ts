@@ -61,7 +61,16 @@ export async function maybeConfirmBookingOnPayment(invoiceId: string): Promise<v
     const threshold = Number(invoice.totalAmount) * 0.2 - 1;
     if (Number(invoice.paidAmount) < threshold) return;
 
-    await prisma.booking.update({ where: { id: b.id }, data: { status: "CONFIRMED" } });
+    // Atomic, once-only flip. Razorpay commonly fires the client success handler
+    // AND the server webhook for the same payment, so two confirm runs can race.
+    // A conditional updateMany keyed on status=HOLD means exactly one wins; the
+    // loser sees count 0 and bails BEFORE any side effects (notifications, SOP
+    // tasks, BEO auto-create), so none of them ever run twice.
+    const confirmed = await prisma.booking.updateMany({
+      where: { id: b.id, status: "HOLD" },
+      data: { status: "CONFIRMED" },
+    });
+    if (confirmed.count === 0) return;
 
     const dateStr = new Date(b.date).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
     const slot = SLOT_LABEL[b.timeSlot] ?? b.timeSlot;

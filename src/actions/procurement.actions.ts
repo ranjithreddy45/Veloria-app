@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { hasPermission } from "@/lib/permissions";
 import { Prisma } from "@prisma/client";
-import { postPurchaseReceived } from "@/lib/finance/procurement";
+import { postPurchaseReceivedWithinTx } from "@/lib/finance/procurement";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -478,19 +478,23 @@ export async function markReceived(id: string): Promise<Result<{ id: string }>> 
   if (!pr) return { success: false, error: "Requisition not found" };
   if (pr.status !== "ORDERED") return { success: false, error: "Only an ordered requisition can be received." };
 
-  await prisma.$transaction([
-    prisma.purchaseRequisition.update({
-      where: { id },
-      data: { status: "RECEIVED", receivedAt: new Date() },
-    }),
-    prisma.purchaseRequisitionItem.updateMany({ where: { prId: id }, data: { received: true } }),
-  ]);
-
-  // Accrue the expense + payable in the GL (idempotent, best-effort — never
-  // blocks the receipt if Finance isn't set up).
-  await postPurchaseReceived(id, u.id).catch((e) =>
-    console.error("[PROCUREMENT_GL_BRIDGE_ERROR]", e)
-  );
+  // Receipt + GL accrual in ONE transaction so they're durable together: an
+  // unexpected GL failure rolls the receipt back (user retries) instead of
+  // leaving a RECEIVED PR with no journal entry. Expected non-posts (Finance
+  // not seeded yet, already posted) return gracefully and the receipt commits.
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.purchaseRequisition.update({
+        where: { id },
+        data: { status: "RECEIVED", receivedAt: new Date() },
+      });
+      await tx.purchaseRequisitionItem.updateMany({ where: { prId: id }, data: { received: true } });
+      await postPurchaseReceivedWithinTx(tx, id, u.id);
+    });
+  } catch (e) {
+    console.error("[PROCUREMENT_RECEIVE_ERROR]", e);
+    return { success: false, error: "Could not record the receipt. Please retry." };
+  }
 
   revalidatePath(`/procurement/${id}`);
   revalidatePath("/procurement");
