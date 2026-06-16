@@ -85,10 +85,11 @@ export async function getContact(id: string) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
-    const contact = await prisma.contact.findUnique({
-      where: { id },
+    const contact = await prisma.contact.findFirst({
+      where: { id, deletedAt: null },
       include: {
         leads: {
+          where: { deletedAt: null },
           orderBy: { createdAt: "desc" },
           include: {
             assignedTo: {

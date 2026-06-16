@@ -32,6 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { acqCan } from "@/lib/acq/rbac";
 
 // ============================================================
 // Types — matches getAcqProperty() serialized shape
@@ -73,6 +74,7 @@ export interface Manager {
 interface PropertyDetailProps {
   property: AcqPropertyDetail;
   managers: Manager[];
+  userRole?: string;
 }
 
 // ============================================================
@@ -120,8 +122,10 @@ function formatDate(value: string | null): string {
 // PropertyDetail
 // ============================================================
 
-export function PropertyDetail({ property, managers }: PropertyDetailProps) {
+export function PropertyDetail({ property, managers, userRole }: PropertyDetailProps) {
   const router = useRouter();
+  const canPublish = acqCan(userRole, "property:available");
+  const canOnboard = acqCan(userRole, "onboarding:complete");
   const [isPublishing, startPublish] = useTransition();
   const [pendingTaskId, setPendingTaskId] = useState<string | null>(null);
   const [isAssigning, startAssign] = useTransition();
@@ -263,7 +267,7 @@ export function PropertyDetail({ property, managers }: PropertyDetailProps) {
                   >
                     <Checkbox
                       checked={task.done}
-                      disabled={pending}
+                      disabled={pending || !canOnboard}
                       onCheckedChange={() => handleToggleTask(task)}
                     />
                     <div className="flex min-w-0 flex-1 flex-col">
@@ -316,7 +320,7 @@ export function PropertyDetail({ property, managers }: PropertyDetailProps) {
               <Select
                 value={selectedManagerId}
                 onValueChange={setSelectedManagerId}
-                disabled={isAssigning}
+                disabled={isAssigning || !canOnboard}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select a manager" />
@@ -335,6 +339,7 @@ export function PropertyDetail({ property, managers }: PropertyDetailProps) {
                 onClick={handleAssign}
                 disabled={
                   isAssigning ||
+                  !canOnboard ||
                   !selectedManagerId ||
                   selectedManagerId === property.propertyManagerId
                 }
@@ -354,7 +359,7 @@ export function PropertyDetail({ property, managers }: PropertyDetailProps) {
             <CardContent className="flex flex-col gap-3">
               <Button
                 onClick={handleMarkAvailable}
-                disabled={!canMarkAvailable || isPublishing}
+                disabled={!canMarkAvailable || isPublishing || !canPublish}
                 className="w-full"
               >
                 {isPublishing && <Loader2 className="size-4 animate-spin" />}

@@ -471,9 +471,10 @@ export async function markAcqContractSignedCLM(id: string): Promise<Result<{ id:
   if (!user || !acqCan(user.role, "deal:transition")) return { success: false, error: "Unauthorized" };
   const c = await prisma.acqContract.findFirst({ where: { id, deletedAt: null } });
   if (!c) return { success: false, error: "Contract not found" };
-  // Can't jump DRAFT→SIGNED and bypass approval; must be approved/sent first.
-  if (c.status !== "APPROVED" && c.status !== "NEGOTIATED")
-    return { success: false, error: "Get manager approval and send the contract before marking it signed." };
+  // Must be sent to the owner first (APPROVED → NEGOTIATED via sendAcqContractToOwner).
+  // Can't jump straight from APPROVED/DRAFT to SIGNED and skip owner-send.
+  if (c.status !== "NEGOTIATED")
+    return { success: false, error: "Send the contract to the owner before marking it signed." };
   // Require signature evidence (P-5): either the e-sign provider reports SIGNED,
   // or an executed document has been attached. Don't mark signed on nothing.
   if (c.esignStatus !== "SIGNED") {

@@ -729,6 +729,8 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "leads:read",
     "leads:create",
     "leads:update",
+    "widget:read", // web inquiries are inbound leads — Sales triages them
+    "widget:manage",
     "pipeline:read",
     "pipeline:update",
     "bookings:read",
@@ -821,6 +823,8 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "invitations:read",
     "ai:use",
     // --- manager-level sales additions ---
+    "widget:read", // web inquiries (inbound leads)
+    "widget:manage",
     "leads:delete", // remove junk/duplicate leads for the team
     "leads:assign", // reassign leads across reps
     "tasks:assign", // assign follow-up tasks to reps

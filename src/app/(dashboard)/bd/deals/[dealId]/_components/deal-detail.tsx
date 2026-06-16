@@ -910,6 +910,7 @@ function EconomicsTab({
               label="Royalty %"
               value={royaltyPct}
               onChange={setRoyaltyPct}
+              disabled={frozen}
               warn={belowRoyalty ? FLOOR_WARN : undefined}
             />
           )}

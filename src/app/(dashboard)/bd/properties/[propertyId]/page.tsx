@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
+import { auth } from "@/../auth";
 import { getAcqProperty } from "@/actions/acq-property.actions";
-import { getBdUsers } from "@/actions/acq-lead.actions";
+import { getPropertyManagerCandidates } from "@/actions/acq-lead.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import {
   PropertyDetail,
@@ -15,9 +16,10 @@ interface PageProps {
 export default async function BdPropertyDetailPage({ params }: PageProps) {
   const { propertyId } = await params;
 
-  const [propertyResult, bdUsers] = await Promise.all([
+  const [propertyResult, bdUsers, session] = await Promise.all([
     getAcqProperty(propertyId),
-    getBdUsers(),
+    getPropertyManagerCandidates(),
+    auth(),
   ]);
 
   if (!propertyResult.success || !propertyResult.data) {
@@ -30,7 +32,11 @@ export default async function BdPropertyDetailPage({ params }: PageProps) {
   return (
     <div className="flex flex-col gap-5">
       <PageHeader title={property.propertyName} />
-      <PropertyDetail property={property} managers={managers} />
+      <PropertyDetail
+        property={property}
+        managers={managers}
+        userRole={session?.user?.role}
+      />
     </div>
   );
 }

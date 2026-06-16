@@ -451,6 +451,23 @@ export async function getBdUsers(): Promise<{ id: string; name: string | null; r
   return users as { id: string; name: string | null; role: string }[];
 }
 
+// Property Manager candidates — only roles that may own/operate a property.
+// BD_EXECUTIVE is intentionally excluded (they capture leads, they don't manage
+// venues). Kept in lockstep with the server-side check in assignPropertyManager.
+// Module-local (NOT exported): a "use server" file may export ONLY async
+// functions — an exported const breaks `next build`. The matching server-side
+// check in assignPropertyManager keeps its own copy of this list.
+const PROPERTY_MANAGER_ROLES = ["OPERATIONS", "BD_HEAD", "ADMIN", "SUPER_ADMIN"] as const;
+
+export async function getPropertyManagerCandidates(): Promise<{ id: string; name: string | null; role: string }[]> {
+  const users = await prisma.user.findMany({
+    where: { isActive: true, role: { in: [...PROPERTY_MANAGER_ROLES] } },
+    select: { id: true, name: true, role: true },
+    orderBy: { name: "asc" },
+  });
+  return users as { id: string; name: string | null; role: string }[];
+}
+
 // ------------------------------------------------------------
 // Edit full lead details (BD team) — § "edit/view the lead"
 // ------------------------------------------------------------
@@ -489,7 +506,28 @@ export async function editAcqLead(
 
   const data: Record<string, unknown> = {};
   if (p.ownerName !== undefined) data.ownerName = p.ownerName;
-  if (p.mobilePrimary !== undefined) data.mobilePrimary = normalizeMobile(p.mobilePrimary);
+  if (p.mobilePrimary !== undefined) {
+    const newMobile = normalizeMobile(p.mobilePrimary);
+    // Re-run the same active-lead dedup createAcqLead enforces, excluding this lead.
+    if (newMobile !== lead.mobilePrimary) {
+      const dup = await prisma.acqLead.findFirst({
+        where: {
+          id: { not: id },
+          deletedAt: null,
+          status: { not: "DISQUALIFIED" },
+          mobilePrimary: newMobile,
+        },
+        include: { bdExecutive: { select: { name: true } } },
+      });
+      if (dup) {
+        return {
+          success: false,
+          error: `This venue already exists as a lead (${dup.propertyName}, ${dup.locality}) owned by ${dup.bdExecutive?.name ?? "a BD exec"}.`,
+        };
+      }
+    }
+    data.mobilePrimary = newMobile;
+  }
   if (p.mobileAlternate !== undefined) data.mobileAlternate = p.mobileAlternate ? normalizeMobile(p.mobileAlternate) : null;
   if (p.email !== undefined) data.email = p.email || null;
   if (p.propertyName !== undefined) data.propertyName = p.propertyName;

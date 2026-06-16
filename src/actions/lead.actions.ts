@@ -210,8 +210,8 @@ export async function getLead(id: string) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
-    const lead = await prisma.lead.findUnique({
-      where: { id },
+    const lead = await prisma.lead.findFirst({
+      where: { id, deletedAt: null },
       include: {
         contact: true,
         assignedTo: {

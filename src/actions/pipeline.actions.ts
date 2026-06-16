@@ -940,6 +940,7 @@ export async function getAvailableLeads(search?: string) {
 
     const where: Record<string, unknown> = {
       deal: null, // Only leads without a deal
+      deletedAt: null, // never resurface a soft-deleted lead in the picker
     };
 
     if (search?.trim()) {
@@ -1141,6 +1142,21 @@ export async function convertDealToBooking(data: {
             where: { id: deal.leadId },
             data: { status: "WON" },
           });
+
+          // Move the deal card to the Won stage too, so the pipeline view and
+          // its won-value KPIs stay consistent with the lead being WON (the
+          // booking is confirmed). Without this the deal lingers in its old
+          // stage while the lead reads WON.
+          const wonStage = await tx.pipelineStage.findFirst({
+            where: { isWonStage: true },
+            select: { id: true },
+          });
+          if (wonStage && deal.stageId !== wonStage.id) {
+            await tx.deal.update({
+              where: { id: deal.id },
+              data: { stageId: wonStage.id, probability: 100, wonDate: new Date() },
+            });
+          }
 
           return newBooking;
         });

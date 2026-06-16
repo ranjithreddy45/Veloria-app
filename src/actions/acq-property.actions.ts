@@ -77,8 +77,13 @@ export async function setAcqOnboardingTaskDone(taskId: string, done: boolean): P
 export async function assignPropertyManager(propertyId: string, managerId: string): Promise<Result<{ id: string }>> {
   const user = await requireUser();
   if (!user || !acqCan(user.role, "onboarding:complete")) return { success: false, error: "Unauthorized" };
-  const mgr = await prisma.user.findUnique({ where: { id: managerId }, select: { id: true } });
+  const mgr = await prisma.user.findUnique({ where: { id: managerId }, select: { id: true, role: true } });
   if (!mgr) return { success: false, error: "Manager not found" };
+  // Only operating roles may hold a property — never a BD executive (lead capture).
+  const PROPERTY_MANAGER_ROLES = ["OPERATIONS", "BD_HEAD", "ADMIN", "SUPER_ADMIN"];
+  if (!PROPERTY_MANAGER_ROLES.includes(mgr.role)) {
+    return { success: false, error: "Only Operations / BD Head / Admin can be a Property Manager." };
+  }
   await prisma.acqProperty.update({ where: { id: propertyId }, data: { propertyManagerId: managerId } });
   revalidatePath("/bd/properties");
   revalidatePath(`/bd/properties/${propertyId}`);

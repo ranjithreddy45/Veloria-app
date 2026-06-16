@@ -98,9 +98,9 @@ export async function updateAcqDeal(
 
   // Once economics are frozen, the agreed commercials are immutable.
   if (deal.economicsFrozenAt) {
-    for (const locked of ["baseFeePct", "incentivePct", "termYears"]) {
+    for (const locked of ["baseFeePct", "incentivePct", "royaltyPct", "termYears"]) {
       if (locked in data) {
-        return { success: false, error: "Economics are frozen — base fee, incentive and term can't be changed." };
+        return { success: false, error: "Economics are frozen — base fee, incentive, royalty and term can't be changed." };
       }
     }
   }
@@ -238,9 +238,21 @@ export async function addAcqAttachment(
   const user = await requireUser();
   if (!user || !acqCan(user.role, "deal:transition")) return { success: false, error: "Unauthorized" };
   if (!["PHOTO", "DOCUMENT", "AGREEMENT", "GPA"].includes(input.kind)) return { success: false, error: "Invalid kind" };
-  if (!input.url) return { success: false, error: "URL required" };
+  const url = (input.url ?? "").trim();
+  if (!url) return { success: false, error: "URL required" };
+  // Must be a real absolute http(s) link — the EVALUATION photo gate counts these,
+  // so a bare/broken string must not slip through (mirrors addAcqContractDocument).
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    return { success: false, error: "Enter a valid link starting with https:// (or http://)." };
+  }
+  if (parsedUrl.protocol !== "https:" && parsedUrl.protocol !== "http:") {
+    return { success: false, error: "Links must use https:// (or http://)." };
+  }
   const att = await prisma.acqAttachment.create({
-    data: { dealId, kind: input.kind, url: input.url, label: input.label || null, uploadedById: user.id },
+    data: { dealId, kind: input.kind, url, label: input.label || null, uploadedById: user.id },
     select: { id: true },
   });
   revalidatePath(`/bd/deals/${dealId}`);

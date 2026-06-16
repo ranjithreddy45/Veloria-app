@@ -214,7 +214,7 @@ export function ContractDetail({ contract, userRole }: { contract: ContractFull;
                 {busy === "esign" ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />} Send for e-signature
               </Button>
             )}
-            {(contract.status === "APPROVED" || contract.status === "NEGOTIATED") && canMove && (
+            {contract.status === "NEGOTIATED" && canMove && (
               <Button size="sm" variant="outline" disabled={busy !== null} onClick={() => run("sign", () => markAcqContractSignedCLM(contract.id), "Marked signed")}>
                 <FileSignature className="size-3.5" /> Mark signed (manual)
               </Button>

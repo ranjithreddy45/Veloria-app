@@ -79,6 +79,9 @@ const ROLES = [
   { value: "PROJECTS_HEAD", label: "Projects Head" },
   { value: "OPERATIONS", label: "Operations" },
   { value: "LEGAL", label: "Legal" },
+  { value: "HR_MANAGER", label: "HR Manager" },
+  { value: "HR_EXECUTIVE", label: "HR Executive" },
+  { value: "AUDITOR", label: "Auditor" },
 ] as const;
 
 const ROLE_LABELS: Record<string, string> = {
@@ -95,6 +98,9 @@ const ROLE_LABELS: Record<string, string> = {
   PROJECTS_HEAD: "Projects Head",
   OPERATIONS: "Operations",
   LEGAL: "Legal",
+  HR_MANAGER: "HR Manager",
+  HR_EXECUTIVE: "HR Exec",
+  AUDITOR: "Auditor",
 };
 
 const ROLE_COLORS: Record<string, string> = {
@@ -111,6 +117,9 @@ const ROLE_COLORS: Record<string, string> = {
   PROJECTS_HEAD: "bg-rose-100 text-rose-700 border-rose-200",
   OPERATIONS: "bg-indigo-100 text-indigo-700 border-indigo-200",
   LEGAL: "bg-slate-100 text-slate-700 border-slate-200",
+  HR_MANAGER: "bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200",
+  HR_EXECUTIVE: "bg-pink-100 text-pink-700 border-pink-200",
+  AUDITOR: "bg-stone-100 text-stone-700 border-stone-200",
 };
 
 // ============================================================

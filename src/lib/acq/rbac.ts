@@ -27,8 +27,6 @@ const MATRIX: Record<AcqAction, ReadonlySet<string>> = {
     "BD_EXECUTIVE",
     "BD_HEAD",
     "OPERATIONS",
-    "SALES_EXEC",
-    "SALES_HEAD",
   ]),
 };
 
@@ -44,13 +42,15 @@ export function acqCan(role: string | null | undefined, action: AcqAction): bool
 export function acqHasAnyAccess(role: string | null | undefined): boolean {
   if (!role) return false;
   if (SUPER_ROLES.has(role)) return true;
+  // Sales roles are intentionally excluded: Sales CRM (customer sales) and BD
+  // CRM (venue acquisition) are separate pipelines. The BD nav + /bd routes gate
+  // on owners:read, which Sales roles don't hold — listing them here only
+  // created drift between the two RBAC systems.
   return [
     "BD_EXECUTIVE",
     "BD_HEAD",
     "OPERATIONS",
     "LEGAL",
-    "SALES_EXEC",
-    "SALES_HEAD",
     "PROJECTS_EXEC",
     "PROJECTS_HEAD",
   ].includes(role);
