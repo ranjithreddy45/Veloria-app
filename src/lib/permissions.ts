@@ -722,7 +722,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
 
   SALES_EXEC: [
     "performance:read", // own KRA scorecard + performance area
-    "support:read", "support:write", // field customer issues
+    "support:read", // view customer issues (ticket creation/replies owned by Support/Ops)
     "contacts:read",
     "contacts:create",
     "contacts:update",
@@ -903,7 +903,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   ],
 
   FINANCE: [
-    "procurement:read", "procurement:write",
+    "procurement:read", // view procurement + the PR→GL bridge; POs are raised by Operations
     "contacts:read",
     "bookings:read",
     "invoices:read",

@@ -32,6 +32,30 @@ const MATRIX: Record<AcqAction, ReadonlySet<string>> = {
 
 const SUPER_ROLES = new Set(["SUPER_ADMIN", "ADMIN"]);
 
+// Human-readable labels for the BD actions (for the read-only Settings view).
+export const ACQ_ACTION_LABELS: Record<AcqAction, string> = {
+  "lead:write": "Create / edit BD leads & deals",
+  "lead:delete": "Delete BD leads",
+  "lead:reassign": "Reassign lead ownership",
+  "deal:transition": "Move deals through stages",
+  "bdhead:approve": "BD Head approvals",
+  "legal:review": "Legal contract review",
+  "onboarding:complete": "Complete venue onboarding",
+  "property:available": "Publish property as bookable",
+  "inventory:view": "View venue inventory",
+};
+
+// Read-only snapshot of the BD/Acquisition matrix for display in Settings.
+// (BD permissions are code-managed via the MATRIX above, not DB-editable.)
+// SUPER_ADMIN / ADMIN implicitly have everything.
+export function acqMatrixForDisplay(): { action: AcqAction; label: string; roles: string[] }[] {
+  return (Object.keys(MATRIX) as AcqAction[]).map((action) => ({
+    action,
+    label: ACQ_ACTION_LABELS[action],
+    roles: [...MATRIX[action]].sort(),
+  }));
+}
+
 export function acqCan(role: string | null | undefined, action: AcqAction): boolean {
   if (!role) return false;
   if (SUPER_ROLES.has(role)) return true;
