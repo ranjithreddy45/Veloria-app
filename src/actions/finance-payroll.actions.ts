@@ -15,7 +15,7 @@ import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
-import { postJournalEntry, fyForDate, periodForDate } from "@/lib/finance/ledger";
+import { postWithinTx, fyForDate, periodForDate } from "@/lib/finance/ledger";
 import { FIN_ACCOUNT_CODES } from "@/lib/finance/coa-seed";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
@@ -254,19 +254,35 @@ export async function postPayrollRun(runId: string): Promise<Result<{ entryNo: s
       return { success: false, error: `Run period ${run.fy} P${run.period} is inconsistent — cannot resolve a posting date.` };
     }
 
-    const res = await postJournalEntry({
-      date,
-      narration: `Payroll ${run.label} (${run.fy} P${run.period})`,
-      sourceModule: "PAYROLL",
-      sourceRefId: run.id,
-      createdById: u!.id,
-      lines,
+    // ONE transaction: re-check DRAFT + idempotency on sourceRefId + post the
+    // balanced JE + flip the run to POSTED. Posting the JE and marking the run
+    // POSTED in separate writes risked a duplicate JE if the second write failed
+    // (the run stayed DRAFT with a JE already posted, and re-posting would
+    // double-count salaries — postJournalEntry has no idempotency guard).
+    const res = await prisma.$transaction(async (tx) => {
+      const fresh = await tx.finPayrollRun.findUnique({ where: { id: run.id }, select: { status: true } });
+      if (!fresh || fresh.status !== "DRAFT") throw new Error("Only DRAFT runs can be posted.");
+      const existing = await tx.finJournalEntry.findFirst({
+        where: { sourceModule: "PAYROLL", sourceRefId: run.id },
+        select: { id: true },
+      });
+      if (existing) throw new Error("This payroll run has already been posted.");
+
+      const entry = await postWithinTx(tx, {
+        date,
+        narration: `Payroll ${run.label} (${run.fy} P${run.period})`,
+        sourceModule: "PAYROLL",
+        sourceRefId: run.id,
+        createdById: u!.id,
+        lines,
+      });
+      await tx.finPayrollRun.update({
+        where: { id: run.id },
+        data: { status: "POSTED", journalEntryId: entry.id },
+      });
+      return entry;
     });
 
-    await prisma.finPayrollRun.update({
-      where: { id: run.id },
-      data: { status: "POSTED", journalEntryId: res.id },
-    });
     revalidatePath("/finance/payroll");
     return { success: true, data: { entryNo: res.entryNo } };
   } catch (e) {

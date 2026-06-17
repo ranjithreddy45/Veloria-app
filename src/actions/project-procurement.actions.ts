@@ -83,9 +83,11 @@ export async function createWorkPackage(input: { projectId: string; title: strin
   return { success: true, data: { id: w.id } };
 }
 
+const WORK_PACKAGE_STATUSES = ["PLANNED", "IN_PROGRESS", "DONE", "ON_HOLD"];
 export async function updateWorkPackage(id: string, input: { budgetAmount?: number; status?: string }): Promise<Result<{ id: string }>> {
   const u = await requireUser();
   if (!canManage(u?.role)) return { success: false, error: "Not authorized." };
+  if (input.status !== undefined && !WORK_PACKAGE_STATUSES.includes(input.status)) return { success: false, error: "Invalid status." };
   const wp = await prisma.projectWorkPackage.update({
     where: { id },
     data: {

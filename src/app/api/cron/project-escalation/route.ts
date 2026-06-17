@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { prisma } from "@/lib/prisma";
-import { getPortfolio } from "@/actions/project-portfolio.actions";
+import { computePortfolio } from "@/actions/project-portfolio.actions";
 import { notify } from "@/lib/notify";
 
 // Daily: escalate at-risk venue projects (open critical snags / over budget /
@@ -14,7 +14,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const portfolio = await getPortfolio();
+    const portfolio = await computePortfolio();
     const atRisk = (portfolio?.rows ?? []).filter((r) => r.atRisk);
     if (atRisk.length === 0) return NextResponse.json({ ok: true, atRisk: 0, notified: 0 });
 

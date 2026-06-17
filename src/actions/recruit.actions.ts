@@ -122,6 +122,8 @@ export async function setJobStatus(id: string, status: string): Promise<Result<{
   const u = await requireUser();
   if (!canWrite(u?.role)) return { success: false, error: "Not authorized." };
   if (!(REC_JOB_STATUSES as readonly string[]).includes(status)) return { success: false, error: "Invalid status." };
+  const exists = await prisma.recJobOpening.findUnique({ where: { id }, select: { id: true } });
+  if (!exists) return { success: false, error: "Job opening not found." };
   await prisma.recJobOpening.update({
     where: { id },
     // Only stamp filledAt when filling; leave it untouched on other transitions
@@ -178,6 +180,8 @@ export async function setCandidateStage(id: string, stage: string): Promise<Resu
   const u = await requireUser();
   if (!canWrite(u?.role)) return { success: false, error: "Not authorized." };
   if (!(REC_CANDIDATE_STAGES as readonly string[]).includes(stage)) return { success: false, error: "Invalid stage." };
+  const exists = await prisma.recCandidate.findUnique({ where: { id }, select: { id: true } });
+  if (!exists) return { success: false, error: "Candidate not found." };
   await prisma.recCandidate.update({ where: { id }, data: { stage: stage as Prisma.RecCandidateUpdateInput["stage"] } });
   revalidatePath("/recruitment/candidates");
   return { success: true, data: { ok: true } };
@@ -208,6 +212,8 @@ export async function setApplicationStage(id: string, stage: string): Promise<Re
   const u = await requireUser();
   if (!canWrite(u?.role)) return { success: false, error: "Not authorized." };
   if (!(REC_APP_STAGES as readonly string[]).includes(stage)) return { success: false, error: "Invalid stage." };
+  const exists = await prisma.recApplication.findUnique({ where: { id }, select: { id: true } });
+  if (!exists) return { success: false, error: "Application not found." };
   await prisma.recApplication.update({ where: { id }, data: { stage: stage as Prisma.RecApplicationUpdateInput["stage"] } });
   revalidatePath("/recruitment/applications");
   revalidatePath("/recruitment");

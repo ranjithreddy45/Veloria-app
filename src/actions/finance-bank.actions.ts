@@ -4,7 +4,7 @@ import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
-import { postJournalEntry } from "@/lib/finance/ledger";
+import { postWithinTx } from "@/lib/finance/ledger";
 import { FIN_ACCOUNT_CODES } from "@/lib/finance/coa-seed";
 import {
   parseBankCsv, dedupeKey, suggestMatches, applyRules, ruleTokenFor,
@@ -171,11 +171,21 @@ export async function categorizeBankTxn(txnId: string, accountCode: string): Pro
     : [{ accountId: other.id, debit: amount }, { accountId: bankGlId, credit: amount }];
 
   try {
-    const res = await postJournalEntry({
-      date: txn.date, narration: `Bank: ${txn.description}`.slice(0, 180),
-      sourceModule: "BANK", sourceRefId: txn.id, createdById: u!.id, lines,
+    // Post the JE and mark the txn RECONCILED atomically. If these ran as two
+    // separate writes and the txn update failed, the txn stayed UNMATCHED with a
+    // BANK JE already posted — and a re-run would post a DUPLICATE JE (the BANK
+    // source has no idempotency guard). Re-check inside the txn that nothing
+    // reconciled it in the meantime.
+    const res = await prisma.$transaction(async (tx) => {
+      const fresh = await tx.finBankTxn.findUnique({ where: { id: txn.id }, select: { status: true, matchedEntryId: true } });
+      if (!fresh || fresh.status === "RECONCILED" || fresh.matchedEntryId) throw new Error("Already reconciled.");
+      const entry = await postWithinTx(tx, {
+        date: txn.date, narration: `Bank: ${txn.description}`.slice(0, 180),
+        sourceModule: "BANK", sourceRefId: txn.id, createdById: u!.id, lines,
+      });
+      await tx.finBankTxn.update({ where: { id: txn.id }, data: { status: "RECONCILED", matchedEntryId: entry.id } });
+      return entry;
     });
-    await prisma.finBankTxn.update({ where: { id: txn.id }, data: { status: "RECONCILED", matchedEntryId: res.id } });
 
     // Learn a rule from the description token → this account + direction.
     const token = ruleTokenFor(txn.description);

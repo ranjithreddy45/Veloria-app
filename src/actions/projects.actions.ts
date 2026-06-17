@@ -368,6 +368,9 @@ export async function enterInternalQc(projectId: string): Promise<Result<{ phase
   const items = await prisma.venueReadinessItem.findMany({ where: { projectId }, select: { status: true } });
   const pending = items.filter((i) => i.status !== "DONE" && i.status !== "NA").length;
   if (pending) return { success: false, error: `${pending} readiness item(s) still open — every standard must pass (or be marked N/A) before Internal QC.` };
+  // Wave D exit criterion: every scoped work package must be complete (DONE) before QC.
+  const openWp = await prisma.projectWorkPackage.count({ where: { projectId, status: { not: "DONE" } } });
+  if (openWp) return { success: false, error: `${openWp} work package(s) are not yet complete — finish the fit-out scope before Internal QC.` };
   const ok = await advanceStage(user, projectId, "EXECUTION", "INTERNAL_QC");
   if (!ok) return { success: false, error: "Project is no longer in Execution." };
   revalidatePath(`/projects/${projectId}`);

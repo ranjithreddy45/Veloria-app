@@ -482,12 +482,20 @@ export async function markReceived(id: string): Promise<Result<{ id: string }>> 
   // unexpected GL failure rolls the receipt back (user retries) instead of
   // leaving a RECEIVED PR with no journal entry. Expected non-posts (Finance
   // not seeded yet, already posted) return gracefully and the receipt commits.
+  // The status flip is a conditional updateMany (keyed on status=ORDERED) INSIDE
+  // the txn, so two concurrent receives can't both proceed — the loser sees
+  // count 0 and rolls back without touching items or the GL.
+  let raced = false;
   try {
     await prisma.$transaction(async (tx) => {
-      await tx.purchaseRequisition.update({
-        where: { id },
+      const flip = await tx.purchaseRequisition.updateMany({
+        where: { id, status: "ORDERED" },
         data: { status: "RECEIVED", receivedAt: new Date() },
       });
+      if (flip.count === 0) {
+        raced = true;
+        return;
+      }
       await tx.purchaseRequisitionItem.updateMany({ where: { prId: id }, data: { received: true } });
       await postPurchaseReceivedWithinTx(tx, id, u.id);
     });
@@ -495,6 +503,7 @@ export async function markReceived(id: string): Promise<Result<{ id: string }>> 
     console.error("[PROCUREMENT_RECEIVE_ERROR]", e);
     return { success: false, error: "Could not record the receipt. Please retry." };
   }
+  if (raced) return { success: false, error: "This requisition was already received." };
 
   revalidatePath(`/procurement/${id}`);
   revalidatePath("/procurement");

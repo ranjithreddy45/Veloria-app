@@ -124,6 +124,9 @@ export async function updateJourneyTask(taskId: string, status: string, assignee
   const valid = ["PENDING", "IN_PROGRESS", "DONE", "NA", "BLOCKED"];
   if (!valid.includes(status)) return { success: false, error: "Invalid status." };
 
+  const existing = await prisma.journeyTask.findUnique({ where: { id: taskId }, select: { id: true } });
+  if (!existing) return { success: false, error: "Task not found." };
+
   const data: Prisma.JourneyTaskUpdateInput = {
     status: status as Prisma.JourneyTaskUpdateInput["status"],
     completedAt: status === "DONE" ? new Date() : null,

@@ -97,11 +97,16 @@ export async function postInvoiceIssued(invoiceId: string, byId?: string): Promi
         }
       }
 
+      // A zero-total invoice (e.g. fully discounted) has nothing to recognise —
+      // no-op cleanly rather than building a single zero-value line that the
+      // balance validator would reject as "unbalanced".
+      if (Math.round(total * 100) === 0) return { posted: false, reason: "zero-total" };
+
       const arDebit = Math.round((total - advance) * 100) / 100;
       const lines: JournalLineInput[] = [];
       if (advance > 0 && advId) lines.push({ accountId: advId, debit: advance, narration: "Apply advance" });
       if (arDebit > 0) lines.push({ accountId: arId, debit: arDebit, narration: `Invoice ${inv.invoiceNumber}` });
-      lines.push({ accountId: revId, credit: revenue, narration: "Event revenue" });
+      if (revenue > 0) lines.push({ accountId: revId, credit: revenue, narration: "Event revenue" });
       if (gst > 0) lines.push({ accountId: gstId, credit: gst, narration: "GST output" });
 
       const res = await postWithinTx(tx, {

@@ -30,6 +30,14 @@ function gridTable(rows: YearRow[], withFood: boolean): string {
       <td class="rowlabel">${label}</td>
       ${vals.map((v) => `<td>${v}</td>`).join("")}
     </tr>`;
+  // Derive the actual fee percentages from the frozen amounts so the labels
+  // never lie if a deal uses non-default rates (baseFee = revenue × base%;
+  // incentiveFee = GOP × incentive%). Constant across years — read first row
+  // with a non-zero denominator.
+  const rRev = rows.find((r) => r.totalRevenue > 0);
+  const basePct = rRev ? Math.round((rRev.baseFee / rRev.totalRevenue) * 100) : 5;
+  const rGop = rows.find((r) => r.gop > 0);
+  const incPct = rGop ? Math.round((rGop.incentiveFee / rGop.gop) * 100) : 20;
   return `
   <table class="grid">
     <thead>
@@ -42,8 +50,8 @@ function gridTable(rows: YearRow[], withFood: boolean): string {
       ${line("Total Revenue", rows.map((r) => inr(r.totalRevenue)))}
       ${line("Total Operating Expense", rows.map((r) => inr(r.opex)))}
       ${line("Gross Operating Profit (GOP)", rows.map((r) => inr(r.gop)))}
-      ${line("Base Fee (5%)", rows.map((r) => inr(r.baseFee)))}
-      ${line("Incentive Fee (20%)", rows.map((r) => inr(r.incentiveFee)))}
+      ${line(`Base Fee (${basePct}%)`, rows.map((r) => inr(r.baseFee)))}
+      ${line(`Incentive Fee (${incPct}%)`, rows.map((r) => inr(r.incentiveFee)))}
       ${line("Total Management Fee", rows.map((r) => inr(r.mgmtFee)))}
       ${line("Net Owner's Return", rows.map((r) => inr(r.netOwnerReturn)), true)}
       ${line("Owner's Return %", rows.map((r) => pct(r.ownerReturnPct)), true)}

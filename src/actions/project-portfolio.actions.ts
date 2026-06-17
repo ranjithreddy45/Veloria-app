@@ -19,14 +19,20 @@ const COMMITTED_PO = ["ISSUED", "RECEIVED", "PAID"];
 export async function getPortfolio() {
   const u = await requireUser();
   if (!canRead(u?.role)) return null;
+  return computePortfolio();
+}
 
+// Same computation without the session gate, for trusted server contexts
+// (e.g. the cron escalation job, which has no logged-in user). Never expose
+// this directly to a request handler without its own auth.
+export async function computePortfolio() {
   const [projects, openSnags, projections, pos] = await Promise.all([
     prisma.acqOnboardingProject.findMany({
       where: { phase: { not: "LIVE" } },
       select: { id: true, phase: true, targetReadyDate: true, property: { select: { propertyName: true, city: true } } },
       orderBy: { createdAt: "desc" },
     }),
-    prisma.projectSnag.findMany({ where: { status: { not: "verified_closed" } }, select: { projectId: true, severity: true } }),
+    prisma.projectSnag.findMany({ where: { status: { not: "VERIFIED_CLOSED" } }, select: { projectId: true, severity: true } }),
     prisma.acqCapexProjection.findMany({ select: { projectId: true, totalCapex: true, createdAt: true }, orderBy: { createdAt: "desc" } }),
     prisma.projectPurchaseOrder.findMany({ where: { status: { in: COMMITTED_PO as never } }, select: { projectId: true, amount: true } }),
   ]);

@@ -290,7 +290,14 @@ export function QuotationDetail({ quote, perms, leads, venues }: Props) {
               {result.discountAmount > 0 && (
                 <Row label={`Discount (${result.discountPct}%)`} value={`− ${inr(result.discountAmount)}`} muted />
               )}
-              <Row label="Tax (5%)" value={inr(result.tax)} />
+              <Row
+                label={`Tax (${
+                  result.subtotal - result.discountAmount > 0
+                    ? Math.round((result.tax / (result.subtotal - result.discountAmount)) * 100)
+                    : 5
+                }%)`}
+                value={inr(result.tax)}
+              />
               <div className="flex justify-between border-t pt-2 text-base font-bold">
                 <span>Grand Total</span><span className="tabular-nums">{inr(result.grandTotal)}</span>
               </div>

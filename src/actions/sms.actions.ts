@@ -239,6 +239,8 @@ export async function getSmsContactOptions(search?: string) {
       where: {
         phone: { not: null },
         isActive: true,
+        // Don't leak soft-deleted contacts into the SMS picker.
+        deletedAt: null,
         ...(search
           ? {
               OR: [

@@ -23,14 +23,14 @@ type TicketPriority = (typeof TICKET_PRIORITIES)[number];
 
 // Staff who can own/handle a ticket. Mirrors the assignable-role pattern used
 // elsewhere (lead.actions ASSIGNABLE_ROLES) but scoped to support handlers.
+// MUST be valid UserRole enum values — Prisma throws on an unknown enum in an
+// `in` filter, which would break getTicketFormOptions entirely. These are the
+// roles that actually carry support:write.
 const ASSIGNABLE_ROLES = [
   "SUPER_ADMIN",
   "ADMIN",
   "EVENT_COORDINATOR",
-  "OPERATIONS_MANAGER",
-  "OPERATIONS_HEAD",
-  "CUSTOMER_SUPPORT",
-  "SUPPORT_AGENT",
+  "OPERATIONS",
 ];
 
 async function requireUser() {
