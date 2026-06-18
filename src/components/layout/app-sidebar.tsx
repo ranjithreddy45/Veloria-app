@@ -6,7 +6,6 @@ import Link from "next/link";
 import { signOut } from "next-auth/react";
 import {
   LayoutDashboard,
-  LayoutGrid,
   Users,
   Contact,
   Network,
@@ -124,7 +123,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const iconMap: Record<string, LucideIcon> = {
   LayoutDashboard,
-  LayoutGrid,
   Users,
   Contact,
   Network,

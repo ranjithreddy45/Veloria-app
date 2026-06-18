@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus, Wand2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { getSalesQuotations } from "@/actions/sales-quotation.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
@@ -19,11 +19,6 @@ export default async function QuotationsPage() {
         description="Event quotations built with the calculator — submit for approval, then send to the customer."
       >
         <Button asChild>
-          <Link href="/quotations/builder">
-            <Wand2 className="h-4 w-4" /> Build quotation
-          </Link>
-        </Button>
-        <Button variant="outline" asChild>
           <Link href="/quotations/new">
             <Plus className="h-4 w-4" /> New Quotation
           </Link>

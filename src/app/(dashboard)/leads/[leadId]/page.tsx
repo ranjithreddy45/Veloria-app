@@ -119,7 +119,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
           />
           <MacroButton entityType="LEAD" entityId={lead.id} />
           <Button size="sm" asChild>
-            <Link href={`/quotations/builder?leadId=${lead.id}`}>
+            <Link href={`/quotations/new?leadId=${lead.id}`}>
               <FileTextIcon className="mr-2 size-4" />
               Create Quotation
             </Link>

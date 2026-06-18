@@ -9,11 +9,9 @@ import { logActivity } from "@/lib/activity-logger";
 import { sendEmail } from "@/lib/email";
 import { hasPermission } from "@/lib/permissions";
 import {
-  computeStoredQuote,
-  validateStoredQuote,
+  computeQuotation,
+  validateQuotationInput,
   type QuotationInput,
-  type StoredQuoteInput,
-  type CatalogStoredInput,
 } from "@/lib/sales/quotation-calc";
 import { updateLeadStatus } from "@/actions/lead.actions";
 import { updateDeal } from "@/actions/pipeline.actions";
@@ -50,16 +48,8 @@ export interface QuotationMeta {
 
 // Denormalised headline figures derived from the engine — kept in sync on
 // every create/update so list views and sorting never need to recompute.
-function guestCountOf(input: StoredQuoteInput): number {
-  const g =
-    (input as CatalogStoredInput)?.mode === "catalog"
-      ? (input as CatalogStoredInput).catalog?.guestCount
-      : (input as QuotationInput).guestCount;
-  return Math.max(0, Math.floor(g || 0));
-}
-
-function headline(input: StoredQuoteInput, meta: QuotationMeta) {
-  const out = computeStoredQuote(input);
+function headline(input: QuotationInput, meta: QuotationMeta) {
+  const out = computeQuotation(input);
   return {
     clientName: meta.clientName?.trim() || null,
     clientPhone: meta.clientPhone?.trim() || null,
@@ -67,7 +57,7 @@ function headline(input: StoredQuoteInput, meta: QuotationMeta) {
     occasion: meta.occasion?.trim() || null,
     eventDate: meta.eventDate ? new Date(meta.eventDate) : null,
     timeSlot: meta.timeSlot?.trim() || null,
-    guestCount: guestCountOf(input),
+    guestCount: Math.max(0, Math.floor(input.guestCount || 0)),
     subtotal: new Prisma.Decimal(out.subtotal),
     discountPct: new Prisma.Decimal(out.discountPct),
     taxAmount: new Prisma.Decimal(out.tax),
@@ -241,13 +231,13 @@ export async function getPendingQuoteApprovals(): Promise<Result<PendingQuoteApp
 // Create draft
 // ------------------------------------------------------------
 export async function createSalesQuotation(
-  input: StoredQuoteInput,
+  input: QuotationInput,
   meta: QuotationMeta = {}
 ): Promise<Result<{ id: string }>> {
   const user = await requireUser();
   if (!user || !can(user.role, "quotes:create")) return { success: false, error: "Unauthorized" };
 
-  const errs = validateStoredQuote(input);
+  const errs = validateQuotationInput(input);
   if (errs.length) return { success: false, error: errs.join(" ") };
 
   const row = await createQuotationRow((quoteNumber) => ({
@@ -273,7 +263,7 @@ export async function createSalesQuotation(
 // ------------------------------------------------------------
 export async function updateSalesQuotation(
   id: string,
-  input: StoredQuoteInput,
+  input: QuotationInput,
   meta: QuotationMeta = {}
 ): Promise<Result<{ id: string }>> {
   const user = await requireUser();
@@ -283,7 +273,7 @@ export async function updateSalesQuotation(
   if (row.status !== "DRAFT")
     return { success: false, error: "Only a draft quotation can be edited. Create a new version instead.", code: 409 };
 
-  const errs = validateStoredQuote(input);
+  const errs = validateQuotationInput(input);
   if (errs.length) return { success: false, error: errs.join(" ") };
 
   await prisma.salesQuotation.update({
@@ -320,7 +310,7 @@ export async function submitSalesQuotation(id: string): Promise<Result<{ status:
   if (!row) return { success: false, error: "Quotation not found" };
   if (row.status !== "DRAFT") return { success: false, error: `Cannot submit from ${row.status}.`, code: 409 };
 
-  const errs = validateStoredQuote(row.inputsJson as unknown as StoredQuoteInput);
+  const errs = validateQuotationInput(row.inputsJson as unknown as QuotationInput);
   if (errs.length) return { success: false, error: errs.join(" ") };
 
   await prisma.$transaction([
@@ -373,9 +363,9 @@ export async function approveSalesQuotation(id: string): Promise<Result<{ status
     return { success: false, error: "You submitted this quotation — a different approver must approve it." };
   }
 
-  // Freeze the snapshot: recompute the full result server-side from stored
-  // inputs (legacy or catalog — computeStoredQuote branches).
-  const out = computeStoredQuote(row.inputsJson as unknown as StoredQuoteInput);
+  // Freeze the snapshot: recompute the full result server-side from stored inputs.
+  const input = row.inputsJson as unknown as QuotationInput;
+  const out = computeQuotation(input);
 
   await prisma.$transaction([
     prisma.salesQuotation.update({

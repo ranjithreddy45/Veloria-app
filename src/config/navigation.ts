@@ -368,12 +368,6 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["packages:read"],
       },
       {
-        title: "Quotation Catalog",
-        href: "/packages/quote-catalog",
-        icon: "LayoutGrid",
-        permissions: ["packages:read"],
-      },
-      {
         title: "Menu",
         href: "/menu",
         icon: "UtensilsCrossed",

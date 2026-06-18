@@ -459,13 +459,12 @@ export function LeadForm({ contacts, venues = [], users = [], lead }: LeadFormPr
                   <Select onValueChange={field.onChange} value={field.value ?? ""}>
                     <FormControl>
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Lunch / Dinner / Full Day" />
+                        <SelectValue placeholder="Lunch / Dinner" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="Lunch">Lunch</SelectItem>
                       <SelectItem value="Dinner">Dinner</SelectItem>
-                      <SelectItem value="Full Day">Full Day</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

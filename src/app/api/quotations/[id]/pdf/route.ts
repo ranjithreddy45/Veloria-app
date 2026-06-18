@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { computeStoredQuote, type StoredQuoteInput, type QuotationResult } from "@/lib/sales/quotation-calc";
+import { computeQuotation, type QuotationInput, type QuotationResult } from "@/lib/sales/quotation-calc";
 
 export const runtime = "nodejs";
 
@@ -36,7 +36,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   // Prefer the frozen snapshot; fall back to recompute (defensive).
   const result: QuotationResult =
     (q.outputsJson as unknown as QuotationResult) ||
-    computeStoredQuote(q.inputsJson as unknown as StoredQuoteInput);
+    computeQuotation(q.inputsJson as unknown as QuotationInput);
 
   const clientName =
     q.clientName ||

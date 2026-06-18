@@ -68,7 +68,7 @@ export const leadSchema = z.object({
   // Venue-specific inquiry fields (spec §3.1)
   preferredVenueId: z.string().optional().or(z.literal("")),
   assignedToId: z.string().optional().or(z.literal("")),
-  slot: z.enum(["Lunch", "Dinner", "Full Day"]).optional().or(z.literal("")),
+  slot: z.enum(["Lunch", "Dinner"]).optional().or(z.literal("")),
   // Preferred food option (kept as a string so existing values never break).
   vegNonVeg: z.string().max(50).optional().or(z.literal("")),
   perPlateBudget: z

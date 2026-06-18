@@ -6279,11 +6279,11 @@ model SmsMessage {
 }
 
 // ============================================================
-// Quotation Catalog (DB-driven, admin-editable) — drives the Sales
-// quotation calculator. Each package belongs to a category, carries an
-// image, a pricing model, and an optional menu of selectable items
-// (e.g. welcome-drink options) that a rep can lock per quotation.
-// All additive; new tables, prod db-push safe.
+// Quotation Catalog tables — RETAINED (orphaned, unused) only so prod
+// `prisma db push` doesn't attempt to DROP the already-created tables on the
+// next deploy. The catalog-driven quotation feature was reverted; these models
+// have NO application code referencing them and hold no data. Safe to delete
+// later with an explicit, data-loss-accepted migration.
 // ============================================================
 enum QuotePackageCategory {
   HALL
@@ -6297,11 +6297,11 @@ enum QuotePackageCategory {
 }
 
 enum QuotePricingType {
-  PER_PLATE // × guest count
-  PER_PERSON // × guest count (e.g. drinks)
-  PER_NIGHT // × rooms × nights
-  PER_KG // × kg (cake)
-  FLAT // one-time
+  PER_PLATE
+  PER_PERSON
+  PER_NIGHT
+  PER_KG
+  FLAT
 }
 
 model QuotePackage {
@@ -6312,8 +6312,8 @@ model QuotePackage {
   imageUrl    String?
   pricingType QuotePricingType     @default(FLAT)
   price       Decimal              @default(0) @db.Decimal(12, 2)
-  unitLabel   String? // e.g. "per plate", "per room / night"
-  vendorId    String? // plain FK (no back-relation) — for sharing locked menu to the vendor
+  unitLabel   String?
+  vendorId    String?
   isActive    Boolean              @default(true)
   order       Int                  @default(0)
   createdAt   DateTime             @default(now())
@@ -6329,11 +6329,11 @@ model QuotePackageMenuItem {
   id          String       @id @default(cuid())
   packageId   String
   package     QuotePackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
-  groupName   String? // e.g. "Welcome Drinks", "Starters"
+  groupName   String?
   name        String
   description String?
   imageUrl    String?
-  extraCost   Decimal      @default(0) @db.Decimal(12, 2) // optional per-plate/flat surcharge for choosing this
+  extraCost   Decimal      @default(0) @db.Decimal(12, 2)
   isActive    Boolean      @default(true)
   order       Int          @default(0)
 
