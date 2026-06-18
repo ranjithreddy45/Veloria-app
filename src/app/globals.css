@@ -7,8 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-fraunces), ui-serif, Georgia, "Times New Roman", serif;
+  /* Apple-first: native San Francisco on Apple platforms, Inter elsewhere. */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -54,14 +55,15 @@
 
 /*
  * ============================================================
- * Modern + minimal design tokens
+ * Apple design tokens
  * ----------------------------------------------------------------
- * Inspired by Linear / Notion / Vercel:
- *   - Neutral zinc surface scale (no color tint)
- *   - Single restrained indigo accent
- *   - White cards, hairline borders, no shadow at rest
- *   - 8px base radius
- *   - Calm chart palette
+ * Inspired by macOS Sonoma / iOS / apple.com:
+ *   - Faint cool-gray canvas (#f5f5f7) with pure-white cards
+ *   - Apple system blue accent (#0071e3 light / #0a84ff dark)
+ *   - Near-black ink (#1d1d1f), hairline separators
+ *   - Large continuous corner radii (12px) + soft diffuse shadows
+ *   - Frosted-glass materials, SF system typography
+ *   - Apple system color chart palette
  * ============================================================
  */
 
@@ -72,103 +74,103 @@
   --sal: env(safe-area-inset-left, 0px);
   --sar: env(safe-area-inset-right, 0px);
 
-  --radius: 0.5rem; /* 8px */
+  --radius: 0.75rem; /* 12px — Apple continuous corners */
 
-  /* Surfaces — neutral, no color cast */
-  --background: oklch(1 0 0);              /* pure white */
-  --foreground: oklch(0.21 0.014 312);          /* zinc-900 */
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.21 0.014 312);
+  /* Surfaces — Apple cool-gray canvas, pure-white elevated cards */
+  --background: oklch(0.968 0.0015 286);   /* #f5f5f7 */
+  --foreground: oklch(0.235 0.005 286);    /* #1d1d1f ink */
+  --card: oklch(1 0 0);                     /* pure white */
+  --card-foreground: oklch(0.235 0.005 286);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.21 0.014 312);
+  --popover-foreground: oklch(0.235 0.005 286);
 
-  /* Single restrained indigo accent (#4f46e5 ballpark) */
-  --primary: oklch(0.52 0.18 270);
-  --primary-foreground: oklch(0.985 0 0);
+  /* Apple system blue (#0071e3) */
+  --primary: oklch(0.595 0.176 252);
+  --primary-foreground: oklch(0.99 0 0);
 
-  /* Quiet secondary / muted */
-  --secondary: oklch(0.97 0 0);            /* zinc-50 */
-  --secondary-foreground: oklch(0.21 0.014 312);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.52 0.016 312); /* softer, faintly warm gray */
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.21 0.014 312);
+  /* Quiet secondary / muted — cool gray fills */
+  --secondary: oklch(0.955 0.002 286);
+  --secondary-foreground: oklch(0.235 0.005 286);
+  --muted: oklch(0.955 0.002 286);
+  --muted-foreground: oklch(0.55 0.006 286);  /* Apple secondary label gray */
+  --accent: oklch(0.95 0.004 252);
+  --accent-foreground: oklch(0.235 0.005 286);
 
-  --destructive: oklch(0.55 0.2 27);
+  --destructive: oklch(0.585 0.21 27);     /* Apple red #ff3b30 ballpark */
 
-  /* Semantic status — success (emerald) + warning (amber). Used for gate
-   * notices, met/unmet handover gates, and DONE/PENDING states. */
-  --success: oklch(0.62 0.15 150);
-  --success-foreground: oklch(0.985 0 0);
-  --warning: oklch(0.75 0.15 75);
-  --warning-foreground: oklch(0.30 0.05 75);
+  /* Semantic status — Apple green + orange */
+  --success: oklch(0.66 0.16 150);         /* #34c759 */
+  --success-foreground: oklch(0.99 0 0);
+  --warning: oklch(0.78 0.16 70);          /* #ff9f0a */
+  --warning-foreground: oklch(0.28 0.05 70);
 
-  /* Hairline borders — faintly warm to match the ink, reads more crafted */
-  --border: oklch(0.915 0.004 312);
-  --input: oklch(0.915 0.004 312);
-  --ring: oklch(0.52 0.18 270);
+  /* Hairline separators — cool, faint */
+  --border: oklch(0.9 0.002 286);
+  --input: oklch(0.9 0.002 286);
+  --ring: oklch(0.595 0.176 252);
 
-  /* Calm chart palette */
-  --chart-1: oklch(0.52 0.18 270);         /* indigo */
-  --chart-2: oklch(0.65 0.13 195);         /* teal */
-  --chart-3: oklch(0.55 0.15 30);          /* terracotta */
-  --chart-4: oklch(0.7 0.12 85);           /* amber */
-  --chart-5: oklch(0.5 0.04 270);          /* slate */
+  /* Apple system color chart palette */
+  --chart-1: oklch(0.595 0.176 252);       /* blue */
+  --chart-2: oklch(0.66 0.16 150);         /* green */
+  --chart-3: oklch(0.78 0.16 70);          /* orange */
+  --chart-4: oklch(0.62 0.2 320);          /* pink/purple */
+  --chart-5: oklch(0.68 0.13 200);         /* teal */
 
-  /* Sidebar — LIGHT, not dark */
-  --sidebar: oklch(0.985 0 0);             /* zinc-50/100 */
-  --sidebar-foreground: oklch(0.32 0 0);   /* zinc-700 */
-  --sidebar-primary: oklch(0.52 0.18 270);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.94 0 0);       /* hover */
-  --sidebar-accent-foreground: oklch(0.21 0.014 312);
-  --sidebar-border: oklch(0.92 0 0);
-  --sidebar-ring: oklch(0.52 0.18 270);
+  /* Sidebar — frosted light tone */
+  --sidebar: oklch(0.978 0.0015 286);
+  --sidebar-foreground: oklch(0.36 0.005 286);
+  --sidebar-primary: oklch(0.595 0.176 252);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.93 0.004 252); /* hover */
+  --sidebar-accent-foreground: oklch(0.235 0.005 286);
+  --sidebar-border: oklch(0.91 0.002 286);
+  --sidebar-ring: oklch(0.595 0.176 252);
 }
 
 .dark {
-  --background: oklch(0.13 0 0);           /* near-black */
-  --foreground: oklch(0.95 0 0);
-  --card: oklch(0.16 0 0);
-  --card-foreground: oklch(0.95 0 0);
-  --popover: oklch(0.16 0 0);
-  --popover-foreground: oklch(0.95 0 0);
+  --background: oklch(0.16 0.003 286);     /* #1c1c1e — Apple dark base */
+  --foreground: oklch(0.965 0.002 286);
+  --card: oklch(0.205 0.004 286);          /* #2c2c2e elevated */
+  --card-foreground: oklch(0.965 0.002 286);
+  --popover: oklch(0.225 0.004 286);
+  --popover-foreground: oklch(0.965 0.002 286);
 
-  --primary: oklch(0.7 0.16 270);
-  --primary-foreground: oklch(0.13 0 0);
+  /* Apple system blue (dark) #0a84ff */
+  --primary: oklch(0.665 0.18 252);
+  --primary-foreground: oklch(0.99 0 0);
 
-  --secondary: oklch(0.2 0 0);
-  --secondary-foreground: oklch(0.95 0 0);
-  --muted: oklch(0.2 0 0);
-  --muted-foreground: oklch(0.65 0 0);
-  --accent: oklch(0.2 0 0);
-  --accent-foreground: oklch(0.95 0 0);
+  --secondary: oklch(0.255 0.004 286);
+  --secondary-foreground: oklch(0.965 0.002 286);
+  --muted: oklch(0.255 0.004 286);
+  --muted-foreground: oklch(0.68 0.005 286);
+  --accent: oklch(0.27 0.006 252);
+  --accent-foreground: oklch(0.965 0.002 286);
 
-  --destructive: oklch(0.65 0.18 27);
+  --destructive: oklch(0.66 0.2 27);       /* #ff453a */
 
-  --success: oklch(0.70 0.15 150);
-  --success-foreground: oklch(0.13 0 0);
-  --warning: oklch(0.80 0.14 75);
-  --warning-foreground: oklch(0.18 0.03 75);
+  --success: oklch(0.72 0.16 150);         /* #30d158 */
+  --success-foreground: oklch(0.16 0.003 286);
+  --warning: oklch(0.81 0.15 70);          /* #ff9f0a */
+  --warning-foreground: oklch(0.2 0.03 70);
 
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.7 0.16 270);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 14%);
+  --ring: oklch(0.665 0.18 252);
 
-  --chart-1: oklch(0.7 0.16 270);
-  --chart-2: oklch(0.7 0.13 195);
-  --chart-3: oklch(0.65 0.15 30);
-  --chart-4: oklch(0.75 0.12 85);
-  --chart-5: oklch(0.6 0.04 270);
+  --chart-1: oklch(0.665 0.18 252);        /* blue */
+  --chart-2: oklch(0.72 0.16 150);         /* green */
+  --chart-3: oklch(0.81 0.15 70);          /* orange */
+  --chart-4: oklch(0.68 0.2 320);          /* pink */
+  --chart-5: oklch(0.72 0.13 200);         /* teal */
 
-  --sidebar: oklch(0.15 0 0);
-  --sidebar-foreground: oklch(0.85 0 0);
-  --sidebar-primary: oklch(0.7 0.16 270);
-  --sidebar-primary-foreground: oklch(0.13 0 0);
-  --sidebar-accent: oklch(0.2 0 0);
-  --sidebar-accent-foreground: oklch(0.95 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.7 0.16 270);
+  --sidebar: oklch(0.185 0.003 286);
+  --sidebar-foreground: oklch(0.88 0.003 286);
+  --sidebar-primary: oklch(0.665 0.18 252);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.27 0.006 252);
+  --sidebar-accent-foreground: oklch(0.965 0.002 286);
+  --sidebar-border: oklch(1 0 0 / 12%);
+  --sidebar-ring: oklch(0.665 0.18 252);
 }
 
 @layer base {
@@ -176,16 +178,16 @@
     @apply border-border outline-ring/50;
   }
   html {
-    /* Inter OpenType features: alt 1/g/a, lining numerals, contextual */
-    font-feature-settings: "cv11" 1, "ss01" 1, "ss03" 1, "cv02" 1, "cv09" 1, "ss07" 1, "calt" 1;
+    /* Inter fallback OpenType features (native SF ignores these harmlessly) */
+    font-feature-settings: "cv11" 1, "ss01" 1, "calt" 1;
     font-variant-ligatures: contextual;
     text-rendering: optimizeLegibility;
   }
   body {
     @apply bg-background text-foreground antialiased;
-    font-size: 13.5px;
+    font-size: 14px;
     line-height: 1.5;
-    letter-spacing: -0.005em;
+    letter-spacing: -0.01em;        /* Apple's optical tightening */
     padding-top: var(--sat);
     padding-bottom: var(--sab);
     padding-left: var(--sal);
@@ -193,11 +195,11 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-  /* Headings use the editorial serif for a premium, hospitality feel.
-   * Body / UI text stays Inter for clarity at small sizes. */
-  h1 { font-family: var(--font-fraunces), ui-serif, Georgia, "Times New Roman", serif; font-size: 1.6rem; line-height: 1.15; letter-spacing: -0.01em; font-weight: 560; }
-  h2 { font-family: var(--font-fraunces), ui-serif, Georgia, "Times New Roman", serif; font-size: 1.2rem; line-height: 1.25; letter-spacing: -0.006em; font-weight: 560; }
-  h3 { font-size: 0.9375rem; line-height: 1.4; letter-spacing: -0.008em; font-weight: 600; }
+  /* Apple headings: SF Pro Display weights with tight optical tracking.
+   * No serif — Apple uses one type family across the whole system. */
+  h1 { font-family: var(--font-display); font-size: 1.75rem; line-height: 1.1; letter-spacing: -0.022em; font-weight: 600; }
+  h2 { font-family: var(--font-display); font-size: 1.3rem; line-height: 1.2; letter-spacing: -0.018em; font-weight: 600; }
+  h3 { font-family: var(--font-display); font-size: 0.95rem; line-height: 1.35; letter-spacing: -0.012em; font-weight: 600; }
   /* Tabular numerals everywhere a number reads */
   .tabular-nums, [class*="tabular"] {
     font-variant-numeric: tabular-nums;
@@ -218,14 +220,14 @@
  * reads crafted. Resting cards get a soft two-step shadow; hover lifts gently. */
 @utility shadow-card {
   box-shadow:
-    0 1px 2px oklch(0.21 0.03 312 / 5%),
-    0 2px 6px oklch(0.21 0.03 312 / 5%);
+    0 1px 1px oklch(0.2 0.01 286 / 4%),
+    0 4px 12px oklch(0.2 0.01 286 / 5%);
 }
 
 @utility shadow-card-hover {
   box-shadow:
-    0 2px 6px oklch(0.21 0.03 312 / 6%),
-    0 10px 24px oklch(0.21 0.03 312 / 9%);
+    0 2px 4px oklch(0.2 0.01 286 / 5%),
+    0 12px 32px oklch(0.2 0.01 286 / 10%);
 }
 
 /* --------------------------------------------------------------
@@ -235,45 +237,34 @@
 
 /* Card hover: faint indigo border tint instead of shadow */
 @utility card-hover-tint {
-  transition: border-color 200ms cubic-bezier(0.4, 0, 0.2, 1), background-color 200ms;
+  transition: border-color 200ms cubic-bezier(0.4, 0, 0.2, 1), background-color 200ms, box-shadow 200ms;
   &:hover {
-    border-color: oklch(0.52 0.18 270 / 35%);
-    background-color: oklch(0.99 0.005 270);
+    border-color: oklch(0.595 0.176 252 / 30%);
+    background-color: oklch(0.99 0.004 252);
   }
 }
 
 .dark .card-hover-tint:hover {
-  border-color: oklch(0.7 0.16 270 / 35%);
-  background-color: oklch(0.17 0.005 270);
+  border-color: oklch(0.665 0.18 252 / 35%);
+  background-color: oklch(0.225 0.006 252);
 }
 
-/* Top-sheen for primary buttons — 1px inner highlight on top edge */
+/* Apple primary button — flat system-blue fill, faint depth, gentle press.
+ * Clean and flat rather than skeuomorphic (matches Apple's filled buttons). */
 @utility button-sheen {
   position: relative;
-  background-image: linear-gradient(
-    to bottom,
-    oklch(1 0 0 / 8%),
-    transparent 40%
-  ), linear-gradient(
-    to bottom,
-    var(--primary),
-    color-mix(in oklab, var(--primary) 92%, black 8%)
-  );
+  background-color: var(--primary);
   box-shadow:
-    inset 0 1px 0 oklch(1 0 0 / 18%),
-    0 1px 2px oklch(0 0 0 / 12%),
-    0 0 0 1px oklch(0.4 0.18 270 / 20%);
-  transition: transform 100ms ease, box-shadow 150ms ease, filter 150ms ease;
+    0 0.5px 0 oklch(1 0 0 / 12%) inset,
+    0 1px 2px oklch(0.4 0.18 252 / 18%);
+  transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 150ms ease, filter 150ms ease;
 }
 .button-sheen:hover {
-  filter: brightness(1.04);
+  filter: brightness(1.06);
 }
 .button-sheen:active {
-  transform: translateY(0.5px);
-  box-shadow:
-    inset 0 1px 0 oklch(1 0 0 / 12%),
-    0 1px 1px oklch(0 0 0 / 16%),
-    0 0 0 1px oklch(0.4 0.18 270 / 28%);
+  transform: scale(0.97);
+  filter: brightness(0.96);
 }
 
 /* Sidebar active accent: right-edge 1.5px indigo bar */
@@ -295,46 +286,46 @@
 @utility bg-auth-mesh {
   background-color: var(--background);
   background-image:
-    radial-gradient(at 18% 12%, oklch(0.55 0.18 270 / 7%) 0%, transparent 38%),
-    radial-gradient(at 82% 78%, oklch(0.6 0.14 320 / 5%) 0%, transparent 42%),
-    radial-gradient(at 50% 100%, oklch(0.65 0.13 195 / 4%) 0%, transparent 38%);
+    radial-gradient(at 18% 12%, oklch(0.595 0.176 252 / 8%) 0%, transparent 40%),
+    radial-gradient(at 82% 78%, oklch(0.62 0.2 320 / 5%) 0%, transparent 44%),
+    radial-gradient(at 50% 100%, oklch(0.68 0.13 200 / 4%) 0%, transparent 40%);
 }
 
 .dark .bg-auth-mesh {
   background-image:
-    radial-gradient(at 18% 12%, oklch(0.6 0.18 270 / 10%) 0%, transparent 38%),
-    radial-gradient(at 82% 78%, oklch(0.55 0.14 320 / 8%) 0%, transparent 42%),
-    radial-gradient(at 50% 100%, oklch(0.55 0.13 195 / 6%) 0%, transparent 38%);
+    radial-gradient(at 18% 12%, oklch(0.665 0.18 252 / 12%) 0%, transparent 40%),
+    radial-gradient(at 82% 78%, oklch(0.6 0.2 320 / 8%) 0%, transparent 44%),
+    radial-gradient(at 50% 100%, oklch(0.65 0.13 200 / 6%) 0%, transparent 40%);
 }
 
 /* Logo lockup ring + faint sheen */
 @utility logo-chip {
   background-image:
-    linear-gradient(to bottom, oklch(1 0 0 / 14%), transparent 50%),
+    linear-gradient(to bottom, oklch(1 0 0 / 16%), transparent 55%),
     linear-gradient(to bottom, var(--primary), color-mix(in oklab, var(--primary) 88%, black 12%));
   box-shadow:
-    inset 0 1px 0 oklch(1 0 0 / 22%),
-    0 0 0 1px oklch(0.4 0.18 270 / 30%),
-    0 1px 2px oklch(0 0 0 / 12%);
+    inset 0 1px 0 oklch(1 0 0 / 24%),
+    0 0 0 1px oklch(0.4 0.18 252 / 28%),
+    0 1px 3px oklch(0.4 0.18 252 / 22%);
 }
 
 /* Sparkline gradient fill */
 @utility spark-fill {
   background: linear-gradient(
     to bottom,
-    oklch(0.52 0.18 270 / 30%) 0%,
-    oklch(0.52 0.18 270 / 0%) 100%
+    oklch(0.595 0.176 252 / 28%) 0%,
+    oklch(0.595 0.176 252 / 0%) 100%
   );
 }
 
 /* Glass topbar — blur over scrolling content, hairline border */
 @utility topbar-glass {
-  background-color: oklch(1 0 0 / 70%);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  background-color: oklch(0.968 0.0015 286 / 72%);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
 }
 .dark .topbar-glass {
-  background-color: oklch(0.13 0 0 / 70%);
+  background-color: oklch(0.16 0.003 286 / 72%);
 }
 
 /* Focus ring with brand color glow */
@@ -343,7 +334,7 @@
     outline: none;
     box-shadow:
       0 0 0 2px var(--background),
-      0 0 0 4px oklch(0.52 0.18 270 / 50%);
+      0 0 0 4px oklch(0.595 0.176 252 / 45%);
   }
 }
 
