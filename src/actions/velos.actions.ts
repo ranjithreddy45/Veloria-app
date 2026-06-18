@@ -154,3 +154,45 @@ export async function getIdentityProgress() {
     pctToNext,
   };
 }
+
+// ============================================================
+// Header summary (engagement) — one call that powers the always-visible Velos
+// chip: period points, lifetime, leaderboard rank, pace, and tier identity.
+// Read-only; composes the existing read helpers.
+// ============================================================
+export async function getVelosHeaderSummary() {
+  const u = await requireUser();
+  if (!u?.id) return null;
+  const period = currentPeriod();
+
+  const [periodAgg, lifeAgg, board] = await Promise.all([
+    prisma.velosLedger.aggregate({ where: { userId: u.id, period }, _sum: { points: true } }),
+    prisma.velosLedger.aggregate({ where: { userId: u.id }, _sum: { points: true } }),
+    prisma.velosLedger.groupBy({ by: ["userId"], where: { period }, _sum: { points: true } }),
+  ]);
+
+  const points = periodAgg._sum.points ?? 0;
+  const lifetime = Math.max(0, lifeAgg._sum.points ?? 0);
+
+  const sorted = board
+    .map((g) => ({ userId: g.userId, pts: g._sum.points ?? 0 }))
+    .sort((a, b) => b.pts - a.pts);
+  const idx = sorted.findIndex((r) => r.userId === u.id);
+  const rank = idx >= 0 ? idx + 1 : null;
+  const players = sorted.length;
+
+  const { tier, pctToNext } = tierForLifetime(lifetime);
+  const opsRoles = ["OPERATIONS", "EVENT_COORDINATOR", "STAFF"];
+  const isOps = opsRoles.includes(u.role ?? "");
+
+  return {
+    period,
+    points,
+    lifetime,
+    rank,
+    players,
+    pctToNext,
+    tierKey: tier.key,
+    identity: isOps ? tier.opsIdentity : tier.salesIdentity,
+  };
+}

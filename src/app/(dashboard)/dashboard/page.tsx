@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { auth } from "@/../auth";
-import { CalendarDays, IndianRupee, ListChecks } from "lucide-react";
+import { CalendarDays, IndianRupee, ListChecks, Trophy } from "lucide-react";
 import { getDashboardStats } from "@/actions/dashboard.actions";
+import { getVelosHeaderSummary } from "@/actions/velos.actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { KpiCards } from "./_components/kpi-cards";
 import { RevenueChart, BookingsChart } from "./_components/charts-lazy";
 import { UpcomingEvents } from "./_components/upcoming-events";
 import { OverdueItems } from "./_components/overdue-items";
+import { ActivityFeed } from "./_components/activity-feed";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -31,9 +34,10 @@ function getGreeting(): string {
 // ============================================================
 
 export default async function DashboardPage() {
-  const [session, stats] = await Promise.all([
+  const [session, stats, velos] = await Promise.all([
     auth(),
     getDashboardStats(),
+    getVelosHeaderSummary(),
   ]);
 
   const fullName = session?.user?.name || "there";
@@ -86,6 +90,17 @@ export default async function DashboardPage() {
                 <span className="tabular-nums text-foreground/80">{b.text}</span>
               </span>
             ))}
+            {velos && velos.players > 0 && (
+              <Link
+                href="/performance/velos"
+                className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5 font-medium text-primary transition-colors hover:bg-primary/15"
+              >
+                <Trophy className="size-3.5" strokeWidth={2} />
+                <span className="tabular-nums">
+                  {velos.rank ? `#${velos.rank} of ${velos.players}` : "Join the board"} · {velos.points} pts
+                </span>
+              </Link>
+            )}
           </div>
         </div>
       </div>
@@ -116,6 +131,11 @@ export default async function DashboardPage() {
           tasks={stats.overdueTasks}
           payments={stats.overduePayments}
         />
+      </div>
+
+      {/* Live team activity — keeps the dashboard feeling current */}
+      <div className="animate-fade-in-up" style={{ animationDelay: "240ms" }}>
+        <ActivityFeed />
       </div>
     </div>
   );

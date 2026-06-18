@@ -8,6 +8,7 @@ import { Search, User, Settings, LogOut, Sun, Moon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { NotificationPopover } from "@/components/layout/notification-popover";
 import { CommandPalette } from "@/components/layout/command-palette";
+import { VelosChip } from "@/components/layout/velos-chip";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { cn } from "@/lib/utils";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -182,6 +183,9 @@ export function AppHeader() {
 
         {/* Command palette */}
         <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
+
+        {/* Velos engagement chip — live points + rank, celebrates on earn */}
+        <VelosChip />
 
         {/* Theme toggle */}
         {mounted && (

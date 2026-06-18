@@ -9,6 +9,7 @@ import * as React from "react";
 import { ArrowUp, ArrowDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Donut } from "@/components/ui/donut";
+import { CountUp } from "@/components/ui/count-up";
 
 export type Accent = "indigo" | "blue" | "violet" | "emerald" | "amber" | "rose" | "pink" | "cyan" | "teal";
 
@@ -48,7 +49,9 @@ export function StatTile({ label, value, accent = "indigo", icon, sub, delta, de
             {icon && <span className={cn("flex size-8 items-center justify-center rounded-xl transition-premium group-hover:scale-105 [&>svg]:size-4", a.chip)}>{icon}</span>}
             <span className="text-xs font-medium tracking-[-0.005em] text-muted-foreground">{label}</span>
           </div>
-          <div className="mt-3 text-[28px] font-bold tabular-nums leading-none tracking-[-0.03em]">{value}</div>
+          <div className="mt-3 text-[28px] font-bold tabular-nums leading-none tracking-[-0.03em]">
+            {typeof value === "number" ? <CountUp value={value} /> : value}
+          </div>
           {sub && <p className="mt-2 text-[11px] text-muted-foreground">{sub}</p>}
           {typeof delta === "number" && delta !== 0 && (
             <p className={cn("mt-2 inline-flex items-center gap-0.5 text-[11.5px] font-semibold tabular-nums", delta > 0 ? "text-success" : "text-destructive")}>
