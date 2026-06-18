@@ -2,6 +2,8 @@
 // Booking Confirmation Email Template
 // ============================================================
 
+import { renderBookingTermsEmailHtml } from "@/lib/legal/booking-terms";
+
 interface BookingConfirmationData {
   contactName: string;
   bookingNumber: string;
@@ -107,12 +109,15 @@ export function bookingConfirmationEmail(data: BookingConfirmationData): string 
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td align="center" style="padding:8px 0;">
-                    <a href="${portalUrl}/portal" style="display:inline-block;padding:12px 32px;background-color:#4f46e5;color:#ffffff;text-decoration:none;border-radius:8px;font-size:14px;font-weight:600;">
+                    <a href="${portalUrl}/portal" style="display:inline-block;padding:12px 32px;background-color:#7c3aed;color:#ffffff;text-decoration:none;border-radius:8px;font-size:14px;font-weight:600;">
                       View in Client Portal
                     </a>
                   </td>
                 </tr>
               </table>
+
+              <!-- Terms & Conditions -->
+              ${renderBookingTermsEmailHtml()}
             </td>
           </tr>
 

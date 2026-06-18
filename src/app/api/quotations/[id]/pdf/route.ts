@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { computeQuotation, type QuotationInput, type QuotationResult } from "@/lib/sales/quotation-calc";
+import { renderBookingTermsQuoteHtml } from "@/lib/legal/booking-terms";
 
 export const runtime = "nodejs";
 
@@ -164,6 +165,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     </p>
 
     ${q.notes ? `<h2>Remarks</h2><p class="terms">${esc(q.notes)}</p>` : ""}
+
+    ${renderBookingTermsQuoteHtml()}
 
     <div class="footer">
       <span>This quotation is valid for 15 days. Prices inclusive of applicable taxes as shown.</span>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
+import { BookingTerms } from "@/components/legal/booking-terms";
 import {
   ArrowLeft,
   CalendarCheck,
@@ -546,6 +547,9 @@ export default async function PortalBookingDetailPage({
           </Card>
         </div>
       </div>
+
+      {/* Terms & Conditions */}
+      <BookingTerms />
     </div>
   );
 }

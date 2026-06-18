@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { BookingTerms } from "@/components/legal/booking-terms";
 import { format, formatDistanceToNow, isPast } from "date-fns";
 import {
   PencilIcon,
@@ -644,6 +645,9 @@ export default async function BookingDetailPage({
           />
         </TabsContent>
       </Tabs>
+
+      {/* Terms & Conditions — same canonical terms shown on the confirmation */}
+      <BookingTerms className="mt-6" />
     </div>
   );
 }
