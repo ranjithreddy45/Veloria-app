@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, UploadCloud as UploadCloudIcon } from "lucide-react";
 
 import { getLeads, getLeadStats } from "@/actions/lead.actions";
 import { PageHeader } from "@/components/layout/page-header";
@@ -80,6 +80,12 @@ export default async function LeadsPage() {
         }
         description="Track and qualify every inbound opportunity — from first contact to close."
       >
+        <Button variant="outline" asChild>
+          <Link href="/leads/import">
+            <UploadCloudIcon className="size-3.5" strokeWidth={2.5} />
+            Import
+          </Link>
+        </Button>
         <Button asChild>
           <Link href="/leads/new">
             <PlusIcon className="size-3.5" strokeWidth={2.5} />
