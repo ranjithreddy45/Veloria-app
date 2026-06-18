@@ -1,10 +1,13 @@
 import { describe, it, expect } from "vitest";
 import {
   computeQuotation,
+  computeCatalogQuote,
+  nightsBetween,
   buildPaymentSchedule,
   validateQuotationInput,
   QUOTE_CATALOG,
   type QuotationInput,
+  type CatalogPackage,
 } from "./quotation-calc";
 
 // ============================================================
@@ -147,5 +150,68 @@ describe("catalog integrity", () => {
       const ids = cat.map((c) => c.id);
       expect(new Set(ids).size).toBe(ids.length);
     }
+  });
+});
+
+// ============================================================
+// Catalog-driven quotation (DB packages + menu locking + rooms + custom items)
+// ============================================================
+describe("computeCatalogQuote", () => {
+  const pkgs = new Map<string, CatalogPackage>([
+    ["hall", { id: "hall", category: "HALL", name: "Grand Hall", pricingType: "FLAT", price: 150000, menuItems: [] }],
+    ["food", { id: "food", category: "FOOD", name: "Veg Gold", pricingType: "PER_PLATE", price: 700, menuItems: [] }],
+    ["drinks", { id: "drinks", category: "DRINKS", name: "Mocktail Bar", pricingType: "PER_PERSON", price: 200, menuItems: [
+      { id: "wd1", name: "Virgin Mojito", extraCost: 0 },
+      { id: "wd2", name: "Blue Lagoon", extraCost: 5000 },
+    ] }],
+    ["room", { id: "room", category: "ROOM", name: "Deluxe Room", pricingType: "PER_NIGHT", price: 2500, menuItems: [] }],
+    ["cake", { id: "cake", category: "CAKE", name: "Premium", pricingType: "PER_KG", price: 2000, menuItems: [] }],
+  ]);
+
+  it("computes per-plate, per-person+locked-extra, per-night, per-kg, flat, and custom", () => {
+    const r = computeCatalogQuote(
+      {
+        guestCount: 100,
+        rooms: 3,
+        nights: 2,
+        discountPct: 0,
+        selections: [
+          { packageId: "hall", lockedMenuItemIds: [] },         // flat 150000
+          { packageId: "food", lockedMenuItemIds: [] },         // 700 × 100 = 70000
+          { packageId: "drinks", lockedMenuItemIds: ["wd1", "wd2"] }, // 200×100 + 5000 = 25000
+          { packageId: "room", lockedMenuItemIds: [] },         // 2500 × 3 × 2 = 15000
+          { packageId: "cake", lockedMenuItemIds: [], kg: 4 },  // 2000 × 4 = 8000
+        ],
+        customItems: [{ label: "DJ", amount: 12000 }],
+      },
+      pkgs
+    );
+    const byCat = Object.fromEntries(r.lines.map((l) => [l.particulars, l.amount]));
+    expect(byCat["Hall / Venue"]).toBe(150000);
+    expect(byCat["Food Plan"]).toBe(70000);
+    expect(byCat["Drinks Plan"]).toBe(25000);
+    expect(byCat["Accommodation (Hotel Rooms)"]).toBe(15000);
+    expect(byCat["Cake Plan"]).toBe(8000);
+    expect(byCat["DJ"]).toBe(12000);
+    // subtotal 280000; 5% tax → grand 294000
+    expect(r.subtotal).toBe(280000);
+    expect(r.grandTotal).toBe(294000);
+    // payment schedule still 20/60/20 sums to grand
+    expect(r.paymentSchedule.reduce((s, p) => s + p.amount, 0)).toBe(294000);
+  });
+
+  it("skips unknown package ids and applies discount", () => {
+    const r = computeCatalogQuote(
+      { guestCount: 50, discountPct: 10, selections: [{ packageId: "missing", lockedMenuItemIds: [] }, { packageId: "food", lockedMenuItemIds: [] }] },
+      pkgs
+    );
+    expect(r.subtotal).toBe(35000); // only food: 700×50
+    expect(r.discountAmount).toBe(3500);
+  });
+
+  it("nightsBetween computes whole nights", () => {
+    expect(nightsBetween("2026-08-01", "2026-08-03")).toBe(2);
+    expect(nightsBetween("2026-08-03", "2026-08-01")).toBe(0);
+    expect(nightsBetween(null, "2026-08-03")).toBe(0);
   });
 });

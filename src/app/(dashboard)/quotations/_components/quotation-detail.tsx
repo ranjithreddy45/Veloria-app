@@ -11,12 +11,14 @@ import {
   Loader2,
   Mail,
   MessageCircle,
+  Pencil,
   Send,
+  Store,
   Trash2,
   XCircle,
 } from "lucide-react";
 
-import { computeQuotation, type QuotationInput, type QuotationResult } from "@/lib/sales/quotation-calc";
+import { computeStoredQuote, type QuotationInput, type StoredQuoteInput, type QuotationResult } from "@/lib/sales/quotation-calc";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import {
   approveSalesQuotation,
@@ -26,6 +28,7 @@ import {
   newSalesQuotationVersion,
   deleteSalesQuotation,
 } from "@/actions/sales-quotation.actions";
+import { shareQuotationWithVendors } from "@/actions/quotation-vendor-share.actions";
 
 import { StatusPill } from "@/components/shared/status-pill";
 import { Button } from "@/components/ui/button";
@@ -63,7 +66,7 @@ interface QuoteRow {
   quoteNumber: string;
   version: number;
   status: string;
-  inputsJson: QuotationInput;
+  inputsJson: StoredQuoteInput;
   outputsJson: QuotationResult | null;
   clientName: string | null;
   clientPhone: string | null;
@@ -108,7 +111,8 @@ export function QuotationDetail({ quote, perms, leads, venues }: Props) {
   const [sendTo, setSendTo] = useState(quote.clientEmail ?? quote.contact?.email ?? "");
 
   const isDraft = quote.status === "DRAFT";
-  const result: QuotationResult = quote.outputsJson ?? computeQuotation(quote.inputsJson);
+  const isCatalog = (quote.inputsJson as { mode?: string })?.mode === "catalog";
+  const result: QuotationResult = quote.outputsJson ?? computeStoredQuote(quote.inputsJson);
 
   async function run(fn: () => Promise<{ success: boolean; error?: string }>, ok: string) {
     setBusy(true);
@@ -122,11 +126,31 @@ export function QuotationDetail({ quote, perms, leads, venues }: Props) {
     }
   }
 
-  // ---- DRAFT: editable calculator ----
-  if (isDraft && perms.canEdit) {
+  async function shareVendors() {
+    setBusy(true);
+    try {
+      const res = await shareQuotationWithVendors(quote.id);
+      if (!res.success) return toast.error(res.error);
+      const { sent, skipped } = res.data;
+      if (sent === 0 && skipped.length === 0) {
+        toast.info("No vendors to share with.");
+      } else {
+        toast.success(
+          `Shared with ${sent} vendor${sent === 1 ? "" : "s"}.` +
+            (skipped.length ? ` Skipped: ${skipped.join("; ")}.` : "")
+        );
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // ---- DRAFT: editable calculator (legacy quotes only; catalog drafts edit
+  // in the new builder via the "Edit in builder" link in the action bar) ----
+  if (isDraft && perms.canEdit && !isCatalog) {
     const initial = {
       id: quote.id,
-      input: quote.inputsJson,
+      input: quote.inputsJson as QuotationInput,
       meta: {
         leadId: quote.lead?.id ?? null,
         venueId: quote.venue?.id ?? null,
@@ -164,6 +188,13 @@ export function QuotationDetail({ quote, perms, leads, venues }: Props) {
 
       {/* Action bar */}
       <div className="flex flex-wrap gap-2">
+        {isDraft && isCatalog && perms.canEdit && (
+          <Button variant="outline" asChild>
+            <a href={`/quotations/builder?id=${quote.id}`}>
+              <Pencil className="h-4 w-4" /> Edit in builder
+            </a>
+          </Button>
+        )}
         {isDraft && perms.canCreate && (
           <Button onClick={() => run(() => submitSalesQuotation(quote.id), "Submitted for approval.")} disabled={busy}>
             <Send className="h-4 w-4" /> Submit for Approval
@@ -189,6 +220,11 @@ export function QuotationDetail({ quote, perms, leads, venues }: Props) {
             {perms.canSend && (
               <Button onClick={() => setSendOpen(true)} disabled={busy}>
                 <Mail className="h-4 w-4" /> Send to Customer
+              </Button>
+            )}
+            {isCatalog && perms.canSend && (
+              <Button variant="outline" onClick={shareVendors} disabled={busy}>
+                <Store className="h-4 w-4" /> Share with vendors
               </Button>
             )}
             {perms.canCreate && (

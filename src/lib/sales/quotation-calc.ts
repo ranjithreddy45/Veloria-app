@@ -256,13 +256,19 @@ export function computeQuotation(
     }
   }
 
+  return finalizeQuote(lines, input.discountPct ?? 0);
+}
+
+// Shared tail: subtotal → discount → tax → grand total → payment schedule.
+// Used by BOTH the legacy computeQuotation and the catalog-driven path so the
+// money math is defined in exactly one place.
+export function finalizeQuote(lines: QuoteLine[], discountPctRaw: number): QuotationResult {
   const subtotal = lines.reduce((s, l) => s + l.amount, 0);
-  const discountPct = Math.min(100, Math.max(0, input.discountPct ?? 0));
+  const discountPct = Math.min(100, Math.max(0, discountPctRaw ?? 0));
   const discountAmount = r2(subtotal * (discountPct / 100));
   const taxableAmount = subtotal - discountAmount;
   const tax = r2(taxableAmount * QUOTE_TAX_RATE);
   const grandTotal = taxableAmount + tax;
-
   return {
     lines,
     subtotal,
@@ -274,6 +280,161 @@ export function computeQuotation(
     grandTotal,
     paymentSchedule: buildPaymentSchedule(grandTotal),
   };
+}
+
+// ============================================================
+// Catalog-driven quotation (DB QuotePackages). Pure — the caller resolves the
+// chosen packages from the DB and passes them in (keeps this lib server/client
+// safe with no Prisma import).
+// ============================================================
+export type CatalogPricing = "PER_PLATE" | "PER_PERSON" | "PER_NIGHT" | "PER_KG" | "FLAT";
+
+export interface CatalogPackage {
+  id: string;
+  category: string; // HALL | FOOD | DECOR | CAKE | DRINKS | ACTIVITY | ROOM | PHOTOGRAPHY
+  name: string;
+  pricingType: CatalogPricing;
+  price: number;
+  unitLabel?: string | null;
+  menuItems: { id: string; name: string; extraCost: number }[];
+}
+
+export interface CatalogSelection {
+  packageId: string;
+  lockedMenuItemIds: string[];
+  kg?: number; // for PER_KG (cake)
+}
+
+export interface CatalogQuoteInput {
+  guestCount: number;
+  rooms?: number;
+  nights?: number; // derived from check-in/check-out
+  discountPct?: number;
+  selections: CatalogSelection[];
+  customItems?: { label: string; amount: number }[];
+}
+
+const CATEGORY_PARTICULARS: Record<string, string> = {
+  HALL: "Hall / Venue",
+  FOOD: "Food Plan",
+  DECOR: "Decor Plan",
+  CAKE: "Cake Plan",
+  DRINKS: "Drinks Plan",
+  ACTIVITY: "Activity Plan",
+  ROOM: "Accommodation (Hotel Rooms)",
+  PHOTOGRAPHY: "Photography / Videography",
+};
+
+export function computeCatalogQuote(
+  input: CatalogQuoteInput,
+  packagesById: Map<string, CatalogPackage>
+): QuotationResult {
+  const guests = Math.max(0, Math.floor(input.guestCount || 0));
+  const rooms = Math.max(0, Math.floor(input.rooms || 0));
+  const nights = Math.max(0, Math.floor(input.nights || 0));
+  const lines: QuoteLine[] = [];
+  let sl = 0;
+
+  for (const sel of input.selections ?? []) {
+    const pkg = packagesById.get(sel.packageId);
+    if (!pkg) continue;
+
+    let multiplier = 1;
+    let unit = "";
+    switch (pkg.pricingType) {
+      case "PER_PLATE":
+      case "PER_PERSON":
+        multiplier = guests;
+        unit = `₹${r2(pkg.price)} × ${guests}`;
+        break;
+      case "PER_NIGHT":
+        multiplier = rooms * nights;
+        unit = `₹${r2(pkg.price)} × ${rooms} room(s) × ${nights} night(s)`;
+        break;
+      case "PER_KG":
+        multiplier = Math.max(0, sel.kg ?? 0);
+        unit = `₹${r2(pkg.price)}/kg × ${multiplier} kg`;
+        break;
+      case "FLAT":
+      default:
+        multiplier = 1;
+        unit = "";
+    }
+
+    const locked = (pkg.menuItems ?? []).filter((m) => sel.lockedMenuItemIds?.includes(m.id));
+    const lockedExtra = locked.reduce((s, m) => s + (m.extraCost || 0), 0);
+    const amount = r2(pkg.price * multiplier + lockedExtra);
+    if (amount <= 0 && pkg.pricingType !== "FLAT") continue;
+
+    const chosen = locked.length ? ` — ${locked.map((m) => m.name).join(", ")}` : "";
+    lines.push({
+      sl: ++sl,
+      particulars: CATEGORY_PARTICULARS[pkg.category] ?? pkg.category,
+      plan: `${pkg.name}${unit ? ` (${unit})` : ""}${chosen}`,
+      amount,
+    });
+  }
+
+  // Custom items (anything not in the catalog).
+  for (const c of input.customItems ?? []) {
+    if (c.label?.trim() && Number.isFinite(c.amount) && c.amount !== 0) {
+      lines.push({ sl: ++sl, particulars: c.label.trim(), plan: "Custom", amount: r2(c.amount) });
+    }
+  }
+
+  return finalizeQuote(lines, input.discountPct ?? 0);
+}
+
+// ============================================================
+// Unified stored-quote shape. A quotation's inputsJson is EITHER the legacy
+// QuotationInput OR a catalog snapshot ({mode:"catalog"} with the resolved
+// packages frozen in, so totals never drift if the catalog is edited later).
+// One compute/validate branches on it, so the detail view, PDF, headline,
+// submit-validation and booking-invoice all stay agnostic to how it was built.
+// ============================================================
+export interface CatalogStoredInput {
+  mode: "catalog";
+  catalog: CatalogQuoteInput;
+  packages: CatalogPackage[]; // frozen snapshot of the chosen packages
+  // carried for display/booking (mirrors legacy fields)
+  checkInDate?: string | null;
+  checkOutDate?: string | null;
+}
+export type StoredQuoteInput = QuotationInput | CatalogStoredInput;
+
+function isCatalog(v: StoredQuoteInput): v is CatalogStoredInput {
+  return (v as CatalogStoredInput)?.mode === "catalog";
+}
+
+export function computeStoredQuote(stored: StoredQuoteInput): QuotationResult {
+  if (isCatalog(stored)) {
+    const map = new Map((stored.packages ?? []).map((p) => [p.id, p]));
+    return computeCatalogQuote(stored.catalog, map);
+  }
+  return computeQuotation(stored as QuotationInput);
+}
+
+export function validateStoredQuote(stored: StoredQuoteInput): string[] {
+  if (isCatalog(stored)) {
+    const errs: string[] = [];
+    const c = stored.catalog;
+    if (!c || (c.guestCount ?? 0) < 1) errs.push("Guest count must be at least 1.");
+    const hasSel = (c?.selections ?? []).length > 0;
+    const hasCustom = (c?.customItems ?? []).some((i) => i.label?.trim() && i.amount);
+    if (!hasSel && !hasCustom) errs.push("Add at least one package or custom item.");
+    return errs;
+  }
+  return validateQuotationInput(stored as QuotationInput);
+}
+
+/** Whole nights between two ISO dates (checkout − checkin), min 0. */
+export function nightsBetween(checkIn?: string | null, checkOut?: string | null): number {
+  if (!checkIn || !checkOut) return 0;
+  const a = new Date(checkIn);
+  const b = new Date(checkOut);
+  if (isNaN(a.getTime()) || isNaN(b.getTime())) return 0;
+  const diff = Math.round((b.getTime() - a.getTime()) / 86400000);
+  return Math.max(0, diff);
 }
 
 // ---- Validation (UI + server share this) ----
