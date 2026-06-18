@@ -40,6 +40,16 @@ const nextConfig: NextConfig = {
       "date-fns",
       "@tanstack/react-table",
     ],
+
+    // Client-side Router Cache: reuse already-fetched route payloads instead of
+    // re-rendering on the server for every navigation. This is what makes moving
+    // between pages (and back) feel instant — prefetched links and recently
+    // visited pages are served from the in-memory cache. Server Actions that call
+    // revalidatePath/revalidateTag still bust these entries, so mutations stay fresh.
+    staleTimes: {
+      dynamic: 30, // reuse a dynamic page's payload for 30s before refetching
+      static: 180, // static / prefetched routes stay warm for 3 minutes
+    },
   },
 
   // Suppress noisy static generation logs
