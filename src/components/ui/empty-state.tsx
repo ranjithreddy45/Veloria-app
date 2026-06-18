@@ -32,15 +32,15 @@ export function EmptyState({
   className,
 }: EmptyStateProps) {
   return (
-    <div className={cn("flex flex-col items-center justify-center px-6 py-12 text-center", className)}>
+    <div className={cn("flex flex-col items-center justify-center px-6 py-16 text-center", className)}>
       {icon && (
-        <div className={cn("mb-3 flex size-11 items-center justify-center rounded-full", CHIP_TONE[tone])}>
+        <div className={cn("mb-4 flex size-14 items-center justify-center rounded-2xl [&>svg]:size-6", CHIP_TONE[tone])}>
           {icon}
         </div>
       )}
-      <p className="text-sm font-medium">{title}</p>
-      {description && <p className="mt-1 max-w-sm text-xs text-muted-foreground">{description}</p>}
-      {action && <div className="mt-4">{action}</div>}
+      <p className="text-[15px] font-semibold tracking-[-0.01em]">{title}</p>
+      {description && <p className="mt-1.5 max-w-sm text-[13px] leading-relaxed text-muted-foreground">{description}</p>}
+      {action && <div className="mt-5">{action}</div>}
     </div>
   );
 }

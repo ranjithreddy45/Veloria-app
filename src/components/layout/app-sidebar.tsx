@@ -290,15 +290,15 @@ function SidebarNavItem({
         isActive={isActive}
         tooltip={item.title}
         className={cn(
-          "h-8 rounded-md text-[13px] font-medium text-sidebar-foreground/80 transition-colors duration-150",
-          "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+          "h-9 rounded-xl px-2.5 text-[13px] font-medium text-sidebar-foreground/80 transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
+          "hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground",
           isActive &&
-            "sidebar-active-accent bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent"
+            "bg-primary/10 font-semibold text-primary hover:bg-primary/15 hover:text-primary"
         )}
       >
         <Link href={item.href}>
-          <Icon className={cn("size-4 transition-colors", isActive ? "text-sidebar-primary" : "text-sidebar-foreground/55")} strokeWidth={isActive ? 2.25 : 1.85} />
-          <span className={cn(isActive && "tracking-[-0.005em]")}>{item.title}</span>
+          <Icon className={cn("size-4 transition-colors", isActive ? "text-primary" : "text-sidebar-foreground/55")} strokeWidth={isActive ? 2.25 : 1.85} />
+          <span className={cn(isActive && "tracking-[-0.01em]")}>{item.title}</span>
         </Link>
       </SidebarMenuButton>
     </SidebarMenuItem>
@@ -326,14 +326,14 @@ function SidebarCollapsibleItem({
             <SidebarMenuButton
               tooltip={item.title}
               className={cn(
-                "h-8 rounded-md text-[13px] font-medium text-sidebar-foreground/80 transition-colors duration-150",
-                "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                "h-9 rounded-xl px-2.5 text-[13px] font-medium text-sidebar-foreground/80 transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
+                "hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground",
                 isGroupActive &&
                   "text-sidebar-accent-foreground"
               )}
             >
-              <Icon className={cn("size-4 transition-colors", isGroupActive ? "text-sidebar-primary" : "text-sidebar-foreground/55")} strokeWidth={isGroupActive ? 2.25 : 1.85} />
-              <span className={cn(isGroupActive && "tracking-[-0.005em]")}>{item.title}</span>
+              <Icon className={cn("size-4 transition-colors", isGroupActive ? "text-primary" : "text-sidebar-foreground/55")} strokeWidth={isGroupActive ? 2.25 : 1.85} />
+              <span className={cn(isGroupActive && "tracking-[-0.01em]")}>{item.title}</span>
               <ChevronRight className="ml-auto size-3.5 text-sidebar-foreground/40 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
             </SidebarMenuButton>
           </CollapsibleTrigger>
@@ -348,13 +348,13 @@ function SidebarCollapsibleItem({
                       asChild
                       isActive={isChildActive}
                       className={cn(
-                        "h-7 rounded-md text-[12.5px] text-sidebar-foreground/70 transition-colors",
-                        "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                        isChildActive && "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                        "h-8 rounded-lg text-[12.5px] text-sidebar-foreground/70 transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
+                        "hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground",
+                        isChildActive && "bg-primary/10 text-primary font-semibold hover:bg-primary/15 hover:text-primary"
                       )}
                     >
                       <Link href={child.href}>
-                        <ChildIcon className={cn("size-3.5", isChildActive ? "text-sidebar-primary" : "text-sidebar-foreground/50")} />
+                        <ChildIcon className={cn("size-3.5", isChildActive ? "text-primary" : "text-sidebar-foreground/50")} />
                         <span>{child.title}</span>
                       </Link>
                     </SidebarMenuSubButton>
@@ -412,7 +412,7 @@ export function AppSidebar() {
   }
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar">
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-material-sidebar">
       {/* Header with logo */}
       <SidebarHeader className="px-3 py-3.5">
         <Link
@@ -472,7 +472,7 @@ export function AppSidebar() {
                   return (
                     <Fragment key={item.href}>
                       {showHeader && (
-                        <SidebarGroupLabel className="mt-3 mb-0.5 flex items-center gap-1.5 px-2 text-[10.5px] font-medium uppercase tracking-[0.08em] text-sidebar-foreground/45">
+                        <SidebarGroupLabel className="mt-4 mb-1 flex items-center gap-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-sidebar-foreground/40">
                           <span className={cn("size-1.5 rounded-full", SECTION_DOT[section] ?? "bg-muted-foreground/40")} />
                           {section}
                         </SidebarGroupLabel>
@@ -489,7 +489,7 @@ export function AppSidebar() {
 
       {/* Footer with user info */}
       <SidebarFooter className="border-t border-sidebar-border p-2">
-        <div className="flex items-center gap-2.5 rounded-md px-2 py-1.5 transition-colors hover:bg-sidebar-accent group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0">
+        <div className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 transition-colors duration-150 hover:bg-sidebar-accent/70 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0">
           <Avatar size="sm">
             <AvatarImage src={user?.image || undefined} alt={user?.name || ""} />
             <AvatarFallback className="bg-primary text-[10px] font-medium text-primary-foreground">
@@ -511,7 +511,7 @@ export function AppSidebar() {
           </div>
           <button
             onClick={() => signOut({ callbackUrl: "/sign-in" })}
-            className="shrink-0 rounded p-1 text-sidebar-foreground/40 transition-colors hover:bg-background hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-data-[collapsible=icon]:hidden"
+            className="shrink-0 rounded-lg p-1.5 text-sidebar-foreground/40 transition-all duration-150 hover:bg-background hover:text-sidebar-accent-foreground active:scale-[0.94] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 group-data-[collapsible=icon]:hidden"
             aria-label="Sign out"
             title="Sign out"
           >

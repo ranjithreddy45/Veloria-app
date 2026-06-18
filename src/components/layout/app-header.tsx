@@ -129,15 +129,15 @@ export function AppHeader() {
   React.useEffect(() => setMounted(true), []);
 
   return (
-    <header className="topbar-glass sticky top-0 z-30 flex min-h-12 shrink-0 items-center gap-3 border-b border-border px-4 pt-[env(safe-area-inset-top)]">
+    <header className="topbar-glass sticky top-0 z-30 flex min-h-14 shrink-0 items-center gap-3 border-b border-border px-4 pt-[env(safe-area-inset-top)]">
       {/* Mobile sidebar trigger */}
-      <SidebarTrigger className="-ml-1 size-7 text-muted-foreground" />
+      <SidebarTrigger className="-ml-1 size-8 rounded-full text-muted-foreground transition-transform active:scale-[0.94]" />
 
       <Separator orientation="vertical" className="mr-1 h-4" />
 
       {/* Breadcrumbs */}
       <Breadcrumb className="hidden md:flex">
-        <BreadcrumbList>
+        <BreadcrumbList className="text-[12.5px] text-muted-foreground">
           {breadcrumbs.map((crumb, index) => (
             <React.Fragment key={crumb.href}>
               {index > 0 && <BreadcrumbSeparator />}
@@ -160,12 +160,12 @@ export function AppHeader() {
         {/* Search trigger — opens command palette */}
         <Button
           variant="outline"
-          className="relative hidden h-8 w-64 justify-start rounded-md border-border bg-background pl-9 text-[13px] font-normal text-muted-foreground hover:bg-muted/60 lg:flex"
+          className="relative hidden h-9 w-64 justify-start rounded-full border-border/70 bg-muted/50 pl-9 text-[13px] font-normal text-muted-foreground shadow-none transition-colors hover:bg-muted/80 lg:flex"
           onClick={() => setCommandOpen(true)}
         >
-          <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
           Search...
-          <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 hidden h-5 select-none items-center gap-0.5 rounded border border-border bg-muted px-1.5 font-sans text-[10px] font-medium text-muted-foreground sm:flex">
+          <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 hidden h-5 select-none items-center gap-0.5 rounded-md border border-border bg-background/60 px-1.5 font-sans text-[10px] font-medium text-muted-foreground sm:flex">
             <span>⌘</span>K
           </kbd>
         </Button>
@@ -174,7 +174,7 @@ export function AppHeader() {
         <Button
           variant="ghost"
           size="icon"
-          className="size-8 text-muted-foreground lg:hidden"
+          className="size-9 rounded-full text-muted-foreground transition-transform active:scale-[0.94] lg:hidden"
           onClick={() => setCommandOpen(true)}
         >
           <Search className="size-4" />
@@ -188,7 +188,7 @@ export function AppHeader() {
           <Button
             variant="ghost"
             size="icon"
-            className="size-8 text-muted-foreground"
+            className="size-9 rounded-full text-muted-foreground transition-transform active:scale-[0.94]"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
           >
@@ -211,7 +211,7 @@ export function AppHeader() {
             <Button
               variant="ghost"
               className={cn(
-                "relative h-9 gap-2 px-2 transition-all duration-200",
+                "relative h-9 gap-2 rounded-full px-1.5 pr-3 transition-all duration-200 active:scale-[0.97]",
                 "hover:bg-accent"
               )}
             >

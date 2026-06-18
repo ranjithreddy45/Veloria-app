@@ -22,11 +22,11 @@ export interface SegmentOption<T extends string = string> {
 }
 
 const ACTIVE_TONE: Record<SegmentTone, string> = {
-  done: "bg-emerald-500 text-white shadow-sm",
-  pending: "bg-amber-500 text-white shadow-sm",
-  na: "bg-zinc-400 text-white shadow-sm dark:bg-zinc-500",
-  neutral: "bg-primary text-primary-foreground shadow-sm",
-  danger: "bg-rose-500 text-white shadow-sm",
+  done: "bg-emerald-500 text-white shadow-card",
+  pending: "bg-amber-500 text-white shadow-card",
+  na: "bg-zinc-400 text-white shadow-card dark:bg-zinc-500",
+  neutral: "bg-primary text-primary-foreground shadow-card",
+  danger: "bg-rose-500 text-white shadow-card",
 };
 
 const INACTIVE_TONE: Record<SegmentTone, string> = {
@@ -73,14 +73,14 @@ export function SegmentedControl<T extends string>({
     else if (e.key === "End") { e.preventDefault(); focusIndex(options.length - 1); }
   }
 
-  const pad = size === "sm" ? "h-7 px-2 text-[11px]" : "h-8 px-2.5 text-xs";
+  const pad = size === "sm" ? "h-7 px-2.5 text-[11px]" : "h-8 px-3 text-xs";
 
   return (
     <div
       role="radiogroup"
       aria-label={ariaLabel}
       className={cn(
-        "inline-flex items-center gap-0.5 rounded-lg border bg-muted/40 p-0.5",
+        "inline-flex items-center gap-0.5 rounded-full bg-muted p-0.5",
         disabled && "pointer-events-none opacity-60",
         className,
       )}
@@ -88,6 +88,9 @@ export function SegmentedControl<T extends string>({
       {options.map((opt, i) => {
         const tone = opt.tone ?? "neutral";
         const active = opt.value === value;
+        // For the canonical neutral tone, the selected segment is an Apple
+        // white pill with a soft shadow; tinted tones keep their fill.
+        const neutralActive = active && tone === "neutral";
         return (
           <button
             key={opt.value}
@@ -101,9 +104,13 @@ export function SegmentedControl<T extends string>({
             onClick={() => onChange(opt.value)}
             onKeyDown={(e) => onKeyDown(e, i)}
             className={cn(
-              "inline-flex items-center gap-1 rounded-md font-medium transition-premium focus-ring",
+              "inline-flex items-center justify-center gap-1 rounded-full font-medium tracking-[-0.01em] transition-premium focus-ring active:scale-[0.97]",
               pad,
-              active ? ACTIVE_TONE[tone] : INACTIVE_TONE[tone],
+              neutralActive
+                ? "bg-card text-foreground shadow-card"
+                : active
+                  ? ACTIVE_TONE[tone]
+                  : INACTIVE_TONE[tone],
             )}
           >
             {opt.icon}

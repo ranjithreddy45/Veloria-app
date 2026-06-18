@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 // Renders the Veloria Grand logo from /logo.png. If the file isn't present
 // (or fails to load) it gracefully falls back to the text/mark passed in, so
@@ -24,7 +25,11 @@ export function BrandLogo({
     <img
       src={src}
       alt={alt}
-      className={className}
+      className={cn(
+        "select-none rounded-lg transition-opacity duration-200",
+        className
+      )}
+      draggable={false}
       onError={() => setErrored(true)}
     />
   );

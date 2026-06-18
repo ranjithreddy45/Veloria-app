@@ -267,19 +267,44 @@
   filter: brightness(0.96);
 }
 
-/* Sidebar active accent: right-edge 1.5px indigo bar */
+/* Sidebar active accent: right-edge 1.5px indigo bar.
+ * (Legacy — the macOS-style selection now uses a filled rounded pill on the
+ * row itself; this remains as a no-op-safe alias so older markup never breaks.) */
 @utility sidebar-active-accent {
   position: relative;
-  &::after {
-    content: "";
-    position: absolute;
-    top: 6px;
-    bottom: 6px;
-    right: -2px;
-    width: 1.5px;
-    border-radius: 9999px;
-    background: var(--sidebar-primary);
-  }
+}
+
+/* --------------------------------------------------------------
+ * Apple frosted materials
+ * A reusable translucent "vibrancy" surface for overlays and the
+ * macOS-style sidebar. Translucent fill + heavy blur + saturation
+ * boost + hairline border, exactly like system materials.
+ * -------------------------------------------------------------- */
+@utility bg-material {
+  background-color: oklch(1 0 0 / 72%);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+}
+.dark .bg-material {
+  background-color: oklch(0.225 0.004 286 / 72%);
+}
+
+/* Thicker, more opaque material for the sidebar chrome. */
+@utility bg-material-sidebar {
+  background-color: oklch(0.978 0.0015 286 / 80%);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+}
+.dark .bg-material-sidebar {
+  background-color: oklch(0.185 0.003 286 / 80%);
+}
+
+/* Apple large-title helper — big, bold, tightly tracked display type. */
+@utility large-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
 }
 
 /* Auth radial mesh — subtle premium background */

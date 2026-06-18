@@ -24,24 +24,24 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between",
+        "flex flex-col gap-4 pb-2 sm:flex-row sm:items-end sm:justify-between",
         className
       )}
     >
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         {eyebrow && (
-          <div className="text-[11.5px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
             {eyebrow}
           </div>
         )}
-        <div className="flex items-center gap-2">
-          <h1 className="text-[26px] font-medium leading-[1.12] tracking-[-0.01em] text-foreground">
+        <div className="flex items-center gap-2.5">
+          <h1 className="text-[28px] font-bold leading-tight tracking-[-0.03em] text-foreground sm:text-[32px]">
             {title}
           </h1>
           {help}
         </div>
         {description && (
-          <p className="max-w-2xl text-[13px] text-muted-foreground">{description}</p>
+          <p className="max-w-2xl text-[15px] leading-relaxed text-muted-foreground">{description}</p>
         )}
       </div>
       {children && (
