@@ -250,8 +250,13 @@ export async function approvePayout(id: string) {
     }
 
     // Segregation of duties (maker-checker): the user who created a payout
-    // cannot approve it — applies to admins too.
-    if (existing.createdById && existing.createdById === (session.user.id as string)) {
+    // cannot approve it — except SUPER_ADMIN, who is never gated by the approval
+    // process in any module.
+    if (
+      existing.createdById &&
+      existing.createdById === (session.user.id as string) &&
+      (session.user.role as string) !== "SUPER_ADMIN"
+    ) {
       return {
         success: false as const,
         error: "You can't approve a payout you created.",

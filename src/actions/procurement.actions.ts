@@ -415,7 +415,9 @@ export async function approvePR(id: string): Promise<Result<{ id: string }>> {
   });
   if (!pr) return { success: false, error: "Requisition not found" };
   if (pr.status !== "PENDING") return { success: false, error: "Only a pending requisition can be approved." };
-  if (pr.requestedById === u.id) {
+  // Maker-checker: you can't approve your own requisition — except SUPER_ADMIN,
+  // who is never gated by the approval process.
+  if (pr.requestedById === u.id && u.role !== "SUPER_ADMIN") {
     return { success: false, error: "You can't approve your own requisition (maker-checker)." };
   }
 

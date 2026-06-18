@@ -356,9 +356,10 @@ export async function approveSalesQuotation(id: string): Promise<Result<{ status
   if (row.status !== "PENDING_APPROVAL")
     return { success: false, error: `Cannot approve from ${row.status}.`, code: 409 };
 
-  // Segregation of duties: nobody may approve a quotation they submitted — not even
-  // an admin. A different approver must sign off (SCRM-007).
-  if (row.submittedById === user.id) {
+  // Segregation of duties: nobody may approve a quotation they submitted — a
+  // different approver must sign off (SCRM-007). Exception: SUPER_ADMIN is never
+  // gated by the approval process and may self-approve.
+  if (row.submittedById === user.id && user.role !== "SUPER_ADMIN") {
     return { success: false, error: "You submitted this quotation — a different approver must approve it." };
   }
 

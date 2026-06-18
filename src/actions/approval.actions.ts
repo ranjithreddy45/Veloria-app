@@ -606,8 +606,10 @@ function approverAuthError(
   userRole: string
 ): string | null {
   const isAdmin = userRole === "SUPER_ADMIN" || userRole === "ADMIN";
-  // Integrity: no one approves their own request (admins included).
-  if (request.submittedById === userId) return "You can't act on your own approval request.";
+  // Integrity: no one approves their own request — except SUPER_ADMIN, who is
+  // never gated by the approval process in any module.
+  if (request.submittedById === userId && userRole !== "SUPER_ADMIN")
+    return "You can't act on your own approval request.";
   // Chain steps are ordered by `order` (possibly non-contiguous) — select by
   // matching `order` to currentStep, not by array index.
   const step = request.rule.approverChain.find((s) => s.order === request.currentStep);
