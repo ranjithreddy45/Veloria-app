@@ -6277,3 +6277,65 @@ model SmsMessage {
   @@index([sentAt])
   @@index([status])
 }
+
+// ============================================================
+// Quotation Catalog (DB-driven, admin-editable) — drives the Sales
+// quotation calculator. Each package belongs to a category, carries an
+// image, a pricing model, and an optional menu of selectable items
+// (e.g. welcome-drink options) that a rep can lock per quotation.
+// All additive; new tables, prod db-push safe.
+// ============================================================
+enum QuotePackageCategory {
+  HALL
+  FOOD
+  DECOR
+  CAKE
+  DRINKS
+  ACTIVITY
+  ROOM
+  PHOTOGRAPHY
+}
+
+enum QuotePricingType {
+  PER_PLATE // × guest count
+  PER_PERSON // × guest count (e.g. drinks)
+  PER_NIGHT // × rooms × nights
+  PER_KG // × kg (cake)
+  FLAT // one-time
+}
+
+model QuotePackage {
+  id          String               @id @default(cuid())
+  category    QuotePackageCategory
+  name        String
+  description String?              @db.Text
+  imageUrl    String?
+  pricingType QuotePricingType     @default(FLAT)
+  price       Decimal              @default(0) @db.Decimal(12, 2)
+  unitLabel   String? // e.g. "per plate", "per room / night"
+  vendorId    String? // plain FK (no back-relation) — for sharing locked menu to the vendor
+  isActive    Boolean              @default(true)
+  order       Int                  @default(0)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  menuItems QuotePackageMenuItem[]
+
+  @@index([category])
+  @@index([isActive])
+}
+
+model QuotePackageMenuItem {
+  id          String       @id @default(cuid())
+  packageId   String
+  package     QuotePackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  groupName   String? // e.g. "Welcome Drinks", "Starters"
+  name        String
+  description String?
+  imageUrl    String?
+  extraCost   Decimal      @default(0) @db.Decimal(12, 2) // optional per-plate/flat surcharge for choosing this
+  isActive    Boolean      @default(true)
+  order       Int          @default(0)
+
+  @@index([packageId])
+}
