@@ -149,3 +149,38 @@ describe("catalog integrity", () => {
     }
   });
 });
+
+// ============================================================
+// Hall-only model (no food) — hall charged per hour, min 4 hrs
+// ============================================================
+describe("computeQuotation — hall-only (no food)", () => {
+  it("hall line = rate × hours, replaces food", () => {
+    const r = computeQuotation({ guestCount: 100, foodMode: "HALL_ONLY", hallRate: 5999, hallHours: 4 });
+    const hall = r.lines.find((l) => l.particulars === "Hall Charges");
+    expect(hall?.amount).toBe(23996); // 5999 × 4
+    expect(r.lines.find((l) => l.particulars === "Food Plan")).toBeUndefined();
+  });
+
+  it("enforces a 4-hour minimum even if fewer entered", () => {
+    const r = computeQuotation({ guestCount: 50, foodMode: "HALL_ONLY", hallRate: 9999, hallHours: 2 });
+    expect(r.lines.find((l) => l.particulars === "Hall Charges")?.amount).toBe(39996); // 9999 × 4
+  });
+
+  it("scales above the minimum", () => {
+    const r = computeQuotation({ guestCount: 50, foodMode: "HALL_ONLY", hallRate: 12999, hallHours: 8 });
+    expect(r.lines.find((l) => l.particulars === "Hall Charges")?.amount).toBe(103992); // 12999 × 8
+  });
+
+  it("WITH_FOOD (default) keeps food and has no hall line", () => {
+    const r = computeQuotation({ guestCount: 100, foodPackageId: "veg_gold" });
+    expect(r.lines.find((l) => l.particulars === "Food Plan")?.amount).toBe(69900);
+    expect(r.lines.find((l) => l.particulars === "Hall Charges")).toBeUndefined();
+  });
+
+  it("validation requires a hall rate in hall-only mode", () => {
+    expect(validateQuotationInput({ guestCount: 50, foodMode: "HALL_ONLY" })).toContain(
+      "Select a hall charge (per hour)."
+    );
+    expect(validateQuotationInput({ guestCount: 50, foodMode: "HALL_ONLY", hallRate: 6999 })).toEqual([]);
+  });
+});

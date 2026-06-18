@@ -35,6 +35,8 @@ export interface CakeOption {
 
 export interface QuoteCatalog {
   timeSlots: string[];
+  // "Without food" mode: hall charged per hour at one of these rates.
+  hallRates: number[];
   food: FoodPackage[];
   decor: FixedItem[];
   activity: FixedItem[];
@@ -44,7 +46,8 @@ export interface QuoteCatalog {
 }
 
 export const QUOTE_CATALOG: QuoteCatalog = {
-  timeSlots: ["11am to 3pm", "5pm to 10pm", "Full Day"],
+  timeSlots: ["Afternoon", "Evening", "Full Day"],
+  hallRates: [5999, 6999, 7999, 8999, 9999, 12999],
   food: [
     { id: "veg_silver", label: "Veg Silver package", perPlate: 599, veg: true },
     { id: "veg_gold", label: "Veg Gold package", perPlate: 699, veg: true },
@@ -81,8 +84,18 @@ export const QUOTE_CATALOG: QuoteCatalog = {
 
 // ---- Inputs ----
 
+// Two quotation models: WITH_FOOD charges food per-plate (no hall charge);
+// HALL_ONLY charges the hall per hour (no food line). Min 4 hours.
+export type FoodMode = "WITH_FOOD" | "HALL_ONLY";
+export const MIN_HALL_HOURS = 4;
+
 export interface QuotationInput {
   guestCount: number;
+  // "WITH_FOOD" (default) = per-plate food; "HALL_ONLY" = hall charged per hour.
+  foodMode?: FoodMode;
+  // HALL_ONLY: chosen per-hour rate (one of catalog.hallRates) × hours (min 4).
+  hallRate?: number;
+  hallHours?: number;
   // Each selection is a catalog id; empty/undefined means "skip this line".
   foodPackageId?: string;
   // Allow a manual per-plate override (e.g. negotiated rate).
@@ -165,19 +178,33 @@ export function computeQuotation(
   const lines: QuoteLine[] = [];
   let sl = 0;
 
-  // 1. Food Plan = per-plate × guest count
-  const food = findById(catalog.food, input.foodPackageId);
-  if (food) {
-    const perPlate =
-      input.foodPerPlateOverride != null && input.foodPerPlateOverride >= 0
-        ? input.foodPerPlateOverride
-        : food.perPlate;
-    lines.push({
-      sl: ++sl,
-      particulars: "Food Plan",
-      plan: `${food.label} (₹${r2(perPlate)} × ${guests})`,
-      amount: r2(perPlate * guests),
-    });
+  // 1. Either Food Plan (per-plate × guests) OR Hall Charges (rate × hours) —
+  //    never both. HALL_ONLY replaces the per-plate food line with a hall line.
+  if (input.foodMode === "HALL_ONLY") {
+    const rate = input.hallRate ?? 0;
+    if (rate > 0) {
+      const hours = Math.max(MIN_HALL_HOURS, Math.floor(input.hallHours ?? MIN_HALL_HOURS));
+      lines.push({
+        sl: ++sl,
+        particulars: "Hall Charges",
+        plan: `Hall (₹${r2(rate)}/hr × ${hours} hr${hours === 1 ? "" : "s"})`,
+        amount: r2(rate * hours),
+      });
+    }
+  } else {
+    const food = findById(catalog.food, input.foodPackageId);
+    if (food) {
+      const perPlate =
+        input.foodPerPlateOverride != null && input.foodPerPlateOverride >= 0
+          ? input.foodPerPlateOverride
+          : food.perPlate;
+      lines.push({
+        sl: ++sl,
+        particulars: "Food Plan",
+        plan: `${food.label} (₹${r2(perPlate)} × ${guests})`,
+        amount: r2(perPlate * guests),
+      });
+    }
   }
 
   // 2. Decor Plan = fixed
@@ -280,8 +307,13 @@ export function computeQuotation(
 export function validateQuotationInput(i: Partial<QuotationInput>): string[] {
   const errs: string[] = [];
   if (!i.guestCount || i.guestCount < 1) errs.push("Guest count must be at least 1.");
+  const hallOnly = i.foodMode === "HALL_ONLY";
+  // In hall-only mode a hall rate must be chosen; food package is ignored.
+  if (hallOnly && !(i.hallRate && i.hallRate > 0)) {
+    errs.push("Select a hall charge (per hour).");
+  }
   const hasAnyLine =
-    i.foodPackageId ||
+    (hallOnly ? !!(i.hallRate && i.hallRate > 0) : !!i.foodPackageId) ||
     i.decorId ||
     (i.activityIds && i.activityIds.length) ||
     (i.cakeId && (i.cakeKg ?? 0) > 0) ||
@@ -290,6 +322,9 @@ export function validateQuotationInput(i: Partial<QuotationInput>): string[] {
     (i.rooms ?? 0) > 0 ||
     (i.customLines && i.customLines.length);
   if (!hasAnyLine) errs.push("Add at least one line item to the quotation.");
+  if (hallOnly && i.hallHours != null && i.hallHours < MIN_HALL_HOURS) {
+    errs.push(`Hall booking is a minimum of ${MIN_HALL_HOURS} hours.`);
+  }
   if (i.discountPct != null && (i.discountPct < 0 || i.discountPct > 100))
     errs.push("Discount must be between 0 and 100%.");
   // Reject negative / non-finite money inputs (a negative override or rate
@@ -298,6 +333,8 @@ export function validateQuotationInput(i: Partial<QuotationInput>): string[] {
     if (v != null && (!Number.isFinite(v) || v < 0)) errs.push(`${label} cannot be negative.`);
   };
   nonNeg(i.foodPerPlateOverride, "Per-plate price");
+  nonNeg(i.hallRate, "Hall rate");
+  nonNeg(i.hallHours, "Hall hours");
   nonNeg(i.cakeKg, "Cake quantity");
   nonNeg(i.drinksPerPerson, "Drinks per-person rate");
   nonNeg(i.rooms, "Room count");

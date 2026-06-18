@@ -81,9 +81,18 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
   const [guestCount, setGuestCount] = useState<string>(
     initial?.input.guestCount ? String(initial.input.guestCount) : ""
   );
+  const [foodMode, setFoodMode] = useState<"WITH_FOOD" | "HALL_ONLY">(
+    initial?.input.foodMode ?? "WITH_FOOD"
+  );
   const [foodPackageId, setFoodPackageId] = useState(initial?.input.foodPackageId ?? "");
   const [foodOverride, setFoodOverride] = useState<string>(
     initial?.input.foodPerPlateOverride != null ? String(initial.input.foodPerPlateOverride) : ""
+  );
+  const [hallRate, setHallRate] = useState<string>(
+    initial?.input.hallRate ? String(initial.input.hallRate) : ""
+  );
+  const [hallHours, setHallHours] = useState<string>(
+    initial?.input.hallHours ? String(initial.input.hallHours) : "4"
   );
   const [decorId, setDecorId] = useState(initial?.input.decorId ?? "");
   const [activityIds, setActivityIds] = useState<string[]>(initial?.input.activityIds ?? []);
@@ -116,7 +125,11 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
   const input: QuotationInput = useMemo(
     () => ({
       guestCount: num(guestCount),
-      foodPackageId: foodPackageId || undefined,
+      foodMode,
+      // Hall-only: per-hour charge replaces food. With-food: per-plate food.
+      hallRate: foodMode === "HALL_ONLY" && hallRate ? num(hallRate) : undefined,
+      hallHours: foodMode === "HALL_ONLY" ? num(hallHours) || 4 : undefined,
+      foodPackageId: foodMode === "HALL_ONLY" ? undefined : foodPackageId || undefined,
       foodPerPlateOverride: foodOverride ? num(foodOverride) : null,
       decorId: decorId || undefined,
       activityIds,
@@ -130,7 +143,7 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
       discountPct: discountPct ? num(discountPct) : undefined,
     }),
     [
-      guestCount, foodPackageId, foodOverride, decorId, activityIds, cakeId, cakeKg,
+      guestCount, foodMode, hallRate, hallHours, foodPackageId, foodOverride, decorId, activityIds, cakeId, cakeKg,
       photographyId, photoCustom, drinksPerPerson, rooms, roomCharge, discountPct,
     ]
   );
@@ -268,23 +281,73 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
             <CardTitle className="text-base">Line Items</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
-            {/* Food */}
-            <div className={field}>
-              <Label>Food Plan (per plate × guests)</Label>
-              <Select value={foodPackageId || NONE} onValueChange={(v) => setFoodPackageId(v === NONE ? "" : v)}>
-                <SelectTrigger><SelectValue placeholder="No food" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE}>No food</SelectItem>
-                  {QUOTE_CATALOG.food.map((f) => (
-                    <SelectItem key={f.id} value={f.id}>{f.label} — ₹{f.perPlate}/plate</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            {/* Pricing model toggle */}
+            <div className={`${field} sm:col-span-2`}>
+              <Label>Pricing Model</Label>
+              <div className="inline-flex rounded-md border p-0.5 text-sm">
+                <button
+                  type="button"
+                  onClick={() => setFoodMode("WITH_FOOD")}
+                  className={`rounded px-3 py-1.5 font-medium transition ${foodMode === "WITH_FOOD" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  With Food (per plate)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFoodMode("HALL_ONLY")}
+                  className={`rounded px-3 py-1.5 font-medium transition ${foodMode === "HALL_ONLY" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  Without Food (hall per hour)
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {foodMode === "WITH_FOOD"
+                  ? "Food charged per plate × guests. No separate hall charge."
+                  : "Hall charged per hour (min 4 hours). No per-plate food charge."}
+              </p>
             </div>
-            <div className={field}>
-              <Label>Per-plate override (optional)</Label>
-              <Input type="number" min={0} value={foodOverride} onChange={(e) => setFoodOverride(e.target.value)} placeholder="Negotiated rate" />
-            </div>
+
+            {foodMode === "WITH_FOOD" ? (
+              <>
+                {/* Food */}
+                <div className={field}>
+                  <Label>Food Plan (per plate × guests)</Label>
+                  <Select value={foodPackageId || NONE} onValueChange={(v) => setFoodPackageId(v === NONE ? "" : v)}>
+                    <SelectTrigger><SelectValue placeholder="No food" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NONE}>No food</SelectItem>
+                      {QUOTE_CATALOG.food.map((f) => (
+                        <SelectItem key={f.id} value={f.id}>{f.label} — ₹{f.perPlate}/plate</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className={field}>
+                  <Label>Per-plate override (optional)</Label>
+                  <Input type="number" min={0} value={foodOverride} onChange={(e) => setFoodOverride(e.target.value)} placeholder="Negotiated rate" />
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Hall (per hour) */}
+                <div className={field}>
+                  <Label>Hall Charge (per hour)</Label>
+                  <Select value={hallRate || NONE} onValueChange={(v) => setHallRate(v === NONE ? "" : v)}>
+                    <SelectTrigger><SelectValue placeholder="Select hall rate" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NONE}>Select hall rate</SelectItem>
+                      {QUOTE_CATALOG.hallRates.map((r) => (
+                        <SelectItem key={r} value={String(r)}>Hall — ₹{r.toLocaleString("en-IN")}/hr</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className={field}>
+                  <Label>Hours (min 4)</Label>
+                  <Input type="number" min={4} value={hallHours} onChange={(e) => setHallHours(e.target.value)} placeholder="4" />
+                </div>
+              </>
+            )}
 
             {/* Decor */}
             <div className={field}>
