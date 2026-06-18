@@ -21,6 +21,8 @@ import {
   PhoneCall,
   Webhook,
   Building2,
+  ArrowUpRight,
+  CornerDownLeft,
 } from "lucide-react";
 import {
   CommandDialog,
@@ -34,7 +36,7 @@ import {
 import { globalSearch, type SearchResult } from "@/actions/search.actions";
 
 // ============================================================
-// Quick navigation entries
+// Quick navigation entries (shown on the empty landing view)
 // ============================================================
 
 const QUICK_NAV = [
@@ -64,6 +66,106 @@ const QUICK_ACTIONS = [
   { title: "New quotation", href: "/quotations/new", shortcut: "Q", icon: FileText },
 ];
 
+// ============================================================
+// Page index — every key destination, with keywords/synonyms so typing
+// "trial balance", "attendance", "payroll", "pto" jumps straight there.
+// Matched instantly client-side (no network round-trip).
+// ============================================================
+
+type PageEntry = { label: string; href: string; keywords: string };
+
+const PAGE_INDEX: PageEntry[] = [
+  // Core
+  { label: "Dashboard", href: "/dashboard", keywords: "home overview kpis" },
+  { label: "Contacts", href: "/contacts", keywords: "customers people clients" },
+  { label: "Leads", href: "/leads", keywords: "enquiries prospects sales crm" },
+  { label: "Sales Pipeline", href: "/pipeline", keywords: "deals stages kanban funnel" },
+  { label: "Quotations", href: "/quotations", keywords: "quotes pricing estimate proposal" },
+  { label: "Quotation Builder", href: "/quotations/new", keywords: "new quote calculator pricing hall food" },
+  { label: "Bookings", href: "/bookings", keywords: "events reservations confirmed" },
+  { label: "Calendar", href: "/calendar", keywords: "schedule events month" },
+  { label: "Slot Availability", href: "/availability", keywords: "venue slots calendar afternoon evening full day" },
+  { label: "Invoices", href: "/invoices", keywords: "billing receivables ar" },
+  { label: "Payments", href: "/payments", keywords: "receipts collections razorpay" },
+  { label: "Contracts", href: "/contracts", keywords: "agreements signed" },
+  { label: "Tasks", href: "/tasks", keywords: "todo work assignments ops" },
+  { label: "Approvals", href: "/approvals", keywords: "maker checker sign off pending" },
+  { label: "Web Inquiries", href: "/inquiries", keywords: "website form leads inbound" },
+  { label: "Reports", href: "/reports", keywords: "exports summaries" },
+  { label: "Analytics", href: "/analytics", keywords: "metrics charts insights" },
+  { label: "Vendors", href: "/vendors", keywords: "suppliers partners catering decor" },
+  { label: "Packages", href: "/pricing", keywords: "event packages tiers menu pricing" },
+  { label: "Campaigns", href: "/campaigns", keywords: "marketing email blast promotions" },
+  { label: "WhatsApp", href: "/whatsapp", keywords: "messages chat templates" },
+  { label: "Reviews", href: "/reviews", keywords: "ratings feedback reputation" },
+  { label: "Surveys", href: "/surveys", keywords: "feedback nps forms" },
+  { label: "Commissions", href: "/commissions", keywords: "payouts sales incentive" },
+  { label: "Payouts", href: "/payouts", keywords: "vendor commissions disbursement" },
+  { label: "Referrals", href: "/referrals", keywords: "affiliate partner" },
+  // Performance / motivation
+  { label: "Performance", href: "/performance", keywords: "scorecard goals" },
+  { label: "Velos", href: "/performance/velos", keywords: "points rewards leaderboard gamification streak" },
+  { label: "KRA Scorecards", href: "/performance/kra", keywords: "kpi targets monthly scoring" },
+  // BD CRM
+  { label: "BD Leads", href: "/bd/leads", keywords: "acquisition business development properties" },
+  { label: "BD Deals", href: "/bd/deals", keywords: "acquisition pipeline contracts" },
+  { label: "BD Properties", href: "/bd/properties", keywords: "acquisition halls venues" },
+  { label: "Hall Owners", href: "/owners", keywords: "b2b property owners landlords" },
+  // Projects
+  { label: "Projects", href: "/projects", keywords: "renovation capex fit-out handover" },
+  { label: "Projects Portfolio", href: "/projects/portfolio", keywords: "all projects dashboard" },
+  // Finance
+  { label: "Finance", href: "/finance", keywords: "accounting gl ledger money" },
+  { label: "Trial Balance", href: "/finance/trial-balance", keywords: "accounting tb gl report" },
+  { label: "Profit & Loss", href: "/finance/pnl", keywords: "income statement p&l revenue expense" },
+  { label: "Balance Sheet", href: "/finance/balance-sheet", keywords: "assets liabilities equity" },
+  { label: "Budgets", href: "/finance/budgets", keywords: "planning variance" },
+  { label: "Assets", href: "/finance/assets", keywords: "fixed assets depreciation" },
+  { label: "Payroll", href: "/finance/payroll", keywords: "salary wages staff pay" },
+  { label: "Bank Reconciliation", href: "/finance/bank", keywords: "statement reconcile matching" },
+  // People / HR
+  { label: "People Directory", href: "/people", keywords: "hr employees staff team directory" },
+  { label: "Leave", href: "/people/leave", keywords: "hr time off pto holiday vacation" },
+  { label: "Attendance", href: "/people/attendance", keywords: "hr muster check-in geo clock" },
+  { label: "Documents", href: "/people/documents", keywords: "hr files policies acknowledge" },
+  { label: "Onboarding", href: "/people/onboarding", keywords: "hr new joiner clearance" },
+  { label: "Org Chart", href: "/people/org", keywords: "hr hierarchy reporting structure" },
+  { label: "Recruitment", href: "/recruit", keywords: "ats hiring candidates jobs" },
+  // Ops
+  { label: "Support", href: "/support", keywords: "tickets helpdesk sla" },
+  { label: "Kitchen / F&B", href: "/kitchen", keywords: "food beverage menu catering" },
+  { label: "Function Sheet (BEO)", href: "/beo", keywords: "banquet event order ops" },
+  { label: "Logistics", href: "/logistics", keywords: "dispatch inventory transport" },
+  { label: "Procurement", href: "/procurement", keywords: "purchase orders buying" },
+  // System
+  { label: "Settings", href: "/settings", keywords: "preferences configuration admin" },
+  { label: "Users", href: "/settings/users", keywords: "team members accounts admin" },
+  { label: "Roles & Permissions", href: "/settings/roles", keywords: "rbac access control admin" },
+  { label: "Workflows", href: "/settings/workflows", keywords: "automation triggers rules" },
+  { label: "Venues", href: "/settings/venues", keywords: "halls properties locations" },
+  { label: "Notifications", href: "/notifications", keywords: "alerts inbox" },
+];
+
+function matchPages(query: string): PageEntry[] {
+  const tokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return [];
+  const scored = PAGE_INDEX.map((p) => {
+    const hay = `${p.label} ${p.keywords} ${p.href}`.toLowerCase();
+    const label = p.label.toLowerCase();
+    const all = tokens.every((t) => hay.includes(t));
+    if (!all) return null;
+    // Rank: label starts with the whole query > label contains it > keyword-only match
+    const q = query.trim().toLowerCase();
+    let score = 10;
+    if (label.startsWith(q)) score = 100;
+    else if (label.includes(q)) score = 70;
+    else if (tokens.every((t) => label.includes(t))) score = 50;
+    return { p, score };
+  }).filter(Boolean) as { p: PageEntry; score: number }[];
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, 7).map((s) => s.p);
+}
+
 const TYPE_ICONS: Record<string, React.ElementType> = {
   contact: Users,
   lead: UserPlus,
@@ -74,6 +176,7 @@ const TYPE_ICONS: Record<string, React.ElementType> = {
   contract: FileText,
   vendor: Users,
   package: FileText,
+  campaign: BarChart3,
   bd_lead: UserPlus,
   bd_deal: Kanban,
   bd_property: Building2,
@@ -90,11 +193,18 @@ const TYPE_LABELS: Record<string, string> = {
   contract: "Contracts",
   vendor: "Vendors",
   package: "Packages",
+  campaign: "Campaigns",
   bd_lead: "BD Leads",
   bd_deal: "BD Deals",
   bd_property: "BD Properties",
   bd_owner: "Hall Owners",
 };
+
+// Stable display order so groups don't jump around between renders.
+const TYPE_ORDER = [
+  "contact", "lead", "booking", "quote", "invoice", "contract", "task",
+  "vendor", "package", "campaign", "bd_lead", "bd_deal", "bd_property", "bd_owner",
+];
 
 // ============================================================
 // Recents — persisted in localStorage so the palette feels personal
@@ -186,7 +296,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     }
   }, [open]);
 
-  // Debounced search
+  // Debounced server search for records
   React.useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
@@ -197,13 +307,15 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     }
 
     setIsSearching(true);
+    const q = query;
     debounceRef.current = setTimeout(async () => {
-      const response = await globalSearch(query);
+      const response = await globalSearch(q);
+      // Guard against out-of-order responses overwriting a newer query
       if (response.success) {
         setResults(response.data);
       }
       setIsSearching(false);
-    }, 300);
+    }, 220);
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -221,42 +333,45 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     router.push(href);
   }
 
-  // Group search results by type
+  // Instant page/navigation matches (client-side, no network)
+  const pageMatches = React.useMemo(
+    () => (query.trim().length >= 1 ? matchPages(query) : []),
+    [query]
+  );
+
+  // Group + order search results by type
   const grouped = results.reduce<Record<string, SearchResult[]>>((acc, r) => {
-    if (!acc[r.type]) acc[r.type] = [];
-    acc[r.type].push(r);
+    (acc[r.type] ??= []).push(r);
     return acc;
   }, {});
+  const orderedTypes = TYPE_ORDER.filter((t) => grouped[t]?.length);
 
   const hasResults = results.length > 0;
-  const showLanding = query.trim().length < 2;
+  const showLanding = query.trim().length < 1;
+  const querying = query.trim().length >= 1;
+  const nothingFound =
+    querying && !isSearching && !hasResults && pageMatches.length === 0;
 
   // Don't render on server to prevent Radix UI ID hydration mismatch
   if (!mounted) return null;
 
   return (
-    <CommandDialog open={open} onOpenChange={onOpenChange}>
+    <CommandDialog open={open} onOpenChange={onOpenChange} shouldFilter={false}>
       <CommandInput
-        placeholder="Search or jump to… (try a name, lead title, or booking number)"
+        placeholder="Search anything — people, bookings, invoices, or jump to a page…"
         value={query}
         onValueChange={setQuery}
       />
       <CommandList>
-        {/* Loading state */}
-        {isSearching && (
-          <div className="flex items-center justify-center py-6 text-[13px] text-muted-foreground">
-            <Loader2 className="mr-2 size-4 animate-spin" />
-            Searching…
-          </div>
-        )}
-
         {/* Empty state */}
-        {!isSearching && !showLanding && !hasResults && (
-          <CommandEmpty>No results found.</CommandEmpty>
+        {nothingFound && (
+          <CommandEmpty>
+            No matches for “{query.trim()}”. Try a name, phone, number, or page.
+          </CommandEmpty>
         )}
 
         {/* Landing view (no query) */}
-        {showLanding && !isSearching && (
+        {showLanding && (
           <>
             {/* Recents */}
             {recents.length > 0 && (
@@ -267,7 +382,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                     return (
                       <CommandItem
                         key={r.href}
-                        value={`recent-${r.title}-${r.subtitle}`}
+                        value={`recent-${r.href}`}
                         onSelect={() =>
                           navigateTo(r.href, {
                             title: r.title,
@@ -295,28 +410,24 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
             {/* Quick actions */}
             <CommandGroup heading="Quick actions">
-              {QUICK_ACTIONS.map((a) => {
-                const Icon = a.icon;
-                return (
-                  <CommandItem
-                    key={a.href}
-                    value={`action-${a.title}`}
-                    onSelect={() => navigateTo(a.href)}
-                  >
-                    <Plus className="mr-2 size-3.5 text-muted-foreground" />
-                    <span className="text-[13px]">{a.title}</span>
-                    <span className="ml-auto inline-flex items-center gap-0.5">
-                      <kbd className="rounded border border-border bg-muted px-1 text-[10px] font-mono text-muted-foreground">
-                        ⇧
-                      </kbd>
-                      <kbd className="rounded border border-border bg-muted px-1 text-[10px] font-mono text-muted-foreground">
-                        {a.shortcut}
-                      </kbd>
-                    </span>
-                    <Icon className="hidden" aria-hidden />
-                  </CommandItem>
-                );
-              })}
+              {QUICK_ACTIONS.map((a) => (
+                <CommandItem
+                  key={a.href}
+                  value={`action-${a.title}`}
+                  onSelect={() => navigateTo(a.href)}
+                >
+                  <Plus className="mr-2 size-3.5 text-muted-foreground" />
+                  <span className="text-[13px]">{a.title}</span>
+                  <span className="ml-auto inline-flex items-center gap-0.5">
+                    <kbd className="rounded border border-border bg-muted px-1 text-[10px] font-mono text-muted-foreground">
+                      ⇧
+                    </kbd>
+                    <kbd className="rounded border border-border bg-muted px-1 text-[10px] font-mono text-muted-foreground">
+                      {a.shortcut}
+                    </kbd>
+                  </span>
+                </CommandItem>
+              ))}
             </CommandGroup>
 
             <CommandSeparator />
@@ -328,7 +439,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 return (
                   <CommandItem
                     key={item.href}
-                    value={item.title}
+                    value={`nav-${item.title}`}
                     onSelect={() => navigateTo(item.href)}
                   >
                     <Icon className="mr-2 size-3.5 text-muted-foreground" />
@@ -342,48 +453,78 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
             {/* Hint */}
             <div className="px-3 py-2 text-[11px] text-muted-foreground/70">
-              <span className="inline-flex items-center gap-1">
+              <span className="inline-flex items-center gap-1.5">
                 <Sparkles className="size-3" />
-                Tip: type a name, phone, or booking number to jump directly.
+                Tip: search a full name, phone number, booking/invoice number, or a page like “attendance” or “trial balance”.
               </span>
             </div>
           </>
         )}
 
-        {/* Search results grouped by type */}
-        {!isSearching &&
-          Object.entries(grouped).map(([type, items], index) => {
-            const Icon = TYPE_ICONS[type] ?? Search;
-            const label = TYPE_LABELS[type] ?? type;
-            return (
-              <React.Fragment key={type}>
-                {index > 0 && <CommandSeparator />}
-                <CommandGroup heading={label}>
-                  {items.map((item) => (
-                    <CommandItem
-                      key={`${item.type}-${item.id}`}
-                      value={`${item.title} ${item.subtitle}`}
-                      onSelect={() =>
-                        navigateTo(item.href, {
-                          title: item.title,
-                          subtitle: item.subtitle,
-                          type: item.type,
-                        })
-                      }
-                    >
-                      <Icon className="mr-2 size-3.5 text-muted-foreground" />
-                      <div className="flex flex-col">
-                        <span className="text-[13px]">{item.title}</span>
-                        <span className="text-[11.5px] text-muted-foreground">
-                          {item.subtitle}
-                        </span>
-                      </div>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </React.Fragment>
-            );
-          })}
+        {/* ===== Query view ===== */}
+        {querying && (
+          <>
+            {/* Page / navigation matches — instant */}
+            {pageMatches.length > 0 && (
+              <CommandGroup heading="Go to page">
+                {pageMatches.map((p) => (
+                  <CommandItem
+                    key={`page-${p.href}`}
+                    value={`page-${p.href}`}
+                    onSelect={() => navigateTo(p.href)}
+                  >
+                    <ArrowUpRight className="mr-2 size-3.5 text-muted-foreground" />
+                    <span className="text-[13px]">{p.label}</span>
+                    <CornerDownLeft className="ml-auto size-3 text-muted-foreground/50" />
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+
+            {/* Loading indicator for record search */}
+            {isSearching && !hasResults && (
+              <div className="flex items-center justify-center py-6 text-[13px] text-muted-foreground">
+                <Loader2 className="mr-2 size-4 animate-spin" />
+                Searching records…
+              </div>
+            )}
+
+            {/* Record results grouped by type, relevance-ordered */}
+            {orderedTypes.map((type, index) => {
+              const items = grouped[type];
+              const Icon = TYPE_ICONS[type] ?? Search;
+              const label = TYPE_LABELS[type] ?? type;
+              return (
+                <React.Fragment key={type}>
+                  {(index > 0 || pageMatches.length > 0) && <CommandSeparator />}
+                  <CommandGroup heading={label}>
+                    {items.map((item) => (
+                      <CommandItem
+                        key={`${item.type}-${item.id}`}
+                        value={`${item.type}-${item.id}`}
+                        onSelect={() =>
+                          navigateTo(item.href, {
+                            title: item.title,
+                            subtitle: item.subtitle,
+                            type: item.type,
+                          })
+                        }
+                      >
+                        <Icon className="mr-2 size-3.5 text-muted-foreground" />
+                        <div className="flex min-w-0 flex-col">
+                          <span className="truncate text-[13px]">{item.title}</span>
+                          <span className="truncate text-[11.5px] text-muted-foreground">
+                            {item.subtitle}
+                          </span>
+                        </div>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </React.Fragment>
+              );
+            })}
+          </>
+        )}
       </CommandList>
     </CommandDialog>
   );
