@@ -806,16 +806,28 @@ function CreateLeadDialog({
             </Field>
 
             <div className="sm:col-span-2">
-              <label className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-border px-3 py-2.5 hover:bg-muted/40">
-                <Checkbox
-                  checked={form.parkingAvailable}
-                  onCheckedChange={(v) => set("parkingAvailable", v === true)}
-                />
-                <span className="text-foreground">Parking available</span>
-              </label>
+              <Field label="Parking available">
+                <div className="inline-flex rounded-lg border border-border p-0.5">
+                  {(["YES", "NO", "UNKNOWN"] as const).map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => set("parkingAvailable", opt)}
+                      className={`rounded-md px-3 py-1.5 text-[13px] font-medium transition ${
+                        form.parkingAvailable === opt
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {opt === "YES" ? "Yes" : opt === "NO" ? "No" : "Unknown"}
+                    </button>
+                  ))}
+                </div>
+              </Field>
             </div>
 
-            {/* Referral / broker — fill only when the lead came via a referrer. */}
+            {/* Referral / broker — only when the lead source is a referral or broker. */}
+            {(form.leadSource === "REFERRAL" || form.leadSource === "BROKER") && (
             <div className="grid gap-4 rounded-xl border border-border bg-muted/20 p-3 sm:col-span-2 sm:grid-cols-2">
               <p className="text-[12px] font-medium text-muted-foreground sm:col-span-2">
                 Referral / broker (only if relevant)
@@ -850,6 +862,7 @@ function CreateLeadDialog({
                 />
               </Field>
             </div>
+            )}
 
             <Field label="Assign BD executive" className="sm:col-span-2">
               <Select
