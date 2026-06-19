@@ -35,11 +35,13 @@ interface PaymentLinkDialogProps {
   invoiceId: string;
   invoiceNumber: string;
   balanceDue: number;
+  totalAmount: number;
 }
 
 interface PaymentLinkData {
   shortUrl: string;
   amount: number;
+  percent?: number;
   invoiceNumber: string;
   contactName: string;
   contactEmail: string | null;
@@ -47,10 +49,13 @@ interface PaymentLinkData {
   mode: "razorpay" | "portal";
 }
 
+const PERCENT_PRESETS = [20, 50, 75, 100];
+
 export function PaymentLinkDialog({
   invoiceId,
   invoiceNumber,
   balanceDue,
+  totalAmount,
 }: PaymentLinkDialogProps) {
   const [open, setOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -58,6 +63,14 @@ export function PaymentLinkDialog({
   const [copied, setCopied] = useState(false);
   const [acceptPartial, setAcceptPartial] = useState(true);
   const [notifyCustomer, setNotifyCustomer] = useState(true);
+  const [percent, setPercent] = useState(100);
+
+  // Clamp to the 20%–100% rule and cap at the outstanding balance.
+  const safePercent = Math.max(20, Math.min(100, Math.round(percent || 0)));
+  const collectAmount = Math.min(
+    balanceDue,
+    Math.max(1, Math.round((totalAmount * safePercent) / 100))
+  );
 
   const formatINR = (value: number) =>
     new Intl.NumberFormat("en-IN", {
@@ -73,6 +86,7 @@ export function PaymentLinkDialog({
         acceptPartial,
         notifyCustomer,
         expiresInDays: 7,
+        percent: safePercent,
       });
 
       if (result.success && result.data) {
@@ -161,6 +175,43 @@ export function PaymentLinkDialog({
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
                 Invoice {invoiceNumber}
+              </p>
+            </div>
+
+            {/* Collection % selector — min 20% (booking advance), max 100% */}
+            <div className="space-y-2">
+              <Label className="text-sm">Amount to collect now</Label>
+              <div className="flex flex-wrap gap-2">
+                {PERCENT_PRESETS.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setPercent(p)}
+                    className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
+                      safePercent === p
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-card hover:bg-muted/60"
+                    }`}
+                  >
+                    {p}%
+                  </button>
+                ))}
+                <div className="flex items-center gap-1">
+                  <Input
+                    type="number"
+                    min={20}
+                    max={100}
+                    value={percent}
+                    onChange={(e) => setPercent(Number(e.target.value))}
+                    className="h-9 w-20"
+                  />
+                  <span className="text-sm text-muted-foreground">%</span>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Collecting <span className="font-semibold text-foreground">{safePercent}%</span> ={" "}
+                <span className="font-semibold text-foreground">{formatINR(collectAmount)}</span>
+                {collectAmount >= balanceDue ? " (full balance)" : ""}. Minimum 20%.
               </p>
             </div>
 
@@ -255,6 +306,7 @@ export function PaymentLinkDialog({
             <div className="flex items-center gap-3">
               <Badge variant="secondary" className="text-xs">
                 {formatINR(linkData.amount)}
+                {linkData.percent && linkData.percent < 100 ? ` · ${linkData.percent}%` : ""}
               </Badge>
               <span className="text-xs text-muted-foreground">
                 for {linkData.contactName}

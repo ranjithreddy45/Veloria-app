@@ -80,6 +80,7 @@ export default async function InvoiceDetailPage({
                   invoiceId={invoice.id}
                   invoiceNumber={invoice.invoiceNumber}
                   balanceDue={Number(invoice.balanceDue)}
+                  totalAmount={Number(invoice.totalAmount)}
                 />
                 <RecordPaymentDialog
                   invoiceId={invoice.id}

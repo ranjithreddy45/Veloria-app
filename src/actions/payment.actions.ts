@@ -656,10 +656,12 @@ export async function getPaymentStats() {
 
 export async function generatePaymentLink(
   invoiceId: string,
-  _options?: {
+  options?: {
     acceptPartial?: boolean;
     expiresInDays?: number;
     notifyCustomer?: boolean;
+    /** % of the invoice total the rep wants to collect now. Min 20%, max 100%. */
+    percent?: number;
   }
 ) {
   try {
@@ -699,6 +701,15 @@ export async function generatePaymentLink(
       return { success: false as const, error: "No balance due" };
     }
 
+    // Rep-selected collection %: at least 20% (the booking advance), capped at
+    // 100%. Applied to the invoice total, then capped at the outstanding balance.
+    const pct = Math.max(20, Math.min(100, Math.round(options?.percent ?? 100)));
+    const total = Number(invoice.totalAmount);
+    const collectAmount = Math.min(
+      balanceDue,
+      Math.max(1, Math.round((total * pct) / 100))
+    );
+
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     const shortUrl = `${baseUrl}/portal/invoices?invoice=${invoice.invoiceNumber}`;
 
@@ -707,14 +718,15 @@ export async function generatePaymentLink(
       action: "generated_payment_link",
       entityType: "Invoice",
       entityId: invoiceId,
-      changes: { invoiceNumber: invoice.invoiceNumber, amount: balanceDue },
+      changes: { invoiceNumber: invoice.invoiceNumber, amount: collectAmount, percent: pct },
     });
 
     return {
       success: true as const,
       data: {
         shortUrl,
-        amount: balanceDue,
+        amount: collectAmount,
+        percent: pct,
         invoiceNumber: invoice.invoiceNumber,
         contactName: `${invoice.contact.firstName} ${invoice.contact.lastName ?? ""}`.trim(),
         contactEmail: invoice.contact.email,

@@ -10,6 +10,7 @@ import {
   PAYMENT_STATUS_COLORS,
   COMPANY_ADDRESS,
   COMPANY_GSTIN,
+  COMPANY_LEGAL_LINE,
 } from "@/lib/constants";
 import { formatINR } from "@/lib/utils";
 
@@ -121,6 +122,9 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
   const sgstAmount = toNum(invoice.sgstAmount);
   const igstAmount = toNum(invoice.igstAmount);
   const isInterstate = igstRate > 0;
+  // Proforma until paid in full; Tax Invoice only on 100% payment.
+  const fullyPaid = toNum(invoice.balanceDue) <= 0 || invoice.status === "PAID";
+  const docTitle = fullyPaid ? "TAX INVOICE" : "PROFORMA INVOICE";
 
   return (
     <div className="space-y-6">
@@ -138,6 +142,9 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
         <div className="flex flex-col gap-6 sm:flex-row sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-zinc-900">Veloria Grand</h1>
+            <p className="mt-0.5 text-xs font-semibold text-zinc-600">
+              {COMPANY_LEGAL_LINE}
+            </p>
             <p className="mt-1 text-sm text-zinc-500">
               Premium Event & Banquet Services
             </p>
@@ -148,7 +155,7 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
             </p>
           </div>
           <div className="text-left sm:text-right">
-            <h2 className="text-2xl font-bold text-zinc-900">INVOICE</h2>
+            <h2 className="text-2xl font-bold text-zinc-900">{docTitle}</h2>
             <p className="mt-1 text-sm font-medium">
               {invoice.invoiceNumber}
             </p>
@@ -372,6 +379,23 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
             </div>
           </div>
         </div>
+
+        {/* Payment terms — shown on the Proforma until full payment is received */}
+        {!fullyPaid && (
+          <div className="mt-8 space-y-2">
+            <Separator />
+            <h4 className="text-xs font-semibold uppercase text-zinc-400 mb-1">
+              Payment Terms
+            </h4>
+            <p className="text-sm text-zinc-600 whitespace-pre-line">
+              {`1. To block the slot — 20% on the day of booking.
+2. 60% — 15 days before the event.
+3. Balance (20%) — 2 hours before the event.
+
+This is a Proforma Invoice for advance/part payment and is not a tax document. A Tax Invoice will be issued once full payment is received.`}
+            </p>
+          </div>
+        )}
 
         {/* Notes & Terms */}
         {(invoice.notes || invoice.terms) && (

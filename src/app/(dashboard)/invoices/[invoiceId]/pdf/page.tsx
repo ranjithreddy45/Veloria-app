@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { getInvoice } from "@/actions/invoice.actions";
 import { formatINR } from "@/lib/utils";
-import { COMPANY_ADDRESS, COMPANY_GSTIN } from "@/lib/constants";
+import { COMPANY_ADDRESS, COMPANY_GSTIN, COMPANY_LEGAL_LINE } from "@/lib/constants";
 
 // ============================================================
 // Print-Optimized Invoice PDF Page
@@ -44,10 +44,15 @@ export default async function InvoicePdfPage({ params }: InvoicePdfPageProps) {
   const igstAmount = toNum(invoice.igstAmount);
   const isInterstate = igstRate > 0;
 
+  // A Tax Invoice is only issued once the booking is paid in full. Until then
+  // the document is a Proforma Invoice (a preliminary bill, not a tax document).
+  const fullyPaid = toNum(invoice.balanceDue) <= 0 || invoice.status === "PAID";
+  const docTitle = fullyPaid ? "TAX INVOICE" : "PROFORMA INVOICE";
+
   return (
     <html lang="en">
       <head>
-        <title>Invoice {invoice.invoiceNumber} - Veloria Grand</title>
+        <title>{docTitle} {invoice.invoiceNumber} - Veloria Grand</title>
         <style
           dangerouslySetInnerHTML={{
             __html: `
@@ -174,6 +179,7 @@ export default async function InvoicePdfPage({ params }: InvoicePdfPageProps) {
                 style={{ height: "48px", width: "auto", marginBottom: "8px", display: "block" }}
               />
               <h1>Veloria Grand</h1>
+              <p style={{ fontWeight: 600, color: "#3f3f46" }}>{COMPANY_LEGAL_LINE}</p>
               <p>Premium Event & Banquet Services</p>
               <p>
                 {COMPANY_ADDRESS}
@@ -182,7 +188,7 @@ export default async function InvoicePdfPage({ params }: InvoicePdfPageProps) {
               </p>
             </div>
             <div className="invoice-meta">
-              <h2>INVOICE</h2>
+              <h2>{docTitle}</h2>
               <div className="number">{invoice.invoiceNumber}</div>
               <div className="dates">
                 <div>
@@ -388,10 +394,26 @@ export default async function InvoicePdfPage({ params }: InvoicePdfPageProps) {
             </div>
           )}
 
+          {/* Payment terms — shown on the Proforma until full payment is received */}
+          {!fullyPaid && (
+            <div className="notes-section">
+              <h4>Payment Terms</h4>
+              <p>
+                1. To block the slot — 20% on the day of booking.{"\n"}
+                2. 60% — 15 days before the event.{"\n"}
+                3. Balance (20%) — 2 hours before the event.{"\n"}
+                {"\n"}
+                This is a Proforma Invoice for advance/part payment and is not a tax
+                document. A Tax Invoice will be issued once full payment is received.
+              </p>
+            </div>
+          )}
+
           {/* Footer */}
           <div className="footer">
-            This is a computer-generated invoice and does not require a physical
-            signature.
+            {fullyPaid
+              ? "This is a computer-generated tax invoice and does not require a physical signature."
+              : "This is a computer-generated proforma invoice and does not require a physical signature."}
           </div>
         </div>
       </body>

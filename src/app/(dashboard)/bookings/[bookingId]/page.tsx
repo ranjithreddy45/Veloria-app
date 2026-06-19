@@ -526,7 +526,7 @@ export default async function BookingDetailPage({
               <Button size="sm" asChild>
                 <Link href={`/invoices/new?bookingId=${booking.id}`}>
                   <FileTextIcon className="mr-2 size-4" />
-                  Generate Invoice
+                  Generate Proforma Invoice
                 </Link>
               </Button>
             </CardHeader>
@@ -537,7 +537,7 @@ export default async function BookingDetailPage({
                   <Button variant="outline" size="sm" className="mt-3" asChild>
                     <Link href={`/invoices/new?bookingId=${booking.id}`}>
                       <FileTextIcon className="mr-2 size-4" />
-                      Generate Invoice
+                      Generate Proforma Invoice
                     </Link>
                   </Button>
                 </div>

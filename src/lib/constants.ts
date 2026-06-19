@@ -8,9 +8,14 @@ export const APP_NAME = "Veloria Grand" as const;
 // Company Configuration (override via environment variables)
 // ============================================================
 
+// Legal entity line shown under the "Veloria Grand" brand on all documents.
+export const COMPANY_LEGAL_LINE =
+  process.env.NEXT_PUBLIC_COMPANY_LEGAL_LINE ||
+  "A Unit of Billion Events Hospitality Services Pvt Ltd";
+
 export const COMPANY_ADDRESS =
   process.env.NEXT_PUBLIC_COMPANY_ADDRESS ||
-  "123 Celebration Avenue, Event City, Karnataka 560001";
+  "No. 2931, Second Floor, 14th Cross, BSK II Stage, Bangalore, Karnataka 560070";
 
 export const COMPANY_GSTIN =
   process.env.NEXT_PUBLIC_COMPANY_GSTIN || "";
