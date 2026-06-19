@@ -187,6 +187,14 @@ export async function runLeadIntake(args: {
     console.error("[runLeadIntake] workflows error:", e);
   }
   await autoEnrollLeadIntoCadences(lead);
+  // Speed-to-lead: instant automated first-response + round-robin assignment.
+  // Best-effort and self-contained — must never break lead creation.
+  try {
+    const { runSpeedToLead } = await import("@/lib/lead-first-response");
+    await runSpeedToLead({ lead });
+  } catch (e) {
+    console.error("[runLeadIntake] speed-to-lead error:", e);
+  }
 }
 
 // ------------------------------------------------------------

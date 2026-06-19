@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { captureLeadFromExternal } from "@/lib/lead-capture";
+import { parseAttributionFromRequest } from "@/lib/attribution";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -83,6 +84,7 @@ export async function POST(request: NextRequest) {
       source: "google_ads",
       message: `Google Ads Lead (ID: ${leadId || "unknown"})`,
       externalId: leadId ? `gads:${leadId}` : undefined,
+      attribution: await parseAttributionFromRequest(request, body),
     });
 
     // Update lastSyncAt

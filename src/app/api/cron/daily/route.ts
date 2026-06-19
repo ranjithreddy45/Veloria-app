@@ -26,6 +26,7 @@ const JOBS = [
   "trash-purge",
   "event-triggers",
   "customer-360",
+  "attribution-rollup", // recompute LeadAttribution.bookedRevenue + relink campaigns (after customer-360 so LTV is fresh)
   "acq-sla",
   "invoice-due",
   "payment-reminders", // in-app nudges for invoices due soon / overdue (poka-yoke)
@@ -33,7 +34,12 @@ const JOBS = [
   "project-escalation", // Projects SLA escalation (was never wired — audit)
   "velos-slump", // Velos slump-catch sweep (was never wired — audit)
   "hold-expiry", // cancel expired booking HOLDs so they stop blocking slots
+  "public-hold-expiry", // release stale public (no-login) date holds
+  "review-requests", // enqueue + send Google-review requests for COMPLETED bookings
   "support-sla", // escalate support tickets past their priority-based SLA
+  "configurator-abandonment", // mark stale public quote drafts ABANDONED
+  "yield-demand-refresh", // recompute per-venue/date occupancy + demand signals
+  "franchise-revshare", // accrue monthly franchise revenue-share payouts
 ] as const;
 
 function getBaseUrl(): string {

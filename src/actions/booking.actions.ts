@@ -3,6 +3,7 @@
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
+import { utcDayRange } from "@/lib/sales/slot-util";
 import { revalidatePath } from "next/cache";
 import { bookingSchema, type BookingInput } from "@/schemas/booking.schema";
 import type { BookingStatus, TimeSlot } from "@prisma/client";
@@ -21,7 +22,7 @@ import { format } from "date-fns";
 // Helper: Generate Booking Number (VG-YYYY-NNNN)
 // ============================================================
 
-async function generateBookingNumber(): Promise<string> {
+export async function generateBookingNumber(): Promise<string> {
   const year = new Date().getFullYear();
   const prefix = `VG-${year}-`;
 
@@ -64,14 +65,6 @@ async function generateBookingNumber(): Promise<string> {
 // timezones — on a non-UTC server it can target the wrong calendar day and
 // either miss an existing booking (double-book) or block a free slot. Scan the
 // full UTC day instead, identical to availability.actions getAvailabilityGrid.
-function utcDayRange(date: Date): { gte: Date; lt: Date; utcDay: number } {
-  const gte = new Date(
-    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0)
-  );
-  const lt = new Date(gte.getTime() + 24 * 60 * 60 * 1000);
-  return { gte, lt, utcDay: gte.getUTCDate() };
-}
-
 // ============================================================
 // Get Bookings (Paginated + Filtered)
 // ============================================================

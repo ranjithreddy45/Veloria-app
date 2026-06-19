@@ -95,6 +95,9 @@ const INTERNAL_ROUTES = [
   "/owners",
   "/bd",
   "/projects",
+  "/marketing",
+  "/feedback", // internal staff dashboard; PUBLIC review landing is /r/[token]
+  "/franchise", // internal partner mgmt; PUBLIC white-label storefront is /s/[slug]
 ];
 
 export default auth((req) => {
@@ -162,6 +165,6 @@ export const config = {
      * - favicon.ico, sitemap.xml, robots.txt
      * - Public assets (images, svgs, etc.)
      */
-    "/((?!api/auth|api/widget|api/track|api/webforms|form|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|\\.well-known|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.gif$|.*\\.svg$|.*\\.ico$|.*\\.webp$).*)",
+    "/((?!api/auth|api/widget|api/track|api/webforms|api/ota|form|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|\\.well-known|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.gif$|.*\\.svg$|.*\\.ico$|.*\\.webp$).*)",
   ],
 };

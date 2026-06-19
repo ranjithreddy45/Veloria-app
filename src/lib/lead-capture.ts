@@ -5,6 +5,7 @@ import { calculateLeadScore } from "@/lib/lead-scoring";
 import { evaluateAssignmentRules } from "@/actions/assignment-rule.actions";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
 import { runLeadIntake, leadSlaDeadline } from "@/lib/lead-pipeline";
+import { attachAttributionToLead, type AttributionInput } from "@/lib/attribution";
 
 interface ExternalLeadData {
   name: string;
@@ -19,6 +20,8 @@ interface ExternalLeadData {
   perPlateBudget?: number; // ×guestCount estimates value when no budget given
   venueId?: string; // preferred venue
   customFields?: Record<string, unknown>;
+  /** First-touch marketing attribution (utm/gclid/fbclid/referrer) — best-effort. */
+  attribution?: AttributionInput;
   /**
    * Provider's own lead identifier (Facebook leadgen_id / Google lead_id).
    * Used as an idempotency key so provider webhook retries do not create
@@ -54,6 +57,14 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
         select: { id: true, contactId: true },
       });
       if (existing) {
+        // Re-link attribution on redelivery so retried webhooks refresh the
+        // campaign mapping without duplicating the row (upserts on leadId).
+        if (data.attribution) {
+          void attachAttributionToLead(existing.id, {
+            ...data.attribution,
+            source: data.attribution.source || data.source,
+          });
+        }
         return {
           success: true,
           leadId: existing.id,
@@ -155,6 +166,14 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
         createdById: await getSystemUserId(),
       },
     });
+
+    // First-touch marketing attribution (best-effort; helper swallows errors).
+    if (data.attribution) {
+      void attachAttributionToLead(lead.id, {
+        ...data.attribution,
+        source: data.attribution.source || data.source,
+      });
+    }
 
     // Log activity
     logActivity({
@@ -259,7 +278,7 @@ function mapSource(source: string): string {
 /**
  * Get system user ID (first SUPER_ADMIN or ADMIN)
  */
-async function getSystemUserId(): Promise<string> {
+export async function getSystemUserId(): Promise<string> {
   const admin = await prisma.user.findFirst({
     where: { role: { in: ["SUPER_ADMIN", "ADMIN"] }, isActive: true },
     select: { id: true },

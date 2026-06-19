@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { captureLeadFromExternal } from "@/lib/lead-capture";
+import { parseAttributionFromRequest } from "@/lib/attribution";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
@@ -160,6 +161,7 @@ export async function POST(request: NextRequest) {
               source: "facebook_ads",
               message: `Facebook Lead Ad (ID: ${leadgenId})`,
               externalId: leadgenId ? `fb:${leadgenId}` : undefined,
+              attribution: await parseAttributionFromRequest(request, body),
             });
 
             // Update lastSyncAt

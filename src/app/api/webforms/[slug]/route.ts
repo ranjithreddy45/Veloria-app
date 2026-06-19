@@ -5,6 +5,7 @@ import { notify } from "@/lib/notify";
 import { calculateLeadScore } from "@/lib/lead-scoring";
 import { evaluateAssignmentRules } from "@/actions/assignment-rule.actions";
 import { runLeadIntake, leadSlaDeadline } from "@/lib/lead-pipeline";
+import { attachAttributionToLead, parseAttributionFromRequest } from "@/lib/attribution";
 import type { Prisma, LeadSource } from "@prisma/client";
 
 // ============================================================
@@ -225,6 +226,12 @@ export async function POST(
           },
         });
         leadId = lead.id;
+
+        // First-touch marketing attribution (best-effort; helper swallows errors).
+        void attachAttributionToLead(
+          lead.id,
+          await parseAttributionFromRequest(request, body)
+        );
 
         // Intake: instant auto-reply (LEAD_CREATED workflows) + auto-enrol.
         await runLeadIntake({

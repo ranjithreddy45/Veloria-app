@@ -10,6 +10,9 @@ const pricingRuleTypeValues = [
   "PEAK_HOUR",
   "EARLY_BIRD",
   "LAST_MINUTE",
+  "OCCUPANCY",
+  "DEMAND",
+  "LEAD_TIME",
 ] as const;
 
 // ============================================================

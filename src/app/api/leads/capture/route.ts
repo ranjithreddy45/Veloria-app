@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { captureLeadFromExternal } from "@/lib/lead-capture";
+import { parseAttributionFromRequest } from "@/lib/attribution";
 import { leadCaptureSchema } from "@/schemas/lead-capture.schema";
 import crypto from "crypto";
 
@@ -60,6 +61,7 @@ export async function POST(request: NextRequest) {
       eventType: parsed.data.eventType || undefined,
       eventDate: parsed.data.eventDate || undefined,
       guestCount: parsed.data.guestCount,
+      attribution: await parseAttributionFromRequest(request, body),
     });
 
     if (result.success) {

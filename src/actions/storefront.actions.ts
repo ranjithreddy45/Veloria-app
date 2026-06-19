@@ -78,6 +78,14 @@ export interface BookingInquiryInput {
   venueId?: string;
   venueName?: string;
   message?: string;
+  // First-touch marketing attribution captured client-side from the landing URL.
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  gclid?: string;
+  fbclid?: string;
+  referrerUrl?: string;
+  landingUrl?: string;
 }
 
 /**
@@ -135,6 +143,16 @@ export async function submitBookingInquiry(
         eventDate: input.eventDate,
         guestCount: input.guestCount,
         message: composedMessage,
+        attribution: {
+          source: "website",
+          utmSource: input.utmSource,
+          utmMedium: input.utmMedium,
+          utmCampaign: input.utmCampaign,
+          gclid: input.gclid,
+          fbclid: input.fbclid,
+          referrerUrl: input.referrerUrl,
+          landingUrl: input.landingUrl,
+        },
       });
     } catch (e) {
       console.error("[STOREFRONT_LEAD_CAPTURE_ERROR]", e);

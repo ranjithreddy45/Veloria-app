@@ -276,6 +276,20 @@ export type Permission =
   | "invitations:send"
   | "invitations:read"
   | "reminders:manage"
+  // Growth engine — marketing attribution, self-serve quotes, e-sign, franchise
+  | "marketing:read"
+  | "marketing:manage"
+  | "publicquotes:read"
+  | "publicquotes:manage"
+  | "esign:read"
+  | "esign:create"
+  | "esign:send"
+  | "esign:update"
+  | "franchise:read"
+  | "franchise:manage"
+  | "franchise:onboard"
+  | "franchise:revshare"
+  | "franchise:payout:approve"
   // AI
   | "ai:use"
   | "ai:admin";
@@ -506,6 +520,19 @@ export const ALL_PERMISSIONS: Permission[] = [
   "invitations:send",
   "invitations:read",
   "reminders:manage",
+  "marketing:read",
+  "marketing:manage",
+  "publicquotes:read",
+  "publicquotes:manage",
+  "esign:read",
+  "esign:create",
+  "esign:send",
+  "esign:update",
+  "franchise:read",
+  "franchise:manage",
+  "franchise:onboard",
+  "franchise:revshare",
+  "franchise:payout:approve",
   "ai:use",
   "ai:admin",
 ];
@@ -720,6 +747,19 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "invitations:send",
     "invitations:read",
     "reminders:manage",
+    "marketing:read",
+    "marketing:manage",
+    "publicquotes:read",
+    "publicquotes:manage",
+    "esign:read",
+    "esign:create",
+    "esign:send",
+    "esign:update",
+    "franchise:read",
+    "franchise:manage",
+    "franchise:onboard",
+    "franchise:revshare",
+    "franchise:payout:approve",
     "ai:use",
     "ai:admin",
   ],
@@ -773,6 +813,11 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "referrals:rewards",
     "referrals:assets",
     "invitations:read",
+    "marketing:read",
+    "publicquotes:read",
+    "esign:read",
+    "esign:create",
+    "esign:send",
     "ai:use",
   ],
 
@@ -842,6 +887,14 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "quality:read", // quality & Six Sigma dashboards
     "performance:manage", // run / oversee team performance (KRA)
     "invitations:send",
+    "marketing:read",
+    "marketing:manage",
+    "publicquotes:read",
+    "publicquotes:manage",
+    "esign:read",
+    "esign:create",
+    "esign:send",
+    "esign:update",
   ],
 
   EVENT_COORDINATOR: [
@@ -904,6 +957,9 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "invitations:send",
     "invitations:read",
     "reminders:manage",
+    "esign:read",
+    "esign:create",
+    "esign:send",
     "ai:use",
   ],
 
@@ -952,6 +1008,10 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "documents:read",
     "currency:read",
     "referrals:rewards",
+    "marketing:read",
+    "franchise:read",
+    "franchise:revshare",
+    "franchise:payout:approve",
     "ai:use",
   ],
 
@@ -999,6 +1059,9 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "owners:update",
     "owners:delete",
     "contacts:read",
+    "franchise:read",
+    "franchise:manage",
+    "franchise:onboard",
   ],
   OPERATIONS: [
     "beo:read", "beo:write", "kitchen:read", "kitchen:write",
@@ -1076,6 +1139,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "analytics:read",
     "quality:read",
     "finance:read", // accountant portal — read-only access to Finance
+    "marketing:read",
   ],
 };
 
@@ -1088,6 +1152,10 @@ export const ROUTE_PERMISSIONS: { prefix: string; permission: Permission }[] = [
   // More specific first (the lookup sorts by length, but keep readable).
   { prefix: "/settings/users", permission: "users:read" },
   { prefix: "/settings/roles", permission: "users:manage-roles" },
+  { prefix: "/settings/public-quotes", permission: "publicquotes:read" },
+  { prefix: "/marketing", permission: "analytics:read" },
+  { prefix: "/feedback", permission: "reviews:read" },
+  { prefix: "/franchise", permission: "franchise:read" },
   { prefix: "/bd", permission: "owners:read" },
   { prefix: "/projects", permission: "projects:read" },
   { prefix: "/people", permission: "hr:read" },

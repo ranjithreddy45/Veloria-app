@@ -347,41 +347,44 @@ model User {
   hallOwnersManaged       HallOwner[]            @relation("HallOwnerBD")
 
   // BD / Acquisition CRM relations
-  acqLeads                  AcqLead[]                  @relation("AcqLeadBdExec")
-  acqDeals                  AcqDeal[]                  @relation("AcqDealBdExec")
-  acqDealApprovals          AcqDeal[]                  @relation("AcqDealBdHeadApprover")
-  acqPropertiesManaged      AcqProperty[]              @relation("AcqPropertyManager")
-  acqEvaluations            AcqEvaluation[]            @relation("AcqEvaluationBy")
-  acqAttachments            AcqAttachment[]            @relation("AcqAttachmentBy")
-  acqDealNotes              AcqDealNote[]              @relation("AcqDealNoteAuthor")
-  acqOnboardingTasks        AcqOnboardingTask[]        @relation("AcqOnboardingAssignee")
-  acqStageTransitions       AcqStageTransition[]       @relation("AcqStageTransitionActor")
-  acqProjectionsSubmitted   AcqProjection[]            @relation("AcqProjectionSubmittedBy")
-  acqProjectionsApproved    AcqProjection[]            @relation("AcqProjectionApprovedBy")
-  acqProjectionsSent        AcqProjection[]            @relation("AcqProjectionSentBy")
-  acqProjectionTransitions  AcqProjectionTransition[]  @relation("AcqProjectionTransitionActor")
-  salesQuotationsCreated    SalesQuotation[]           @relation("SalesQuotationCreatedBy")
-  salesQuotationsSubmitted  SalesQuotation[]           @relation("SalesQuotationSubmittedBy")
-  salesQuotationsApproved   SalesQuotation[]           @relation("SalesQuotationApprovedBy")
-  salesQuotationsSent       SalesQuotation[]           @relation("SalesQuotationSentBy")
-  salesQuotationTransitions SalesQuotationTransition[] @relation("SalesQuotationTransitionActor")
-  projectsManaged           AcqOnboardingProject[]     @relation("ProjectManager")
-  projectsAudited           AcqOnboardingProject[]     @relation("ProjectOpsAuditor")
-  projectsHandedOver        AcqOnboardingProject[]     @relation("ProjectHandover")
-  capexCreated              AcqCapexProjection[]       @relation("CapexCreatedBy")
-  capexSubmitted            AcqCapexProjection[]       @relation("CapexSubmittedBy")
-  capexApproved             AcqCapexProjection[]       @relation("CapexApprovedBy")
-  capexSent                 AcqCapexProjection[]       @relation("CapexSentBy")
-  projectsBdOwned           AcqOnboardingProject[]     @relation("ProjectBdOwner")
-  projectsFinalGoAhead      AcqOnboardingProject[]     @relation("ProjectFinalGoAhead")
-  projectSignOffs           ProjectSignOff[]           @relation("SignOffApprover")
+  acqLeads                   AcqLead[]                  @relation("AcqLeadBdExec")
+  acqDeals                   AcqDeal[]                  @relation("AcqDealBdExec")
+  acqDealApprovals           AcqDeal[]                  @relation("AcqDealBdHeadApprover")
+  acqPropertiesManaged       AcqProperty[]              @relation("AcqPropertyManager")
+  acqEvaluations             AcqEvaluation[]            @relation("AcqEvaluationBy")
+  acqAttachments             AcqAttachment[]            @relation("AcqAttachmentBy")
+  acqDealNotes               AcqDealNote[]              @relation("AcqDealNoteAuthor")
+  acqOnboardingTasks         AcqOnboardingTask[]        @relation("AcqOnboardingAssignee")
+  acqStageTransitions        AcqStageTransition[]       @relation("AcqStageTransitionActor")
+  acqProjectionsSubmitted    AcqProjection[]            @relation("AcqProjectionSubmittedBy")
+  acqProjectionsApproved     AcqProjection[]            @relation("AcqProjectionApprovedBy")
+  acqProjectionsSent         AcqProjection[]            @relation("AcqProjectionSentBy")
+  acqProjectionTransitions   AcqProjectionTransition[]  @relation("AcqProjectionTransitionActor")
+  salesQuotationsCreated     SalesQuotation[]           @relation("SalesQuotationCreatedBy")
+  salesQuotationsSubmitted   SalesQuotation[]           @relation("SalesQuotationSubmittedBy")
+  salesQuotationsApproved    SalesQuotation[]           @relation("SalesQuotationApprovedBy")
+  salesQuotationsSent        SalesQuotation[]           @relation("SalesQuotationSentBy")
+  salesQuotationTransitions  SalesQuotationTransition[] @relation("SalesQuotationTransitionActor")
+  projectsManaged            AcqOnboardingProject[]     @relation("ProjectManager")
+  projectsAudited            AcqOnboardingProject[]     @relation("ProjectOpsAuditor")
+  projectsHandedOver         AcqOnboardingProject[]     @relation("ProjectHandover")
+  capexCreated               AcqCapexProjection[]       @relation("CapexCreatedBy")
+  capexSubmitted             AcqCapexProjection[]       @relation("CapexSubmittedBy")
+  capexApproved              AcqCapexProjection[]       @relation("CapexApprovedBy")
+  capexSent                  AcqCapexProjection[]       @relation("CapexSentBy")
+  projectsBdOwned            AcqOnboardingProject[]     @relation("ProjectBdOwner")
+  projectsFinalGoAhead       AcqOnboardingProject[]     @relation("ProjectFinalGoAhead")
+  projectSignOffs            ProjectSignOff[]           @relation("SignOffApprover")
   // HR / People module — the Employee master record links back to this identity.
-  hrEmployee                Employee?                  @relation("EmployeeUser")
+  hrEmployee                 Employee?                  @relation("EmployeeUser")
   // Velos motivation system
-  velosLedger               VelosLedger[]
-  kudosGiven                Kudos[]                    @relation("KudosFrom")
-  kudosReceived             Kudos[]                    @relation("KudosTo")
-  questProgress             QuestProgress[]
+  velosLedger                VelosLedger[]
+  kudosGiven                 Kudos[]                    @relation("KudosFrom")
+  kudosReceived              Kudos[]                    @relation("KudosTo")
+  questProgress              QuestProgress[]
+  signatureRequestsCreated   SignatureRequest[]         @relation("SignatureRequestCreatedBy")
+  leadFirstResponsesAssigned LeadFirstResponse[]        @relation("LeadFirstResponseAssignee")
+  franchisePartnersOwned     FranchisePartner[]         @relation("FranchisePartnerOwner")
 
   @@index([email])
   @@index([role])
@@ -499,6 +502,7 @@ model Contact {
   reviews          Review[]
   callLogs         CallLog[]
   salesQuotations  SalesQuotation[]
+  reviewRequests   ReviewRequest[]
 
   @@index([email])
   @@index([phone])
@@ -535,16 +539,21 @@ model Lead {
   updatedAt        DateTime   @updatedAt
 
   contactId        String
-  contact          Contact          @relation(fields: [contactId], references: [id])
+  contact          Contact            @relation(fields: [contactId], references: [id])
   preferredVenueId String?
-  preferredVenue   Venue?           @relation("LeadPreferredVenue", fields: [preferredVenueId], references: [id])
+  preferredVenue   Venue?             @relation("LeadPreferredVenue", fields: [preferredVenueId], references: [id])
   assignedToId     String?
-  assignedTo       User?            @relation("AssignedTo", fields: [assignedToId], references: [id])
+  assignedTo       User?              @relation("AssignedTo", fields: [assignedToId], references: [id])
   createdById      String
-  createdBy        User             @relation("CreatedBy", fields: [createdById], references: [id])
+  createdBy        User               @relation("CreatedBy", fields: [createdById], references: [id])
   deal             Deal?
   quotes           Quote[]
   salesQuotations  SalesQuotation[]
+  utmSource        String?
+  utmMedium        String?
+  utmCampaign      String?
+  attribution      LeadAttribution?
+  firstResponse    LeadFirstResponse?
 
   @@index([status])
   @@index([assignedToId])
@@ -624,13 +633,20 @@ model Venue {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  bookings          Booking[]
-  blackoutDates     BlackoutDate[]
-  pricingRules      PricingRule[]
-  ratePlans         RatePlan[]
-  insurancePolicies InsurancePolicy[]
-  preferredLeads    Lead[]            @relation("LeadPreferredVenue")
-  salesQuotations   SalesQuotation[]  @relation("SalesQuotationVenue")
+  bookings            Booking[]
+  blackoutDates       BlackoutDate[]
+  pricingRules        PricingRule[]
+  ratePlans           RatePlan[]
+  insurancePolicies   InsurancePolicy[]
+  preferredLeads      Lead[]               @relation("LeadPreferredVenue")
+  salesQuotations     SalesQuotation[]     @relation("SalesQuotationVenue")
+  publicHolds         PublicHold[]         @relation("VenuePublicHolds")
+  publicQuoteDrafts   PublicQuoteDraft[]   @relation("VenuePublicQuoteDrafts")
+  demandSignals       VenueDemandSignal[]  @relation("VenueDemandSignals")
+  franchiseVenues     FranchiseVenue[]     @relation("VenueFranchise")
+  revenueShareConfigs RevenueShareConfig[] @relation("VenueRevenueShare")
+  revenueSharePayouts RevenueSharePayout[] @relation("VenueRevenueSharePayouts")
+  otaChannels         OtaChannel[]         @relation("VenueOtaChannels")
 }
 
 model Booking {
@@ -696,6 +712,8 @@ model Booking {
   guestInvitations  GuestInvitation[]
   guestReminders    GuestReminder[]
   reminderTemplates ReminderTemplate[]
+  reviewRequests    ReviewRequest[]
+  signatureRequests SignatureRequest[]
 
   @@unique([venueId, date, timeSlot])
   @@index([date])
@@ -924,6 +942,9 @@ enum PricingRuleType {
   PEAK_HOUR
   EARLY_BIRD
   LAST_MINUTE
+  OCCUPANCY
+  DEMAND
+  LEAD_TIME
 }
 
 model PricingRule {
@@ -1197,8 +1218,8 @@ model Vendor {
   notes             String?  @db.Text
   isArchived        Boolean  @default(false)
 
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   bookingVendors BookingVendor[]
   bids           VendorBid[]
@@ -2181,14 +2202,14 @@ model Communication {
 // 9.4 WhatsApp Business (Placeholder)
 
 model WhatsAppMessage {
-  id           String                 @id @default(cuid())
-  direction    CommunicationDirection @default(OUTBOUND)
-  content      String                 @db.Text
-  templateName String?
-  status       WhatsAppMessageStatus  @default(SENT)
-  whatsappId   String?
-  failureReason String?               @db.Text
-  sentAt       DateTime               @default(now())
+  id            String                 @id @default(cuid())
+  direction     CommunicationDirection @default(OUTBOUND)
+  content       String                 @db.Text
+  templateName  String?
+  status        WhatsAppMessageStatus  @default(SENT)
+  whatsappId    String?
+  failureReason String?                @db.Text
+  sentAt        DateTime               @default(now())
 
   contactId String
   contact   Contact @relation(fields: [contactId], references: [id])
@@ -3915,9 +3936,9 @@ model AcqDeal {
   gpaDocumentUrl             String?
 
   // Approvals
-  bdHeadApprovedById String?
-  bdHeadApprovedBy   User?     @relation("AcqDealBdHeadApprover", fields: [bdHeadApprovedById], references: [id])
-  bdHeadApprovedAt   DateTime?
+  bdHeadApprovedById   String?
+  bdHeadApprovedBy     User?     @relation("AcqDealBdHeadApprover", fields: [bdHeadApprovedById], references: [id])
+  bdHeadApprovedAt     DateTime?
   // Distinct large-deal (≥ threshold) sign-off, separate from below-floor approval.
   largeDealSignoffById String?
   largeDealSignoffAt   DateTime?
@@ -4689,20 +4710,20 @@ model Employee {
   education         EmployeeEducation[]
   workHistory       EmployeeWorkHistory[]
   leaveBalances     LeaveBalance[]
-  leaveRequests     LeaveRequest[]        @relation("LeaveEmployee")
-  leaveApprovals    LeaveRequest[]        @relation("LeaveApprover")
+  leaveRequests     LeaveRequest[]            @relation("LeaveEmployee")
+  leaveApprovals    LeaveRequest[]            @relation("LeaveApprover")
   compOffs          CompOff[]
   attendance        AttendanceRecord[]
-  regularizations   Regularization[]      @relation("RegnEmployee")
+  regularizations   Regularization[]          @relation("RegnEmployee")
   documents         HrDocument[]
   docAcks           DocumentAcknowledgement[]
   journeys          EmployeeJourney[]
   goals             Goal[]
-  reviewsAbout      AppraisalReview[]     @relation("ReviewSubject")
-  reviewsGiven      AppraisalReview[]     @relation("ReviewAuthor")
+  reviewsAbout      AppraisalReview[]         @relation("ReviewSubject")
+  reviewsGiven      AppraisalReview[]         @relation("ReviewAuthor")
   shiftAssignments  ShiftAssignment[]
-  swapRequests      ShiftSwapRequest[]    @relation("SwapRequester")
-  swapTargets       ShiftSwapRequest[]    @relation("SwapTarget")
+  swapRequests      ShiftSwapRequest[]        @relation("SwapRequester")
+  swapTargets       ShiftSwapRequest[]        @relation("SwapTarget")
 
   @@index([legalEntityId])
   @@index([businessVerticalId])
@@ -4832,20 +4853,20 @@ enum HalfDayPart {
 }
 
 model LeaveType {
-  id              String  @id @default(cuid())
-  name            String
-  code            String  @unique // CL, SL, EL, COMP, LOP ...
-  paid            Boolean @default(true)
-  accrualPerYear  Float   @default(0) // days credited per year (annual entitlement)
-  carryForwardMax Float   @default(0) // max days carried into next year
-  allowHalfDay    Boolean @default(true)
-  allowNegative   Boolean @default(false) // allow balance to go negative (→ LOP territory)
-  requiresApproval Boolean @default(true)
-  color           String  @default("blue") // StatusPill hue
-  isActive        Boolean @default(true)
-  order           Int     @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @default(now()) @updatedAt
+  id               String   @id @default(cuid())
+  name             String
+  code             String   @unique // CL, SL, EL, COMP, LOP ...
+  paid             Boolean  @default(true)
+  accrualPerYear   Float    @default(0) // days credited per year (annual entitlement)
+  carryForwardMax  Float    @default(0) // max days carried into next year
+  allowHalfDay     Boolean  @default(true)
+  allowNegative    Boolean  @default(false) // allow balance to go negative (→ LOP territory)
+  requiresApproval Boolean  @default(true)
+  color            String   @default("blue") // StatusPill hue
+  isActive         Boolean  @default(true)
+  order            Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @default(now()) @updatedAt
 
   balances LeaveBalance[]
   requests LeaveRequest[]
@@ -4867,42 +4888,42 @@ model Holiday {
 }
 
 model LeaveBalance {
-  id            String    @id @default(cuid())
-  employeeId    String
-  employee      Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  leaveTypeId   String
-  leaveType     LeaveType @relation(fields: [leaveTypeId], references: [id], onDelete: Cascade)
-  year          Int
-  entitled      Float     @default(0)
-  carriedForward Float    @default(0)
-  used          Float     @default(0)
-  pending       Float     @default(0)
-  updatedAt     DateTime  @default(now()) @updatedAt
+  id             String    @id @default(cuid())
+  employeeId     String
+  employee       Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveTypeId    String
+  leaveType      LeaveType @relation(fields: [leaveTypeId], references: [id], onDelete: Cascade)
+  year           Int
+  entitled       Float     @default(0)
+  carriedForward Float     @default(0)
+  used           Float     @default(0)
+  pending        Float     @default(0)
+  updatedAt      DateTime  @default(now()) @updatedAt
 
   @@unique([employeeId, leaveTypeId, year])
   @@index([employeeId, year])
 }
 
 model LeaveRequest {
-  id            String             @id @default(cuid())
-  employeeId    String
-  employee      Employee           @relation("LeaveEmployee", fields: [employeeId], references: [id], onDelete: Cascade)
-  leaveTypeId   String
-  leaveType     LeaveType          @relation(fields: [leaveTypeId], references: [id])
-  startDate     DateTime
-  endDate       DateTime
-  startPart     HalfDayPart        @default(FULL)
-  endPart       HalfDayPart        @default(FULL)
-  days          Float // computed working days (excludes weekends + holidays)
-  reason        String?
-  status        LeaveRequestStatus @default(PENDING)
-  approverId    String? // Employee id of the approver (org-chart manager or HR)
-  approver      Employee?          @relation("LeaveApprover", fields: [approverId], references: [id])
-  decidedAt     DateTime?
-  decisionNote  String?
-  escalatedAt   DateTime? // set when auto-escalated past a stale approver
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @default(now()) @updatedAt
+  id           String             @id @default(cuid())
+  employeeId   String
+  employee     Employee           @relation("LeaveEmployee", fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveTypeId  String
+  leaveType    LeaveType          @relation(fields: [leaveTypeId], references: [id])
+  startDate    DateTime
+  endDate      DateTime
+  startPart    HalfDayPart        @default(FULL)
+  endPart      HalfDayPart        @default(FULL)
+  days         Float // computed working days (excludes weekends + holidays)
+  reason       String?
+  status       LeaveRequestStatus @default(PENDING)
+  approverId   String? // Employee id of the approver (org-chart manager or HR)
+  approver     Employee?          @relation("LeaveApprover", fields: [approverId], references: [id])
+  decidedAt    DateTime?
+  decisionNote String?
+  escalatedAt  DateTime? // set when auto-escalated past a stale approver
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @default(now()) @updatedAt
 
   @@index([employeeId])
   @@index([approverId])
@@ -4917,15 +4938,15 @@ enum CompOffStatus {
 }
 
 model CompOff {
-  id          String        @id @default(cuid())
-  employeeId  String
-  employee    Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  workedDate  DateTime
-  days        Float         @default(1)
-  reason      String?
-  expiryDate  DateTime?
-  status      CompOffStatus @default(AVAILABLE)
-  createdAt   DateTime      @default(now())
+  id         String        @id @default(cuid())
+  employeeId String
+  employee   Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  workedDate DateTime
+  days       Float         @default(1)
+  reason     String?
+  expiryDate DateTime?
+  status     CompOffStatus @default(AVAILABLE)
+  createdAt  DateTime      @default(now())
 
   @@index([employeeId])
   @@index([status])
@@ -4969,24 +4990,24 @@ model AttendanceSite {
 }
 
 model AttendanceRecord {
-  id           String           @id @default(cuid())
-  employeeId   String
-  employee     Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  date         DateTime // UTC midnight of the attendance day
-  checkInAt    DateTime?
-  checkOutAt   DateTime?
-  checkInLat   Float?
-  checkInLng   Float?
-  checkInIp    String?
-  siteId       String?
-  source       AttendanceSource @default(WEB)
-  status       AttendanceStatus @default(PRESENT)
-  workedMinutes Int             @default(0)
-  selfieUrl    String?
-  isRegularized Boolean         @default(false)
-  note         String?
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @default(now()) @updatedAt
+  id            String           @id @default(cuid())
+  employeeId    String
+  employee      Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  date          DateTime // UTC midnight of the attendance day
+  checkInAt     DateTime?
+  checkOutAt    DateTime?
+  checkInLat    Float?
+  checkInLng    Float?
+  checkInIp     String?
+  siteId        String?
+  source        AttendanceSource @default(WEB)
+  status        AttendanceStatus @default(PRESENT)
+  workedMinutes Int              @default(0)
+  selfieUrl     String?
+  isRegularized Boolean          @default(false)
+  note          String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @default(now()) @updatedAt
 
   regularizations Regularization[]
 
@@ -5045,21 +5066,21 @@ model HrDocumentCategory {
 }
 
 model HrDocument {
-  id           String              @id @default(cuid())
-  title        String
-  categoryId   String?
-  category     HrDocumentCategory? @relation(fields: [categoryId], references: [id])
-  scope        DocumentScope       @default(ORG)
-  fileUrl      String? // link to the stored file (Drive/S3/etc.)
-  version      Int                 @default(1)
-  employeeId   String? // set when scope = EMPLOYEE
-  employee     Employee?           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  requiresAck  Boolean             @default(false)
-  expiryDate   DateTime?
-  uploadedBy   String
-  isActive     Boolean             @default(true)
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @default(now()) @updatedAt
+  id          String              @id @default(cuid())
+  title       String
+  categoryId  String?
+  category    HrDocumentCategory? @relation(fields: [categoryId], references: [id])
+  scope       DocumentScope       @default(ORG)
+  fileUrl     String? // link to the stored file (Drive/S3/etc.)
+  version     Int                 @default(1)
+  employeeId  String? // set when scope = EMPLOYEE
+  employee    Employee?           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  requiresAck Boolean             @default(false)
+  expiryDate  DateTime?
+  uploadedBy  String
+  isActive    Boolean             @default(true)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @default(now()) @updatedAt
 
   acknowledgements DocumentAcknowledgement[]
   esignRequests    ESignRequest[]
@@ -5139,12 +5160,12 @@ enum JourneyTaskStatus {
 }
 
 model OnboardingTemplate {
-  id            String       @id @default(cuid())
+  id            String      @id @default(cuid())
   name          String
-  type          JourneyType  @default(ONBOARDING)
+  type          JourneyType @default(ONBOARDING)
   legalEntityId String? // null = applies to all entities
-  isActive      Boolean      @default(true)
-  createdAt     DateTime     @default(now())
+  isActive      Boolean     @default(true)
+  createdAt     DateTime    @default(now())
 
   tasks OnboardingTaskTemplate[]
 
@@ -5152,14 +5173,14 @@ model OnboardingTemplate {
 }
 
 model OnboardingTaskTemplate {
-  id         String  @id @default(cuid())
+  id         String             @id @default(cuid())
   templateId String
   template   OnboardingTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
   title      String
-  category   String  @default("General") // IT, HR, Manager, Finance, …
+  category   String             @default("General") // IT, HR, Manager, Finance, …
   ownerRole  String? // role responsible
-  blocksDay1 Boolean @default(false) // must be DONE before Day-1 / completion
-  order      Int     @default(0)
+  blocksDay1 Boolean            @default(false) // must be DONE before Day-1 / completion
+  order      Int                @default(0)
 
   @@index([templateId])
 }
@@ -5178,7 +5199,7 @@ model EmployeeJourney {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @default(now()) @updatedAt
 
-  tasks        JourneyTask[]
+  tasks         JourneyTask[]
   exitInterview ExitInterview?
 
   @@index([employeeId])
@@ -5187,17 +5208,17 @@ model EmployeeJourney {
 }
 
 model JourneyTask {
-  id         String            @id @default(cuid())
-  journeyId  String
-  journey    EmployeeJourney   @relation(fields: [journeyId], references: [id], onDelete: Cascade)
-  title      String
-  category   String            @default("General")
-  ownerRole  String?
-  assigneeId String? // Employee id
-  status     JourneyTaskStatus @default(PENDING)
-  blocksDay1 Boolean           @default(false)
-  dueDate    DateTime?
-  order      Int               @default(0)
+  id          String            @id @default(cuid())
+  journeyId   String
+  journey     EmployeeJourney   @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  title       String
+  category    String            @default("General")
+  ownerRole   String?
+  assigneeId  String? // Employee id
+  status      JourneyTaskStatus @default(PENDING)
+  blocksDay1  Boolean           @default(false)
+  dueDate     DateTime?
+  order       Int               @default(0)
   completedAt DateTime?
 
   @@index([journeyId])
@@ -5269,40 +5290,40 @@ model AppraisalCycle {
 }
 
 model Goal {
-  id            String     @id @default(cuid())
+  id            String         @id @default(cuid())
   employeeId    String
-  employee      Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employee      Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   cycleId       String
   cycle         AppraisalCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
   title         String
   description   String?
-  weight        Int        @default(0) // percentage weight of the KRA
-  status        GoalStatus @default(NOT_STARTED)
+  weight        Int            @default(0) // percentage weight of the KRA
+  status        GoalStatus     @default(NOT_STARTED)
   selfRating    Int?
   managerRating Int?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @default(now()) @updatedAt
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @default(now()) @updatedAt
 
   @@index([employeeId, cycleId])
   @@index([cycleId])
 }
 
 model AppraisalReview {
-  id          String       @id @default(cuid())
-  cycleId     String
-  cycle       AppraisalCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
-  employeeId  String // subject of the review
-  employee    Employee     @relation("ReviewSubject", fields: [employeeId], references: [id], onDelete: Cascade)
-  reviewerId  String // author of the review
-  reviewer    Employee     @relation("ReviewAuthor", fields: [reviewerId], references: [id], onDelete: Cascade)
-  kind        ReviewKind
-  status      ReviewStatus @default(PENDING)
-  rating      Int?
-  strengths   String?      @db.Text
-  improvements String?     @db.Text
-  comments    String?      @db.Text
-  submittedAt DateTime?
-  createdAt   DateTime     @default(now())
+  id           String         @id @default(cuid())
+  cycleId      String
+  cycle        AppraisalCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  employeeId   String // subject of the review
+  employee     Employee       @relation("ReviewSubject", fields: [employeeId], references: [id], onDelete: Cascade)
+  reviewerId   String // author of the review
+  reviewer     Employee       @relation("ReviewAuthor", fields: [reviewerId], references: [id], onDelete: Cascade)
+  kind         ReviewKind
+  status       ReviewStatus   @default(PENDING)
+  rating       Int?
+  strengths    String?        @db.Text
+  improvements String?        @db.Text
+  comments     String?        @db.Text
+  submittedAt  DateTime?
+  createdAt    DateTime       @default(now())
 
   @@unique([cycleId, employeeId, reviewerId, kind])
   @@index([cycleId, employeeId])
@@ -5350,17 +5371,17 @@ enum ShiftSwapStatus {
 }
 
 model ShiftSwapRequest {
-  id             String          @id @default(cuid())
-  assignmentId   String
-  assignment     ShiftAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  requestedById  String
-  requestedBy    Employee        @relation("SwapRequester", fields: [requestedById], references: [id], onDelete: Cascade)
+  id               String          @id @default(cuid())
+  assignmentId     String
+  assignment       ShiftAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  requestedById    String
+  requestedBy      Employee        @relation("SwapRequester", fields: [requestedById], references: [id], onDelete: Cascade)
   targetEmployeeId String
-  targetEmployee Employee        @relation("SwapTarget", fields: [targetEmployeeId], references: [id], onDelete: Cascade)
-  reason         String?
-  status         ShiftSwapStatus @default(PENDING)
-  decidedAt      DateTime?
-  createdAt      DateTime        @default(now())
+  targetEmployee   Employee        @relation("SwapTarget", fields: [targetEmployeeId], references: [id], onDelete: Cascade)
+  reason           String?
+  status           ShiftSwapStatus @default(PENDING)
+  decidedAt        DateTime?
+  createdAt        DateTime        @default(now())
 
   @@index([status])
   @@index([requestedById])
@@ -5502,21 +5523,21 @@ model HelpdeskCategory {
 }
 
 model HelpdeskTicket {
-  id             String           @id @default(cuid())
-  number         Int              @unique @default(autoincrement())
-  subject        String
-  description    String           @db.Text
-  categoryId     String?
-  category       HelpdeskCategory? @relation(fields: [categoryId], references: [id])
-  requesterId    String // User id of the raiser
-  assigneeId     String? // User id of the agent
-  status         HelpdeskStatus   @default(OPEN)
-  priority       HelpdeskPriority @default(MEDIUM)
-  slaDueAt       DateTime?
+  id               String            @id @default(cuid())
+  number           Int               @unique @default(autoincrement())
+  subject          String
+  description      String            @db.Text
+  categoryId       String?
+  category         HelpdeskCategory? @relation(fields: [categoryId], references: [id])
+  requesterId      String // User id of the raiser
+  assigneeId       String? // User id of the agent
+  status           HelpdeskStatus    @default(OPEN)
+  priority         HelpdeskPriority  @default(MEDIUM)
+  slaDueAt         DateTime?
   firstRespondedAt DateTime?
-  resolvedAt     DateTime?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @default(now()) @updatedAt
+  resolvedAt       DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @default(now()) @updatedAt
 
   comments HelpdeskComment[]
 
@@ -5526,26 +5547,26 @@ model HelpdeskTicket {
 }
 
 model HelpdeskComment {
-  id        String   @id @default(cuid())
-  ticketId  String
-  ticket    HelpdeskTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  authorId  String // User id
-  body      String   @db.Text
-  isInternal Boolean @default(false) // agent-only note
-  createdAt DateTime @default(now())
+  id         String         @id @default(cuid())
+  ticketId   String
+  ticket     HelpdeskTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId   String // User id
+  body       String         @db.Text
+  isInternal Boolean        @default(false) // agent-only note
+  createdAt  DateTime       @default(now())
 
   @@index([ticketId])
 }
 
 model HelpdeskArticle {
-  id          String   @id @default(cuid())
+  id          String            @id @default(cuid())
   title       String
-  body        String   @db.Text
+  body        String            @db.Text
   categoryId  String?
   category    HelpdeskCategory? @relation(fields: [categoryId], references: [id])
-  isPublished Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now()) @updatedAt
+  isPublished Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @default(now()) @updatedAt
 
   @@index([isPublished])
 }
@@ -5556,17 +5577,17 @@ model HelpdeskArticle {
 // floors live alongside each line. Seeded from capex-calc constants.
 // ============================================================
 model ProjectRateCard {
-  id              String   @id @default(cuid())
-  categoryKey     String   @unique // matches CAPEX_CATEGORIES key
-  label           String
-  basis           String // AREA | UNIT | LUMPSUM
-  rate            Decimal  @db.Decimal(14, 2)
-  unitLabel       String
-  durationWeeks   Int      @default(0) // drives the Gantt timeline
+  id               String   @id @default(cuid())
+  categoryKey      String   @unique // matches CAPEX_CATEGORIES key
+  label            String
+  basis            String // AREA | UNIT | LUMPSUM
+  rate             Decimal  @db.Decimal(14, 2)
+  unitLabel        String
+  durationWeeks    Int      @default(0) // drives the Gantt timeline
   luxuryMinPerSqft Decimal? @db.Decimal(10, 2) // amber floor for AREA categories
-  isActive        Boolean  @default(true)
-  order           Int      @default(0)
-  updatedAt       DateTime @default(now()) @updatedAt
+  isActive         Boolean  @default(true)
+  order            Int      @default(0)
+  updatedAt        DateTime @default(now()) @updatedAt
 }
 
 // ============================================================
@@ -5596,16 +5617,16 @@ enum WorkPackageStatus {
 }
 
 model ProjectWorkPackage {
-  id           String              @id @default(cuid())
+  id           String               @id @default(cuid())
   projectId    String
   project      AcqOnboardingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
   title        String
   categoryKey  String? // optional link to a rate-card category
-  budgetAmount Decimal             @default(0) @db.Decimal(14, 2)
-  status       WorkPackageStatus   @default(PLANNED)
-  order        Int                 @default(0)
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @default(now()) @updatedAt
+  budgetAmount Decimal              @default(0) @db.Decimal(14, 2)
+  status       WorkPackageStatus    @default(PLANNED)
+  order        Int                  @default(0)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @default(now()) @updatedAt
 
   purchaseOrders ProjectPurchaseOrder[]
 
@@ -5657,20 +5678,20 @@ enum FinAccountType {
 }
 
 model FinAccount {
-  id            String         @id @default(cuid())
-  entityId      String         @default("BILLION")
-  code          String         @unique
-  name          String
-  type          FinAccountType
-  subtype       String?
-  parentId      String?
-  parent        FinAccount?    @relation("FinAccountTree", fields: [parentId], references: [id])
-  children      FinAccount[]   @relation("FinAccountTree")
-  isActive      Boolean        @default(true)
-  isControl     Boolean        @default(false)
-  taxDefault    String?
-  order         Int            @default(0)
-  createdAt     DateTime       @default(now())
+  id         String         @id @default(cuid())
+  entityId   String         @default("BILLION")
+  code       String         @unique
+  name       String
+  type       FinAccountType
+  subtype    String?
+  parentId   String?
+  parent     FinAccount?    @relation("FinAccountTree", fields: [parentId], references: [id])
+  children   FinAccount[]   @relation("FinAccountTree")
+  isActive   Boolean        @default(true)
+  isControl  Boolean        @default(false)
+  taxDefault String?
+  order      Int            @default(0)
+  createdAt  DateTime       @default(now())
 
   lines        FinJournalLine[]
   bankAccounts FinBankAccount[] @relation("FinBankGl")
@@ -5744,19 +5765,19 @@ model FinJournalEntry {
 }
 
 model FinJournalLine {
-  id          String          @id @default(cuid())
-  entryId     String
-  entry       FinJournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
-  accountId   String
-  account     FinAccount      @relation(fields: [accountId], references: [id])
-  debit       Decimal         @default(0) @db.Decimal(18, 2)
-  credit      Decimal         @default(0) @db.Decimal(18, 2)
-  venueId     String?
-  eventId     String?
-  costCenter  String?
-  taxCode     String?
-  narration   String?
-  lineOrder   Int             @default(0)
+  id         String          @id @default(cuid())
+  entryId    String
+  entry      FinJournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  accountId  String
+  account    FinAccount      @relation(fields: [accountId], references: [id])
+  debit      Decimal         @default(0) @db.Decimal(18, 2)
+  credit     Decimal         @default(0) @db.Decimal(18, 2)
+  venueId    String?
+  eventId    String?
+  costCenter String?
+  taxCode    String?
+  narration  String?
+  lineOrder  Int             @default(0)
 
   @@index([entryId])
   @@index([accountId])
@@ -5880,21 +5901,21 @@ enum RecAppStage {
 }
 
 model RecJobOpening {
-  id                 String       @id @default(cuid())
-  entityId           String       @default("BILLION")
-  postingTitle       String
-  department         String?
-  city               String?
-  hiringManagerId    String? // User id (resolved in action layer)
+  id                  String       @id @default(cuid())
+  entityId            String       @default("BILLION")
+  postingTitle        String
+  department          String?
+  city                String?
+  hiringManagerId     String? // User id (resolved in action layer)
   assignedRecruiterId String? // User id
-  targetDate         DateTime?
-  status             RecJobStatus @default(IN_PROGRESS)
-  numberOfPositions  Int          @default(1)
-  description        String?      @db.Text
-  filledAt           DateTime?
-  createdById        String?
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
+  targetDate          DateTime?
+  status              RecJobStatus @default(IN_PROGRESS)
+  numberOfPositions   Int          @default(1)
+  description         String?      @db.Text
+  filledAt            DateTime?
+  createdById         String?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
 
   applications RecApplication[]
 
@@ -5975,21 +5996,21 @@ model FinBudgetLine {
 }
 
 model FinAsset {
-  id              String                 @id @default(cuid())
-  entityId        String                 @default("BILLION")
-  name            String
-  category        String? // Fit-out, Equipment, Furniture…
-  cost            Decimal                @db.Decimal(18, 2)
-  salvageValue    Decimal                @default(0) @db.Decimal(18, 2)
-  purchaseDate    DateTime
-  usefulLifeMonths Int                   @default(60)
-  method          String                 @default("STRAIGHT_LINE")
-  accumulatedDep  Decimal                @default(0) @db.Decimal(18, 2)
-  status          String                 @default("ACTIVE") // ACTIVE | DISPOSED | FULLY_DEPRECIATED
-  venueId         String?
-  createdById     String?
-  createdAt       DateTime               @default(now())
-  depreciation    FinDepreciationEntry[]
+  id               String                 @id @default(cuid())
+  entityId         String                 @default("BILLION")
+  name             String
+  category         String? // Fit-out, Equipment, Furniture…
+  cost             Decimal                @db.Decimal(18, 2)
+  salvageValue     Decimal                @default(0) @db.Decimal(18, 2)
+  purchaseDate     DateTime
+  usefulLifeMonths Int                    @default(60)
+  method           String                 @default("STRAIGHT_LINE")
+  accumulatedDep   Decimal                @default(0) @db.Decimal(18, 2)
+  status           String                 @default("ACTIVE") // ACTIVE | DISPOSED | FULLY_DEPRECIATED
+  venueId          String?
+  createdById      String?
+  createdAt        DateTime               @default(now())
+  depreciation     FinDepreciationEntry[]
 
   @@index([status])
 }
@@ -6025,19 +6046,19 @@ model FinEmployee {
 }
 
 model FinPayrollRun {
-  id             String       @id @default(cuid())
-  entityId       String       @default("BILLION")
-  fy             String
-  period         Int // month, Apr=1
-  label          String // e.g. "Apr 2026"
-  status         String       @default("DRAFT") // DRAFT | POSTED
-  totalGross     Decimal      @default(0) @db.Decimal(18, 2)
-  totalDeductions Decimal     @default(0) @db.Decimal(18, 2)
-  totalNet       Decimal      @default(0) @db.Decimal(18, 2)
-  journalEntryId String?
-  createdById    String?
-  createdAt      DateTime     @default(now())
-  payslips       FinPayslip[]
+  id              String       @id @default(cuid())
+  entityId        String       @default("BILLION")
+  fy              String
+  period          Int // month, Apr=1
+  label           String // e.g. "Apr 2026"
+  status          String       @default("DRAFT") // DRAFT | POSTED
+  totalGross      Decimal      @default(0) @db.Decimal(18, 2)
+  totalDeductions Decimal      @default(0) @db.Decimal(18, 2)
+  totalNet        Decimal      @default(0) @db.Decimal(18, 2)
+  journalEntryId  String?
+  createdById     String?
+  createdAt       DateTime     @default(now())
+  payslips        FinPayslip[]
 
   @@unique([fy, period])
 }
@@ -6156,32 +6177,32 @@ model RecOffer {
 // Computed snapshot stored as JSON + denormalized columns for querying.
 // ============================================================
 model KraScorecard {
-  id               String    @id @default(cuid())
-  employeeId       String // User being evaluated
-  role             String // KraRole: BDM | CORPORATE_SALES | INSIDE_SALES
-  period           String // "YYYY-MM"
-  rampMonth        Int       @default(3)
-  status           String    @default("DRAFT") // DRAFT | SUBMITTED | ACKNOWLEDGED
+  id         String @id @default(cuid())
+  employeeId String // User being evaluated
+  role       String // KraRole: BDM | CORPORATE_SALES | INSIDE_SALES
+  period     String // "YYYY-MM"
+  rampMonth  Int    @default(3)
+  status     String @default("DRAFT") // DRAFT | SUBMITTED | ACKNOWLEDGED
 
-  autoMetrics      Json // { autoKey: value }  (snapshot at generation/recompute)
-  manualEntries    Json // { kpiRef: value }
-  lineItems        Json // computed per-KPI breakdown
-  gateDetail       Json // gate requirements snapshot
+  autoMetrics   Json // { autoKey: value }  (snapshot at generation/recompute)
+  manualEntries Json // { kpiRef: value }
+  lineItems     Json // computed per-KPI breakdown
+  gateDetail    Json // gate requirements snapshot
 
-  totalScore       Int       @default(0)
-  totalMax         Int       @default(100)
-  gatePassed       Boolean   @default(false)
+  totalScore       Int     @default(0)
+  totalMax         Int     @default(100)
+  gatePassed       Boolean @default(false)
   band             String? // grade A+/A/B/C/D
-  basePct          Int       @default(0)
+  basePct          Int     @default(0)
   multiplierFactor Float?
-  finalPayoutPct   Float     @default(0)
+  finalPayoutPct   Float   @default(0)
 
-  managerNote      String?
-  createdById      String
-  submittedAt      DateTime?
-  acknowledgedAt   DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  managerNote    String?
+  createdById    String
+  submittedAt    DateTime?
+  acknowledgedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@unique([employeeId, period])
   @@index([role, period])
@@ -6310,22 +6331,22 @@ model PurchaseRequisitionItem {
 // Customer Support / Ticketing
 // ============================================================
 model SupportTicket {
-  id           String                 @id @default(cuid())
-  ticketNumber String                 @unique
-  subject      String
-  description  String?                @db.Text
-  status       String                 @default("OPEN") // OPEN | IN_PROGRESS | RESOLVED | CLOSED
-  priority     String                 @default("MEDIUM") // LOW | MEDIUM | HIGH | URGENT
-  category     String?
-  contactId    String?
-  bookingId    String?
-  assignedToId String?
-  createdById  String
-  resolvedAt   DateTime?
+  id             String                 @id @default(cuid())
+  ticketNumber   String                 @unique
+  subject        String
+  description    String?                @db.Text
+  status         String                 @default("OPEN") // OPEN | IN_PROGRESS | RESOLVED | CLOSED
+  priority       String                 @default("MEDIUM") // LOW | MEDIUM | HIGH | URGENT
+  category       String?
+  contactId      String?
+  bookingId      String?
+  assignedToId   String?
+  createdById    String
+  resolvedAt     DateTime?
   slaEscalatedAt DateTime? // SLA breach escalated (dedupe so we alert once)
-  createdAt    DateTime               @default(now())
-  updatedAt    DateTime               @updatedAt
-  messages     SupportTicketMessage[]
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  messages       SupportTicketMessage[]
 
   @@index([status])
   @@index([assignedToId])
@@ -6370,14 +6391,14 @@ model DispatchOrder {
 }
 
 model DispatchItem {
-  id          String        @id @default(cuid())
-  dispatchId  String
-  dispatch    DispatchOrder @relation(fields: [dispatchId], references: [id], onDelete: Cascade)
-  name        String
-  inventoryItemId String?   // optional link to a stock item — drives auto stock movements
-  quantity    Int           @default(1)
-  returnable  Boolean       @default(true)
-  returnedQty Int           @default(0)
+  id              String        @id @default(cuid())
+  dispatchId      String
+  dispatch        DispatchOrder @relation(fields: [dispatchId], references: [id], onDelete: Cascade)
+  name            String
+  inventoryItemId String? // optional link to a stock item — drives auto stock movements
+  quantity        Int           @default(1)
+  returnable      Boolean       @default(true)
+  returnedQty     Int           @default(0)
 
   @@index([dispatchId])
   @@index([inventoryItemId])
@@ -6471,4 +6492,552 @@ model QuotePackageMenuItem {
   order       Int          @default(0)
 
   @@index([packageId])
+}
+
+// ============================================================
+// FEATURE PACK: 9 additive subsystems
+// public-availability-hold, self-serve-configurator, marketing-attribution,
+// reputation-flywheel, esignature, speed-to-lead, yield-pricing,
+// franchise-enablement, ota-syndication
+// ALL additive. New enums + models below. Optional fields on existing
+// models (Lead, Booking, Venue, PricingRule, Review, SalesQuotation, User)
+// are listed separately in fieldAdditions.
+// ============================================================
+
+// ------------------------------------------------------------
+// (1) PUBLIC AVAILABILITY HOLD — public token-paid date hold.
+// Reuses Booking + Serializable slot engine; this row is the public-side
+// container that links the public hold attempt to the safely-created HOLD Booking.
+// ------------------------------------------------------------
+
+enum PublicHoldStatus {
+  INITIATED // public created the hold request, slot not yet claimed
+  SLOT_CLAIMED // HOLD Booking created safely (no double-book)
+  PAID // token payment captured
+  CONFIRMED // promoted/handed to sales
+  EXPIRED // hold window lapsed
+  RELEASED // released / cancelled
+}
+
+model PublicHold {
+  id            String           @id @default(cuid())
+  token         String           @unique // unguessable public access token (/(public) route)
+  status        PublicHoldStatus @default(INITIATED)
+  // Captured event intent (mirrors Booking but public-supplied, pre-resolution)
+  eventType     String?
+  date          DateTime         @db.Date
+  timeSlot      TimeSlot
+  guestCount    Int              @default(0)
+  // Lead-style customer fields (no login)
+  customerName  String
+  customerPhone String
+  customerEmail String?
+  notes         String?          @db.Text
+  // Token-to-hold economics
+  tokenAmount   Decimal          @default(0) @db.Decimal(12, 2) // amount paid to hold the date
+  currency      String           @default("INR")
+  expiresAt     DateTime? // hold window; cron releases past this
+  paidAt        DateTime?
+  // UTM / attribution carried from the public page (mirrors LeadAttribution fields)
+  utmSource     String?
+  utmMedium     String?
+  utmCampaign   String?
+  // Plain refs to keep Booking/Lead/Invoice models un-widened (SalesQuotation pattern)
+  bookingId     String? // the safely-created HOLD Booking
+  invoiceId     String? // token-payment invoice for /pay/<id>
+  leadId        String? // CRM lead minted for follow-up
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  venueId String
+  venue   Venue  @relation("VenuePublicHolds", fields: [venueId], references: [id])
+
+  @@index([status])
+  @@index([venueId, date, timeSlot])
+  @@index([expiresAt]) // cron release sweep
+  @@index([createdAt])
+}
+
+// ------------------------------------------------------------
+// (2) SELF-SERVE CONFIGURATOR — public quote draft built with
+// QUOTE_CATALOG + computeQuotation, then a payment link for the advance.
+// inputsJson/outputsJson mirror SalesQuotation snapshot convention.
+// ------------------------------------------------------------
+
+enum PublicQuoteStatus {
+  DRAFT // being configured
+  PRICED // computeQuotation run, totals frozen for the link
+  LINK_SENT // advance payment link generated
+  PAID // advance captured
+  CONVERTED // promoted to SalesQuotation / Lead / HOLD
+  ABANDONED
+}
+
+model PublicQuoteDraft {
+  id               String            @id @default(cuid())
+  token            String            @unique // public access token (/(public) configurator + pay)
+  status           PublicQuoteStatus @default(DRAFT)
+  // Calculator snapshot (same shape as SalesQuotation)
+  inputsJson       Json // QuotationInput
+  outputsJson      Json? // QuotationResult, frozen when PRICED
+  // Denormalised headline figures
+  customerName     String?
+  customerPhone    String?
+  customerEmail    String?
+  occasion         String?
+  eventDate        DateTime?
+  timeSlot         String?
+  guestCount       Int               @default(0)
+  grandTotal       Decimal           @default(0) @db.Decimal(12, 2)
+  advanceAmount    Decimal           @default(0) @db.Decimal(12, 2) // 20% advance for the link
+  currency         String            @default("INR")
+  // Attribution carried from the public page
+  utmSource        String?
+  utmMedium        String?
+  utmCampaign      String?
+  // Plain refs (un-widened) — generated payment link + downstream records
+  invoiceId        String? // invoice backing the /pay/<id> advance link
+  paymentLinkUrl   String?           @db.Text
+  salesQuotationId String? // SalesQuotation minted on conversion
+  leadId           String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  venueId String?
+  venue   Venue?  @relation("VenuePublicQuoteDrafts", fields: [venueId], references: [id])
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ------------------------------------------------------------
+// (3) MARKETING ATTRIBUTION — closed-loop source/campaign/utm capture
+// on leads + per-channel/campaign CAC/ROAS rollups.
+// LeadAttribution is 1:1 with Lead (FK + @unique).
+// ------------------------------------------------------------
+
+model MarketingCampaign {
+  id          String    @id @default(cuid())
+  name        String
+  channel     String // "FACEBOOK_ADS" | "GOOGLE_ADS" | "WEDMEGOOD" | etc (LeadSource-aligned, free string)
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String? // canonical utm_campaign this MarketingCampaign owns
+  // Spend for CAC / ROAS (period totals; refreshed by import/cron)
+  spendToDate Decimal   @default(0) @db.Decimal(12, 2)
+  currency    String    @default("INR")
+  startDate   DateTime?
+  endDate     DateTime?
+  isActive    Boolean   @default(true)
+  notes       String?   @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  attributions LeadAttribution[]
+
+  @@index([channel, isActive])
+  @@index([utmCampaign])
+}
+
+model LeadAttribution {
+  id            String   @id @default(cuid())
+  // First-touch UTM / source snapshot captured at lead creation
+  source        String? // raw source label (FB/Google/webform/referral/...)
+  medium        String?
+  campaign      String? // utm_campaign string
+  term          String?
+  content       String?
+  utmSource     String?
+  utmMedium     String?
+  utmCampaign   String?
+  referrerUrl   String?  @db.Text
+  landingUrl    String?  @db.Text
+  gclid         String? // Google click id
+  fbclid        String? // Facebook click id
+  clientId      String? // GA/analytics client id
+  // Closed-loop denormalised outcome (refreshed by cron from Lead→Booking)
+  bookedRevenue Decimal? @db.Decimal(12, 2)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  leadId      String             @unique
+  lead        Lead               @relation(fields: [leadId], references: [id])
+  campaignId  String?
+  campaignRef MarketingCampaign? @relation(fields: [campaignId], references: [id])
+
+  @@index([utmCampaign])
+  @@index([source])
+  @@index([campaignId])
+}
+
+// ------------------------------------------------------------
+// (4) REPUTATION FLYWHEEL — auto Google-review request engine.
+// Reuses Review + WhatsApp send + cron. ReviewRequest is the enqueue/lifecycle
+// row; gating routes happy→Google URL, unhappy→private feedback (PublicFeedback).
+// ------------------------------------------------------------
+
+enum ReviewRequestStatus {
+  PENDING // enqueued by cron on booking COMPLETED
+  SENT // WhatsApp review request sent
+  RATED // customer gave a gating rating
+  ROUTED_PUBLIC // happy → sent to Google Business URL
+  ROUTED_PRIVATE // unhappy → private feedback captured
+  COMPLETED // public review confirmed / closed
+  FAILED
+  SKIPPED
+}
+
+model ReviewRequest {
+  id                String              @id @default(cuid())
+  token             String              @unique // public landing page token (/(public) feedback)
+  status            ReviewRequestStatus @default(PENDING)
+  gateRating        Int? // 1-5 quick gating rating from the landing page
+  scheduledFor      DateTime? // when the cron should send
+  sentAt            DateTime?
+  ratedAt           DateTime?
+  googleReviewUrl   String?             @db.Text // Google Business URL the happy path opens
+  whatsappMessageId String?
+  failReason        String?             @db.Text
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  bookingId String
+  booking   Booking         @relation(fields: [bookingId], references: [id])
+  contactId String
+  contact   Contact         @relation(fields: [contactId], references: [id])
+  feedback  PublicFeedback?
+
+  @@unique([bookingId]) // one review request per booking (idempotent enqueue)
+  @@index([status])
+  @@index([scheduledFor])
+}
+
+model PublicFeedback {
+  id         String    @id @default(cuid())
+  rating     Int // gating rating (1-5)
+  comment    String?   @db.Text
+  isResolved Boolean   @default(false) // staff worked the unhappy feedback
+  resolvedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  reviewRequestId String        @unique
+  reviewRequest   ReviewRequest @relation(fields: [reviewRequestId], references: [id])
+
+  @@index([isResolved])
+}
+
+// ------------------------------------------------------------
+// (5) E-SIGNATURE — tokenized public sign of booking confirmation + T&C.
+// Records signed-at/ip/name and locks the doc.
+// ------------------------------------------------------------
+
+enum SignatureRequestStatus {
+  DRAFT
+  SENT // tokenized link delivered
+  VIEWED
+  SIGNED // locked
+  DECLINED
+  EXPIRED
+  VOIDED
+}
+
+enum SignatureType {
+  TYPED
+  DRAWN
+}
+
+model SignatureRequest {
+  id              String                 @id @default(cuid())
+  token           String                 @unique // unguessable public sign link (/(public) route)
+  status          SignatureRequestStatus @default(DRAFT)
+  // Frozen document content the signer reviews (booking confirmation + T&C)
+  documentTitle   String
+  documentBody    String                 @db.Text // rendered HTML/markdown snapshot, locked at sign time
+  // Signer details + audit
+  signerName      String?
+  signerEmail     String?
+  signerPhone     String?
+  signatureType   SignatureType?
+  signatureData   String?                @db.Text // typed name or base64 drawn-signature image
+  signedAt        DateTime?
+  signedIp        String?
+  signedUserAgent String?                @db.Text
+  isLocked        Boolean                @default(false) // doc immutable after signing
+  expiresAt       DateTime?
+  sentAt          DateTime?
+  viewedAt        DateTime?
+  declinedReason  String?                @db.Text
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  bookingId   String
+  booking     Booking @relation(fields: [bookingId], references: [id])
+  createdById String
+  createdBy   User    @relation("SignatureRequestCreatedBy", fields: [createdById], references: [id])
+
+  @@index([bookingId])
+  @@index([status])
+}
+
+// ------------------------------------------------------------
+// (6) SPEED-TO-LEAD — instant first-response + drip + round-robin assignment.
+// Reuses Lead SLA fields + AssignmentRule round-robin + Cadence + WhatsApp.
+// LeadFirstResponse is 1:1 with Lead tracking the <60s automated response;
+// SLA timer/breach already on Lead (firstContactDue/firstRespondedAt/slaEscalatedAt).
+// ------------------------------------------------------------
+
+enum FirstResponseStatus {
+  PENDING // lead created, automated response queued
+  SENT // automated WhatsApp first-response sent (<60s target)
+  FAILED // send failed
+  SKIPPED // no phone / opted out
+}
+
+model LeadFirstResponse {
+  id                String              @id @default(cuid())
+  status            FirstResponseStatus @default(PENDING)
+  channel           String              @default("WHATSAPP") // WHATSAPP | SMS | EMAIL
+  templateName      String?
+  sentAt            DateTime? // actual first-response time
+  latencyMs         Int? // capture→send latency for the <60s SLA metric
+  whatsappMessageId String?
+  failReason        String?             @db.Text
+  // Round-robin assignment audit
+  assignedViaRuleId String? // AssignmentRule used for round-robin
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  leadId       String  @unique
+  lead         Lead    @relation(fields: [leadId], references: [id])
+  assignedToId String?
+  assignedTo   User?   @relation("LeadFirstResponseAssignee", fields: [assignedToId], references: [id])
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ------------------------------------------------------------
+// (7) YIELD / DYNAMIC PRICING — extends PricingRule via new enum values
+// (OCCUPANCY, DEMAND, LEAD_TIME — see fieldAdditions/enum note below) plus a
+// per-venue/date demand signal table calculatePrice reads for occupancy-based math.
+// ------------------------------------------------------------
+
+model VenueDemandSignal {
+  id               String    @id @default(cuid())
+  date             DateTime  @db.Date
+  timeSlot         TimeSlot?
+  // Demand inputs the yield rules read
+  occupancyPct     Decimal   @default(0) @db.Decimal(5, 2) // 0-100 booked share for the window
+  demandScore      Decimal   @default(0) @db.Decimal(5, 2) // 0-100 composite demand index
+  inquiryCount     Int       @default(0)
+  // Optional manual override multiplier (e.g. event-week surge)
+  manualMultiplier Decimal?  @db.Decimal(5, 3)
+  source           String    @default("CRON") // CRON | MANUAL
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  venueId String
+  venue   Venue  @relation("VenueDemandSignals", fields: [venueId], references: [id])
+
+  @@unique([venueId, date, timeSlot])
+  @@index([venueId, date])
+}
+
+// ------------------------------------------------------------
+// (8) FRANCHISE ENABLEMENT — per-venue P&L rollup, onboarding wizard,
+// revenue-share config + accounting, white-label storefront per venue.
+// Builds on Venue hierarchy + finance.
+// ------------------------------------------------------------
+
+enum FranchiseOnboardingStatus {
+  DRAFT
+  IN_PROGRESS
+  PENDING_REVIEW
+  ACTIVE
+  SUSPENDED
+}
+
+enum RevenueShareBasis {
+  GROSS_REVENUE
+  NET_REVENUE
+  FLAT_FEE
+}
+
+enum RevenueSharePayoutStatus {
+  PENDING
+  APPROVED
+  PAID
+  CANCELLED
+}
+
+model FranchisePartner {
+  id             String                    @id @default(cuid())
+  name           String
+  legalName      String?
+  contactEmail   String?
+  contactPhone   String?
+  status         FranchiseOnboardingStatus @default(DRAFT)
+  // Onboarding wizard progress
+  onboardingStep Int                       @default(0)
+  onboardingData Json                      @default("{}") // wizard answers (KYC, bank, docs refs)
+  notes          String?                   @db.Text
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+
+  ownerUserId String?
+  ownerUser   User?   @relation("FranchisePartnerOwner", fields: [ownerUserId], references: [id])
+
+  venues              FranchiseVenue[]
+  revenueShareConfigs RevenueShareConfig[]
+  revenueSharePayouts RevenueSharePayout[]
+
+  @@index([status])
+}
+
+// Join between a FranchisePartner and a Venue (a partner can run several venues).
+model FranchiseVenue {
+  id               String   @id @default(cuid())
+  // White-label storefront settings (per venue)
+  storefrontSlug   String?  @unique // public white-label storefront slug
+  brandName        String?
+  logoUrl          String?  @db.Text
+  primaryColor     String? // hex
+  customDomain     String?
+  storefrontConfig Json     @default("{}") // theme/content overrides
+  isStorefrontLive Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  partnerId String
+  partner   FranchisePartner @relation(fields: [partnerId], references: [id])
+  venueId   String
+  venue     Venue            @relation("VenueFranchise", fields: [venueId], references: [id])
+
+  @@unique([partnerId, venueId])
+  @@index([venueId])
+}
+
+model RevenueShareConfig {
+  id            String            @id @default(cuid())
+  name          String
+  basis         RevenueShareBasis @default(GROSS_REVENUE)
+  sharePct      Decimal           @default(0) @db.Decimal(5, 2) // partner/HQ share %
+  flatFeeAmount Decimal?          @db.Decimal(12, 2) // when basis = FLAT_FEE
+  currency      String            @default("INR")
+  isActive      Boolean           @default(true)
+  effectiveFrom DateTime?
+  effectiveTo   DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  partnerId String
+  partner   FranchisePartner @relation(fields: [partnerId], references: [id])
+  venueId   String?
+  venue     Venue?           @relation("VenueRevenueShare", fields: [venueId], references: [id])
+
+  payouts RevenueSharePayout[]
+
+  @@index([partnerId, isActive])
+  @@index([venueId])
+}
+
+// Periodic revenue-share accrual/accounting per venue (P&L rollup feeds this).
+model RevenueSharePayout {
+  id           String                   @id @default(cuid())
+  period       String // "YYYY-MM"
+  grossRevenue Decimal                  @default(0) @db.Decimal(14, 2)
+  netRevenue   Decimal                  @default(0) @db.Decimal(14, 2)
+  shareAmount  Decimal                  @default(0) @db.Decimal(12, 2)
+  currency     String                   @default("INR")
+  status       RevenueSharePayoutStatus @default(PENDING)
+  paidAt       DateTime?
+  paymentRef   String?
+  notes        String?                  @db.Text
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+
+  partnerId String
+  partner   FranchisePartner    @relation(fields: [partnerId], references: [id])
+  venueId   String?
+  venue     Venue?              @relation("VenueRevenueSharePayouts", fields: [venueId], references: [id])
+  configId  String?
+  config    RevenueShareConfig? @relation(fields: [configId], references: [id])
+
+  @@unique([partnerId, venueId, period])
+  @@index([status])
+  @@index([period])
+}
+
+// ------------------------------------------------------------
+// (9) OTA SYNDICATION — outbound availability/listing feeds per venue +
+// inbound lead ingestion endpoint mapping. Sibling to LeadCaptureConfig.
+// ------------------------------------------------------------
+
+enum OtaChannelType {
+  WEDMEGOOD
+  JUSTDIAL
+  GOOGLE_BUSINESS
+  INDIAMART
+  GENERIC
+}
+
+enum OtaFeedFormat {
+  JSON
+  ICAL
+}
+
+enum OtaSyncDirection {
+  OUTBOUND // we publish availability/listing
+  INBOUND // we ingest leads
+}
+
+enum OtaSyncStatus {
+  SUCCESS
+  PARTIAL
+  FAILED
+}
+
+model OtaChannel {
+  id                 String         @id @default(cuid())
+  channelType        OtaChannelType
+  name               String
+  // Outbound feed
+  feedFormat         OtaFeedFormat  @default(JSON)
+  feedToken          String?        @unique // unguessable public feed token (/(public) feed url)
+  // Inbound ingestion
+  inboundToken       String?        @unique // token for the inbound lead endpoint
+  fieldMapping       Json           @default("{}") // inbound payload → lead-capture field map
+  defaultSource      LeadSource     @default(OTHER) // LeadSource stamped on ingested leads
+  credentials        Json           @default("{}")
+  isActive           Boolean        @default(true)
+  lastOutboundSyncAt DateTime?
+  lastInboundSyncAt  DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  venueId String?
+  venue   Venue?  @relation("VenueOtaChannels", fields: [venueId], references: [id])
+
+  syncLogs OtaSyncLog[]
+
+  @@index([channelType, isActive])
+  @@index([venueId])
+}
+
+model OtaSyncLog {
+  id          String           @id @default(cuid())
+  direction   OtaSyncDirection
+  status      OtaSyncStatus
+  recordCount Int              @default(0) // listings published or leads ingested
+  errorCount  Int              @default(0)
+  message     String?          @db.Text
+  payloadRef  String?          @db.Text // raw payload / response snapshot ref
+  createdAt   DateTime         @default(now())
+
+  channelId String
+  channel   OtaChannel @relation(fields: [channelId], references: [id])
+
+  @@index([channelId, createdAt])
+  @@index([status])
 }

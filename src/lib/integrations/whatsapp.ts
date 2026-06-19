@@ -289,6 +289,11 @@ export const WHATSAPP_TEMPLATES = [
     params: ["customerName", "eventDate", "venueName"],
   },
   {
+    name: "review_request",
+    label: "Review Request",
+    params: ["customerName", "eventName", "reviewLink"],
+  },
+  {
     name: "payment_reminder",
     label: "Payment Reminder",
     params: ["customerName", "amount", "dueDate"],

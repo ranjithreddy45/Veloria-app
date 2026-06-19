@@ -51,6 +51,7 @@ import { CommunicationTimeline } from "@/components/shared/communication-timelin
 import { BookingActions } from "./_components/booking-actions";
 import { BookingOpsLinks } from "./_components/booking-ops-links";
 import { BookingReadinessCard } from "./_components/booking-readiness-card";
+import { SignaturePanel } from "./_components/signature-panel";
 import { formatINR } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Booking Details" };
@@ -511,6 +512,13 @@ export default async function BookingDetailPage({
               </CardContent>
             </Card>
           </div>
+
+          <SignaturePanel
+            bookingId={booking.id}
+            canRequest={
+              booking.status === "CONFIRMED" || booking.status === "IN_PROGRESS"
+            }
+          />
         </TabsContent>
 
         {/* Invoices Tab */}

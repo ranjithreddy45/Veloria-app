@@ -92,6 +92,18 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["leads:read"],
       },
       {
+        title: "Speed-to-Lead",
+        href: "/leads/sla",
+        icon: "Zap",
+        permissions: ["leads:read"],
+      },
+      {
+        title: "Public Quotes",
+        href: "/settings/public-quotes",
+        icon: "Calculator",
+        permissions: ["publicquotes:read"],
+      },
+      {
         title: "Follow-ups",
         href: "/leads/followups",
         icon: "CalendarClock",
@@ -380,6 +392,12 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["pricing:read"],
       },
       {
+        title: "Yield Pricing",
+        href: "/pricing/yield",
+        icon: "TrendingUp",
+        permissions: ["pricing:read"],
+      },
+      {
         title: "Inventory",
         href: "/inventory",
         icon: "Warehouse",
@@ -513,6 +531,18 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["dashboard:analytics"],
       },
       {
+        title: "Marketing",
+        href: "/marketing",
+        icon: "Megaphone",
+        permissions: ["analytics:read"],
+      },
+      {
+        title: "Campaigns (spend)",
+        href: "/marketing/campaigns",
+        icon: "Target",
+        permissions: ["marketing:read"],
+      },
+      {
         title: "Analytics",
         href: "/analytics",
         icon: "LineChart",
@@ -616,6 +646,12 @@ export const sidebarNavigation: NavItem[] = [
         icon: "Star",
         permissions: ["reviews:read"],
       },
+      {
+        title: "Feedback",
+        href: "/feedback",
+        icon: "MessageSquare",
+        permissions: ["reviews:read"],
+      },
     ],
   },
   {
@@ -629,6 +665,26 @@ export const sidebarNavigation: NavItem[] = [
     href: "/gallery",
     icon: "Image",
     permissions: ["gallery:read"],
+  },
+  {
+    title: "Franchise",
+    href: "/franchise",
+    icon: "Network",
+    permissions: ["franchise:read"],
+    children: [
+      {
+        title: "Partners",
+        href: "/franchise",
+        icon: "Store",
+        permissions: ["franchise:read"],
+      },
+      {
+        title: "New Partner",
+        href: "/franchise/new",
+        icon: "UserPlus",
+        permissions: ["franchise:onboard"],
+      },
+    ],
   },
   {
     title: "Settings",
@@ -694,6 +750,12 @@ export const sidebarNavigation: NavItem[] = [
         title: "Telephony",
         href: "/settings/integrations/telephony",
         icon: "PhoneCall",
+        permissions: ["settings:read"],
+      },
+      {
+        title: "OTA Syndication",
+        href: "/settings/integrations/ota",
+        icon: "Store",
         permissions: ["settings:read"],
       },
       {

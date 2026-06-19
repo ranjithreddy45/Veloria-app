@@ -137,9 +137,10 @@ describe("Sales quotation → booking → payment → confirm → ops (E2E)", ()
     if (!created.success) return;
     quotationId = created.data.id;
 
-    // Planner oracle: 83,880 + 25,000 + 15,000 = 123,880 → +5% = 130,074
+    // Planner oracle: 83,880 + 35,000 + 15,000 = 133,880 → +5% = 140,574
+    // (Baby Shower premium decor is 35,000)
     const row = await prisma.salesQuotation.findUnique({ where: { id: quotationId }, select: { grandTotal: true } });
-    expect(Math.round(Number(row!.grandTotal))).toBe(130074);
+    expect(Math.round(Number(row!.grandTotal))).toBe(140574);
 
     expect((await submitSalesQuotation(quotationId)).success).toBe(true);
     setActor(approverId, "ADMIN"); // approver must differ from submitter
@@ -195,7 +196,7 @@ describe("Sales quotation → booking → payment → confirm → ops (E2E)", ()
     });
     // 5% total tax (2.5 + 2.5) → invoice total equals the quotation grand total.
     expect(Number(inv!.cgstRate) + Number(inv!.sgstRate)).toBe(5);
-    expect(Math.round(Number(inv!.totalAmount))).toBe(130074);
+    expect(Math.round(Number(inv!.totalAmount))).toBe(140574);
     // Food line is per-plate: quantity = guests (120), unit price = 699.
     const food = inv!.lineItems.find((l) => l.description.startsWith("Food Plan"))!;
     expect(Number(food.quantity)).toBe(120);
@@ -203,12 +204,12 @@ describe("Sales quotation → booking → payment → confirm → ops (E2E)", ()
     // 20 / 60 / 20 installments that sum to the total.
     expect(inv!.installments.length).toBe(3);
     const sum = inv!.installments.reduce((s, i) => s + Number(i.amount), 0);
-    expect(Math.round(sum)).toBe(130074);
-    expect(Math.round(Number(inv!.installments[0].amount))).toBe(Math.round(130074 * 0.2));
+    expect(Math.round(sum)).toBe(140574);
+    expect(Math.round(Number(inv!.installments[0].amount))).toBe(Math.round(140574 * 0.2));
   });
 
   it("auto-confirms the slot and stamps ops tasks once the 20% advance is paid", async () => {
-    const advance = Math.round(130074 * 0.2); // 26,015
+    const advance = Math.round(140574 * 0.2); // 26,015
     const pay = await recordPayment({ invoiceId, amount: advance, method: "UPI", notes: "Booking advance" });
     expect(pay.success).toBe(true);
 
