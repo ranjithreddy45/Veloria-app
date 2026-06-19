@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 
 import { getBooking } from "@/actions/booking.actions";
+import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Badge } from "@/components/ui/badge";
@@ -66,7 +67,9 @@ export default async function BookingDetailPage({
   params,
 }: BookingDetailPageProps) {
   const { bookingId } = await params;
-  const result = await getBooking(bookingId);
+  const [result, session] = await Promise.all([getBooking(bookingId), auth()]);
+  const isSuperAdmin =
+    (session?.user as { role?: string } | undefined)?.role === "SUPER_ADMIN";
 
   if (!result.success || !result.data) {
     notFound();
@@ -131,6 +134,7 @@ export default async function BookingDetailPage({
           <BookingActions
             bookingId={booking.id}
             currentStatus={booking.status}
+            canOverride={isSuperAdmin}
           />
         </div>
       </div>

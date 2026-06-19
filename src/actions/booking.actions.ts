@@ -13,6 +13,7 @@ import { sendEmail } from "@/lib/email";
 import { bookingConfirmationEmail } from "@/lib/email-templates/booking-confirmation";
 import { triggerWorkflows } from "@/lib/workflow-executor";
 import { requestApprovalIfNeeded } from "@/lib/approval-engine";
+import { awardVelos } from "@/lib/velos/award";
 import { after } from "next/server";
 import { format } from "date-fns";
 
@@ -740,6 +741,152 @@ export async function updateBooking(id: string, data: BookingInput) {
   } catch (error) {
     console.error("[UPDATE_BOOKING_ERROR]", error);
     return { success: false as const, error: "Failed to update booking" };
+  }
+}
+
+// ============================================================
+// Complete Booking — quality gate (poka-yoke) + Velos defect-free award
+// ------------------------------------------------------------
+// The controlled close-out transition. A booking cannot be marked COMPLETED
+// until it is genuinely "clean": final payment cleared, the Function Sheet
+// (BEO) published, guest count set, and the event date has passed. SUPER_ADMIN
+// may override (recorded). A defect-free completion (no override, all checks
+// met) awards Velos points to the owning rep — quality becomes rewarded.
+// ============================================================
+
+const VELOS_DEFECT_FREE_POINTS = 50;
+
+export interface CompleteBookingResult {
+  success: boolean;
+  error?: string;
+  /** When blocked by the quality gate, the list of unmet checks. */
+  gate?: string[];
+  defectFree?: boolean;
+  pointsAwarded?: number;
+}
+
+export async function completeBooking(
+  id: string,
+  opts?: { override?: boolean }
+): Promise<CompleteBookingResult> {
+  try {
+    const session = await auth();
+    if (!session?.user) return { success: false, error: "Unauthorized" };
+    if (!hasPermission(session.user.role, "bookings:update")) {
+      return { success: false, error: "Insufficient permissions" };
+    }
+
+    const booking = await prisma.booking.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        status: true,
+        bookingNumber: true,
+        eventName: true,
+        guestCount: true,
+        date: true,
+        createdById: true,
+        invoices: { select: { balanceDue: true } },
+        tasks: { select: { status: true, dueDate: true } },
+      },
+    });
+    if (!booking) return { success: false, error: "Booking not found" };
+
+    // BEO is one-to-many on the booking (no singular relation) — fetch the latest.
+    const beo = await prisma.beo.findFirst({
+      where: { bookingId: id },
+      orderBy: { createdAt: "desc" },
+      select: { status: true },
+    });
+    if (booking.status === "COMPLETED") {
+      return { success: false, error: "Booking is already completed" };
+    }
+    if (!["CONFIRMED", "IN_PROGRESS"].includes(booking.status)) {
+      return {
+        success: false,
+        error: "Only a confirmed or in-progress booking can be completed",
+      };
+    }
+
+    // ---- Quality gate (poka-yoke) ----
+    const now = new Date();
+    const eventEnd = new Date(booking.date);
+    eventEnd.setHours(23, 59, 59, 999);
+
+    const gate: string[] = [];
+    const balanceOwed = booking.invoices.some((i) => Number(i.balanceDue) > 0);
+    if (balanceOwed) gate.push("Final payment not cleared (balance still due)");
+    const beoReady = beo && ["PUBLISHED", "LOCKED"].includes(beo.status);
+    if (!beoReady) gate.push("Function sheet (BEO) not published");
+    if (!booking.guestCount || booking.guestCount <= 0) gate.push("Guest count not set");
+    if (eventEnd > now) gate.push("Event date hasn't passed yet");
+
+    const isSuperAdmin = session.user.role === "SUPER_ADMIN";
+    const override = !!opts?.override && isSuperAdmin;
+
+    if (gate.length > 0 && !override) {
+      return { success: false, gate };
+    }
+
+    // ---- Atomic, once-only transition ----
+    const done = await prisma.booking.updateMany({
+      where: { id, status: { in: ["CONFIRMED", "IN_PROGRESS"] } },
+      data: { status: "COMPLETED" },
+    });
+    if (done.count === 0) {
+      return { success: false, error: "Booking could not be completed (status changed)" };
+    }
+
+    await logActivity({
+      userId: session.user.id as string,
+      action: override ? "completed (gate overridden)" : "completed",
+      entityType: "Booking",
+      entityId: id,
+    });
+
+    // ---- Velos: reward a genuinely defect-free event ----
+    // Defect-free = passed every gate without override AND no overdue/incomplete
+    // tasks lingering. Idempotent via the entity+event key (one award per booking).
+    const hasOverdueTask = booking.tasks.some(
+      (t) => t.status !== "DONE" && t.dueDate && new Date(t.dueDate) < now
+    );
+    const defectFree = gate.length === 0 && !override && !hasOverdueTask;
+    let pointsAwarded = 0;
+    if (defectFree && booking.createdById) {
+      try {
+        const r = await awardVelos(prisma, {
+          userId: booking.createdById,
+          eventType: "quality_defect_free_event",
+          entityType: "quality",
+          entityId: id,
+          pointsOverride: VELOS_DEFECT_FREE_POINTS,
+          note: `Defect-free event · ${booking.bookingNumber}`,
+        });
+        if (r.awarded) pointsAwarded = r.points;
+      } catch (e) {
+        console.error("[COMPLETE_BOOKING_VELOS_ERROR]", e);
+      }
+    }
+
+    if (booking.createdById) {
+      notify({
+        userId: booking.createdById,
+        type: "BOOKING_CREATED",
+        title: defectFree ? "Event completed — defect-free! 🎉" : "Event completed",
+        message: defectFree
+          ? `${booking.bookingNumber} (${booking.eventName}) closed clean. +${pointsAwarded} Velos.`
+          : `${booking.bookingNumber} (${booking.eventName}) marked completed.`,
+        actionUrl: `/bookings/${id}`,
+      });
+    }
+
+    revalidatePath("/bookings");
+    revalidatePath(`/bookings/${id}`);
+    revalidatePath("/quality");
+    return { success: true, defectFree, pointsAwarded };
+  } catch (error) {
+    console.error("[COMPLETE_BOOKING_ERROR]", error);
+    return { success: false, error: "Failed to complete booking" };
   }
 }
 
