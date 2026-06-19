@@ -504,7 +504,7 @@ export const sidebarNavigation: NavItem[] = [
     title: "Analytics",
     href: "/reports",
     icon: "BarChart3",
-    permissions: ["dashboard:analytics", "analytics:read", "forecast:read", "budget:read", "surveys:read", "reviews:read", "performance:read", "competitors:read"],
+    permissions: ["dashboard:analytics", "analytics:read", "forecast:read", "budget:read", "surveys:read", "reviews:read", "performance:read", "competitors:read", "quality:read"],
     children: [
       {
         title: "Reports",
@@ -517,6 +517,12 @@ export const sidebarNavigation: NavItem[] = [
         href: "/analytics",
         icon: "LineChart",
         permissions: ["analytics:read"],
+      },
+      {
+        title: "Quality & Six Sigma",
+        href: "/quality",
+        icon: "Activity",
+        permissions: ["quality:read"],
       },
       {
         title: "Performance",

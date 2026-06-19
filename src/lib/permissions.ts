@@ -227,6 +227,8 @@ export type Permission =
   | "analytics:read"
   | "analytics:advanced"
   | "performance:read"
+  // Quality & Six Sigma
+  | "quality:read"
   // Competitors
   | "competitors:read"
   | "competitors:create"
@@ -461,6 +463,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   "analytics:read",
   "analytics:advanced",
   "performance:read",
+  "quality:read",
   "competitors:read",
   "competitors:create",
   "competitors:update",
@@ -681,6 +684,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "analytics:read",
     "analytics:advanced",
     "performance:read",
+    "quality:read",
     "competitors:read",
     "competitors:create",
     "competitors:update",
@@ -835,6 +839,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "contracts:send",
     "dashboard:analytics", // team analytics dashboard
     "analytics:advanced", // advanced sales analytics
+    "quality:read", // quality & Six Sigma dashboards
     "performance:manage", // run / oversee team performance (KRA)
     "invitations:send",
   ],
@@ -943,6 +948,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "analytics:read",
     "analytics:advanced",
     "performance:read",
+    "quality:read",
     "documents:read",
     "currency:read",
     "referrals:rewards",
@@ -1036,6 +1042,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "vendors:read",
     "vendors:assign",
     "analytics:read",
+    "quality:read",
   ],
   LEGAL: [
     "dashboard:read",
@@ -1053,6 +1060,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "recruit:read",
     "recruit:write",
     "analytics:read",
+    "quality:read",
   ],
   HR_EXECUTIVE: [
     "dashboard:read",
@@ -1066,6 +1074,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "dashboard:read",
     "hr:read",
     "analytics:read",
+    "quality:read",
     "finance:read", // accountant portal — read-only access to Finance
   ],
 };
@@ -1106,6 +1115,7 @@ export const ROUTE_PERMISSIONS: { prefix: string; permission: Permission }[] = [
   { prefix: "/insurance", permission: "insurance:read" },
   { prefix: "/reports", permission: "analytics:read" },
   { prefix: "/analytics", permission: "analytics:read" },
+  { prefix: "/quality", permission: "quality:read" },
   { prefix: "/vendors", permission: "vendors:read" },
   { prefix: "/packages", permission: "packages:read" },
   { prefix: "/pricing", permission: "pricing:read" },

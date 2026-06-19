@@ -28,6 +28,7 @@ const JOBS = [
   "customer-360",
   "acq-sla",
   "invoice-due",
+  "payment-reminders", // in-app nudges for invoices due soon / overdue (poka-yoke)
   "contract-reminders",
   "project-escalation", // Projects SLA escalation (was never wired — audit)
   "velos-slump", // Velos slump-catch sweep (was never wired — audit)

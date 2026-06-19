@@ -49,6 +49,7 @@ import {
 import { CommunicationTimeline } from "@/components/shared/communication-timeline";
 import { BookingActions } from "./_components/booking-actions";
 import { BookingOpsLinks } from "./_components/booking-ops-links";
+import { BookingReadinessCard } from "./_components/booking-readiness-card";
 import { formatINR } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Booking Details" };
@@ -86,7 +87,7 @@ export default async function BookingDetailPage({
     ? await Promise.all([
         prisma.beo.findFirst({
           where: { bookingId: booking.id },
-          select: { id: true },
+          select: { id: true, status: true },
           orderBy: { createdAt: "desc" },
         }),
         prisma.kitchenPlan.findFirst({
@@ -166,6 +167,17 @@ export default async function BookingDetailPage({
           </div>
         </div>
       )}
+
+      {/* Readiness checklist (poka-yoke) — informational, never blocking */}
+      <BookingReadinessCard
+        beoStatus={existingBeo?.status ?? null}
+        hasInvoices={booking.invoices.length > 0}
+        hasBalanceDue={booking.invoices.some(
+          (inv) => Number(inv.balanceDue) > 0
+        )}
+        guestCount={booking.guestCount}
+        eventDate={booking.date}
+      />
 
       {/* Quick Access Links */}
       <div className="flex flex-wrap gap-2">
