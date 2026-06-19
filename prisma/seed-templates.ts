@@ -89,690 +89,341 @@ const HANDOVER_COMMON: TaskDef[] = [
   { title: "Post-event report & photos archived", category: "GENERAL", priority: "LOW", estimatedMinutes: 20 },
 ];
 
+// Generic "during the event" coverage, shared by all templates.
+const LIVE_COMMON: TaskDef[] = [
+  { title: "Food & beverage service per timeline", category: "CATERING", priority: "HIGH", mandatory: true },
+  { title: "Monitor AC, cleanliness & restrooms through the event", category: "HOUSEKEEPING", priority: "MEDIUM" },
+  { title: "Coordinate program / MC cues with host", category: "ENTERTAINMENT", priority: "MEDIUM" },
+  { title: "Photography / videography coverage", category: "GENERAL", priority: "MEDIUM" },
+  { title: "Floor manager on-call for host requests", category: "GENERAL", priority: "MEDIUM" },
+];
+
+// Compose a template from the shared blocks + per-phase event-specific tasks.
+type Specifics = Partial<Record<Phase, TaskDef[]>>;
+function sop(name: string, eventType: string | null, description: string, s: Specifics = {}, isDefault = false): SOPDef {
+  return {
+    name, eventType, isDefault, description,
+    phases: [
+      { name: "Pre-Event Preparation", phase: "PRE_EVENT", tasks: [...PRE_EVENT_COMMON, ...(s.PRE_EVENT ?? [])] },
+      { name: "Venue Setup", phase: "SETUP", tasks: [...SETUP_COMMON, ...(s.SETUP ?? [])] },
+      { name: "Guest Arrival", phase: "GUEST_ARRIVAL", tasks: [...ARRIVAL_COMMON, ...(s.GUEST_ARRIVAL ?? [])] },
+      { name: "During the Event", phase: "LIVE_EVENT", tasks: [...LIVE_COMMON, ...(s.LIVE_EVENT ?? [])] },
+      { name: "Wind-Down", phase: "WRAP_UP", tasks: [...WRAP_COMMON, ...(s.WRAP_UP ?? [])] },
+      { name: "Handover & Closure", phase: "HANDOVER", tasks: [...HANDOVER_COMMON, ...(s.HANDOVER ?? [])] },
+    ],
+  };
+}
+
 const TEMPLATES: SOPDef[] = [
-  {
-    name: "Standard Banquet Event",
-    eventType: null,
-    isDefault: true,
-    description: "Default operations checklist applied to any event without a more specific template.",
-    phases: [
-      { name: "Pre-Event Preparation", phase: "PRE_EVENT", tasks: PRE_EVENT_COMMON },
-      { name: "Venue Setup", phase: "SETUP", tasks: [...SETUP_COMMON, { title: "Stage & backdrop setup", category: "DECOR", priority: "HIGH", proof: true, estimatedMinutes: 60 }] },
-      { name: "Guest Arrival", phase: "GUEST_ARRIVAL", tasks: ARRIVAL_COMMON },
-      {
-        name: "During the Event", phase: "LIVE_EVENT", tasks: [
-          { title: "Food service as per timeline", category: "CATERING", priority: "HIGH", mandatory: true },
-          { title: "Monitor AC, cleanliness & restrooms", category: "HOUSEKEEPING", priority: "MEDIUM" },
-          { title: "Coordinate program / MC cues", category: "ENTERTAINMENT", priority: "MEDIUM" },
-          { title: "Photography / videography coverage", category: "GENERAL", priority: "MEDIUM" },
-        ],
-      },
-      { name: "Wind-Down", phase: "WRAP_UP", tasks: WRAP_COMMON },
-      { name: "Handover & Closure", phase: "HANDOVER", tasks: HANDOVER_COMMON },
+  sop("Standard Banquet Event", null, "Default operations checklist applied to any event without a more specific template.", {
+    SETUP: [{ title: "Stage & backdrop setup", category: "DECOR", priority: "HIGH", proof: true, estimatedMinutes: 60 }],
+  }, true),
+
+  sop("Wedding", "Wedding", "Full wedding operations — mandap/stage, ceremonies and large-scale catering.", {
+    PRE_EVENT: [
+      { title: "Confirm muhurat / ceremony timings with family", category: "GENERAL", priority: "HIGH", mandatory: true },
+      { title: "Coordinate pandit / officiant requirements", category: "GENERAL", priority: "MEDIUM" },
+      { title: "Confirm baraat / entry plan & logistics", category: "LOGISTICS", priority: "HIGH" },
     ],
-  },
-  {
-    name: "Wedding Reception",
-    eventType: "Wedding",
-    description: "End-to-end checklist for a wedding reception including mandap/stage, ceremonies and large-scale catering.",
-    phases: [
-      {
-        name: "Pre-Event Preparation", phase: "PRE_EVENT", tasks: [
-          ...PRE_EVENT_COMMON,
-          { title: "Confirm muhurat / ceremony timings with family", category: "GENERAL", priority: "HIGH", mandatory: true },
-          { title: "Coordinate pandit / officiant requirements", category: "GENERAL", priority: "MEDIUM" },
-          { title: "Confirm baraat / entry plan & logistics", category: "LOGISTICS", priority: "HIGH" },
-        ],
-      },
-      {
-        name: "Venue Setup", phase: "SETUP", tasks: [
-          ...SETUP_COMMON,
-          { title: "Mandap / wedding stage & floral setup", category: "DECOR", priority: "HIGH", mandatory: true, proof: true, estimatedMinutes: 120 },
-          { title: "Bride & groom green rooms ready", category: "HOUSEKEEPING", priority: "HIGH", estimatedMinutes: 45 },
-          { title: "Pheras / ceremony area arrangements", category: "DECOR", priority: "HIGH" },
-        ],
-      },
-      { name: "Guest Arrival", phase: "GUEST_ARRIVAL", tasks: [...ARRIVAL_COMMON, { title: "Family & VIP seating coordination", category: "GUEST_SEATING", priority: "HIGH" }] },
-      {
-        name: "During the Event", phase: "LIVE_EVENT", tasks: [
-          { title: "Baraat welcome & entry coordination", category: "ENTERTAINMENT", priority: "HIGH" },
-          { title: "Stage & ceremony timeline management", category: "ENTERTAINMENT", priority: "HIGH", mandatory: true },
-          { title: "Multi-cuisine food service & live counters", category: "CATERING", priority: "HIGH", mandatory: true },
-          { title: "Photography / videography — key moments", category: "GENERAL", priority: "HIGH" },
-          { title: "Monitor guest comfort & crowd flow", category: "SECURITY", priority: "MEDIUM" },
-        ],
-      },
-      { name: "Wind-Down", phase: "WRAP_UP", tasks: WRAP_COMMON },
-      { name: "Handover & Closure", phase: "HANDOVER", tasks: HANDOVER_COMMON },
+    SETUP: [
+      { title: "Mandap / wedding stage & floral setup", category: "DECOR", priority: "HIGH", mandatory: true, proof: true, estimatedMinutes: 120 },
+      { title: "Bride & groom green rooms ready", category: "HOUSEKEEPING", priority: "HIGH", estimatedMinutes: 45 },
+      { title: "Pheras / ceremony area arrangements", category: "DECOR", priority: "HIGH" },
     ],
-  },
-  {
-    name: "Birthday Party",
-    eventType: "Birthday",
-    description: "Checklist for birthday celebrations — cake, themed decor and entertainment.",
-    phases: [
-      { name: "Pre-Event Preparation", phase: "PRE_EVENT", tasks: [...PRE_EVENT_COMMON, { title: "Confirm cake design, flavour & delivery time", category: "CATERING", priority: "HIGH", mandatory: true }, { title: "Confirm theme & entertainment (magician/games)", category: "ENTERTAINMENT", priority: "MEDIUM" }] },
-      { name: "Venue Setup", phase: "SETUP", tasks: [...SETUP_COMMON, { title: "Theme decor & balloon setup", category: "DECOR", priority: "HIGH", proof: true }, { title: "Cake table & dessert counter setup", category: "CATERING", priority: "HIGH" }] },
-      { name: "Guest Arrival", phase: "GUEST_ARRIVAL", tasks: ARRIVAL_COMMON },
-      {
-        name: "During the Event", phase: "LIVE_EVENT", tasks: [
-          { title: "Cake-cutting coordination & music cue", category: "ENTERTAINMENT", priority: "HIGH", mandatory: true },
-          { title: "Games / entertainment management", category: "ENTERTAINMENT", priority: "MEDIUM" },
-          { title: "Food & dessert service", category: "CATERING", priority: "HIGH" },
-          { title: "Return gifts / favours distribution", category: "GENERAL", priority: "LOW" },
-        ],
-      },
-      { name: "Wind-Down", phase: "WRAP_UP", tasks: WRAP_COMMON },
-      { name: "Handover & Closure", phase: "HANDOVER", tasks: HANDOVER_COMMON },
+    GUEST_ARRIVAL: [{ title: "Family & VIP seating coordination", category: "GUEST_SEATING", priority: "HIGH" }],
+    LIVE_EVENT: [
+      { title: "Cue ceremonies per muhurat timeline", category: "ENTERTAINMENT", priority: "HIGH", mandatory: true },
+      { title: "Coordinate rituals with pandit & family", category: "GENERAL", priority: "HIGH" },
+      { title: "Grand feast service & live counters", category: "CATERING", priority: "HIGH" },
     ],
-  },
-  {
-    name: "Baby Shower",
-    eventType: "Baby shower",
-    description: "Checklist for baby shower / godh bharai functions — intimate decor and rituals.",
-    phases: [
-      { name: "Pre-Event Preparation", phase: "PRE_EVENT", tasks: [...PRE_EVENT_COMMON, { title: "Confirm ritual requirements with family", category: "GENERAL", priority: "MEDIUM" }, { title: "Confirm theme decor & special seating for mother-to-be", category: "DECOR", priority: "HIGH" }] },
-      { name: "Venue Setup", phase: "SETUP", tasks: [...SETUP_COMMON, { title: "Themed backdrop & special chair setup", category: "DECOR", priority: "HIGH", proof: true }] },
-      { name: "Guest Arrival", phase: "GUEST_ARRIVAL", tasks: ARRIVAL_COMMON },
-      {
-        name: "During the Event", phase: "LIVE_EVENT", tasks: [
-          { title: "Ritual / ceremony coordination", category: "GENERAL", priority: "HIGH" },
-          { title: "Games & activities management", category: "ENTERTAINMENT", priority: "MEDIUM" },
-          { title: "Food & dessert service", category: "CATERING", priority: "HIGH", mandatory: true },
-        ],
-      },
-      { name: "Wind-Down", phase: "WRAP_UP", tasks: WRAP_COMMON },
-      { name: "Handover & Closure", phase: "HANDOVER", tasks: HANDOVER_COMMON },
+  }),
+
+  sop("Reception", "Reception", "Post-wedding reception — grand entry, stage and dinner service.", {
+    PRE_EVENT: [{ title: "Confirm grand-entry sequence & music", category: "ENTERTAINMENT", priority: "HIGH", mandatory: true }],
+    SETUP: [
+      { title: "Reception stage & couch / sofa setup", category: "DECOR", priority: "HIGH", proof: true },
+      { title: "Photo wall / selfie point setup", category: "DECOR", priority: "MEDIUM" },
     ],
-  },
-  {
-    name: "Engagement / Ring Ceremony",
-    eventType: "Engagement",
-    description: "Checklist for engagement / ring ceremony functions.",
-    phases: [
-      { name: "Pre-Event Preparation", phase: "PRE_EVENT", tasks: [...PRE_EVENT_COMMON, { title: "Confirm ring-exchange timing & stage cue", category: "GENERAL", priority: "HIGH", mandatory: true }] },
-      { name: "Venue Setup", phase: "SETUP", tasks: [...SETUP_COMMON, { title: "Engagement stage & floral decor", category: "DECOR", priority: "HIGH", proof: true }, { title: "Couple seating & family rows", category: "GUEST_SEATING", priority: "HIGH" }] },
-      { name: "Guest Arrival", phase: "GUEST_ARRIVAL", tasks: ARRIVAL_COMMON },
-      {
-        name: "During the Event", phase: "LIVE_EVENT", tasks: [
-          { title: "Ring-exchange ceremony coordination", category: "ENTERTAINMENT", priority: "HIGH", mandatory: true },
-          { title: "Photography — key moments", category: "GENERAL", priority: "HIGH" },
-          { title: "Food & beverage service", category: "CATERING", priority: "HIGH" },
-        ],
-      },
-      { name: "Wind-Down", phase: "WRAP_UP", tasks: WRAP_COMMON },
-      { name: "Handover & Closure", phase: "HANDOVER", tasks: HANDOVER_COMMON },
+    GUEST_ARRIVAL: [{ title: "Receiving line & VIP coordination", category: "GUEST_SEATING", priority: "HIGH" }],
+    LIVE_EVENT: [
+      { title: "Couple grand entry cue", category: "ENTERTAINMENT", priority: "HIGH", mandatory: true },
+      { title: "Cake cutting & toast coordination", category: "ENTERTAINMENT", priority: "MEDIUM" },
     ],
-  },
-  {
-    name: "Corporate Event",
-    eventType: "Corporate Conference",
-    description: "Checklist for corporate functions — conferences, town-halls, product launches, parties.",
-    phases: [
-      { name: "Pre-Event Preparation", phase: "PRE_EVENT", tasks: [...PRE_EVENT_COMMON, { title: "Confirm AV/presentation & internet requirements", category: "AV", priority: "HIGH", mandatory: true }, { title: "Confirm registration / badge needs", category: "LOGISTICS", priority: "MEDIUM" }] },
-      { name: "Venue Setup", phase: "SETUP", tasks: [...SETUP_COMMON, { title: "Conference / theatre seating setup", category: "GUEST_SEATING", priority: "HIGH" }, { title: "Stage, podium & branding setup", category: "DECOR", priority: "HIGH", proof: true }, { title: "Test presentation, clicker & internet", category: "AV", priority: "HIGH", mandatory: true, proof: true }] },
-      { name: "Guest Arrival", phase: "GUEST_ARRIVAL", tasks: [...ARRIVAL_COMMON, { title: "Registration desk & badges ready", category: "LOGISTICS", priority: "HIGH" }] },
-      {
-        name: "During the Event", phase: "LIVE_EVENT", tasks: [
-          { title: "AV / presentation support on standby", category: "AV", priority: "HIGH", mandatory: true },
-          { title: "Agenda / session timeline management", category: "GENERAL", priority: "HIGH" },
-          { title: "Tea / coffee breaks & lunch service", category: "CATERING", priority: "HIGH" },
-        ],
-      },
-      { name: "Wind-Down", phase: "WRAP_UP", tasks: WRAP_COMMON },
-      { name: "Handover & Closure", phase: "HANDOVER", tasks: HANDOVER_COMMON },
+  }),
+
+  sop("Engagement", "Engagement", "Engagement / ring ceremony — stage, ring exchange and family seating.", {
+    PRE_EVENT: [{ title: "Confirm ring-exchange timing & stage cue", category: "GENERAL", priority: "HIGH", mandatory: true }],
+    SETUP: [
+      { title: "Engagement stage & floral decor", category: "DECOR", priority: "HIGH", proof: true },
+      { title: "Couple seating & family rows", category: "GUEST_SEATING", priority: "HIGH" },
     ],
-  },
-  // ---- 7 additional event types (generated) ----
-  {
-    name: "Reception",
-    eventType: "Reception",
-    description: "Operations checklist for Reception events.",
-    phases: [
-      {
-        name: "Pre-Event Preparation",
-        phase: "PRE_EVENT",
-        tasks: [
-          { title: "Confirm final guest count (pax) and per-plate count with host", category: "GENERAL", priority: "HIGH", mandatory: true },
-          { title: "Lock multi-cuisine menu and live counters with kitchen", category: "CATERING", priority: "HIGH", mandatory: true },
-          { title: "Confirm couple stage entry time, music cue and spotlight sequence", category: "ENTERTAINMENT", priority: "HIGH", mandatory: true },
-          { title: "Confirm all vendors — caterer, decor, photographer, DJ, lighting", category: "LOGISTICS", priority: "HIGH", mandatory: true },
-          { title: "Verify balance payment cleared before event day", category: "GENERAL", priority: "HIGH", mandatory: true },
-          { title: "Circulate final run-sheet (BEO) and stage timeline to ops team", category: "GENERAL", priority: "HIGH" },
-          { title: "Confirm valet capacity and traffic-marshal plan for peak arrival", category: "LOGISTICS", priority: "MEDIUM" },
-        ],
-      },
-      {
-        name: "Venue Setup",
-        phase: "SETUP",
-        tasks: [
-          { title: "Deep-clean and sanitize hall, restrooms and green rooms", category: "HOUSEKEEPING", priority: "HIGH", mandatory: true },
-          { title: "Reception stage, backdrop and floral decor setup", category: "DECOR", priority: "HIGH", mandatory: true, proof: true },
-          { title: "Couple sofa/throne, pheras backdrop and family rows arranged", category: "GUEST_SEATING", priority: "HIGH" },
-          { title: "Lay round tables, chairs and VIP enclosure per floor plan", category: "GUEST_SEATING", priority: "HIGH" },
-          { title: "AV check — wireless mics, line array speakers, mixer", category: "AV", priority: "HIGH", mandatory: true, proof: true },
-          { title: "Stage uplighting, follow-spot and ambient lighting test", category: "AV", priority: "MEDIUM" },
-          { title: "Buffet and live counters setup with sneeze guards", category: "CATERING", priority: "HIGH" },
-          { title: "Fire exits unobstructed, extinguishers and DG backup checked", category: "SECURITY", priority: "URGENT", mandatory: true, proof: true },
-          { title: "Welcome signage, gift/shagun table and directions placed", category: "LOGISTICS", priority: "LOW" },
-        ],
-      },
-      {
-        name: "Guest Arrival",
-        phase: "GUEST_ARRIVAL",
-        tasks: [
-          { title: "Reception desk, guest list and shagun box ready", category: "GUEST_SEATING", priority: "HIGH" },
-          { title: "Welcome drinks and aarti/tilak thali ready at entrance", category: "CATERING", priority: "MEDIUM" },
-          { title: "Valet and parking coordination at peak inflow", category: "LOGISTICS", priority: "MEDIUM" },
-          { title: "Brief ushers and security on VIP and guest flow", category: "SECURITY", priority: "MEDIUM" },
-          { title: "Family and elderly/VIP seating coordination", category: "GUEST_SEATING", priority: "HIGH" },
-        ],
-      },
-      {
-        name: "During the Event",
-        phase: "LIVE_EVENT",
-        tasks: [
-          { title: "Couple grand entry — music, spotlight and cold-pyro cue", category: "ENTERTAINMENT", priority: "HIGH", mandatory: true },
-          { title: "Stage felicitation and gift-exchange queue management", category: "ENTERTAINMENT", priority: "HIGH" },
-          { title: "Multi-cuisine food service and live counters as per timeline", category: "CATERING", priority: "HIGH", mandatory: true },
-          { title: "Photography/videography — key moments and family portraits", category: "GENERAL", priority: "HIGH" },
-          { title: "Monitor AC, cleanliness, restrooms and crowd flow", category: "HOUSEKEEPING", priority: "MEDIUM" },
-          { title: "Cake-cutting / toast coordination with DJ and MC", category: "ENTERTAINMENT", priority: "MEDIUM" },
-        ],
-      },
-      {
-        name: "Wind-Down",
-        phase: "WRAP_UP",
-        tasks: [
-          { title: "Collect host feedback before departure", category: "GENERAL", priority: "MEDIUM", mandatory: true },
-          { title: "Hand over gifts, shagun box and host belongings safely", category: "GENERAL", priority: "HIGH", mandatory: true },
-          { title: "Vendor settlement and sign-off checklist", category: "LOGISTICS", priority: "HIGH" },
-          { title: "Return rented equipment and reconcile inventory", category: "LOGISTICS", priority: "MEDIUM" },
-          { title: "Lost and found collection", category: "GENERAL", priority: "LOW" },
-        ],
-      },
-      {
-        name: "Handover & Closure",
-        phase: "HANDOVER",
-        tasks: [
-          { title: "Hall handover and damage inspection with host", category: "HOUSEKEEPING", priority: "HIGH", mandatory: true, proof: true },
-          { title: "Final settlement and invoice closure", category: "GENERAL", priority: "HIGH" },
-          { title: "Post-event report and photos archived", category: "GENERAL", priority: "LOW" },
-        ],
-      },
+    LIVE_EVENT: [
+      { title: "Ring ceremony cue & coordination", category: "ENTERTAINMENT", priority: "HIGH", mandatory: true },
+      { title: "Family & couple photo session", category: "GENERAL", priority: "MEDIUM" },
     ],
-  },
-  {
-    name: "Sangeet",
-    eventType: "Sangeet",
-    description: "Operations checklist for Sangeet events.",
-    phases: [
-      {
-        name: "Pre-Event Preparation",
-        phase: "PRE_EVENT",
-        tasks: [
-          { title: "Confirm guest count and seating vs standing/dance-floor split", category: "GENERAL", priority: "HIGH", mandatory: true },
-          { title: "Lock DJ, sound vendor and final playlist/medley with family", category: "ENTERTAINMENT", priority: "HIGH", mandatory: true },
-          { title: "Collect performance running order and rehearsal track list", category: "ENTERTAINMENT", priority: "HIGH", mandatory: true },
-          { title: "Confirm choreographer rehearsal slot and green-room needs", category: "ENTERTAINMENT", priority: "MEDIUM" },
-          { title: "Lock cocktail/bar menu, snacks and dinner timing with kitchen", category: "CATERING", priority: "HIGH", mandatory: true },
-          { title: "Verify balance payment cleared before event day", category: "GENERAL", priority: "HIGH", mandatory: true },
-          { title: "Confirm liquor permit/excise compliance if bar is served", category: "SECURITY", priority: "HIGH", mandatory: true },
-        ],
-      },
-      {
-        name: "Venue Setup",
-        phase: "SETUP",
-        tasks: [
-          { title: "Deep-clean hall, restrooms and performer green rooms", category: "HOUSEKEEPING", priority: "HIGH", mandatory: true },
-          { title: "Performance stage, LED wall and backdrop setup", category: "DECOR", priority: "HIGH", mandatory: true, proof: true },
-          { title: "Dance floor laid, leveled and anti-slip checked", category: "DECOR", priority: "HIGH", mandatory: true, proof: true },
-          { title: "DJ console, line-array speakers, sub-bass and mixer setup", category: "AV", priority: "HIGH", mandatory: true, proof: true },
-          { title: "Full AV sound-check with wireless mics and monitor wedges", category: "AV", priority: "HIGH", mandatory: true },
-          { title: "Intelligent lighting, moving heads, haze and follow-spot test", category: "AV", priority: "HIGH" },
-          { title: "Lounge/cocktail seating and high-tables arranged", category: "GUEST_SEATING", priority: "MEDIUM" },
-          { title: "Bar and live snack counters setup", category: "CATERING", priority: "HIGH" },
-          { title: "Cold-pyro/sparkler gear safety clearance and DG backup check", category: "SECURITY", priority: "URGENT", mandatory: true, proof: true },
-        ],
-      },
-      {
-        name: "Guest Arrival",
-        phase: "GUEST_ARRIVAL",
-        tasks: [
-          { title: "Reception desk and guest list ready", category: "GUEST_SEATING", priority: "MEDIUM" },
-          { title: "Welcome drinks/mocktails ready at entrance", category: "CATERING", priority: "MEDIUM" },
-          { title: "Performers checked into green room, mics tagged and tested", category: "ENTERTAINMENT", priority: "HIGH", mandatory: true },
-          { title: "Valet and parking coordination", category: "LOGISTICS", priority: "MEDIUM" },
-          { title: "Family and VIP front-row seating coordination", category: "GUEST_SEATING", priority: "MEDIUM" },
-        ],
-      },
-      {
-        name: "During the Event",
-        phase: "LIVE_EVENT",
-        tasks: [
-          { title: "Run performance order with DJ — track cues and transitions", category: "ENTERTAINMENT", priority: "HIGH", mandatory: true },
-          { title: "Stage hand support — props, dupattas and quick changeovers", category: "ENTERTAINMENT", priority: "MEDIUM" },
-          { title: "Lighting and haze operation per performance cues", category: "AV", priority: "HIGH" },
-          { title: "Open dance floor — DJ set and crowd management", category: "ENTERTAINMENT", priority: "HIGH" },
-          { title: "Bar, snacks and dinner service as per timeline", category: "CATERING", priority: "HIGH", mandatory: true },
-          { title: "Monitor sound levels vs noise norms and 10 PM deadline", category: "SECURITY", priority: "HIGH", mandatory: true },
-          { title: "Photography/videography of performances and dance floor", category: "GENERAL", priority: "MEDIUM" },
-        ],
-      },
-      {
-        name: "Wind-Down",
-        phase: "WRAP_UP",
-        tasks: [
-          { title: "Collect host feedback before departure", category: "GENERAL", priority: "MEDIUM", mandatory: true },
-          { title: "Power down and secure DJ/AV gear; reconcile rentals", category: "AV", priority: "HIGH" },
-          { title: "Vendor settlement and sign-off checklist", category: "LOGISTICS", priority: "HIGH" },
-          { title: "Clear dance floor, bar and stage; secure leftover liquor", category: "HOUSEKEEPING", priority: "MEDIUM" },
-          { title: "Lost and found collection", category: "GENERAL", priority: "LOW" },
-        ],
-      },
-      {
-        name: "Handover & Closure",
-        phase: "HANDOVER",
-        tasks: [
-          { title: "Hall and dance-floor handover with damage inspection", category: "HOUSEKEEPING", priority: "HIGH", mandatory: true, proof: true },
-          { title: "Final settlement and invoice closure", category: "GENERAL", priority: "HIGH" },
-          { title: "Post-event report and photos archived", category: "GENERAL", priority: "LOW" },
-        ],
-      },
+  }),
+
+  sop("Sangeet", "Sangeet", "Sangeet night — performances, choreography and dance floor.", {
+    PRE_EVENT: [
+      { title: "Confirm performance running order & choreography", category: "ENTERTAINMENT", priority: "HIGH", mandatory: true },
+      { title: "Collect & sound-check performance tracks", category: "AV", priority: "HIGH", proof: true },
     ],
-  },
-  {
-    name: "Mehendi",
-    eventType: "Mehendi",
-    description: "Operations checklist for Mehendi events.",
-    phases: [
-      {
-        name: "Pre-Event Preparation",
-        phase: "PRE_EVENT",
-        tasks: [
-          { title: "Confirm guest count and number of ladies needing mehendi", category: "GENERAL", priority: "HIGH", mandatory: true },
-          { title: "Confirm mehendi artist count, hours and bridal design brief", category: "ENTERTAINMENT", priority: "HIGH", mandatory: true },
-          { title: "Confirm organic cones stock and patch-test for bride", category: "ENTERTAINMENT", priority: "MEDIUM" },
-          { title: "Lock light snacks, chaat counter and beverages with kitchen", category: "CATERING", priority: "HIGH", mandatory: true },
-          { title: "Confirm dhol/folk singer or background music vendor", category: "ENTERTAINMENT", priority: "MEDIUM" },
-          { title: "Verify balance payment cleared before event day", category: "GENERAL", priority: "HIGH", mandatory: true },
-          { title: "Circulate final run-sheet to ops team", category: "GENERAL", priority: "MEDIUM" },
-        ],
-      },
-      {
-        name: "Venue Setup",
-        phase: "SETUP",
-        tasks: [
-          { title: "Deep-clean and sanitize the hall and restrooms", category: "HOUSEKEEPING", priority: "HIGH", mandatory: true },
-          { title: "Vibrant boho/floral decor, drapes and umbrella props setup", category: "DECOR", priority: "HIGH", mandatory: true, proof: true },
-          { title: "Bridal mehendi throne/swing and special lighting setup", category: "DECOR", priority: "HIGH", mandatory: true, proof: true },
-          { title: "Low cushion/floor seating and bolsters for guests arranged", category: "GUEST_SEATING", priority: "HIGH" },
-          { title: "Mehendi artist stations — chairs, stools, footrests, task lamps", category: "ENTERTAINMENT", priority: "HIGH", mandatory: true, proof: true },
-          { title: "Drying station with fans/hand-rests and tissue/lemon-sugar mix", category: "ENTERTAINMENT", priority: "MEDIUM" },
-          { title: "AV check — background music speakers and mic", category: "AV", priority: "MEDIUM" },
-          { title: "Snack/chaat counters and beverage station setup", category: "CATERING", priority: "HIGH" },
-          { title: "Fire exits clear, extinguishers checked", category: "SECURITY", priority: "HIGH", mandatory: true },
-        ],
-      },
-      {
-        name: "Guest Arrival",
-        phase: "GUEST_ARRIVAL",
-        tasks: [
-          { title: "Reception desk and guest list ready", category: "GUEST_SEATING", priority: "MEDIUM" },
-          { title: "Welcome drinks and refreshing towels at entrance", category: "CATERING", priority: "MEDIUM" },
-          { title: "Mehendi artists in position and token/queue system ready", category: "ENTERTAINMENT", priority: "HIGH", mandatory: true },
-          { title: "Brief ushers to guide ladies to artist stations", category: "LOGISTICS", priority: "MEDIUM" },
-          { title: "Valet and parking coordination", category: "LOGISTICS", priority: "LOW" },
-        ],
-      },
-      {
-        name: "During the Event",
-        phase: "LIVE_EVENT",
-        tasks: [
-          { title: "Prioritize and complete bridal mehendi as priority one", category: "ENTERTAINMENT", priority: "HIGH", mandatory: true, proof: true },
-          { title: "Manage guest mehendi queue and artist rotation", category: "ENTERTAINMENT", priority: "HIGH" },
-          { title: "Background music / dhol and games coordination", category: "ENTERTAINMENT", priority: "MEDIUM" },
-          { title: "Continuous snack, chaat and beverage service", category: "CATERING", priority: "HIGH", mandatory: true },
-          { title: "Keep seating and floor free of mehendi stains — spot cleaning", category: "HOUSEKEEPING", priority: "MEDIUM" },
-          { title: "Photography/videography of bridal hands and candid moments", category: "GENERAL", priority: "MEDIUM" },
-        ],
-      },
-      {
-        name: "Wind-Down",
-        phase: "WRAP_UP",
-        tasks: [
-          { title: "Collect host feedback before departure", category: "GENERAL", priority: "MEDIUM", mandatory: true },
-          { title: "Settle mehendi artist hours/headcount and sign-off", category: "ENTERTAINMENT", priority: "HIGH", mandatory: true },
-          { title: "Vendor settlement and sign-off checklist", category: "LOGISTICS", priority: "HIGH" },
-          { title: "Return rented props/seating and reconcile inventory", category: "LOGISTICS", priority: "MEDIUM" },
-          { title: "Lost and found collection", category: "GENERAL", priority: "LOW" },
-        ],
-      },
-      {
-        name: "Handover & Closure",
-        phase: "HANDOVER",
-        tasks: [
-          { title: "Hall handover and stain/damage inspection", category: "HOUSEKEEPING", priority: "HIGH", mandatory: true, proof: true },
-          { title: "Final settlement and invoice closure", category: "GENERAL", priority: "HIGH" },
-          { title: "Post-event report and photos archived", category: "GENERAL", priority: "LOW" },
-        ],
-      },
+    SETUP: [
+      { title: "Performance stage & dance floor setup", category: "DECOR", priority: "HIGH", proof: true },
+      { title: "Green room for performers", category: "HOUSEKEEPING", priority: "MEDIUM" },
     ],
-  },
-  {
-    name: "Haldi",
-    eventType: "Haldi",
-    description: "Operations checklist for Haldi events.",
-    phases: [
-      {
-        name: "Pre-Event Preparation",
-        phase: "PRE_EVENT",
-        tasks: [
-          { title: "Confirm guest count and haldi ceremony timing with family", category: "GENERAL", priority: "HIGH", mandatory: true },
-          { title: "Confirm haldi paste/turmeric, flowers and ritual items prepared", category: "GENERAL", priority: "HIGH", mandatory: true },
-          { title: "Arrange stain-safe disposable covers, raincoats and aprons", category: "HOUSEKEEPING", priority: "HIGH", mandatory: true },
-          { title: "Lock light breakfast/snacks and beverages with kitchen", category: "CATERING", priority: "HIGH", mandatory: true },
-          { title: "Confirm dhol/music vendor for haldi rituals", category: "ENTERTAINMENT", priority: "MEDIUM" },
-          { title: "Verify balance payment cleared before event day", category: "GENERAL", priority: "HIGH", mandatory: true },
-        ],
-      },
-      {
-        name: "Venue Setup",
-        phase: "SETUP",
-        tasks: [
-          { title: "Deep-clean hall/lawn and restrooms", category: "HOUSEKEEPING", priority: "HIGH", mandatory: true },
-          { title: "Lay stain-safe floor covers/tarpaulin across ceremony zone", category: "HOUSEKEEPING", priority: "URGENT", mandatory: true, proof: true },
-          { title: "Marigold/floral haldi decor, backdrop and matkas setup", category: "DECOR", priority: "HIGH", mandatory: true, proof: true },
-          { title: "Haldi seating/stool for bride or groom with floral canopy", category: "DECOR", priority: "HIGH", mandatory: true },
-          { title: "Haldi paste bowls, flower petals and ubtan thalis arranged", category: "GENERAL", priority: "HIGH", mandatory: true },
-          { title: "Cover/wrap furniture, speakers and cables against turmeric", category: "HOUSEKEEPING", priority: "HIGH", mandatory: true, proof: true },
-          { title: "AV check — music speakers and mic (splash-protected)", category: "AV", priority: "MEDIUM" },
-          { title: "Water/wash station and fresh towels for guests setup", category: "HOUSEKEEPING", priority: "HIGH" },
-          { title: "Snack and beverage counter setup", category: "CATERING", priority: "MEDIUM" },
-        ],
-      },
-      {
-        name: "Guest Arrival",
-        phase: "GUEST_ARRIVAL",
-        tasks: [
-          { title: "Welcome guests and hand out aprons/old-clothes reminders", category: "HOUSEKEEPING", priority: "MEDIUM" },
-          { title: "Welcome drinks ready at entrance", category: "CATERING", priority: "MEDIUM" },
-          { title: "Brief ushers on ceremony flow and bride/groom escort", category: "LOGISTICS", priority: "MEDIUM" },
-          { title: "Valet and parking coordination", category: "LOGISTICS", priority: "LOW" },
-        ],
-      },
-      {
-        name: "During the Event",
-        phase: "LIVE_EVENT",
-        tasks: [
-          { title: "Coordinate haldi application ritual sequence with family", category: "GENERAL", priority: "HIGH", mandatory: true },
-          { title: "Dhol/music cues and games coordination", category: "ENTERTAINMENT", priority: "MEDIUM" },
-          { title: "Continuous mopping of turmeric splashes to prevent slips", category: "HOUSEKEEPING", priority: "HIGH", mandatory: true },
-          { title: "Replenish haldi paste, petals and water as needed", category: "GENERAL", priority: "MEDIUM" },
-          { title: "Snack and beverage service", category: "CATERING", priority: "MEDIUM" },
-          { title: "Photography/videography of haldi rituals and candids", category: "GENERAL", priority: "MEDIUM" },
-        ],
-      },
-      {
-        name: "Wind-Down",
-        phase: "WRAP_UP",
-        tasks: [
-          { title: "Collect host feedback before departure", category: "GENERAL", priority: "MEDIUM", mandatory: true },
-          { title: "Remove and dispose stained covers; pressure-clean floor", category: "HOUSEKEEPING", priority: "HIGH", mandatory: true, proof: true },
-          { title: "Vendor settlement and sign-off checklist", category: "LOGISTICS", priority: "HIGH" },
-          { title: "Return rented props/seating and reconcile inventory", category: "LOGISTICS", priority: "MEDIUM" },
-          { title: "Lost and found collection", category: "GENERAL", priority: "LOW" },
-        ],
-      },
-      {
-        name: "Handover & Closure",
-        phase: "HANDOVER",
-        tasks: [
-          { title: "Hall/lawn handover with turmeric-stain and damage inspection", category: "HOUSEKEEPING", priority: "HIGH", mandatory: true, proof: true },
-          { title: "Final settlement and invoice closure", category: "GENERAL", priority: "HIGH" },
-          { title: "Post-event report and photos archived", category: "GENERAL", priority: "LOW" },
-        ],
-      },
+    LIVE_EVENT: [
+      { title: "Cue performances & manage music", category: "ENTERTAINMENT", priority: "HIGH", mandatory: true },
+      { title: "MC / anchor coordination", category: "ENTERTAINMENT", priority: "MEDIUM" },
     ],
-  },
-  {
-    name: "Anniversary",
-    eventType: "Anniversary",
-    description: "Operations checklist for Anniversary events.",
-    phases: [
-      {
-        name: "Pre-Event Preparation",
-        phase: "PRE_EVENT",
-        tasks: [
-          { title: "Confirm final guest count and per-plate count with host", category: "GENERAL", priority: "HIGH", mandatory: true },
-          { title: "Lock menu, cake design and per-plate count with kitchen", category: "CATERING", priority: "HIGH", mandatory: true },
-          { title: "Confirm theme, anniversary year decor and photo-wall/montage", category: "DECOR", priority: "MEDIUM" },
-          { title: "Confirm vows-renewal / felicitation segment and stage cue", category: "ENTERTAINMENT", priority: "MEDIUM" },
-          { title: "Confirm all vendors — caterer, decor, photographer, DJ", category: "LOGISTICS", priority: "HIGH", mandatory: true },
-          { title: "Verify balance payment cleared before event day", category: "GENERAL", priority: "HIGH", mandatory: true },
-        ],
-      },
-      {
-        name: "Venue Setup",
-        phase: "SETUP",
-        tasks: [
-          { title: "Deep-clean and sanitize the hall and restrooms", category: "HOUSEKEEPING", priority: "HIGH", mandatory: true },
-          { title: "Stage, backdrop and themed decor setup", category: "DECOR", priority: "HIGH", mandatory: true, proof: true },
-          { title: "Photo-montage wall / memory display and AV slideshow setup", category: "AV", priority: "MEDIUM" },
-          { title: "Lay tables, chairs and VIP/family seating per floor plan", category: "GUEST_SEATING", priority: "HIGH" },
-          { title: "AV check — mics, speakers, projector and slideshow", category: "AV", priority: "HIGH", mandatory: true, proof: true },
-          { title: "Lighting setup and test", category: "AV", priority: "MEDIUM" },
-          { title: "Cake table, dessert counter and buffet setup", category: "CATERING", priority: "HIGH" },
-          { title: "Fire exits clear, extinguishers and DG backup checked", category: "SECURITY", priority: "HIGH", mandatory: true },
-          { title: "Welcome signage and directions placed", category: "LOGISTICS", priority: "LOW" },
-        ],
-      },
-      {
-        name: "Guest Arrival",
-        phase: "GUEST_ARRIVAL",
-        tasks: [
-          { title: "Reception desk and guest list ready", category: "GUEST_SEATING", priority: "MEDIUM" },
-          { title: "Welcome drinks ready at entrance", category: "CATERING", priority: "MEDIUM" },
-          { title: "Family and elderly/VIP seating coordination", category: "GUEST_SEATING", priority: "HIGH" },
-          { title: "Valet and parking coordination", category: "LOGISTICS", priority: "MEDIUM" },
-          { title: "Brief ushers and security on guest flow", category: "SECURITY", priority: "LOW" },
-        ],
-      },
-      {
-        name: "During the Event",
-        phase: "LIVE_EVENT",
-        tasks: [
-          { title: "Couple entry, felicitation and vows-renewal coordination", category: "ENTERTAINMENT", priority: "HIGH" },
-          { title: "Cake-cutting and toast — music and MC cue", category: "ENTERTAINMENT", priority: "HIGH", mandatory: true },
-          { title: "Memory slideshow / speeches AV support", category: "AV", priority: "MEDIUM" },
-          { title: "Food and dessert service as per timeline", category: "CATERING", priority: "HIGH", mandatory: true },
-          { title: "Monitor AC, cleanliness and restrooms", category: "HOUSEKEEPING", priority: "MEDIUM" },
-          { title: "Photography/videography coverage", category: "GENERAL", priority: "MEDIUM" },
-        ],
-      },
-      {
-        name: "Wind-Down",
-        phase: "WRAP_UP",
-        tasks: [
-          { title: "Collect host feedback before departure", category: "GENERAL", priority: "MEDIUM", mandatory: true },
-          { title: "Hand over cake, gifts and host belongings safely", category: "GENERAL", priority: "MEDIUM" },
-          { title: "Vendor settlement and sign-off checklist", category: "LOGISTICS", priority: "HIGH" },
-          { title: "Return rented equipment and reconcile inventory", category: "LOGISTICS", priority: "MEDIUM" },
-          { title: "Lost and found collection", category: "GENERAL", priority: "LOW" },
-        ],
-      },
-      {
-        name: "Handover & Closure",
-        phase: "HANDOVER",
-        tasks: [
-          { title: "Hall handover and damage inspection", category: "HOUSEKEEPING", priority: "HIGH", mandatory: true, proof: true },
-          { title: "Final settlement and invoice closure", category: "GENERAL", priority: "HIGH" },
-          { title: "Post-event report and photos archived", category: "GENERAL", priority: "LOW" },
-        ],
-      },
+  }),
+
+  sop("Mehandi", "Mehandi", "Mehandi function — artist stations, vibrant decor and music.", {
+    PRE_EVENT: [{ title: "Confirm mehndi artist count & station needs", category: "LOGISTICS", priority: "HIGH", mandatory: true }],
+    SETUP: [
+      { title: "Mehndi artist stations & cushion seating", category: "DECOR", priority: "HIGH", proof: true },
+      { title: "Vibrant floral / umbrella decor", category: "DECOR", priority: "MEDIUM" },
     ],
-  },
-  {
-    name: "Product Launch",
-    eventType: "Product Launch",
-    description: "Operations checklist for Product Launch events.",
-    phases: [
-      {
-        name: "Pre-Event Preparation",
-        phase: "PRE_EVENT",
-        tasks: [
-          { title: "Confirm expected headcount, media/press list and VIP guests", category: "GENERAL", priority: "HIGH", mandatory: true },
-          { title: "Lock run-of-show, keynote slots and reveal sequence with client", category: "GENERAL", priority: "HIGH", mandatory: true },
-          { title: "Collect final presentation deck, AV assets and reveal video", category: "AV", priority: "HIGH", mandatory: true },
-          { title: "Confirm branding — stage backdrop, standees, step-and-repeat wall", category: "DECOR", priority: "HIGH", mandatory: true },
-          { title: "Confirm high-speed internet, livestream and recording needs", category: "AV", priority: "HIGH", mandatory: true },
-          { title: "Confirm registration desk, badges and gift hampers", category: "LOGISTICS", priority: "MEDIUM" },
-          { title: "Verify balance payment cleared before event day", category: "GENERAL", priority: "HIGH", mandatory: true },
-        ],
-      },
-      {
-        name: "Venue Setup",
-        phase: "SETUP",
-        tasks: [
-          { title: "Deep-clean and sanitize the hall and restrooms", category: "HOUSEKEEPING", priority: "HIGH", mandatory: true },
-          { title: "Stage, podium, branded backdrop and product reveal unit setup", category: "DECOR", priority: "HIGH", mandatory: true, proof: true },
-          { title: "Theatre/cluster seating and media riser per floor plan", category: "GUEST_SEATING", priority: "HIGH" },
-          { title: "LED wall/projector, presentation and reveal video test", category: "AV", priority: "URGENT", mandatory: true, proof: true },
-          { title: "Sound-check mics, clicker, confidence monitor and audio feed", category: "AV", priority: "HIGH", mandatory: true },
-          { title: "Internet/livestream and recording check (primary + backup)", category: "AV", priority: "HIGH", mandatory: true, proof: true },
-          { title: "Stage lighting, follow-spot and reveal cue lighting test", category: "AV", priority: "MEDIUM" },
-          { title: "Registration desk, badges and press kit table setup", category: "LOGISTICS", priority: "HIGH" },
-          { title: "Hi-tea/canapé counters and networking lounge setup", category: "CATERING", priority: "MEDIUM" },
-          { title: "Fire exits clear, extinguishers and DG backup verified", category: "SECURITY", priority: "URGENT", mandatory: true, proof: true },
-        ],
-      },
-      {
-        name: "Guest Arrival",
-        phase: "GUEST_ARRIVAL",
-        tasks: [
-          { title: "Registration desk, badges and press accreditation ready", category: "LOGISTICS", priority: "HIGH", mandatory: true },
-          { title: "Welcome drinks and networking refreshments ready", category: "CATERING", priority: "MEDIUM" },
-          { title: "Usher media/VIPs to reserved seating and brief on run-of-show", category: "GUEST_SEATING", priority: "HIGH" },
-          { title: "Valet and parking coordination", category: "LOGISTICS", priority: "MEDIUM" },
-          { title: "Brief security on access control and stage no-go zone", category: "SECURITY", priority: "MEDIUM" },
-        ],
-      },
-      {
-        name: "During the Event",
-        phase: "LIVE_EVENT",
-        tasks: [
-          { title: "Run-of-show execution — cue keynote, reveal and AV per script", category: "AV", priority: "URGENT", mandatory: true },
-          { title: "Product reveal moment — lighting, video and effects cue", category: "AV", priority: "HIGH", mandatory: true },
-          { title: "Livestream and recording monitored throughout", category: "AV", priority: "HIGH", mandatory: true },
-          { title: "AV/presentation support and backup on standby", category: "AV", priority: "HIGH", mandatory: true },
-          { title: "Press Q&A, photo-op and demo-zone coordination", category: "GENERAL", priority: "MEDIUM" },
-          { title: "Hi-tea / networking refreshment service", category: "CATERING", priority: "MEDIUM" },
-          { title: "Event photography and AV coverage", category: "GENERAL", priority: "MEDIUM" },
-        ],
-      },
-      {
-        name: "Wind-Down",
-        phase: "WRAP_UP",
-        tasks: [
-          { title: "Collect client/host feedback before departure", category: "GENERAL", priority: "MEDIUM", mandatory: true },
-          { title: "Hand over recordings, photos and press kits to client", category: "GENERAL", priority: "HIGH", mandatory: true },
-          { title: "Secure branding assets, samples and product units", category: "LOGISTICS", priority: "HIGH" },
-          { title: "Vendor settlement and sign-off checklist", category: "LOGISTICS", priority: "HIGH" },
-          { title: "Return rented AV/equipment and reconcile inventory", category: "LOGISTICS", priority: "MEDIUM" },
-        ],
-      },
-      {
-        name: "Handover & Closure",
-        phase: "HANDOVER",
-        tasks: [
-          { title: "Hall handover and damage inspection", category: "HOUSEKEEPING", priority: "HIGH", mandatory: true, proof: true },
-          { title: "Final settlement and invoice closure", category: "GENERAL", priority: "HIGH" },
-          { title: "Post-event report, footage and photos archived", category: "GENERAL", priority: "LOW" },
-        ],
-      },
+    LIVE_EVENT: [
+      { title: "Manage artist queue & guest flow", category: "GUEST_SEATING", priority: "HIGH" },
+      { title: "Music / dhol coordination", category: "ENTERTAINMENT", priority: "MEDIUM" },
     ],
-  },
-  {
-    name: "Awards Night",
-    eventType: "Awards Night",
-    description: "Operations checklist for Awards Night events.",
-    phases: [
-      {
-        name: "Pre-Event Preparation",
-        phase: "PRE_EVENT",
-        tasks: [
-          { title: "Confirm headcount, nominee/winner list and VIP seating plan", category: "GENERAL", priority: "HIGH", mandatory: true },
-          { title: "Lock detailed run-of-show — award sequence, hosts and cues", category: "GENERAL", priority: "HIGH", mandatory: true },
-          { title: "Verify trophies/medals/certificates count and engraving", category: "LOGISTICS", priority: "HIGH", mandatory: true, proof: true },
-          { title: "Collect AV cue sheet — nominee VTs, walk-on music, name supers", category: "AV", priority: "HIGH", mandatory: true },
-          { title: "Confirm host/anchor script and teleprompter content", category: "ENTERTAINMENT", priority: "HIGH", mandatory: true },
-          { title: "Confirm branding, livestream, recording and red-carpet plan", category: "AV", priority: "MEDIUM" },
-          { title: "Verify balance payment cleared before event day", category: "GENERAL", priority: "HIGH", mandatory: true },
-        ],
-      },
-      {
-        name: "Venue Setup",
-        phase: "SETUP",
-        tasks: [
-          { title: "Deep-clean and sanitize the hall, restrooms and green rooms", category: "HOUSEKEEPING", priority: "HIGH", mandatory: true },
-          { title: "Awards stage, LED wall, podium and branded backdrop setup", category: "DECOR", priority: "HIGH", mandatory: true, proof: true },
-          { title: "Red carpet, step-and-repeat media wall and photo-op zone setup", category: "DECOR", priority: "MEDIUM" },
-          { title: "Trophy table, holding area and presentation tray arranged", category: "LOGISTICS", priority: "HIGH", mandatory: true, proof: true },
-          { title: "Round/theatre seating with name cards and VIP enclosure", category: "GUEST_SEATING", priority: "HIGH" },
-          { title: "LED wall, name supers and nominee VT playback test", category: "AV", priority: "URGENT", mandatory: true, proof: true },
-          { title: "Sound-check mics, podium mic, anchor IEM and music feed", category: "AV", priority: "HIGH", mandatory: true },
-          { title: "Stage lighting, follow-spots and award-cue lighting program test", category: "AV", priority: "HIGH", mandatory: true },
-          { title: "Teleprompter and confidence monitor test", category: "AV", priority: "MEDIUM" },
-          { title: "Livestream/recording setup with backup", category: "AV", priority: "MEDIUM" },
-          { title: "Fire exits clear, extinguishers and DG backup verified", category: "SECURITY", priority: "URGENT", mandatory: true, proof: true },
-        ],
-      },
-      {
-        name: "Guest Arrival",
-        phase: "GUEST_ARRIVAL",
-        tasks: [
-          { title: "Registration desk, name cards and seating allocation ready", category: "GUEST_SEATING", priority: "HIGH", mandatory: true },
-          { title: "Red-carpet reception and press photo-op coordination", category: "ENTERTAINMENT", priority: "MEDIUM" },
-          { title: "Welcome drinks and pre-function refreshments ready", category: "CATERING", priority: "MEDIUM" },
-          { title: "Usher VIPs/chief guest to reserved front rows", category: "GUEST_SEATING", priority: "HIGH" },
-          { title: "Brief stage crew/ushers on winner walk-up and trophy handoff", category: "LOGISTICS", priority: "HIGH", mandatory: true },
-        ],
-      },
-      {
-        name: "During the Event",
-        phase: "LIVE_EVENT",
-        tasks: [
-          { title: "Execute run-of-show — cue anchors, VTs, music and name supers", category: "AV", priority: "URGENT", mandatory: true },
-          { title: "Stage management — winner walk-up, trophy handoff, exit flow", category: "ENTERTAINMENT", priority: "HIGH", mandatory: true },
-          { title: "Trophy/certificate sequencing matches each award correctly", category: "LOGISTICS", priority: "URGENT", mandatory: true },
-          { title: "Lighting and follow-spot operation per award cues", category: "AV", priority: "HIGH" },
-          { title: "Livestream and recording monitored throughout", category: "AV", priority: "HIGH" },
-          { title: "Dinner / cocktail service as per timeline", category: "CATERING", priority: "HIGH", mandatory: true },
-          { title: "Event photography and on-stage coverage", category: "GENERAL", priority: "MEDIUM" },
-        ],
-      },
-      {
-        name: "Wind-Down",
-        phase: "WRAP_UP",
-        tasks: [
-          { title: "Collect client/host feedback before departure", category: "GENERAL", priority: "MEDIUM", mandatory: true },
-          { title: "Reconcile trophies awarded vs spare; hand over leftovers", category: "LOGISTICS", priority: "HIGH", mandatory: true },
-          { title: "Hand over recordings, photos and footage to client", category: "GENERAL", priority: "HIGH" },
-          { title: "Vendor settlement and sign-off checklist", category: "LOGISTICS", priority: "HIGH" },
-          { title: "Return rented AV/lighting/equipment and reconcile inventory", category: "LOGISTICS", priority: "MEDIUM" },
-        ],
-      },
-      {
-        name: "Handover & Closure",
-        phase: "HANDOVER",
-        tasks: [
-          { title: "Hall handover and damage inspection", category: "HOUSEKEEPING", priority: "HIGH", mandatory: true, proof: true },
-          { title: "Final settlement and invoice closure", category: "GENERAL", priority: "HIGH" },
-          { title: "Post-event report, footage and photos archived", category: "GENERAL", priority: "LOW" },
-        ],
-      },
+  }),
+
+  sop("Haldi", "Haldi", "Haldi ceremony — low seating, turmeric ritual and stain-safe setup.", {
+    PRE_EVENT: [
+      { title: "Confirm haldi ritual items & dress code", category: "GENERAL", priority: "MEDIUM" },
+      { title: "Plan stain-safe flooring / furniture covers", category: "HOUSEKEEPING", priority: "HIGH", mandatory: true },
     ],
-  },
+    SETUP: [
+      { title: "Haldi stage, low seating & floral", category: "DECOR", priority: "HIGH", proof: true },
+      { title: "Protective covers on floor & seating", category: "HOUSEKEEPING", priority: "HIGH", mandatory: true },
+    ],
+    LIVE_EVENT: [
+      { title: "Ritual coordination with family", category: "GENERAL", priority: "HIGH" },
+      { title: "Cleanup floaters on standby for turmeric", category: "HOUSEKEEPING", priority: "MEDIUM" },
+    ],
+  }),
+
+  sop("Anniversary", "Anniversary", "Anniversary celebration — couple stage, cake and tribute.", {
+    PRE_EVENT: [{ title: "Confirm anniversary theme, cake & milestone honours", category: "CATERING", priority: "HIGH", mandatory: true }],
+    SETUP: [
+      { title: "Couple stage & photo wall setup", category: "DECOR", priority: "HIGH", proof: true },
+      { title: "Slideshow / AV tribute ready", category: "AV", priority: "MEDIUM" },
+    ],
+    LIVE_EVENT: [
+      { title: "Cake cutting & toast coordination", category: "ENTERTAINMENT", priority: "HIGH", mandatory: true },
+      { title: "Play tribute slideshow / speeches", category: "AV", priority: "MEDIUM" },
+    ],
+  }),
+
+  sop("Birthday Party", "Birthday Party", "Birthday celebration — theme decor, cake and entertainment.", {
+    PRE_EVENT: [
+      { title: "Confirm cake design, flavour & delivery time", category: "CATERING", priority: "HIGH", mandatory: true },
+      { title: "Confirm theme & entertainment (magician / games)", category: "ENTERTAINMENT", priority: "MEDIUM" },
+    ],
+    SETUP: [
+      { title: "Theme decor & balloon setup", category: "DECOR", priority: "HIGH", proof: true },
+      { title: "Cake table & dessert counter setup", category: "CATERING", priority: "HIGH" },
+    ],
+    LIVE_EVENT: [
+      { title: "Cake-cutting coordination", category: "ENTERTAINMENT", priority: "HIGH", mandatory: true },
+      { title: "Games / activities host", category: "ENTERTAINMENT", priority: "MEDIUM" },
+    ],
+  }),
+
+  sop("Kids Party", "Kids Party", "Kids party — play zones, entertainer and child safety.", {
+    PRE_EVENT: [
+      { title: "Confirm theme, entertainer (clown/magician) & kid-safe menu", category: "ENTERTAINMENT", priority: "HIGH", mandatory: true },
+      { title: "Confirm child count & supervision needs", category: "SECURITY", priority: "HIGH" },
+    ],
+    SETUP: [
+      { title: "Play area & soft / safe zones setup", category: "DECOR", priority: "HIGH", proof: true },
+      { title: "Cake & dessert counter at kid height", category: "CATERING", priority: "MEDIUM" },
+    ],
+    GUEST_ARRIVAL: [{ title: "Kid registration & parent wristbands", category: "SECURITY", priority: "HIGH" }],
+    LIVE_EVENT: [
+      { title: "Games / activities host", category: "ENTERTAINMENT", priority: "HIGH" },
+      { title: "Continuous child safety supervision", category: "SECURITY", priority: "HIGH", mandatory: true },
+    ],
+  }),
+
+  sop("Baby Shower", "Baby Shower", "Baby shower — rituals, special seating and themed decor.", {
+    PRE_EVENT: [
+      { title: "Confirm ritual requirements with family", category: "GENERAL", priority: "MEDIUM" },
+      { title: "Confirm theme & special seating for mother-to-be", category: "DECOR", priority: "HIGH", mandatory: true },
+    ],
+    SETUP: [{ title: "Themed backdrop & special chair setup", category: "DECOR", priority: "HIGH", proof: true }],
+    LIVE_EVENT: [
+      { title: "Games & activities coordination", category: "ENTERTAINMENT", priority: "MEDIUM" },
+      { title: "Gift table management", category: "GUEST_SEATING", priority: "LOW" },
+    ],
+  }),
+
+  sop("Naming Ceremony", "Naming Ceremony", "Naming ceremony — ritual area, cradle and blessings.", {
+    PRE_EVENT: [{ title: "Confirm ritual / pandit requirements & cradle decor", category: "GENERAL", priority: "HIGH", mandatory: true }],
+    SETUP: [
+      { title: "Cradle & ritual area setup", category: "DECOR", priority: "HIGH", proof: true },
+      { title: "Naming stage & family seating", category: "GUEST_SEATING", priority: "MEDIUM" },
+    ],
+    LIVE_EVENT: [
+      { title: "Ritual coordination with pandit", category: "GENERAL", priority: "HIGH", mandatory: true },
+      { title: "Blessings & family photo session", category: "GENERAL", priority: "MEDIUM" },
+    ],
+  }),
+
+  sop("Cocktail Party", "Cocktail Party", "Cocktail party — bar service, canapés and lounge ambience.", {
+    PRE_EVENT: [
+      { title: "Confirm bar package & beverage count", category: "CATERING", priority: "HIGH", mandatory: true },
+      { title: "Verify bar licence / permit", category: "SECURITY", priority: "HIGH", mandatory: true },
+    ],
+    SETUP: [
+      { title: "Bar counters & beverage stock setup", category: "CATERING", priority: "HIGH", proof: true },
+      { title: "High tables & lounge seating", category: "GUEST_SEATING", priority: "MEDIUM" },
+    ],
+    LIVE_EVENT: [
+      { title: "Passed canapés & bar service", category: "CATERING", priority: "HIGH" },
+      { title: "Responsible-alcohol monitoring", category: "SECURITY", priority: "HIGH", mandatory: true },
+    ],
+  }),
+
+  sop("Bachelor Party", "Bachelor Party", "Bachelor party — entertainment, bar and crowd safety.", {
+    PRE_EVENT: [
+      { title: "Confirm entertainment / DJ / acts", category: "ENTERTAINMENT", priority: "HIGH", mandatory: true },
+      { title: "Confirm bar package & age verification plan", category: "SECURITY", priority: "HIGH", mandatory: true },
+    ],
+    SETUP: [
+      { title: "Stage / DJ & dance floor setup", category: "AV", priority: "HIGH", proof: true },
+      { title: "Bar & lounge setup", category: "CATERING", priority: "HIGH" },
+    ],
+    LIVE_EVENT: [
+      { title: "Bar service & responsible-alcohol monitoring", category: "SECURITY", priority: "HIGH", mandatory: true },
+      { title: "Entertainment & DJ cue management", category: "ENTERTAINMENT", priority: "MEDIUM" },
+    ],
+  }),
+
+  sop("Fresher Party", "Fresher Party", "Fresher / farewell party — performances, games and titles.", {
+    PRE_EVENT: [{ title: "Confirm performances, anchor & games / titles", category: "ENTERTAINMENT", priority: "HIGH", mandatory: true }],
+    SETUP: [
+      { title: "Stage, DJ & dance floor setup", category: "AV", priority: "HIGH", proof: true },
+      { title: "Photo booth / selfie point", category: "DECOR", priority: "LOW" },
+    ],
+    LIVE_EVENT: [
+      { title: "Cue performances & anchor segments", category: "ENTERTAINMENT", priority: "HIGH" },
+      { title: "Games & titles / awards segment", category: "ENTERTAINMENT", priority: "MEDIUM" },
+    ],
+  }),
+
+  sop("New Year Party", "New Year Party", "New Year party — countdown, midnight toast and crowd safety.", {
+    PRE_EVENT: [
+      { title: "Confirm countdown plan & midnight toast", category: "ENTERTAINMENT", priority: "HIGH", mandatory: true },
+      { title: "Confirm entertainment / DJ & bar package", category: "ENTERTAINMENT", priority: "HIGH" },
+    ],
+    SETUP: [
+      { title: "Stage, DJ & countdown screen setup", category: "AV", priority: "HIGH", proof: true },
+      { title: "Bar & beverage counters setup", category: "CATERING", priority: "HIGH" },
+    ],
+    LIVE_EVENT: [
+      { title: "Countdown & midnight toast cue", category: "ENTERTAINMENT", priority: "HIGH", mandatory: true },
+      { title: "Bar service & crowd-safety monitoring", category: "SECURITY", priority: "HIGH", mandatory: true },
+    ],
+  }),
+
+  sop("Get-together", "Get-together", "Casual get-together — relaxed seating, buffet and music.", {
+    SETUP: [{ title: "Casual lounge / cluster seating setup", category: "GUEST_SEATING", priority: "MEDIUM" }],
+    LIVE_EVENT: [{ title: "Buffet flow & background music", category: "CATERING", priority: "MEDIUM" }],
+  }),
+
+  sop("Team Outing", "Team Outing", "Corporate team outing — activities, transport and meals.", {
+    PRE_EVENT: [
+      { title: "Confirm activities, agenda & headcount", category: "ENTERTAINMENT", priority: "HIGH", mandatory: true },
+      { title: "Confirm transport / logistics for the group", category: "LOGISTICS", priority: "HIGH" },
+    ],
+    SETUP: [{ title: "Activity stations & seating setup", category: "LOGISTICS", priority: "MEDIUM" }],
+    LIVE_EVENT: [
+      { title: "Activity coordination & participant safety", category: "SECURITY", priority: "HIGH", mandatory: true },
+      { title: "Meals & refreshments service", category: "CATERING", priority: "MEDIUM" },
+    ],
+  }),
+
+  sop("Conference", "Conference", "Conference — AV, registration, multi-session agenda.", {
+    PRE_EVENT: [
+      { title: "Confirm AV / presentation & internet requirements", category: "AV", priority: "HIGH", mandatory: true },
+      { title: "Confirm registration / badge & agenda needs", category: "LOGISTICS", priority: "HIGH" },
+    ],
+    SETUP: [
+      { title: "Theatre / classroom seating setup", category: "GUEST_SEATING", priority: "HIGH" },
+      { title: "Stage, podium & branding setup", category: "DECOR", priority: "HIGH", proof: true },
+      { title: "Test presentation, clicker & internet", category: "AV", priority: "HIGH", mandatory: true, proof: true },
+    ],
+    GUEST_ARRIVAL: [{ title: "Registration desk & badges ready", category: "LOGISTICS", priority: "HIGH" }],
+    LIVE_EVENT: [
+      { title: "Session timekeeping & speaker support", category: "AV", priority: "HIGH", mandatory: true },
+      { title: "Tea / coffee & networking breaks", category: "CATERING", priority: "MEDIUM" },
+    ],
+  }),
+
+  sop("Seminar", "Seminar", "Seminar — presentation setup, registration and Q&A.", {
+    PRE_EVENT: [
+      { title: "Confirm AV / presentation & handouts", category: "AV", priority: "HIGH", mandatory: true },
+      { title: "Confirm registration & materials", category: "LOGISTICS", priority: "MEDIUM" },
+    ],
+    SETUP: [
+      { title: "Classroom / theatre seating setup", category: "GUEST_SEATING", priority: "HIGH" },
+      { title: "Projector & mic test", category: "AV", priority: "HIGH", mandatory: true, proof: true },
+    ],
+    GUEST_ARRIVAL: [{ title: "Registration & material handout", category: "LOGISTICS", priority: "HIGH" }],
+    LIVE_EVENT: [
+      { title: "Session timekeeping", category: "GENERAL", priority: "HIGH" },
+      { title: "Q&A mic runners & refreshment breaks", category: "AV", priority: "MEDIUM" },
+    ],
+  }),
+
+  sop("Corporate Event", "Corporate Event", "Corporate event — AV, branding, registration and networking.", {
+    PRE_EVENT: [
+      { title: "Confirm AV / presentation & internet requirements", category: "AV", priority: "HIGH", mandatory: true },
+      { title: "Confirm registration / badge needs", category: "LOGISTICS", priority: "MEDIUM" },
+    ],
+    SETUP: [
+      { title: "Stage, podium & branding setup", category: "DECOR", priority: "HIGH", proof: true },
+      { title: "Test presentation, clicker & internet", category: "AV", priority: "HIGH", mandatory: true, proof: true },
+    ],
+    GUEST_ARRIVAL: [{ title: "Registration desk & badges ready", category: "LOGISTICS", priority: "HIGH" }],
+    LIVE_EVENT: [
+      { title: "Agenda timekeeping & speaker support", category: "AV", priority: "HIGH", mandatory: true },
+      { title: "Networking & refreshments coordination", category: "CATERING", priority: "MEDIUM" },
+    ],
+  }),
+
+  sop("Corporate Party", "Corporate Party", "Corporate party — stage, bar, entertainment and awards.", {
+    PRE_EVENT: [
+      { title: "Confirm theme, entertainment & awards segment", category: "ENTERTAINMENT", priority: "HIGH", mandatory: true },
+      { title: "Confirm bar package & beverage count", category: "CATERING", priority: "HIGH" },
+    ],
+    SETUP: [
+      { title: "Stage, DJ & branding setup", category: "AV", priority: "HIGH", proof: true },
+      { title: "Bar & lounge setup", category: "CATERING", priority: "HIGH" },
+    ],
+    LIVE_EVENT: [
+      { title: "Entertainment & awards segment cue", category: "ENTERTAINMENT", priority: "HIGH" },
+      { title: "Bar service & responsible-alcohol monitoring", category: "SECURITY", priority: "HIGH", mandatory: true },
+    ],
+  }),
+
+  sop("Pre-Wedding Shoot", "Pre-Wedding Shoot", "Pre-wedding shoot — sets, props, lighting and locations.", {
+    PRE_EVENT: [
+      { title: "Confirm shoot locations / sets & time slots", category: "LOGISTICS", priority: "HIGH", mandatory: true },
+      { title: "Confirm props list & wardrobe changes", category: "DECOR", priority: "MEDIUM" },
+    ],
+    SETUP: [
+      { title: "Sets, props & lighting setup", category: "DECOR", priority: "HIGH", proof: true },
+      { title: "Changing / makeup room ready", category: "HOUSEKEEPING", priority: "MEDIUM" },
+    ],
+    LIVE_EVENT: [
+      { title: "Location / scene coordination with photographer", category: "GENERAL", priority: "HIGH", mandatory: true },
+      { title: "Props & continuity management", category: "DECOR", priority: "MEDIUM" },
+    ],
+  }),
 ];
 
 // ---- Email templates (simple, brand-styled) ----

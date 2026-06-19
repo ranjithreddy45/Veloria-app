@@ -27,11 +27,19 @@ export interface ImportSummary {
 function mapEventType(raw?: string): string | null {
   const s = (raw ?? "").trim().toLowerCase();
   if (!s) return null;
-  if (s.startsWith("bday") || s.includes("birth")) return "Birthday";
-  if (s.startsWith("corp")) return "Corporate";
+  if (s.startsWith("bday") || s.includes("birth")) return "Birthday Party";
+  if (s.startsWith("corp")) return "Corporate Event";
   if (s.includes("engage")) return "Engagement";
   if (s.includes("wed")) return "Wedding";
   if (s.includes("recep")) return "Reception";
+  if (s.includes("anniv")) return "Anniversary";
+  if (s.includes("sangeet")) return "Sangeet";
+  if (s.includes("mehandi") || s.includes("mehendi")) return "Mehandi";
+  if (s.includes("haldi")) return "Haldi";
+  if (s.includes("baby")) return "Baby Shower";
+  if (s.includes("naming")) return "Naming Ceremony";
+  if (s.includes("conference")) return "Conference";
+  if (s.includes("seminar")) return "Seminar";
   return raw!.trim();
 }
 
