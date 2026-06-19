@@ -1182,12 +1182,28 @@ model Vendor {
   totalBookings Int            @default(0)
   tags          String[]
   portfolio     Json?
+
+  // ---- Vendor Module (catalog) — additive extensions ----
+  // Multi-category membership as stable keys (decor, catering, emcee, …). The
+  // legacy single `category` enum above stays as the primary/operational tag.
+  categories        String[] @default([])
+  city              String?
+  // empanelled | probation | suspended (catalog empanelment state, distinct
+  // from the operational `status` used by bookings/assignments).
+  empanelmentStatus String?  @default("empanelled")
+  keyPersonnel      Json? // [{ name, role }] — people the quality depends on
+  licences          Json? // [{ type, number, expiry }] — FSSAI/halal/insurance/fire
+  qualityScore      Int? // 0–100 rolling; written by the quality/scorecard process
+  notes             String?  @db.Text
+  isArchived        Boolean  @default(false)
+
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
   bookingVendors BookingVendor[]
   bids           VendorBid[]
   payouts        Payout[]
+  packages       VendorPackage[]
 
   // Event Execution & Accountability
   executionTasks        ExecutionTask[]
@@ -1198,6 +1214,90 @@ model Vendor {
 
   @@index([category])
   @@index([status])
+  @@index([isArchived])
+}
+
+// ============================================================
+// Vendor Module — package catalogue (structured: section → item)
+// ============================================================
+
+enum VendorPackageStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum VendorPackagePriceUnit {
+  PER_PLATE
+  PER_EVENT
+  PER_PIECE
+  PER_HOUR
+  PER_DAY
+}
+
+enum VendorPackageItemType {
+  FIXED
+  SINGLE_CHOICE
+  MULTI_CHOICE
+}
+
+model VendorPackage {
+  id           String                 @id @default(cuid())
+  vendorId     String
+  vendor       Vendor                 @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  name         String
+  category     String // stable category key; must be one of vendor.categories (R3, enforced in action)
+  status       VendorPackageStatus    @default(DRAFT)
+  price        Decimal                @db.Decimal(12, 2)
+  priceUnit    VendorPackagePriceUnit @default(PER_PLATE)
+  currency     String                 @default("INR")
+  description  String?                @db.Text
+  coverImageId String? // id of a VendorPackageImage in `images` (R7) — plain ref, validated in action
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+
+  sections VendorPackageSection[]
+  images   VendorPackageImage[]
+
+  @@index([vendorId])
+  @@index([status])
+  @@index([category])
+}
+
+model VendorPackageSection {
+  id        String              @id @default(cuid())
+  packageId String
+  package   VendorPackage       @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  title     String
+  sortOrder Int                 @default(0)
+  items     VendorPackageItem[]
+
+  @@index([packageId])
+}
+
+model VendorPackageItem {
+  id          String                @id @default(cuid())
+  sectionId   String
+  section     VendorPackageSection  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  name        String
+  type        VendorPackageItemType @default(FIXED)
+  options     String[]              @default([])
+  chooseCount Int? // multi_choice only: 1..options.length
+  sortOrder   Int                   @default(0)
+  notes       String?
+
+  @@index([sectionId])
+}
+
+model VendorPackageImage {
+  id        String        @id @default(cuid())
+  packageId String
+  package   VendorPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  url       String        @db.Text
+  sortOrder Int           @default(0)
+  createdAt DateTime      @default(now())
+
+  @@index([packageId])
 }
 
 model BookingVendor {

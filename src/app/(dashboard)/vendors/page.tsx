@@ -1,60 +1,79 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { PlusIcon } from "lucide-react";
 
-import { getVendors } from "@/actions/vendor.actions";
+import { listCatalogVendors, listPackages } from "@/actions/vendor-catalog.actions";
 import { PageHeader } from "@/components/layout/page-header";
-import { PageHelp } from "@/lib/page-help";
-import { Button } from "@/components/ui/button";
-import { VendorsTable } from "./_components/vendors-table";
-import { VendorStatStrip } from "./_components/vendor-stat-strip";
+import { VendorModule } from "./_components/vendor-module";
 
-export const metadata: Metadata = { title: "Vendors" };
+export const metadata: Metadata = { title: "Vendors & Packages" };
 
 // ============================================================
-// Vendors List Page
+// Vendors & Packages — Grand Module Root
+// Server component: fetch both lists, hand off to the client shell.
 // ============================================================
 
 export default async function VendorsPage() {
-  // Ceiling lets the client table page + facet through rows without the
-  // default-50 cutoff, while keeping the payload lighter than 1000.
-  const result = await getVendors({ limit: 500 });
+  const [vendorsResult, packagesResult] = await Promise.all([
+    listCatalogVendors({ pageSize: 100 }),
+    listPackages({ pageSize: 100 }),
+  ]);
 
-  const vendors = result.success ? result.data.data : [];
+  type VendorRow = {
+    id: string;
+    name: string;
+    categories: string[];
+    category: string;
+    city: string | null;
+    email: string | null;
+    phone: string | null;
+    empanelmentStatus: string | null;
+    qualityScore: number | null;
+    isArchived: boolean;
+    packageCount: number;
+  };
 
-  const active = vendors.filter((v) => v.status === "ACTIVE").length;
+  type PackageRow = {
+    id: string;
+    name: string;
+    category: string;
+    status: string;
+    price: number;
+    priceUnit: string;
+    currency: string;
+    description: string | null;
+    vendor: { id: string; name: string };
+    coverUrl: string | null;
+    sectionCount: number;
+    itemCount: number;
+  };
+
+  const vendors: VendorRow[] = vendorsResult.success
+    ? (vendorsResult.data.data as VendorRow[])
+    : [];
+  const vendorTotal: number = vendorsResult.success
+    ? vendorsResult.data.total
+    : 0;
+
+  const packages: PackageRow[] = packagesResult.success
+    ? (packagesResult.data.data as PackageRow[])
+    : [];
+  const packageTotal: number = packagesResult.success
+    ? packagesResult.data.total
+    : 0;
 
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Vendors"
-        help={<PageHelp id="vendors" />}
-        eyebrow={
-          <div className="flex items-center gap-3">
-            <span>Operations · Marketplace</span>
-            <span className="h-3 w-px bg-border" />
-            <span className="text-foreground/80">
-              <span className="font-semibold tabular-nums">{vendors.length}</span> vendors
-            </span>
-            <span className="h-3 w-px bg-border" />
-            <span>
-              <span className="font-semibold tabular-nums text-foreground/80">{active}</span> active
-            </span>
-          </div>
-        }
-        description="Manage your vendor marketplace, ratings, and assignments."
-      >
-        <Button asChild>
-          <Link href="/vendors/new">
-            <PlusIcon className="size-3.5" strokeWidth={2.5} />
-            New vendor
-          </Link>
-        </Button>
-      </PageHeader>
+        title="Vendors & Packages"
+        eyebrow="Operations · Marketplace"
+        description="Manage your empanelled vendor catalog, quality scores, and service packages."
+      />
 
-      <VendorStatStrip vendors={vendors} />
-
-      <VendorsTable data={vendors} />
+      <VendorModule
+        vendors={vendors}
+        vendorTotal={vendorTotal}
+        packages={packages}
+        packageTotal={packageTotal}
+      />
     </div>
   );
 }

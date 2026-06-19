@@ -65,6 +65,42 @@ export const EVENT_TYPES = [
 export type EventType = (typeof EVENT_TYPES)[number];
 
 // ============================================================
+// Vendor Module — partner categories (stable key + display label)
+// ------------------------------------------------------------
+// Config-driven so new categories can be added without code changes elsewhere.
+// Stored on Vendor.categories[] and VendorPackage.category as the stable key.
+// ============================================================
+
+export const VENDOR_CATEGORIES = [
+  { key: "decor", label: "Décor" },
+  { key: "catering", label: "Catering" },
+  { key: "emcee", label: "Emcee" },
+  { key: "photography", label: "Photography" },
+  { key: "av_lighting", label: "AV & Lighting" },
+  { key: "entertainment", label: "Entertainment" },
+] as const;
+
+export type VendorCategoryKey = (typeof VENDOR_CATEGORIES)[number]["key"];
+
+export const VENDOR_MODULE_CATEGORY_LABELS: Record<string, string> = Object.fromEntries(
+  VENDOR_CATEGORIES.map((c) => [c.key, c.label])
+);
+
+export const VENDOR_PACKAGE_PRICE_UNITS = [
+  { key: "PER_PLATE", label: "per plate" },
+  { key: "PER_EVENT", label: "per event" },
+  { key: "PER_PIECE", label: "per piece" },
+  { key: "PER_HOUR", label: "per hour" },
+  { key: "PER_DAY", label: "per day" },
+] as const;
+
+export const VENDOR_PACKAGE_PRICE_UNIT_LABELS: Record<string, string> =
+  Object.fromEntries(VENDOR_PACKAGE_PRICE_UNITS.map((u) => [u.key, u.label]));
+
+export const VENDOR_EMPANELMENT_STATUSES = ["empanelled", "probation", "suspended"] as const;
+export type VendorEmpanelmentStatus = (typeof VENDOR_EMPANELMENT_STATUSES)[number];
+
+// ============================================================
 // Time Slot Labels
 // ============================================================
 
