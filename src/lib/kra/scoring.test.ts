@@ -106,16 +106,22 @@ describe("BDM worked example from the KRA doc", () => {
 describe("Corporate Sales gate", () => {
   it("requires revenue AND bookings AND payment", () => {
     const t = getKraTemplate("CORPORATE_SALES")!;
-    const pass = computeScorecard(t, { revenue: L(30), bookings_count: 15, payment_full_pct: 100 }, 3);
+    const pass = computeScorecard(t, { revenue: L(30), bookings_count: 15, payment_full_pct: 100, quality_defect_free_pct: 100 }, 3);
     expect(pass.gate.passed).toBe(true);
     const missPay = computeScorecard(t, { revenue: L(30), bookings_count: 15, payment_full_pct: 80 }, 3);
     expect(missPay.gate.passed).toBe(false);
     const missRev = computeScorecard(t, { revenue: L(20), bookings_count: 15, payment_full_pct: 100 }, 3);
     expect(missRev.gate.passed).toBe(false);
   });
+  it("quality gate: defect-free below 85% blocks payout even when revenue/bookings/payment pass", () => {
+    const t = getKraTemplate("CORPORATE_SALES")!;
+    const base = { revenue: L(30), bookings_count: 15, payment_full_pct: 100 };
+    expect(computeScorecard(t, { ...base, quality_defect_free_pct: 84 }, 3).gate.passed).toBe(false);
+    expect(computeScorecard(t, { ...base, quality_defect_free_pct: 85 }, 3).gate.passed).toBe(true);
+  });
   it("month-1 ramp lowers revenue+booking thresholds", () => {
     const t = getKraTemplate("CORPORATE_SALES")!;
-    const r = computeScorecard(t, { revenue: L(15), bookings_count: 8, payment_full_pct: 100 }, 1);
+    const r = computeScorecard(t, { revenue: L(15), bookings_count: 8, payment_full_pct: 100, quality_defect_free_pct: 100 }, 1);
     expect(r.gate.passed).toBe(true);
   });
   it("revenue tier scores A1 correctly", () => {
@@ -129,7 +135,7 @@ describe("Corporate Sales gate", () => {
 describe("Inside Sales gate", () => {
   it("needs 22 bookings at full ramp", () => {
     const t = getKraTemplate("INSIDE_SALES")!;
-    expect(computeScorecard(t, { revenue: L(30), bookings_count: 22, payment_full_pct: 100 }, 3).gate.passed).toBe(true);
+    expect(computeScorecard(t, { revenue: L(30), bookings_count: 22, payment_full_pct: 100, quality_defect_free_pct: 100 }, 3).gate.passed).toBe(true);
     expect(computeScorecard(t, { revenue: L(30), bookings_count: 18, payment_full_pct: 100 }, 3).gate.passed).toBe(false);
   });
 });

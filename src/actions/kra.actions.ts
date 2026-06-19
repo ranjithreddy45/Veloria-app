@@ -155,7 +155,10 @@ export async function saveKraManualEntries(id: string, entries: Record<string, s
   const s = await prisma.kraScorecard.findUnique({ where: { id } });
   if (!s) return { success: false, error: "Scorecard not found" };
   if (s.status === "ACKNOWLEDGED") return { success: false, error: "An acknowledged scorecard is locked." };
-  const auto = s.autoMetrics as Record<string, unknown>;
+  // Re-resolve auto metrics fresh so newly-added gates/KPIs (e.g. the quality
+  // defect-free gate) are always present — a stale persisted snapshot could be
+  // missing keys and spuriously fail the gate.
+  const auto = await resolveAutoMetrics(s.employeeId, s.role as KraRole, s.period);
   const merged = { ...(s.manualEntries as Record<string, unknown>), ...entries };
   const r = recompute(s.role, s.rampMonth, auto, merged);
   await persist(id, auto, merged, r, managerNote);

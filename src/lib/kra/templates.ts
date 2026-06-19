@@ -278,11 +278,12 @@ const CORPORATE_SALES: KraTemplate = {
     },
   ],
   gate: {
-    description: "₹30L revenue AND 15 bookings AND 100% pre-event payment (ramp: M1=₹15L/8, M2=₹22.5L/12).",
+    description: "₹30L revenue AND 15 bookings AND 100% pre-event payment AND ≥85% defect-free events (ramp: M1=₹15L/8, M2=₹22.5L/12).",
     requires: [
       { key: "revenue", label: "Confirmed revenue", unit: "INR", full: L(30), ramp: [L(15), L(22.5)] },
       { key: "bookings_count", label: "Confirmed bookings", unit: "COUNT", full: 15, ramp: [8, 12] },
       { key: "payment_full_pct", label: "Pre-event payment collected", unit: "PCT", full: 100, ramp: [100, 100] },
+      { key: "quality_defect_free_pct", label: "Defect-free events", unit: "PCT", full: 85, ramp: [85, 85] },
     ],
   },
   bands: STANDARD_BANDS,
@@ -385,11 +386,12 @@ const INSIDE_SALES: KraTemplate = {
     },
   ],
   gate: {
-    description: "₹30L revenue AND 22 bookings AND 100% pre-event payment (ramp: M1=₹15L/11, M2=₹22.5L/16).",
+    description: "₹30L revenue AND 22 bookings AND 100% pre-event payment AND ≥85% defect-free events (ramp: M1=₹15L/11, M2=₹22.5L/16).",
     requires: [
       { key: "revenue", label: "Confirmed revenue", unit: "INR", full: L(30), ramp: [L(15), L(22.5)] },
       { key: "bookings_count", label: "Confirmed bookings", unit: "COUNT", full: 22, ramp: [11, 16] },
       { key: "payment_full_pct", label: "Pre-event payment collected", unit: "PCT", full: 100, ramp: [100, 100] },
+      { key: "quality_defect_free_pct", label: "Defect-free events", unit: "PCT", full: 85, ramp: [85, 85] },
     ],
   },
   bands: STANDARD_BANDS,

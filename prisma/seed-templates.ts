@@ -43,33 +43,49 @@ interface SOPDef {
 const PRE_EVENT_COMMON: TaskDef[] = [
   { title: "Confirm final guest count with host", category: "GENERAL", priority: "HIGH", mandatory: true, estimatedMinutes: 30 },
   { title: "Lock menu & per-plate count with kitchen", category: "CATERING", priority: "HIGH", mandatory: true, estimatedMinutes: 45 },
+  { title: "Confirm dietary needs (Jain/veg/allergy) with kitchen", category: "CATERING", priority: "MEDIUM", estimatedMinutes: 20 },
   { title: "Confirm all vendors (caterer, decor, photographer, DJ)", category: "LOGISTICS", priority: "HIGH", mandatory: true, estimatedMinutes: 60 },
   { title: "Verify balance payment status before event day", category: "GENERAL", priority: "HIGH", mandatory: true, estimatedMinutes: 15 },
-  { title: "Circulate final run-sheet (BEO) to ops team", category: "GENERAL", priority: "HIGH", estimatedMinutes: 30 },
+  { title: "Circulate final run-sheet (BEO) to ops team", category: "GENERAL", priority: "HIGH", mandatory: true, estimatedMinutes: 30 },
+  { title: "Finalise floor plan & seating chart", category: "GUEST_SEATING", priority: "HIGH", estimatedMinutes: 30 },
+  { title: "Assign staffing roster & shift timings", category: "GENERAL", priority: "HIGH", estimatedMinutes: 30 },
+  { title: "Confirm power load & generator backup readiness", category: "AV", priority: "HIGH", mandatory: true, estimatedMinutes: 20 },
+  { title: "Confirm parking / valet capacity vs guest count", category: "LOGISTICS", priority: "MEDIUM", estimatedMinutes: 15 },
+  { title: "Brief security on guest count, VIPs & access points", category: "SECURITY", priority: "MEDIUM", estimatedMinutes: 20 },
 ];
 const SETUP_COMMON: TaskDef[] = [
   { title: "Deep-clean & sanitize the hall", category: "HOUSEKEEPING", priority: "HIGH", mandatory: true, estimatedMinutes: 90 },
   { title: "Lay tables & chairs per floor plan", category: "GUEST_SEATING", priority: "HIGH", estimatedMinutes: 60 },
   { title: "AV check — mics, speakers, projector", category: "AV", priority: "HIGH", mandatory: true, proof: true, estimatedMinutes: 45 },
   { title: "Lighting setup & test", category: "AV", priority: "MEDIUM", estimatedMinutes: 30 },
+  { title: "Generator / power backup test", category: "AV", priority: "HIGH", mandatory: true, proof: true, estimatedMinutes: 20 },
+  { title: "Air-conditioning on & temperature set", category: "HOUSEKEEPING", priority: "MEDIUM", estimatedMinutes: 15 },
   { title: "Buffet / live counters setup", category: "CATERING", priority: "HIGH", estimatedMinutes: 60 },
+  { title: "Restrooms stocked, clean & signed", category: "HOUSEKEEPING", priority: "MEDIUM", estimatedMinutes: 30 },
+  { title: "Fire exits clear & extinguishers checked", category: "SECURITY", priority: "HIGH", mandatory: true, estimatedMinutes: 15 },
   { title: "Welcome signage & directions placed", category: "LOGISTICS", priority: "LOW", estimatedMinutes: 20 },
+  { title: "Ops walkthrough vs BEO before doors open", category: "GENERAL", priority: "HIGH", mandatory: true, proof: true, estimatedMinutes: 30 },
 ];
 const ARRIVAL_COMMON: TaskDef[] = [
   { title: "Reception desk & guest list ready", category: "GUEST_SEATING", priority: "HIGH", estimatedMinutes: 20 },
   { title: "Welcome drinks ready at entrance", category: "CATERING", priority: "MEDIUM", estimatedMinutes: 20 },
   { title: "Valet & parking coordination", category: "LOGISTICS", priority: "MEDIUM", estimatedMinutes: 15 },
   { title: "Brief ushers & security on guest flow", category: "SECURITY", priority: "MEDIUM", estimatedMinutes: 15 },
+  { title: "Gift / return-favour counter ready", category: "GUEST_SEATING", priority: "LOW", estimatedMinutes: 15 },
 ];
 const WRAP_COMMON: TaskDef[] = [
   { title: "Collect host feedback before departure", category: "GENERAL", priority: "MEDIUM", mandatory: true, estimatedMinutes: 15 },
   { title: "Vendor settlement & sign-off checklist", category: "LOGISTICS", priority: "HIGH", estimatedMinutes: 30 },
   { title: "Return rented equipment & reconcile inventory", category: "LOGISTICS", priority: "MEDIUM", estimatedMinutes: 30 },
+  { title: "Staff headcount reconciliation & overtime log", category: "GENERAL", priority: "MEDIUM", estimatedMinutes: 15 },
+  { title: "Confirm photographer / videographer deliverables & timeline", category: "GENERAL", priority: "MEDIUM", estimatedMinutes: 15 },
   { title: "Lost & found collection", category: "GENERAL", priority: "LOW", estimatedMinutes: 10 },
 ];
 const HANDOVER_COMMON: TaskDef[] = [
   { title: "Hall handover & damage inspection", category: "HOUSEKEEPING", priority: "HIGH", mandatory: true, proof: true, estimatedMinutes: 30 },
+  { title: "Log any snags / damage for follow-up", category: "GENERAL", priority: "MEDIUM", estimatedMinutes: 15 },
   { title: "Final settlement & invoice closure", category: "GENERAL", priority: "HIGH", approval: true, estimatedMinutes: 20 },
+  { title: "Trigger post-event feedback survey to host", category: "GENERAL", priority: "MEDIUM", estimatedMinutes: 10 },
   { title: "Post-event report & photos archived", category: "GENERAL", priority: "LOW", estimatedMinutes: 20 },
 ];
 
@@ -190,7 +206,7 @@ const TEMPLATES: SOPDef[] = [
   },
   {
     name: "Corporate Event",
-    eventType: "Corporate",
+    eventType: "Corporate Conference",
     description: "Checklist for corporate functions — conferences, town-halls, product launches, parties.",
     phases: [
       { name: "Pre-Event Preparation", phase: "PRE_EVENT", tasks: [...PRE_EVENT_COMMON, { title: "Confirm AV/presentation & internet requirements", category: "AV", priority: "HIGH", mandatory: true }, { title: "Confirm registration / badge needs", category: "LOGISTICS", priority: "MEDIUM" }] },
@@ -889,40 +905,58 @@ export async function seedTemplates(prisma: PrismaClient | any): Promise<void> {
   // been seeded with a default earlier — don't create dueling defaults).
   const hasDefault = !!(await prisma.sOPTemplate.findFirst({ where: { isDefault: true }, select: { id: true } }));
   let sopCreated = 0;
+  let sopRefreshed = 0;
+  // The phase/task tree is identical whether we create or refresh.
+  const buildPhases = (t: SOPDef) => ({
+    create: t.phases.map((p, pi) => ({
+      name: p.name,
+      phase: p.phase,
+      order: pi,
+      taskDefinitions: {
+        create: p.tasks.map((task, ti) => ({
+          title: task.title,
+          description: task.description ?? null,
+          category: task.category,
+          priority: task.priority ?? "MEDIUM",
+          estimatedMinutes: task.estimatedMinutes ?? null,
+          isMandatory: !!task.mandatory,
+          requiresApproval: !!task.approval,
+          requiresProof: !!task.proof,
+          order: ti,
+        })),
+      },
+    })),
+  });
+
   for (const t of TEMPLATES) {
     const existing = await prisma.sOPTemplate.findFirst({ where: { name: t.name }, select: { id: true } });
-    if (existing) continue;
-    await prisma.sOPTemplate.create({
-      data: {
-        name: t.name,
-        eventType: t.eventType,
-        isActive: true,
-        isDefault: !!t.isDefault && !hasDefault,
-        phases: {
-          create: t.phases.map((p, pi) => ({
-            name: p.name,
-            phase: p.phase,
-            order: pi,
-            taskDefinitions: {
-              create: p.tasks.map((task, ti) => ({
-                title: task.title,
-                description: task.description ?? null,
-                category: task.category,
-                priority: task.priority ?? "MEDIUM",
-                estimatedMinutes: task.estimatedMinutes ?? null,
-                isMandatory: !!task.mandatory,
-                requiresApproval: !!task.approval,
-                requiresProof: !!task.proof,
-                order: ti,
-              })),
-            },
-          })),
+    if (existing) {
+      // Refresh (sync) the canonical, system-managed templates so reworked /
+      // expanded task lists actually reach an already-seeded database. The
+      // template id is kept stable — live ExecutionPlans copied their phases at
+      // confirm time, so refreshing the template never disturbs an in-flight
+      // event. We replace the phase tree wholesale and update eventType, but
+      // leave isDefault alone (so we never create dueling defaults).
+      await prisma.sOPPhase.deleteMany({ where: { templateId: existing.id } });
+      await prisma.sOPTemplate.update({
+        where: { id: existing.id },
+        data: { eventType: t.eventType, isActive: true, phases: buildPhases(t) },
+      });
+      sopRefreshed++;
+    } else {
+      await prisma.sOPTemplate.create({
+        data: {
+          name: t.name,
+          eventType: t.eventType,
+          isActive: true,
+          isDefault: !!t.isDefault && !hasDefault,
+          phases: buildPhases(t),
         },
-      },
-    });
-    sopCreated++;
+      });
+      sopCreated++;
+    }
   }
-  console.log(`[bootstrap] SOP templates: created ${sopCreated}, ${TEMPLATES.length - sopCreated} already present`);
+  console.log(`[bootstrap] SOP templates: created ${sopCreated}, refreshed ${sopRefreshed}`);
 
   // ---- Email templates ----
   let emailCreated = 0;
