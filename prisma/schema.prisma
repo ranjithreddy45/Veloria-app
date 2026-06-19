@@ -3790,6 +3790,12 @@ model AcqLead {
   seatingRange        AcqSeatingRange? // bucketed capacity (50-100, 100-150, …)
   propertyStage       AcqPropertyStage? // operational / conversion / brownfield / greenfield
   notes               String?              @db.Text
+  parkingAvailable    Boolean? // is on-site parking available at the property
+  // Referral / broker source capture (when leadSource indicates a referral/broker).
+  referrerName        String?
+  referrerPhone       String?
+  referrerEmail       String?
+  brokerageDemand     String? // e.g. "2% of deal value" or "₹50,000 flat"
   // Qualification checklist (§ qualify gate) — persisted so the lead dashboard
   // can show progress toward qualification.
   qualSeating100      Boolean?
@@ -3810,6 +3816,7 @@ model AcqLead {
   convertedDealId     String? // set on qualify (denormalized; deal.leadId is authoritative)
   deal                AcqDeal?             @relation("AcqDealOrigin")
   activities          AcqLeadActivity[]
+  siteVisits          AcqSiteVisit[]
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   deletedAt           DateTime?
@@ -3834,6 +3841,31 @@ model AcqLeadActivity {
   createdAt DateTime @default(now())
 
   @@index([leadId])
+}
+
+// Scheduled site visits / meetings for a BD lead. Created with a future
+// scheduledAt; the BD/BA team later updates status + outcome notes once done.
+model AcqSiteVisit {
+  id             String    @id @default(cuid())
+  leadId         String
+  lead           AcqLead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  type           String    @default("SITE_VISIT") // SITE_VISIT | MEETING
+  scheduledAt    DateTime
+  location       String?
+  agenda         String?   @db.Text
+  assignedToId   String? // BD/BA executive (denormalized — no FK, mirrors AcqLeadActivity)
+  assignedToName String?
+  status         String    @default("SCHEDULED") // SCHEDULED | COMPLETED | CANCELLED | NO_SHOW | RESCHEDULED
+  outcomeNotes   String?   @db.Text
+  completedAt    DateTime?
+  createdById    String?
+  createdByName  String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([leadId])
+  @@index([scheduledAt])
+  @@index([status])
 }
 
 model AcqDeal {
@@ -3928,6 +3960,7 @@ model AcqProperty {
   venueId           String?
   seatingTheatre    Int?
   seatingFloating   Int?
+  parkingAvailable  Boolean?
   status            AcqPropertyStatus @default(ONBOARDING)
   acquisitionDate   DateTime
   propertyManagerId String?

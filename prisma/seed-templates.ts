@@ -661,4 +661,90 @@ export async function seedTemplates(prisma: PrismaClient | any): Promise<void> {
     pkgCreated++;
   }
   console.log(`[bootstrap] Event packages: created ${pkgCreated}, ${PACKAGES.length - pkgCreated} already present`);
+
+  // ---- Vendor Module: one sample multi-category vendor + the canonical
+  // "Veg Silver Package" (the spec's Phase-3 acceptance fixture). Idempotent:
+  // only created if the vendor doesn't already exist.
+  const SAMPLE_VENDOR = "Spice Route Caterers";
+  const existingVendor = await prisma.vendor.findFirst({
+    where: { name: { equals: SAMPLE_VENDOR, mode: "insensitive" } },
+    select: { id: true },
+  });
+  if (!existingVendor) {
+    const v = await prisma.vendor.create({
+      data: {
+        name: SAMPLE_VENDOR,
+        category: "CATERING",
+        categories: ["catering", "decor"],
+        empanelmentStatus: "empanelled",
+        city: "Bengaluru",
+        company: "Mr. Imran (Head Chef)",
+        phone: "+91 98800 12345",
+        email: "hello@spiceroute.example",
+        keyPersonnel: [
+          { name: "Imran Q.", role: "Head Chef" },
+          { name: "Lakshmi R.", role: "Service Captain" },
+        ],
+        licences: [{ type: "FSSAI", number: "12345678901234", expiry: "2027-03-31" }],
+        notes: "Sample vendor seeded for the Vendor Module catalogue.",
+      },
+      select: { id: true },
+    });
+    await prisma.vendorPackage.create({
+      data: {
+        vendorId: v.id,
+        name: "Veg Silver Package",
+        category: "catering",
+        status: "ACTIVE",
+        price: 950,
+        priceUnit: "PER_PLATE",
+        currency: "INR",
+        description: "Pure-veg buffet · min 100 pax · 90-minute service window. Live counters extra.",
+        sections: {
+          create: [
+            {
+              title: "Welcome", sortOrder: 0,
+              items: {
+                create: [
+                  { name: "Welcome Juice", type: "SINGLE_CHOICE", options: ["Watermelon", "Grape", "Pineapple"], sortOrder: 0, notes: "Served chilled" },
+                ],
+              },
+            },
+            {
+              title: "Starters", sortOrder: 1,
+              items: {
+                create: [
+                  { name: "Choose any 3 starters", type: "MULTI_CHOICE", chooseCount: 3, sortOrder: 0,
+                    options: ["Paneer Tikka", "Veg Spring Roll", "Hara Bhara Kebab", "Corn Cheese Balls", "Gobi Manchurian"] },
+                ],
+              },
+            },
+            {
+              title: "Main Course", sortOrder: 2,
+              items: {
+                create: [
+                  { name: "Dal Tadka", type: "FIXED", options: [], sortOrder: 0 },
+                  { name: "Jeera Rice", type: "FIXED", options: [], sortOrder: 1 },
+                  { name: "Choose a bread", type: "SINGLE_CHOICE", options: ["Butter Naan", "Tandoori Roti", "Lachha Paratha"], sortOrder: 2 },
+                  { name: "Mixed Vegetable Curry", type: "FIXED", options: [], sortOrder: 3 },
+                ],
+              },
+            },
+            {
+              title: "Dessert", sortOrder: 3,
+              items: {
+                create: [
+                  { name: "Choose any 2 desserts", type: "MULTI_CHOICE", chooseCount: 2, sortOrder: 0,
+                    options: ["Gulab Jamun", "Vanilla Ice Cream", "Rasmalai", "Gajar Halwa"] },
+                ],
+              },
+            },
+          ],
+        },
+      },
+    });
+    console.log("[bootstrap] Vendor catalogue: seeded sample vendor + Veg Silver Package");
+  } else {
+    console.log("[bootstrap] Vendor catalogue: sample vendor already present");
+  }
 }

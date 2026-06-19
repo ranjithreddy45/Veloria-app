@@ -15,23 +15,26 @@ import { hasPermission } from "@/lib/permissions";
 import { logActivity } from "@/lib/activity-logger";
 import { serialize } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
-import { VENDOR_CATEGORIES } from "@/lib/constants";
-import type { Prisma, VendorCategory } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
+import {
+  CATEGORY_KEYS,
+  PRICE_UNITS,
+  LEGACY_CATEGORY,
+  validateItem,
+  activationUnmet,
+  validateVendorFields,
+  type VendorCatalogInput,
+  type VendorPackageInput,
+  type PackageSectionInput,
+} from "@/lib/vendor/rules";
 
-const CATEGORY_KEYS = new Set<string>(VENDOR_CATEGORIES.map((c) => c.key));
-const PRICE_UNITS = ["PER_PLATE", "PER_EVENT", "PER_PIECE", "PER_HOUR", "PER_DAY"];
-const ITEM_TYPES = ["FIXED", "SINGLE_CHOICE", "MULTI_CHOICE"];
-
-// Keep the legacy single `category` enum (required, used by bookings/payouts)
-// in sync with the first selected catalog category.
-const LEGACY_CATEGORY: Record<string, VendorCategory> = {
-  decor: "DECORATION",
-  catering: "CATERING",
-  emcee: "ENTERTAINMENT",
-  photography: "PHOTOGRAPHY",
-  av_lighting: "LIGHTING",
-  entertainment: "ENTERTAINMENT",
-};
+// Re-export the input types so existing UI imports from this module keep working.
+export type {
+  VendorCatalogInput,
+  VendorPackageInput,
+  PackageItemInput,
+  PackageSectionInput,
+} from "@/lib/vendor/rules";
 
 type Ok<T> = { success: true; data: T };
 type Err = { success: false; error: string; fields?: Record<string, string>; unmet?: string[] };
@@ -47,82 +50,8 @@ async function requirePerm(
   return { id, role };
 }
 
-// ------------------------------------------------------------
-// Types for inputs (kept loose; validated below)
-// ------------------------------------------------------------
-export interface VendorCatalogInput {
-  name: string;
-  categories: string[];
-  contactPerson?: string | null;
-  phone?: string | null;
-  email?: string | null;
-  city?: string | null;
-  empanelmentStatus?: string | null;
-  keyPersonnel?: { name: string; role?: string }[];
-  licences?: { type: string; number?: string; expiry?: string }[];
-  notes?: string | null;
-}
-
-export interface PackageItemInput {
-  name: string;
-  type: string; // FIXED | SINGLE_CHOICE | MULTI_CHOICE
-  options?: string[];
-  chooseCount?: number | null;
-  notes?: string | null;
-}
-export interface PackageSectionInput {
-  title: string;
-  items: PackageItemInput[];
-}
-export interface VendorPackageInput {
-  vendorId: string;
-  name: string;
-  category: string;
-  status?: string; // DRAFT | ACTIVE | ARCHIVED
-  price: number;
-  priceUnit: string;
-  currency?: string;
-  description?: string | null;
-  sections: PackageSectionInput[];
-}
-
-// ============================================================
-// Validation helpers
-// ============================================================
-
-// R4 — item options by type
-function validateItem(it: PackageItemInput): string | null {
-  if (!it.name?.trim()) return "Item name is required";
-  if (!ITEM_TYPES.includes(it.type)) return `Invalid item type "${it.type}"`;
-  const opts = (it.options ?? []).map((o) => o.trim()).filter(Boolean);
-  if (it.type === "FIXED") return null; // options ignored
-  if (it.type === "SINGLE_CHOICE") {
-    if (opts.length < 1) return `"${it.name}" needs at least one option`;
-    return null;
-  }
-  // MULTI_CHOICE
-  const n = it.chooseCount ?? 0;
-  if (n < 1) return `"${it.name}" must let the guest pick at least 1`;
-  if (opts.length < n) return `"${it.name}" needs at least ${n} options to pick from`;
-  return null;
-}
-
-// R5 — conditions to be ACTIVE; returns the list of unmet conditions
-function activationUnmet(input: VendorPackageInput): string[] {
-  const unmet: string[] = [];
-  if (!input.vendorId) unmet.push("needs a vendor");
-  if (!input.name?.trim()) unmet.push("needs a name");
-  if (!(Number(input.price) >= 0)) unmet.push("price must be ≥ 0");
-  if (!PRICE_UNITS.includes(input.priceUnit)) unmet.push("needs a valid price unit");
-  const sections = input.sections ?? [];
-  const hasItem = sections.some((s) => (s.items ?? []).length > 0);
-  if (!hasItem) unmet.push("needs at least one item");
-  for (const s of sections) for (const it of s.items ?? []) {
-    const e = validateItem(it);
-    if (e) unmet.push(e);
-  }
-  return unmet;
-}
+// Rule logic (validateItem / activationUnmet / validateVendorFields) lives in
+// @/lib/vendor/rules so it can be unit-tested in isolation — see rules.test.ts.
 
 // Normalise the graph for persistence (trim, drop empty options for fixed, order)
 function buildSectionsCreate(sections: PackageSectionInput[]) {
@@ -208,23 +137,11 @@ export async function getCatalogVendor(id: string): Promise<Result<unknown>> {
   }
 }
 
-function validateVendor(input: VendorCatalogInput): Record<string, string> {
-  const fields: Record<string, string> = {};
-  if (!input.name?.trim()) fields.name = "Vendor name is required"; // R2
-  const cats = (input.categories ?? []).filter((c) => CATEGORY_KEYS.has(c));
-  if (cats.length < 1) fields.categories = "Select at least one category"; // R1
-  if (input.email && input.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email.trim()))
-    fields.email = "Enter a valid email";
-  if (input.empanelmentStatus && !["empanelled", "probation", "suspended"].includes(input.empanelmentStatus))
-    fields.empanelmentStatus = "Invalid status";
-  return fields;
-}
-
 export async function createCatalogVendor(input: VendorCatalogInput): Promise<Result<{ id: string }>> {
   const u = await requirePerm("vendors:create");
   if (!u) return { success: false, error: "Unauthorized" };
   try {
-    const fields = validateVendor(input);
+    const fields = validateVendorFields(input);
     if (Object.keys(fields).length) return { success: false, error: "Validation failed", fields };
 
     // R2 — unique name, case-insensitive
@@ -267,7 +184,7 @@ export async function updateCatalogVendor(
   const u = await requirePerm("vendors:update");
   if (!u) return { success: false, error: "Unauthorized" };
   try {
-    const fields = validateVendor(input);
+    const fields = validateVendorFields(input);
     if (Object.keys(fields).length) return { success: false, error: "Validation failed", fields };
 
     const existing = await prisma.vendor.findUnique({ where: { id }, select: { id: true } });
