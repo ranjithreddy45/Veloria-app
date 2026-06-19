@@ -15,10 +15,10 @@ export const COMPANY_LEGAL_LINE =
 
 export const COMPANY_ADDRESS =
   process.env.NEXT_PUBLIC_COMPANY_ADDRESS ||
-  "No. 2931, Second Floor, 14th Cross, BSK II Stage, Bangalore, Karnataka 560070";
+  "No. 2931, Second Floor, 14th Cross, Banashankari II Stage, Bangalore, Karnataka 560070";
 
 export const COMPANY_GSTIN =
-  process.env.NEXT_PUBLIC_COMPANY_GSTIN || "";
+  process.env.NEXT_PUBLIC_COMPANY_GSTIN || "29AAOCB1933E1ZN";
 
 export const COMPANY_PHONE =
   process.env.NEXT_PUBLIC_COMPANY_PHONE || "+91 80 1234 5678";
