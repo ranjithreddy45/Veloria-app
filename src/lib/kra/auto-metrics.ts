@@ -62,6 +62,24 @@ export async function resolveAutoMetrics(employeeId: string, role: KraRole, peri
     const converted = await safe(() => prisma.salesQuotation.count({ where: { createdById: employeeId, sentAt: inMonth, OR: [{ status: "APPROVED" }, { bookingId: { not: null } }] } }), null);
     m.proposal_conversion = sent && sent > 0 ? Math.min(100, Math.round(((converted ?? 0) / sent) * 100)) : 0;
 
+    // Six Sigma quality: of the events this rep CLOSED OUT this month, how many
+    // were defect-free (final payment cleared + BEO published + on time + no
+    // overdue tasks). Defect-free completions are recorded on the Velos ledger
+    // by completeBooking(); total completions come from the bookings they own.
+    // No completed events → neutral 100 (a rep is never penalised for a quiet
+    // month here; revenue/booking KPIs already cover output).
+    const completed = await safe(
+      () => prisma.booking.count({ where: { createdById: employeeId, status: "COMPLETED", updatedAt: inMonth } }),
+      0,
+    );
+    const defectFree = await safe(
+      () => prisma.velosLedger.count({ where: { userId: employeeId, eventType: "quality_defect_free_event", period } }),
+      0,
+    );
+    m.quality_events_completed = completed;
+    m.quality_defect_free_events = defectFree;
+    m.quality_defect_free_pct = completed > 0 ? Math.min(100, Math.round((defectFree / completed) * 100)) : 100;
+
     if (role === "INSIDE_SALES") {
       // First-response SLA: of leads this rep owns that arrived this month and
       // were responded to, how many beat their first-contact deadline.
