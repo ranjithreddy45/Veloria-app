@@ -130,11 +130,11 @@ export function AppHeader() {
   React.useEffect(() => setMounted(true), []);
 
   return (
-    <header className="topbar-glass sticky top-0 z-30 flex min-h-14 shrink-0 items-center gap-3 border-b border-border px-4 pt-[env(safe-area-inset-top)]">
+    <header className="topbar-glass sticky top-0 z-30 flex min-h-14 shrink-0 items-center gap-3 border-b border-border/70 px-4 pt-[env(safe-area-inset-top)]">
       {/* Mobile sidebar trigger */}
-      <SidebarTrigger className="-ml-1 size-8 rounded-full text-muted-foreground transition-transform active:scale-[0.94]" />
+      <SidebarTrigger className="-ml-1 size-8 rounded-full text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-foreground active:scale-[0.94]" />
 
-      <Separator orientation="vertical" className="mr-1 h-4" />
+      <Separator orientation="vertical" className="mr-1 h-4 bg-border/60" />
 
       {/* Breadcrumbs */}
       <Breadcrumb className="hidden md:flex">
@@ -161,10 +161,10 @@ export function AppHeader() {
         {/* Search trigger — opens command palette */}
         <Button
           variant="outline"
-          className="relative hidden h-9 w-64 justify-start rounded-full border-border/70 bg-muted/50 pl-9 text-[13px] font-normal text-muted-foreground shadow-none transition-colors hover:bg-muted/80 lg:flex"
+          className="group/search relative hidden h-9 w-64 justify-start rounded-full border-border/70 bg-muted/40 pl-9 text-[13px] font-normal text-muted-foreground shadow-none transition-all duration-200 hover:border-primary/30 hover:bg-muted/70 hover:shadow-[0_0_0_3px_oklch(0.55_0.25_293/0.08)] lg:flex"
           onClick={() => setCommandOpen(true)}
         >
-          <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground transition-colors group-hover/search:text-primary" />
           Search...
           <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 hidden h-5 select-none items-center gap-0.5 rounded-md border border-border bg-background/60 px-1.5 font-sans text-[10px] font-medium text-muted-foreground sm:flex">
             <span>⌘</span>K
@@ -175,7 +175,7 @@ export function AppHeader() {
         <Button
           variant="ghost"
           size="icon"
-          className="size-9 rounded-full text-muted-foreground transition-transform active:scale-[0.94] lg:hidden"
+          className="size-9 rounded-full text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-foreground active:scale-[0.94] lg:hidden"
           onClick={() => setCommandOpen(true)}
         >
           <Search className="size-4" />
@@ -192,7 +192,7 @@ export function AppHeader() {
           <Button
             variant="ghost"
             size="icon"
-            className="size-9 rounded-full text-muted-foreground transition-transform active:scale-[0.94]"
+            className="size-9 rounded-full text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-foreground active:scale-[0.94]"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
           >
@@ -207,7 +207,7 @@ export function AppHeader() {
         {/* Notifications */}
         <NotificationPopover />
 
-        <Separator orientation="vertical" className="mx-1 h-6" />
+        <Separator orientation="vertical" className="mx-1 h-6 bg-border/60" />
 
         {/* User dropdown */}
         <DropdownMenu>
@@ -216,7 +216,7 @@ export function AppHeader() {
               variant="ghost"
               className={cn(
                 "relative h-9 gap-2 rounded-full px-1.5 pr-3 transition-all duration-200 active:scale-[0.97]",
-                "hover:bg-accent"
+                "hover:bg-accent hover:shadow-[0_0_0_3px_oklch(0.55_0.25_293/0.08)]"
               )}
             >
               <Avatar size="sm">

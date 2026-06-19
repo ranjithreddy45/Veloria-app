@@ -11,11 +11,9 @@ export default async function VenuesPage() {
   const venues = await getStorefrontVenues();
 
   return (
-    <div className="bg-zinc-50 px-4 pt-[calc(var(--sat)+1.25rem)]">
-      <h1 className="text-[22px] font-extrabold tracking-tight text-zinc-900">
-        Our halls
-      </h1>
-      <p className="mt-0.5 text-[13px] text-zinc-500">
+    <div className="bg-aura bg-grid-faint min-h-screen bg-zinc-50 px-4 pt-[calc(var(--sat)+1.25rem)]">
+      <h1 className="large-title text-ink-gradient text-[24px]">Our halls</h1>
+      <p className="mt-1 text-[13px] text-zinc-500">
         Pick the space that fits your celebration.
       </p>
 
@@ -29,7 +27,7 @@ export default async function VenuesPage() {
             <Link
               key={v.id}
               href={`/app/venues/${v.id}`}
-              className="block overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-zinc-100 transition active:scale-[0.99]"
+              className="sheen-sweep hover-lift block overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-zinc-100 transition active:scale-[0.99]"
             >
               <div className="relative">
                 <VenueImage

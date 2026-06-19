@@ -104,11 +104,11 @@ export default function SignInForm() {
 
   return (
     <div className="space-y-5">
-      <div className="space-y-1 text-center">
-        <h2 className="text-[17px] font-semibold tracking-tight text-foreground">
+      <div className="space-y-1.5 text-center">
+        <h2 className="text-ink-gradient large-title text-[26px]">
           Welcome back
         </h2>
-        <p className="text-[12.5px] text-muted-foreground">
+        <p className="text-[13px] text-muted-foreground">
           Sign in to continue to your workspace
         </p>
       </div>
@@ -116,7 +116,7 @@ export default function SignInForm() {
       {/* Google Sign In */}
       <Button
         variant="outline"
-        className="h-9 w-full gap-2 rounded-md border-border bg-background text-[13px] font-medium hover:bg-muted/60"
+        className="sheen-sweep relative h-10 w-full gap-2 overflow-hidden rounded-lg border-border bg-background text-[13px] font-medium transition-colors hover:bg-muted/60"
         type="button"
         disabled={isPending}
         onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
@@ -125,12 +125,12 @@ export default function SignInForm() {
         Continue with Google
       </Button>
 
-      <div className="relative">
+      <div className="relative py-0.5">
         <div className="absolute inset-0 flex items-center" aria-hidden>
-          <span className="h-px w-full bg-border" />
+          <span className="divider-fade w-full" />
         </div>
         <div className="relative flex justify-center text-[10.5px] uppercase tracking-[0.08em]">
-          <span className="bg-card px-2 text-muted-foreground/70">
+          <span className="bg-card px-2.5 text-muted-foreground/70">
             {authMode === "otp" ? "or with WhatsApp" : "or with email"}
           </span>
         </div>
@@ -152,7 +152,7 @@ export default function SignInForm() {
                       placeholder="you@example.com"
                       type="email"
                       autoComplete="email"
-                      className="h-9 rounded-md text-[13px]"
+                      className="h-10 rounded-lg text-[13px]"
                       disabled={isPending}
                       {...field}
                     />
@@ -184,7 +184,7 @@ export default function SignInForm() {
                         placeholder="Enter your password"
                         type={showPassword ? "text" : "password"}
                         autoComplete="current-password"
-                        className="h-9 rounded-md pr-14 text-[13px]"
+                        className="h-10 rounded-lg pr-14 text-[13px]"
                         disabled={isPending}
                         {...field}
                       />
@@ -205,7 +205,7 @@ export default function SignInForm() {
 
             <Button
               type="submit"
-              className="h-9 w-full rounded-md bg-primary text-[13px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              className="button-sheen h-10 w-full rounded-lg text-[13px] font-semibold text-primary-foreground"
               disabled={isPending}
             >
               {isPending ? (
@@ -232,7 +232,7 @@ export default function SignInForm() {
                   type="tel"
                   inputMode="tel"
                   autoComplete="tel"
-                  className="h-9 rounded-md text-[13px]"
+                  className="h-10 rounded-lg text-[13px]"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   disabled={otpSending}
@@ -245,7 +245,7 @@ export default function SignInForm() {
                 type="button"
                 onClick={handleSendCode}
                 disabled={otpSending}
-                className="h-9 w-full gap-2 rounded-md bg-primary text-[13px] font-medium text-primary-foreground hover:bg-primary/90"
+                className="button-sheen h-10 w-full gap-2 rounded-lg text-[13px] font-semibold text-primary-foreground"
               >
                 {otpSending ? (
                   <Loader2 className="size-3.5 animate-spin" />
@@ -279,7 +279,7 @@ export default function SignInForm() {
                   inputMode="numeric"
                   autoComplete="one-time-code"
                   maxLength={6}
-                  className="h-9 rounded-md text-center text-[15px] tracking-[0.4em]"
+                  className="h-11 rounded-lg text-center text-[17px] font-semibold tracking-[0.5em]"
                   value={code}
                   onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
                   disabled={otpVerifying}
@@ -297,7 +297,7 @@ export default function SignInForm() {
                 type="button"
                 onClick={handleVerifyCode}
                 disabled={otpVerifying}
-                className="h-9 w-full gap-2 rounded-md bg-primary text-[13px] font-medium text-primary-foreground hover:bg-primary/90"
+                className="button-sheen h-10 w-full gap-2 rounded-lg text-[13px] font-semibold text-primary-foreground"
               >
                 {otpVerifying ? (
                   <>

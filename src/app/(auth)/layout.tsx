@@ -1,5 +1,5 @@
 import type React from "react";
-import { Gem } from "lucide-react";
+import { Gem, ShieldCheck } from "lucide-react";
 import { BrandLogo } from "@/components/layout/brand-logo";
 
 export default function AuthLayout({
@@ -9,27 +9,36 @@ export default function AuthLayout({
 }) {
   return (
     <div className="bg-auth-mesh relative flex min-h-screen items-center justify-center overflow-hidden">
+      {/* Layered ambient aura — soft violet/fuchsia/teal mesh */}
+      <div aria-hidden className="bg-aura pointer-events-none absolute inset-0" />
+
       {/* Faint dotted grid overlay — barely visible, premium texture */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 opacity-[0.35] [background-image:radial-gradient(circle_at_center,oklch(0_0_0/0.06)_1px,transparent_1.5px)] [background-size:24px_24px] [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_75%)] dark:opacity-50 dark:[background-image:radial-gradient(circle_at_center,oklch(1_0_0/0.05)_1px,transparent_1.5px)]"
       />
 
-      <div className="relative z-10 flex w-full max-w-[380px] flex-col items-center px-6 py-12">
-        {/* Logo — full wordmark, falls back to mark + text if /logo.png absent */}
-        <div className="mb-8 flex flex-col items-center gap-3">
+      {/* Soft floating glow orbs for depth */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-24 left-1/2 size-[420px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,oklch(0.55_0.25_293/0.10),transparent_70%)] blur-2xl dark:bg-[radial-gradient(circle,oklch(0.68_0.22_293/0.18),transparent_70%)]"
+      />
+
+      <div className="animate-rise-in relative z-10 flex w-full max-w-[400px] flex-col items-center px-6 py-12">
+        {/* Brand lockup — full wordmark, falls back to ring-glow mark + text */}
+        <div className="mb-9 flex flex-col items-center gap-3.5">
           <BrandLogo
             className="h-16 w-auto max-w-[260px] object-contain"
             fallback={
               <>
-                <div className="logo-chip flex size-10 items-center justify-center rounded-[10px] text-primary-foreground">
-                  <Gem className="size-[18px]" strokeWidth={2.4} />
+                <div className="logo-chip ring-glow-violet flex size-12 items-center justify-center rounded-[14px] text-primary-foreground">
+                  <Gem className="size-[22px]" strokeWidth={2.2} />
                 </div>
                 <div className="text-center">
-                  <h1 className="text-[17px] font-semibold tracking-[-0.022em] text-foreground">
+                  <h1 className="text-ink-gradient large-title text-[22px]">
                     Veloria Grand
                   </h1>
-                  <p className="mt-0.5 text-[12.5px] text-muted-foreground">
+                  <p className="mt-1 text-[12.5px] tracking-wide text-muted-foreground">
                     Premium Event Venue Management
                   </p>
                 </div>
@@ -38,15 +47,21 @@ export default function AuthLayout({
           />
         </div>
 
-        {/* Card — subtle elevated surface with hairline border */}
-        <div className="w-full rounded-xl border border-border/80 bg-card/90 p-7 shadow-[0_1px_2px_oklch(0_0_0/4%),0_4px_24px_oklch(0_0_0/3%)] backdrop-blur-sm">
+        {/* Card — elevated premium surface with hairline border + frosted blur */}
+        <div className="shadow-premium w-full rounded-2xl border border-border/70 bg-card/85 p-8 backdrop-blur-xl">
           {children}
         </div>
 
-        {/* Footer */}
-        <p className="mt-6 text-center text-[11px] text-muted-foreground/70">
-          &copy; {new Date().getFullYear()} Veloria Grand. All rights reserved.
-        </p>
+        {/* Trust footer */}
+        <div className="mt-7 flex flex-col items-center gap-2.5">
+          <p className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground/80">
+            <ShieldCheck className="size-3.5 text-primary/70" />
+            Enterprise-grade security &amp; encryption
+          </p>
+          <p className="text-center text-[11px] text-muted-foreground/60">
+            &copy; {new Date().getFullYear()} Veloria Grand. All rights reserved.
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -17,8 +17,8 @@ export default function AuthError({
   }, [error]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
-      <div className="flex max-w-sm flex-col items-center gap-6 text-center">
+    <div className="bg-auth-mesh flex min-h-screen items-center justify-center px-4">
+      <div className="animate-rise-in flex max-w-sm flex-col items-center gap-6 text-center">
         <div className="flex size-14 items-center justify-center rounded-2xl bg-red-50 dark:bg-red-950/30">
           <AlertTriangle className="size-7 text-red-500" />
         </div>
@@ -35,7 +35,7 @@ export default function AuthError({
             <RotateCcw className="size-4" />
             Try Again
           </Button>
-          <Button asChild className="bg-indigo-600 hover:bg-indigo-700">
+          <Button asChild className="button-sheen font-semibold text-primary-foreground">
             <Link href="/sign-in">Sign In</Link>
           </Button>
         </div>

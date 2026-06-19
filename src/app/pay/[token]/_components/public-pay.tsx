@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { CreditCard, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { CreditCard, Loader2, CheckCircle2, AlertCircle, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   createPublicRazorpayOrder,
@@ -109,10 +109,10 @@ export function PublicPay({
 
   if (status === "success") {
     return (
-      <div className="flex flex-col items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center">
-        <CheckCircle2 className="size-10 text-emerald-600" />
-        <p className="text-lg font-semibold text-emerald-800">Payment received</p>
-        <p className="text-sm text-emerald-700">
+      <div className="animate-rise-in flex flex-col items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center dark:border-emerald-900 dark:bg-emerald-950/40">
+        <CheckCircle2 className="size-10 text-emerald-600 dark:text-emerald-400" />
+        <p className="text-lg font-semibold text-emerald-800 dark:text-emerald-300">Payment received</p>
+        <p className="text-sm text-emerald-700 dark:text-emerald-400">
           Thank you! Your payment for {invoiceNumber} is confirmed. A receipt will follow.
         </p>
       </div>
@@ -121,17 +121,26 @@ export function PublicPay({
 
   return (
     <div className="space-y-3">
-      <Button onClick={pay} disabled={loading} className="h-12 w-full text-base">
+      <Button
+        onClick={pay}
+        disabled={loading}
+        className="button-sheen sheen-sweep relative h-[3.25rem] w-full overflow-hidden rounded-2xl py-3.5 text-base font-semibold"
+      >
         {loading ? <Loader2 className="mr-2 size-5 animate-spin" /> : <CreditCard className="mr-2 size-5" />}
         {loading ? "Opening secure checkout…" : `Pay ${inr(amount)} now`}
       </Button>
       {status === "error" && (
         <p className="flex items-center justify-center gap-1.5 text-center text-sm text-destructive">
-          <AlertCircle className="size-4" /> {error}
+          <AlertCircle className="size-4 shrink-0" /> {error}
         </p>
       )}
+      <div className="flex items-center justify-center gap-2 pt-1">
+        <span className="flex items-center gap-1.5 rounded-full bg-muted/60 px-3 py-1 text-[11.5px] font-medium text-muted-foreground">
+          <Lock className="size-3" /> Secured by Razorpay
+        </span>
+      </div>
       <p className="text-center text-[12px] text-muted-foreground">
-        Secured by Razorpay. You can pay by UPI, card, or net banking.
+        Pay securely by UPI, card, or net banking.
       </p>
     </div>
   );

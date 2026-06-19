@@ -73,11 +73,11 @@ function CardShell({
   return (
     <Card
       className={cn(
-        "group card-hover-tint relative overflow-hidden rounded-xl border border-border bg-card shadow-card transition-shadow hover:shadow-card-hover",
+        "group sheen-sweep relative overflow-hidden rounded-2xl border border-border/70 bg-card shadow-premium transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.34,1.4,0.64,1)] hover:-translate-y-1 hover:shadow-card-hover",
         `animate-stagger-${index + 1}`
       )}
     >
-      <CardContent className="p-4">{children}</CardContent>
+      <CardContent className="relative z-[1] p-4">{children}</CardContent>
     </Card>
   );
 }

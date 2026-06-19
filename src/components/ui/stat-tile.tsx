@@ -42,11 +42,11 @@ interface StatTileProps {
 export function StatTile({ label, value, accent = "indigo", icon, sub, delta, deltaLabel, pct, className }: StatTileProps) {
   const a = ACCENT[accent];
   return (
-    <div className={cn("group relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-br bg-card p-5 shadow-card transition-premium hover:-translate-y-0.5 hover:shadow-card-hover", a.wash, className)}>
-      <div className="flex items-start justify-between gap-3">
+    <div className={cn("group sheen-sweep relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-br bg-card p-5 shadow-premium transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.34,1.4,0.64,1)] hover:-translate-y-1 hover:shadow-card-hover", a.wash, className)}>
+      <div className="relative z-[1] flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            {icon && <span className={cn("flex size-8 items-center justify-center rounded-xl transition-premium group-hover:scale-105 [&>svg]:size-4", a.chip)}>{icon}</span>}
+            {icon && <span className={cn("flex size-8 items-center justify-center rounded-xl shadow-sm transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.34,1.4,0.64,1)] group-hover:scale-110 group-hover:shadow-md [&>svg]:size-4", a.chip)}>{icon}</span>}
             <span className="text-xs font-medium tracking-[-0.005em] text-muted-foreground">{label}</span>
           </div>
           <div className="mt-3 text-[28px] font-bold tabular-nums leading-none tracking-[-0.03em]">

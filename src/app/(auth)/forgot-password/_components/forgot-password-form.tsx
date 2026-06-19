@@ -46,11 +46,11 @@ export default function ForgotPasswordForm() {
   if (isSubmitted) {
     return (
       <div className="space-y-6 text-center">
-        <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-green-50 dark:bg-green-950/30">
+        <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-green-50 dark:bg-green-950/30">
           <CheckCircle2 className="size-8 text-green-600 dark:text-green-400" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-xl font-semibold tracking-tight text-foreground">
+          <h2 className="text-ink-gradient large-title text-[24px]">
             Check your email
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -70,11 +70,11 @@ export default function ForgotPasswordForm() {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2 text-center">
-        <h2 className="text-xl font-semibold tracking-tight text-foreground">
+      <div className="space-y-1.5 text-center">
+        <h2 className="text-ink-gradient large-title text-[24px]">
           Forgot your password?
         </h2>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-[13px] text-muted-foreground">
           Enter your email address and we&apos;ll send you a link to reset your password.
         </p>
       </div>
@@ -107,7 +107,7 @@ export default function ForgotPasswordForm() {
 
           <Button
             type="submit"
-            className="w-full h-11 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-indigo-500/30"
+            className="button-sheen h-11 w-full rounded-xl font-semibold text-primary-foreground"
             disabled={isPending}
           >
             {isPending ? (

@@ -38,19 +38,19 @@ export default function ResetPasswordForm() {
   if (!token) {
     return (
       <div className="space-y-6 text-center">
-        <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-amber-50 dark:bg-amber-950/30">
+        <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-amber-50 dark:bg-amber-950/30">
           <AlertTriangle className="size-8 text-amber-600 dark:text-amber-400" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-xl font-semibold tracking-tight text-foreground">
+          <h2 className="text-ink-gradient large-title text-[24px]">
             Invalid Reset Link
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-[13px] text-muted-foreground">
             This password reset link is invalid or has expired. Please request a new one.
           </p>
         </div>
         <Button
-          className="gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700"
+          className="button-sheen gap-2 rounded-xl font-semibold text-primary-foreground"
           asChild
         >
           <Link href="/forgot-password">Request New Link</Link>
@@ -62,19 +62,19 @@ export default function ResetPasswordForm() {
   if (isReset) {
     return (
       <div className="space-y-6 text-center">
-        <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-green-50 dark:bg-green-950/30">
+        <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-green-50 dark:bg-green-950/30">
           <CheckCircle2 className="size-8 text-green-600 dark:text-green-400" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-xl font-semibold tracking-tight text-foreground">
+          <h2 className="text-ink-gradient large-title text-[24px]">
             Password Reset Successfully
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-[13px] text-muted-foreground">
             Your password has been updated. You can now sign in with your new password.
           </p>
         </div>
         <Button
-          className="gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700"
+          className="button-sheen gap-2 rounded-xl font-semibold text-primary-foreground"
           asChild
         >
           <Link href="/sign-in">Sign In</Link>
@@ -102,11 +102,11 @@ export default function ResetPasswordForm() {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2 text-center">
-        <h2 className="text-xl font-semibold tracking-tight text-foreground">
+      <div className="space-y-1.5 text-center">
+        <h2 className="text-ink-gradient large-title text-[24px]">
           Create New Password
         </h2>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-[13px] text-muted-foreground">
           Enter your new password below.
         </p>
       </div>
@@ -163,7 +163,7 @@ export default function ResetPasswordForm() {
             )}
           />
 
-          <div className="rounded-xl bg-muted/60 p-3 text-xs text-muted-foreground">
+          <div className="rounded-xl border border-border/60 bg-muted/40 p-3 text-xs text-muted-foreground">
             <p className="font-medium text-foreground/80">Password requirements:</p>
             <ul className="mt-1 list-inside list-disc space-y-0.5">
               <li>At least 8 characters long</li>
@@ -175,7 +175,7 @@ export default function ResetPasswordForm() {
 
           <Button
             type="submit"
-            className="w-full h-11 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-indigo-500/30"
+            className="button-sheen h-11 w-full rounded-xl font-semibold text-primary-foreground"
             disabled={isPending}
           >
             {isPending ? (

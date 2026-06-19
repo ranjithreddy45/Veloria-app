@@ -70,7 +70,7 @@ export function BookingForm({ venues }: { venues: VenueOption[] }) {
   // ---- Success state ----
   if (done) {
     return (
-      <div className="flex flex-col items-center px-6 pt-[calc(var(--sat)+4rem)] text-center">
+      <div className="bg-aura bg-grid-faint animate-rise-in flex min-h-screen flex-col items-center px-6 pt-[calc(var(--sat)+4rem)] text-center">
         <span className="flex size-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
           <CheckCircle2 className="size-9" />
         </span>
@@ -84,7 +84,7 @@ export function BookingForm({ venues }: { venues: VenueOption[] }) {
         </p>
         <a
           href="tel:+919876543210"
-          className="mt-6 inline-flex w-full max-w-xs items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-5 py-3 text-[14px] font-bold text-white"
+          className="sheen-sweep relative mt-6 inline-flex w-full max-w-xs items-center justify-center gap-2 overflow-hidden rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-5 py-3 text-[14px] font-bold text-white shadow-md shadow-violet-600/25"
         >
           <Phone className="size-4" /> Call us now
         </a>
@@ -104,8 +104,8 @@ export function BookingForm({ venues }: { venues: VenueOption[] }) {
   const labelClass = "mb-1.5 block text-[12.5px] font-bold text-zinc-700";
 
   return (
-    <div className="min-h-screen bg-zinc-50 px-5 pt-[calc(var(--sat)+1.25rem)]">
-      <h1 className="text-[24px] font-extrabold tracking-tight text-zinc-900">
+    <div className="bg-aura bg-grid-faint min-h-screen bg-zinc-50 px-5 pt-[calc(var(--sat)+1.25rem)]">
+      <h1 className="large-title text-ink-gradient text-[26px]">
         Check availability
       </h1>
       <p className="mt-1 text-[13px] text-zinc-500">
@@ -228,7 +228,7 @@ export function BookingForm({ venues }: { venues: VenueOption[] }) {
         <button
           type="submit"
           disabled={submitting}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-5 py-3.5 text-[15px] font-extrabold text-white shadow-sm transition active:scale-[0.99] disabled:opacity-60"
+          className="sheen-sweep relative inline-flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-5 py-3.5 text-[15px] font-extrabold text-white shadow-md shadow-violet-600/25 transition active:scale-[0.99] disabled:opacity-60"
         >
           {submitting ? (
             <>

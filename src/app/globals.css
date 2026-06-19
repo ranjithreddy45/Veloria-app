@@ -418,6 +418,150 @@
   }
 }
 
+/* ================================================================
+ * Premium v2 — signature surfaces & motion (2026 refresh)
+ * ----------------------------------------------------------------
+ * Layered light, ambient auras, sheen sweeps, gradient ink, spring
+ * motion. Applied through the shared primitives + hero surfaces so
+ * the whole app reads crafted, not just one page.
+ * ================================================================ */
+
+/* Ambient aura — soft multi-stop violet/fuchsia/teal mesh for hero
+ * sections. Very low opacity so foreground text stays crisp. */
+@utility bg-aura {
+  background-image:
+    radial-gradient(60% 80% at 10% -10%, oklch(0.55 0.25 293 / 8%) 0%, transparent 60%),
+    radial-gradient(48% 70% at 105% 0%, oklch(0.62 0.2 320 / 6%) 0%, transparent 60%),
+    radial-gradient(70% 90% at 55% 130%, oklch(0.68 0.13 200 / 5%) 0%, transparent 55%);
+}
+.dark .bg-aura {
+  background-image:
+    radial-gradient(60% 80% at 10% -10%, oklch(0.68 0.22 293 / 16%) 0%, transparent 60%),
+    radial-gradient(48% 70% at 105% 0%, oklch(0.6 0.2 320 / 11%) 0%, transparent 60%),
+    radial-gradient(70% 90% at 55% 130%, oklch(0.65 0.13 200 / 8%) 0%, transparent 55%);
+}
+
+/* Faint dotted grid — premium texture behind hero headers. Masked so
+ * it fades out rather than ending in a hard edge. */
+@utility bg-grid-faint {
+  background-image: radial-gradient(oklch(0.45 0.05 286 / 7%) 1px, transparent 1px);
+  background-size: 22px 22px;
+  -webkit-mask-image: radial-gradient(75% 65% at 25% 0%, black, transparent 78%);
+  mask-image: radial-gradient(75% 65% at 25% 0%, black, transparent 78%);
+}
+.dark .bg-grid-faint {
+  background-image: radial-gradient(oklch(1 0 0 / 6%) 1px, transparent 1px);
+}
+
+/* Gradient ink — tasteful violet→ink fill for hero numerals & titles. */
+@utility text-ink-gradient {
+  background-image: linear-gradient(135deg, oklch(0.4 0.17 293) 0%, oklch(0.235 0.02 286) 72%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.dark .text-ink-gradient {
+  background-image: linear-gradient(135deg, oklch(0.86 0.11 293) 0%, oklch(0.97 0.01 286) 78%);
+}
+
+/* Brand gradient — vivid violet→fuchsia for accent numerals/eyebrows. */
+@utility text-brand-gradient {
+  background-image: linear-gradient(120deg, oklch(0.55 0.25 293), oklch(0.6 0.24 320));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Premium elevation — layered shadow with a crafted inset top light,
+ * tinted with the ink hue so it reads designed, not flat black. */
+@utility shadow-premium {
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 55%),
+    0 1px 2px oklch(0.2 0.03 286 / 5%),
+    0 8px 24px oklch(0.2 0.03 286 / 7%);
+}
+.dark .shadow-premium {
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 7%),
+    0 1px 2px oklch(0 0 0 / 30%),
+    0 10px 30px oklch(0 0 0 / 38%);
+}
+
+/* Spring hover-lift — gentle rise + richer shadow with overshoot ease. */
+@utility hover-lift {
+  transition: transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 240ms ease;
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow:
+      0 2px 4px oklch(0.2 0.03 286 / 6%),
+      0 18px 40px oklch(0.2 0.03 286 / 13%);
+  }
+}
+.dark .hover-lift:hover {
+  box-shadow: 0 18px 44px oklch(0 0 0 / 48%);
+}
+
+/* Sheen sweep — a diagonal light streak crosses the surface on hover.
+ * Host must be position:relative + overflow:hidden (rounded ok). */
+@utility sheen-sweep {
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg, transparent 32%, oklch(1 0 0 / 40%) 50%, transparent 68%);
+    transform: translateX(-130%);
+    transition: transform 760ms cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+  }
+  &:hover::after { transform: translateX(130%); }
+}
+.dark .sheen-sweep::after {
+  background: linear-gradient(115deg, transparent 32%, oklch(1 0 0 / 9%) 50%, transparent 68%);
+}
+
+/* Ring glow — soft violet halo around icon chips / focused affordances. */
+@utility ring-glow-violet {
+  box-shadow: 0 0 0 1px oklch(0.55 0.25 293 / 20%), 0 6px 18px oklch(0.55 0.25 293 / 24%);
+}
+
+/* Premium shimmer — elegant left-to-right sheen for loading skeletons. */
+@keyframes shimmer-sheen {
+  100% { transform: translateX(100%); }
+}
+@utility animate-shimmer-sheen {
+  position: relative;
+  overflow: hidden;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, oklch(1 0 0 / 38%), transparent);
+    transform: translateX(-100%);
+    animation: shimmer-sheen 1.6s infinite;
+  }
+}
+.dark .animate-shimmer-sheen::after {
+  background: linear-gradient(90deg, transparent, oklch(1 0 0 / 7%), transparent);
+}
+
+/* Hairline gradient divider — fades in/out at the ends. */
+@utility divider-fade {
+  height: 1px;
+  background: linear-gradient(to right, transparent, oklch(0.45 0.05 286 / 18%), transparent);
+}
+.dark .divider-fade {
+  background: linear-gradient(to right, transparent, oklch(1 0 0 / 12%), transparent);
+}
+
+/* Soft entrance with a touch of spring — for hero/landing reveals. */
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@utility animate-rise-in {
+  animation: rise-in 0.45s cubic-bezier(0.34, 1.3, 0.64, 1) both;
+}
+
 /* --------------------------------------------------------------
  * Legacy aliases — keep utility class names working so we don't
  * break old call-sites until each page is touched. They render

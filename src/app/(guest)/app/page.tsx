@@ -81,7 +81,7 @@ export default async function GuestHomePage() {
       <section className="px-4 pt-4">
         <Link
           href="/app/book"
-          className="relative block overflow-hidden rounded-2xl bg-gradient-to-r from-fuchsia-600 to-violet-600 p-4 text-white shadow-md"
+          className="sheen-sweep hover-lift relative block overflow-hidden rounded-2xl bg-gradient-to-r from-fuchsia-600 to-violet-600 p-4 text-white shadow-md"
         >
           <div
             aria-hidden
@@ -156,7 +156,7 @@ export default async function GuestHomePage() {
               <Link
                 key={v.id}
                 href={`/app/venues/${v.id}`}
-                className="block overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-zinc-100 transition active:scale-[0.99]"
+                className="sheen-sweep hover-lift block overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-zinc-100 transition active:scale-[0.99]"
               >
                 <div className="relative">
                   <VenueImage
@@ -211,7 +211,7 @@ export default async function GuestHomePage() {
             return (
               <div
                 key={t.label}
-                className="rounded-2xl bg-white p-3 text-center shadow-sm ring-1 ring-zinc-100"
+                className="hover-lift rounded-2xl bg-white p-3 text-center shadow-sm ring-1 ring-zinc-100"
               >
                 <Icon className="mx-auto size-5 text-violet-600" strokeWidth={2.2} />
                 <div className="mt-1.5 text-[11.5px] font-bold leading-tight text-zinc-800">

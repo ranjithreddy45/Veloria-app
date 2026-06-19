@@ -48,7 +48,7 @@ export default async function VenueDetailPage({
       {/* Title card overlapping the hero */}
       <div className="relative -mt-6 rounded-t-3xl bg-zinc-50 px-5 pt-5">
         <div className="flex items-start justify-between gap-3">
-          <h1 className="text-[24px] font-extrabold tracking-tight text-zinc-900">
+          <h1 className="large-title text-ink-gradient text-[26px]">
             {venue.name}
           </h1>
           <div className="shrink-0 rounded-2xl bg-violet-50 px-3 py-1.5 text-right">
@@ -116,7 +116,7 @@ export default async function VenueDetailPage({
       <div className="fixed inset-x-0 bottom-[calc(var(--sab)+72px)] z-30 mx-auto max-w-md border-t border-zinc-200 bg-white px-4 py-3 shadow-[0_-4px_24px_-12px_rgba(0,0,0,0.15)]">
         <Link
           href={`/app/book?venueId=${venue.id}&venueName=${encodeURIComponent(venue.name)}`}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-5 py-3.5 text-[15px] font-extrabold text-white shadow-md shadow-violet-600/25 transition active:scale-[0.99]"
+          className="sheen-sweep relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-5 py-3.5 text-[15px] font-extrabold text-white shadow-md shadow-violet-600/25 transition active:scale-[0.99]"
         >
           Enquire &amp; check availability
         </Link>

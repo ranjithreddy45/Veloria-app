@@ -290,14 +290,14 @@ function SidebarNavItem({
         isActive={isActive}
         tooltip={item.title}
         className={cn(
-          "h-9 rounded-xl px-2.5 text-[13px] font-medium text-sidebar-foreground/80 transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
-          "hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground",
+          "group/nav relative h-9 overflow-hidden rounded-xl px-2.5 text-[13px] font-medium text-sidebar-foreground/80 transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
+          "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
           isActive &&
-            "bg-primary/10 font-semibold text-primary hover:bg-primary/15 hover:text-primary"
+            "sheen-sweep bg-gradient-to-b from-primary to-[color-mix(in_oklab,var(--primary)_90%,black_10%)] font-semibold text-primary-foreground shadow-[inset_0_1px_0_oklch(1_0_0/0.28),0_2px_8px_oklch(0.4_0.24_293/0.32)] hover:text-primary-foreground hover:from-primary hover:to-[color-mix(in_oklab,var(--primary)_90%,black_10%)]"
         )}
       >
         <Link href={item.href}>
-          <Icon className={cn("size-4 transition-colors", isActive ? "text-primary" : "text-sidebar-foreground/55")} strokeWidth={isActive ? 2.25 : 1.85} />
+          <Icon className={cn("size-4 transition-colors", isActive ? "text-primary-foreground" : "text-sidebar-foreground/55 group-hover/nav:text-sidebar-accent-foreground")} strokeWidth={isActive ? 2.25 : 1.85} />
           <span className={cn(isActive && "tracking-[-0.01em]")}>{item.title}</span>
         </Link>
       </SidebarMenuButton>
@@ -326,19 +326,19 @@ function SidebarCollapsibleItem({
             <SidebarMenuButton
               tooltip={item.title}
               className={cn(
-                "h-9 rounded-xl px-2.5 text-[13px] font-medium text-sidebar-foreground/80 transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
-                "hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground",
+                "group/nav h-9 rounded-xl px-2.5 text-[13px] font-medium text-sidebar-foreground/80 transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
+                "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
                 isGroupActive &&
-                  "text-sidebar-accent-foreground"
+                  "bg-primary/[0.07] font-semibold text-sidebar-accent-foreground shadow-[inset_0_0_0_1px_oklch(0.55_0.25_293/0.14)]"
               )}
             >
-              <Icon className={cn("size-4 transition-colors", isGroupActive ? "text-primary" : "text-sidebar-foreground/55")} strokeWidth={isGroupActive ? 2.25 : 1.85} />
+              <Icon className={cn("size-4 transition-colors", isGroupActive ? "text-primary" : "text-sidebar-foreground/55 group-hover/nav:text-sidebar-accent-foreground")} strokeWidth={isGroupActive ? 2.25 : 1.85} />
               <span className={cn(isGroupActive && "tracking-[-0.01em]")}>{item.title}</span>
               <ChevronRight className="ml-auto size-3.5 text-sidebar-foreground/40 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
             </SidebarMenuButton>
           </CollapsibleTrigger>
           <CollapsibleContent>
-            <SidebarMenuSub className="border-sidebar-border/60">
+            <SidebarMenuSub className="border-sidebar-border/40">
               {item.children?.map((child) => {
                 const ChildIcon = getIcon(child.icon);
                 const isChildActive = pathname === child.href;
@@ -348,9 +348,9 @@ function SidebarCollapsibleItem({
                       asChild
                       isActive={isChildActive}
                       className={cn(
-                        "h-8 rounded-lg text-[12.5px] text-sidebar-foreground/70 transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
-                        "hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground",
-                        isChildActive && "bg-primary/10 text-primary font-semibold hover:bg-primary/15 hover:text-primary"
+                        "h-8 rounded-lg text-[12.5px] text-sidebar-foreground/70 transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
+                        "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
+                        isChildActive && "bg-primary/[0.11] font-semibold text-primary shadow-[inset_0_0_0_1px_oklch(0.55_0.25_293/0.16)] hover:bg-primary/[0.14] hover:text-primary"
                       )}
                     >
                       <Link href={child.href}>
@@ -417,10 +417,10 @@ export function AppSidebar() {
       <SidebarHeader className="px-3 py-3.5">
         <Link
           href="/dashboard"
-          className="flex items-center gap-2.5 transition-opacity hover:opacity-80"
+          className="group/brand flex items-center gap-2.5 rounded-xl transition-all duration-200 hover:opacity-95 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
           {/* Collapsed (icon-only) sidebar — compact mark */}
-          <div className="logo-chip hidden size-7 shrink-0 items-center justify-center rounded-md text-primary-foreground group-data-[collapsible=icon]:flex">
+          <div className="logo-chip ring-glow-violet hidden size-7 shrink-0 items-center justify-center rounded-lg text-primary-foreground transition-transform duration-200 group-hover/brand:scale-[1.04] group-data-[collapsible=icon]:flex">
             <Gem className="size-3.5" strokeWidth={2.5} />
           </div>
           {/* Expanded sidebar — full wordmark, falls back to mark + text */}
@@ -429,11 +429,11 @@ export function AppSidebar() {
               className="h-8 w-auto max-w-[180px] object-contain object-left"
               fallback={
                 <>
-                  <div className="logo-chip flex size-7 shrink-0 items-center justify-center rounded-md text-primary-foreground">
+                  <div className="logo-chip ring-glow-violet flex size-7 shrink-0 items-center justify-center rounded-lg text-primary-foreground transition-transform duration-200 group-hover/brand:scale-[1.04]">
                     <Gem className="size-3.5" strokeWidth={2.5} />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[13.5px] font-semibold tracking-[-0.012em] text-sidebar-accent-foreground">
+                    <span className="text-[13.5px] font-semibold tracking-[-0.014em] text-ink-gradient">
                       Veloria Grand
                     </span>
                     <span className="text-[10.5px] font-medium tracking-wide text-sidebar-foreground/45">
@@ -445,6 +445,7 @@ export function AppSidebar() {
             />
           </div>
         </Link>
+        <div className="divider-fade mt-3 group-data-[collapsible=icon]:hidden" />
       </SidebarHeader>
 
       {/* Navigation */}

@@ -64,48 +64,63 @@ export default async function DashboardPage() {
   });
 
   return (
-    <div className="mx-auto max-w-[1400px] space-y-6 px-1">
-      {/* Hero — avatar + greeting + live daily briefing */}
-      <div className="animate-fade-in-up flex items-start gap-4">
-        <Avatar className="hidden size-12 ring-2 ring-primary/10 sm:flex">
-          <AvatarImage src={userImage} alt={fullName} />
-          <AvatarFallback className="bg-primary/10 text-sm font-medium text-primary">{initials}</AvatarFallback>
-        </Avatar>
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2 text-[11.5px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-            <span className="relative inline-flex size-1.5">
-              <span className="absolute inset-0 animate-ping rounded-full bg-emerald-500/60 opacity-75" />
-              <span className="relative size-1.5 rounded-full bg-emerald-500" />
-            </span>
-            {today}
-          </div>
-          <h1 className="text-[27px] font-medium leading-[1.1] tracking-[-0.01em] text-foreground">
-            {greeting}, {userName}
-          </h1>
-          {/* Briefing chips — the at-a-glance "what needs me today" */}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12.5px] text-muted-foreground">
-            {briefing.map((b, i) => (
-              <span key={i} className="inline-flex items-center gap-1.5">
-                <b.icon className="size-3.5 text-primary/70" strokeWidth={2} />
-                <span className="tabular-nums text-foreground/80">{b.text}</span>
+    <div className="mx-auto max-w-[1400px] space-y-8 px-1">
+      {/* ============================================================
+          Hero — premium aura command-center header.
+          Avatar + greeting + live daily briefing on an ambient violet wash.
+          ============================================================ */}
+      <div className="bg-aura bg-grid-faint animate-rise-in relative -mx-4 -mt-4 overflow-hidden rounded-3xl px-4 pb-7 pt-7 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+        <div className="relative flex items-start gap-4">
+          <Avatar className="hidden size-14 ring-2 ring-violet-500/20 ring-offset-2 ring-offset-background sm:flex">
+            <AvatarImage src={userImage} alt={fullName} />
+            <AvatarFallback className="bg-violet-500/10 text-base font-semibold text-violet-600 dark:text-violet-300">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex min-w-0 flex-col gap-2.5">
+            {/* Contextual eyebrow — today's date with a live pulse */}
+            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em]">
+              <span className="relative inline-flex size-1.5">
+                <span className="absolute inset-0 animate-ping rounded-full bg-emerald-500/60 opacity-75" />
+                <span className="relative size-1.5 rounded-full bg-emerald-500" />
               </span>
-            ))}
-            {velos && velos.players > 0 && (
-              <Link
-                href="/performance/velos"
-                className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5 font-medium text-primary transition-colors hover:bg-primary/15"
-              >
-                <Trophy className="size-3.5" strokeWidth={2} />
-                <span className="tabular-nums">
-                  {velos.rank ? `#${velos.rank} of ${velos.players}` : "Join the board"} · {velos.points} pts
+              <span className="text-brand-gradient">{today}</span>
+            </div>
+            {/* Greeting — large-title display type */}
+            <h1 className="large-title text-[30px] leading-[1.05] text-foreground sm:text-[36px]">
+              {greeting},{" "}
+              <span className="text-ink-gradient">{userName}</span>
+            </h1>
+            {/* Briefing chips — the at-a-glance "what needs me today" */}
+            <div className="mt-0.5 flex flex-wrap items-center gap-2">
+              {briefing.map((b, i) => (
+                <span
+                  key={i}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/70 px-2.5 py-1 text-[12.5px] backdrop-blur-sm"
+                >
+                  <b.icon className="size-3.5 text-violet-500/80" strokeWidth={2} />
+                  <span className="tabular-nums text-foreground/80">{b.text}</span>
                 </span>
-              </Link>
-            )}
+              ))}
+              {velos && velos.players > 0 && (
+                <Link
+                  href="/performance/velos"
+                  className="hover-lift inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-violet-500/15 to-fuchsia-500/15 px-2.5 py-1 text-[12.5px] font-semibold text-violet-600 ring-1 ring-inset ring-violet-500/20 transition-colors hover:from-violet-500/20 hover:to-fuchsia-500/20 dark:text-violet-300"
+                >
+                  <Trophy className="size-3.5" strokeWidth={2} />
+                  <span className="tabular-nums">
+                    {velos.rank ? `#${velos.rank} of ${velos.players}` : "Join the board"} · {velos.points} pts
+                  </span>
+                </Link>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* KPI Cards */}
+      {/* ============================================================
+          KPI cockpit
+          ============================================================ */}
       <KpiCards
         revenue={stats.revenue}
         bookings={stats.bookings}
@@ -114,29 +129,63 @@ export default async function DashboardPage() {
         revenueHistory={stats.monthlyRevenue.map((m) => m.revenue)}
       />
 
-      {/* Charts: Revenue (8/12) + Bookings by Type (4/12) */}
-      <div className="animate-fade-in-up grid gap-4 lg:grid-cols-12" style={{ animationDelay: "120ms" }}>
-        <div className="lg:col-span-8">
-          <RevenueChart data={stats.monthlyRevenue} />
-        </div>
-        <div className="lg:col-span-4">
-          <BookingsChart data={stats.bookingsByType} />
-        </div>
-      </div>
+      <div className="divider-fade" aria-hidden />
 
-      {/* Bottom: Upcoming Events + Overdue Items */}
-      <div className="animate-fade-in-up grid gap-4 lg:grid-cols-2" style={{ animationDelay: "180ms" }}>
-        <UpcomingEvents events={stats.upcomingEvents} />
-        <OverdueItems
-          tasks={stats.overdueTasks}
-          payments={stats.overduePayments}
-        />
-      </div>
+      {/* ============================================================
+          Performance — Revenue trend (8/12) + Bookings by type (4/12)
+          ============================================================ */}
+      <section className="animate-fade-in-up space-y-3" style={{ animationDelay: "120ms" }}>
+        <div className="flex items-center gap-2">
+          <span aria-hidden className="h-3.5 w-[3px] rounded-full bg-gradient-to-b from-violet-500 to-fuchsia-500" />
+          <h2 className="text-[12px] font-semibold uppercase tracking-[0.12em] text-brand-gradient">
+            Performance
+          </h2>
+        </div>
+        <div className="grid gap-4 lg:grid-cols-12">
+          <div className="lg:col-span-8">
+            <RevenueChart data={stats.monthlyRevenue} />
+          </div>
+          <div className="lg:col-span-4">
+            <BookingsChart data={stats.bookingsByType} />
+          </div>
+        </div>
+      </section>
 
-      {/* Live team activity — keeps the dashboard feeling current */}
-      <div className="animate-fade-in-up" style={{ animationDelay: "240ms" }}>
+      <div className="divider-fade" aria-hidden />
+
+      {/* ============================================================
+          What needs me — Upcoming events + Overdue items
+          ============================================================ */}
+      <section className="animate-fade-in-up space-y-3" style={{ animationDelay: "180ms" }}>
+        <div className="flex items-center gap-2">
+          <span aria-hidden className="h-3.5 w-[3px] rounded-full bg-gradient-to-b from-violet-500 to-fuchsia-500" />
+          <h2 className="text-[12px] font-semibold uppercase tracking-[0.12em] text-brand-gradient">
+            What needs me
+          </h2>
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <UpcomingEvents events={stats.upcomingEvents} />
+          <OverdueItems
+            tasks={stats.overdueTasks}
+            payments={stats.overduePayments}
+          />
+        </div>
+      </section>
+
+      <div className="divider-fade" aria-hidden />
+
+      {/* ============================================================
+          Live team activity — keeps the dashboard feeling current
+          ============================================================ */}
+      <section className="animate-fade-in-up space-y-3" style={{ animationDelay: "240ms" }}>
+        <div className="flex items-center gap-2">
+          <span aria-hidden className="h-3.5 w-[3px] rounded-full bg-gradient-to-b from-violet-500 to-fuchsia-500" />
+          <h2 className="text-[12px] font-semibold uppercase tracking-[0.12em] text-brand-gradient">
+            Team pulse
+          </h2>
+        </div>
         <ActivityFeed />
-      </div>
+      </section>
     </div>
   );
 }
