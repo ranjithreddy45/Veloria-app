@@ -45,7 +45,9 @@ async function requireUser() {
 // midnight and would shift the day on a non-UTC server — this avoids that.
 function parseLocalDate(iso: string): Date {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
-  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  // UTC midnight (not local) so the stored @db.Date day and the utcDayRange
+  // conflict window agree on any server timezone (see utcDayRange).
+  if (m) return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
   return new Date(iso);
 }
 

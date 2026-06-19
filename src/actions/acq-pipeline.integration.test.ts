@@ -151,7 +151,9 @@ describe("BD acquisition pipeline (end-to-end)", () => {
 
   it("requires commercials before PROPOSAL_SENT", async () => {
     expect((await transitionAcqDeal(ids.dealId!, "PROPOSAL_SENT")).success).toBe(false);
-    await updateAcqDeal(ids.dealId!, { model: "MANAGEMENT", baseFeePct: 8, incentivePct: 18, termYears: 5, lockinYears: 5 });
+    // projectedFeeValue is required to mark a deal WON (Round-5 economics gate);
+    // ₹5L is below LARGE_DEAL_SIGNOFF_VALUE (₹15L) so no large-deal sign-off is needed.
+    await updateAcqDeal(ids.dealId!, { model: "MANAGEMENT", baseFeePct: 8, incentivePct: 18, termYears: 5, lockinYears: 5, projectedFeeValue: 500000 });
     expect((await transitionAcqDeal(ids.dealId!, "PROPOSAL_SENT")).success).toBe(true);
     expect((await transitionAcqDeal(ids.dealId!, "NEGOTIATION")).success).toBe(true);
   });

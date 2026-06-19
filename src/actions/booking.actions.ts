@@ -451,8 +451,13 @@ export async function createBooking(data: BookingInput) {
 
     const bookingNumber = await generateBookingNumber();
 
-    const bookingDate = new Date(bookingData.date);
-    bookingDate.setHours(0, 0, 0, 0);
+    // Pin to UTC midnight of the input's UTC calendar day so the stored
+    // @db.Date day and the conflict scan agree on any server timezone (a local
+    // setHours(0,0,0,0) shifts the day on non-UTC hosts → missed conflicts).
+    const srcDate = new Date(bookingData.date);
+    const bookingDate = new Date(
+      Date.UTC(srcDate.getUTCFullYear(), srcDate.getUTCMonth(), srcDate.getUTCDate())
+    );
     // UTC day window for the @db.Date conflict scan (see utcDayRange).
     const { gte: dayGte, lt: dayLt, utcDay: bookingUTCDay } = utcDayRange(bookingDate);
 

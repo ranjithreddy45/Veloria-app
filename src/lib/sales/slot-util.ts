@@ -11,8 +11,12 @@
  * slot-conflict detection regardless of the stored timezone.
  */
 export function utcDayRange(date: Date): { gte: Date; lt: Date; utcDay: number } {
+  // Derive the window from the date's UTC calendar day (not local components),
+  // so it agrees with how @db.Date persists the day and with getAvailabilityGrid
+  // on ANY server timezone — not just UTC. Mixing local + UTC here causes an
+  // off-by-one day on non-UTC hosts (missed conflicts / wrong-day storage).
   const gte = new Date(
-    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0)
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0, 0)
   );
   const lt = new Date(gte.getTime() + 24 * 60 * 60 * 1000);
   return { gte, lt, utcDay: gte.getUTCDate() };

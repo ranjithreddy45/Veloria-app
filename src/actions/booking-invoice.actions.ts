@@ -159,6 +159,15 @@ export async function createBookingInvoiceFromQuotation(
       return { success: false, error: plan.error || "Could not create the installment plan." };
     }
 
+    // Issue the invoice immediately. This booking-advance invoice exists to
+    // collect the confirming 20% advance, so it must be payable right away —
+    // recordPayment rejects DRAFT invoices. Mark it SENT (no auto-email; the
+    // slot-block / pay-link flow surfaces it to the customer separately).
+    await prisma.invoice.update({
+      where: { id: invoiceId },
+      data: { status: "SENT" },
+    });
+
     // Replace the sentinel with the real invoice id.
     await prisma.salesQuotation.update({ where: { id: quotationId }, data: { invoiceId } });
 
