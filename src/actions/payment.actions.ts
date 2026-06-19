@@ -582,6 +582,132 @@ export async function verifyRazorpayPayment(data: {
 }
 
 // ============================================================
+// PUBLIC payment link flow (no login) — a customer opens /pay/<invoiceId> and
+// pays via Razorpay. The unguessable invoice id is the access token; the
+// Razorpay signature self-authenticates the capture. These mirror the authed
+// order/verify but skip the session/permission gate (there is no logged-in
+// customer). They never expose anything beyond what a payer needs.
+// ============================================================
+
+export async function getPublicInvoiceForPayment(invoiceId: string) {
+  try {
+    const invoice = await prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      select: {
+        id: true,
+        invoiceNumber: true,
+        status: true,
+        totalAmount: true,
+        balanceDue: true,
+        paidAmount: true,
+        contact: { select: { firstName: true, lastName: true, email: true, phone: true } },
+        booking: { select: { eventName: true, date: true } },
+      },
+    });
+    if (!invoice) return { success: false as const, error: "Invoice not found" };
+    return {
+      success: true as const,
+      data: {
+        id: invoice.id,
+        invoiceNumber: invoice.invoiceNumber,
+        status: invoice.status,
+        total: Number(invoice.totalAmount),
+        balanceDue: Number(invoice.balanceDue),
+        paid: Number(invoice.paidAmount),
+        customerName: `${invoice.contact.firstName} ${invoice.contact.lastName ?? ""}`.trim(),
+        customerEmail: invoice.contact.email ?? "",
+        customerPhone: invoice.contact.phone ?? "",
+        eventName: invoice.booking?.eventName ?? null,
+      },
+    };
+  } catch (error) {
+    console.error("[GET_PUBLIC_INVOICE_ERROR]", error);
+    return { success: false as const, error: "Failed to load invoice" };
+  }
+}
+
+export async function createPublicRazorpayOrder(invoiceId: string, amount: number) {
+  try {
+    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+      return { success: false as const, error: "Online payment is not configured" };
+    }
+    const invoice = await prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      select: { id: true, invoiceNumber: true, balanceDue: true, status: true },
+    });
+    if (!invoice) return { success: false as const, error: "Invoice not found" };
+    if (invoice.status === "PAID" || invoice.status === "CANCELLED") {
+      return { success: false as const, error: "This invoice is not payable" };
+    }
+    const balanceDue = Number(invoice.balanceDue);
+    const pay = Math.round(Number(amount));
+    if (!(pay >= 1) || pay > balanceDue + 0.01) {
+      return { success: false as const, error: "Invalid payment amount" };
+    }
+
+    const Razorpay = (await import("razorpay")).default;
+    const razorpay = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
+    const order = await razorpay.orders.create({
+      amount: Math.round(pay * 100),
+      currency: "INR",
+      receipt: invoice.invoiceNumber,
+      notes: { invoiceId: invoice.id, invoiceNumber: invoice.invoiceNumber, source: "payment_link" },
+    });
+    await prisma.payment.create({
+      data: { invoiceId, amount: pay, method: "RAZORPAY", status: "PENDING", razorpayOrderId: order.id },
+    });
+    return {
+      success: true as const,
+      data: { orderId: order.id, amount: Math.round(pay * 100), currency: "INR", keyId: process.env.RAZORPAY_KEY_ID },
+    };
+  } catch (error) {
+    console.error("[CREATE_PUBLIC_RAZORPAY_ORDER_ERROR]", error);
+    return { success: false as const, error: "Failed to start payment" };
+  }
+}
+
+export async function verifyPublicRazorpayPayment(data: {
+  razorpay_payment_id: string;
+  razorpay_order_id: string;
+  razorpay_signature: string;
+}) {
+  try {
+    if (!process.env.RAZORPAY_KEY_SECRET) {
+      return { success: false as const, error: "Online payment is not configured" };
+    }
+    const crypto = (await import("crypto")).default;
+    const generatedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(`${data.razorpay_order_id}|${data.razorpay_payment_id}`)
+      .digest("hex");
+    if (generatedSignature !== data.razorpay_signature) {
+      await prisma.payment.updateMany({
+        where: { razorpayOrderId: data.razorpay_order_id },
+        data: { status: "FAILED" },
+      });
+      return { success: false as const, error: "Invalid payment signature" };
+    }
+    // Idempotent, atomic credit bound to the payment's own invoice via the order id.
+    const applied = await applyRazorpayCapture({
+      razorpayOrderId: data.razorpay_order_id,
+      razorpayPaymentId: data.razorpay_payment_id,
+      razorpaySignature: data.razorpay_signature,
+    });
+    if (!applied.ok) return { success: false as const, error: applied.error };
+    revalidatePath("/invoices");
+    revalidatePath(`/invoices/${applied.invoiceId}`);
+    revalidatePath("/payments");
+    return { success: true as const, data: { invoiceId: applied.invoiceId } };
+  } catch (error) {
+    console.error("[VERIFY_PUBLIC_RAZORPAY_PAYMENT_ERROR]", error);
+    return { success: false as const, error: "Failed to confirm payment" };
+  }
+}
+
+// ============================================================
 // Get Payment Stats
 // ============================================================
 
@@ -711,7 +837,9 @@ export async function generatePaymentLink(
     );
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    const shortUrl = `${baseUrl}/portal/invoices?invoice=${invoice.invoiceNumber}`;
+    // Public, no-login pay page tied to this invoice; carries the amount to
+    // collect now (clamped server-side). No portal account needed.
+    const shortUrl = `${baseUrl}/pay/${invoice.id}?amt=${collectAmount}`;
 
     logActivity({
       userId: session.user.id as string,
