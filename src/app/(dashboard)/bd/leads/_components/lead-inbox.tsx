@@ -477,7 +477,7 @@ interface CreateFormState {
   seatingFloating: string;
   seatingRange: string;
   propertyStage: string;
-  parkingAvailable: boolean;
+  parkingAvailable: "YES" | "NO" | "UNKNOWN";
   leadSource: string;
   ownerType: string;
   referrerName: string;
@@ -500,7 +500,7 @@ const EMPTY_FORM: CreateFormState = {
   seatingFloating: "",
   seatingRange: "",
   propertyStage: "",
-  parkingAvailable: false,
+  parkingAvailable: "UNKNOWN",
   leadSource: ACQ_LEAD_SOURCE[0],
   ownerType: ACQ_OWNER_TYPE[0],
   referrerName: "",
@@ -597,6 +597,7 @@ function CreateLeadDialog({
     const seatingFloating = form.seatingFloating.trim()
       ? toNumber(form.seatingFloating)
       : undefined;
+    const isReferralSource = form.leadSource === "REFERRAL" || form.leadSource === "BROKER";
 
     try {
       const res = await createAcqLead({
@@ -616,13 +617,15 @@ function CreateLeadDialog({
         propertyStage: form.propertyStage
           ? (form.propertyStage as (typeof ACQ_PROPERTY_STAGE)[number])
           : undefined,
-        parkingAvailable: form.parkingAvailable,
+        parkingAvailable:
+          form.parkingAvailable === "YES" ? true : form.parkingAvailable === "NO" ? false : undefined,
         leadSource: form.leadSource as (typeof ACQ_LEAD_SOURCE)[number],
         ownerType: form.ownerType as (typeof ACQ_OWNER_TYPE)[number],
-        referrerName: form.referrerName.trim() || undefined,
-        referrerPhone: form.referrerPhone.trim() || undefined,
-        referrerEmail: form.referrerEmail.trim() || undefined,
-        brokerageDemand: form.brokerageDemand.trim() || undefined,
+        // Referral/broker details only apply when the source is a referral or broker.
+        referrerName: isReferralSource ? form.referrerName.trim() || undefined : undefined,
+        referrerPhone: isReferralSource ? form.referrerPhone.trim() || undefined : undefined,
+        referrerEmail: isReferralSource ? form.referrerEmail.trim() || undefined : undefined,
+        brokerageDemand: isReferralSource ? form.brokerageDemand.trim() || undefined : undefined,
         bdExecutiveId:
           form.bdExecutiveId && form.bdExecutiveId !== UNASSIGNED
             ? form.bdExecutiveId

@@ -662,89 +662,250 @@ export async function seedTemplates(prisma: PrismaClient | any): Promise<void> {
   }
   console.log(`[bootstrap] Event packages: created ${pkgCreated}, ${PACKAGES.length - pkgCreated} already present`);
 
-  // ---- Vendor Module: one sample multi-category vendor + the canonical
-  // "Veg Silver Package" (the spec's Phase-3 acceptance fixture). Idempotent:
-  // only created if the vendor doesn't already exist.
-  const SAMPLE_VENDOR = "Spice Route Caterers";
-  const existingVendor = await prisma.vendor.findFirst({
-    where: { name: { equals: SAMPLE_VENDOR, mode: "insensitive" } },
-    select: { id: true },
-  });
-  if (!existingVendor) {
-    const v = await prisma.vendor.create({
-      data: {
-        name: SAMPLE_VENDOR,
-        category: "CATERING",
-        categories: ["catering", "decor"],
-        empanelmentStatus: "empanelled",
-        city: "Bengaluru",
-        company: "Mr. Imran (Head Chef)",
-        phone: "+91 98800 12345",
-        email: "hello@spiceroute.example",
-        keyPersonnel: [
-          { name: "Imran Q.", role: "Head Chef" },
-          { name: "Lakshmi R.", role: "Service Captain" },
-        ],
-        licences: [{ type: "FSSAI", number: "12345678901234", expiry: "2027-03-31" }],
-        notes: "Sample vendor seeded for the Vendor Module catalogue.",
-      },
-      select: { id: true },
-    });
-    await prisma.vendorPackage.create({
-      data: {
-        vendorId: v.id,
-        name: "Veg Silver Package",
-        category: "catering",
-        status: "ACTIVE",
-        price: 950,
-        priceUnit: "PER_PLATE",
-        currency: "INR",
-        description: "Pure-veg buffet · min 100 pax · 90-minute service window. Live counters extra.",
-        sections: {
-          create: [
-            {
-              title: "Welcome", sortOrder: 0,
-              items: {
-                create: [
-                  { name: "Welcome Juice", type: "SINGLE_CHOICE", options: ["Watermelon", "Grape", "Pineapple"], sortOrder: 0, notes: "Served chilled" },
-                ],
-              },
-            },
-            {
-              title: "Starters", sortOrder: 1,
-              items: {
-                create: [
-                  { name: "Choose any 3 starters", type: "MULTI_CHOICE", chooseCount: 3, sortOrder: 0,
-                    options: ["Paneer Tikka", "Veg Spring Roll", "Hara Bhara Kebab", "Corn Cheese Balls", "Gobi Manchurian"] },
-                ],
-              },
-            },
-            {
-              title: "Main Course", sortOrder: 2,
-              items: {
-                create: [
-                  { name: "Dal Tadka", type: "FIXED", options: [], sortOrder: 0 },
-                  { name: "Jeera Rice", type: "FIXED", options: [], sortOrder: 1 },
-                  { name: "Choose a bread", type: "SINGLE_CHOICE", options: ["Butter Naan", "Tandoori Roti", "Lachha Paratha"], sortOrder: 2 },
-                  { name: "Mixed Vegetable Curry", type: "FIXED", options: [], sortOrder: 3 },
-                ],
-              },
-            },
-            {
-              title: "Dessert", sortOrder: 3,
-              items: {
-                create: [
-                  { name: "Choose any 2 desserts", type: "MULTI_CHOICE", chooseCount: 2, sortOrder: 0,
-                    options: ["Gulab Jamun", "Vanilla Ice Cream", "Rasmalai", "Gajar Halwa"] },
-                ],
-              },
-            },
+  // ---- Vendor Module: sample vendors + structured packages (catalogue).
+  // Data-driven + idempotent by VENDOR name and by PACKAGE name within a vendor,
+  // so re-seeding adds anything missing (incl. new packages on existing vendors)
+  // without duplicating. Demonstrates all 6 categories, varied price units, and
+  // the three item types (fixed / single-choice / multi-choice).
+  type SI = { name: string; type: "FIXED" | "SINGLE_CHOICE" | "MULTI_CHOICE"; options?: string[]; chooseCount?: number; notes?: string };
+  type SS = { title: string; items: SI[] };
+  type SP = { name: string; category: string; price: number; priceUnit: "PER_PLATE" | "PER_EVENT" | "PER_PIECE" | "PER_HOUR" | "PER_DAY"; description?: string; sections: SS[] };
+  type SV = {
+    name: string; categories: string[]; legacy: string; city?: string; company?: string;
+    phone?: string; email?: string; keyPersonnel?: { name: string; role: string }[];
+    licences?: { type: string; number: string; expiry: string }[]; packages: SP[];
+  };
+
+  const VENDOR_SEED: SV[] = [
+    {
+      name: "Spice Route Caterers", categories: ["catering", "decor"], legacy: "CATERING",
+      company: "Mr. Imran (Head Chef)", phone: "+91 98800 12345", email: "hello@spiceroute.example",
+      keyPersonnel: [{ name: "Imran Q.", role: "Head Chef" }, { name: "Lakshmi R.", role: "Service Captain" }],
+      licences: [{ type: "FSSAI", number: "12345678901234", expiry: "2027-03-31" }],
+      packages: [
+        {
+          name: "Veg Silver Package", category: "catering", price: 950, priceUnit: "PER_PLATE",
+          description: "Pure-veg buffet · min 100 pax · 90-minute service window. Live counters extra.",
+          sections: [
+            { title: "Welcome", items: [{ name: "Welcome Juice", type: "SINGLE_CHOICE", options: ["Watermelon", "Grape", "Pineapple"], notes: "Served chilled" }] },
+            { title: "Starters", items: [{ name: "Choose any 3 starters", type: "MULTI_CHOICE", chooseCount: 3, options: ["Paneer Tikka", "Veg Spring Roll", "Hara Bhara Kebab", "Corn Cheese Balls", "Gobi Manchurian"] }] },
+            { title: "Main Course", items: [
+              { name: "Dal Tadka", type: "FIXED" }, { name: "Jeera Rice", type: "FIXED" },
+              { name: "Choose a bread", type: "SINGLE_CHOICE", options: ["Butter Naan", "Tandoori Roti", "Lachha Paratha"] },
+              { name: "Mixed Vegetable Curry", type: "FIXED" },
+            ] },
+            { title: "Dessert", items: [{ name: "Choose any 2 desserts", type: "MULTI_CHOICE", chooseCount: 2, options: ["Gulab Jamun", "Vanilla Ice Cream", "Rasmalai", "Gajar Halwa"] }] },
           ],
         },
-      },
+        {
+          name: "Non-Veg Gold Package", category: "catering", price: 1450, priceUnit: "PER_PLATE",
+          description: "Premium veg + non-veg buffet · min 100 pax · live counter included.",
+          sections: [
+            { title: "Welcome", items: [{ name: "Welcome Mocktail", type: "SINGLE_CHOICE", options: ["Virgin Mojito", "Blue Lagoon", "Fruit Punch"] }] },
+            { title: "Starters", items: [{ name: "Choose any 4 starters", type: "MULTI_CHOICE", chooseCount: 4, options: ["Chicken Tikka", "Mutton Seekh Kebab", "Fish Amritsari", "Paneer Tikka", "Veg Spring Roll", "Chilli Chicken"] }] },
+            { title: "Main Course", items: [
+              { name: "Choose a non-veg curry", type: "SINGLE_CHOICE", options: ["Butter Chicken", "Mutton Rogan Josh", "Chicken Chettinad"] },
+              { name: "Dal Makhani", type: "FIXED" }, { name: "Hyderabadi Veg Biryani", type: "FIXED" },
+              { name: "Choose a bread", type: "SINGLE_CHOICE", options: ["Butter Naan", "Tandoori Roti", "Rumali Roti"] },
+            ] },
+            { title: "Dessert", items: [{ name: "Choose any 2 desserts", type: "MULTI_CHOICE", chooseCount: 2, options: ["Gulab Jamun", "Phirni", "Ice Cream", "Kaju Katli"] }] },
+          ],
+        },
+      ],
+    },
+    {
+      name: "Blossom & Co. Décor", categories: ["decor"], legacy: "DECORATION",
+      company: "Ms. Reena (Lead Designer)", phone: "+91 98801 22334", email: "studio@blossomdecor.example",
+      keyPersonnel: [{ name: "Reena M.", role: "Lead Designer" }],
+      packages: [
+        {
+          name: "Wedding Stage — Floral Premium", category: "decor", price: 85000, priceUnit: "PER_EVENT",
+          description: "Grand floral stage with backdrop, entrance and accent lighting. Setup 4 hrs.",
+          sections: [
+            { title: "Inclusions", items: [
+              { name: "Floral stage backdrop (16ft)", type: "FIXED" }, { name: "Entrance floral arch", type: "FIXED" },
+              { name: "Couple sofa & side tables", type: "FIXED" }, { name: "Accent uplighting", type: "FIXED" },
+            ] },
+            { title: "Theme", items: [{ name: "Choose a colour theme", type: "SINGLE_CHOICE", options: ["Blush & Gold", "Royal Red", "Pastel Garden", "Ivory & Sage"] }] },
+            { title: "Add-ons", items: [{ name: "Choose any 2 add-ons", type: "MULTI_CHOICE", chooseCount: 2, options: ["Walkway florals", "Ceiling drapes", "Photo booth", "Fairy-light canopy"] }] },
+          ],
+        },
+        {
+          name: "Birthday Theme Décor — Basic", category: "decor", price: 22000, priceUnit: "PER_EVENT",
+          description: "Themed birthday setup with balloon arch, backdrop and centerpieces.",
+          sections: [
+            { title: "Inclusions", items: [
+              { name: "Balloon arch", type: "FIXED" }, { name: "Themed backdrop", type: "FIXED" }, { name: "Table centerpieces (x5)", type: "FIXED" },
+            ] },
+            { title: "Theme", items: [{ name: "Choose a theme", type: "SINGLE_CHOICE", options: ["Jungle Safari", "Unicorn", "Superhero", "Princess", "Space"] }] },
+          ],
+        },
+      ],
+    },
+    {
+      name: "The Mic Drop — Emcees", categories: ["emcee"], legacy: "ENTERTAINMENT",
+      company: "Mr. Karan (Anchor)", phone: "+91 98802 44556", email: "book@micdrop.example",
+      packages: [
+        {
+          name: "Anchor — Half Day", category: "emcee", price: 18000, priceUnit: "PER_EVENT",
+          description: "Professional anchor for up to 4 hours with flow coordination.",
+          sections: [
+            { title: "Inclusions", items: [{ name: "Professional anchor (4 hrs)", type: "FIXED" }, { name: "Script & run-of-show coordination", type: "FIXED" }] },
+            { title: "Language", items: [{ name: "Choose anchoring language", type: "SINGLE_CHOICE", options: ["English", "Hindi", "Kannada", "Bilingual"] }] },
+          ],
+        },
+        {
+          name: "Anchor + Games Host — Full Day", category: "emcee", price: 32000, priceUnit: "PER_EVENT",
+          description: "Anchor for up to 8 hours plus interactive games host and props.",
+          sections: [
+            { title: "Inclusions", items: [{ name: "Professional anchor (8 hrs)", type: "FIXED" }, { name: "Interactive games host", type: "FIXED" }, { name: "Games props & giveaways", type: "FIXED" }] },
+            { title: "Language", items: [{ name: "Choose anchoring language", type: "SINGLE_CHOICE", options: ["English", "Hindi", "Kannada", "Bilingual"] }] },
+          ],
+        },
+      ],
+    },
+    {
+      name: "Lens & Light Studios", categories: ["photography", "av_lighting"], legacy: "PHOTOGRAPHY",
+      company: "Mr. Arjun (Lead Photographer)", phone: "+91 98803 66778", email: "hello@lensandlight.example",
+      packages: [
+        {
+          name: "Candid Photography — 1 Day", category: "photography", price: 45000, priceUnit: "PER_DAY",
+          description: "One lead photographer, 8 hours, 300+ edited photos, online gallery.",
+          sections: [
+            { title: "Inclusions", items: [
+              { name: "Lead photographer (8 hrs)", type: "FIXED" }, { name: "300+ edited photos", type: "FIXED" }, { name: "Private online gallery", type: "FIXED" },
+            ] },
+            { title: "Album", items: [{ name: "Choose an album", type: "SINGLE_CHOICE", options: ["20-page premium", "30-page premium", "No printed album"] }] },
+          ],
+        },
+        {
+          name: "Photo + Cinematic Video", category: "photography", price: 110000, priceUnit: "PER_EVENT",
+          description: "Two photographers + cinematographer; teaser, full film and album.",
+          sections: [
+            { title: "Inclusions", items: [
+              { name: "2 photographers + 1 cinematographer", type: "FIXED" }, { name: "60-sec teaser reel", type: "FIXED" },
+              { name: "Full cinematic film", type: "FIXED" }, { name: "30-page premium album", type: "FIXED" },
+            ] },
+            { title: "Add-ons", items: [{ name: "Choose any 2 add-ons", type: "MULTI_CHOICE", chooseCount: 2, options: ["Drone coverage", "Same-day edit", "Second album", "Live streaming"] }] },
+          ],
+        },
+      ],
+    },
+    {
+      name: "Decibel AV & Lighting", categories: ["av_lighting"], legacy: "LIGHTING",
+      company: "Mr. Sanjay (Technical Head)", phone: "+91 98804 88990", email: "ops@decibel.example",
+      licences: [{ type: "Fire-safety", number: "FS-2025-7781", expiry: "2026-12-31" }],
+      packages: [
+        {
+          name: "Stage Sound + Lighting — Standard", category: "av_lighting", price: 55000, priceUnit: "PER_EVENT",
+          description: "Line-array sound, wireless mics and par lighting with an on-site technician.",
+          sections: [
+            { title: "Inclusions", items: [
+              { name: "Line-array sound system", type: "FIXED" }, { name: "Wireless mics (x4)", type: "FIXED" },
+              { name: "Par-can stage lighting", type: "FIXED" }, { name: "On-site technician", type: "FIXED" },
+            ] },
+            { title: "Stage", items: [{ name: "Choose a stage size", type: "SINGLE_CHOICE", options: ["16x12 ft", "20x16 ft", "24x20 ft"] }] },
+          ],
+        },
+        {
+          name: "LED Wall + Truss Lighting", category: "av_lighting", price: 95000, priceUnit: "PER_EVENT",
+          description: "LED video wall with truss-mounted moving heads, console and operator.",
+          sections: [
+            { title: "Inclusions", items: [
+              { name: "LED wall (12x8 ft)", type: "FIXED" }, { name: "Truss-mounted moving heads", type: "FIXED" },
+              { name: "Lighting console + operator", type: "FIXED" },
+            ] },
+            { title: "Add-ons", items: [{ name: "Choose any 2 add-ons", type: "MULTI_CHOICE", chooseCount: 2, options: ["Haze machine", "Follow spot", "Extra LED panel", "Cold sparklers"] }] },
+          ],
+        },
+      ],
+    },
+    {
+      name: "Rhythm Entertainment", categories: ["entertainment"], legacy: "ENTERTAINMENT",
+      company: "DJ Veer", phone: "+91 98805 11220", email: "bookings@rhythment.example",
+      packages: [
+        {
+          name: "DJ Night — 4 hrs", category: "entertainment", price: 35000, priceUnit: "PER_EVENT",
+          description: "Professional DJ for 4 hours with sound and lighting console.",
+          sections: [
+            { title: "Inclusions", items: [{ name: "Professional DJ (4 hrs)", type: "FIXED" }, { name: "Sound + lighting console", type: "FIXED" }] },
+            { title: "Music", items: [{ name: "Choose any 3 genres", type: "MULTI_CHOICE", chooseCount: 3, options: ["Bollywood", "EDM", "Punjabi", "Retro", "Commercial", "Sufi"] }] },
+          ],
+        },
+        {
+          name: "Live Band — 2 hrs", category: "entertainment", price: 60000, priceUnit: "PER_EVENT",
+          description: "Five-piece live band with vocalist for a two-hour set.",
+          sections: [
+            { title: "Inclusions", items: [{ name: "5-piece live band", type: "FIXED" }, { name: "Lead vocalist", type: "FIXED" }, { name: "2-hour set", type: "FIXED" }] },
+            { title: "Genre", items: [{ name: "Choose a genre", type: "SINGLE_CHOICE", options: ["Bollywood", "Sufi", "Western", "Fusion"] }] },
+          ],
+        },
+      ],
+    },
+  ];
+
+  let vCreated = 0;
+  let pCreated = 0;
+  for (const sv of VENDOR_SEED) {
+    let vendor = await prisma.vendor.findFirst({
+      where: { name: { equals: sv.name, mode: "insensitive" } },
+      select: { id: true },
     });
-    console.log("[bootstrap] Vendor catalogue: seeded sample vendor + Veg Silver Package");
-  } else {
-    console.log("[bootstrap] Vendor catalogue: sample vendor already present");
+    if (!vendor) {
+      vendor = await prisma.vendor.create({
+        data: {
+          name: sv.name,
+          category: sv.legacy,
+          categories: sv.categories,
+          empanelmentStatus: "empanelled",
+          city: sv.city ?? "Bengaluru",
+          company: sv.company ?? null,
+          phone: sv.phone ?? null,
+          email: sv.email ?? null,
+          keyPersonnel: sv.keyPersonnel ?? [],
+          licences: sv.licences ?? [],
+          notes: "Sample vendor seeded for the Vendor Module catalogue.",
+        },
+        select: { id: true },
+      });
+      vCreated++;
+    }
+    for (const p of sv.packages) {
+      const exists = await prisma.vendorPackage.findFirst({
+        where: { vendorId: vendor.id, name: p.name },
+        select: { id: true },
+      });
+      if (exists) continue;
+      await prisma.vendorPackage.create({
+        data: {
+          vendorId: vendor.id,
+          name: p.name,
+          category: p.category,
+          status: "ACTIVE",
+          price: p.price,
+          priceUnit: p.priceUnit,
+          currency: "INR",
+          description: p.description ?? null,
+          sections: {
+            create: p.sections.map((s, si) => ({
+              title: s.title,
+              sortOrder: si,
+              items: {
+                create: s.items.map((it, ii) => ({
+                  name: it.name,
+                  type: it.type,
+                  options: it.type === "FIXED" ? [] : (it.options ?? []),
+                  chooseCount: it.type === "MULTI_CHOICE" ? (it.chooseCount ?? 1) : null,
+                  sortOrder: ii,
+                  notes: it.notes ?? null,
+                })),
+              },
+            })),
+          },
+        },
+      });
+      pCreated++;
+    }
   }
+  console.log(`[bootstrap] Vendor catalogue: vendors +${vCreated}, packages +${pCreated}`);
 }
