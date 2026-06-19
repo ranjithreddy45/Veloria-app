@@ -21,6 +21,7 @@ import {
   disqualifyAcqLead,
   updateAcqLead,
 } from "@/actions/acq-lead.actions";
+import { getAcqOwnerByPhone } from "@/actions/acq-visit.actions";
 import {
   ACQ_PROPERTY_TYPE,
   ACQ_PROPERTY_TYPE_LABEL,
@@ -106,6 +107,20 @@ interface LeadInboxProps {
 interface DuplicateLead {
   propertyName?: string;
   locality?: string;
+}
+
+/** Result shape from getAcqOwnerByPhone. */
+interface OwnerLookupResult {
+  found: boolean;
+  ownerName?: string;
+  propertyCount?: number;
+  properties?: {
+    id: string;
+    propertyName: string;
+    locality: string;
+    status: string;
+  }[];
+  hallOwner?: { id: string; numberOfHalls: number | null } | null;
 }
 
 // ============================================================
@@ -462,8 +477,13 @@ interface CreateFormState {
   seatingFloating: string;
   seatingRange: string;
   propertyStage: string;
+  parkingAvailable: boolean;
   leadSource: string;
   ownerType: string;
+  referrerName: string;
+  referrerPhone: string;
+  referrerEmail: string;
+  brokerageDemand: string;
   bdExecutiveId: string;
 }
 
@@ -480,8 +500,13 @@ const EMPTY_FORM: CreateFormState = {
   seatingFloating: "",
   seatingRange: "",
   propertyStage: "",
+  parkingAvailable: false,
   leadSource: ACQ_LEAD_SOURCE[0],
   ownerType: ACQ_OWNER_TYPE[0],
+  referrerName: "",
+  referrerPhone: "",
+  referrerEmail: "",
+  brokerageDemand: "",
   bdExecutiveId: "",
 };
 
@@ -501,6 +526,8 @@ function CreateLeadDialog({
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [duplicate, setDuplicate] = React.useState<DuplicateLead | null>(null);
+  const [ownerMatch, setOwnerMatch] =
+    React.useState<OwnerLookupResult | null>(null);
 
   // Reset whenever the dialog (re)opens.
   React.useEffect(() => {
@@ -508,9 +535,38 @@ function CreateLeadDialog({
       setForm(EMPTY_FORM);
       setError(null);
       setDuplicate(null);
+      setOwnerMatch(null);
       setSubmitting(false);
     }
   }, [open]);
+
+  // Owner-exists prompt (requirement e): when the primary mobile has >= 6 digits,
+  // look up an existing owner so the BD exec knows they're adding another venue
+  // under the same owner. Debounced ~400ms. Informational only — never blocks.
+  const phone = form.mobilePrimary;
+  React.useEffect(() => {
+    if (!open) return;
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length < 6) {
+      setOwnerMatch(null);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await getAcqOwnerByPhone(phone);
+        if (!cancelled) {
+          setOwnerMatch(res?.found ? (res as OwnerLookupResult) : null);
+        }
+      } catch {
+        if (!cancelled) setOwnerMatch(null);
+      }
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [phone, open]);
 
   function set<K extends keyof CreateFormState>(
     key: K,
@@ -560,8 +616,13 @@ function CreateLeadDialog({
         propertyStage: form.propertyStage
           ? (form.propertyStage as (typeof ACQ_PROPERTY_STAGE)[number])
           : undefined,
+        parkingAvailable: form.parkingAvailable,
         leadSource: form.leadSource as (typeof ACQ_LEAD_SOURCE)[number],
         ownerType: form.ownerType as (typeof ACQ_OWNER_TYPE)[number],
+        referrerName: form.referrerName.trim() || undefined,
+        referrerPhone: form.referrerPhone.trim() || undefined,
+        referrerEmail: form.referrerEmail.trim() || undefined,
+        brokerageDemand: form.brokerageDemand.trim() || undefined,
         bdExecutiveId:
           form.bdExecutiveId && form.bdExecutiveId !== UNASSIGNED
             ? form.bdExecutiveId
@@ -741,6 +802,52 @@ function CreateLeadDialog({
               />
             </Field>
 
+            <div className="sm:col-span-2">
+              <label className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-border px-3 py-2.5 hover:bg-muted/40">
+                <Checkbox
+                  checked={form.parkingAvailable}
+                  onCheckedChange={(v) => set("parkingAvailable", v === true)}
+                />
+                <span className="text-foreground">Parking available</span>
+              </label>
+            </div>
+
+            {/* Referral / broker — fill only when the lead came via a referrer. */}
+            <div className="grid gap-4 rounded-xl border border-border bg-muted/20 p-3 sm:col-span-2 sm:grid-cols-2">
+              <p className="text-[12px] font-medium text-muted-foreground sm:col-span-2">
+                Referral / broker (only if relevant)
+              </p>
+              <Field label="Referrer name">
+                <Input
+                  value={form.referrerName}
+                  onChange={(e) => set("referrerName", e.target.value)}
+                  placeholder="Who referred this lead?"
+                />
+              </Field>
+              <Field label="Referrer phone">
+                <Input
+                  value={form.referrerPhone}
+                  onChange={(e) => set("referrerPhone", e.target.value)}
+                  inputMode="tel"
+                />
+              </Field>
+              <Field label="Referrer email">
+                <Input
+                  type="email"
+                  value={form.referrerEmail}
+                  onChange={(e) => set("referrerEmail", e.target.value)}
+                  placeholder="referrer@example.com"
+                />
+              </Field>
+              <Field label="Brokerage demand">
+                <Input
+                  value={form.brokerageDemand}
+                  onChange={(e) => set("brokerageDemand", e.target.value)}
+                  placeholder="e.g. 2% of deal"
+                />
+              </Field>
+            </div>
+
             <Field label="Assign BD executive" className="sm:col-span-2">
               <Select
                 value={form.bdExecutiveId || UNASSIGNED}
@@ -762,6 +869,40 @@ function CreateLeadDialog({
               </Select>
             </Field>
           </div>
+
+          {ownerMatch?.found && (
+            <div className="rounded-xl bg-primary/5 px-3 py-2.5 text-[12.5px] text-foreground">
+              <p>
+                Owner already exists:{" "}
+                <span className="font-medium">
+                  {ownerMatch.ownerName ?? "this owner"}
+                </span>{" "}
+                — {ownerMatch.propertyCount ?? 0}{" "}
+                {(ownerMatch.propertyCount ?? 0) === 1
+                  ? "property"
+                  : "properties"}
+                . You&apos;re adding another venue under this owner.
+              </p>
+              {!!ownerMatch.properties?.length && (
+                <ul className="mt-1.5 grid gap-1">
+                  {ownerMatch.properties.map((p) => (
+                    <li key={p.id}>
+                      <Link
+                        href={`/bd/leads/${p.id}`}
+                        className="text-primary hover:underline"
+                      >
+                        {p.propertyName}
+                      </Link>
+                      <span className="text-muted-foreground">
+                        {" "}
+                        · {p.locality}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
 
           <DialogFooter>
             <Button

@@ -10,11 +10,13 @@ import {
   MapPin,
   Users,
   Hash,
+  ArrowUpRight,
 } from "lucide-react";
 
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
 import { getHallOwner } from "@/actions/hall-owner.actions";
+import { getAcqOwnerByPhone } from "@/actions/acq-visit.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -82,6 +84,15 @@ export default async function HallOwnerDetailPage({
   const modelLabel = o.commercialModel
     ? MODEL_LABELS[o.commercialModel] ?? o.commercialModel
     : null;
+
+  // Halls / properties owned — live rollup from the BD acquisition pipeline,
+  // matched on the owner's phone or WhatsApp number.
+  const ownerPhone = o.phone || o.whatsapp || "";
+  const halls = ownerPhone
+    ? await getAcqOwnerByPhone(ownerPhone).catch(() => ({ found: false }) as Awaited<ReturnType<typeof getAcqOwnerByPhone>>)
+    : ({ found: false } as Awaited<ReturnType<typeof getAcqOwnerByPhone>>);
+  const linkedProperties = halls.found ? halls.properties ?? [] : [];
+  const linkedCount = halls.found ? halls.propertyCount ?? linkedProperties.length : 0;
 
   return (
     <div className="space-y-6">
@@ -245,6 +256,62 @@ export default async function HallOwnerDetailPage({
           </CardContent>
         </Card>
       </div>
+
+      {/* Halls / properties owned — live rollup from the BD pipeline */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
+          <CardTitle>Halls / properties owned</CardTitle>
+          <div className="flex items-center gap-4">
+            {o.numberOfHalls != null && (
+              <div className="text-right">
+                <p className="text-muted-foreground text-xs font-medium uppercase tracking-[0.04em]">
+                  On record
+                </p>
+                <p className="mt-0.5 inline-flex items-center justify-end gap-1.5 text-sm font-semibold text-foreground">
+                  <Building2 className="size-3.5" />
+                  {o.numberOfHalls}
+                </p>
+              </div>
+            )}
+            <div className="text-right">
+              <p className="text-muted-foreground text-xs font-medium uppercase tracking-[0.04em]">
+                Linked BD
+              </p>
+              <p className="mt-0.5 text-lg font-semibold text-violet-700">
+                {linkedCount}
+              </p>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {linkedProperties.length > 0 ? (
+            <ul className="divide-y divide-border rounded-xl border border-border">
+              {linkedProperties.map((p) => (
+                <li key={p.id}>
+                  <Link
+                    href={`/bd/leads/${p.id}`}
+                    className="flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-muted/50"
+                  >
+                    <span className="inline-flex items-center gap-2 font-medium text-foreground">
+                      <Building2 className="size-3.5 text-muted-foreground" />
+                      {p.propertyName}
+                      <span className="text-muted-foreground">— {p.locality}</span>
+                    </span>
+                    <span className="inline-flex items-center gap-2">
+                      <span className="text-muted-foreground text-xs">{p.status}</span>
+                      <ArrowUpRight className="size-3.5 text-violet-600" />
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No linked BD properties found.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Notes */}
       {o.notes && (
