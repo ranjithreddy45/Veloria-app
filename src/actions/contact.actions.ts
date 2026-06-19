@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { contactSchema, type ContactInput } from "@/schemas/contact.schema";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
+import { coarseContactWhere, matchesContactKey } from "@/lib/dedup";
 
 // ============================================================
 // Get Contacts (Paginated + Search)
@@ -444,17 +445,17 @@ export async function purgeContact(id: string) {
 
 export async function checkDuplicates(email?: string, phone?: string) {
   try {
-    const conditions: Array<Record<string, string>> = [];
-    if (email) conditions.push({ email });
-    if (phone) conditions.push({ phone });
-
-    if (conditions.length === 0) {
+    // Normalised, format-insensitive match: "+91 98765 43210" == "9876543210",
+    // "A@B.com" == "a@b.com". A coarse DB filter narrows the set, then
+    // matchesContactKey does the exact comparison the DB cannot.
+    const where = coarseContactWhere(email, phone);
+    if (!where) {
       return { success: true as const, data: [] };
     }
 
-    const duplicates = await prisma.contact.findMany({
+    const candidates = await prisma.contact.findMany({
       // Ignore trashed contacts so a soft-deleted record can't block re-creation.
-      where: { AND: [{ deletedAt: null }, { OR: conditions }] },
+      where: { AND: [{ deletedAt: null }, where] },
       select: {
         id: true,
         firstName: true,
@@ -464,6 +465,7 @@ export async function checkDuplicates(email?: string, phone?: string) {
       },
     });
 
+    const duplicates = matchesContactKey(candidates, email, phone);
     return { success: true as const, data: serialize(duplicates) };
   } catch (error) {
     console.error("[CHECK_DUPLICATES_ERROR]", error);

@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { hasPermission } from "@/lib/permissions";
 import { logActivity } from "@/lib/activity-logger";
 import { serialize } from "@/lib/utils";
+import { coarseContactWhere, matchesContactKey } from "@/lib/dedup";
 import {
   hallOwnerSchema,
   hallOwnerStatusValues,
@@ -95,6 +96,24 @@ export async function createHallOwner(data: HallOwnerInput) {
     const parsed = hallOwnerSchema.safeParse(data);
     if (!parsed.success)
       return { success: false as const, error: "Validation failed" };
+
+    // Duplicate guard — block a second owner with the same phone/email.
+    if (parsed.data.email || parsed.data.phone) {
+      const where = coarseContactWhere(parsed.data.email, parsed.data.phone);
+      if (where) {
+        const candidates = await prisma.hallOwner.findMany({
+          where,
+          select: { id: true, ownerName: true, email: true, phone: true },
+        });
+        const dup = matchesContactKey(candidates, parsed.data.email, parsed.data.phone)[0];
+        if (dup) {
+          return {
+            success: false as const,
+            error: `A hall owner with this ${parsed.data.email ? "email" : "phone"} already exists (${dup.ownerName}).`,
+          };
+        }
+      }
+    }
 
     const owner = await prisma.hallOwner.create({ data: clean(parsed.data) });
     await logActivity({

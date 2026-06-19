@@ -4,6 +4,7 @@ import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { coarseContactWhere, matchesContactKey } from "@/lib/dedup";
 import {
   vendorSchema,
   assignVendorSchema,
@@ -183,6 +184,25 @@ export async function createVendor(data: VendorInput) {
     }
 
     const vendorData = parsed.data;
+
+    // Duplicate guard — block a second vendor with the same phone/email
+    // (normalised, format-insensitive).
+    if (vendorData.email || vendorData.phone) {
+      const where = coarseContactWhere(vendorData.email, vendorData.phone);
+      if (where) {
+        const candidates = await prisma.vendor.findMany({
+          where,
+          select: { id: true, name: true, email: true, phone: true },
+        });
+        const dup = matchesContactKey(candidates, vendorData.email, vendorData.phone)[0];
+        if (dup) {
+          return {
+            success: false as const,
+            error: `A vendor with this ${vendorData.email ? "email" : "phone"} already exists (${dup.name}).`,
+          };
+        }
+      }
+    }
 
     const vendor = await prisma.vendor.create({
       data: {
