@@ -202,7 +202,17 @@ export function DealDetailSheet({
     startTransition(async () => {
       // First update the lost reason
       if (lostReasonInput.trim()) {
-        await updateDeal(deal.id, { lostReason: lostReasonInput.trim() });
+        const reasonResult = await updateDeal(deal.id, {
+          lostReason: lostReasonInput.trim(),
+        });
+        if (!reasonResult.success) {
+          toast.error("Failed to save lost reason", {
+            description:
+              reasonResult.error ??
+              "The lost reason could not be recorded. Please try again.",
+          });
+          return;
+        }
       }
       const result = await moveDeal(deal.id, targetLostStageId, 0);
       if (result.success) {

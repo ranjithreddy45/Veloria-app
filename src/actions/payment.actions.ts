@@ -465,8 +465,9 @@ export async function createRazorpayOrder(invoiceId: string, amount: number) {
     }
 
     const balanceDue = Number(invoice.balanceDue);
-    if (amount > balanceDue + 0.01) {
-      return { success: false as const, error: "Amount exceeds balance due" };
+    const pay = Math.round(Number(amount));
+    if (!(pay >= 1) || pay > balanceDue + 0.01) {
+      return { success: false as const, error: "Invalid payment amount" };
     }
 
     // Create Razorpay order directly via SDK
@@ -476,7 +477,7 @@ export async function createRazorpayOrder(invoiceId: string, amount: number) {
       key_secret: process.env.RAZORPAY_KEY_SECRET,
     });
 
-    const amountInPaise = Math.round(amount * 100);
+    const amountInPaise = Math.round(pay * 100);
     const order = await razorpay.orders.create({
       amount: amountInPaise,
       currency: "INR",
@@ -491,7 +492,7 @@ export async function createRazorpayOrder(invoiceId: string, amount: number) {
     await prisma.payment.create({
       data: {
         invoiceId,
-        amount,
+        amount: pay,
         method: "RAZORPAY",
         status: "PENDING",
         razorpayOrderId: order.id,

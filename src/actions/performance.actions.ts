@@ -81,49 +81,50 @@ export async function getTeamPerformance(params?: {
 
     const dateFilter = buildDateFilter(params?.startDate, params?.endDate);
 
-    // Get all active internal users (not CLIENT / VENDOR)
-    const users = await prisma.user.findMany({
-      where: {
-        isActive: true,
-        role: { notIn: ["CLIENT", "VENDOR"] },
-      },
-      select: { id: true, name: true, role: true },
-    });
-
-    // Get leads with WON status grouped by assignedTo
-    const wonLeads = await prisma.lead.findMany({
-      where: {
-        status: "WON",
-        ...(dateFilter ? { updatedAt: dateFilter } : {}),
-      },
-      select: {
-        assignedToId: true,
-        estimatedValue: true,
-      },
-    });
-
-    // Get all leads grouped by assignedTo for conversion calculation
-    const allLeads = await prisma.lead.findMany({
-      where: {
-        assignedToId: { not: null },
-        ...(dateFilter ? { createdAt: dateFilter } : {}),
-      },
-      select: {
-        assignedToId: true,
-        status: true,
-      },
-    });
-
-    // Get bookings with invoices for revenue calculation
-    const bookings = await prisma.booking.findMany({
-      where: {
-        ...(dateFilter ? { createdAt: dateFilter } : {}),
-      },
-      select: {
-        createdById: true,
-        totalAmount: true,
-      },
-    });
+    // Fetch the four independent reads concurrently. None depends on a prior
+    // result, so running them in parallel makes total latency the max of the
+    // queries rather than their sum. allLeads is computed via groupBy so we
+    // count totals per user in the DB instead of pulling every lead row.
+    const [users, wonLeads, leadTotals, bookings] = await Promise.all([
+      // Get all active internal users (not CLIENT / VENDOR)
+      prisma.user.findMany({
+        where: {
+          isActive: true,
+          role: { notIn: ["CLIENT", "VENDOR"] },
+        },
+        select: { id: true, name: true, role: true },
+      }),
+      // Get leads with WON status grouped by assignedTo
+      prisma.lead.findMany({
+        where: {
+          status: "WON",
+          ...(dateFilter ? { updatedAt: dateFilter } : {}),
+        },
+        select: {
+          assignedToId: true,
+          estimatedValue: true,
+        },
+      }),
+      // Count all leads per assignedTo for conversion calculation
+      prisma.lead.groupBy({
+        by: ["assignedToId"],
+        where: {
+          assignedToId: { not: null },
+          ...(dateFilter ? { createdAt: dateFilter } : {}),
+        },
+        _count: { _all: true },
+      }),
+      // Get bookings with invoices for revenue calculation
+      prisma.booking.findMany({
+        where: {
+          ...(dateFilter ? { createdAt: dateFilter } : {}),
+        },
+        select: {
+          createdById: true,
+          totalAmount: true,
+        },
+      }),
+    ]);
 
     // Build a map per user
     const userMap = new Map<
@@ -155,10 +156,10 @@ export async function getTeamPerformance(params?: {
     }
 
     // Count total leads per user for conversion rate
-    for (const lead of allLeads) {
-      if (lead.assignedToId && userMap.has(lead.assignedToId)) {
-        const entry = userMap.get(lead.assignedToId)!;
-        entry.totalLeads += 1;
+    for (const group of leadTotals) {
+      if (group.assignedToId && userMap.has(group.assignedToId)) {
+        const entry = userMap.get(group.assignedToId)!;
+        entry.totalLeads += group._count._all;
       }
     }
 

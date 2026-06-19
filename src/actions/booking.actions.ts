@@ -962,16 +962,31 @@ export async function placeHold(bookingId: string, expiresInHours: number = 48) 
       return { success: false as const, error: "Booking not found" };
     }
 
+    // Only a tentative/held booking can be placed (or refreshed) on hold.
+    // A CONFIRMED / IN_PROGRESS / COMPLETED / CANCELLED booking must not be
+    // silently reverted to HOLD (which would re-enter the hold pool and
+    // appear as an expired hold despite a paid/locked event).
+    if (existing.status !== "HOLD" && existing.status !== "TENTATIVE") {
+      return { success: false as const, error: "Only a tentative/held booking can be placed on hold" };
+    }
+
     const holdExpiresAt = new Date();
     holdExpiresAt.setHours(holdExpiresAt.getHours() + expiresInHours);
 
-    const booking = await prisma.booking.update({
-      where: { id: bookingId },
+    // Conditional write: re-check the status at the DB level to avoid a race
+    // with maybeConfirmBookingOnPayment / completeBooking flipping the status.
+    const updated = await prisma.booking.updateMany({
+      where: { id: bookingId, status: { in: ["HOLD", "TENTATIVE"] } },
       data: {
         status: "HOLD",
         holdExpiresAt,
       },
     });
+    if (updated.count === 0) {
+      return { success: false as const, error: "Only a tentative/held booking can be placed on hold" };
+    }
+
+    const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
 
     revalidatePath("/bookings");
     revalidatePath(`/bookings/${bookingId}`);

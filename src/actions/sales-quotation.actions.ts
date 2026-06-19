@@ -313,15 +313,18 @@ export async function submitSalesQuotation(id: string): Promise<Result<{ status:
   const errs = validateQuotationInput(row.inputsJson as unknown as QuotationInput);
   if (errs.length) return { success: false, error: errs.join(" ") };
 
-  await prisma.$transaction([
-    prisma.salesQuotation.update({
-      where: { id },
+  const guarded = await prisma.$transaction(async (tx) => {
+    const { count } = await tx.salesQuotation.updateMany({
+      where: { id, status: "DRAFT" },
       data: { status: "PENDING_APPROVAL", submittedById: user.id, submittedAt: new Date(), rejectedReason: null },
-    }),
-    prisma.salesQuotationTransition.create({
+    });
+    if (count === 0) return false;
+    await tx.salesQuotationTransition.create({
       data: { quotationId: id, fromStatus: "DRAFT", toStatus: "PENDING_APPROVAL", actorId: user.id },
-    }),
-  ]);
+    });
+    return true;
+  });
+  if (!guarded) return { success: false, error: `Cannot submit from ${row.status}.`, code: 409 };
 
   // Notify approvers (anyone with quotes:approve — typically sales manager/head + admins).
   const candidates = await prisma.user.findMany({
@@ -367,9 +370,9 @@ export async function approveSalesQuotation(id: string): Promise<Result<{ status
   const input = row.inputsJson as unknown as QuotationInput;
   const out = computeQuotation(input);
 
-  await prisma.$transaction([
-    prisma.salesQuotation.update({
-      where: { id },
+  const guarded = await prisma.$transaction(async (tx) => {
+    const { count } = await tx.salesQuotation.updateMany({
+      where: { id, status: "PENDING_APPROVAL" },
       data: {
         status: "APPROVED",
         approvedById: user.id,
@@ -377,11 +380,14 @@ export async function approveSalesQuotation(id: string): Promise<Result<{ status
         outputsJson: out as unknown as Prisma.InputJsonValue,
         pdfUrl: `/api/quotations/${id}/pdf`,
       },
-    }),
-    prisma.salesQuotationTransition.create({
+    });
+    if (count === 0) return false;
+    await tx.salesQuotationTransition.create({
       data: { quotationId: id, fromStatus: "PENDING_APPROVAL", toStatus: "APPROVED", actorId: user.id },
-    }),
-  ]);
+    });
+    return true;
+  });
+  if (!guarded) return { success: false, error: `Cannot approve from ${row.status}.`, code: 409 };
 
   if (row.submittedById) {
     notify({
@@ -413,12 +419,18 @@ export async function rejectSalesQuotation(id: string, reason: string): Promise<
   if (row.status !== "PENDING_APPROVAL")
     return { success: false, error: `Cannot reject from ${row.status}.`, code: 409 };
 
-  await prisma.$transaction([
-    prisma.salesQuotation.update({ where: { id }, data: { status: "DRAFT", rejectedReason: reason.trim() } }),
-    prisma.salesQuotationTransition.create({
+  const guarded = await prisma.$transaction(async (tx) => {
+    const { count } = await tx.salesQuotation.updateMany({
+      where: { id, status: "PENDING_APPROVAL" },
+      data: { status: "DRAFT", rejectedReason: reason.trim() },
+    });
+    if (count === 0) return false;
+    await tx.salesQuotationTransition.create({
       data: { quotationId: id, fromStatus: "PENDING_APPROVAL", toStatus: "DRAFT", actorId: user.id, note: reason.trim() },
-    }),
-  ]);
+    });
+    return true;
+  });
+  if (!guarded) return { success: false, error: `Cannot reject from ${row.status}.`, code: 409 };
   if (row.submittedById) {
     notify({
       userId: row.submittedById,

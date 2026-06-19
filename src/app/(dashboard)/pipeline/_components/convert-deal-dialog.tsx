@@ -111,15 +111,25 @@ export function ConvertDealDialog({
       setGuestCount(deal.lead?.guestCount ?? 0);
       setTotalAmount(deal.value || 0);
 
+      // Format a Date into YYYY-MM-DD using LOCAL components (not UTC).
+      // Lead.eventDate is a plain DateTime stored at local midnight; using
+      // toISOString() would shift the day backwards on UTC+ timezones (e.g. IST).
+      const toLocalDateInput = (d: Date) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${day}`;
+      };
+
       // Set date from lead's eventDate if available
       if (deal.lead?.eventDate) {
         const d = new Date(deal.lead.eventDate);
-        setDate(d.toISOString().split("T")[0]);
+        setDate(toLocalDateInput(d));
       } else {
         // Default to 2 weeks from now
         const d = new Date();
         d.setDate(d.getDate() + 14);
-        setDate(d.toISOString().split("T")[0]);
+        setDate(toLocalDateInput(d));
       }
 
       setTimeSlot("EVENING");

@@ -10,7 +10,7 @@ import { prisma } from "@/lib/prisma";
 export async function POST(request: NextRequest) {
   try {
     // Get webhook token from DB config or env var
-    let expectedToken = process.env.GOOGLE_ADS_WEBHOOK_TOKEN || "veloria_google_verify";
+    let expectedToken: string | undefined = process.env.GOOGLE_ADS_WEBHOOK_TOKEN || undefined;
     let configId: string | null = null;
     try {
       const config = await prisma.leadCaptureConfig.findFirst({
@@ -23,6 +23,15 @@ export async function POST(request: NextRequest) {
       }
     } catch {
       // Fall back to env var
+    }
+
+    // Fail closed: if no secret is configured anywhere, refuse the request
+    // instead of accepting a hardcoded/public default token.
+    if (!expectedToken) {
+      return NextResponse.json(
+        { error: "Webhook not configured" },
+        { status: 503 }
+      );
     }
 
     // Verify webhook token (timing-safe comparison)
@@ -73,6 +82,7 @@ export async function POST(request: NextRequest) {
       phone: phone || undefined,
       source: "google_ads",
       message: `Google Ads Lead (ID: ${leadId || "unknown"})`,
+      externalId: leadId ? `gads:${leadId}` : undefined,
     });
 
     // Update lastSyncAt

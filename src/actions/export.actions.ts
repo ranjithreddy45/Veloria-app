@@ -21,6 +21,7 @@ export async function exportContacts() {
     }
 
     const contacts = await prisma.contact.findMany({
+      where: { deletedAt: null },
       orderBy: { createdAt: "desc" },
       take: 10000,
       select: {
@@ -79,6 +80,7 @@ export async function exportLeads() {
     }
 
     const leads = await prisma.lead.findMany({
+      where: { deletedAt: null },
       orderBy: { createdAt: "desc" },
       take: 10000,
       include: {
@@ -283,6 +285,7 @@ export async function exportVendors() {
     }
 
     const vendors = await prisma.vendor.findMany({
+      where: { isArchived: false },
       orderBy: { name: "asc" },
       take: 10000,
     });

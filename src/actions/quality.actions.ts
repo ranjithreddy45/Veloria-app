@@ -265,7 +265,12 @@ export async function getQualityScorecard(): Promise<QualityScorecard> {
                 })()
               : { dpmo: 0, defectRatePct: 0 };
           const sigma = sigmaFor(cur.units, cur.defects);
-          const trendSigma = sigma - sigmaFor(prev.units, prev.defects);
+          // Only report a trend when BOTH months have measured units; otherwise
+          // sigmaFor(prev) collapses to 0 and fakes a large improvement.
+          const trendSigma =
+            cur.units > 0 && prev.units > 0
+              ? sigma - sigmaFor(prev.units, prev.defects)
+              : 0;
           return {
             id: ctq.id,
             label: ctq.label,

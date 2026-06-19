@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { CheckCircle2, Loader2, Link2, Copy, CheckCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -91,8 +92,9 @@ function TaskRow({ task, canWrite }: { task: Task; canWrite: boolean }) {
 
   async function change(next: string) {
     setStatus(next); setBusy(true);
-    await updateJourneyTask(task.id, next);
+    const res = await updateJourneyTask(task.id, next);
     setBusy(false);
+    if (!res.success) { toast.error(res.error); return; }
     router.refresh();
   }
 
@@ -133,7 +135,8 @@ function ExitInterviewCard({
 
   async function save() {
     setBusy(true); setSaved(false);
-    await submitExitInterview(journeyId, { reason, feedback, rating: rating ? Number(rating) : undefined });
+    const res = await submitExitInterview(journeyId, { reason, feedback, rating: rating ? Number(rating) : undefined });
+    if (!res.success) { setBusy(false); toast.error(res.error); return; }
     setBusy(false); setSaved(true);
     router.refresh();
   }

@@ -141,11 +141,23 @@ export interface VarianceRow {
   pct: number;
 }
 
+interface VarianceSubtotal {
+  budget: number;
+  actual: number;
+  variance: number;
+  pct: number;
+}
+
 export async function getBudgetVariance(budgetId: string): Promise<{
   rows: VarianceRow[];
-  totals: { budget: number; actual: number; variance: number; pct: number };
+  // `totals` is the NET (income − expense) grand total — the meaningful headline
+  // figure. Income/expense are also broken out under `byType` (they cannot be
+  // flat-summed since each is a positive magnitude on its own natural balance).
+  totals: VarianceSubtotal;
+  byType: { income: VarianceSubtotal; expense: VarianceSubtotal };
 }> {
-  const empty = { rows: [], totals: { budget: 0, actual: 0, variance: 0, pct: 0 } };
+  const emptySub: VarianceSubtotal = { budget: 0, actual: 0, variance: 0, pct: 0 };
+  const empty = { rows: [], totals: emptySub, byType: { income: emptySub, expense: emptySub } };
   const u = await requireUser();
   if (!canFinanceRead(u?.role)) return empty;
   if (!budgetId) return empty;
@@ -211,15 +223,38 @@ export async function getBudgetVariance(budgetId: string): Promise<{
     })
     .sort((a, b) => (a.type === b.type ? a.accountCode.localeCompare(b.accountCode) : a.type.localeCompare(b.type)));
 
-  const totalBudget = rows.reduce((s, r) => s + r.budget, 0);
-  const totalActual = rows.reduce((s, r) => s + r.actual, 0);
+  // Income and expense actuals are both stored as positive magnitudes (each on its
+  // natural balance), so they cannot be flat-summed into one grand total. Split into
+  // income/expense subtotals and derive a net (income − expense) instead.
+  const incomeRows = rows.filter((r) => r.type === "INCOME");
+  const expenseRows = rows.filter((r) => r.type !== "INCOME");
+  const incomeBudget = incomeRows.reduce((s, r) => s + r.budget, 0);
+  const incomeActual = incomeRows.reduce((s, r) => s + r.actual, 0);
+  const expenseBudget = expenseRows.reduce((s, r) => s + r.budget, 0);
+  const expenseActual = expenseRows.reduce((s, r) => s + r.actual, 0);
+  const netBudget = incomeBudget - expenseBudget;
+  const netActual = incomeActual - expenseActual;
   return {
     rows,
     totals: {
-      budget: totalBudget,
-      actual: totalActual,
-      variance: totalActual - totalBudget,
-      pct: totalBudget !== 0 ? (totalActual / totalBudget) * 100 : 0,
+      budget: netBudget,
+      actual: netActual,
+      variance: netActual - netBudget,
+      pct: netBudget !== 0 ? (netActual / netBudget) * 100 : 0,
+    },
+    byType: {
+      income: {
+        budget: incomeBudget,
+        actual: incomeActual,
+        variance: incomeActual - incomeBudget,
+        pct: incomeBudget !== 0 ? (incomeActual / incomeBudget) * 100 : 0,
+      },
+      expense: {
+        budget: expenseBudget,
+        actual: expenseActual,
+        variance: expenseActual - expenseBudget,
+        pct: expenseBudget !== 0 ? (expenseActual / expenseBudget) * 100 : 0,
+      },
     },
   };
 }

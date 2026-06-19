@@ -517,7 +517,14 @@ export async function markDispatched(
   // a conditional updateMany INSIDE the txn (keyed on status=PLANNED), so two
   // concurrent calls can't both decrement — the loser sees count 0 and the txn
   // makes no stock change.
+  //
+  // We require availableQty >= quantity for EVERY linked line before decrementing.
+  // Without this guard the decrement would silently clamp at 0 (fewer units leave
+  // stock than the line claims), while return/cancel restore the full quantity —
+  // inflating inventory above what physically left. Failing here keeps dispatch
+  // and restore symmetric.
   let raced = false;
+  let insufficient = false;
   await prisma.$transaction(async (tx) => {
     const flip = await tx.dispatchOrder.updateMany({
       where: { id, status: "PLANNED" },
@@ -527,6 +534,21 @@ export async function markDispatched(
       raced = true;
       return;
     }
+    // First pass: validate every linked line has enough stock. Throwing rolls
+    // back the status flip too, so an insufficient line leaves the order PLANNED.
+    for (const it of d.items) {
+      if (!it.inventoryItemId) continue;
+      const inv = await tx.inventoryItem.findUnique({
+        where: { id: it.inventoryItemId },
+        select: { availableQty: true },
+      });
+      if (!inv) continue;
+      if (inv.availableQty < it.quantity) {
+        insufficient = true;
+        throw new Error("INSUFFICIENT_STOCK");
+      }
+    }
+    // Second pass: decrement now that all lines are known to be satisfiable.
     for (const it of d.items) {
       if (!it.inventoryItemId) continue;
       const inv = await tx.inventoryItem.findUnique({
@@ -536,10 +558,18 @@ export async function markDispatched(
       if (!inv) continue;
       await tx.inventoryItem.update({
         where: { id: it.inventoryItemId },
-        data: { availableQty: Math.max(0, inv.availableQty - it.quantity) },
+        data: { availableQty: inv.availableQty - it.quantity },
       });
     }
+  }).catch((e) => {
+    if (insufficient) return; // handled below
+    throw e;
   });
+  if (insufficient)
+    return {
+      success: false,
+      error: "Not enough stock to dispatch one or more linked items.",
+    };
   if (raced) return { success: false, error: "This dispatch was already marked dispatched." };
   revalidatePath("/logistics");
   revalidatePath(`/logistics/${id}`);

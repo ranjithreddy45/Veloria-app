@@ -196,7 +196,14 @@ export async function getBeo(id: string): Promise<Result<BeoDetail>> {
   const base = serializeBeoRow(b, events.get(b.bookingId) ?? emptyEvent());
 
   const names = new Map<string, string>();
-  for (const i of b.incidents) if (!names.has(i.reportedById)) names.set(i.reportedById, await userName(i.reportedById));
+  const reporterIds = [...new Set(b.incidents.map((i) => i.reportedById))];
+  if (reporterIds.length) {
+    const reporters = await prisma.user.findMany({
+      where: { id: { in: reporterIds } },
+      select: { id: true, name: true, email: true },
+    });
+    for (const r of reporters) names.set(r.id, r.name || r.email || "User");
+  }
 
   return {
     success: true,

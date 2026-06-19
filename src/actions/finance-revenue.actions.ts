@@ -117,10 +117,12 @@ export async function getPayoutStatements(): Promise<PayoutStatement[]> {
       };
       byVendor.set(p.vendorId, row);
     }
-    row.total += amount;
-    if (p.status === "PAID") row.paid += amount;
-    else if (p.status !== "CANCELLED") row.pending += amount;
-    row.count += 1;
+    if (p.status !== "CANCELLED") {
+      row.total += amount;
+      if (p.status === "PAID") row.paid += amount;
+      else row.pending += amount;
+      row.count += 1;
+    }
     row.payouts.push({
       id: p.id,
       amount,

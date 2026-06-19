@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "New Referral" };
 export default async function NewReferralPage() {
   // Fetch contacts for the referrer selector
   const contacts = await prisma.contact.findMany({
-    where: { isActive: true },
+    where: { deletedAt: null, isActive: true },
     select: {
       id: true,
       firstName: true,

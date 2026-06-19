@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Plus, Loader2, Target, Star, Users, Settings2, Trash2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -210,7 +211,8 @@ function SelfReviewCard({ cycleId, employeeId, ratingMax, existing }: { cycleId:
 
   async function save() {
     setBusy(true);
-    await submitReview({ cycleId, employeeId, kind: "SELF", rating: rating ? Number(rating) : undefined, strengths, improvements, comments });
+    const res = await submitReview({ cycleId, employeeId, kind: "SELF", rating: rating ? Number(rating) : undefined, strengths, improvements, comments });
+    if (!res.success) { toast.error(res.error); setBusy(false); return; }
     setBusy(false); router.refresh();
   }
   return (
@@ -245,7 +247,8 @@ function ManagerReviewDialog({ cycleId, employee, ratingMax }: { cycleId: string
 
   async function save() {
     setBusy(true);
-    await submitReview({ cycleId, employeeId: employee.id, kind: "MANAGER", rating: rating ? Number(rating) : undefined, strengths, improvements, comments });
+    const res = await submitReview({ cycleId, employeeId: employee.id, kind: "MANAGER", rating: rating ? Number(rating) : undefined, strengths, improvements, comments });
+    if (!res.success) { toast.error(res.error); setBusy(false); return; }
     setBusy(false); setOpen(false); router.refresh();
   }
   return (

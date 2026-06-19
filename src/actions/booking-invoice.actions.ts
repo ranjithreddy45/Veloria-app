@@ -69,18 +69,35 @@ export async function createBookingInvoiceFromQuotation(
     const guests = Math.max(1, q.guestCount || input.guestCount || 1);
     const round2 = (n: number) => Math.round(n * 100) / 100;
 
-    // Per-plate line items: food is divided by the head count (2-decimal unit
-    // price so guests × unit reconstructs the food total exactly — no whole-
-    // rupee drift on fractional overrides). Fixed items stay whole. Drop any
-    // non-positive line rather than clamping it to +₹1 (which would overcharge).
+    // Per-plate line items: food is shown on a per-head basis when it divides
+    // evenly into the guest count (guests × unit reconstructs the total exactly).
+    // When it doesn't divide evenly, a per-unit price would drift the line — and
+    // therefore the invoice subtotal/tax/total — off the quoted grand total. In
+    // that case we carry the indivisible remainder paise as a separate adjustment
+    // line so the food total still sums to the exact quoted amount. Fixed items
+    // stay whole. Drop any non-positive line rather than clamping it to +₹1
+    // (which would overcharge).
     const lineItems = result.lines
       .filter((l) => l.amount > 0)
-      .map((l) => {
+      .flatMap((l) => {
         if (l.particulars === "Food Plan") {
-          const unit = round2(l.amount / guests);
-          return { description: `${l.particulars} — ${l.plan}`, quantity: guests, unitPrice: unit };
+          const totalPaise = Math.round(l.amount * 100);
+          const unitPaise = Math.floor(totalPaise / guests);
+          const remainderPaise = totalPaise - unitPaise * guests;
+          const unit = round2(unitPaise / 100);
+          const lines = [
+            { description: `${l.particulars} — ${l.plan}`, quantity: guests, unitPrice: unit },
+          ];
+          if (remainderPaise > 0) {
+            lines.push({
+              description: `${l.particulars} — ${l.plan} (rounding adjustment)`,
+              quantity: 1,
+              unitPrice: round2(remainderPaise / 100),
+            });
+          }
+          return lines;
         }
-        return { description: `${l.particulars} — ${l.plan}`, quantity: 1, unitPrice: l.amount };
+        return [{ description: `${l.particulars} — ${l.plan}`, quantity: 1, unitPrice: l.amount }];
       });
     if (lineItems.length === 0) {
       await release();

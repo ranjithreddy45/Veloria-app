@@ -522,18 +522,17 @@ export async function addPackageImage(packageId: string, url: string): Promise<R
   try {
     if (!url?.trim() || !/^https?:\/\//i.test(url.trim()))
       return { success: false, error: "Enter a valid image URL (http/https)" };
-    const [count, hasCover] = await Promise.all([
-      prisma.vendorPackageImage.count({ where: { packageId } }),
-      prisma.vendorPackage.findUnique({ where: { id: packageId }, select: { coverImageId: true } }),
-    ]);
+    const count = await prisma.vendorPackageImage.count({ where: { packageId } });
     const img = await prisma.vendorPackageImage.create({
       data: { packageId, url: url.trim(), sortOrder: count },
       select: { id: true },
     });
-    // R8 — first image (no cover) becomes the cover automatically
-    if (!hasCover?.coverImageId) {
-      await prisma.vendorPackage.update({ where: { id: packageId }, data: { coverImageId: img.id } });
-    }
+    // R8 — first image (no cover) becomes the cover automatically.
+    // Set atomically so only one concurrent first-upload wins (no read-then-write race).
+    await prisma.vendorPackage.updateMany({
+      where: { id: packageId, coverImageId: null },
+      data: { coverImageId: img.id },
+    });
     revalidatePath(`/vendors/packages/${packageId}`);
     return { success: true, data: { id: img.id } };
   } catch (e) {

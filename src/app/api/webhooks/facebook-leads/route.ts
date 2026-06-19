@@ -159,6 +159,7 @@ export async function POST(request: NextRequest) {
               phone: leadData.phone || undefined,
               source: "facebook_ads",
               message: `Facebook Lead Ad (ID: ${leadgenId})`,
+              externalId: leadgenId ? `fb:${leadgenId}` : undefined,
             });
 
             // Update lastSyncAt

@@ -112,13 +112,21 @@ export async function getPayrollRuns() {
 
 // Compute one payslip from an employee's CTC. Indian statutory rules of thumb:
 //   pf  = 12% of basic, capped at ₹15,000 of basic
-//   esi = 0.75% of gross when gross ≤ ₹21,000, else nil
+//   esi = 0.75% of ESI wages when wages ≤ ₹21,000, else nil
 //   pt  = ₹200 flat ; tds = 0 (placeholder)
+// ESI is computed on statutory "wages" — gross earnings paid to the employee,
+// which exclude employer-side contributions (e.g. employer PF) bundled into CTC.
+// We approximate wages as CTC minus the employer PF contribution (matched to the
+// employee PF, capped at ₹15,000 of basic) so the ₹21,000 ceiling and 0.75% rate
+// apply to the wage base rather than full CTC.
 function computeSlip(ctcMonthly: number, basicPct: number) {
   const gross = Math.round(ctcMonthly * 100) / 100;
   const basic = (gross * basicPct) / 100;
   const pf = Math.round(Math.min(basic, 15000) * 0.12);
-  const esi = gross <= 21000 ? Math.round(gross * 0.0075) : 0;
+  // Employer PF mirrors the employee PF; it is part of CTC but not of ESI wages.
+  const employerPf = pf;
+  const esiWages = Math.round((gross - employerPf) * 100) / 100;
+  const esi = esiWages <= 21000 ? Math.round(esiWages * 0.0075) : 0;
   const pt = 200;
   const tds = 0;
   const net = Math.round((gross - pf - esi - pt - tds) * 100) / 100;

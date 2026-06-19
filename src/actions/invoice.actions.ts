@@ -730,7 +730,7 @@ export async function getContacts() {
     }
 
     const contacts = await prisma.contact.findMany({
-      where: { isActive: true },
+      where: { deletedAt: null, isActive: true },
       select: {
         id: true,
         firstName: true,

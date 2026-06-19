@@ -16,9 +16,6 @@ import {
   type ApprovalDecisionInput,
   type ApprovalCondition,
 } from "@/schemas/approval.schema";
-import {
-  advanceApprovalChain,
-} from "@/lib/approval-engine";
 import { z } from "zod";
 
 // ============================================================
@@ -657,25 +654,104 @@ export async function approveRequest(
     const authErr = approverAuthError(request, session.user.id, (session.user as { role?: string }).role ?? "");
     if (authErr) return { success: false as const, error: authErr };
 
-    // Create the approval decision
+    const expectedStep = request.currentStep;
+    const chain = request.rule.approverChain;
+    const nextStepIndex = expectedStep + 1;
+    const isLastStep = nextStepIndex >= chain.length;
+
+    // Atomically claim AND apply this step's transition in one compare-and-set
+    // keyed on (id, currentStep, status). Concurrent approvals (or a
+    // double-submit) on the same PENDING_APPROVAL request all read the same
+    // currentStep, but only the first writer's updateMany matches the guard and
+    // performs the state change; every later writer sees count 0 and bails.
+    // This prevents two approvers from both recording an APPROVE decision and
+    // both advancing the chain (double-skipping a middle step, or double-firing
+    // the submitter notification / APPROVAL_COMPLETED log on the final step).
+    // The transition mirrors advanceApprovalChain so behavior is unchanged; we
+    // run only its post-transition side effects below, exactly once.
+    const claim = await prisma.approvalRequest.updateMany({
+      where: { id: requestId, currentStep: expectedStep, status: "PENDING_APPROVAL" },
+      data: isLastStep
+        ? { status: "APPROVED", resolvedAt: new Date() }
+        : { currentStep: nextStepIndex },
+    });
+    if (claim.count === 0) {
+      return { success: false as const, error: "Request is no longer pending" };
+    }
+
+    // Create the approval decision (only the winning writer reaches here)
     await prisma.approvalDecision.create({
       data: {
         action: "APPROVE",
         comment: comment ?? null,
-        stepOrder: request.currentStep,
+        stepOrder: expectedStep,
         requestId,
         decidedById: session.user.id,
       },
     });
 
-    // Advance the chain
-    await advanceApprovalChain(requestId);
+    // Post-transition side effects (the state change itself already happened
+    // atomically above, exactly once).
+    if (isLastStep) {
+      // Fully approved — notify the submitter and log completion.
+      notify({
+        userId: request.submittedById,
+        type: "LEAD_ASSIGNED",
+        title: "Approval Granted",
+        message: `Your ${request.entityType.toLowerCase()} has been fully approved.`,
+        actionUrl: `/approvals/${requestId}`,
+      });
+      logActivity({
+        userId: "system",
+        action: "APPROVAL_COMPLETED",
+        entityType: "ApprovalRequest",
+        entityId: requestId,
+        changes: { status: "APPROVED" },
+      });
+    } else {
+      // Advanced to the next step — notify the next approver(s).
+      const nextStep = chain[nextStepIndex];
+      if (nextStep) {
+        const metadata = request.metadata as Record<string, unknown> | null;
+        const entityLabel =
+          (metadata?.name as string) ||
+          (metadata?.eventName as string) ||
+          (metadata?.title as string) ||
+          request.entityId;
+        if (nextStep.approverType === "USER") {
+          notify({
+            userId: nextStep.approverId,
+            type: "LEAD_ASSIGNED",
+            title: "New Approval Required",
+            message: `${request.entityType} "${entityLabel}" requires your approval.`,
+            actionUrl: `/approvals/${requestId}`,
+          });
+        } else if (nextStep.approverType === "ROLE") {
+          const roleUsers = await prisma.user.findMany({
+            where: {
+              role: nextStep.approverId as import("@prisma/client").UserRole,
+              isActive: true,
+            },
+            select: { id: true },
+          });
+          for (const u of roleUsers) {
+            notify({
+              userId: u.id,
+              type: "LEAD_ASSIGNED",
+              title: "New Approval Required",
+              message: `${request.entityType} "${entityLabel}" requires your approval.`,
+              actionUrl: `/approvals/${requestId}`,
+            });
+          }
+        }
+      }
+    }
 
     logActivity({
       action: "APPROVE_REQUEST",
       entityType: "ApprovalRequest",
       entityId: requestId,
-      changes: { action: "APPROVE", step: request.currentStep },
+      changes: { action: "APPROVE", step: expectedStep },
       userId: session.user.id,
     });
 
@@ -726,23 +802,31 @@ export async function rejectRequest(
     const authErr = approverAuthError(request, session.user.id, (session.user as { role?: string }).role ?? "");
     if (authErr) return { success: false as const, error: authErr };
 
-    // Create the reject decision
+    const expectedStep = request.currentStep;
+
+    // Atomically claim the rejection. Compare-and-set keyed on
+    // (id, currentStep, status): only the first writer flips the request to
+    // REJECTED; concurrent rejections / double-submits see count 0 and bail, so
+    // the reject decision and the submitter notification fire exactly once.
+    const claim = await prisma.approvalRequest.updateMany({
+      where: { id: requestId, currentStep: expectedStep, status: "PENDING_APPROVAL" },
+      data: {
+        status: "REJECTED",
+        resolvedAt: new Date(),
+      },
+    });
+    if (claim.count === 0) {
+      return { success: false as const, error: "Request is no longer pending" };
+    }
+
+    // Create the reject decision (only the winning writer reaches here)
     await prisma.approvalDecision.create({
       data: {
         action: "REJECT",
         comment,
-        stepOrder: request.currentStep,
+        stepOrder: expectedStep,
         requestId,
         decidedById: session.user.id,
-      },
-    });
-
-    // Update request status
-    await prisma.approvalRequest.update({
-      where: { id: requestId },
-      data: {
-        status: "REJECTED",
-        resolvedAt: new Date(),
       },
     });
 

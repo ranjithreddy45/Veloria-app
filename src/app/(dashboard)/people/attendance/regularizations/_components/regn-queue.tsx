@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, X, Loader2, ClipboardCheck } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/shared/status-pill";
 import { formatDate } from "@/lib/utils";
@@ -34,8 +35,12 @@ function Card({ row }: { row: Row }) {
 
   async function decide(d: "APPROVED" | "REJECTED") {
     setBusy(d);
-    await decideRegularization(row.id, d);
+    const res = await decideRegularization(row.id, d);
     setBusy(null);
+    if (!res.success) {
+      toast.error(res.error);
+      return;
+    }
     router.refresh();
   }
 

@@ -1069,21 +1069,11 @@ export async function convertDealToBooking(data: {
       slot === "FULL_DAY"
         ? ["MORNING", "AFTERNOON", "EVENING", "FULL_DAY"]
         : [slot, "FULL_DAY"];
-    const clash = await prisma.booking.findFirst({
-      where: {
-        venueId: data.venueId,
-        date: bookingDate,
-        status: { notIn: ["CANCELLED"] },
-        timeSlot: { in: slotConflicts as ("MORNING" | "AFTERNOON" | "EVENING" | "FULL_DAY")[] },
-      },
-      select: { bookingNumber: true, eventName: true },
-    });
-    if (clash) {
-      return {
-        success: false as const,
-        error: `Slot taken by ${clash.bookingNumber} — ${clash.eventName}`,
-      };
-    }
+    // NOTE: the slot-clash re-check runs INSIDE the Serializable transaction
+    // below (not here) to close a TOCTOU race — two concurrent conversions, or a
+    // conversion racing createBooking, could otherwise both pass an outside
+    // check and double-book the same venue/slot (the DB unique key only catches
+    // an identical slot, not a FULL_DAY-vs-partial overlap).
     const blackout = await prisma.blackoutDate.findFirst({
       where: {
         venueId: data.venueId,
@@ -1113,9 +1103,23 @@ export async function convertDealToBooking(data: {
     // the txn (count + create together) and the whole txn is retried on a P2002
     // unique-violation, so two concurrent conversions can't claim the same number.
     let booking: { id: string; bookingNumber: string } | null = null;
+    let slotTaken = false;
     for (let attempt = 0; attempt < 5; attempt++) {
       try {
         booking = await prisma.$transaction(async (tx) => {
+          // Re-check the slot INSIDE the txn so two concurrent conversions for
+          // overlapping slots (e.g. EVENING + FULL_DAY) can't both win.
+          const clashes = await tx.booking.findMany({
+            where: {
+              venueId: data.venueId,
+              date: bookingDate,
+              status: { notIn: ["CANCELLED"] },
+              timeSlot: { in: slotConflicts as ("MORNING" | "AFTERNOON" | "EVENING" | "FULL_DAY")[] },
+            },
+            select: { id: true },
+          });
+          if (clashes.length > 0) throw new Error("SLOT_TAKEN");
+
           const count = await tx.booking.count();
           const bookingNumber = `${bkPrefix}${String(count + 1 + attempt).padStart(4, "0")}`;
 
@@ -1159,16 +1163,27 @@ export async function convertDealToBooking(data: {
           }
 
           return newBooking;
-        });
+        }, { isolationLevel: "Serializable" });
         break;
       } catch (e) {
-        // Retry only on a bookingNumber unique-collision; rethrow anything else.
+        // Our in-txn guard, or a serialization failure → the slot was taken.
+        if (e instanceof Error && e.message === "SLOT_TAKEN") { slotTaken = true; break; }
         const code = (e as { code?: string })?.code;
-        if (code === "P2002" && attempt < 4) continue;
+        const target = (e as { meta?: { target?: string[] | string } })?.meta?.target;
+        const onBookingNumber = Array.isArray(target)
+          ? target.includes("bookingNumber")
+          : String(target ?? "").includes("bookingNumber");
+        // Retry ONLY a bookingNumber unique-collision; a slot unique-violation
+        // (venueId_date_timeSlot) or serialization failure means the slot is taken.
+        if (code === "P2002" && onBookingNumber && attempt < 4) continue;
+        if (code === "P2002" || code === "P2034") { slotTaken = true; break; }
         throw e;
       }
     }
 
+    if (slotTaken) {
+      return { success: false as const, error: "That slot was just taken — please pick another." };
+    }
     if (!booking) {
       return { success: false as const, error: "Failed to allocate a booking number" };
     }

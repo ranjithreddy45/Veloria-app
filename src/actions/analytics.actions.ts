@@ -303,7 +303,7 @@ export async function getLeadConversionFunnel(params?: {
     const end = params?.endDate ? new Date(params.endDate) : now;
 
     const leads = await prisma.lead.findMany({
-      where: { createdAt: { gte: start, lte: end } },
+      where: { deletedAt: null, createdAt: { gte: start, lte: end } },
       select: { status: true },
     });
 

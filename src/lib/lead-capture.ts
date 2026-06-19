@@ -19,6 +19,22 @@ interface ExternalLeadData {
   perPlateBudget?: number; // ×guestCount estimates value when no budget given
   venueId?: string; // preferred venue
   customFields?: Record<string, unknown>;
+  /**
+   * Provider's own lead identifier (Facebook leadgen_id / Google lead_id).
+   * Used as an idempotency key so provider webhook retries do not create
+   * duplicate Lead rows. Persisted into the lead description as
+   * `[ext:<externalId>]` and matched on subsequent deliveries.
+   */
+  externalId?: string;
+}
+
+/**
+ * Build the stable idempotency marker embedded in a lead's description.
+ * Provider redeliveries carry the same externalId, so we can detect and
+ * short-circuit duplicate captures without a schema change.
+ */
+function externalIdMarker(externalId: string): string {
+  return `[ext:${externalId.trim()}]`;
 }
 
 /**
@@ -27,6 +43,26 @@ interface ExternalLeadData {
  */
 export async function captureLeadFromExternal(data: ExternalLeadData) {
   try {
+    // Idempotency guard: provider webhooks (Facebook leadgen_id / Google
+    // lead_id) redeliver on slow responses or non-2xx, which would otherwise
+    // create duplicate leads. If we've already captured this external id,
+    // return the existing lead instead of creating a new one.
+    const externalId = data.externalId?.trim();
+    if (externalId) {
+      const existing = await prisma.lead.findFirst({
+        where: { description: { contains: externalIdMarker(externalId) } },
+        select: { id: true, contactId: true },
+      });
+      if (existing) {
+        return {
+          success: true,
+          leadId: existing.id,
+          contactId: existing.contactId,
+          deduped: true,
+        };
+      }
+    }
+
     // Parse the name into first/last
     const nameParts = data.name.trim().split(/\s+/);
     const firstName = nameParts[0] || "Unknown";
@@ -99,7 +135,12 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
     const lead = await prisma.lead.create({
       data: {
         title: `${data.source} Lead — ${firstName} ${lastName}`.trim(),
-        description: data.message || `Auto-captured from ${data.source}`,
+        description: [
+          data.message || `Auto-captured from ${data.source}`,
+          externalId ? externalIdMarker(externalId) : null,
+        ]
+          .filter(Boolean)
+          .join(" "),
         status: "NEW",
         source: mapSource(data.source) as any,
         score,

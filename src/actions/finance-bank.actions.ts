@@ -236,7 +236,10 @@ export async function getReconSummary(bankAccountId: string): Promise<{ unmatche
   const statementBalance = Number(acct.openingBalance) + Number(sums._sum.credit ?? 0) - Number(sums._sum.debit ?? 0);
 
   const glAgg = await prisma.finJournalLine.aggregate({ where: { accountId: acct.glAccountId, entry: { status: "POSTED" } }, _sum: { debit: true, credit: true } });
-  const glBalance = Number(acct.openingBalance) + Number(glAgg._sum.debit ?? 0) - Number(glAgg._sum.credit ?? 0);
+  // The GL account balance is purely the sum of its posted lines. openingBalance
+  // is a statement-side figure (no opening JE is posted), so adding it here would
+  // double-count it against the statement side.
+  const glBalance = Number(glAgg._sum.debit ?? 0) - Number(glAgg._sum.credit ?? 0);
 
   return {
     unmatched: counts.UNMATCHED ?? 0, matched: counts.MATCHED ?? 0, reconciled: counts.RECONCILED ?? 0, ignored: counts.IGNORED ?? 0,

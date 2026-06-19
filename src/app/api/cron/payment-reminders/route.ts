@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isValidCronSecret } from "@/lib/cron-auth";
-import { createNotification } from "@/actions/notification.actions";
+import { notifyAwait } from "@/lib/notify";
 
 export const maxDuration = 60;
 
@@ -106,7 +106,7 @@ export async function GET(request: Request) {
           ? `Invoice ${inv.invoiceNumber} is overdue with ${balanceLabel} still outstanding.`
           : `Invoice ${inv.invoiceNumber} has ${balanceLabel} due in ${Math.max(daysToDue, 0)} day${daysToDue === 1 ? "" : "s"}.`;
 
-        await createNotification({
+        await notifyAwait({
           userId,
           type: "PAYMENT_OVERDUE",
           title,

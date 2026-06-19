@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Check, X, Loader2, Inbox } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/utils";
@@ -44,8 +45,12 @@ function Card({ req }: { req: ChangeReq }) {
 
   async function decide(decision: "APPROVED" | "REJECTED") {
     setBusy(decision);
-    await decideChangeRequest(req.id, decision);
+    const res = await decideChangeRequest(req.id, decision);
     setBusy(null);
+    if (res && !res.success) {
+      toast.error(res.error ?? "Failed to update change request");
+      return;
+    }
     router.refresh();
   }
 

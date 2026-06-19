@@ -65,21 +65,159 @@ export async function getContact360Timeline(
     // Build type filter set
     const types = filterTypes && filterTypes.length > 0 ? new Set(filterTypes) : null;
 
+    // DB-level cap on high-volume sources so we don't pull thousands of rows
+    // into the Node process on every page view. We still paginate the merged
+    // timeline in memory, but each source contributes at most HIGH_VOLUME_TAKE
+    // (most-recent) rows.
+    const HIGH_VOLUME_TAKE = 200;
+
+    // ── Run all source queries concurrently ──
+    // None of these depend on each other (all keyed by contactId), so page
+    // latency is max(query) instead of sum(query).
+    const [
+      communications,
+      bookings,
+      invoices,
+      quotes,
+      leads,
+      whatsappMessages,
+      contracts,
+      contactBookingIds,
+    ] = await Promise.all([
+      // 1. Communications
+      !types || types.has("communication")
+        ? prisma.communication.findMany({
+            where: { contactId },
+            orderBy: { createdAt: "desc" },
+            take: HIGH_VOLUME_TAKE,
+            select: {
+              id: true,
+              type: true,
+              subject: true,
+              content: true,
+              direction: true,
+              createdAt: true,
+              bookingId: true,
+            },
+          })
+        : Promise.resolve([]),
+      // 2. Bookings
+      !types || types.has("booking")
+        ? prisma.booking.findMany({
+            where: { contactId },
+            orderBy: { createdAt: "desc" },
+            select: {
+              id: true,
+              bookingNumber: true,
+              eventName: true,
+              eventType: true,
+              status: true,
+              date: true,
+              totalAmount: true,
+              createdAt: true,
+              venue: { select: { name: true } },
+            },
+          })
+        : Promise.resolve([]),
+      // 3. Invoices + Payments
+      !types || types.has("invoice") || types.has("payment")
+        ? prisma.invoice.findMany({
+            where: { contactId },
+            orderBy: { createdAt: "desc" },
+            include: {
+              payments: {
+                orderBy: { createdAt: "desc" },
+                select: {
+                  id: true,
+                  amount: true,
+                  status: true,
+                  method: true,
+                  paidAt: true,
+                  createdAt: true,
+                },
+              },
+            },
+          })
+        : Promise.resolve([]),
+      // 4. Quotes
+      !types || types.has("quote")
+        ? prisma.quote.findMany({
+            where: { contactId },
+            orderBy: { createdAt: "desc" },
+            select: {
+              id: true,
+              quoteNumber: true,
+              title: true,
+              status: true,
+              totalAmount: true,
+              createdAt: true,
+            },
+          })
+        : Promise.resolve([]),
+      // 5. Leads + Deals
+      !types || types.has("lead") || types.has("deal")
+        ? prisma.lead.findMany({
+            where: { contactId },
+            orderBy: { createdAt: "desc" },
+            include: {
+              deal: {
+                select: {
+                  id: true,
+                  title: true,
+                  value: true,
+                  stage: { select: { name: true } },
+                  wonDate: true,
+                  lostDate: true,
+                  createdAt: true,
+                },
+              },
+              assignedTo: { select: { name: true } },
+            },
+          })
+        : Promise.resolve([]),
+      // 6. WhatsApp Messages
+      !types || types.has("whatsapp")
+        ? prisma.whatsAppMessage.findMany({
+            where: { contactId },
+            orderBy: { sentAt: "desc" },
+            take: HIGH_VOLUME_TAKE,
+            select: {
+              id: true,
+              content: true,
+              direction: true,
+              status: true,
+              templateName: true,
+              sentAt: true,
+            },
+          })
+        : Promise.resolve([]),
+      // 7. Contracts
+      !types || types.has("contract")
+        ? prisma.contract.findMany({
+            where: { contactId },
+            orderBy: { createdAt: "desc" },
+            select: {
+              id: true,
+              title: true,
+              status: true,
+              signedAt: true,
+              sentAt: true,
+              createdAt: true,
+              bookingId: true,
+            },
+          })
+        : Promise.resolve([]),
+      // 8a. Booking ids for tasks
+      !types || types.has("task")
+        ? prisma.booking.findMany({
+            where: { contactId },
+            select: { id: true },
+          })
+        : Promise.resolve([]),
+    ]);
+
     // ── 1. Communications ──
     if (!types || types.has("communication")) {
-      const communications = await prisma.communication.findMany({
-        where: { contactId },
-        orderBy: { createdAt: "desc" },
-        select: {
-          id: true,
-          type: true,
-          subject: true,
-          content: true,
-          direction: true,
-          createdAt: true,
-          bookingId: true,
-        },
-      });
       for (const c of communications) {
         items.push({
           id: c.id,
@@ -96,21 +234,6 @@ export async function getContact360Timeline(
 
     // ── 2. Bookings ──
     if (!types || types.has("booking")) {
-      const bookings = await prisma.booking.findMany({
-        where: { contactId },
-        orderBy: { createdAt: "desc" },
-        select: {
-          id: true,
-          bookingNumber: true,
-          eventName: true,
-          eventType: true,
-          status: true,
-          date: true,
-          totalAmount: true,
-          createdAt: true,
-          venue: { select: { name: true } },
-        },
-      });
       for (const b of bookings) {
         items.push({
           id: b.id,
@@ -132,23 +255,6 @@ export async function getContact360Timeline(
 
     // ── 3. Invoices + Payments ──
     if (!types || types.has("invoice") || types.has("payment")) {
-      const invoices = await prisma.invoice.findMany({
-        where: { contactId },
-        orderBy: { createdAt: "desc" },
-        include: {
-          payments: {
-            orderBy: { createdAt: "desc" },
-            select: {
-              id: true,
-              amount: true,
-              status: true,
-              method: true,
-              paidAt: true,
-              createdAt: true,
-            },
-          },
-        },
-      });
       for (const inv of invoices) {
         if (!types || types.has("invoice")) {
           items.push({
@@ -190,18 +296,6 @@ export async function getContact360Timeline(
 
     // ── 4. Quotes ──
     if (!types || types.has("quote")) {
-      const quotes = await prisma.quote.findMany({
-        where: { contactId },
-        orderBy: { createdAt: "desc" },
-        select: {
-          id: true,
-          quoteNumber: true,
-          title: true,
-          status: true,
-          totalAmount: true,
-          createdAt: true,
-        },
-      });
       for (const q of quotes) {
         items.push({
           id: q.id,
@@ -218,24 +312,6 @@ export async function getContact360Timeline(
 
     // ── 5. Leads + Deals ──
     if (!types || types.has("lead") || types.has("deal")) {
-      const leads = await prisma.lead.findMany({
-        where: { contactId },
-        orderBy: { createdAt: "desc" },
-        include: {
-          deal: {
-            select: {
-              id: true,
-              title: true,
-              value: true,
-              stage: { select: { name: true } },
-              wonDate: true,
-              lostDate: true,
-              createdAt: true,
-            },
-          },
-          assignedTo: { select: { name: true } },
-        },
-      });
       for (const l of leads) {
         if (!types || types.has("lead")) {
           items.push({
@@ -276,18 +352,6 @@ export async function getContact360Timeline(
 
     // ── 6. WhatsApp Messages ──
     if (!types || types.has("whatsapp")) {
-      const whatsappMessages = await prisma.whatsAppMessage.findMany({
-        where: { contactId },
-        orderBy: { sentAt: "desc" },
-        select: {
-          id: true,
-          content: true,
-          direction: true,
-          status: true,
-          templateName: true,
-          sentAt: true,
-        },
-      });
       for (const w of whatsappMessages) {
         items.push({
           id: w.id,
@@ -306,19 +370,6 @@ export async function getContact360Timeline(
 
     // ── 7. Contracts ──
     if (!types || types.has("contract")) {
-      const contracts = await prisma.contract.findMany({
-        where: { contactId },
-        orderBy: { createdAt: "desc" },
-        select: {
-          id: true,
-          title: true,
-          status: true,
-          signedAt: true,
-          sentAt: true,
-          createdAt: true,
-          bookingId: true,
-        },
-      });
       for (const c of contracts) {
         items.push({
           id: c.id,
@@ -335,10 +386,6 @@ export async function getContact360Timeline(
 
     // ── 8. Tasks (via Bookings) ──
     if (!types || types.has("task")) {
-      const contactBookingIds = await prisma.booking.findMany({
-        where: { contactId },
-        select: { id: true },
-      });
       const bookingIds = contactBookingIds.map((b) => b.id);
       if (bookingIds.length > 0) {
         const tasks = await prisma.task.findMany({

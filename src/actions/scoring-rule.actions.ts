@@ -495,6 +495,74 @@ async function loadCommunicationCounts(
   );
 }
 
+const COMMUNICATION_TIMEFRAMES = [7, 14, 30, 60, 90];
+
+type CommunicationCounts = Record<string, number>;
+
+// Batched version of loadCommunicationCounts: instead of 5 count queries per
+// contact, fire one grouped query per timeframe across all contactIds and bucket
+// the results. Returns a map of contactId -> { _communicationCount_<days>: n }.
+async function loadCommunicationCountsBatch(
+  contactIds: string[]
+): Promise<Map<string, CommunicationCounts>> {
+  const result = new Map<string, CommunicationCounts>();
+  const uniqueIds = Array.from(new Set(contactIds.filter(Boolean)));
+
+  // Seed every contact with zeroed buckets so missing rows read as 0.
+  for (const id of uniqueIds) {
+    const buckets: CommunicationCounts = {};
+    for (const days of COMMUNICATION_TIMEFRAMES) {
+      buckets[`_communicationCount_${days}`] = 0;
+    }
+    result.set(id, buckets);
+  }
+
+  if (uniqueIds.length === 0) {
+    return result;
+  }
+
+  const now = new Date();
+
+  await Promise.all(
+    COMMUNICATION_TIMEFRAMES.map(async (days) => {
+      const since = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+      const grouped = await prisma.communication.groupBy({
+        by: ["contactId"],
+        where: {
+          contactId: { in: uniqueIds },
+          createdAt: { gte: since },
+        },
+        _count: { _all: true },
+      });
+      for (const row of grouped) {
+        if (!row.contactId) continue;
+        const buckets = result.get(row.contactId);
+        if (buckets) {
+          buckets[`_communicationCount_${days}`] = row._count._all;
+        }
+      }
+    })
+  );
+
+  return result;
+}
+
+// Merge pre-computed communication counts onto an entity data record.
+function applyCommunicationCounts(
+  data: Record<string, unknown>,
+  counts: CommunicationCounts | undefined
+): void {
+  if (!counts) {
+    for (const days of COMMUNICATION_TIMEFRAMES) {
+      data[`_communicationCount_${days}`] = 0;
+    }
+    return;
+  }
+  for (const [key, value] of Object.entries(counts)) {
+    data[key] = value;
+  }
+}
+
 export async function evaluateScoringRules(
   entityType: string,
   entityId: string
@@ -605,25 +673,38 @@ export async function recalculateScoresForEntityType(
 
     switch (entityType) {
       case "LEAD": {
-        const leads = await prisma.lead.findMany({
-          select: { id: true, contactId: true },
-        });
+        // Fetch full rows up front so we don't re-fetch each lead inside the loop.
+        const leads = await prisma.lead.findMany();
+
+        // Resolve communication counts for every contact in a single batched pass.
+        const countsByContact = await loadCommunicationCountsBatch(
+          leads.map((l) => l.contactId)
+        );
+
+        const scoreUpdates: Array<{ id: string; score: number }> = [];
 
         for (const lead of leads) {
           processed++;
-          const fullLead = await prisma.lead.findUnique({ where: { id: lead.id } });
-          if (!fullLead) continue;
 
-          const entityData = serialize(fullLead) as unknown as Record<string, unknown>;
-          await loadCommunicationCounts(entityData, lead.contactId);
+          const entityData = serialize(lead) as unknown as Record<string, unknown>;
+          applyCommunicationCounts(entityData, countsByContact.get(lead.contactId));
 
           const result = evaluateScore(entityData, rules, ruleSet.maxScore);
 
-          await prisma.lead.update({
-            where: { id: lead.id },
-            data: { score: result.total },
-          });
+          scoreUpdates.push({ id: lead.id, score: result.total });
           updated++;
+        }
+
+        // Batch the score writes into a single transaction.
+        if (scoreUpdates.length > 0) {
+          await prisma.$transaction(
+            scoreUpdates.map((u) =>
+              prisma.lead.update({
+                where: { id: u.id },
+                data: { score: u.score },
+              })
+            )
+          );
         }
         break;
       }
@@ -636,21 +717,23 @@ export async function recalculateScoresForEntityType(
         break;
       }
       case "DEAL": {
+        // Fetch full rows (with lead) up front so we don't re-fetch each deal inside the loop.
         const deals = await prisma.deal.findMany({
-          include: { lead: { select: { id: true, contactId: true } } },
+          include: { lead: true },
         });
+
+        // Resolve communication counts for every related contact in one batched pass.
+        const dealContactIds = deals
+          .map((d) => d.lead?.contactId)
+          .filter((id): id is string => Boolean(id));
+        const countsByContact = await loadCommunicationCountsBatch(dealContactIds);
 
         for (const deal of deals) {
           processed++;
-          const fullDeal = await prisma.deal.findUnique({
-            where: { id: deal.id },
-            include: { lead: true },
-          });
-          if (!fullDeal) continue;
 
-          const entityData = serialize(fullDeal) as unknown as Record<string, unknown>;
-          if (fullDeal.lead?.contactId) {
-            await loadCommunicationCounts(entityData, fullDeal.lead.contactId);
+          const entityData = serialize(deal) as unknown as Record<string, unknown>;
+          if (deal.lead?.contactId) {
+            applyCommunicationCounts(entityData, countsByContact.get(deal.lead.contactId));
           }
 
           evaluateScore(entityData, rules, ruleSet.maxScore);

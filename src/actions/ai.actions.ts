@@ -10,6 +10,19 @@ import { scoreLeadWithAI } from "@/lib/ai/lead-scoring";
 import { scoreDeal } from "@/lib/ai/deal-scoring";
 import { Prisma } from "@prisma/client";
 
+// Run `worker` over `items` with bounded concurrency so bulk scoring issues a
+// small number of parallel round trips instead of one long serial chain.
+async function runWithConcurrency<T>(
+  items: T[],
+  limit: number,
+  worker: (item: T) => Promise<void>
+): Promise<void> {
+  for (let i = 0; i < items.length; i += limit) {
+    const chunk = items.slice(i, i + limit);
+    await Promise.all(chunk.map(worker));
+  }
+}
+
 // ============================================================
 // AI Score a Single Lead
 // ============================================================
@@ -106,8 +119,9 @@ export async function aiScoreAllLeads() {
 
     let updatedCount = 0;
 
-    // Score each lead
-    for (const lead of leads) {
+    // Score leads with bounded concurrency instead of a fully serial loop,
+    // so a few hundred open leads run as small parallel batches.
+    await runWithConcurrency(leads, 5, async (lead) => {
       try {
         const { score, reason } = await scoreLeadWithAI(lead.id);
 
@@ -125,7 +139,7 @@ export async function aiScoreAllLeads() {
         // Log but continue scoring remaining leads
         console.error(`[AI_SCORE_ALL] Failed to score lead ${lead.id}:`, error);
       }
-    }
+    });
 
     await logActivity({
       userId: session.user.id as string,
@@ -240,8 +254,8 @@ export async function aiScoreAllDeals() {
 
     let updatedCount = 0;
 
-    // Score each deal
-    for (const deal of deals) {
+    // Score deals with bounded concurrency instead of a fully serial loop.
+    await runWithConcurrency(deals, 5, async (deal) => {
       try {
         const scoreResult = await scoreDeal(deal.id);
 
@@ -268,7 +282,7 @@ export async function aiScoreAllDeals() {
           error
         );
       }
-    }
+    });
 
     await logActivity({
       userId: session.user.id as string,

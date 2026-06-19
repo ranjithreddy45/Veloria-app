@@ -133,6 +133,20 @@ export async function createNotification(data: {
   actionUrl?: string;
   metadata?: Prisma.InputJsonValue;
 }): Promise<NotificationItem> {
+  // Auth gate: this is exported from a "use server" file and is therefore a
+  // reachable RPC. Without a guard any client could write an arbitrary
+  // notification (attacker-controlled title/message/actionUrl) to any userId,
+  // enabling in-app phishing and spoofing. Require an authenticated session and
+  // only allow fanning out to OTHER users for privileged roles; everyone else
+  // may only create notifications for themselves.
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Unauthorized");
+  const role = session.user.role as string | undefined;
+  const canFanOut = role === "SUPER_ADMIN" || role === "ADMIN";
+  if (data.userId !== session.user.id && !canFanOut) {
+    throw new Error("Forbidden");
+  }
+
   const notification = await prisma.notification.create({
     data: {
       userId: data.userId,

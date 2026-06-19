@@ -9,10 +9,10 @@ import {
 
 // ============================================================
 // Oracle = "Veloria Grand Quotation Planner.xlsx" worked example:
-//   Guests 120 · Veg Gold (699) · Baby shower premium decor (25000)
+//   Guests 120 · Veg Gold (699) · Baby shower premium decor (35000)
 //   · Photography B'day (15000) · no drinks/rooms
-//   → Food 83,880 + Decor 25,000 + Photo 15,000 = 123,880
-//   → Tax 5% = 6,194 → Grand Total = 130,074
+//   → Food 83,880 + Decor 35,000 + Photo 15,000 = 133,880
+//   → Tax 5% = 6,694 → Grand Total = 140,574
 // ============================================================
 
 describe("computeQuotation — planner oracle", () => {
@@ -31,15 +31,15 @@ describe("computeQuotation — planner oracle", () => {
 
   it("decor + photography are fixed", () => {
     const r = computeQuotation(input);
-    expect(r.lines.find((l) => l.particulars === "Decor Plan")?.amount).toBe(25000);
+    expect(r.lines.find((l) => l.particulars === "Decor Plan")?.amount).toBe(35000);
     expect(r.lines.find((l) => l.particulars === "Photography / Videography")?.amount).toBe(15000);
   });
 
   it("subtotal, tax and grand total match the planner to the rupee", () => {
     const r = computeQuotation(input);
-    expect(r.subtotal).toBe(123880);
-    expect(r.tax).toBe(6194);
-    expect(r.grandTotal).toBe(130074);
+    expect(r.subtotal).toBe(133880);
+    expect(r.tax).toBe(6694);
+    expect(r.grandTotal).toBe(140574);
   });
 });
 

@@ -158,7 +158,13 @@ export async function applyLeave(input: ApplyLeaveInput): Promise<Result<{ id: s
   const endPart = (type.allowHalfDay ? input.endPart : "FULL") ?? "FULL";
 
   const year = start.getUTCFullYear();
-  const holidays = await holidayKeySet(year);
+  const endYear = end.getUTCFullYear();
+  // Load holidays for every calendar year the range touches so a span crossing a
+  // year boundary (e.g. 30-Dec → 03-Jan) doesn't mis-count the second year's holidays.
+  const holidays = new Set<string>();
+  for (let y = year; y <= endYear; y++) {
+    for (const k of await holidayKeySet(y)) holidays.add(k);
+  }
   const days = workingDays(start, end, startPart, endPart, holidays);
   if (days <= 0) return { success: false, error: "The selected dates are all weekends/holidays — no working days to apply." };
 
@@ -170,7 +176,7 @@ export async function applyLeave(input: ApplyLeaveInput): Promise<Result<{ id: s
   if (existing.some((e) => rangesOverlap(start, end, e.startDate, e.endDate)))
     return { success: false, error: "You already have a leave request overlapping these dates." };
 
-  await ensureBalances(employeeId, year);
+  for (let y = year; y <= endYear; y++) await ensureBalances(employeeId, y);
 
   try {
     const created = await prisma.$transaction(async (tx) => {

@@ -97,9 +97,9 @@ export async function globalSearch(
       await Promise.all([
         // Contacts — name, email, phone, company
         prisma.contact.findMany({
-          where: allTokens<Prisma.ContactWhereInput>(tokens, (tok) => [
+          where: { deletedAt: null, ...allTokens<Prisma.ContactWhereInput>(tokens, (tok) => [
             ci("firstName", tok), ci("lastName", tok), ci("email", tok), ci("phone", tok), ci("company", tok),
-          ]),
+          ]) },
           select: { id: true, firstName: true, lastName: true, email: true, phone: true, company: true },
           take: PER_TYPE,
           orderBy: { firstName: "asc" },
@@ -107,10 +107,10 @@ export async function globalSearch(
 
         // Leads — title, description, eventType + the linked contact's name/phone/email
         prisma.lead.findMany({
-          where: allTokens<Prisma.LeadWhereInput>(tokens, (tok) => [
+          where: { deletedAt: null, ...allTokens<Prisma.LeadWhereInput>(tokens, (tok) => [
             ci("title", tok), ci("description", tok), ci("eventType", tok),
             { contact: { OR: [ci("firstName", tok), ci("lastName", tok), ci("phone", tok), ci("email", tok)] } },
-          ]),
+          ]) },
           select: {
             id: true, title: true, status: true,
             contact: { select: { firstName: true, lastName: true } },
@@ -249,9 +249,9 @@ export async function globalSearch(
             orderBy: { createdAt: "desc" },
           }),
           prisma.hallOwner.findMany({
-            where: allTokens<Prisma.HallOwnerWhereInput>(tokens, (tok) => [
+            where: { deletedAt: null, ...allTokens<Prisma.HallOwnerWhereInput>(tokens, (tok) => [
               ci("ownerName", tok), ci("companyName", tok), ci("email", tok), ci("phone", tok), ci("propertyCity", tok),
-            ]),
+            ]) },
             select: { id: true, ownerName: true, companyName: true, propertyCity: true, contractStatus: true },
             take: PER_TYPE,
             orderBy: { ownerName: "asc" },

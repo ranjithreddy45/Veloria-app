@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "New Lead" };
 export default async function NewLeadPage() {
   // Fetch contacts for the contact selector
   const contacts = await prisma.contact.findMany({
-    where: { isActive: true },
+    where: { deletedAt: null, isActive: true },
     select: {
       id: true,
       firstName: true,

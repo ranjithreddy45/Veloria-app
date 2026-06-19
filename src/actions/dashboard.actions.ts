@@ -174,15 +174,16 @@ export async function getDashboardStats(): Promise<Serialized<DashboardStats>> {
     }),
     // New leads this month
     prisma.lead.count({
-      where: { createdAt: { gte: thisMonthStart, lte: thisMonthEnd } },
+      where: { deletedAt: null, createdAt: { gte: thisMonthStart, lte: thisMonthEnd } },
     }),
     // New leads last month
     prisma.lead.count({
-      where: { createdAt: { gte: lastMonthStart, lte: lastMonthEnd } },
+      where: { deletedAt: null, createdAt: { gte: lastMonthStart, lte: lastMonthEnd } },
     }),
     // Won leads this month (for conversion rate)
     prisma.lead.count({
       where: {
+        deletedAt: null,
         status: "WON",
         updatedAt: { gte: thisMonthStart, lte: thisMonthEnd },
       },
@@ -190,6 +191,7 @@ export async function getDashboardStats(): Promise<Serialized<DashboardStats>> {
     // Total leads processed this month (for conversion rate)
     prisma.lead.count({
       where: {
+        deletedAt: null,
         status: { in: ["WON", "LOST"] },
         updatedAt: { gte: thisMonthStart, lte: thisMonthEnd },
       },

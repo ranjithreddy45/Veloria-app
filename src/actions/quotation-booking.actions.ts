@@ -109,6 +109,23 @@ export async function blockSlotFromQuotation(
   if (q.bookingId) return { success: false, error: "This quotation already has a booked slot." };
   if (!opts.venueId) return { success: false, error: "Select a venue to block." };
 
+  // Atomically claim the quotation before doing any booking work, so two
+  // concurrent calls can't both pass the bookingId guard above and create two
+  // HOLD bookings (orphaning the first when the second overwrites bookingId).
+  // The conditional updateMany only succeeds for the first caller; the rest get
+  // count === 0 and bail out cleanly.
+  const claim = await prisma.salesQuotation.updateMany({
+    where: { id: quotationId, bookingId: null, status: { in: ["APPROVED", "SENT"] } },
+    data: { slotBlockedAt: new Date() },
+  });
+  if (claim.count === 0)
+    return { success: false, error: "This quotation already has a booked slot." };
+  // Any failure after this point must release the claim so a retry can proceed.
+  const releaseClaim = () =>
+    prisma.salesQuotation
+      .updateMany({ where: { id: quotationId, bookingId: null }, data: { slotBlockedAt: null } })
+      .catch(() => {});
+
   // A zero/blank grand total would mint a ₹0 (previously ₹1) booking that
   // pollutes revenue — refuse it outright.
   const grandTotal = Number(q.grandTotal) || 0;
@@ -117,12 +134,16 @@ export async function blockSlotFromQuotation(
 
   const dateStr = opts.dateISO || (q.eventDate ? q.eventDate.toISOString().slice(0, 10) : "");
   const date = parseLocalDate(dateStr);
-  if (Number.isNaN(date.getTime())) return { success: false, error: "Select a valid event date." };
+  if (Number.isNaN(date.getTime())) {
+    await releaseClaim();
+    return { success: false, error: "Select a valid event date." };
+  }
   const timeSlot = opts.timeSlot ?? plannerSlotToEnum(q.timeSlot);
 
   // Pre-check (createBooking re-checks atomically, but this gives a clean message).
   const avail = await checkAvailability(opts.venueId, date, timeSlot);
   if (avail.success && avail.data && !avail.data.available) {
+    await releaseClaim();
     return { success: false, error: avail.data.reason || "That slot is already taken." };
   }
 
@@ -188,6 +209,7 @@ export async function blockSlotFromQuotation(
       await prisma.salesQuotation.update({ where: { id: quotationId }, data: { contactId: null } }).catch(() => {});
       await prisma.contact.delete({ where: { id: mintedContactId } }).catch(() => {});
     }
+    await releaseClaim();
     return { success: false, error: res.error || "Could not create the booking." };
   }
   const bookingId = res.data.id;
@@ -211,6 +233,7 @@ export async function blockSlotFromQuotation(
     });
   } catch (e) {
     await prisma.booking.update({ where: { id: bookingId }, data: { status: "CANCELLED" } }).catch(() => {});
+    await releaseClaim();
     console.error("[BLOCK_SLOT_LINK_ERROR]", e);
     return { success: false, error: "Could not finalize the slot block — please try again." };
   }

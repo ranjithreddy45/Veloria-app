@@ -519,26 +519,9 @@ export async function editAcqLead(
   const data: Record<string, unknown> = {};
   if (p.ownerName !== undefined) data.ownerName = p.ownerName;
   if (p.mobilePrimary !== undefined) {
-    const newMobile = normalizeMobile(p.mobilePrimary);
-    // Re-run the same active-lead dedup createAcqLead enforces, excluding this lead.
-    if (newMobile !== lead.mobilePrimary) {
-      const dup = await prisma.acqLead.findFirst({
-        where: {
-          id: { not: id },
-          deletedAt: null,
-          status: { not: "DISQUALIFIED" },
-          mobilePrimary: newMobile,
-        },
-        include: { bdExecutive: { select: { name: true } } },
-      });
-      if (dup) {
-        return {
-          success: false,
-          error: `This venue already exists as a lead (${dup.propertyName}, ${dup.locality}) owned by ${dup.bdExecutive?.name ?? "a BD exec"}.`,
-        };
-      }
-    }
-    data.mobilePrimary = newMobile;
+    data.mobilePrimary = normalizeMobile(p.mobilePrimary);
+    // NOTE: create deliberately allows a repeat phone (an existing owner can
+    // register another venue), so no phone-collision check here.
   }
   if (p.mobileAlternate !== undefined) data.mobileAlternate = p.mobileAlternate ? normalizeMobile(p.mobileAlternate) : null;
   if (p.email !== undefined) data.email = p.email || null;
@@ -558,6 +541,32 @@ export async function editAcqLead(
   if (p.referrerPhone !== undefined) data.referrerPhone = p.referrerPhone || null;
   if (p.referrerEmail !== undefined) data.referrerEmail = p.referrerEmail || null;
   if (p.brokerageDemand !== undefined) data.brokerageDemand = p.brokerageDemand || null;
+
+  // When the property identity (name + locality) is being changed, re-run the same
+  // active-lead duplicate guard createAcqLead enforces so an edit can't recreate a
+  // (propertyName + locality) duplicate that create would have blocked.
+  if (p.propertyName !== undefined || p.locality !== undefined) {
+    const effPropertyName = p.propertyName !== undefined ? p.propertyName : lead.propertyName;
+    const effLocality = p.locality !== undefined ? p.locality : lead.locality;
+    const dup = await prisma.acqLead.findFirst({
+      where: {
+        id: { not: id },
+        deletedAt: null,
+        status: { not: "DISQUALIFIED" },
+        AND: [
+          { propertyName: { equals: effPropertyName, mode: "insensitive" } },
+          { locality: { equals: effLocality, mode: "insensitive" } },
+        ],
+      },
+      include: { bdExecutive: { select: { name: true } } },
+    });
+    if (dup) {
+      return {
+        success: false,
+        error: `This venue already exists as a lead (${dup.propertyName}, ${dup.locality}) owned by ${dup.bdExecutive?.name ?? "a BD exec"}.`,
+      };
+    }
+  }
 
   await prisma.acqLead.update({ where: { id }, data });
   revalidatePath("/bd/leads");

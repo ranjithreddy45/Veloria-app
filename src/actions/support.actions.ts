@@ -225,7 +225,7 @@ export async function getTicketFormOptions(): Promise<
 
   const [contacts, staff] = await Promise.all([
     prisma.contact.findMany({
-      where: { isActive: true },
+      where: { deletedAt: null, isActive: true },
       select: { id: true, firstName: true, lastName: true, company: true },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
       take: 500,

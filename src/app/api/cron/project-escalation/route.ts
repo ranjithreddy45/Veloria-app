@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { prisma } from "@/lib/prisma";
-import { computePortfolio } from "@/actions/project-portfolio.actions";
+import { computePortfolio } from "@/lib/projects/portfolio";
 import { notify } from "@/lib/notify";
 
 // Daily: escalate at-risk venue projects (open critical snags / over budget /

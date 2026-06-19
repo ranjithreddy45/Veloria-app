@@ -338,6 +338,10 @@ export async function approveAcqDeal(dealId: string): Promise<Result<{ id: strin
   if (!user || !acqCan(user.role, "bdhead:approve")) return { success: false, error: "Only BD Head / Admin can approve." };
   const deal = await prisma.acqDeal.findFirst({ where: { id: dealId, deletedAt: null } });
   if (!deal) return { success: false, error: "Deal not found" };
+  // Segregation of duties: the deal owner can't approve their own deal (except SUPER_ADMIN).
+  if (deal.bdExecutiveId === user.id && user.role !== "SUPER_ADMIN") {
+    return { success: false, error: "A different BD Head must approve a deal you own." };
+  }
   // Idempotency: don't re-stamp an already-approved deal (a no-op).
   if (deal.bdHeadApprovedById) {
     return { success: true, data: { id: dealId } };
@@ -366,6 +370,10 @@ export async function signoffLargeDeal(dealId: string): Promise<Result<{ id: str
   if (!user || !acqCan(user.role, "bdhead:approve")) return { success: false, error: "Only BD Head / Admin can sign off a large deal." };
   const deal = await prisma.acqDeal.findFirst({ where: { id: dealId, deletedAt: null } });
   if (!deal) return { success: false, error: "Deal not found" };
+  // Segregation of duties: the deal owner can't sign off their own large deal (except SUPER_ADMIN).
+  if (deal.bdExecutiveId === user.id && user.role !== "SUPER_ADMIN") {
+    return { success: false, error: "A different BD Head must approve a deal you own." };
+  }
   // Idempotency: don't re-stamp an already-signed-off deal.
   if (deal.largeDealSignoffById) {
     return { success: true, data: { id: dealId } };

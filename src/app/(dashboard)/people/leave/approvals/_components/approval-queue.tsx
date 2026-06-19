@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/shared/status-pill";
 import { formatDate } from "@/lib/utils";
 import { decideLeave } from "@/actions/hr-leave.actions";
+import { toast } from "sonner";
 
 interface Row {
   id: string; startDate: string; endDate: string; days: number; reason: string | null;
@@ -35,7 +36,12 @@ function Card({ row }: { row: Row }) {
 
   async function decide(decision: "APPROVED" | "REJECTED") {
     setBusy(decision);
-    await decideLeave(row.id, decision, note || undefined);
+    const res = await decideLeave(row.id, decision, note || undefined);
+    if (!res.success) {
+      toast.error(res.error);
+      setBusy(null);
+      return;
+    }
     setBusy(null);
     router.refresh();
   }

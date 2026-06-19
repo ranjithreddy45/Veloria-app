@@ -624,27 +624,20 @@ export async function bulkEnroll(
       ? calculateNextExecuteAt(firstStep.delayDays, firstStep.delayHours)
       : null;
 
-    let enrolled = 0;
-    let skipped = 0;
+    const result = await prisma.cadenceEnrollment.createMany({
+      data: entityIds.map((entityId) => ({
+        cadenceId,
+        entityId,
+        enrolledById: session.user.id,
+        status: "ACTIVE" as const,
+        currentStepOrder: 0,
+        nextExecuteAt,
+      })),
+      skipDuplicates: true,
+    });
 
-    for (const entityId of entityIds) {
-      try {
-        await prisma.cadenceEnrollment.create({
-          data: {
-            cadenceId,
-            entityId,
-            enrolledById: session.user.id,
-            status: "ACTIVE",
-            currentStepOrder: 0,
-            nextExecuteAt,
-          },
-        });
-        enrolled++;
-      } catch {
-        // Unique constraint violation — already enrolled
-        skipped++;
-      }
-    }
+    const enrolled = result.count;
+    const skipped = entityIds.length - result.count;
 
     logActivity({
       action: "BULK_ENROLL_CADENCE",

@@ -45,6 +45,21 @@ const num = (v: unknown): number => {
 function rollupEstFoodCost(items: { quantity: unknown; estUnitCost: unknown }[]): number {
   return round2(items.reduce((sum, it) => sum + num(it.quantity) * num(it.estUnitCost), 0));
 }
+/**
+ * actual food cost = Σ(quantity × actualUnitCost), rounded to 2dp — but only
+ * when at least one item has an actual unit cost entered. Returns null when no
+ * per-item actuals exist, so the plan's manually-set actualFoodCost is left
+ * untouched. Per-item actuals are authoritative once present.
+ */
+function rollupActualFoodCost(
+  items: { quantity: unknown; actualUnitCost: unknown }[],
+): number | null {
+  const hasActuals = items.some((it) => it.actualUnitCost != null);
+  if (!hasActuals) return null;
+  return round2(
+    items.reduce((sum, it) => sum + num(it.quantity) * num(it.actualUnitCost), 0),
+  );
+}
 /** divide-by-zero guarded per-cover cost. */
 function perCover(estFoodCost: number, covers: number): number {
   return covers > 0 ? round2(estFoodCost / covers) : 0;
@@ -329,14 +344,23 @@ export async function updateKitchenPlan(
 // ------------------------------------------------------------
 // Item CRUD — each mutation recomputes & persists the rollup.
 // ------------------------------------------------------------
-/** Recompute estFoodCost = Σ(quantity×estUnitCost) from current items and store on the plan. */
+/**
+ * Recompute estFoodCost = Σ(quantity×estUnitCost) from current items and store
+ * on the plan. When any item has an actualUnitCost entered, per-item actuals are
+ * authoritative: also roll them up into actualFoodCost = Σ(quantity×actualUnitCost)
+ * so the plan's actual cost and variance stay reconciled with the entered actuals.
+ * When no per-item actuals exist, the manually-set actualFoodCost is left untouched.
+ */
 async function recomputeRollup(planId: string) {
   const items = await prisma.kitchenPlanItem.findMany({
     where: { planId },
-    select: { quantity: true, estUnitCost: true },
+    select: { quantity: true, estUnitCost: true, actualUnitCost: true },
   });
   const estFoodCost = rollupEstFoodCost(items);
-  await prisma.kitchenPlan.update({ where: { id: planId }, data: { estFoodCost } });
+  const actualFoodCost = rollupActualFoodCost(items);
+  const data: Record<string, unknown> = { estFoodCost };
+  if (actualFoodCost != null) data.actualFoodCost = actualFoodCost;
+  await prisma.kitchenPlan.update({ where: { id: planId }, data });
 }
 
 export async function addPlanItem(

@@ -111,21 +111,29 @@ describe("R7 — cover image must belong to the package", () => {
 describe("R8 — first image auto-becomes cover", () => {
   it("sets cover when the package has none", async () => {
     db.vendorPackageImage.count.mockResolvedValue(0);
-    db.vendorPackage.findUnique.mockResolvedValue({ coverImageId: null });
     db.vendorPackageImage.create.mockResolvedValue({ id: "img1" });
-    db.vendorPackage.update.mockResolvedValue({});
+    db.vendorPackage.updateMany.mockResolvedValue({ count: 1 });
     const r = await addPackageImage("p1", "https://cdn.example/a.jpg");
     expect(r.success).toBe(true);
-    expect(db.vendorPackage.update).toHaveBeenCalledWith(
-      expect.objectContaining({ data: { coverImageId: "img1" } })
+    // Atomic claim: only updates when coverImageId is still null (no read-then-write race).
+    expect(db.vendorPackage.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "p1", coverImageId: null },
+        data: { coverImageId: "img1" },
+      })
     );
   });
-  it("does NOT change cover when one already exists", async () => {
+  it("does NOT overwrite an existing cover (guarded by coverImageId: null)", async () => {
     db.vendorPackageImage.count.mockResolvedValue(2);
-    db.vendorPackage.findUnique.mockResolvedValue({ coverImageId: "existing" });
     db.vendorPackageImage.create.mockResolvedValue({ id: "img3" });
+    // DB no-ops because a cover already exists: count 0 rows match the guard.
+    db.vendorPackage.updateMany.mockResolvedValue({ count: 0 });
     const r = await addPackageImage("p1", "https://cdn.example/c.jpg");
     expect(r.success).toBe(true);
+    // The guard (coverImageId: null) is what prevents clobbering an existing cover.
+    expect(db.vendorPackage.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "p1", coverImageId: null } })
+    );
     expect(db.vendorPackage.update).not.toHaveBeenCalled();
   });
   it("rejects a non-http url", async () => {

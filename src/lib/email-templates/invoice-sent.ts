@@ -12,6 +12,15 @@ interface InvoiceSentData {
   portalLink?: string;
 }
 
+function escapeHtml(value: string): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export function invoiceSentEmail(data: InvoiceSentData): string {
   const portalUrl = data.portalLink || `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/portal`;
 
@@ -19,7 +28,7 @@ export function invoiceSentEmail(data: InvoiceSentData): string {
     .map(
       (item) => `
       <tr>
-        <td style="padding:8px 12px;border-bottom:1px solid #f4f4f5;color:#18181b;font-size:13px;">${item.description}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #f4f4f5;color:#18181b;font-size:13px;">${escapeHtml(item.description)}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #f4f4f5;color:#18181b;font-size:13px;text-align:right;font-weight:500;">${item.amount}</td>
       </tr>`
     )
@@ -48,9 +57,9 @@ export function invoiceSentEmail(data: InvoiceSentData): string {
           <!-- Body -->
           <tr>
             <td style="padding:32px 40px;">
-              <h2 style="color:#18181b;font-size:20px;font-weight:600;margin:0 0 8px;">Invoice ${data.invoiceNumber}</h2>
+              <h2 style="color:#18181b;font-size:20px;font-weight:600;margin:0 0 8px;">Invoice ${escapeHtml(data.invoiceNumber)}</h2>
               <p style="color:#52525b;font-size:14px;line-height:1.6;margin:0 0 24px;">
-                Dear ${data.contactName},<br/>
+                Dear ${escapeHtml(data.contactName)},<br/>
                 Please find your invoice details below. Payment is due by <strong>${data.dueDate}</strong>.
               </p>
 
@@ -61,7 +70,7 @@ export function invoiceSentEmail(data: InvoiceSentData): string {
                     <table width="100%" cellpadding="0" cellspacing="0">
                       <tr>
                         <td style="color:#64748b;font-size:13px;">Invoice Number</td>
-                        <td style="color:#18181b;font-size:13px;font-weight:600;text-align:right;">${data.invoiceNumber}</td>
+                        <td style="color:#18181b;font-size:13px;font-weight:600;text-align:right;">${escapeHtml(data.invoiceNumber)}</td>
                       </tr>
                       <tr>
                         <td style="color:#64748b;font-size:13px;padding-top:6px;">Issue Date</td>

@@ -40,7 +40,7 @@ export async function instantiateExecutionPlanFromSOP(
     const template =
       (evt
         ? await prisma.sOPTemplate.findFirst({
-            where: { isActive: true, eventType: evt },
+            where: { isActive: true, eventType: { equals: evt, mode: "insensitive" } },
             // Deterministic when several templates share an event type.
             orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
             include: withPhases,
@@ -78,9 +78,13 @@ export async function instantiateExecutionPlanFromSOP(
           data: { planId: plan.id, name: ph.name, phase: ph.phase, order: ph.order },
           select: { id: true },
         });
-        if (ph.taskDefinitions.length) {
-          await tx.executionTask.createMany({
-            data: ph.taskDefinitions.map((t) => ({
+        // Create tasks individually so we can resolve dependsOnTaskOrder → id and
+        // copy each task's checklistItems — mirroring the manual applySOPToBooking
+        // path so the two never drift (previously these were silently dropped).
+        const taskOrderToId: Record<number, string> = {};
+        for (const t of ph.taskDefinitions) {
+          const task = await tx.executionTask.create({
+            data: {
               phaseId: phase.id,
               title: t.title,
               description: t.description,
@@ -91,8 +95,20 @@ export async function instantiateExecutionPlanFromSOP(
               requiresApproval: t.requiresApproval,
               requiresProof: t.requiresProof,
               order: t.order,
-            })),
+              dependsOnTaskId:
+                t.dependsOnTaskOrder != null ? (taskOrderToId[t.dependsOnTaskOrder] ?? null) : null,
+            },
+            select: { id: true },
           });
+          taskOrderToId[t.order] = task.id;
+          if (t.checklistItems) {
+            const items = t.checklistItems as Array<{ title: string; order: number }>;
+            if (Array.isArray(items) && items.length > 0) {
+              await tx.executionChecklist.createMany({
+                data: items.map((it) => ({ taskId: task.id, title: it.title, order: it.order })),
+              });
+            }
+          }
         }
       }
     });

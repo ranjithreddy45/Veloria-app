@@ -21,7 +21,7 @@ export default async function EditLeadPage({ params }: EditLeadPageProps) {
   const [leadResult, contacts, venues, users] = await Promise.all([
     getLead(leadId),
     prisma.contact.findMany({
-      where: { isActive: true },
+      where: { deletedAt: null, isActive: true },
       select: {
         id: true,
         firstName: true,
