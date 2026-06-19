@@ -39,6 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { StatusPill } from "@/components/shared/status-pill";
+import { LeadVisits } from "./lead-visits";
 import { acqCan } from "@/lib/acq/rbac";
 import {
   ACQ_PROPERTY_TYPE,
@@ -87,6 +88,11 @@ export interface AcqLeadFull {
   seatingRange?: string | null;
   propertyStage?: string | null;
   notes?: string | null;
+  parkingAvailable?: boolean | null;
+  referrerName?: string | null;
+  referrerPhone?: string | null;
+  referrerEmail?: string | null;
+  brokerageDemand?: string | null;
   leadSource: string;
   ownerType: string;
   status: Status;
@@ -279,11 +285,29 @@ export function LeadDetail({
                 label="Seating (theatre / floating)"
                 value={`${lead.seatingTheatre ?? "—"} / ${lead.seatingFloating ?? "—"}`}
               />
+              <Field
+                label="Parking"
+                value={lead.parkingAvailable == null ? "—" : lead.parkingAvailable ? "Available" : "Not available"}
+              />
               <Field label="BD owner" value={lead.bdExecutive?.name ?? "—"} />
               <Field label="Contact attempts" value={String(lead.contactAttempts)} />
               <Field label="Created" value={fmtDate(lead.createdAt)} />
               <Field label="Next follow-up" value={fmtDate(lead.nextFollowupAt)} />
             </dl>
+
+            {(lead.referrerName || lead.referrerPhone || lead.referrerEmail || lead.brokerageDemand) && (
+              <div className="mt-4 rounded-md border border-border/60 bg-muted/30 p-3">
+                <div className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">
+                  Referral / broker
+                </div>
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
+                  <Field label="Name" value={lead.referrerName || "—"} />
+                  <Field label="Phone" value={lead.referrerPhone || "—"} />
+                  <Field label="Email" value={lead.referrerEmail || "—"} />
+                  <Field label="Brokerage demand" value={lead.brokerageDemand || "—"} />
+                </dl>
+              </div>
+            )}
             {lead.notes && (
               <div className="mt-4 rounded-md border border-border/60 bg-muted/30 p-3 text-[13px]">
                 <div className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">
@@ -369,6 +393,9 @@ export function LeadDetail({
           </Card>
         </div>
       </div>
+
+      {/* Notes + site visits / meetings */}
+      <LeadVisits leadId={lead.id} canWrite={canWrite} />
 
       {/* Activity timeline */}
       <Card>

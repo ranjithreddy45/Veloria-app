@@ -42,6 +42,11 @@ const leadInputSchema = z.object({
   seatingRange: z.enum(ACQ_SEATING_RANGE).optional(),
   propertyStage: z.enum(ACQ_PROPERTY_STAGE).optional(),
   notes: z.string().max(5000).optional().or(z.literal("")),
+  parkingAvailable: z.boolean().optional(),
+  referrerName: z.string().max(200).optional().or(z.literal("")),
+  referrerPhone: z.string().max(20).optional().or(z.literal("")),
+  referrerEmail: z.string().email().optional().or(z.literal("")),
+  brokerageDemand: z.string().max(200).optional().or(z.literal("")),
   leadSource: z.enum(ACQ_LEAD_SOURCE),
   ownerType: z.enum(ACQ_OWNER_TYPE),
   bdExecutiveId: z.string().optional(),
@@ -118,19 +123,16 @@ export async function createAcqLead(input: AcqLeadInput): Promise<
 
   const mobile = normalizeMobile(d.mobilePrimary);
 
-  // Dedup over non-deleted, non-disqualified leads (mobile OR name+locality).
+  // Block only a TRUE duplicate — the same PROPERTY (name + locality). A repeat
+  // phone alone is allowed: an existing owner can register another hall/venue
+  // (the create form surfaces "owner already exists" via getAcqOwnerByPhone).
   const dup = await prisma.acqLead.findFirst({
     where: {
       deletedAt: null,
       status: { not: "DISQUALIFIED" },
-      OR: [
-        { mobilePrimary: mobile },
-        {
-          AND: [
-            { propertyName: { equals: d.propertyName, mode: "insensitive" } },
-            { locality: { equals: d.locality, mode: "insensitive" } },
-          ],
-        },
+      AND: [
+        { propertyName: { equals: d.propertyName, mode: "insensitive" } },
+        { locality: { equals: d.locality, mode: "insensitive" } },
       ],
     },
     include: { bdExecutive: { select: { name: true } } },
@@ -162,6 +164,11 @@ export async function createAcqLead(input: AcqLeadInput): Promise<
       seatingRange: d.seatingRange ?? null,
       propertyStage: d.propertyStage ?? null,
       notes: d.notes || null,
+      parkingAvailable: d.parkingAvailable ?? null,
+      referrerName: d.referrerName || null,
+      referrerPhone: d.referrerPhone || null,
+      referrerEmail: d.referrerEmail || null,
+      brokerageDemand: d.brokerageDemand || null,
       leadSource: d.leadSource,
       ownerType: d.ownerType,
       bdExecutiveId: d.bdExecutiveId || user.id,
@@ -487,6 +494,11 @@ const editSchema = z.object({
   leadSource: z.enum(ACQ_LEAD_SOURCE).optional(),
   ownerType: z.enum(ACQ_OWNER_TYPE).optional(),
   notes: z.string().max(5000).optional().or(z.literal("")),
+  parkingAvailable: z.boolean().nullable().optional(),
+  referrerName: z.string().max(200).optional().or(z.literal("")),
+  referrerPhone: z.string().max(20).optional().or(z.literal("")),
+  referrerEmail: z.string().email().optional().or(z.literal("")),
+  brokerageDemand: z.string().max(200).optional().or(z.literal("")),
 });
 export type AcqLeadEditInput = z.infer<typeof editSchema>;
 
@@ -541,6 +553,11 @@ export async function editAcqLead(
   if (p.leadSource !== undefined) data.leadSource = p.leadSource;
   if (p.ownerType !== undefined) data.ownerType = p.ownerType;
   if (p.notes !== undefined) data.notes = p.notes || null;
+  if (p.parkingAvailable !== undefined) data.parkingAvailable = p.parkingAvailable;
+  if (p.referrerName !== undefined) data.referrerName = p.referrerName || null;
+  if (p.referrerPhone !== undefined) data.referrerPhone = p.referrerPhone || null;
+  if (p.referrerEmail !== undefined) data.referrerEmail = p.referrerEmail || null;
+  if (p.brokerageDemand !== undefined) data.brokerageDemand = p.brokerageDemand || null;
 
   await prisma.acqLead.update({ where: { id }, data });
   revalidatePath("/bd/leads");
