@@ -137,7 +137,18 @@ export default async function InvoicePdfPage({ params }: InvoicePdfPageProps) {
               @media print {
                 .auto-print-bar { display: none; }
                 body { padding: 0; }
-                .invoice { padding: 0; }
+                /* This print page is wrapped by the dashboard shell (sidebar +
+                 * header). Collapse that chrome so the invoice prints full-width
+                 * and paginates normally — the saved PDF is the invoice alone. */
+                [data-slot="sidebar"],
+                [data-slot="sidebar-gap"],
+                [data-slot="sidebar-container"],
+                header { display: none !important; }
+                /* Belt-and-suspenders: even if a shell element isn't matched
+                 * above, only the invoice subtree stays visible. */
+                body * { visibility: hidden !important; }
+                .invoice, .invoice * { visibility: visible !important; }
+                .invoice { margin: 0 !important; padding: 0 !important; }
               }
             `,
           }}
