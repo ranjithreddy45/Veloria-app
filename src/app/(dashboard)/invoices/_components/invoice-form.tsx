@@ -129,8 +129,7 @@ export function InvoiceForm({
       sgstRate: 9,
       igstRate: 0,
       notes: "",
-      terms:
-        "1. Payment is due within 30 days of invoice date.\n2. Late payments may attract interest at 18% per annum.\n3. All disputes are subject to local jurisdiction.",
+      terms: "",
       gstin: "",
       placeOfSupply: "",
     },

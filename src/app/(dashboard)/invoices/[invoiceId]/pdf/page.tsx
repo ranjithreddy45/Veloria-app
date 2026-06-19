@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { getInvoice } from "@/actions/invoice.actions";
 import { formatINR } from "@/lib/utils";
-import { COMPANY_ADDRESS, COMPANY_GSTIN, COMPANY_LEGAL_LINE } from "@/lib/constants";
+import { COMPANY_ADDRESS, COMPANY_GSTIN, COMPANY_LEGAL_LINE, LEGACY_INVOICE_TERMS } from "@/lib/constants";
 
 // ============================================================
 // Print-Optimized Invoice PDF Page
@@ -48,6 +48,12 @@ export default async function InvoicePdfPage({ params }: InvoicePdfPageProps) {
   // the document is a Proforma Invoice (a preliminary bill, not a tax document).
   const fullyPaid = toNum(invoice.balanceDue) <= 0 || invoice.status === "PAID";
   const docTitle = fullyPaid ? "TAX INVOICE" : "PROFORMA INVOICE";
+
+  // Drop the retired default T&C boilerplate from old invoices; keep any custom terms.
+  const customTerms =
+    invoice.terms && invoice.terms.trim() !== LEGACY_INVOICE_TERMS.trim()
+      ? invoice.terms
+      : null;
 
   return (
     <html lang="en">
@@ -377,7 +383,7 @@ export default async function InvoicePdfPage({ params }: InvoicePdfPageProps) {
           </div>
 
           {/* Notes & Terms */}
-          {(invoice.notes || invoice.terms) && (
+          {(invoice.notes || customTerms) && (
             <div className="notes-section">
               {invoice.notes && (
                 <div style={{ marginBottom: "12px" }}>
@@ -385,10 +391,10 @@ export default async function InvoicePdfPage({ params }: InvoicePdfPageProps) {
                   <p>{invoice.notes}</p>
                 </div>
               )}
-              {invoice.terms && (
+              {customTerms && (
                 <div>
                   <h4>Terms & Conditions</h4>
-                  <p>{invoice.terms}</p>
+                  <p>{customTerms}</p>
                 </div>
               )}
             </div>

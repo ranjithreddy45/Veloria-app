@@ -20,6 +20,11 @@ export const COMPANY_ADDRESS =
 export const COMPANY_GSTIN =
   process.env.NEXT_PUBLIC_COMPANY_GSTIN || "29AAOCB1933E1ZN";
 
+// Legacy default invoice T&C that was auto-filled on older invoices. Suppressed
+// at render time so it no longer prints on existing invoices/proformas.
+export const LEGACY_INVOICE_TERMS =
+  "1. Payment is due within 30 days of invoice date.\n2. Late payments may attract interest at 18% per annum.\n3. All disputes are subject to local jurisdiction.";
+
 export const COMPANY_PHONE =
   process.env.NEXT_PUBLIC_COMPANY_PHONE || "+91 80 1234 5678";
 

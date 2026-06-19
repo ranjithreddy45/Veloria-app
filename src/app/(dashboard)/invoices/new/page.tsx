@@ -62,8 +62,7 @@ export default async function NewInvoicePage({
         sgstRate: 0,
         igstRate: 0,
         notes: "Booking total prefilled as the line amount — set GST as applicable (the total may already include tax).",
-        terms:
-          "1. Payment is due within 30 days of invoice date.\n2. Late payments may attract interest at 18% per annum.\n3. All disputes are subject to local jurisdiction.",
+        terms: "",
         gstin: "",
         placeOfSupply: "",
       };

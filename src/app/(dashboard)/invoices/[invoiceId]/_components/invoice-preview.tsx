@@ -11,6 +11,7 @@ import {
   COMPANY_ADDRESS,
   COMPANY_GSTIN,
   COMPANY_LEGAL_LINE,
+  LEGACY_INVOICE_TERMS,
 } from "@/lib/constants";
 import { formatINR } from "@/lib/utils";
 
@@ -125,6 +126,11 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
   // Proforma until paid in full; Tax Invoice only on 100% payment.
   const fullyPaid = toNum(invoice.balanceDue) <= 0 || invoice.status === "PAID";
   const docTitle = fullyPaid ? "TAX INVOICE" : "PROFORMA INVOICE";
+  // Drop the retired default T&C boilerplate from old invoices; keep custom terms.
+  const customTerms =
+    invoice.terms && invoice.terms.trim() !== LEGACY_INVOICE_TERMS.trim()
+      ? invoice.terms
+      : null;
 
   return (
     <div className="space-y-6">
@@ -398,7 +404,7 @@ This is a Proforma Invoice for advance/part payment and is not a tax document. A
         )}
 
         {/* Notes & Terms */}
-        {(invoice.notes || invoice.terms) && (
+        {(invoice.notes || customTerms) && (
           <div className="mt-8 space-y-4">
             <Separator />
             {invoice.notes && (
@@ -411,13 +417,13 @@ This is a Proforma Invoice for advance/part payment and is not a tax document. A
                 </p>
               </div>
             )}
-            {invoice.terms && (
+            {customTerms && (
               <div>
                 <h4 className="text-xs font-semibold uppercase text-zinc-400 mb-1">
                   Terms & Conditions
                 </h4>
                 <p className="text-sm text-zinc-600 whitespace-pre-line">
-                  {invoice.terms}
+                  {customTerms}
                 </p>
               </div>
             )}
