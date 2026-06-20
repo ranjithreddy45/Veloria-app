@@ -24,7 +24,7 @@ export default async function PayPage({
     <main className="relative min-h-screen bg-aura bg-grid-faint">
       <div className="mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-6 px-4 py-12">
         {/* ---- Brand hero ---- */}
-        <header className="animate-rise-in text-center">
+        <header className="text-center">
           <div className="logo-chip mx-auto flex size-14 items-center justify-center rounded-2xl">
             <span className="font-serif text-2xl font-semibold leading-none text-white drop-shadow-sm">
               V
@@ -35,7 +35,7 @@ export default async function PayPage({
         </header>
 
         {!res.success ? (
-          <div className="animate-rise-in rounded-2xl border border-border bg-card p-7 text-center shadow-premium [animation-delay:80ms]">
+          <div className="rounded-2xl border border-border bg-card p-7 text-center shadow-premium">
             <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400">
               <AlertTriangle className="size-6" />
             </div>
@@ -55,7 +55,7 @@ export default async function PayPage({
             const payAmount = Math.max(1, Math.min(i.balanceDue, Number.isFinite(suggested) ? suggested : i.balanceDue));
 
             return (
-              <div className="animate-rise-in overflow-hidden rounded-3xl border border-border bg-card shadow-premium [animation-delay:80ms]">
+              <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-premium">
                 {/* Card header */}
                 <div className="flex items-start gap-3 border-b border-border/60 p-6">
                   <div className="ring-glow-violet flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -132,7 +132,7 @@ export default async function PayPage({
         )}
 
         {/* ---- Trust footer ---- */}
-        <footer className="animate-rise-in space-y-3 text-center [animation-delay:160ms]">
+        <footer className="space-y-3 text-center">
           <p className="flex items-center justify-center gap-1.5 text-[12px] font-medium text-muted-foreground">
             <ShieldCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
             256-bit secure payment · powered by Razorpay

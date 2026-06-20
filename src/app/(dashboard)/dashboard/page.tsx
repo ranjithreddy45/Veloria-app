@@ -69,7 +69,7 @@ export default async function DashboardPage() {
           Hero — premium aura command-center header.
           Avatar + greeting + live daily briefing on an ambient violet wash.
           ============================================================ */}
-      <div className="bg-aura bg-grid-faint animate-rise-in relative -mx-4 -mt-4 overflow-hidden rounded-3xl px-4 pb-7 pt-7 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+      <div className="bg-aura bg-grid-faint relative -mx-4 -mt-4 overflow-hidden rounded-3xl px-4 pb-7 pt-7 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
         <div className="relative flex items-start gap-4">
           <Avatar className="hidden size-14 ring-2 ring-violet-500/20 ring-offset-2 ring-offset-background sm:flex">
             <AvatarImage src={userImage} alt={fullName} />
@@ -89,7 +89,7 @@ export default async function DashboardPage() {
             {/* Greeting — large-title display type */}
             <h1 className="large-title text-[30px] leading-[1.05] text-foreground sm:text-[36px]">
               {greeting},{" "}
-              <span className="text-ink-gradient">{userName}</span>
+              <span className="text-brand-gradient">{userName}</span>
             </h1>
             {/* Briefing chips — the at-a-glance "what needs me today" */}
             <div className="mt-0.5 flex flex-wrap items-center gap-2">
