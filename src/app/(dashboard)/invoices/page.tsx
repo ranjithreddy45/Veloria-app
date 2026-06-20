@@ -35,6 +35,7 @@ export default async function InvoicesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        aura
         eyebrow={`FINANCE · ${invoices.length} invoice${
           invoices.length === 1 ? "" : "s"
         } · ${formatINR(outstanding)} outstanding`}
@@ -50,7 +51,7 @@ export default async function InvoicesPage() {
         </Button>
       </PageHeader>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 animate-rise-in animate-stagger-1">
         <StatTile
           label="Total invoiced"
           value={formatINR(totalInvoiced)}
@@ -81,7 +82,9 @@ export default async function InvoicesPage() {
         />
       </div>
 
-      <InvoicesView data={invoices} />
+      <div className="animate-rise-in animate-stagger-2">
+        <InvoicesView data={invoices} />
+      </div>
     </div>
   );
 }

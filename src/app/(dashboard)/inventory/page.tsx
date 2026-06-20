@@ -32,6 +32,8 @@ export default async function InventoryPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        aura
+        eyebrow={`Operations · ${items.length} ${items.length === 1 ? "item" : "items"}${lowStockItems.length > 0 ? ` · ${lowStockItems.length} low` : ""}`}
         title="Inventory"
         help={<PageHelp id="inventory" />}
         description="Manage inventory items and stock levels."
@@ -66,7 +68,7 @@ export default async function InventoryPage() {
                   <Link
                     key={item.id}
                     href={`/inventory/${item.id}`}
-                    className="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-white px-2.5 py-1 text-xs font-medium text-amber-800 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-900 dark:text-amber-200 dark:hover:bg-amber-800"
+                    className="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-background/70 px-2.5 py-1 text-xs font-medium text-amber-800 transition-colors hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-200 dark:hover:bg-amber-800"
                   >
                     {item.name}
                     <span className="text-amber-600 dark:text-amber-400">

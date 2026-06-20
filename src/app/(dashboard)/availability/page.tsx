@@ -10,6 +10,8 @@ export default function AvailabilityPage() {
   return (
     <div className="space-y-5">
       <PageHeader
+        aura
+        eyebrow="Operations · Live"
         title="Slot Availability"
         description="See exactly which slots are free across every venue. Pick a day for the venue × slot grid, or scan the month heatmap and click any day to inspect it."
       />

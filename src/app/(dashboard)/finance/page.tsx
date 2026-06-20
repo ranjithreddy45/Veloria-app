@@ -24,9 +24,15 @@ export default async function FinancePage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Finance</h1>
-        <p className="text-sm text-muted-foreground">
+      <div className="bg-aura bg-grid-faint -mx-6 -mt-6 rounded-3xl px-6 pb-5 pt-6">
+        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em]">
+          <span aria-hidden className="h-3 w-[3px] rounded-full bg-gradient-to-b from-violet-500 to-fuchsia-500" />
+          <span className="text-brand-gradient">General Ledger</span>
+        </div>
+        <h1 className="large-title mt-2 text-[28px] leading-tight text-foreground sm:text-[32px]">
+          Finance
+        </h1>
+        <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
           General ledger, trial balance and journal entries — double-entry, period-locked.
         </p>
       </div>

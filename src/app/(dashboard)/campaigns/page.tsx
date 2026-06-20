@@ -30,6 +30,7 @@ export default async function CampaignsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        aura
         eyebrow={eyebrow}
         title="Campaigns"
         help={<PageHelp id="campaigns" />}

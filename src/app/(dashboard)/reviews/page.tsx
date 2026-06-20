@@ -29,6 +29,8 @@ export default async function ReviewsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        aura
+        eyebrow={`Reputation · ${stats.total} ${stats.total === 1 ? "review" : "reviews"} · ${stats.average.toFixed(1)}★ avg`}
         title="Reviews"
         help={<PageHelp id="reviews" />}
         description="Moderate client reviews and manage public feedback."

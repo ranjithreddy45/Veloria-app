@@ -6,7 +6,7 @@ import {
   TrendingUpIcon,
   CoinsIcon,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatTile } from "@/components/ui/stat-tile";
 
 // ============================================================
 // Types
@@ -33,72 +33,35 @@ interface LoyaltyStatsProps {
 
 export function LoyaltyStats({ stats }: LoyaltyStatsProps) {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Total Members
-          </CardTitle>
-          <UsersIcon className="size-4 text-blue-600" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{stats.totalAccounts}</div>
-          <p className="text-xs text-muted-foreground mt-1">
-            {stats.platinumCount} Platinum, {stats.goldCount} Gold
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Points Outstanding
-          </CardTitle>
-          <CoinsIcon className="size-4 text-amber-600" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-amber-700">
-            {stats.totalPointsOutstanding.toLocaleString("en-IN")}
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Active balance across all accounts
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Total Earned
-          </CardTitle>
-          <TrendingUpIcon className="size-4 text-emerald-600" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-emerald-700">
-            {stats.totalPointsEarned.toLocaleString("en-IN")}
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Lifetime points earned
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Total Redeemed
-          </CardTitle>
-          <AwardIcon className="size-4 text-purple-600" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-purple-700">
-            {stats.totalPointsRedeemed.toLocaleString("en-IN")}
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Lifetime points redeemed
-          </p>
-        </CardContent>
-      </Card>
+    <div className="grid grid-cols-1 gap-4 animate-stagger-1 sm:grid-cols-2 lg:grid-cols-4">
+      <StatTile
+        label="Total Members"
+        value={stats.totalAccounts}
+        accent="blue"
+        icon={<UsersIcon />}
+        sub={`${stats.platinumCount} Platinum · ${stats.goldCount} Gold`}
+      />
+      <StatTile
+        label="Points Outstanding"
+        value={stats.totalPointsOutstanding.toLocaleString("en-IN")}
+        accent="amber"
+        icon={<CoinsIcon />}
+        sub="Active balance across all accounts"
+      />
+      <StatTile
+        label="Total Earned"
+        value={stats.totalPointsEarned.toLocaleString("en-IN")}
+        accent="emerald"
+        icon={<TrendingUpIcon />}
+        sub="Lifetime points earned"
+      />
+      <StatTile
+        label="Total Redeemed"
+        value={stats.totalPointsRedeemed.toLocaleString("en-IN")}
+        accent="violet"
+        icon={<AwardIcon />}
+        sub="Lifetime points redeemed"
+      />
     </div>
   );
 }

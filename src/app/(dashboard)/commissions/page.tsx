@@ -38,12 +38,13 @@ export default async function CommissionsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        aura
         title="Commissions"
         eyebrow={`${totals.count} ${totals.count === 1 ? "entry" : "entries"} · ${formatINR(totals.total)} total · ${formatINR(totals.pending)} pending`}
         help={<PageHelp id="commissions" />}
         description="Track commission entries and manage commission rules."
       >
-        <Button variant="outline" asChild>
+        <Button variant="outline" asChild className="hover-lift">
           <Link href="/settings/commissions">
             <SettingsIcon className="mr-2 size-4" />
             Manage Rules

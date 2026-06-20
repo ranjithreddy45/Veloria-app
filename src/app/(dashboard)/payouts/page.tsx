@@ -49,6 +49,7 @@ export default async function PayoutsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        aura
         title="Payouts"
         help={<PageHelp id="payouts" />}
         eyebrow={
@@ -59,7 +60,7 @@ export default async function PayoutsPage() {
         }
         description="Manage vendor payments, owner payouts, and commissions."
       >
-        <Button asChild>
+        <Button asChild className="hover-lift">
           <Link href="/payouts/new">
             <PlusIcon className="mr-2 size-4" />
             Create Payout

@@ -49,13 +49,14 @@ export default async function PeoplePage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <PageHeader
-          title="People"
-          description="The single employee master for the whole group — across every legal entity and business vertical. The same record powers Projects, approvals and access everywhere."
-        />
+      <PageHeader
+        aura
+        eyebrow="People · Directory"
+        title="People"
+        description="The single employee master for the whole group — across every legal entity and business vertical. The same record powers Projects, approvals and access everywhere."
+      >
         {canWrite && !needsSeed && (
-          <div className="flex items-center gap-2">
+          <>
             <Button variant="outline" asChild className="gap-1.5">
               <Link href="/people/import"><Upload className="size-4" /> Import</Link>
             </Button>
@@ -66,9 +67,9 @@ export default async function PeoplePage({ searchParams }: PageProps) {
               designations={lookups.designations}
               managers={lookups.managers}
             />
-          </div>
+          </>
         )}
-      </div>
+      </PageHeader>
 
       {needsSeed ? (
         canAdmin ? (

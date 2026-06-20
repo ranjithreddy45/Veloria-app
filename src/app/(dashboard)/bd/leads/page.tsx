@@ -20,6 +20,8 @@ export default async function BdLeadsPage() {
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
+        aura
+        eyebrow={`Acquisition · ${leads.length} lead${leads.length === 1 ? "" : "s"}`}
         title="Leads"
         help={<PageHelp id="bd-leads" />}
         description="Owner enquiries — SLA-tracked and de-duplicated. Tap a lead to view, call, message and qualify."

@@ -141,7 +141,7 @@ export function RecruitOverview({
   return (
     <div className="space-y-5">
       {/* KPI tiles */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 animate-stagger-1">
         <StatTile
           label="Open positions"
           value={data.totals.openings}

@@ -37,6 +37,7 @@ export default async function PipelinePage() {
   return (
     <div className="flex h-[calc(100vh-7rem)] flex-col gap-5">
       <PageHeader
+        aura
         title="Pipeline"
         help={
           <HelpHint title="What is a Deal?">

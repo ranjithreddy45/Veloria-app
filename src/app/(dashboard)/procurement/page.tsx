@@ -40,6 +40,8 @@ export default async function ProcurementPage({
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
+        aura
+        eyebrow={`Event Operations · ${requisitions.length} ${requisitions.length === 1 ? "requisition" : "requisitions"}`}
         title="Procurement"
         description="Raise purchase requisitions, route them for approval, and track ordering through receipt."
       />

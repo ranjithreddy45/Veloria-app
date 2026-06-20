@@ -65,6 +65,7 @@ export default async function BookingsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        aura
         title="Bookings"
         eyebrow={
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -118,7 +119,7 @@ export default async function BookingsPage() {
       </PageHeader>
 
       {hasData && (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 animate-fade-in-up">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 animate-rise-in animate-stagger-1">
           <StatTile
             label="Confirmed"
             value={confirmedCount}
@@ -150,7 +151,9 @@ export default async function BookingsPage() {
         </div>
       )}
 
-      <BookingsTable data={bookings} />
+      <div className="animate-rise-in animate-stagger-2">
+        <BookingsTable data={bookings} />
+      </div>
     </div>
   );
 }

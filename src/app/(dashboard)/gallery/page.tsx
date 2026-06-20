@@ -24,6 +24,8 @@ export default async function GalleryPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        aura
+        eyebrow={`Brand · ${items.length} ${items.length === 1 ? "asset" : "assets"}`}
         title="Gallery"
         help={<PageHelp id="gallery" />}
         description="Manage photos and videos for events and venues."

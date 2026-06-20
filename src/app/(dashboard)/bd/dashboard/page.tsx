@@ -15,6 +15,7 @@ import { getAcqProperties } from "@/actions/acq-property.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { PageHelp } from "@/lib/page-help";
 import { Card, CardContent } from "@/components/ui/card";
+import { StatTile, type Accent } from "@/components/ui/stat-tile";
 import {
   ACQ_DEAL_STAGE_LABEL,
   type AcqDealStage,
@@ -54,25 +55,21 @@ interface KpiCardProps {
   value: number;
   icon: React.ComponentType<{ className?: string }>;
   href?: string;
+  accent?: Accent;
+  sub?: string;
 }
 
-function KpiCard({ label, value, icon: Icon, href }: KpiCardProps) {
-  const card = (
-    <Card className={`gap-0 py-0 ${href ? "transition hover:border-foreground/30 hover:bg-muted/30" : ""}`}>
-      <CardContent className="flex items-center justify-between gap-3 px-4 py-4">
-        <div className="space-y-1">
-          <div className="text-[11.5px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
-            {label}
-          </div>
-          <div className="text-[22px] font-semibold leading-none tabular-nums text-foreground">
-            {value.toLocaleString("en-IN")}
-          </div>
-        </div>
-        <Icon className="size-5 shrink-0 text-muted-foreground" />
-      </CardContent>
-    </Card>
+function KpiCard({ label, value, icon: Icon, href, accent = "indigo", sub }: KpiCardProps) {
+  const tile = (
+    <StatTile
+      label={label}
+      value={value}
+      accent={accent}
+      icon={<Icon className="size-4" />}
+      sub={sub}
+    />
   );
-  return href ? <Link href={href} className="block">{card}</Link> : card;
+  return href ? <Link href={href} className="block">{tile}</Link> : tile;
 }
 
 interface FunnelRow {
@@ -90,7 +87,7 @@ function FunnelBar({ row, max }: { row: FunnelRow; max: number }) {
       </div>
       <div className="relative h-7 flex-1 overflow-hidden rounded-lg border border-border bg-muted/30">
         <div
-          className="h-full rounded-lg bg-indigo-500/20"
+          className="h-full rounded-lg bg-gradient-to-r from-violet-500/25 to-fuchsia-500/15"
           style={{ width: `${pct}%` }}
         />
         <div className="absolute inset-0 flex items-center px-3 text-[13px] font-medium tabular-nums text-foreground">
@@ -186,6 +183,8 @@ export default async function BdDashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        aura
+        eyebrow="Business Development · Acquisition"
         title="BD Dashboard"
         help={<PageHelp id="bd-dashboard" />}
         description="Acquisition funnel, losses, and SLAs at a glance."
@@ -193,20 +192,24 @@ export default async function BdDashboardPage() {
 
       {/* KPI row */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <KpiCard label="Total Leads" value={totalLeads} icon={Users} href="/bd/leads" />
+        <KpiCard label="Total Leads" value={totalLeads} icon={Users} href="/bd/leads" accent="indigo" sub="All acquisition leads" />
         <KpiCard
           label="Qualified Leads"
           value={qualifiedLeads}
           icon={CheckCircle2}
           href="/bd/leads?status=QUALIFIED"
+          accent="blue"
+          sub="Passed qualification"
         />
-        <KpiCard label="Active Deals" value={activeDeals} icon={Handshake} href="/bd/deals" />
-        <KpiCard label="Won Deals" value={wonDeals} icon={Trophy} href="/bd/deals" />
+        <KpiCard label="Active Deals" value={activeDeals} icon={Handshake} href="/bd/deals" accent="violet" sub="In flight" />
+        <KpiCard label="Won Deals" value={wonDeals} icon={Trophy} href="/bd/deals" accent="emerald" sub="Closed won" />
         <KpiCard
           label="Available for Sales"
           value={availableProperties}
           icon={Building2}
           href="/bd/properties?status=AVAILABLE"
+          accent="amber"
+          sub="Ready to sell"
         />
       </div>
 

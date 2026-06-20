@@ -38,6 +38,8 @@ export default async function ReferralsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        aura
+        eyebrow={`Growth · ${stats.total} ${stats.total === 1 ? "referral" : "referrals"}`}
         title="Referrals"
         help={<PageHelp id="referrals" />}
         description="Track client referrals and reward loyal customers."

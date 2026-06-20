@@ -19,6 +19,7 @@ export default async function RecruitmentPage() {
   return (
     <div className="space-y-5">
       <PageHeader
+        aura
         title="Recruitment"
         eyebrow="Hiring · Overview"
         description="Track every opening through the hiring pipeline — screening to hire — with time-to-fill and time-to-hire at a glance."

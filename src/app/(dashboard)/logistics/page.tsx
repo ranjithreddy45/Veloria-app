@@ -61,6 +61,7 @@ export default async function LogisticsPage({
   return (
     <div className="space-y-5">
       <PageHeader
+        aura
         title="Logistics & Dispatch"
         eyebrow={`Equipment dispatch · ${dispatches.length} orders`}
         description="Plan, dispatch, deliver and reconcile returns of equipment for your events."

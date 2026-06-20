@@ -13,6 +13,8 @@ export default function ReportsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        aura
+        eyebrow="Business Intelligence"
         title="Reports & Analytics"
         help={<PageHelp id="reports" />}
         description="Comprehensive analytics and performance reports for your venue operations."

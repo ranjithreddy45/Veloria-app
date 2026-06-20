@@ -114,6 +114,7 @@ export default async function QualityPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        aura
         title="Quality & Six Sigma"
         eyebrow={scorecard.period || "Live operations"}
         description="DPMO and process sigma scored from live operations data — lead response, payment punctuality, task delivery, support and customer experience. Higher sigma means fewer defects per million opportunities."

@@ -19,6 +19,7 @@ import {
 } from "@/actions/approval.actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Card,
   CardContent,
@@ -43,9 +44,9 @@ import { cn } from "@/lib/utils";
 // ============================================================
 
 const ENTITY_TYPE_COLORS: Record<string, string> = {
-  QUOTE: "bg-purple-100 text-purple-700 border-purple-200",
-  DEAL: "bg-blue-100 text-blue-700 border-blue-200",
-  BOOKING: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  QUOTE: "bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-950/50 dark:text-violet-300 dark:border-violet-900",
+  DEAL: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-900",
+  BOOKING: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-900",
 };
 
 // ============================================================
@@ -120,23 +121,24 @@ export function ApprovalQueue({
 
   if (requests.length === 0) {
     return (
-      <Card className="border-dashed">
-        <CardContent className="py-12 text-center">
-          <InboxIcon className="mx-auto mb-3 size-10 text-zinc-300" />
-          <p className="text-sm text-zinc-500">No approval requests found.</p>
-        </CardContent>
-      </Card>
+      <div className="rounded-xl border border-dashed bg-card">
+        <EmptyState
+          icon={<InboxIcon className="size-5" />}
+          title="No approval requests"
+          description="Nothing in this view right now — requests routed to you will appear here."
+        />
+      </div>
     );
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 animate-stagger-1">
       {requests.map((request) => {
         const chainLength = request.rule.approverChain.length;
         const isLoading = loadingId === request.id;
 
         return (
-          <Card key={request.id} className="border-zinc-200/80 shadow-sm">
+          <Card key={request.id} className="border-border/80 shadow-card hover-lift">
             <CardContent className="p-4">
               <div className="flex items-center justify-between gap-4">
                 <div className="min-w-0 flex-1">
@@ -160,7 +162,7 @@ export function ApprovalQueue({
                     <ApprovalStatusBadge status={request.status} />
                   </div>
 
-                  <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-zinc-500">
+                  <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                     <span>
                       Rule: <span className="font-medium">{request.rule.name}</span>
                     </span>
@@ -173,7 +175,7 @@ export function ApprovalQueue({
                     <span>
                       {format(new Date(request.submittedAt), "dd MMM yyyy, HH:mm")}
                     </span>
-                    <span className="rounded bg-zinc-100 px-1.5 py-0.5">
+                    <span className="rounded bg-muted px-1.5 py-0.5 font-medium tabular-nums">
                       Step {request.currentStep + 1} of {chainLength}
                     </span>
                   </div>
@@ -189,7 +191,7 @@ export function ApprovalQueue({
                         onClick={() => handleApprove(request.id)}
                         disabled={isLoading}
                         title="Approve"
-                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                        className="text-success hover:text-success hover:bg-success/10"
                       >
                         {isLoading ? (
                           <Loader2Icon className="size-4 animate-spin" />
@@ -206,7 +208,7 @@ export function ApprovalQueue({
                             size="sm"
                             disabled={isLoading}
                             title="Reject"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
                           >
                             <XCircleIcon className="size-4" />
                           </Button>

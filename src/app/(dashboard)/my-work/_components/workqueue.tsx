@@ -44,7 +44,7 @@ export function Workqueue({ data, userName }: { data: WorkqueueData; userName: s
   return (
     <div className="space-y-5">
       {/* Personal stat strip */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 animate-stagger-1">
         <StatTile label="Open tasks" value={counts.open} accent="indigo" icon={<ListChecks className="size-4" />} />
         <StatTile label="Overdue" value={counts.overdue} accent="rose" icon={<AlarmClock className="size-4" />} sub={counts.overdue > 0 ? "Needs attention" : "All clear"} />
         <StatTile label="Due today" value={counts.dueToday} accent="amber" icon={<CalendarClock className="size-4" />} />

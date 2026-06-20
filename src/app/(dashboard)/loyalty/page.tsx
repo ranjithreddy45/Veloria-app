@@ -37,6 +37,8 @@ export default async function LoyaltyPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        aura
+        eyebrow={`Growth · ${stats.totalAccounts} ${stats.totalAccounts === 1 ? "member" : "members"}`}
         title="Loyalty & Rewards"
         help={<PageHelp id="loyalty" />}
         description="Manage loyalty accounts, track points, and reward your clients."

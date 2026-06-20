@@ -23,6 +23,8 @@ export default async function KitchenPage() {
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
+        aura
+        eyebrow={`Event Operations · ${plans.length} ${plans.length === 1 ? "plan" : "plans"}`}
         title="Kitchen / F&B Production"
         description="Plan production per event, build the ingredient indent and track food cost per cover against estimate."
       />

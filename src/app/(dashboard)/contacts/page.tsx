@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, UsersIcon, UserIcon, Building2Icon } from "lucide-react";
 
 import { getContacts } from "@/actions/contact.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { HelpHint } from "@/components/layout/help-hint";
 import { Button } from "@/components/ui/button";
+import { StatTile } from "@/components/ui/stat-tile";
 import { ContactsTable } from "./_components/contacts-table";
 
 export const metadata: Metadata = { title: "Enquiry" };
@@ -26,6 +27,7 @@ export default async function ContactsPage() {
   return (
     <div className="space-y-5">
       <PageHeader
+        aura
         title="Enquiry"
         help={
           <HelpHint title="What is an Enquiry?">
@@ -69,7 +71,34 @@ export default async function ContactsPage() {
           </Link>
         </Button>
       </PageHeader>
-      <ContactsTable data={contacts} />
+      {contacts.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 animate-rise-in animate-stagger-1">
+          <StatTile
+            label="Total contacts"
+            value={contacts.length}
+            accent="violet"
+            icon={<UsersIcon className="size-4" />}
+            sub="In your directory"
+          />
+          <StatTile
+            label="Individual"
+            value={individual}
+            accent="cyan"
+            icon={<UserIcon className="size-4" />}
+            sub="Personal contacts"
+          />
+          <StatTile
+            label="Corporate"
+            value={corporate}
+            accent="amber"
+            icon={<Building2Icon className="size-4" />}
+            sub="Business accounts"
+          />
+        </div>
+      )}
+      <div className="animate-rise-in animate-stagger-2">
+        <ContactsTable data={contacts} />
+      </div>
     </div>
   );
 }

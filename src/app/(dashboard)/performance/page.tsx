@@ -45,6 +45,8 @@ export default async function PerformancePage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        aura
+        eyebrow="Operations · Insights"
         title="Performance"
         help={<PageHelp id="performance" />}
         description="Track team performance, venue metrics, and leaderboards across your operations."

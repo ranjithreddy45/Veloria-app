@@ -56,6 +56,7 @@ export default async function MarketingPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        aura
         eyebrow={`ATTRIBUTION · ${channels.length} channels · ${campaignCount} campaigns`}
         title="Marketing Attribution"
         help={<PageHelp id="marketing" />}

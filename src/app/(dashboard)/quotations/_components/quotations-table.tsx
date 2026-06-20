@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { FileTextIcon } from "lucide-react";
 import { StatusPill } from "@/components/shared/status-pill";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
   TableBody,
@@ -39,17 +41,21 @@ export interface QuotationListRow {
 export function QuotationsTable({ rows }: { rows: QuotationListRow[] }) {
   if (rows.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">
-        No quotations yet. Create one with the calculator.
+      <div className="rounded-xl border border-dashed bg-card shadow-premium">
+        <EmptyState
+          icon={<FileTextIcon />}
+          title="No quotations yet"
+          description="Build your first quotation with the calculator, submit it for approval, then send it to the customer."
+        />
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg border">
+    <div className="overflow-hidden rounded-xl border bg-card shadow-premium">
       <Table>
         <TableHeader>
-          <TableRow>
+          <TableRow className="bg-muted/40 hover:bg-muted/40">
             <TableHead>Quote #</TableHead>
             <TableHead>Client</TableHead>
             <TableHead>Occasion</TableHead>
@@ -66,7 +72,7 @@ export function QuotationsTable({ rows }: { rows: QuotationListRow[] }) {
               [r.contact?.firstName, r.contact?.lastName].filter(Boolean).join(" ") ||
               "—";
             return (
-              <TableRow key={r.id} className="cursor-pointer">
+              <TableRow key={r.id} className="cursor-pointer transition-colors hover:bg-muted/50">
                 <TableCell className="font-medium">
                   <Link href={`/quotations/${r.id}`} className="hover:underline">
                     {r.quoteNumber}

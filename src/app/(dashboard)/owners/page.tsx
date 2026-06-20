@@ -27,6 +27,7 @@ export default async function HallOwnersPage() {
   return (
     <div className="space-y-5">
       <PageHeader
+        aura
         title="BD CRM"
         help={<PageHelp id="owners" />}
         eyebrow={
@@ -53,7 +54,7 @@ export default async function HallOwnersPage() {
         }
         description="Acquire and onboard hall owners who partner with Veloria Grand."
       >
-        <Button asChild>
+        <Button asChild className="hover-lift">
           <Link href="/owners/new">
             <PlusIcon className="size-3.5" strokeWidth={2.5} />
             New owner
@@ -62,8 +63,10 @@ export default async function HallOwnersPage() {
       </PageHeader>
 
       {owners.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-border bg-card py-16 text-center">
-          <Building2 className="size-6 text-muted-foreground/60" strokeWidth={1.5} />
+        <div className="shadow-premium flex flex-col items-center justify-center gap-2 rounded-2xl border border-border/70 bg-card py-16 text-center">
+          <span className="mb-1 flex size-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-600 dark:bg-violet-950/50 dark:text-violet-300">
+            <Building2 className="size-6" strokeWidth={1.5} />
+          </span>
           <p className="text-[13.5px] font-medium text-foreground">No hall owners yet</p>
           <p className="max-w-md text-[12px] text-muted-foreground">
             Add prospective hall owners to start building your B2B acquisition pipeline.

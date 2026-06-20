@@ -23,13 +23,14 @@ export default async function ProjectsPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <PageHeader
-          title="Venue Projects"
-          description="Ready acquired venues to Veloria Grand standards: 9-stage workflow, readiness checklist, CapEx & timeline for the owner, snag register, operations audit, and launch handover."
-        />
+      <PageHeader
+        aura
+        eyebrow="Projects · Venue readiness"
+        title="Venue Projects"
+        description="Ready acquired venues to Veloria Grand standards: 9-stage workflow, readiness checklist, CapEx & timeline for the owner, snag register, operations audit, and launch handover."
+      >
         {isAdmin && <DemoControls count={demoCount} />}
-      </div>
+      </PageHeader>
       <Suspense fallback={<ProjectsTableSkeleton />}>
         <ProjectsList />
       </Suspense>

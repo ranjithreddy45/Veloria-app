@@ -63,8 +63,9 @@ export default async function VendorsPage() {
   return (
     <div className="space-y-5">
       <PageHeader
+        aura
         title="Vendors & Packages"
-        eyebrow="Operations · Marketplace"
+        eyebrow={`Operations · Marketplace · ${vendorTotal} vendors · ${packageTotal} packages`}
         description="Manage your empanelled vendor catalog, quality scores, and service packages."
       />
 

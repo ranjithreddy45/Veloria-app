@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BanknoteIcon } from "lucide-react";
+import { BanknoteIcon, UsersIcon } from "lucide-react";
 
 import { getStaffProfiles, getStaffSchedule } from "@/actions/staff.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StaffSchedule } from "./_components/staff-schedule";
 import { StaffProfileCard } from "./_components/staff-profile-card";
@@ -34,6 +35,8 @@ export default async function StaffPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        aura
+        eyebrow="Operations · Roster"
         title="Staff Scheduling"
         help={<PageHelp id="staff" />}
         description="Manage staff profiles, shifts, and schedules."
@@ -61,15 +64,15 @@ export default async function StaffPage() {
 
         <TabsContent value="profiles">
           {profiles.length === 0 ? (
-            <div className="rounded-lg border border-dashed p-12 text-center">
-              <h3 className="text-lg font-semibold">No staff profiles</h3>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Staff profiles are created automatically when shifts are
-                assigned to users.
-              </p>
+            <div className="rounded-xl border border-dashed bg-card">
+              <EmptyState
+                icon={<UsersIcon className="size-5" />}
+                title="No staff profiles yet"
+                description="Staff profiles are created automatically when shifts are assigned to users."
+              />
             </div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 animate-stagger-1">
               {profiles.map((profile) => (
                 <StaffProfileCard key={profile.id} profile={profile} />
               ))}

@@ -17,6 +17,7 @@ export default async function MyWorkPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        aura
         title="Workqueue"
         eyebrow="My work · Today & overdue"
         description="Everything assigned to you — tasks, leads and bookings — in one focused worklist."

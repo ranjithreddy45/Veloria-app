@@ -86,6 +86,8 @@ export default async function AnalyticsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        aura
+        eyebrow={`Business Intelligence · ${bookingsData.totalBookings} bookings`}
         title="Analytics"
         help={<PageHelp id="analytics" />}
         description="Advanced analytics and business intelligence for your event management operations."

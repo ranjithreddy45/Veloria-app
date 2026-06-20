@@ -26,14 +26,14 @@ export function TaskViewToggle({ tasks, tasksByStatus }: TaskViewToggleProps) {
   return (
     <div className="flex h-full flex-col">
       {/* View Toggle */}
-      <div className="mb-4 flex items-center gap-1 rounded-lg border bg-zinc-50 p-1 w-fit">
+      <div className="mb-4 flex items-center gap-1 rounded-lg border bg-muted/50 p-1 w-fit">
         <button
           onClick={() => setView("board")}
           className={cn(
             "flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
             view === "board"
               ? "bg-background text-foreground shadow-sm"
-              : "text-zinc-500 hover:text-zinc-700"
+              : "text-muted-foreground hover:text-foreground"
           )}
         >
           <LayoutGridIcon className="size-4" />
@@ -45,7 +45,7 @@ export function TaskViewToggle({ tasks, tasksByStatus }: TaskViewToggleProps) {
             "flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
             view === "list"
               ? "bg-background text-foreground shadow-sm"
-              : "text-zinc-500 hover:text-zinc-700"
+              : "text-muted-foreground hover:text-foreground"
           )}
         >
           <ListIcon className="size-4" />

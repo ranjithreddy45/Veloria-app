@@ -49,6 +49,7 @@ export default async function PaymentsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        aura
         eyebrow={`FINANCE · ${payments.length} payments · ${formatINR(collectedTotal)} collected`}
         title="Payments"
         help={<PageHelp id="payments" />}

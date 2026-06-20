@@ -23,6 +23,8 @@ export default async function SupportPage() {
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
+        aura
+        eyebrow={`Service · ${tickets.length} ${tickets.length === 1 ? "ticket" : "tickets"}`}
         title="Customer Support"
         description="Track and resolve customer issues — tickets, priorities and threaded replies."
       />
