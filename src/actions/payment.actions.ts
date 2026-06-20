@@ -664,9 +664,23 @@ export async function createPublicRazorpayOrder(invoiceId: string, amount: numbe
       success: true as const,
       data: { orderId: order.id, amount: Math.round(pay * 100), currency: "INR", keyId: process.env.RAZORPAY_KEY_ID },
     };
-  } catch (error) {
-    console.error("[CREATE_PUBLIC_RAZORPAY_ORDER_ERROR]", error);
-    return { success: false as const, error: "Failed to start payment" };
+  } catch (error: unknown) {
+    // Razorpay SDK errors look like { statusCode, error: { code, description } }.
+    const e = error as { statusCode?: number; error?: { code?: string; description?: string } };
+    const desc = e?.error?.description;
+    console.error("[CREATE_PUBLIC_RAZORPAY_ORDER_ERROR]", {
+      statusCode: e?.statusCode,
+      code: e?.error?.code,
+      description: desc,
+      raw: desc ? undefined : error,
+    });
+    if (e?.statusCode === 401) {
+      return { success: false as const, error: "Payment gateway authentication failed. Please contact us — the link will be reissued." };
+    }
+    return {
+      success: false as const,
+      error: desc ? `Couldn't start payment: ${desc}` : "Failed to start payment. Please try again or contact us.",
+    };
   }
 }
 
