@@ -441,15 +441,25 @@
     radial-gradient(70% 90% at 55% 130%, oklch(0.65 0.13 200 / 8%) 0%, transparent 55%);
 }
 
-/* Faint dotted grid — premium texture behind hero headers. Masked so
- * it fades out rather than ending in a hard edge. */
+/* Faint dotted grid — premium texture behind hero headers. Rendered on a
+ * ::before layer (behind content via z-index:-1 + isolation) so the fade
+ * MASK only clips the grid, never the heading text sitting on top. */
 @utility bg-grid-faint {
-  background-image: radial-gradient(oklch(0.45 0.05 286 / 7%) 1px, transparent 1px);
-  background-size: 22px 22px;
-  -webkit-mask-image: radial-gradient(75% 65% at 25% 0%, black, transparent 78%);
-  mask-image: radial-gradient(75% 65% at 25% 0%, black, transparent 78%);
+  position: relative;
+  isolation: isolate;
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image: radial-gradient(oklch(0.45 0.05 286 / 7%) 1px, transparent 1px);
+    background-size: 22px 22px;
+    -webkit-mask-image: radial-gradient(75% 65% at 25% 0%, black, transparent 78%);
+    mask-image: radial-gradient(75% 65% at 25% 0%, black, transparent 78%);
+  }
 }
-.dark .bg-grid-faint {
+.dark .bg-grid-faint::before {
   background-image: radial-gradient(oklch(1 0 0 / 6%) 1px, transparent 1px);
 }
 
