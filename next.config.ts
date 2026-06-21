@@ -30,7 +30,7 @@ const nextConfig: NextConfig = {
   // and via middleware for other deployments
 
   // Reduce bundle size by enabling tree shaking for server-only modules
-  serverExternalPackages: ["bcryptjs"],
+  serverExternalPackages: ["bcryptjs", "razorpay"],
 
   // Barrel-optimize heavy libraries so only the used exports are bundled.
   experimental: {
