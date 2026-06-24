@@ -227,8 +227,9 @@ export async function POST(
         });
         leadId = lead.id;
 
-        // First-touch marketing attribution (best-effort; helper swallows errors).
-        void attachAttributionToLead(
+        // First-touch marketing attribution (best-effort; helper swallows
+        // errors). Awaited so the write isn't dropped on a serverless freeze.
+        await attachAttributionToLead(
           lead.id,
           await parseAttributionFromRequest(request, body)
         );

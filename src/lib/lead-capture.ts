@@ -60,7 +60,7 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
         // Re-link attribution on redelivery so retried webhooks refresh the
         // campaign mapping without duplicating the row (upserts on leadId).
         if (data.attribution) {
-          void attachAttributionToLead(existing.id, {
+          await attachAttributionToLead(existing.id, {
             ...data.attribution,
             source: data.attribution.source || data.source,
           });
@@ -168,8 +168,9 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
     });
 
     // First-touch marketing attribution (best-effort; helper swallows errors).
+    // Awaited so the campaign linkage isn't dropped on a serverless freeze.
     if (data.attribution) {
-      void attachAttributionToLead(lead.id, {
+      await attachAttributionToLead(lead.id, {
         ...data.attribution,
         source: data.attribution.source || data.source,
       });

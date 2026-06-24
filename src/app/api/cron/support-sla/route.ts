@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { prisma } from "@/lib/prisma";
-import { notify } from "@/lib/notify";
+import { notifyAwait } from "@/lib/notify";
 
 // ============================================================
 // Cron · Support ticket SLA escalation
@@ -64,15 +64,18 @@ export async function GET(request: Request) {
     if (now < dueBy) continue; // still within SLA
 
     const recipients = t.assignedToId ? [t.assignedToId] : managers.map((m) => m.id);
-    for (const userId of recipients) {
-      notify({
-        userId,
-        type: "SLA_WARNING",
-        title: `Support SLA breached — ${t.ticketNumber}`,
-        message: `"${t.subject}" (${t.priority}) has passed its ${slaHours}h response SLA and is still unresolved.`,
-        actionUrl: `/support/${t.id}`,
-      });
-    }
+    // Await the writes so they aren't dropped when the serverless function freezes.
+    await Promise.all(
+      recipients.map((userId) =>
+        notifyAwait({
+          userId,
+          type: "SLA_WARNING",
+          title: `Support SLA breached — ${t.ticketNumber}`,
+          message: `"${t.subject}" (${t.priority}) has passed its ${slaHours}h response SLA and is still unresolved.`,
+          actionUrl: `/support/${t.id}`,
+        })
+      )
+    );
 
     await prisma.supportTicket.update({
       where: { id: t.id },

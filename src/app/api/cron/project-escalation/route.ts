@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { computePortfolio } from "@/lib/projects/portfolio";
-import { notify } from "@/lib/notify";
+import { notifyAwait } from "@/lib/notify";
 
 // Daily: escalate at-risk venue projects (open critical snags / over budget /
 // overdue) to the project leadership. Cron-secret protected, best-effort notify.
@@ -32,7 +32,7 @@ export async function GET(request: Request) {
     let notified = 0;
     for (const l of leads) {
       try {
-        await notify({ userId: l.id, type: "SYSTEM", title: "Projects at risk", message, actionUrl: "/projects/portfolio" });
+        await notifyAwait({ userId: l.id, type: "SYSTEM", title: "Projects at risk", message, actionUrl: "/projects/portfolio" });
         notified++;
       } catch { /* best-effort */ }
     }

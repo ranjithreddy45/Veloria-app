@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { detectAnomalies } from "@/lib/ai/anomaly-detection";
-import { notify } from "@/lib/notify";
+import { notifyAwait } from "@/lib/notify";
 
 export async function GET(request: Request) {
   try {
@@ -82,17 +82,22 @@ export async function GET(request: Request) {
         select: { id: true },
       });
 
+      const pending: Promise<void>[] = [];
       for (const alert of newHighCritical) {
         for (const admin of admins) {
-          notify({
-            userId: admin.id,
-            type: "SYSTEM",
-            title: "Anomaly Detected",
-            message: alert.title,
-            actionUrl: "/analytics/anomalies",
-          });
+          pending.push(
+            notifyAwait({
+              userId: admin.id,
+              type: "SYSTEM",
+              title: "Anomaly Detected",
+              message: alert.title,
+              actionUrl: "/analytics/anomalies",
+            })
+          );
         }
       }
+      // Await so the writes complete before the serverless function freezes.
+      await Promise.all(pending);
     }
 
     return NextResponse.json({
