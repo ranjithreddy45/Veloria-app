@@ -4,6 +4,11 @@ import { sendEmail } from "@/lib/email";
 import { sendSMSFireAndForget } from "@/lib/sms";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
 import { instantiateExecutionPlanFromSOP } from "@/lib/sales/ops-handoff";
+import {
+  notifyOpsAssignees,
+  triggerVendorsForBooking,
+  type BookingEventInfo,
+} from "@/lib/sales/ops-assignment";
 
 const fmtINR = (n: number) => "₹" + Math.round(n).toLocaleString("en-IN");
 const SLOT_LABEL: Record<string, string> = {
@@ -129,9 +134,26 @@ export async function maybeConfirmBookingOnPayment(invoiceId: string): Promise<v
       sendWhatsApp({ to: b.contact.phone, message: line }).catch((e) => console.error("[CONFIRM_WA_ERROR]", e));
     }
 
+    // Shared event context for the ops + vendor triggers below.
+    const eventInfo: BookingEventInfo = {
+      bookingId: b.id,
+      bookingNumber: b.bookingNumber,
+      eventName: b.eventName,
+      dateStr,
+      slot,
+      venueName: b.venue?.name ?? "the venue",
+    };
+
     // Ops handoff: auto-populate the execution plan + tasks from the SOP
-    // template so the operations team has its checklist the moment we confirm.
-    await instantiateExecutionPlanFromSOP(b.id, b.createdById, b.eventType);
+    // template AND auto-assign each task to the team that owns its category, so
+    // the operations team has its checklist — already routed — the moment we
+    // confirm. Then nudge each assignee with their task count.
+    const assignments = await instantiateExecutionPlanFromSOP(b.id, b.createdById, b.eventType);
+    notifyOpsAssignees(assignments, eventInfo);
+
+    // Vendor trigger: alert every attached vendor on their own channels and the
+    // internal vendor-coordination team, so the vendor side is engaged on confirm.
+    await triggerVendorsForBooking(b.id, eventInfo);
 
     // Auto-create the Function Sheet (BEO) so ops has the day-of document ready.
     // Best-effort + idempotent (one BEO per booking).

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { buildOpsAssigner, type OpsAssignment } from "@/lib/sales/ops-assignment";
 
 /**
  * Ops auto-task population from SOPs.
@@ -14,19 +15,19 @@ export async function instantiateExecutionPlanFromSOP(
   bookingId: string,
   createdById: string,
   eventType?: string | null
-): Promise<void> {
+): Promise<OpsAssignment[]> {
   try {
     const existing = await prisma.executionPlan.findUnique({
       where: { bookingId },
       select: { id: true },
     });
-    if (existing) return;
+    if (existing) return [];
 
     const booking = await prisma.booking.findUnique({
       where: { id: bookingId },
       select: { date: true, eventType: true },
     });
-    if (!booking) return;
+    if (!booking) return [];
 
     const withPhases = {
       phases: {
@@ -56,7 +57,12 @@ export async function instantiateExecutionPlanFromSOP(
         include: withPhases,
       }));
 
-    if (!template || template.phases.length === 0) return;
+    if (!template || template.phases.length === 0) return [];
+
+    // Round-robin assigner over the active ops staff — built once so every task
+    // lands on the team that owns its category (decor/AV/catering/…) instead of
+    // being left orphaned for someone to triage.
+    const assigner = await buildOpsAssigner();
 
     // All-or-nothing: a mid-loop failure must not leave a half-populated plan
     // (the bookingId-unique plan row would then block any retry). One
@@ -95,6 +101,8 @@ export async function instantiateExecutionPlanFromSOP(
               requiresApproval: t.requiresApproval,
               requiresProof: t.requiresProof,
               order: t.order,
+              // Auto-route to the team that owns this category (round-robin).
+              assigneeId: assigner.assign(t.category),
               dependsOnTaskId:
                 t.dependsOnTaskOrder != null ? (taskOrderToId[t.dependsOnTaskOrder] ?? null) : null,
             },
@@ -112,7 +120,10 @@ export async function instantiateExecutionPlanFromSOP(
         }
       }
     });
+
+    return assigner.summary();
   } catch (e) {
     console.error("[OPS_HANDOFF_ERROR]", e);
+    return [];
   }
 }

@@ -227,5 +227,7 @@ describe("Sales quotation → booking → payment → confirm → ops (E2E)", ()
     expect(plan!.phases.length).toBe(1);
     expect(plan!.phases[0].tasks.length).toBe(2);
     expect(plan!.phases[0].tasks.map((t) => t.title).sort()).toEqual(["Arrange decor", "Test AV"]);
+    // Every SOP task is auto-routed to a team owner (no orphaned tasks).
+    expect(plan!.phases[0].tasks.every((t) => !!t.assigneeId)).toBe(true);
   });
 });
