@@ -6,6 +6,8 @@ import { serialize } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 import { notify } from "@/lib/notify";
 import { logActivity } from "@/lib/activity-logger";
+import { isSafeReceiptUrl } from "@/lib/sales/receipt";
+import { ensureDealProperty } from "@/lib/acq/conversion";
 import {
   isLegalTransition,
   computeEvaluation,
@@ -17,7 +19,6 @@ import {
 import { getAcqConfig } from "@/lib/acq/config";
 import { acqCan, acqHasAnyAccess } from "@/lib/acq/rbac";
 import {
-  ONBOARDING_SEED_TASKS,
   ACQ_LOST_REASON,
   ACQ_DEAL_MODEL,
   ACQ_OWNER_TYPE,
@@ -33,6 +34,7 @@ async function requireUser() {
   if (!session?.user?.id) return null;
   return session.user as { id: string; name?: string | null; role?: string };
 }
+
 
 // ------------------------------------------------------------
 // List / get
@@ -58,6 +60,7 @@ export async function getAcqDeal(id: string): Promise<Result<unknown>> {
   const deal = await prisma.acqDeal.findFirst({
     where: { id, deletedAt: null },
     include: {
+      lead: true, // full linked lead record so the UI can view/edit lead-stage details
       bdExecutive: { select: { id: true, name: true } },
       bdHeadApprovedBy: { select: { id: true, name: true } },
       evaluations: { orderBy: { createdAt: "desc" }, include: { evaluatedBy: { select: { name: true } } } },
@@ -87,6 +90,8 @@ export async function updateAcqDeal(
     "model", "baseFeePct", "incentivePct", "royaltyPct", "termYears", "lockinYears",
     "isExclusive", "expectedMonthlyEvents", "projectedFeeValue", "banquetSizeSft",
     "signatoryAuthorityVerified", "gpaDocumentUrl", "expectedCloseDate",
+    // Deal-preview commercial dates/fees (BD CRM)
+    "expectedSigningDate", "taFees", "expectedCollectionDate",
   ];
   const data: Record<string, unknown> = {};
   for (const k of allowed) {
@@ -104,14 +109,20 @@ export async function updateAcqDeal(
       }
     }
   }
-  if (data.expectedCloseDate) data.expectedCloseDate = new Date(data.expectedCloseDate as string);
+  // Coerce date strings → Date for every date field; null clears them.
+  for (const dk of ["expectedCloseDate", "expectedSigningDate", "expectedCollectionDate"]) {
+    if (dk in data) {
+      const v = data[dk];
+      data[dk] = v == null || v === "" ? null : new Date(v as string);
+    }
+  }
 
   // Defense in depth: never let a NaN/Infinity reach a numeric column, and
   // truncate the Int-only year fields so a decimal can't make Prisma throw.
   const numericFields = [
     "ownerCurrentMonthlyRevenue", "avgEventsPerMonth", "peakRateCard",
     "baseFeePct", "incentivePct", "royaltyPct", "termYears", "lockinYears",
-    "expectedMonthlyEvents", "projectedFeeValue", "banquetSizeSft",
+    "expectedMonthlyEvents", "projectedFeeValue", "banquetSizeSft", "taFees",
   ];
   const intFields = new Set(["termYears", "lockinYears", "banquetSizeSft"]);
   for (const k of numericFields) {
@@ -240,16 +251,14 @@ export async function addAcqAttachment(
   if (!["PHOTO", "DOCUMENT", "AGREEMENT", "GPA"].includes(input.kind)) return { success: false, error: "Invalid kind" };
   const url = (input.url ?? "").trim();
   if (!url) return { success: false, error: "URL required" };
-  // Must be a real absolute http(s) link — the EVALUATION photo gate counts these,
-  // so a bare/broken string must not slip through (mirrors addAcqContractDocument).
-  let parsedUrl: URL;
-  try {
-    parsedUrl = new URL(url);
-  } catch {
-    return { success: false, error: "Enter a valid link starting with https:// (or http://)." };
+  // Reject anything that isn't a safe image/PDF data-URL or an https link — the
+  // EVALUATION photo gate counts these, so a bare/broken/unsafe string must not
+  // slip through. Also cap the size so an oversized data-URL can't bloat the row.
+  if (url.length > 9_000_000) {
+    return { success: false, error: "File is too large — please upload a smaller image or PDF (max ~9 MB)." };
   }
-  if (parsedUrl.protocol !== "https:" && parsedUrl.protocol !== "http:") {
-    return { success: false, error: "Links must use https:// (or http://)." };
+  if (!isSafeReceiptUrl(url)) {
+    return { success: false, error: "Upload an image/PDF, or enter a valid https:// link." };
   }
   const att = await prisma.acqAttachment.create({
     data: { dealId, kind: input.kind, url, label: input.label || null, uploadedById: user.id },
@@ -607,34 +616,10 @@ export async function transitionAcqDeal(
     });
 
     if (toStage === "WON") {
-      // §6.1 — create Property (ONBOARDING), onboarding project + seed tasks.
-      const property = await tx.acqProperty.create({
-        data: {
-          dealId: deal.id,
-          propertyName: deal.propertyName,
-          propertyType: deal.propertyType,
-          ownerName: deal.ownerName,
-          city: deal.city,
-          locality: deal.locality,
-          seatingTheatre: deal.seatingTheatre,
-          seatingFloating: deal.seatingFloating,
-          status: "ONBOARDING",
-          acquisitionDate: new Date(),
-        },
-        select: { id: true },
-      });
-      createdPropertyId = property.id;
-      await tx.acqDeal.update({ where: { id: dealId }, data: { propertyId: property.id } });
-      const project = await tx.acqOnboardingProject.create({
-        data: { propertyId: property.id, status: "OPEN", bdOwnerId: user.id, dealClosedDate: new Date() },
-        select: { id: true },
-      });
-      await tx.acqOnboardingTask.createMany({
-        data: ONBOARDING_SEED_TASKS.map((title) => ({ projectId: project.id, title })),
-      });
-      await tx.acqStageTransition.create({
-        data: { entity: "PROPERTY", entityId: property.id, fromState: null, toState: "ONBOARDING", actorId: user.id },
-      });
+      // §6.1 — create Property (ONBOARDING), onboarding project + seed tasks
+      // via the shared idempotent helper (also used by convertDealToProject).
+      const res = await ensureDealProperty(tx, deal, user.id);
+      createdPropertyId = res.propertyId;
     }
   });
 

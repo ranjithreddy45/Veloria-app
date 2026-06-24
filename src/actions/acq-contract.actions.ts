@@ -9,6 +9,7 @@ import { sendEmail } from "@/lib/email";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
 import { notify } from "@/lib/notify";
 import { sendForSignature } from "@/lib/acq/esign";
+import { isSafeReceiptUrl } from "@/lib/sales/receipt";
 import { z } from "zod";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
@@ -523,6 +524,33 @@ async function postSigningNotify(
         html: `<p>Thank you! Your management agreement for <strong>${esc(propertyName)}</strong> is now signed. Our team will be in touch with next steps.</p>`,
       }).catch(() => {});
     }
+
+    // A signed contract means a property was acquired — alert the downstream
+    // delivery teams (Design / Projects / Sales / Operations) so they can begin
+    // their handoff (intro meeting, onboarding, etc.). Additive to the above.
+    const teams = await prisma.user.findMany({
+      where: {
+        isActive: true,
+        role: {
+          in: [
+            "DESIGN_EXEC", "DESIGN_HEAD",
+            "PROJECTS_EXEC", "PROJECTS_HEAD",
+            "SALES_EXEC", "SALES_HEAD",
+            "OPERATIONS",
+          ],
+        },
+      },
+      select: { id: true },
+    });
+    for (const u of teams) {
+      notify({
+        userId: u.id,
+        type: "SYSTEM",
+        title: "New property acquired",
+        message: `${propertyName} has been signed — a cross-team handoff is now possible.`,
+        actionUrl: `/bd/contracts/${contractId}`,
+      });
+    }
   } catch (e) {
     console.error("[postSigningNotify] error:", e);
   }
@@ -573,25 +601,30 @@ export async function terminateAcqContract(
 // Documents + notes
 export async function addAcqContractDocument(
   id: string,
-  input: { url: string; label?: string }
+  input: { url: string; label?: string; fileName?: string; mimeType?: string }
 ): Promise<Result<{ id: string }>> {
   const user = await requireUser();
   if (!user || !acqCan(user.role, "lead:write")) return { success: false, error: "Unauthorized" };
   const url = (input.url ?? "").trim();
   if (!url) return { success: false, error: "URL required" };
-  // Must be a real absolute http(s) link, not a bare string that renders as a
-  // broken in-app path (audit O-7).
-  let parsed: URL;
-  try {
-    parsed = new URL(url);
-  } catch {
-    return { success: false, error: "Enter a valid link starting with https:// (or http://)." };
+  // Accept an uploaded image/PDF data-URL or an external https link; reject a
+  // bare/unsafe string that renders as a broken in-app path (audit O-7), and cap
+  // the data-URL size so an oversized upload can't bloat the row.
+  if (url.length > 9_000_000) {
+    return { success: false, error: "File is too large — please upload a smaller image or PDF (max ~9 MB)." };
   }
-  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
-    return { success: false, error: "Document links must use https:// (or http://)." };
+  if (!isSafeReceiptUrl(url)) {
+    return { success: false, error: "Upload an image/PDF, or enter a valid https:// link." };
   }
   const doc = await prisma.acqContractDocument.create({
-    data: { contractId: id, url, label: input.label || null, uploadedById: user.id },
+    data: {
+      contractId: id,
+      url,
+      label: input.label || null,
+      fileName: input.fileName || null,
+      mimeType: input.mimeType || null,
+      uploadedById: user.id,
+    },
     select: { id: true },
   });
   await logActivity(id, user.id, "NOTE", `Document added: ${input.label ?? "file"}`);

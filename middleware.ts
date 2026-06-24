@@ -28,6 +28,9 @@ const INTERNAL_ROLES = [
   // Projects team
   "PROJECTS_EXEC",
   "PROJECTS_HEAD",
+  // Design team
+  "DESIGN_EXEC",
+  "DESIGN_HEAD",
   // HR / People (shared identity)
   "HR_MANAGER",
   "HR_EXECUTIVE",

@@ -29,6 +29,9 @@ enum UserRole {
   // Projects team — readies an acquired venue to Veloria Grand standards
   PROJECTS_EXEC
   PROJECTS_HEAD
+  // Design team — interiors / brand-standard design for acquired venues
+  DESIGN_EXEC
+  DESIGN_HEAD
   // HR / People module (shared identity)
   HR_MANAGER
   HR_EXECUTIVE
@@ -3951,6 +3954,10 @@ model AcqDeal {
   property   AcqProperty?   @relation("AcqDealProperty")
 
   expectedCloseDate DateTime?
+  // Deal-preview commercial dates/fees (BD CRM)
+  expectedSigningDate    DateTime?
+  taFees                 Decimal?  @db.Decimal(12, 2) // transaction-advisory / brokerage fees
+  expectedCollectionDate DateTime?
   bdExecutiveId     String
   bdExecutive       User      @relation("AcqDealBdExec", fields: [bdExecutiveId], references: [id])
   createdAt         DateTime  @default(now())
@@ -4107,11 +4114,40 @@ model AcqContractDocument {
   contractId   String
   contract     AcqContract @relation(fields: [contractId], references: [id])
   label        String?
-  url          String
+  url          String      @db.Text // uploaded file as data-URL or external https link
+  fileName     String?
+  mimeType     String?
   uploadedById String
   createdAt    DateTime    @default(now())
 
   @@index([contractId])
+}
+
+// Cross-team introduction meeting scheduled after a BD contract is signed,
+// to align Design / Projects / Sales / Operations on a newly acquired property.
+// Refs stored as plain scalars (no FK relations) to stay fully additive.
+model IntroductionMeeting {
+  id             String   @id @default(cuid())
+  dealId         String?
+  projectId      String?
+  propertyName   String
+  scheduledAt    DateTime
+  location       String?
+  agenda         String?  @db.Text
+  status         String   @default("SCHEDULED") // SCHEDULED | COMPLETED | CANCELLED | RESCHEDULED
+  teamDesign     Boolean  @default(true)
+  teamProjects   Boolean  @default(true)
+  teamSales      Boolean  @default(true)
+  teamOperations Boolean  @default(true)
+  attendeeIds    String[] // invited user ids (notified)
+  scheduledById  String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([dealId])
+  @@index([projectId])
+  @@index([scheduledAt])
+  @@index([status])
 }
 
 model AcqContractActivity {
@@ -7040,4 +7076,22 @@ model OtaSyncLog {
 
   @@index([channelId, createdAt])
   @@index([status])
+}
+
+// ------------------------------------------------------------
+// Cron run history — one row per orchestrator lane execution. Powers the
+// /api/health heartbeat and gives admins a trail when a job fails.
+// ------------------------------------------------------------
+model CronRunLog {
+  id         String   @id @default(cuid())
+  lane       String // "daily" | "frequent" | "<single-job>"
+  status     String // "SUCCESS" | "PARTIAL" | "FAILURE"
+  total      Int      @default(0)
+  failed     Int      @default(0)
+  durationMs Int      @default(0)
+  results    Json? // { "<job>": "ok" | "http_500" | "error: ..." }
+  createdAt  DateTime @default(now())
+
+  @@index([lane, createdAt])
+  @@index([createdAt])
 }

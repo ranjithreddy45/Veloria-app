@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { maybeConfirmBookingOnPayment } from "@/lib/sales/confirm-booking";
 import { postPaymentReceived } from "@/lib/finance/receivables";
+import { reportSystemFailure } from "@/lib/ops-alert";
 
 /**
  * Allocate an invoice's cumulative paidAmount across its Installments,
@@ -153,9 +154,15 @@ export async function applyRazorpayCapture(opts: {
 
   // Post the cash receipt to the General Ledger (best-effort, idempotent —
   // covers both the browser-verify and webhook paths from this one place).
-  postPaymentReceived(payment.id).catch((err) =>
-    console.error("[PAYMENT_GL_POST_ERROR]", err),
-  );
+  postPaymentReceived(payment.id).catch((err) => {
+    console.error("[PAYMENT_GL_POST_ERROR]", err);
+    void reportSystemFailure({
+      area: "GL posting",
+      title: "Payment cash-receipt failed to post",
+      detail: `Payment ${payment.id}: ${err instanceof Error ? err.message : "unknown"}. AR/cash may be unreconciled.`,
+      actionUrl: "/finance",
+    });
+  });
 
   // BookMyShow-style: confirm the held slot once the advance is covered.
   await maybeConfirmBookingOnPayment(payment.invoiceId);

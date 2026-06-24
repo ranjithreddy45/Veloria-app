@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { FileUpload } from "@/components/ui/file-upload";
 import {
   Dialog,
   DialogContent,
@@ -375,27 +376,28 @@ function RejectBox({ contractId, busy, run }: { contractId: string; busy: string
 
 function ContractDocs({ contractId, docs }: { contractId: string; docs: ContractFull["documents"] }) {
   const router = useRouter();
-  const [label, setLabel] = React.useState("");
-  const [url, setUrl] = React.useState("");
   const [busy, setBusy] = React.useState(false);
-  async function add() {
-    if (!url.trim()) { toast.error("Paste a document link."); return; }
+  async function onUploaded(dataUrl: string, file: File) {
     setBusy(true);
     try {
-      const res = await addAcqContractDocument(contractId, { url: url.trim(), label: label.trim() || undefined });
+      const res = await addAcqContractDocument(contractId, {
+        label: file.name,
+        url: dataUrl,
+        fileName: file.name,
+        mimeType: file.type,
+      });
       if (!res.success) { toast.error(res.error); return; }
-      toast.success("Document added");
-      setLabel(""); setUrl(""); router.refresh();
+      toast.success("Document uploaded");
+      router.refresh();
     } finally { setBusy(false); }
   }
   return (
     <Card>
       <CardHeader><CardTitle className="text-[15px]">Documents</CardTitle></CardHeader>
       <CardContent className="space-y-3">
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Label (e.g. Signed agreement)" className="h-9 sm:w-56" />
-          <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://… document link" className="h-9 flex-1" />
-          <Button size="sm" onClick={add} disabled={busy}>{busy ? "Adding…" : "Add"}</Button>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <FileUpload onUploaded={onUploaded} label={busy ? "Uploading…" : "Upload document"} disabled={busy} />
+          <span className="text-[11.5px] text-muted-foreground">Images or PDF, up to ~5 MB.</span>
         </div>
         {docs.length === 0 ? (
           <p className="text-[13px] text-muted-foreground">No documents yet.</p>

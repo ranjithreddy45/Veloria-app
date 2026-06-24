@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import {
   ArrowRight,
   BadgeCheck,
+  CalendarClock,
   Camera,
   CheckCircle2,
   Circle,
@@ -15,10 +16,13 @@ import {
   Lock,
   Paperclip,
   Pencil,
-  Plus,
+  Rocket,
   ShieldCheck,
+  Trash2,
+  Users,
   AlertTriangle,
 } from "lucide-react";
+import Link from "next/link";
 import { requiresBdHeadApproval } from "@/lib/acq/domain";
 import { acqCan } from "@/lib/acq/rbac";
 import { cn } from "@/lib/utils";
@@ -34,11 +38,21 @@ import {
   setAcqDealEconomicsFrozen,
   editAcqDealOverview,
 } from "@/actions/acq-deal.actions";
+import { editAcqLead } from "@/actions/acq-lead.actions";
+import {
+  convertDealToProject,
+  scheduleIntroductionMeeting,
+  getIntroductionMeetings,
+  updateIntroductionMeeting,
+} from "@/actions/acq-meeting.actions";
+import { FileUpload } from "@/components/ui/file-upload";
 import {
   ACQ_DEAL_STAGE_LABEL,
   ACQ_LOST_REASON,
   ACQ_OWNER_TYPE,
   ACQ_PROPERTY_TYPE,
+  ACQ_PROPERTY_STAGE,
+  ACQ_LEAD_SOURCE,
   type AcqDealStage,
   type AcqLostReason,
 } from "@/lib/acq/constants";
@@ -112,6 +126,34 @@ export interface AcqNoteRow {
   author?: { name: string | null } | null;
 }
 
+export interface AcqLeadPreview {
+  id: string;
+  ownerName: string;
+  mobilePrimary: string | null;
+  mobileAlternate: string | null;
+  email: string | null;
+  propertyName: string;
+  propertyType: string;
+  city: string;
+  locality: string;
+  seatingTheatre: Num;
+  seatingFloating: Num;
+  seatingRange: string | null;
+  propertyStage: string | null;
+  parkingAvailable: boolean | null;
+  leadSource: string | null;
+  ownerType: string | null;
+  referrerName: string | null;
+  referrerPhone: string | null;
+  referrerEmail: string | null;
+  brokerageDemand: string | null;
+  notes: string | null;
+  qualSeating100: boolean | null;
+  qualOwnerInterested: boolean | null;
+  qualAgreeRenovate: boolean | null;
+  qualPhotosReady: boolean | null;
+}
+
 export interface AcqDealDetail {
   id: string;
   name: string;
@@ -146,10 +188,14 @@ export interface AcqDealDetail {
   bdHeadApprovedById: string | null;
   bdHeadApprovedBy?: { name: string | null } | null;
   lostReason: string | null;
+  expectedSigningDate?: string | null;
+  taFees?: Num;
+  expectedCollectionDate?: string | null;
   evaluations: AcqEvaluationRow[];
   attachments: AcqAttachmentRow[];
   notes: AcqNoteRow[];
   property?: { id: string; status: string } | null;
+  lead?: AcqLeadPreview | null;
 }
 
 // ============================================================
@@ -260,9 +306,9 @@ const NOTE_TYPE_HUE: Record<string, Parameters<typeof StatusPill>[0]["hue"]> = {
   GENERAL: "blue",
 };
 
-const num = (v: Num): number | null =>
+const num = (v: Num | undefined): number | null =>
   v == null || v === "" ? null : Number(v);
-const numStr = (v: Num): string => {
+const numStr = (v: Num | undefined): string => {
   const n = num(v);
   return n == null ? "" : String(n);
 };
@@ -273,6 +319,40 @@ function fmtDate(iso: string): string {
     ? ""
     : d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
 }
+
+// ISO string → value for an <input type="date"> ("YYYY-MM-DD"), local time.
+function toDateInput(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const off = d.getTimezoneOffset();
+  return new Date(d.getTime() - off * 60_000).toISOString().slice(0, 10);
+}
+// ISO string → value for an <input type="datetime-local"> ("YYYY-MM-DDTHH:mm").
+function toDateTimeInput(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const off = d.getTimezoneOffset();
+  return new Date(d.getTime() - off * 60_000).toISOString().slice(0, 16);
+}
+function fmtDateTime(iso: string): string {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? ""
+    : d.toLocaleString(undefined, {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      });
+}
+const INR = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  maximumFractionDigits: 0,
+});
 
 // Single source of truth for the deal change-log. Both the Overview "Change log"
 // panel and the Negotiation thread derive from this so the two surfaces can never
@@ -533,6 +613,8 @@ function OverviewTab({
 }) {
   const [busy, setBusy] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [leadEditOpen, setLeadEditOpen] = useState(false);
+  const [datesOpen, setDatesOpen] = useState(false);
   const canApprove = acqCan(userRole, "bdhead:approve");
   const canEdit = acqCan(userRole, "lead:write");
   // Shared selector (see isChangeLogNote) — identical history to the Negotiation tab.
@@ -541,6 +623,8 @@ function OverviewTab({
     .filter((n) => n != null)
     .map((n, i) => `${n} ${i === 0 ? "theatre" : "floating"}`)
     .join(" · ");
+  const lead = deal.lead ?? null;
+  const taFees = num(deal.taFees);
 
   async function approve() {
     setBusy(true);
@@ -614,6 +698,108 @@ function OverviewTab({
           )}
         </div>
 
+        {/* Deal preview — full lead-stage details captured at lead stage */}
+        <div className="space-y-3 rounded-md border border-border/60 bg-muted/20 p-3.5">
+          <div className="flex items-center justify-between">
+            <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+              Deal preview · lead details
+            </div>
+            {canEdit && lead && (
+              <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setLeadEditOpen(true)}>
+                <Pencil className="size-3.5" /> Edit lead details
+              </Button>
+            )}
+          </div>
+          {lead ? (
+            <>
+              <dl className="grid grid-cols-2 gap-3.5 sm:grid-cols-3">
+                <Field label="Owner name" value={lead.ownerName} />
+                <Field label="Primary phone" value={lead.mobilePrimary} />
+                <Field label="Alternate phone" value={lead.mobileAlternate} />
+                <Field label="Email" value={lead.email} />
+                <Field label="Owner type" value={lead.ownerType?.replaceAll("_", " ")} />
+                <Field label="Lead source" value={lead.leadSource?.replaceAll("_", " ")} />
+                <Field label="Property name" value={lead.propertyName} />
+                <Field label="Property type" value={lead.propertyType?.replaceAll("_", " ")} />
+                <Field label="Property stage" value={lead.propertyStage?.replaceAll("_", " ")} />
+                <Field label="City" value={lead.city} />
+                <Field label="Locality" value={lead.locality} />
+                <Field
+                  label="Seating"
+                  value={[num(lead.seatingTheatre), num(lead.seatingFloating)]
+                    .filter((n) => n != null)
+                    .map((n, i) => `${n} ${i === 0 ? "theatre" : "floating"}`)
+                    .join(" · ")}
+                />
+                <Field label="Seating range" value={lead.seatingRange?.replaceAll("R_", "").replaceAll("_", "–").replace("–PLUS", "+")} />
+                <Field
+                  label="Parking"
+                  value={lead.parkingAvailable == null ? "—" : lead.parkingAvailable ? "Available" : "Not available"}
+                />
+              </dl>
+
+              {(lead.referrerName || lead.referrerPhone || lead.referrerEmail || lead.brokerageDemand) && (
+                <dl className="grid grid-cols-2 gap-3.5 border-t border-border/50 pt-3 sm:grid-cols-3">
+                  <Field label="Referrer name" value={lead.referrerName} />
+                  <Field label="Referrer phone" value={lead.referrerPhone} />
+                  <Field label="Referrer email" value={lead.referrerEmail} />
+                  <Field label="Brokerage demand" value={lead.brokerageDemand} />
+                </dl>
+              )}
+
+              {lead.notes && (
+                <div className="border-t border-border/50 pt-3">
+                  <Field label="Notes" value={<span className="whitespace-pre-wrap">{lead.notes}</span>} />
+                </div>
+              )}
+
+              <div className="border-t border-border/50 pt-3">
+                <div className="mb-1.5 text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
+                  Qualification checklist
+                </div>
+                <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+                  {[
+                    { label: "Seating ≥ 100", met: lead.qualSeating100 },
+                    { label: "Owner interested", met: lead.qualOwnerInterested },
+                    { label: "Agrees to renovate", met: lead.qualAgreeRenovate },
+                    { label: "Photos ready", met: lead.qualPhotosReady },
+                  ].map((q) => (
+                    <li key={q.label} className="flex items-center gap-1.5 text-[12.5px]">
+                      {q.met ? (
+                        <CheckCircle2 className="size-3.5 shrink-0 text-emerald-600" />
+                      ) : (
+                        <Circle className="size-3.5 shrink-0 text-muted-foreground/40" />
+                      )}
+                      <span className={q.met ? "text-foreground" : "text-muted-foreground"}>{q.label}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </>
+          ) : (
+            <p className="text-[12.5px] text-muted-foreground">No linked lead record.</p>
+          )}
+        </div>
+
+        {/* Commercial dates & TA fees (deal-level) */}
+        <div className="space-y-3 rounded-md border border-border/60 p-3.5">
+          <div className="flex items-center justify-between">
+            <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+              Signing &amp; collection
+            </div>
+            {canEdit && (
+              <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setDatesOpen(true)}>
+                <Pencil className="size-3.5" /> Edit
+              </Button>
+            )}
+          </div>
+          <dl className="grid grid-cols-2 gap-3.5 sm:grid-cols-3">
+            <Field label="Expected signing date" value={deal.expectedSigningDate ? fmtDate(deal.expectedSigningDate) : "—"} />
+            <Field label="TA fees" value={taFees != null ? INR.format(taFees) : "—"} />
+            <Field label="Expected collection date" value={deal.expectedCollectionDate ? fmtDate(deal.expectedCollectionDate) : "—"} />
+          </dl>
+        </div>
+
         {/* Transparent change log */}
         <div className="space-y-2">
           <div className="text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
@@ -642,8 +828,264 @@ function OverviewTab({
         onOpenChange={setEditOpen}
         onMutate={onMutate}
       />
+      <DealDatesEditDialog
+        deal={deal}
+        open={datesOpen}
+        onOpenChange={setDatesOpen}
+        onMutate={onMutate}
+      />
+      {lead && (
+        <LeadDetailsEditDialog
+          lead={lead}
+          open={leadEditOpen}
+          onOpenChange={setLeadEditOpen}
+          onMutate={onMutate}
+        />
+      )}
     </Card>
   );
+}
+
+// Edit deal-level commercial dates + TA fees (saved via updateAcqDeal).
+function DealDatesEditDialog({
+  deal,
+  open,
+  onOpenChange,
+  onMutate,
+}: {
+  deal: AcqDealDetail;
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  onMutate: () => void;
+}) {
+  const [signing, setSigning] = useState(toDateInput(deal.expectedSigningDate));
+  const [taFees, setTaFees] = useState(numStr(deal.taFees));
+  const [collection, setCollection] = useState(toDateInput(deal.expectedCollectionDate));
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setSigning(toDateInput(deal.expectedSigningDate));
+      setTaFees(numStr(deal.taFees));
+      setCollection(toDateInput(deal.expectedCollectionDate));
+    }
+  }, [open, deal]);
+
+  async function save() {
+    setBusy(true);
+    try {
+      const feeNum = taFees.trim() === "" ? null : Number(taFees);
+      if (feeNum != null && !Number.isFinite(feeNum)) {
+        toast.error("TA fees must be a valid number.");
+        return;
+      }
+      const res = await updateAcqDeal(deal.id, {
+        expectedSigningDate: signing ? new Date(signing).toISOString() : null,
+        taFees: feeNum,
+        expectedCollectionDate: collection ? new Date(collection).toISOString() : null,
+      });
+      if (!res.success) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Saved");
+      onOpenChange(false);
+      onMutate();
+    } catch {
+      toast.error("Couldn't save — please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Signing &amp; collection</DialogTitle>
+          <DialogDescription>Expected dates and the transaction-advisory fee.</DialogDescription>
+        </DialogHeader>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label>Expected signing date</Label>
+            <Input type="date" value={signing} onChange={(e) => setSigning(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>TA fees (₹)</Label>
+            <Input type="number" inputMode="decimal" value={taFees} onChange={(e) => setTaFees(e.target.value)} />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label>Expected collection date</Label>
+            <Input type="date" value={collection} onChange={(e) => setCollection(e.target.value)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>Cancel</Button>
+          <Button onClick={save} disabled={busy}>{busy ? "Saving…" : "Save"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Edit ALL lead-stage details captured at the lead stage (saved via editAcqLead).
+function LeadDetailsEditDialog({
+  lead,
+  open,
+  onOpenChange,
+  onMutate,
+}: {
+  lead: AcqLeadPreview;
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  onMutate: () => void;
+}) {
+  const [f, setF] = useState(() => leadFormState(lead));
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (open) setF(leadFormState(lead));
+  }, [open, lead]);
+
+  const set = <K extends keyof ReturnType<typeof leadFormState>>(
+    k: K,
+    v: ReturnType<typeof leadFormState>[K]
+  ) => setF((p) => ({ ...p, [k]: v }));
+
+  async function save() {
+    setBusy(true);
+    try {
+      const res = await editAcqLead(lead.id, {
+        ownerName: f.ownerName.trim(),
+        mobilePrimary: f.mobilePrimary.trim(),
+        mobileAlternate: f.mobileAlternate.trim(),
+        email: f.email.trim(),
+        propertyName: f.propertyName.trim(),
+        propertyType: f.propertyType as never,
+        city: f.city.trim(),
+        locality: f.locality.trim(),
+        seatingTheatre: f.seatingTheatre.trim() === "" ? null : Math.trunc(Number(f.seatingTheatre)),
+        seatingFloating: f.seatingFloating.trim() === "" ? null : Math.trunc(Number(f.seatingFloating)),
+        propertyStage: (f.propertyStage || null) as never,
+        leadSource: f.leadSource as never,
+        ownerType: f.ownerType as never,
+        parkingAvailable: f.parking === "" ? null : f.parking === "yes",
+        referrerName: f.referrerName.trim(),
+        referrerPhone: f.referrerPhone.trim(),
+        referrerEmail: f.referrerEmail.trim(),
+        brokerageDemand: f.brokerageDemand.trim(),
+        notes: f.notes.trim(),
+      });
+      if (!res.success) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Lead details updated");
+      onOpenChange(false);
+      onMutate();
+    } catch {
+      toast.error("Couldn't save — please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Edit lead details</DialogTitle>
+          <DialogDescription>All details captured at the lead stage.</DialogDescription>
+        </DialogHeader>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5"><Label>Owner name</Label><Input value={f.ownerName} onChange={(e) => set("ownerName", e.target.value)} /></div>
+          <div className="space-y-1.5">
+            <Label>Owner type</Label>
+            <Select value={f.ownerType} onValueChange={(v) => set("ownerType", v)}>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>{ACQ_OWNER_TYPE.map((o) => (<SelectItem key={o} value={o}>{o.replaceAll("_", " ")}</SelectItem>))}</SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5"><Label>Primary phone</Label><Input value={f.mobilePrimary} onChange={(e) => set("mobilePrimary", e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>Alternate phone</Label><Input value={f.mobileAlternate} onChange={(e) => set("mobileAlternate", e.target.value)} /></div>
+          <div className="space-y-1.5 sm:col-span-2"><Label>Email</Label><Input value={f.email} onChange={(e) => set("email", e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>Property name</Label><Input value={f.propertyName} onChange={(e) => set("propertyName", e.target.value)} /></div>
+          <div className="space-y-1.5">
+            <Label>Property type</Label>
+            <Select value={f.propertyType} onValueChange={(v) => set("propertyType", v)}>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>{ACQ_PROPERTY_TYPE.map((o) => (<SelectItem key={o} value={o}>{o.replaceAll("_", " ")}</SelectItem>))}</SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Property stage</Label>
+            <Select value={f.propertyStage || "__none"} onValueChange={(v) => set("propertyStage", v === "__none" ? "" : v)}>
+              <SelectTrigger className="w-full"><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none">—</SelectItem>
+                {ACQ_PROPERTY_STAGE.map((o) => (<SelectItem key={o} value={o}>{o.replaceAll("_", " ")}</SelectItem>))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Parking</Label>
+            <Select value={f.parking || "__none"} onValueChange={(v) => set("parking", v === "__none" ? "" : (v as "yes" | "no"))}>
+              <SelectTrigger className="w-full"><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none">—</SelectItem>
+                <SelectItem value="yes">Available</SelectItem>
+                <SelectItem value="no">Not available</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5"><Label>City</Label><Input value={f.city} onChange={(e) => set("city", e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>Locality</Label><Input value={f.locality} onChange={(e) => set("locality", e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>Seating — theatre</Label><Input inputMode="numeric" value={f.seatingTheatre} onChange={(e) => set("seatingTheatre", e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>Seating — floating</Label><Input inputMode="numeric" value={f.seatingFloating} onChange={(e) => set("seatingFloating", e.target.value)} /></div>
+          <div className="space-y-1.5">
+            <Label>Lead source</Label>
+            <Select value={f.leadSource} onValueChange={(v) => set("leadSource", v)}>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>{ACQ_LEAD_SOURCE.map((o) => (<SelectItem key={o} value={o}>{o.replaceAll("_", " ")}</SelectItem>))}</SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5"><Label>Brokerage demand</Label><Input value={f.brokerageDemand} onChange={(e) => set("brokerageDemand", e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>Referrer name</Label><Input value={f.referrerName} onChange={(e) => set("referrerName", e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>Referrer phone</Label><Input value={f.referrerPhone} onChange={(e) => set("referrerPhone", e.target.value)} /></div>
+          <div className="space-y-1.5 sm:col-span-2"><Label>Referrer email</Label><Input value={f.referrerEmail} onChange={(e) => set("referrerEmail", e.target.value)} /></div>
+          <div className="space-y-1.5 sm:col-span-2"><Label>Notes</Label><Textarea rows={3} value={f.notes} onChange={(e) => set("notes", e.target.value)} /></div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>Cancel</Button>
+          <Button onClick={save} disabled={busy}>{busy ? "Saving…" : "Save changes"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function leadFormState(lead: AcqLeadPreview) {
+  return {
+    ownerName: lead.ownerName ?? "",
+    ownerType: lead.ownerType ?? "SOLE_OWNER",
+    mobilePrimary: lead.mobilePrimary ?? "",
+    mobileAlternate: lead.mobileAlternate ?? "",
+    email: lead.email ?? "",
+    propertyName: lead.propertyName ?? "",
+    propertyType: lead.propertyType ?? "BANQUET",
+    propertyStage: lead.propertyStage ?? "",
+    city: lead.city ?? "",
+    locality: lead.locality ?? "",
+    seatingTheatre: numStr(lead.seatingTheatre),
+    seatingFloating: numStr(lead.seatingFloating),
+    leadSource: lead.leadSource ?? "OTHER",
+    parking: lead.parkingAvailable == null ? "" : lead.parkingAvailable ? "yes" : "no",
+    referrerName: lead.referrerName ?? "",
+    referrerPhone: lead.referrerPhone ?? "",
+    referrerEmail: lead.referrerEmail ?? "",
+    brokerageDemand: lead.brokerageDemand ?? "",
+    notes: lead.notes ?? "",
+  };
 }
 
 function OverviewEditDialog({
@@ -1206,22 +1648,14 @@ function PhotoGrid({
   photos: AcqAttachmentRow[];
   onMutate: () => void;
 }) {
-  const [url, setUrl] = useState("");
-  const [busy, setBusy] = useState(false);
+  const remaining = Math.max(0, 8 - photos.length);
 
-  async function add() {
-    if (!url.trim()) {
-      toast.error("Enter a photo URL.");
-      return;
-    }
-    setBusy(true);
-    const res = await addAcqAttachment(deal.id, { kind: "PHOTO", url: url.trim() });
-    setBusy(false);
+  async function upload(dataUrl: string, file: File) {
+    const res = await addAcqAttachment(deal.id, { kind: "PHOTO", url: dataUrl, label: file.name });
     if (!res.success) {
       toast.error(res.error);
       return;
     }
-    setUrl("");
     toast.success("Photo added");
     onMutate();
   }
@@ -1261,23 +1695,15 @@ function PhotoGrid({
             ))}
           </div>
         )}
-        <div className="flex gap-2">
-          <Input
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="Add photo URL"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") add();
-            }}
+        <div className="flex flex-wrap items-center gap-2">
+          <FileUpload
+            onUploaded={upload}
+            accept="image/png,image/jpeg,image/webp"
+            label="Upload photo"
           />
-          <Button onClick={add} disabled={busy} size="sm">
-            {busy ? (
-              <Loader2 className="size-3.5 animate-spin" />
-            ) : (
-              <Plus className="size-3.5" />
-            )}
-            Add
-          </Button>
+          <span className="text-[12px] text-muted-foreground">
+            {remaining > 0 ? `${remaining} more required` : "✓ Minimum met"}
+          </span>
         </div>
       </CardContent>
     </Card>
@@ -1292,29 +1718,20 @@ function AttachmentAdder({
   onMutate: () => void;
 }) {
   const [kind, setKind] = useState<"GPA" | "AGREEMENT" | "DOCUMENT">("DOCUMENT");
-  const [url, setUrl] = useState("");
   const [label, setLabel] = useState("");
-  const [busy, setBusy] = useState(false);
 
   const docs = deal.attachments.filter((a) => a.kind !== "PHOTO");
 
-  async function add() {
-    if (!url.trim()) {
-      toast.error("Enter a URL.");
-      return;
-    }
-    setBusy(true);
+  async function upload(dataUrl: string, file: File) {
     const res = await addAcqAttachment(deal.id, {
       kind,
-      url: url.trim(),
-      label: label.trim() || undefined,
+      url: dataUrl,
+      label: label.trim() || file.name,
     });
-    setBusy(false);
     if (!res.success) {
       toast.error(res.error);
       return;
     }
-    setUrl("");
     setLabel("");
     toast.success("Attachment added");
     onMutate();
@@ -1366,24 +1783,12 @@ function AttachmentAdder({
             </SelectContent>
           </Select>
           <Input
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="Document URL"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="Label (optional — defaults to file name)"
           />
-          <Button onClick={add} disabled={busy} size="sm">
-            {busy ? (
-              <Loader2 className="size-3.5 animate-spin" />
-            ) : (
-              <Plus className="size-3.5" />
-            )}
-            Add
-          </Button>
+          <FileUpload onUploaded={upload} label="Upload" />
         </div>
-        <Input
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-          placeholder="Label (optional)"
-        />
       </CardContent>
     </Card>
   );
@@ -1516,29 +1921,18 @@ function ContractDocuments({
   onMutate: () => void;
 }) {
   const docs = deal.attachments.filter((a) => a.kind === "DOCUMENT");
-  const [urls, setUrls] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState<string | null>(null);
 
-  async function add(label: string) {
-    const url = (urls[label] ?? "").trim();
-    if (!url) {
-      toast.error("Paste a document link first.");
-      return;
-    }
-    setBusy(label);
+  async function add(label: string, dataUrl: string) {
     try {
-      const res = await addAcqAttachment(deal.id, { kind: "DOCUMENT", url, label });
+      const res = await addAcqAttachment(deal.id, { kind: "DOCUMENT", url: dataUrl, label });
       if (!res.success) {
         toast.error(res.error);
         return;
       }
       toast.success(`${label} uploaded`);
-      setUrls((p) => ({ ...p, [label]: "" }));
       onMutate();
     } catch {
       toast.error("Couldn't upload — please try again.");
-    } finally {
-      setBusy(null);
     }
   }
 
@@ -1571,17 +1965,10 @@ function ContractDocuments({
                   View uploaded
                 </a>
               ) : (
-                <div className="flex flex-1 gap-2">
-                  <Input
-                    value={urls[label] ?? ""}
-                    onChange={(e) => setUrls((p) => ({ ...p, [label]: e.target.value }))}
-                    placeholder="https://… (document link)"
-                    className="h-8 text-[12.5px]"
-                  />
-                  <Button size="sm" variant="outline" onClick={() => add(label)} disabled={busy === label}>
-                    {busy === label ? <Loader2 className="size-3.5 animate-spin" /> : "Add"}
-                  </Button>
-                </div>
+                <FileUpload
+                  onUploaded={(dataUrl) => add(label, dataUrl)}
+                  label="Upload"
+                />
               )}
             </div>
           );
@@ -1624,7 +2011,6 @@ function ContractTab({
   const [verified, setVerified] = useState(
     Boolean(deal.signatoryAuthorityVerified)
   );
-  const [gpaUrl, setGpaUrl] = useState(deal.gpaDocumentUrl ?? "");
   const [savingVerify, setSavingVerify] = useState(false);
   const [savingGpa, setSavingGpa] = useState(false);
   const [signing, setSigning] = useState(false);
@@ -1646,18 +2032,19 @@ function ContractTab({
     onMutate();
   }
 
-  async function saveGpa() {
+  async function uploadGpa(dataUrl: string) {
     setSavingGpa(true);
-    const res = await updateAcqDeal(deal.id, {
-      gpaDocumentUrl: gpaUrl.trim() || null,
-    });
-    setSavingGpa(false);
-    if (!res.success) {
-      toast.error(res.error);
-      return;
+    try {
+      const res = await updateAcqDeal(deal.id, { gpaDocumentUrl: dataUrl });
+      if (!res.success) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("GPA document uploaded");
+      onMutate();
+    } finally {
+      setSavingGpa(false);
     }
-    toast.success("GPA document URL saved");
-    onMutate();
   }
 
   async function markSigned() {
@@ -1715,22 +2102,20 @@ function ContractTab({
         </div>
 
         <div className="space-y-1.5">
-          <Label>GPA document URL</Label>
-          <div className="flex gap-2">
-            <Input
-              value={gpaUrl}
-              onChange={(e) => setGpaUrl(e.target.value)}
-              placeholder="https://…"
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={saveGpa}
-              disabled={savingGpa}
-            >
-              {savingGpa && <Loader2 className="size-3.5 animate-spin" />}
-              Save
-            </Button>
+          <Label>GPA document</Label>
+          <div className="flex flex-wrap items-center gap-2">
+            <FileUpload onUploaded={uploadGpa} label="Upload GPA" disabled={savingGpa} />
+            {deal.gpaDocumentUrl && (
+              <a
+                href={deal.gpaDocumentUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[12.5px] text-primary hover:underline"
+              >
+                <CheckCircle2 className="size-3.5 text-emerald-600" /> View uploaded GPA
+              </a>
+            )}
+            {savingGpa && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
           </div>
         </div>
 
@@ -1758,7 +2143,308 @@ function ContractTab({
             </Button>
           )}
         </div>
+
+        {deal.contractStatus === "SIGNED" && (
+          <AlignTeamsPanel deal={deal} onMutate={onMutate} />
+        )}
       </CardContent>
     </Card>
+  );
+}
+
+// ------------------------------------------------------------
+// Post-signature: convert to project + align teams via an
+// introduction meeting. Shown only once the contract is SIGNED.
+// ------------------------------------------------------------
+type IntroMeeting = {
+  id: string;
+  scheduledAt: string;
+  location: string | null;
+  agenda: string | null;
+  status: string;
+  teamDesign?: boolean;
+  teamProjects?: boolean;
+  teamSales?: boolean;
+  teamOperations?: boolean;
+};
+
+function AlignTeamsPanel({
+  deal,
+  onMutate,
+}: {
+  deal: AcqDealDetail;
+  onMutate: () => void;
+}) {
+  const [converting, setConverting] = useState(false);
+  const [converted, setConverted] = useState<{ projectId: string; propertyName: string } | null>(null);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [meetings, setMeetings] = useState<IntroMeeting[]>([]);
+  const [loadingMeetings, setLoadingMeetings] = useState(true);
+
+  async function loadMeetings() {
+    setLoadingMeetings(true);
+    try {
+      const res = await getIntroductionMeetings({ dealId: deal.id });
+      if (res.success) setMeetings((res.data as IntroMeeting[]) ?? []);
+    } finally {
+      setLoadingMeetings(false);
+    }
+  }
+
+  useEffect(() => {
+    loadMeetings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deal.id]);
+
+  async function convert() {
+    setConverting(true);
+    try {
+      const res = await convertDealToProject(deal.id);
+      if (!res.success) {
+        toast.error(res.error);
+        return;
+      }
+      setConverted(res.data);
+      toast.success(`Converted to project — ${res.data.propertyName}`);
+      onMutate();
+    } catch {
+      toast.error("Couldn't convert — please try again.");
+    } finally {
+      setConverting(false);
+    }
+  }
+
+  // Already converted if a property is linked to the deal, or we just converted.
+  const alreadyConverted = converted != null || deal.property != null;
+
+  return (
+    <div className="space-y-3 rounded-lg border border-emerald-300 bg-emerald-50/50 p-4">
+      <div className="flex items-center gap-2">
+        <Rocket className="size-4 text-emerald-600" />
+        <h3 className="text-[14px] font-semibold text-foreground">Align teams &amp; convert</h3>
+      </div>
+      <p className="text-[12.5px] text-muted-foreground">
+        The contract is signed. Convert this deal into a project and bring Design, Projects, Sales and Operations together with an introduction meeting.
+      </p>
+
+      <div className="flex flex-wrap items-center gap-2">
+        {converted ? (
+          <Button asChild size="sm" variant="outline">
+            <Link href={`/projects/${converted.projectId}`}>
+              Open project · {converted.propertyName}
+            </Link>
+          </Button>
+        ) : alreadyConverted ? (
+          <span className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-emerald-700">
+            <CheckCircle2 className="size-3.5" /> Already converted to a project
+          </span>
+        ) : (
+          <Button size="sm" onClick={convert} disabled={converting}>
+            {converting ? <Loader2 className="size-3.5 animate-spin" /> : <Rocket className="size-3.5" />}
+            Convert to Project
+          </Button>
+        )}
+        <Button size="sm" variant="outline" onClick={() => setScheduleOpen(true)}>
+          <CalendarClock className="size-3.5" /> Schedule introduction meeting
+        </Button>
+      </div>
+
+      {/* Existing meetings */}
+      <div className="space-y-2 border-t border-emerald-200/70 pt-3">
+        <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+          <Users className="size-3.5" /> Introduction meetings
+        </div>
+        {loadingMeetings ? (
+          <p className="text-[12.5px] text-muted-foreground">Loading…</p>
+        ) : meetings.length === 0 ? (
+          <p className="text-[12.5px] text-muted-foreground">No meetings scheduled yet.</p>
+        ) : (
+          <ul className="space-y-2">
+            {meetings.map((m) => (
+              <MeetingRow key={m.id} meeting={m} onChanged={loadMeetings} />
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <ScheduleMeetingDialog
+        deal={deal}
+        open={scheduleOpen}
+        onOpenChange={setScheduleOpen}
+        onScheduled={loadMeetings}
+      />
+    </div>
+  );
+}
+
+function MeetingRow({
+  meeting,
+  onChanged,
+}: {
+  meeting: IntroMeeting;
+  onChanged: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const teams = [
+    meeting.teamDesign && "Design",
+    meeting.teamProjects && "Projects",
+    meeting.teamSales && "Sales",
+    meeting.teamOperations && "Operations",
+  ].filter(Boolean) as string[];
+
+  const hue: Parameters<typeof StatusPill>[0]["hue"] =
+    meeting.status === "COMPLETED" ? "emerald" : meeting.status === "CANCELLED" ? "red" : "blue";
+
+  async function setStatus(status: "COMPLETED" | "CANCELLED") {
+    setBusy(true);
+    try {
+      const res = await updateIntroductionMeeting(meeting.id, { status });
+      if (!res.success) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(status === "COMPLETED" ? "Marked completed" : "Meeting cancelled");
+      onChanged();
+    } catch {
+      toast.error("Couldn't update — please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const open = meeting.status !== "COMPLETED" && meeting.status !== "CANCELLED";
+
+  return (
+    <li className="rounded-md border border-border/60 bg-background p-2.5 text-[12.5px]">
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-medium text-foreground">{fmtDateTime(meeting.scheduledAt)}</span>
+        <StatusPill label={meeting.status.replaceAll("_", " ")} hue={hue} size="xs" />
+      </div>
+      {meeting.location && <div className="pt-0.5 text-muted-foreground">📍 {meeting.location}</div>}
+      {teams.length > 0 && <div className="pt-0.5 text-muted-foreground">Teams: {teams.join(", ")}</div>}
+      {meeting.agenda && <p className="whitespace-pre-wrap pt-1 text-foreground/80">{meeting.agenda}</p>}
+      {open && (
+        <div className="flex gap-2 pt-2">
+          <Button size="sm" variant="outline" className="h-7 px-2" onClick={() => setStatus("COMPLETED")} disabled={busy}>
+            <CheckCircle2 className="size-3.5" /> Complete
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7 px-2 text-destructive" onClick={() => setStatus("CANCELLED")} disabled={busy}>
+            <Trash2 className="size-3.5" /> Cancel
+          </Button>
+        </div>
+      )}
+    </li>
+  );
+}
+
+function ScheduleMeetingDialog({
+  deal,
+  open,
+  onOpenChange,
+  onScheduled,
+}: {
+  deal: AcqDealDetail;
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  onScheduled: () => void;
+}) {
+  const [scheduledAt, setScheduledAt] = useState("");
+  const [location, setLocation] = useState("");
+  const [agenda, setAgenda] = useState("");
+  const [teams, setTeams] = useState({ design: true, projects: true, sales: true, operations: true });
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setScheduledAt("");
+      setLocation("");
+      setAgenda("");
+      setTeams({ design: true, projects: true, sales: true, operations: true });
+    }
+  }, [open]);
+
+  async function submit() {
+    if (!scheduledAt) {
+      toast.error("Pick a date and time.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await scheduleIntroductionMeeting({
+        dealId: deal.id,
+        propertyName: deal.propertyName,
+        scheduledAt: new Date(scheduledAt).toISOString(),
+        location: location.trim() || undefined,
+        agenda: agenda.trim() || undefined,
+        teams,
+      });
+      if (!res.success) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Introduction meeting scheduled");
+      onOpenChange(false);
+      onScheduled();
+    } catch {
+      toast.error("Couldn't schedule — please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const TEAMS: { key: keyof typeof teams; label: string }[] = [
+    { key: "design", label: "Design" },
+    { key: "projects", label: "Projects" },
+    { key: "sales", label: "Sales" },
+    { key: "operations", label: "Operations" },
+  ];
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Schedule introduction meeting</DialogTitle>
+          <DialogDescription>Bring the delivery teams together for {deal.propertyName}.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label>Date &amp; time</Label>
+            <Input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Location</Label>
+            <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Office, video link, or venue" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Agenda</Label>
+            <Textarea rows={3} value={agenda} onChange={(e) => setAgenda(e.target.value)} placeholder="What to align on" />
+          </div>
+          <div className="space-y-2">
+            <Label>Teams to invite</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {TEAMS.map((t) => (
+                <label
+                  key={t.key}
+                  className="flex cursor-pointer items-center justify-between gap-2 rounded-md border border-border/60 px-3 py-2 text-[12.5px]"
+                >
+                  <span>{t.label}</span>
+                  <Switch
+                    checked={teams[t.key]}
+                    onCheckedChange={(v) => setTeams((p) => ({ ...p, [t.key]: v }))}
+                  />
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>Cancel</Button>
+          <Button onClick={submit} disabled={busy}>
+            {busy && <Loader2 className="size-3.5 animate-spin" />}
+            Schedule
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

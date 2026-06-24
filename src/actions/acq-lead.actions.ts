@@ -499,6 +499,11 @@ const editSchema = z.object({
   referrerPhone: z.string().max(20).optional().or(z.literal("")),
   referrerEmail: z.string().email().optional().or(z.literal("")),
   brokerageDemand: z.string().max(200).optional().or(z.literal("")),
+  // Qualification checklist (editable from the Deal-Preview lead panel).
+  qualSeating100: z.boolean().nullable().optional(),
+  qualOwnerInterested: z.boolean().nullable().optional(),
+  qualAgreeRenovate: z.boolean().nullable().optional(),
+  qualPhotosReady: z.boolean().nullable().optional(),
 });
 export type AcqLeadEditInput = z.infer<typeof editSchema>;
 
@@ -541,6 +546,10 @@ export async function editAcqLead(
   if (p.referrerPhone !== undefined) data.referrerPhone = p.referrerPhone || null;
   if (p.referrerEmail !== undefined) data.referrerEmail = p.referrerEmail || null;
   if (p.brokerageDemand !== undefined) data.brokerageDemand = p.brokerageDemand || null;
+  if (p.qualSeating100 !== undefined) data.qualSeating100 = p.qualSeating100;
+  if (p.qualOwnerInterested !== undefined) data.qualOwnerInterested = p.qualOwnerInterested;
+  if (p.qualAgreeRenovate !== undefined) data.qualAgreeRenovate = p.qualAgreeRenovate;
+  if (p.qualPhotosReady !== undefined) data.qualPhotosReady = p.qualPhotosReady;
 
   // When the property identity (name + locality) is being changed, re-run the same
   // active-lead duplicate guard createAcqLead enforces so an edit can't recreate a
