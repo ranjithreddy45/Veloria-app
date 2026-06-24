@@ -1,0 +1,45 @@
+name: Hourly cron (free alternative to Vercel Pro)
+
+# Pings the app's secured "frequent" cron lane every hour, so time-sensitive
+# jobs (first-response SLA escalation, overdue tasks, support SLA, BD/acquisition
+# SLA + re-engagement, payment reminders) run hourly WITHOUT needing Vercel Pro.
+# The Vercel-native cron is throttled to daily on the Hobby plan; this restores
+# hourly cadence for free.
+#
+# SETUP (one-time):
+#   1. Push this repo to GitHub.
+#   2. Repo → Settings → Secrets and variables → Actions → add:
+#        CRON_SECRET  = the same value set in Vercel (Project → Settings → Env Vars)
+#        CRON_URL     = https://app.theveloriagrand.com/api/cron/frequent   (optional; this is the default)
+#   3. That's it — the schedule below fires hourly. You can also run it manually
+#      from the Actions tab ("Run workflow") to test.
+#
+# Note: GitHub's scheduled runs can lag a few minutes under load; that's fine here.
+
+on:
+  schedule:
+    - cron: "0 * * * *" # top of every hour (UTC)
+  workflow_dispatch: {} # allow manual runs from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger frequent cron lane
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          CRON_URL: ${{ secrets.CRON_URL }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::CRON_SECRET repo secret is not set."
+            exit 1
+          fi
+          URL="${CRON_URL:-https://app.theveloriagrand.com/api/cron/frequent}"
+          echo "Pinging $URL"
+          code=$(curl -sS -o /tmp/out.txt -w "%{http_code}" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            --max-time 150 "$URL")
+          echo "HTTP $code"
+          cat /tmp/out.txt
+          # 200 = ran OK. Fail the job on anything else so you get notified.
+          [ "$code" = "200" ]
