@@ -28,6 +28,7 @@ const JOBS = [
   "customer-360",
   "attribution-rollup", // recompute LeadAttribution.bookedRevenue + relink campaigns (after customer-360 so LTV is fresh)
   "invoice-due",
+  "gl-reconcile", // self-heal: re-post any invoice/payment missing its GL entry
   "payment-reminders", // in-app nudges for invoices due soon / overdue (poka-yoke)
   "contract-reminders",
   "project-escalation", // Projects SLA escalation
