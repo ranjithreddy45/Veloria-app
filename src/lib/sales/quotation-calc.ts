@@ -64,6 +64,7 @@ export const QUOTE_CATALOG: QuoteCatalog = {
     { id: "engagement", label: "Engagement", amount: 25000 },
     { id: "babyshower_basic", label: "Baby shower basic", amount: 19500 },
     { id: "babyshower_premium", label: "Baby shower premium", amount: 35000 },
+    { id: "wedding_premium", label: "Wedding Premium", amount: 75000 },
     { id: "led_back_12_8", label: "LED back screen 12/8", amount: 15000 },
     { id: "led_10_20", label: "LED screen 10/20", amount: 30000 },
   ],
