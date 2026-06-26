@@ -6,6 +6,7 @@ import { serialize } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 import { acqCan, acqHasAnyAccess } from "@/lib/acq/rbac";
 import { sendEmail } from "@/lib/email";
+import { after } from "next/server";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
 import { notify } from "@/lib/notify";
 import { sendForSignature } from "@/lib/acq/esign";
@@ -518,11 +519,14 @@ async function postSigningNotify(
       if (u.email) sendEmail({ to: u.email, subject, html }).catch(() => {});
     }
     if (ownerEmail) {
-      sendEmail({
-        to: ownerEmail,
-        subject: `Welcome to Veloria Grand — ${propertyName}`,
-        html: `<p>Thank you! Your management agreement for <strong>${esc(propertyName)}</strong> is now signed. Our team will be in touch with next steps.</p>`,
-      }).catch(() => {});
+      // after() so the welcome email survives a serverless freeze.
+      after(() =>
+        sendEmail({
+          to: ownerEmail,
+          subject: `Welcome to Veloria Grand — ${propertyName}`,
+          html: `<p>Thank you! Your management agreement for <strong>${esc(propertyName)}</strong> is now signed. Our team will be in touch with next steps.</p>`,
+        }).catch(() => {})
+      );
     }
 
     // A signed contract means a property was acquired — alert the downstream

@@ -285,8 +285,11 @@ export async function recordPayment(data: {
 
       if (invoiceWithContact?.contact?.email) {
         const isFullyPaid = newBalanceDue <= 0.01;
+        const emailTo = invoiceWithContact.contact.email;
+        // after() so the receipt email survives a serverless freeze.
+        after(() =>
         sendEmail({
-          to: invoiceWithContact.contact.email,
+          to: emailTo,
           subject: `Payment Received — ${receiptNumber}`,
           html: paymentReceivedEmail({
             contactName: `${invoiceWithContact.contact.firstName} ${invoiceWithContact.contact.lastName}`,
@@ -298,7 +301,8 @@ export async function recordPayment(data: {
             remainingBalance: formatINR(Math.max(0, newBalanceDue)),
             isFullyPaid,
           }),
-        }).catch((err) => console.error("[PAYMENT_EMAIL_ERROR]", err));
+        }).catch((err) => console.error("[PAYMENT_EMAIL_ERROR]", err))
+        );
       }
     } catch (emailErr) {
       console.error("[PAYMENT_EMAIL_ERROR]", emailErr);

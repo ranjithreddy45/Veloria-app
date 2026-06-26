@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { notify } from "@/lib/notify";
 import { logActivity } from "@/lib/activity-logger";
 import { sendEmail } from "@/lib/email";
+import { after } from "next/server";
 import { acqCan, acqHasAnyAccess } from "@/lib/acq/rbac";
 import { getProjectionConfig } from "@/lib/acq/config";
 import {
@@ -326,8 +327,11 @@ export async function sendAcqProjection(
     const body =
       opts.body?.trim() ||
       `Dear ${row.deal.lead.ownerName || "Partner"},<br/><br/>Please find your indicative 3-year revenue projection for ${row.deal.propertyName} prepared by Veloria Grand.<br/><br/><a href="${appUrl}${pdfUrl}">View / download the projection (PDF)</a><br/><br/>Warm regards,<br/>Veloria Grand`;
-    sendEmail({ to: ownerEmail, subject, html: body }).catch((e) =>
-      console.error("[PROJECTION_EMAIL_ERROR]", e)
+    // after() so the projection email survives a serverless freeze.
+    after(() =>
+      sendEmail({ to: ownerEmail, subject, html: body }).catch((e) =>
+        console.error("[PROJECTION_EMAIL_ERROR]", e)
+      )
     );
   }
 

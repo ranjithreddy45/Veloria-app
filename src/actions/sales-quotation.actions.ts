@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { notify } from "@/lib/notify";
 import { logActivity } from "@/lib/activity-logger";
 import { sendEmail } from "@/lib/email";
+import { after } from "next/server";
 import { hasPermission } from "@/lib/permissions";
 import {
   computeQuotation,
@@ -491,7 +492,8 @@ export async function sendSalesQuotation(
     const body =
       opts.body?.trim() ||
       `Dear ${row.clientName || row.contact?.firstName || "Guest"},<br/><br/>Thank you for considering Veloria Grand. Please find your event quotation below.<br/><br/><a href="${appUrl}${pdfUrl}">View / download your quotation (PDF)</a><br/><br/>Grand total: ₹${row.grandTotal}<br/><br/>Warm regards,<br/>Veloria Grand`;
-    sendEmail({ to: email, subject, html: body }).catch((e) => console.error("[QUOTATION_EMAIL_ERROR]", e));
+    // after() so the quotation email survives a serverless freeze.
+    after(() => sendEmail({ to: email, subject, html: body }).catch((e) => console.error("[QUOTATION_EMAIL_ERROR]", e)));
   }
 
   logActivity({

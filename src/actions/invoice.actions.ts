@@ -511,10 +511,11 @@ export async function sendInvoice(id: string) {
       actionUrl: `/invoices/${invoice.id}`,
     });
 
-    // Fire-and-forget: Send invoice email to contact
+    // Send invoice email to contact — after() so it survives a serverless freeze.
     if (invoice.contact?.email) {
+      after(() =>
       sendEmail({
-        to: invoice.contact.email,
+        to: invoice.contact!.email!,
         subject: `Invoice ${invoice.invoiceNumber}`,
         html: invoiceSentEmail({
           contactName: `${invoice.contact.firstName} ${invoice.contact.lastName}`,
@@ -527,7 +528,8 @@ export async function sendInvoice(id: string) {
             amount: formatINR(item.amount),
           })),
         }),
-      }).catch((err) => console.error("[INVOICE_EMAIL_ERROR]", err));
+      }).catch((err) => console.error("[INVOICE_EMAIL_ERROR]", err))
+      );
     }
 
     revalidatePath("/invoices");
