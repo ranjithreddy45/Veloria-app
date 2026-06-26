@@ -295,6 +295,7 @@ export async function getRevenueReport(range: DateRange = "12m") {
             select: {
               booking: {
                 select: {
+                  id: true,
                   eventType: true,
                   venue: { select: { name: true } },
                 },
@@ -367,8 +368,21 @@ export async function getRevenueReport(range: DateRange = "12m") {
       .sort((a, b) => b.revenue - a.revenue);
 
     const totalRevenue = payments.reduce((sum, p) => sum + Number(p.amount), 0);
+    // Total Bookings is a volume metric: bookings *created* in the range.
     const totalBookings = bookingsWithRevenue.length;
-    const averageBookingValue = totalBookings > 0 ? totalRevenue / totalBookings : 0;
+    // Avg. Booking Value must divide matched datasets: totalRevenue comes from
+    // COMPLETED payments in the range, so the denominator is the number of
+    // *distinct bookings that received those payments* (not all bookings created
+    // in the range). This keeps numerator and denominator describing the same
+    // set, so bookings paid-but-created-earlier are counted and unpaid bookings
+    // created in-range don't deflate the average.
+    const paidBookingIds = new Set<string>();
+    for (const p of payments) {
+      const bookingId = p.invoice?.booking?.id;
+      if (bookingId) paidBookingIds.add(bookingId);
+    }
+    const paidBookingCount = paidBookingIds.size;
+    const averageBookingValue = paidBookingCount > 0 ? totalRevenue / paidBookingCount : 0;
 
     return serialize({
       success: true as const,

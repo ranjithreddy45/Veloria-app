@@ -536,6 +536,49 @@ export async function updateRatePlan(id: string, data: RatePlanInput) {
 }
 
 // ============================================================
+// Delete Rate Plan
+// ============================================================
+
+export async function deleteRatePlan(id: string) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+
+    const role = (session.user as { role?: string }).role ?? "";
+    if (!hasPermission(role, "pricing:manage")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
+    if (!id || typeof id !== "string") {
+      return { success: false as const, error: "Invalid rate plan id" };
+    }
+
+    const existing = await prisma.ratePlan.findUnique({ where: { id } });
+    if (!existing) {
+      return { success: false as const, error: "Rate plan not found" };
+    }
+
+    await prisma.ratePlan.delete({ where: { id } });
+
+    await logActivity({
+      userId: session.user.id as string,
+      action: "deleted",
+      entityType: "RatePlan",
+      entityId: id,
+    });
+
+    revalidatePath("/pricing");
+    revalidatePath("/pricing/rate-plans");
+    return { success: true as const, data: { id } };
+  } catch (error) {
+    console.error("[DELETE_RATE_PLAN_ERROR]", error);
+    return { success: false as const, error: "Failed to delete rate plan" };
+  }
+}
+
+// ============================================================
 // Calculate Dynamic Price
 // ============================================================
 // Gets the venue's base pricePerSlot, finds all active PricingRules

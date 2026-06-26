@@ -243,6 +243,8 @@ export async function updateProjectMaster(
   if (patch.targetReadyDate !== undefined) data.targetReadyDate = patch.targetReadyDate ? new Date(patch.targetReadyDate) : null;
   if (patch.bdOwnerId !== undefined) data.bdOwnerId = patch.bdOwnerId || null;
   if (patch.notes !== undefined) data.notes = patch.notes || null;
+  const exists = await prisma.acqOnboardingProject.findUnique({ where: { id }, select: { id: true } });
+  if (!exists) return { success: false, error: "Project not found" };
   await prisma.$transaction(async (tx) => {
     await tx.acqOnboardingProject.update({ where: { id }, data });
     await addAudit(tx, user, { projectId: id, action: "project.master.update", entityType: "project", entityId: id, after: patch });
@@ -331,6 +333,8 @@ export async function startExecution(projectId: string): Promise<Result<{ phase:
 export async function assignProjectManager(id: string, userId: string | null): Promise<Result<{ id: string }>> {
   const user = await requireUser();
   if (!user || !can(user.role, "projects:update")) return { success: false, error: "Unauthorized" };
+  const exists = await prisma.acqOnboardingProject.findUnique({ where: { id }, select: { id: true } });
+  if (!exists) return { success: false, error: "Project not found" };
   await prisma.acqOnboardingProject.update({ where: { id }, data: { projectManagerId: userId || null } });
   if (userId) {
     notify({ userId, type: "TASK_ASSIGNED", title: "Assigned to a venue project", message: "You are now the project manager for a venue readiness project.", actionUrl: `/projects/${id}` });

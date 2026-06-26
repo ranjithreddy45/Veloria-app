@@ -61,6 +61,16 @@ export const staffProfileSchema = z.object({
 export type StaffProfileInput = z.infer<typeof staffProfileSchema>;
 
 // ============================================================
+// Time-of-day validation (HH:MM, 24-hour)
+// ============================================================
+
+// Matches 00:00 .. 23:59. Mirrors the format produced by the client-side
+// <input type="time"> control and required by the shift-hours calculation,
+// which splits on ":" and reads hours/minutes as numbers.
+const timeOfDayRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
+const timeOfDayError = "Time must be in HH:MM (24-hour) format";
+
+// ============================================================
 // Create Shift Schema
 // ============================================================
 
@@ -70,11 +80,11 @@ export const createShiftSchema = z.object({
   startTime: z
     .string()
     .min(1, { error: "Start time is required" })
-    .max(10, "Start time must be at most 10 characters"),
+    .regex(timeOfDayRegex, { error: timeOfDayError }),
   endTime: z
     .string()
     .min(1, { error: "End time is required" })
-    .max(10, "End time must be at most 10 characters"),
+    .regex(timeOfDayRegex, { error: timeOfDayError }),
   role: z
     .string()
     .min(1, { error: "Role is required" })
@@ -93,12 +103,12 @@ export const updateShiftSchema = z.object({
   startTime: z
     .string()
     .min(1, { error: "Start time is required" })
-    .max(10, "Start time must be at most 10 characters")
+    .regex(timeOfDayRegex, { error: timeOfDayError })
     .optional(),
   endTime: z
     .string()
     .min(1, { error: "End time is required" })
-    .max(10, "End time must be at most 10 characters")
+    .regex(timeOfDayRegex, { error: timeOfDayError })
     .optional(),
   role: z
     .string()

@@ -85,7 +85,11 @@ export function ContractDetail({ contract }: ContractDetailProps) {
     startTransition(async () => {
       const result = await sendContract(contract.id);
       if (result.success) {
-        toast.success("Contract sent successfully");
+        if ("warning" in result && result.warning) {
+          toast.warning(result.warning);
+        } else {
+          toast.success("Contract sent successfully");
+        }
         router.refresh();
       } else {
         toast.error(result.error || "Failed to send contract");

@@ -83,7 +83,6 @@ function EditProfileDialog({ profile }: { profile: StaffProfileData }) {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setLoading(true);
 
     const formData = new FormData(e.currentTarget);
 
@@ -108,17 +107,58 @@ function EditProfileDialog({ profile }: { profile: StaffProfileData }) {
       },
     };
 
-    const result = await updateStaffProfile(profile.id, data);
-
-    if (result.success) {
-      toast.success("Profile updated successfully");
-      setOpen(false);
-      router.refresh();
-    } else {
-      toast.error(result.error);
+    // Sensitive financial fields (pay rates, bank details) feed payroll
+    // calculations directly. Require an explicit confirmation before applying
+    // changes to them so a manager cannot silently/accidentally alter payroll.
+    const prevBank = asBankDetails(profile.bankDetails);
+    const sensitiveChanges: string[] = [];
+    if (data.hourlyRate !== (profile.hourlyRate ?? 0)) {
+      sensitiveChanges.push(
+        `Hourly rate: ${formatINR(profile.hourlyRate ?? 0)} → ${formatINR(data.hourlyRate)}`,
+      );
+    }
+    if (data.monthlyRate !== (profile.monthlyRate ?? 0)) {
+      sensitiveChanges.push(
+        `Monthly rate: ${formatINR(profile.monthlyRate ?? 0)} → ${formatINR(data.monthlyRate)}`,
+      );
+    }
+    if (
+      data.bankDetails.bankName !== (prevBank?.bankName ?? "") ||
+      data.bankDetails.accountNumber !== (prevBank?.accountNumber ?? "") ||
+      data.bankDetails.ifscCode !== (prevBank?.ifscCode ?? "")
+    ) {
+      sensitiveChanges.push("Bank details");
     }
 
-    setLoading(false);
+    if (sensitiveChanges.length > 0) {
+      const confirmed = window.confirm(
+        "You are changing payroll-sensitive fields for " +
+          (profile.user.name || "this staff member") +
+          ":\n\n" +
+          sensitiveChanges.map((c) => `• ${c}`).join("\n") +
+          "\n\nThese affect payroll calculations. Continue?",
+      );
+      if (!confirmed) return;
+    }
+
+    setLoading(true);
+
+    try {
+      const result = await updateStaffProfile(profile.id, data);
+
+      if (result.success) {
+        toast.success("Profile updated successfully");
+        setOpen(false);
+        router.refresh();
+      } else {
+        toast.error(result.error || "Failed to update profile");
+      }
+    } catch (err) {
+      console.error("[UPDATE_STAFF_PROFILE_ERROR]", err);
+      toast.error("Something went wrong while updating the profile");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

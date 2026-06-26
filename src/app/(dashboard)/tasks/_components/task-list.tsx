@@ -52,7 +52,8 @@ const STATUS_LABELS: Record<string, string> = {
 
 function getColumns(
   onDelete: (id: string) => void,
-  onNavigate: (id: string) => void
+  onNavigate: (id: string) => void,
+  onEdit: (id: string) => void
 ): ColumnDef<TaskItem>[] {
   return [
     {
@@ -224,7 +225,7 @@ function getColumns(
                 <ExternalLinkIcon className="mr-2 size-4" />
                 View
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onNavigate(task.id)}>
+              <DropdownMenuItem onClick={() => onEdit(task.id)}>
                 <PencilIcon className="mr-2 size-4" />
                 Edit
               </DropdownMenuItem>
@@ -273,7 +274,11 @@ export function TaskList({ tasks }: TaskListProps) {
     router.push(`/tasks/${id}`);
   };
 
-  const columns = getColumns(handleDelete, handleNavigate);
+  const handleEdit = (id: string) => {
+    router.push(`/tasks/${id}/edit`);
+  };
+
+  const columns = getColumns(handleDelete, handleNavigate, handleEdit);
 
   return (
     <DataTable

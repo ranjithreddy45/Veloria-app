@@ -10,6 +10,7 @@ import {
   ArrowLeft,
   FileText,
   ExternalLink,
+  AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -81,6 +82,8 @@ function StatusIcon({ status }: { status: string }) {
 export function InboxChatView({ conversation, onBack }: InboxChatViewProps) {
   const [messages, setMessages] = useState<WhatsAppMsg[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const [sending, setSending] = useState(false);
   const [mode, setMode] = useState<"message" | "template">("message");
   const [messageText, setMessageText] = useState("");
@@ -95,12 +98,23 @@ export function InboxChatView({ conversation, onBack }: InboxChatViewProps) {
 
   // Load conversation messages
   const loadMessages = useCallback(async () => {
-    const result = await getConversation(conversation.contactId);
-    if (result.success && result.data) {
-      // Messages come sorted desc from server, reverse for display
-      setMessages([...(result.data as WhatsAppMsg[])].reverse());
+    try {
+      const result = await getConversation(conversation.contactId);
+      if (result.success && result.data) {
+        // Messages come sorted desc from server, reverse for display
+        setMessages([...(result.data as WhatsAppMsg[])].reverse());
+        setError(null);
+        setLastSyncedAt(new Date());
+      } else {
+        // Surface persistent sync failures instead of silently showing
+        // an empty conversation (E-1).
+        setError(result.error || "Failed to refresh messages");
+      }
+    } catch {
+      setError("Failed to refresh messages");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [conversation.contactId]);
 
   // Load templates
@@ -198,7 +212,14 @@ export function InboxChatView({ conversation, onBack }: InboxChatViewProps) {
         </Avatar>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium">{conversation.contactName}</p>
-          <p className="text-xs text-muted-foreground">{conversation.contactPhone}</p>
+          <p className="text-xs text-muted-foreground">
+            {conversation.contactPhone}
+            {!loading && !error && lastSyncedAt && (
+              <span className="ml-2 text-[10px] text-muted-foreground/70">
+                Synced {format(lastSyncedAt, "HH:mm:ss")}
+              </span>
+            )}
+          </p>
         </div>
         <Button variant="ghost" size="sm" asChild>
           <Link href={`/contacts/${conversation.contactId}`}>
@@ -208,16 +229,35 @@ export function InboxChatView({ conversation, onBack }: InboxChatViewProps) {
         </Button>
       </div>
 
+      {/* Sync error banner — surface persistent polling failures (E-1) */}
+      {error && (
+        <div className="flex items-center gap-2 border-b border-red-200 bg-red-50 px-4 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+          <AlertTriangle className="size-3.5 shrink-0" />
+          <span className="flex-1">Failed to refresh messages: {error}</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 text-xs text-red-700 hover:text-red-800 dark:text-red-300"
+            onClick={() => loadMessages()}
+          >
+            Retry
+          </Button>
+        </div>
+      )}
+
       {/* Messages */}
       <ScrollArea className="flex-1 bg-[#f0f2f5] dark:bg-zinc-950/50">
         <div className="mx-auto max-w-3xl space-y-1 p-4">
           {loading ? (
-            <div className="flex items-center justify-center py-12">
+            <div className="flex flex-col items-center justify-center gap-3 py-12">
               <div className="size-6 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
+              <p className="text-xs text-muted-foreground">Loading messages...</p>
             </div>
           ) : messages.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted-foreground">
-              No messages yet. Send the first message!
+              {error
+                ? "Could not load messages."
+                : "No messages yet. Send the first message!"}
             </div>
           ) : (
             messages.map((msg) => (

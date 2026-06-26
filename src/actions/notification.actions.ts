@@ -122,48 +122,17 @@ export async function markAllAsRead(userId: string): Promise<void> {
 }
 
 // ============================================================
-// createNotification
+// createNotification — intentionally NOT exported as a server action.
+//
+// All notification creation goes through the internal helpers in
+// src/lib/notify.ts (notify / notifyAwait / notifyAdmins), which are invoked
+// server-side from domain actions and crons. A public, RPC-reachable
+// createNotification had zero callers and only widened attack surface
+// (arbitrary client-supplied title/message/actionUrl → in-app phishing /
+// spoofing). It was removed as dead wiring. If an admin-facing manual broadcast
+// is ever needed, build it on top of notifyAdmins / notify with an explicit
+// permission check rather than re-exporting a raw create.
 // ============================================================
-
-export async function createNotification(data: {
-  userId: string;
-  type: NotificationType;
-  title: string;
-  message: string;
-  actionUrl?: string;
-  metadata?: Prisma.InputJsonValue;
-}): Promise<NotificationItem> {
-  // Auth gate: this is exported from a "use server" file and is therefore a
-  // reachable RPC. Without a guard any client could write an arbitrary
-  // notification (attacker-controlled title/message/actionUrl) to any userId,
-  // enabling in-app phishing and spoofing. Require an authenticated session and
-  // only allow fanning out to OTHER users for privileged roles; everyone else
-  // may only create notifications for themselves.
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
-  const role = session.user.role as string | undefined;
-  const canFanOut = role === "SUPER_ADMIN" || role === "ADMIN";
-  if (data.userId !== session.user.id && !canFanOut) {
-    throw new Error("Forbidden");
-  }
-
-  const notification = await prisma.notification.create({
-    data: {
-      userId: data.userId,
-      type: data.type,
-      title: data.title,
-      message: data.message,
-      actionUrl: data.actionUrl || null,
-      metadata: data.metadata ?? Prisma.JsonNull,
-    },
-  });
-  try {
-    revalidatePath("/notifications");
-  } catch {
-    // revalidatePath throws during SSR render — safe to ignore here
-  }
-  return notification;
-}
 
 // ============================================================
 // deleteNotification

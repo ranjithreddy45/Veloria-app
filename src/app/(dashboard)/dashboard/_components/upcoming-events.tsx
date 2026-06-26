@@ -92,12 +92,15 @@ export function UpcomingEvents({ events }: UpcomingEventsProps) {
               No upcoming events
             </p>
             <p className="max-w-[18rem] text-[12px] text-muted-foreground">
-              Confirmed bookings in the next 7 days will appear here. Tap{" "}
-              <kbd className="rounded border border-border bg-muted px-1 font-mono text-[10.5px] text-foreground">
-                B
-              </kbd>{" "}
-              to create a new booking.
+              Confirmed bookings in the next 7 days will appear here.
             </p>
+            <Link
+              href="/bookings/new"
+              className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-[12px] font-medium text-foreground transition-colors hover:bg-muted"
+            >
+              <CalendarCheck className="size-3.5" strokeWidth={2} />
+              New booking
+            </Link>
           </div>
         ) : (
           <div className="divide-y divide-border">

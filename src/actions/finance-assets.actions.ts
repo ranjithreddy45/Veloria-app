@@ -175,22 +175,28 @@ export async function runDepreciation(assetId: string): Promise<Result<{ amount:
   if (asset.status === "DISPOSED") return { success: false, error: "Asset is disposed." };
   if (asset.status === "FULLY_DEPRECIATED") return { success: false, error: "Asset is already fully depreciated." };
 
-  const cost = n(asset.cost);
-  const salvage = n(asset.salvageValue);
-  const accumulated = n(asset.accumulatedDep);
-  const depreciableBase = cost - salvage;
-  const remaining = depreciableBase - accumulated;
+  // Fixed-point: do ALL depreciation arithmetic in integer paise so that
+  // accumulated depreciation cannot drift across many months and the asset
+  // settles to exactly its depreciable base on the final charge.
+  const toPaise = (v: number) => Math.round(v * 100);
+  const costP = toPaise(n(asset.cost));
+  const salvageP = toPaise(n(asset.salvageValue));
+  const accumulatedP = toPaise(n(asset.accumulatedDep));
+  const depreciableBaseP = costP - salvageP;
+  const remainingP = depreciableBaseP - accumulatedP;
 
-  if (remaining <= 0) {
+  if (remainingP <= 0) {
     await prisma.finAsset.update({ where: { id: asset.id }, data: { status: "FULLY_DEPRECIATED" } });
     revalidatePath("/finance/assets");
     return { success: false, error: "Nothing left to depreciate." };
   }
 
-  // Straight-line monthly charge, clamped to the remaining depreciable amount.
-  const monthly = depreciableBase / asset.usefulLifeMonths;
-  const amount = Math.round(Math.min(monthly, remaining) * 100) / 100;
-  if (amount <= 0) return { success: false, error: "Computed depreciation is zero." };
+  // Straight-line monthly charge (in paise), clamped to the remaining
+  // depreciable amount so the last month absorbs any rounding residue exactly.
+  const monthlyP = Math.round(depreciableBaseP / asset.usefulLifeMonths);
+  const amountP = Math.min(monthlyP, remainingP);
+  const amount = amountP / 100;
+  if (amountP <= 0) return { success: false, error: "Computed depreciation is zero." };
 
   // Resolve GL accounts by code.
   const [expenseAcct, accumAcct] = await Promise.all([
@@ -206,7 +212,8 @@ export async function runDepreciation(assetId: string): Promise<Result<{ amount:
   const period = `${fyForDate(runDate)}-P${periodForDate(runDate)}`;
   const sourceRefId = `${asset.id}:${period}`;
 
-  const fullyDepreciated = Math.round((accumulated + amount) * 100) / 100 >= depreciableBase - 0.005;
+  // Exact integer comparison — no float epsilon fudge needed.
+  const fullyDepreciated = accumulatedP + amountP >= depreciableBaseP;
 
   try {
     // ONE transaction: idempotency check + balanced JE post + depreciation-entry +

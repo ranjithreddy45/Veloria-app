@@ -248,8 +248,15 @@ export async function toggleUserActive(id: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
-    if (!hasPermission(session.user.role as string, "users:update")) {
+    // Deactivating a user is a soft-delete (revokes access), so it is gated
+    // behind users:delete rather than users:update — matching the permission
+    // model where ADMIN may edit users but only privileged roles may disable them.
+    if (!hasPermission(session.user.role as string, "users:delete")) {
       return { success: false as const, error: "Insufficient permissions" };
+    }
+
+    if (typeof id !== "string" || id.length === 0) {
+      return { success: false as const, error: "Invalid user id" };
     }
 
     // Cannot deactivate yourself

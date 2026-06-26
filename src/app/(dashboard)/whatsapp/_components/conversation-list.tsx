@@ -71,12 +71,26 @@ export function ConversationList({
           </div>
         ) : (
           <div className="divide-y">
-            {filtered.map((conv) => (
+            {filtered.map((conv) => {
+              // The last message coming from the customer (INBOUND) and not
+              // currently open is the standard "awaiting your reply" signal.
+              // We surface it visually so staff can spot conversations that
+              // need attention without opening each one.
+              const needsReply =
+                conv.lastDirection === "INBOUND" &&
+                selectedContactId !== conv.contactId;
+              return (
               <button
                 key={conv.contactId}
                 onClick={() => onSelect(conv.contactId)}
+                aria-label={
+                  needsReply
+                    ? `${conv.contactName}, awaiting reply`
+                    : conv.contactName
+                }
                 className={cn(
                   "flex w-full items-start gap-3 p-3 text-left transition-colors hover:bg-muted/50",
+                  needsReply && "bg-emerald-50/40 dark:bg-emerald-950/10",
                   selectedContactId === conv.contactId &&
                     "bg-emerald-50/60 dark:bg-emerald-950/20 border-l-2 border-emerald-600"
                 )}
@@ -88,18 +102,45 @@ export function ConversationList({
                 </Avatar>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="truncate text-sm font-medium text-foreground">
-                      {conv.contactName}
-                    </p>
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      {needsReply && (
+                        <span
+                          aria-hidden
+                          className="size-2 shrink-0 rounded-full bg-emerald-600"
+                        />
+                      )}
+                      <p
+                        className={cn(
+                          "truncate text-sm text-foreground",
+                          needsReply ? "font-semibold" : "font-medium"
+                        )}
+                      >
+                        {conv.contactName}
+                      </p>
+                    </div>
                     {conv.lastMessageAt && (
-                      <span className="shrink-0 text-[10px] text-muted-foreground">
+                      <span
+                        className={cn(
+                          "shrink-0 text-[10px]",
+                          needsReply
+                            ? "font-medium text-emerald-700 dark:text-emerald-400"
+                            : "text-muted-foreground"
+                        )}
+                      >
                         {formatDistanceToNow(new Date(conv.lastMessageAt), {
                           addSuffix: false,
                         })}
                       </span>
                     )}
                   </div>
-                  <p className="truncate text-xs text-muted-foreground">
+                  <p
+                    className={cn(
+                      "truncate text-xs",
+                      needsReply
+                        ? "text-foreground/80"
+                        : "text-muted-foreground"
+                    )}
+                  >
                     {conv.lastDirection === "OUTBOUND" && (
                       <span className="mr-1">You:</span>
                     )}
@@ -111,7 +152,8 @@ export function ConversationList({
                   </p>
                 </div>
               </button>
-            ))}
+              );
+            })}
           </div>
         )}
       </ScrollArea>

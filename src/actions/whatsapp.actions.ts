@@ -381,7 +381,18 @@ export async function bulkSendWhatsApp(data: BulkSendWhatsAppInput) {
       };
     }
 
-    const { contactIds, templateName, params } = parsed.data;
+    const { templateName, params } = parsed.data;
+
+    // Whitelist the template against the known set so callers can't push an
+    // arbitrary/unknown template name through the bulk path.
+    if (!WHATSAPP_TEMPLATES.some((t) => t.name === templateName)) {
+      return { success: false as const, error: "Unknown WhatsApp template" };
+    }
+
+    // De-duplicate the requested contact ids up front. A double-click or a
+    // retried request can repeat ids; without this the same contact would
+    // receive the template twice in a single call.
+    const contactIds = Array.from(new Set(parsed.data.contactIds));
 
     // Fetch contacts with phone numbers
     const contacts = await prisma.contact.findMany({
@@ -389,11 +400,37 @@ export async function bulkSendWhatsApp(data: BulkSendWhatsAppInput) {
       select: { id: true, phone: true, firstName: true, lastName: true },
     });
 
+    // Idempotency guard: skip contacts that already received this exact template
+    // in the last 60s. This absorbs the common double-send case (network retry /
+    // user clicking "Send" twice) without needing a client-supplied key. The
+    // WhatsAppMessage model has no dedicated idempotency column, so we key off
+    // (contactId, templateName, recent OUTBOUND) which is the natural dedupe set.
+    const DEDUPE_WINDOW_MS = 60_000;
+    const recentDuplicates = await prisma.whatsAppMessage.findMany({
+      where: {
+        contactId: { in: contactIds },
+        templateName,
+        direction: "OUTBOUND",
+        status: { in: ["SENT", "DELIVERED", "READ"] },
+        sentAt: { gte: new Date(Date.now() - DEDUPE_WINDOW_MS) },
+      },
+      select: { contactId: true },
+    });
+    const recentlySent = new Set(recentDuplicates.map((m) => m.contactId));
+
     let sentCount = 0;
     let failedCount = 0;
+    let duplicateSkipped = 0;
     const skippedNoPhone: string[] = [];
 
     for (const contact of contacts) {
+      if (recentlySent.has(contact.id)) {
+        // Already messaged with this template moments ago — treat as a no-op so
+        // a retried request doesn't double-send.
+        duplicateSkipped++;
+        continue;
+      }
+
       if (!contact.phone) {
         skippedNoPhone.push(`${contact.firstName} ${contact.lastName ?? ""}`.trim());
         failedCount++;
@@ -452,7 +489,7 @@ export async function bulkSendWhatsApp(data: BulkSendWhatsAppInput) {
       }
     }
 
-    logActivity({
+    await logActivity({
       userId: session.user.id as string,
       action: "bulk_sent_whatsapp",
       entityType: "WhatsAppMessage",
@@ -462,6 +499,7 @@ export async function bulkSendWhatsApp(data: BulkSendWhatsAppInput) {
         totalContacts: contactIds.length,
         sent: sentCount,
         failed: failedCount,
+        duplicateSkipped,
         skippedNoPhone: skippedNoPhone.length,
       },
     });
@@ -469,13 +507,30 @@ export async function bulkSendWhatsApp(data: BulkSendWhatsAppInput) {
     revalidatePath("/whatsapp");
     revalidatePath("/contacts");
 
+    // Distinguish all-succeeded / partial / all-failed so the caller can show
+    // the right message instead of a blanket "success" even when every send
+    // failed. `attempted` excludes contacts skipped for no phone / dedupe.
+    const attempted = sentCount + failedCount;
+    const outcome: "all" | "partial" | "none" =
+      attempted === 0
+        ? sentCount > 0
+          ? "all"
+          : "none"
+        : failedCount === 0
+          ? "all"
+          : sentCount === 0
+            ? "none"
+            : "partial";
+
     return {
       success: true as const,
       data: {
         sent: sentCount,
         failed: failedCount,
         total: contactIds.length,
+        duplicateSkipped,
         skippedNoPhone,
+        outcome,
       },
     };
   } catch (error) {

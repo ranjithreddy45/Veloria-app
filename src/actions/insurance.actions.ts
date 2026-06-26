@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/../auth";
+import { Prisma } from "@prisma/client";
 import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
@@ -224,6 +225,24 @@ export async function createInsurancePolicy(data: InsurancePolicyInput) {
     return { success: true as const, data: serialize(policy) };
   } catch (error) {
     console.error("[CREATE_INSURANCE_POLICY_ERROR]", error);
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      // FK violation: booking/venue was deleted in the race window between
+      // the existence pre-check and this create.
+      if (error.code === "P2003" || error.code === "P2025") {
+        return {
+          success: false as const,
+          error:
+            "The selected booking or venue is no longer available. Please refresh and try again.",
+        };
+      }
+      // Unique constraint (e.g. duplicate policy number).
+      if (error.code === "P2002") {
+        return {
+          success: false as const,
+          error: "A policy with these details already exists.",
+        };
+      }
+    }
     return {
       success: false as const,
       error: "Failed to create insurance policy",
@@ -324,6 +343,21 @@ export async function updateInsurancePolicy(
     return { success: true as const, data: serialize(policy) };
   } catch (error) {
     console.error("[UPDATE_INSURANCE_POLICY_ERROR]", error);
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === "P2003" || error.code === "P2025") {
+        return {
+          success: false as const,
+          error:
+            "The selected booking or venue is no longer available. Please refresh and try again.",
+        };
+      }
+      if (error.code === "P2002") {
+        return {
+          success: false as const,
+          error: "A policy with these details already exists.",
+        };
+      }
+    }
     return {
       success: false as const,
       error: "Failed to update insurance policy",

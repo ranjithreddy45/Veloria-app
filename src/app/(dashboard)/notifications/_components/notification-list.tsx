@@ -154,6 +154,25 @@ const NOTIFICATION_ICONS: Record<
 };
 
 // ============================================================
+// Safe text rendering
+// ============================================================
+
+// Defensive coercion for notification text fields. Content is already rendered
+// as React text children (auto-escaped — no dangerouslySetInnerHTML anywhere),
+// so DOM XSS is not possible. This guards the residual cases: non-string values
+// slipping through the RPC type, control characters, and unbounded length that
+// could break layout or be abused for spoofing.
+function safeText(value: unknown, maxLength = 500): string {
+  if (typeof value !== "string") return "";
+  // Strip ASCII control chars (except tab/newline) that could affect rendering.
+  // eslint-disable-next-line no-control-regex
+  const cleaned = value.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
+  return cleaned.length > maxLength
+    ? `${cleaned.slice(0, maxLength)}…`
+    : cleaned;
+}
+
+// ============================================================
 // Types
 // ============================================================
 
@@ -353,10 +372,10 @@ export function NotificationList({
                                 : "font-semibold text-zinc-900"
                             )}
                           >
-                            {notification.title}
+                            {safeText(notification.title, 200)}
                           </p>
                           <p className="mt-1 text-sm text-zinc-500">
-                            {notification.message}
+                            {safeText(notification.message, 500)}
                           </p>
                         </div>
                         {!notification.isRead && (

@@ -238,6 +238,32 @@ export async function updateRentalItem(id: string, data: RentalItemInput) {
       };
     }
 
+    // Guard against shrinking total quantity below units that are currently
+    // committed (not yet returned). Statuses RESERVED/RENTED/OVERDUE all
+    // represent units that have been decremented from availableQty and are
+    // still physically out, so the new total must cover them.
+    const activeAgg = await prisma.rentalBooking.aggregate({
+      where: {
+        rentalItemId: id,
+        status: { in: ["RESERVED", "RENTED", "OVERDUE"] },
+      },
+      _sum: { quantity: true },
+    });
+    const committedQty = activeAgg._sum.quantity ?? 0;
+
+    if (itemData.quantity < committedQty) {
+      return {
+        success: false as const,
+        error: `Total quantity cannot be less than ${committedQty} unit(s) currently out on active rentals`,
+      };
+    }
+
+    // Keep the availableQty counter consistent with the single source of
+    // truth (total quantity minus committed units). This prevents the counter
+    // from diverging from the sum of active bookings when total quantity is
+    // edited, ignoring any stale availableQty value sent by the client.
+    const reconciledAvailableQty = itemData.quantity - committedQty;
+
     const item = await prisma.rentalItem.update({
       where: { id },
       data: {
@@ -247,7 +273,7 @@ export async function updateRentalItem(id: string, data: RentalItemInput) {
         dailyRate: itemData.dailyRate,
         weeklyRate: itemData.weeklyRate ?? null,
         quantity: itemData.quantity,
-        availableQty: itemData.availableQty,
+        availableQty: reconciledAvailableQty,
         condition: itemData.condition || null,
         imageUrl: itemData.imageUrl || null,
       },

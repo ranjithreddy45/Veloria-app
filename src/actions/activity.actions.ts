@@ -99,7 +99,12 @@ export async function getActivityLogs(params?: {
     });
   } catch (error) {
     console.error("[GET_ACTIVITY_LOGS_ERROR]", error);
-    return { success: false as const, error: "Failed to fetch activity logs" };
+    return {
+      success: false as const,
+      code: "FETCH_FAILED" as const,
+      error:
+        "Couldn't load activity right now. This is usually temporary — please retry in a moment.",
+    };
   }
 }
 

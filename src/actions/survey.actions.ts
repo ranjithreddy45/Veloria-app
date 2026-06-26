@@ -7,11 +7,9 @@ import {
   surveySchema,
   surveyResponseSchema,
   surveyInvitationSchema,
-  surveyQuestionSchema,
   type SurveyInput,
   type SurveyResponseInput,
   type SurveyInvitationInput,
-  type SurveyQuestionInput,
 } from "@/schemas/survey.schema";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
@@ -194,29 +192,59 @@ export async function updateSurvey(id: string, data: SurveyInput) {
 
     const surveyData = parsed.data;
 
-    // Delete existing questions and recreate
-    await prisma.surveyQuestion.deleteMany({ where: { surveyId: id } });
+    // Optimistic concurrency + atomicity: delete existing questions and
+    // recreate them in a single transaction. A conditional updateMany guards
+    // against a concurrent edit that mutated the survey after we loaded it —
+    // if the row was touched in the meantime (updatedAt changed) the guard
+    // matches zero rows and we abort instead of clobbering the other write.
+    let survey;
+    try {
+      survey = await prisma.$transaction(async (tx) => {
+        const guard = await tx.survey.updateMany({
+          where: { id, updatedAt: existing.updatedAt },
+          data: { updatedAt: new Date() },
+        });
 
-    const survey = await prisma.survey.update({
-      where: { id },
-      data: {
-        title: surveyData.title,
-        description: surveyData.description || null,
-        isActive: surveyData.isActive,
-        questions: {
-          create: surveyData.questions.map((q, index) => ({
-            question: q.question,
-            type: q.type,
-            options: q.options ?? undefined,
-            isRequired: q.isRequired,
-            order: q.order ?? index,
-          })),
-        },
-      },
-      include: {
-        questions: { orderBy: { order: "asc" } },
-      },
-    });
+        if (guard.count === 0) {
+          throw new Error("SURVEY_CONCURRENT_MODIFICATION");
+        }
+
+        await tx.surveyQuestion.deleteMany({ where: { surveyId: id } });
+
+        return tx.survey.update({
+          where: { id },
+          data: {
+            title: surveyData.title,
+            description: surveyData.description || null,
+            isActive: surveyData.isActive,
+            questions: {
+              create: surveyData.questions.map((q, index) => ({
+                question: q.question,
+                type: q.type,
+                options: q.options ?? undefined,
+                isRequired: q.isRequired,
+                order: q.order ?? index,
+              })),
+            },
+          },
+          include: {
+            questions: { orderBy: { order: "asc" } },
+          },
+        });
+      });
+    } catch (txError) {
+      if (
+        txError instanceof Error &&
+        txError.message === "SURVEY_CONCURRENT_MODIFICATION"
+      ) {
+        return {
+          success: false as const,
+          error:
+            "This survey was modified by someone else. Please reload and try again.",
+        };
+      }
+      throw txError;
+    }
 
     await logActivity({
       userId: session.user.id as string,
@@ -268,173 +296,6 @@ export async function deleteSurvey(id: string) {
   } catch (error) {
     console.error("[DELETE_SURVEY_ERROR]", error);
     return { success: false as const, error: "Failed to delete survey" };
-  }
-}
-
-// ============================================================
-// Add Question to Survey
-// ============================================================
-
-export async function addQuestion(surveyId: string, data: SurveyQuestionInput) {
-  try {
-    const session = await auth();
-    if (!session?.user) {
-      return { success: false as const, error: "Unauthorized" };
-    }
-
-    if (!hasPermission(session.user.role as string, "surveys:update")) {
-      return { success: false as const, error: "Insufficient permissions" };
-    }
-
-    const parsed = surveyQuestionSchema.safeParse(data);
-    if (!parsed.success) {
-      return {
-        success: false as const,
-        error: "Validation failed",
-        details: parsed.error.flatten().fieldErrors,
-      };
-    }
-
-    const survey = await prisma.survey.findUnique({ where: { id: surveyId } });
-    if (!survey) {
-      return { success: false as const, error: "Survey not found" };
-    }
-
-    const questionData = parsed.data;
-
-    // Get max order in existing questions
-    const maxOrder = await prisma.surveyQuestion.aggregate({
-      where: { surveyId },
-      _max: { order: true },
-    });
-
-    const question = await prisma.surveyQuestion.create({
-      data: {
-        question: questionData.question,
-        type: questionData.type,
-        options: questionData.options ?? undefined,
-        isRequired: questionData.isRequired,
-        order: questionData.order ?? ((maxOrder._max.order ?? -1) + 1),
-        surveyId,
-      },
-    });
-
-    await logActivity({
-      userId: session.user.id as string,
-      action: "updated",
-      entityType: "Survey",
-      entityId: surveyId,
-      changes: { addedQuestion: question.id },
-    });
-
-    revalidatePath(`/surveys/${surveyId}`);
-    revalidatePath(`/surveys/${surveyId}/edit`);
-    return { success: true as const, data: serialize(question) };
-  } catch (error) {
-    console.error("[ADD_QUESTION_ERROR]", error);
-    return { success: false as const, error: "Failed to add question" };
-  }
-}
-
-// ============================================================
-// Update Question
-// ============================================================
-
-export async function updateQuestion(questionId: string, data: SurveyQuestionInput) {
-  try {
-    const session = await auth();
-    if (!session?.user) {
-      return { success: false as const, error: "Unauthorized" };
-    }
-
-    if (!hasPermission(session.user.role as string, "surveys:update")) {
-      return { success: false as const, error: "Insufficient permissions" };
-    }
-
-    const parsed = surveyQuestionSchema.safeParse(data);
-    if (!parsed.success) {
-      return {
-        success: false as const,
-        error: "Validation failed",
-        details: parsed.error.flatten().fieldErrors,
-      };
-    }
-
-    const existing = await prisma.surveyQuestion.findUnique({
-      where: { id: questionId },
-    });
-    if (!existing) {
-      return { success: false as const, error: "Question not found" };
-    }
-
-    const questionData = parsed.data;
-
-    const question = await prisma.surveyQuestion.update({
-      where: { id: questionId },
-      data: {
-        question: questionData.question,
-        type: questionData.type,
-        options: questionData.options ?? undefined,
-        isRequired: questionData.isRequired,
-        order: questionData.order,
-      },
-    });
-
-    await logActivity({
-      userId: session.user.id as string,
-      action: "updated",
-      entityType: "Survey",
-      entityId: existing.surveyId,
-      changes: { updatedQuestion: questionId },
-    });
-
-    revalidatePath(`/surveys/${existing.surveyId}`);
-    revalidatePath(`/surveys/${existing.surveyId}/edit`);
-    return { success: true as const, data: serialize(question) };
-  } catch (error) {
-    console.error("[UPDATE_QUESTION_ERROR]", error);
-    return { success: false as const, error: "Failed to update question" };
-  }
-}
-
-// ============================================================
-// Delete Question
-// ============================================================
-
-export async function deleteQuestion(questionId: string) {
-  try {
-    const session = await auth();
-    if (!session?.user) {
-      return { success: false as const, error: "Unauthorized" };
-    }
-
-    if (!hasPermission(session.user.role as string, "surveys:update")) {
-      return { success: false as const, error: "Insufficient permissions" };
-    }
-
-    const existing = await prisma.surveyQuestion.findUnique({
-      where: { id: questionId },
-    });
-    if (!existing) {
-      return { success: false as const, error: "Question not found" };
-    }
-
-    await prisma.surveyQuestion.delete({ where: { id: questionId } });
-
-    await logActivity({
-      userId: session.user.id as string,
-      action: "updated",
-      entityType: "Survey",
-      entityId: existing.surveyId,
-      changes: { deletedQuestion: questionId },
-    });
-
-    revalidatePath(`/surveys/${existing.surveyId}`);
-    revalidatePath(`/surveys/${existing.surveyId}/edit`);
-    return { success: true as const, data: { id: questionId } };
-  } catch (error) {
-    console.error("[DELETE_QUESTION_ERROR]", error);
-    return { success: false as const, error: "Failed to delete question" };
   }
 }
 
@@ -523,11 +384,19 @@ export async function getSurveyResults(surveyId: string) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
+    // Bound the number of responses loaded into memory to avoid memory
+    // exhaustion / slow loads on high-volume surveys. Aggregates (rating, NPS,
+    // per-question breakdowns) are computed over the most recent sample; the
+    // true total is counted separately so the UI can flag truncation.
+    const RESPONSE_SAMPLE_LIMIT = 1000;
+
     const survey = await prisma.survey.findUnique({
       where: { id: surveyId },
       include: {
         questions: { orderBy: { order: "asc" } },
         responses: {
+          orderBy: { createdAt: "desc" },
+          take: RESPONSE_SAMPLE_LIMIT,
           include: {
             answers: {
               include: {
@@ -543,7 +412,11 @@ export async function getSurveyResults(surveyId: string) {
       return { success: false as const, error: "Survey not found" };
     }
 
-    const totalResponses = survey.responses.length;
+    const totalResponses = await prisma.surveyResponse.count({
+      where: { surveyId },
+    });
+    const sampledResponses = survey.responses.length;
+    const truncated = totalResponses > sampledResponses;
 
     // Calculate average overall rating
     const ratedResponses = survey.responses.filter(
@@ -654,6 +527,8 @@ export async function getSurveyResults(surveyId: string) {
         surveyId,
         title: survey.title,
         totalResponses,
+        sampledResponses,
+        truncated,
         averageRating,
         npsScore,
         npsBreakdown,

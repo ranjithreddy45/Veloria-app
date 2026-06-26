@@ -331,6 +331,14 @@ export async function updateTaskStatus(id: string, status: string) {
       return { success: false as const, error: "Invalid task status" };
     }
 
+    const existing = await prisma.task.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!existing) {
+      return { success: false as const, error: "Task not found" };
+    }
+
     const task = await prisma.task.update({
       where: { id },
       data: {
@@ -378,6 +386,14 @@ export async function moveTask(
 
     if (!Number.isInteger(newOrder) || newOrder < 0) {
       return { success: false as const, error: "Invalid order value" };
+    }
+
+    const existing = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: { id: true },
+    });
+    if (!existing) {
+      return { success: false as const, error: "Task not found" };
     }
 
     const task = await prisma.task.update({

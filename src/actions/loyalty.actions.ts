@@ -38,8 +38,14 @@ function calculateTier(totalEarned: number): LoyaltyTier {
 // Get Loyalty Accounts (List with filters)
 // ============================================================
 
+const VALID_TIERS: LoyaltyTier[] = ["BRONZE", "SILVER", "GOLD", "PLATINUM"];
+const ACCOUNTS_PAGE_SIZE_DEFAULT = 50;
+const ACCOUNTS_PAGE_SIZE_MAX = 200;
+
 export async function getLoyaltyAccounts(params?: {
   tier?: LoyaltyTier;
+  page?: number;
+  pageSize?: number;
 }) {
   try {
     const session = await auth();
@@ -51,30 +57,52 @@ export async function getLoyaltyAccounts(params?: {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: any = {};
+    const where: { tier?: LoyaltyTier } = {};
 
-    if (params?.tier) {
+    // Whitelist the tier filter — never trust the raw input.
+    if (params?.tier && VALID_TIERS.includes(params.tier)) {
       where.tier = params.tier;
     }
 
-    const accounts = await prisma.loyaltyAccount.findMany({
-      where,
-      include: {
-        contact: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            phone: true,
+    // Bound pagination so the list is never an unbounded load.
+    const pageSize = Math.min(
+      Math.max(1, Math.floor(params?.pageSize ?? ACCOUNTS_PAGE_SIZE_DEFAULT)),
+      ACCOUNTS_PAGE_SIZE_MAX
+    );
+    const page = Math.max(1, Math.floor(params?.page ?? 1));
+    const skip = (page - 1) * pageSize;
+
+    const [accounts, total] = await Promise.all([
+      prisma.loyaltyAccount.findMany({
+        where,
+        include: {
+          contact: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              phone: true,
+            },
           },
         },
-      },
-      orderBy: { updatedAt: "desc" },
-    });
+        orderBy: { updatedAt: "desc" },
+        take: pageSize,
+        skip,
+      }),
+      prisma.loyaltyAccount.count({ where }),
+    ]);
 
-    return { success: true as const, data: serialize(accounts) };
+    return {
+      success: true as const,
+      data: serialize(accounts),
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / pageSize)),
+      },
+    };
   } catch (error) {
     console.error("[GET_LOYALTY_ACCOUNTS_ERROR]", error);
     return { success: false as const, error: "Failed to fetch loyalty accounts" };
@@ -521,7 +549,13 @@ export async function adjustPoints(data: AdjustPointsInput) {
         throw new Error("Adjustment would result in negative points balance");
       }
 
-      // If adjustment is positive, also update totalEarned and recalculate tier
+      // Semantics (intentional): `totalEarned` is a monotonic lifetime-earned
+      // metric used for tier calculation. Positive adjustments represent points
+      // credited to the member, so they DO increase totalEarned (mirroring
+      // earnPoints). Negative adjustments are corrections to the spendable
+      // `points` balance only; they deliberately do NOT decrement totalEarned,
+      // so a member never loses tier standing because of a clawback/correction.
+      // Tier is therefore recalculated from totalEarned, which only ever grows.
       const newTotalEarned =
         points > 0 ? account.totalEarned + points : account.totalEarned;
       const newTier = calculateTier(newTotalEarned);
@@ -577,33 +611,6 @@ export async function adjustPoints(data: AdjustPointsInput) {
       error instanceof Error ? error.message : "Failed to adjust points";
     console.error("[ADJUST_POINTS_ERROR]", error);
     return { success: false as const, error: message };
-  }
-}
-
-// ============================================================
-// Get Transactions
-// ============================================================
-
-export async function getTransactions(accountId: string) {
-  try {
-    const session = await auth();
-    if (!session?.user) {
-      return { success: false as const, error: "Unauthorized" };
-    }
-
-    if (!hasPermission(session.user.role, "loyalty:read")) {
-      return { success: false as const, error: "Insufficient permissions" };
-    }
-
-    const transactions = await prisma.loyaltyTransaction.findMany({
-      where: { accountId },
-      orderBy: { createdAt: "desc" },
-    });
-
-    return { success: true as const, data: serialize(transactions) };
-  } catch (error) {
-    console.error("[GET_TRANSACTIONS_ERROR]", error);
-    return { success: false as const, error: "Failed to fetch transactions" };
   }
 }
 

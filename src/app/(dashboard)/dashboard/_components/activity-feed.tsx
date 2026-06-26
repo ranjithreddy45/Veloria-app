@@ -33,13 +33,20 @@ function initials(name?: string | null) {
 }
 
 export function ActivityFeed() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["dashboard", "activity-feed"],
     queryFn: () => getActivityLogs({ limit: 8 }),
-    refetchInterval: 30_000,
-    refetchOnWindowFocus: true,
+    // Poll at a relaxed cadence to keep the feed feeling live without piling
+    // redundant load onto the DB when many staff have the dashboard open.
+    // Don't also refetch on every window focus — the interval already covers it.
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: false,
   });
 
+  // The action can resolve to { success:false } (e.g. transient fetch error).
+  // Treat that as an error state rather than silently masking it as "no
+  // activity", which would mislead the user into thinking nothing happened.
+  const failed = isError || (data ? !data.success : false);
   const logs: Log[] =
     data && data.success ? (data.data.logs as unknown as Log[]) : [];
 
@@ -65,6 +72,10 @@ export function ActivityFeed() {
               </div>
             ))}
           </div>
+        ) : failed ? (
+          <p className="px-3 py-6 text-center text-[13px] text-muted-foreground">
+            Couldn’t load activity right now — it’ll refresh automatically in a moment.
+          </p>
         ) : logs.length === 0 ? (
           <p className="px-3 py-6 text-center text-[13px] text-muted-foreground">
             No recent activity yet — it’ll show up here as your team works.

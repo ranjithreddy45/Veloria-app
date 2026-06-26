@@ -906,6 +906,18 @@ export async function delegateRequest(
       return { success: false as const, error: "Delegate user is required" };
     }
 
+    if (delegateToUserId === session.user.id) {
+      return { success: false as const, error: "You cannot delegate to yourself" };
+    }
+
+    const delegatedUser = await prisma.user.findUnique({
+      where: { id: delegateToUserId },
+      select: { id: true },
+    });
+    if (!delegatedUser) {
+      return { success: false as const, error: "User not found" };
+    }
+
     const request = await prisma.approvalRequest.findUnique({
       where: { id: requestId },
       include: APPROVER_INCLUDE,

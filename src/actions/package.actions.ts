@@ -32,8 +32,8 @@ export async function getPackages(params?: {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
-    const page = params?.page ?? 1;
-    const limit = params?.limit ?? 50;
+    const page = Math.max(1, Math.floor(params?.page ?? 1));
+    const limit = Math.min(100, Math.max(1, Math.floor(params?.limit ?? 50)));
     const skip = (page - 1) * limit;
     const search = params?.search?.trim();
 

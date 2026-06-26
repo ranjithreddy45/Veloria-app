@@ -245,7 +245,7 @@ export function MarketingCampaignForm({ campaign }: MarketingCampaignFormProps) 
                       step="0.01"
                       {...field}
                       value={field.value ?? 0}
-                      onChange={(e) => field.onChange(e.target.value)}
+                      onChange={(e) => field.onChange(Number(e.target.value) || 0)}
                     />
                   </FormControl>
                   <FormMessage />

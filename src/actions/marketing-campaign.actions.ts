@@ -53,6 +53,10 @@ export async function getMarketingCampaigns(params?: {
       where,
       orderBy: [{ isActive: "desc" }, { createdAt: "desc" }],
       include: { _count: { select: { attributions: true } } },
+      // Bound the result set: marketing campaigns are a small, curated list,
+      // so the most-recent 1000 active-first rows cover every real use case
+      // while protecting against memory blow-up at scale.
+      take: 1000,
     });
 
     return { success: true as const, data: serialize(campaigns) };

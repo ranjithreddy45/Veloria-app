@@ -71,7 +71,11 @@ function useColumns(): ColumnDef<ContractRow, unknown>[] {
   const handleSend = async (id: string) => {
     const result = await sendContract(id);
     if (result.success) {
-      toast.success("Contract sent successfully");
+      if ("warning" in result && result.warning) {
+        toast.warning(result.warning);
+      } else {
+        toast.success("Contract sent successfully");
+      }
       router.refresh();
     } else {
       toast.error(result.error || "Failed to send contract");

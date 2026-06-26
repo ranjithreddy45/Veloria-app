@@ -24,6 +24,14 @@ export async function allocatePaidAmountToInstallments(
   invoiceId: string,
   paidAmount: number,
 ): Promise<void> {
+  // Guard the derived-state input: a non-finite or negative paidAmount must
+  // never reach the allocation loop. NaN comparisons silently fall through to
+  // the PENDING branch (wrongly reverting COMPLETED installments), and a
+  // negative value would revert every installment. Clamp to a safe floor of 0
+  // so a malformed/regressed amount degrades to "nothing covered" rather than
+  // corrupting truthful state.
+  const safePaid = Number.isFinite(paidAmount) && paidAmount > 0 ? paidAmount : 0;
+
   const installments: { id: string; amount: unknown; status: string; paidAt: Date | null }[] =
     await tx.installment.findMany({
       where: { invoiceId },
@@ -32,10 +40,14 @@ export async function allocatePaidAmountToInstallments(
     });
   if (installments.length === 0) return;
 
-  let remaining = paidAmount;
+  let remaining = safePaid;
   const now = new Date();
   for (const inst of installments) {
-    const amt = Number(inst.amount);
+    const rawAmt = Number(inst.amount);
+    // A malformed installment amount (NaN) would make every comparison false
+    // and silently revert COMPLETED rows; treat it as 0 so it's covered rather
+    // than corrupting state from an unexpected value.
+    const amt = Number.isFinite(rawAmt) && rawAmt > 0 ? rawAmt : 0;
     if (remaining + 0.01 >= amt) {
       // Fully covered.
       remaining -= amt;

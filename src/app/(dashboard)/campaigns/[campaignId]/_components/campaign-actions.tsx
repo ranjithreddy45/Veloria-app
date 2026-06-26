@@ -89,6 +89,15 @@ export function CampaignActions({ campaignId, status }: CampaignActionsProps) {
       toast.error("Please select a date and time");
       return;
     }
+    const parsedDate = new Date(scheduleDate);
+    if (Number.isNaN(parsedDate.getTime())) {
+      toast.error("Please enter a valid date and time");
+      return;
+    }
+    if (parsedDate.getTime() <= Date.now()) {
+      toast.error("Scheduled date and time must be in the future");
+      return;
+    }
     setIsPending(true);
     const result = await scheduleCampaign(campaignId, scheduleDate);
     if (result.success) {

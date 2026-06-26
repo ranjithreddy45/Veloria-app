@@ -29,10 +29,17 @@ export async function getCampaigns(params?: {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: any = {};
+    const VALID_STATUSES = [
+      "DRAFT",
+      "SCHEDULED",
+      "SENDING",
+      "SENT",
+      "CANCELLED",
+    ] as const;
 
-    if (params?.status) {
+    const where: { status?: (typeof VALID_STATUSES)[number] } = {};
+
+    if (params?.status && VALID_STATUSES.includes(params.status)) {
       where.status = params.status;
     }
 
@@ -332,23 +339,54 @@ export async function sendCampaign(id: string) {
       };
     }
 
-    // Set to SENDING first
-    await prisma.campaign.update({
-      where: { id },
+    // Atomically claim the campaign for sending: only transition to SENDING if
+    // it is still in the same DRAFT/SCHEDULED state we just read. This guards
+    // against concurrent sendCampaign calls racing on the same campaign.
+    const claim = await prisma.campaign.updateMany({
+      where: { id, status: existing.status },
       data: { status: "SENDING" },
     });
 
-    // Mock: count contacts matching filter
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const filter = existing.recipientFilter as any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const contactWhere: any = {};
+    if (claim.count === 0) {
+      return {
+        success: false as const,
+        error: "Campaign is already being sent or its status changed",
+      };
+    }
 
-    if (filter?.contactType) {
+    // Mock: count contacts matching filter.
+    // Whitelist the contactType filter against the known ContactType values so
+    // a malformed recipientFilter cannot inject arbitrary query conditions.
+    const filter = (existing.recipientFilter ?? {}) as {
+      contactType?: unknown;
+    };
+    const contactWhere: { type?: "INDIVIDUAL" | "CORPORATE" } = {};
+
+    if (filter.contactType === "INDIVIDUAL" || filter.contactType === "CORPORATE") {
       contactWhere.type = filter.contactType;
     }
 
-    const totalContacts = await prisma.contact.count({ where: contactWhere });
+    let totalContacts: number;
+    try {
+      totalContacts = await prisma.contact.count({ where: contactWhere });
+    } catch (countError) {
+      // Recover from a failed count so the campaign is not stranded in SENDING
+      // (which rejects all further transitions). Revert to its prior state.
+      console.error("[SEND_CAMPAIGN_COUNT_ERROR]", countError);
+      await prisma.campaign
+        .updateMany({
+          where: { id, status: "SENDING" },
+          data: { status: existing.status },
+        })
+        .catch((revertError) => {
+          console.error("[SEND_CAMPAIGN_REVERT_ERROR]", revertError);
+        });
+      return {
+        success: false as const,
+        error: "Failed to compute recipients; campaign was not sent",
+      };
+    }
+
     const totalSent = totalContacts > 0 ? totalContacts : 1; // At minimum 1 for mock
 
     // Set to SENT with stats

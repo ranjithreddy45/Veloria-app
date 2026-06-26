@@ -4,6 +4,11 @@ import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { hasPermission } from "@/lib/permissions";
+import { Prisma } from "@prisma/client";
+
+// Application-level ceiling for CTC (annual, in currency units).
+// Decimal(18,2) can store far more, but a sane cap catches fat-finger entries.
+const MAX_CTC = 50_000_000;
 
 // ============================================================
 // Recruitment — Candidate Detail actions (interviews + offers).
@@ -157,6 +162,23 @@ export async function scheduleInterview(input: {
   const when = new Date(input.scheduledAt);
   if (isNaN(when.getTime())) return { success: false, error: "Invalid date/time." };
 
+  const candidate = await prisma.recCandidate.findUnique({
+    where: { id: input.candidateId },
+    select: { id: true },
+  });
+  if (!candidate) return { success: false, error: "Candidate not found." };
+
+  // If an application is referenced, it must exist and belong to this candidate.
+  if (input.applicationId) {
+    const app = await prisma.recApplication.findUnique({
+      where: { id: input.applicationId },
+      select: { candidateId: true },
+    });
+    if (!app || app.candidateId !== input.candidateId) {
+      return { success: false, error: "Application not found for this candidate." };
+    }
+  }
+
   try {
     const created = await prisma.recInterview.create({
       data: {
@@ -172,7 +194,11 @@ export async function scheduleInterview(input: {
     });
     revalidatePath(`/recruitment/candidates/${input.candidateId}`);
     return { success: true, data: created };
-  } catch {
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003") {
+      return { success: false, error: "Candidate or application no longer exists." };
+    }
+    console.error("scheduleInterview failed", e);
     return { success: false, error: "Could not schedule interview." };
   }
 }
@@ -209,7 +235,8 @@ export async function setInterviewOutcome(
     });
     revalidatePath(`/recruitment/candidates/${existing.candidateId}`);
     return { success: true, data: { id } };
-  } catch {
+  } catch (e) {
+    console.error("setInterviewOutcome failed", e);
     return { success: false, error: "Could not update interview." };
   }
 }
@@ -228,7 +255,8 @@ export async function createOffer(input: {
   if (!canWrite(u?.role)) return { success: false, error: "Not authorized." };
 
   const ctc = Number(input.ctc);
-  if (!isFinite(ctc) || ctc <= 0) return { success: false, error: "Enter a valid CTC." };
+  if (!Number.isFinite(ctc) || ctc <= 0) return { success: false, error: "Enter a valid CTC." };
+  if (ctc > MAX_CTC) return { success: false, error: "CTC exceeds the allowed maximum." };
 
   let joiningDate: Date | null = null;
   if (input.joiningDate) {
@@ -236,6 +264,12 @@ export async function createOffer(input: {
     if (isNaN(d.getTime())) return { success: false, error: "Invalid joining date." };
     joiningDate = d;
   }
+
+  const candidate = await prisma.recCandidate.findUnique({
+    where: { id: input.candidateId },
+    select: { id: true },
+  });
+  if (!candidate) return { success: false, error: "Candidate not found." };
 
   try {
     const created = await prisma.recOffer.create({
@@ -251,7 +285,11 @@ export async function createOffer(input: {
     });
     revalidatePath(`/recruitment/candidates/${input.candidateId}`);
     return { success: true, data: created };
-  } catch {
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003") {
+      return { success: false, error: "Candidate no longer exists." };
+    }
+    console.error("createOffer failed", e);
     return { success: false, error: "Could not create offer." };
   }
 }
@@ -278,7 +316,8 @@ export async function setOfferStatus(
     await prisma.recOffer.update({ where: { id }, data: { status: next } });
     revalidatePath(`/recruitment/candidates/${existing.candidateId}`);
     return { success: true, data: { id } };
-  } catch {
+  } catch (e) {
+    console.error("setOfferStatus failed", e);
     return { success: false, error: "Could not update offer." };
   }
 }
@@ -293,6 +332,12 @@ export async function updateCandidateNotes(
   const u = await requireUser();
   if (!canWrite(u?.role)) return { success: false, error: "Not authorized." };
 
+  const exists = await prisma.recCandidate.findUnique({
+    where: { id },
+    select: { id: true },
+  });
+  if (!exists) return { success: false, error: "Candidate not found." };
+
   try {
     await prisma.recCandidate.update({
       where: { id },
@@ -300,7 +345,8 @@ export async function updateCandidateNotes(
     });
     revalidatePath(`/recruitment/candidates/${id}`);
     return { success: true, data: { id } };
-  } catch {
+  } catch (e) {
+    console.error("updateCandidateNotes failed", e);
     return { success: false, error: "Could not save notes." };
   }
 }

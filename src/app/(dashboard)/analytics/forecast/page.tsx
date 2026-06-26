@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import {
   TrendingUpIcon,
   CalendarIcon,
   TargetIcon,
 } from "lucide-react";
 
+import { auth } from "@/../auth";
+import { hasPermission } from "@/lib/permissions";
 import {
   getForecastEntries,
   getVenueDemandHeatmap,
@@ -29,6 +32,15 @@ export const metadata: Metadata = { title: "Revenue Forecast" };
 // ============================================================
 
 export default async function ForecastPage() {
+  const session = await auth();
+  if (!session?.user) {
+    redirect("/sign-in");
+  }
+
+  if (!hasPermission(session.user.role as string, "forecast:read")) {
+    redirect("/not-authorized");
+  }
+
   // Fetch data in parallel
   const [forecastResult, heatmapResult, venuesResult] = await Promise.all([
     getForecastEntries(),

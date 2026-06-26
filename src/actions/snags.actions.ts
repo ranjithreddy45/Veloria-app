@@ -15,7 +15,11 @@ type Result<T> = { success: true; data: T } | { success: false; error: string };
 const SEVERITIES = ["CRITICAL", "MAJOR", "MINOR"];
 const EDITABLE_STATUSES = ["OPEN", "IN_PROGRESS", "FIXED_PENDING_VERIFICATION", "REOPENED"];
 const PHOTO_KINDS = ["BEFORE", "DURING", "AFTER"];
+// Cap applies to inline base64 data-URLs, whose string length is (roughly) the
+// payload size. https links are external references, so we only bound their
+// length to reject absurd/abusive strings — the byte cap can't apply to them.
 const MAX_PHOTO_BYTES = 7_000_000;
+const MAX_PHOTO_URL_CHARS = 2_048;
 
 async function requireUser() {
   const session = await auth();
@@ -160,8 +164,15 @@ export async function addSnagPhoto(snagId: string, photo: { url: string; kind: s
   const user = await requireUser();
   if (!user || (!can(user.role, "projects:update") && !can(user.role, "projects:audit"))) return { success: false, error: "Unauthorized" };
   if (!PHOTO_KINDS.includes(photo.kind)) return { success: false, error: "Invalid photo type." };
-  if (!photo.url || photo.url.length > MAX_PHOTO_BYTES) return { success: false, error: "Photo is missing or too large (max ~7MB)." };
-  if (!isSafeReceiptUrl(photo.url)) return { success: false, error: "Only image/PDF uploads or https links are allowed." };
+  if (!photo.url?.trim()) return { success: false, error: "Photo is missing." };
+  const photoUrl = photo.url.trim();
+  // Byte cap is only meaningful for inline base64 data-URLs (the string is the payload).
+  if (photoUrl.startsWith("data:")) {
+    if (photoUrl.length > MAX_PHOTO_BYTES) return { success: false, error: "Photo is too large (max ~7MB)." };
+  } else if (photoUrl.length > MAX_PHOTO_URL_CHARS) {
+    return { success: false, error: "Photo link is too long." };
+  }
+  if (!isSafeReceiptUrl(photoUrl)) return { success: false, error: "Only image/PDF uploads or https links are allowed." };
   const snag = await prisma.projectSnag.findUnique({ where: { id: snagId }, select: { projectId: true } });
   if (!snag) return { success: false, error: "Snag not found" };
   const row = await prisma.projectPhoto.create({
@@ -171,7 +182,7 @@ export async function addSnagPhoto(snagId: string, photo: { url: string; kind: s
       entityType: "snag",
       entityId: snagId,
       kind: photo.kind,
-      url: photo.url,
+      url: photoUrl,
       caption: photo.caption?.trim() || null,
       uploadedById: user.id,
       uploadedByName: user.name ?? null,

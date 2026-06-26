@@ -4,7 +4,7 @@ import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { serialize, type Serialized } from "@/lib/utils";
-import { startOfMonth, endOfMonth, subMonths, format, addDays } from "date-fns";
+import { subMonths, format, addDays } from "date-fns";
 
 // ============================================================
 // Types
@@ -79,6 +79,37 @@ export type DashboardStats = {
 };
 
 // ============================================================
+// Timezone helpers
+// ============================================================
+
+// The app operates on Asia/Kolkata (IST). The dashboard greeting and all
+// "this month / last month" period boundaries must be anchored to IST so they
+// stay consistent regardless of the (UTC) server timezone. Without this, a
+// payment recorded just after IST midnight on the 1st could land in the wrong
+// calendar month relative to what the user sees.
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; // UTC+05:30, no DST in India
+
+// Returns the current instant shifted so that its UTC calendar fields read as
+// IST wall-clock. Use only to derive IST-anchored month boundaries below.
+function istNow(): Date {
+  return new Date(Date.now() + IST_OFFSET_MS);
+}
+
+// Start of the IST month containing `istShifted`, returned as a real UTC instant.
+function istStartOfMonth(istShifted: Date): Date {
+  const y = istShifted.getUTCFullYear();
+  const m = istShifted.getUTCMonth();
+  return new Date(Date.UTC(y, m, 1, 0, 0, 0, 0) - IST_OFFSET_MS);
+}
+
+// End of the IST month containing `istShifted` (last ms), as a real UTC instant.
+function istEndOfMonth(istShifted: Date): Date {
+  const y = istShifted.getUTCFullYear();
+  const m = istShifted.getUTCMonth();
+  return new Date(Date.UTC(y, m + 1, 1, 0, 0, 0, 0) - IST_OFFSET_MS - 1);
+}
+
+// ============================================================
 // Color palette for charts
 // ============================================================
 
@@ -110,10 +141,13 @@ export async function getDashboardStats(): Promise<Serialized<DashboardStats>> {
   }
 
   const now = new Date();
-  const thisMonthStart = startOfMonth(now);
-  const thisMonthEnd = endOfMonth(now);
-  const lastMonthStart = startOfMonth(subMonths(now, 1));
-  const lastMonthEnd = endOfMonth(subMonths(now, 1));
+  // IST-anchored "now" used purely to derive month boundaries / month labels,
+  // so periods line up with the IST greeting and the user's local calendar.
+  const nowIst = istNow();
+  const thisMonthStart = istStartOfMonth(nowIst);
+  const thisMonthEnd = istEndOfMonth(nowIst);
+  const lastMonthStart = istStartOfMonth(subMonths(nowIst, 1));
+  const lastMonthEnd = istEndOfMonth(subMonths(nowIst, 1));
 
   // Run all queries in parallel
   const [
@@ -219,6 +253,9 @@ export async function getDashboardStats(): Promise<Serialized<DashboardStats>> {
         status: { in: ["CONFIRMED", "IN_PROGRESS", "HOLD", "TENTATIVE"] },
       },
       orderBy: { date: "asc" },
+      // Bound the next-7-days list; the dashboard only renders a short preview,
+      // so a sane cap avoids an unbounded result set on a busy week.
+      take: 50,
       include: {
         venue: { select: { name: true } },
         contact: {
@@ -239,7 +276,11 @@ export async function getDashboardStats(): Promise<Serialized<DashboardStats>> {
         id: true,
         invoiceNumber: true,
         dueDate: true,
+        // balanceDue is denormalized; we also pull the authoritative components
+        // so we can recompute on read and ignore stale/negative balances.
         balanceDue: true,
+        totalAmount: true,
+        paidAmount: true,
         contact: { select: { firstName: true, lastName: true } },
       },
     }),
@@ -259,13 +300,16 @@ export async function getDashboardStats(): Promise<Serialized<DashboardStats>> {
         assignee: { select: { name: true } },
       },
     }),
-    // Last 12 months payments for chart
+    // Last 12 months payments for chart (bounded: ~1 row per payment over 12mo;
+    // capped so a data anomaly can't pull an unbounded result set)
     prisma.payment.findMany({
       where: {
         status: "COMPLETED",
-        paidAt: { gte: startOfMonth(subMonths(now, 11)) },
+        paidAt: { gte: istStartOfMonth(subMonths(nowIst, 11)) },
       },
       select: { amount: true, paidAt: true },
+      orderBy: { paidAt: "asc" },
+      take: 5000,
     }),
     // Bookings grouped by event type (exclude cancelled, to match the other
     // booking counts on this dashboard — audit consistency fix)
@@ -308,26 +352,37 @@ export async function getDashboardStats(): Promise<Serialized<DashboardStats>> {
       ? (wonLeadsThisMonth / totalLeadsThisMonth) * 100
       : 0;
 
-  // Aggregate monthly revenue for last 12 months
+  // Aggregate monthly revenue for last 12 months, bucketed by IST month so the
+  // chart's month labels line up with the IST-anchored period stats above.
+  // Both the seeded buckets and the payment bucketing read UTC fields off an
+  // IST-shifted instant, so they use one identical convention (no local-tz mix).
+  const istMonthKey = (d: Date) =>
+    format(new Date(d.getTime() + IST_OFFSET_MS), "yyyy-MM");
   const monthlyRevenueMap = new Map<string, number>();
   for (let i = 11; i >= 0; i--) {
-    const monthDate = subMonths(now, i);
-    const key = format(monthDate, "yyyy-MM");
+    // subMonths off the real `now`, then key via the same IST shift used below.
+    const key = istMonthKey(subMonths(now, i));
     monthlyRevenueMap.set(key, 0);
   }
   for (const payment of last12MonthsPayments) {
     if (payment.paidAt) {
-      const key = format(payment.paidAt, "yyyy-MM");
+      const key = istMonthKey(payment.paidAt);
+      if (!monthlyRevenueMap.has(key)) continue; // outside the 12-month window
       const current = monthlyRevenueMap.get(key) || 0;
       monthlyRevenueMap.set(key, current + Number(payment.amount));
     }
   }
   const monthlyRevenue: MonthlyRevenue[] = Array.from(
     monthlyRevenueMap.entries()
-  ).map(([key, revenue]) => ({
-    month: format(new Date(key + "-01"), "MMM yyyy"),
-    revenue,
-  }));
+  ).map(([key, revenue]) => {
+    // key is "yyyy-MM"; anchor at midday to keep the displayed month stable
+    // across server timezones when date-fns reads local fields.
+    const [y, m] = key.split("-").map(Number);
+    return {
+      month: format(new Date(y, m - 1, 1, 12, 0, 0), "MMM yyyy"),
+      revenue,
+    };
+  });
 
   // Bookings by type
   const bookingsByType: BookingsByType[] = bookingsByTypeRaw.map((b) => ({
@@ -358,10 +413,26 @@ export async function getDashboardStats(): Promise<Serialized<DashboardStats>> {
       total: totalTasks,
     },
     upcomingEvents: upcomingEvents as UpcomingEvent[],
-    overduePayments: overduePayments.map((p) => ({
-      ...p,
-      balanceDue: Number(p.balanceDue),
-    })),
+    overduePayments: overduePayments
+      .map((p) => {
+        // Recompute the authoritative balance from total - paid rather than
+        // trusting the denormalized balanceDue, which can drift if a payment
+        // updated paidAmount without updating balanceDue. Clamp at 0.
+        const computed = Number(p.totalAmount) - Number(p.paidAmount);
+        const balanceDue = Math.max(
+          0,
+          Number.isFinite(computed) ? computed : Number(p.balanceDue)
+        );
+        return {
+          id: p.id,
+          invoiceNumber: p.invoiceNumber,
+          dueDate: p.dueDate,
+          balanceDue,
+          contact: p.contact,
+        };
+      })
+      // Drop rows that are actually settled (stale denormalized balanceDue).
+      .filter((p) => p.balanceDue > 0),
     overdueTasks: overdueTasksList as OverdueTask[],
     monthlyRevenue,
     bookingsByType,

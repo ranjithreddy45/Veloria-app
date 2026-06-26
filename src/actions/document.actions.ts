@@ -185,78 +185,6 @@ export async function uploadDocument(data: DocumentInput) {
 }
 
 // ============================================================
-// Update Document
-// ============================================================
-
-export async function updateDocument(id: string, data: DocumentUpdateInput) {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return { success: false as const, error: "Unauthorized" };
-    }
-
-    const role = (session.user as { role?: string }).role ?? "";
-    if (!hasPermission(role, "documents:create")) {
-      return { success: false as const, error: "Insufficient permissions" };
-    }
-
-    const parsed = documentUpdateSchema.safeParse(data);
-    if (!parsed.success) {
-      return {
-        success: false as const,
-        error: parsed.error.issues[0]?.message ?? "Validation failed",
-      };
-    }
-
-    const existing = await prisma.document.findUnique({
-      where: { id },
-    });
-
-    if (!existing) {
-      return { success: false as const, error: "Document not found" };
-    }
-
-    // Ownership guard: only the uploader may edit their own document; admins may edit any.
-    const isPrivileged = role === "SUPER_ADMIN" || role === "ADMIN";
-    if (existing.uploadedById !== session.user.id && !isPrivileged) {
-      return {
-        success: false as const,
-        error: "You can only edit documents you uploaded",
-      };
-    }
-
-    const updateData = parsed.data;
-
-    const document = await prisma.document.update({
-      where: { id },
-      data: {
-        ...(updateData.name !== undefined && { name: updateData.name }),
-        ...(updateData.category !== undefined && {
-          category: updateData.category,
-        }),
-        ...(updateData.isPublic !== undefined && {
-          isPublic: updateData.isPublic,
-        }),
-        ...(updateData.tags !== undefined && { tags: updateData.tags }),
-      },
-    });
-
-    logActivity({
-      userId: session.user.id as string,
-      action: "updated",
-      entityType: "Document",
-      entityId: document.id,
-    });
-
-    revalidatePath("/documents");
-    return { success: true as const, data: serialize(document) };
-  } catch (error) {
-    console.error("[UPDATE_DOCUMENT_ERROR]", error);
-    return { success: false as const, error: "Failed to update document" };
-  }
-}
-
-// ============================================================
 // Delete Document
 // ============================================================
 
@@ -312,7 +240,8 @@ export async function deleteDocument(id: string) {
 
 export async function getDocumentsByEntity(
   entityType: "booking" | "contact" | "venue",
-  entityId: string
+  entityId: string,
+  params?: { page?: number; limit?: number }
 ) {
   try {
     const session = await auth();
@@ -324,6 +253,18 @@ export async function getDocumentsByEntity(
     if (!hasPermission(role, "documents:read")) {
       return { success: false as const, error: "Insufficient permissions" };
     }
+
+    if (!entityId) {
+      return { success: false as const, error: "Invalid entity id" };
+    }
+
+    // Bound + sanitize pagination inputs.
+    const page = Math.max(1, Math.floor(Number(params?.page) || 1));
+    const limit = Math.min(
+      200,
+      Math.max(1, Math.floor(Number(params?.limit) || 50))
+    );
+    const skip = (page - 1) * limit;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {};
@@ -342,12 +283,26 @@ export async function getDocumentsByEntity(
         return { success: false as const, error: "Invalid entity type" };
     }
 
-    const documents = await prisma.document.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-    });
+    const [documents, total] = await Promise.all([
+      prisma.document.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.document.count({ where }),
+    ]);
 
-    return { success: true as const, data: serialize(documents) };
+    return {
+      success: true as const,
+      data: {
+        data: serialize(documents),
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   } catch (error) {
     console.error("[GET_DOCUMENTS_BY_ENTITY_ERROR]", error);
     return { success: false as const, error: "Failed to fetch documents" };

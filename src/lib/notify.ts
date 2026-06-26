@@ -70,7 +70,7 @@ export async function notifyAdmins(
   adminIds: string[],
   params: Omit<NotifyParams, "userId">
 ): Promise<void> {
-  for (const userId of adminIds) {
-    notify({ ...params, userId });
-  }
+  await Promise.all(
+    adminIds.map((userId) => notifyAwait({ ...params, userId }))
+  );
 }

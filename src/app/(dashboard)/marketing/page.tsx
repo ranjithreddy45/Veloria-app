@@ -50,7 +50,7 @@ export default async function MarketingPage() {
 
   const canManage = hasPermission(
     session.user.role as string,
-    "marketing:read"
+    "marketing:manage"
   );
 
   return (

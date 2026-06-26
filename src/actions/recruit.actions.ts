@@ -241,6 +241,12 @@ export async function createApplication(candidateId: string, jobOpeningId: strin
   if (!canWrite(u?.role)) return { success: false, error: "Not authorized." };
   if (!candidateId || !jobOpeningId) return { success: false, error: "Pick a candidate and a job opening." };
   try {
+    const [candidate, opening] = await Promise.all([
+      prisma.recCandidate.findUnique({ where: { id: candidateId }, select: { id: true } }),
+      prisma.recJobOpening.findUnique({ where: { id: jobOpeningId }, select: { id: true } }),
+    ]);
+    if (!candidate) return { success: false, error: "That candidate no longer exists." };
+    if (!opening) return { success: false, error: "That job opening no longer exists." };
     const a = await prisma.recApplication.create({ data: { candidateId, jobOpeningId, createdById: u!.id } });
     revalidatePath("/recruitment/applications");
     return { success: true, data: { id: a.id } };

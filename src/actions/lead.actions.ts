@@ -77,8 +77,11 @@ export async function getLeads(params?: {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
-    const page = params?.page ?? 1;
-    const limit = params?.limit ?? 50;
+    const page = Math.max(1, Math.floor(params?.page ?? 1));
+    // Hard-cap page size: callers (e.g. the leads page) pass large limits like 500,
+    // which with nested contact+assignedTo includes can bloat memory / slow the
+    // response on accounts with thousands of leads. Bound it to a sane ceiling.
+    const limit = Math.min(Math.max(1, Math.floor(params?.limit ?? 50)), 100);
     const skip = (page - 1) * limit;
     const search = params?.search?.trim();
 
@@ -855,6 +858,22 @@ export async function updateLeadStatus(id: string, status: LeadStatus) {
     // its Won/Lost / re-open state keeps the deal's stage in sync. Status change + deal
     // sync commit together so the lead and its pipeline deal can never diverge (audit fix).
     const lead = await prisma.$transaction(async (tx) => {
+      // Re-assert the "Won needs an owner" guard against the row inside the
+      // transaction. The earlier check (line ~828) ran on a read taken outside
+      // the transaction, so a concurrent un-assign could otherwise let a lead be
+      // marked Won with no owner (SCRM-004). This catches that race atomically.
+      if (status === "WON") {
+        const current = await tx.lead.findUnique({
+          where: { id },
+          select: { assignedToId: true },
+        });
+        if (!current) {
+          throw new Error("LEAD_NOT_FOUND");
+        }
+        if (!current.assignedToId) {
+          throw new Error("WON_NEEDS_OWNER");
+        }
+      }
       const updated = await tx.lead.update({ where: { id }, data: statusData });
       await syncPipelineDealForLead(tx, id, status, existing);
       return updated;
@@ -872,6 +891,12 @@ export async function updateLeadStatus(id: string, status: LeadStatus) {
     revalidatePath("/pipeline");
     return { success: true as const, data: serialize(lead) };
   } catch (error) {
+    if (error instanceof Error && error.message === "WON_NEEDS_OWNER") {
+      return { success: false as const, error: "Assign an owner to this lead before marking it Won." };
+    }
+    if (error instanceof Error && error.message === "LEAD_NOT_FOUND") {
+      return { success: false as const, error: "Lead not found" };
+    }
     console.error("[UPDATE_LEAD_STATUS_ERROR]", error);
     return { success: false as const, error: "Failed to update lead status" };
   }

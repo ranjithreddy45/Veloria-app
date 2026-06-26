@@ -47,7 +47,10 @@ const REWARD_TYPE_LABELS: Record<string, string> = {
 // Referral Rewards Page
 // ============================================================
 
-async function getRewards() {
+async function getRewards(): Promise<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  { success: true; data: any[] } | { success: false; error: string }
+> {
   try {
     const rewards = await prisma.referralReward.findMany({
       include: {
@@ -65,18 +68,23 @@ async function getRewards() {
         },
       },
       orderBy: { createdAt: "desc" },
+      take: 500,
     });
-    return serialize(rewards);
-  } catch {
-    return [];
+    return { success: true, data: serialize(rewards) };
+  } catch (error) {
+    console.error("[REFERRAL_REWARDS_FETCH_ERROR]", error);
+    return { success: false, error: "Failed to load referral rewards." };
   }
 }
 
 export default async function ReferralRewardsPage() {
-  const [dashboardResult, rewards] = await Promise.all([
+  const [dashboardResult, rewardsResult] = await Promise.all([
     getReferralDashboard(),
     getRewards(),
   ]);
+
+  const rewards = rewardsResult.success ? rewardsResult.data : [];
+  const rewardsError = rewardsResult.success ? null : rewardsResult.error;
 
   const pendingCount = dashboardResult.success
     ? dashboardResult.data?.pendingRewards.count ?? 0
@@ -95,6 +103,16 @@ export default async function ReferralRewardsPage() {
           </Link>
         </Button>
       </PageHeader>
+
+      {rewardsError && (
+        <Card className="border-red-300 bg-red-50 dark:border-red-800/60 dark:bg-red-950/30 shadow-sm">
+          <CardContent className="py-4">
+            <p className="text-sm font-medium text-red-700 dark:text-red-400">
+              {rewardsError} Please refresh the page or try again later.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Summary */}
       <div className="grid gap-4 sm:grid-cols-3">

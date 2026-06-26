@@ -6,9 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import {
   resourceSchema,
-  allocationSchema,
   type ResourceInput,
-  type AllocationInput,
 } from "@/schemas/resource.schema";
 import type { ResourceType } from "@prisma/client";
 import { serialize } from "@/lib/utils";
@@ -36,8 +34,9 @@ export async function getResources(params?: {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
-    const page = params?.page ?? 1;
-    const limit = params?.limit ?? 50;
+    // Bound pagination inputs to sane ranges to avoid unbounded queries.
+    const page = Math.max(Math.floor(params?.page ?? 1), 1);
+    const limit = Math.min(Math.max(Math.floor(params?.limit ?? 50), 1), 500);
     const skip = (page - 1) * limit;
     const search = params?.search?.trim();
 
@@ -306,105 +305,6 @@ export async function deleteResource(id: string) {
 }
 
 // ============================================================
-// Allocate Resource
-// ============================================================
-
-export async function allocateResource(data: AllocationInput) {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return { success: false as const, error: "Unauthorized" };
-    }
-
-    if (!hasPermission(session.user.role, "resources:update")) {
-      return { success: false as const, error: "Insufficient permissions" };
-    }
-
-    const parsed = allocationSchema.safeParse(data);
-    if (!parsed.success) {
-      return {
-        success: false as const,
-        error: "Validation failed",
-        details: parsed.error.flatten().fieldErrors,
-      };
-    }
-
-    const allocData = parsed.data;
-
-    // Verify resource and booking exist
-    const [resource, booking] = await Promise.all([
-      prisma.resource.findUnique({
-        where: { id: allocData.resourceId },
-        select: { id: true, name: true, isAvailable: true },
-      }),
-      prisma.booking.findUnique({
-        where: { id: allocData.bookingId },
-        select: { id: true, bookingNumber: true, eventName: true },
-      }),
-    ]);
-
-    if (!resource) {
-      return { success: false as const, error: "Resource not found" };
-    }
-    if (!booking) {
-      return { success: false as const, error: "Booking not found" };
-    }
-    if (!resource.isAvailable) {
-      return { success: false as const, error: "Resource is not available" };
-    }
-
-    const allocation = await prisma.resourceAllocation.create({
-      data: {
-        resourceId: allocData.resourceId,
-        bookingId: allocData.bookingId,
-        date: new Date(allocData.date),
-        startTime: allocData.startTime,
-        endTime: allocData.endTime,
-        notes: allocData.notes || null,
-      },
-      include: {
-        resource: { select: { id: true, name: true } },
-        booking: {
-          select: { id: true, bookingNumber: true, eventName: true },
-        },
-      },
-    });
-
-    await logActivity({
-      userId: session.user.id as string,
-      action: "created",
-      entityType: "ResourceAllocation",
-      entityId: allocation.id,
-      changes: {
-        resourceId: allocData.resourceId,
-        resourceName: resource.name,
-        bookingId: allocData.bookingId,
-      },
-    });
-
-    revalidatePath(`/resources/${allocData.resourceId}`);
-    revalidatePath("/resources");
-    return { success: true as const, data: serialize(allocation) };
-  } catch (error) {
-    console.error("[ALLOCATE_RESOURCE_ERROR]", error);
-    // Handle unique constraint violation
-    if (
-      typeof error === "object" &&
-      error !== null &&
-      "code" in error &&
-      (error as { code: string }).code === "P2002"
-    ) {
-      return {
-        success: false as const,
-        error:
-          "This resource is already allocated for this date and start time",
-      };
-    }
-    return { success: false as const, error: "Failed to allocate resource" };
-  }
-}
-
-// ============================================================
 // Deallocate Resource
 // ============================================================
 
@@ -447,99 +347,6 @@ export async function deallocateResource(allocationId: string) {
     return {
       success: false as const,
       error: "Failed to deallocate resource",
-    };
-  }
-}
-
-// ============================================================
-// Check Conflicts
-// ============================================================
-
-export async function checkConflicts(resourceId: string, date: string) {
-  try {
-    const session = await auth();
-    if (!session?.user) {
-      return { success: false as const, error: "Unauthorized" };
-    }
-
-    if (!hasPermission(session.user.role, "resources:read")) {
-      return { success: false as const, error: "Insufficient permissions" };
-    }
-
-    const allocations = await prisma.resourceAllocation.findMany({
-      where: {
-        resourceId,
-        date: new Date(date),
-      },
-      include: {
-        booking: {
-          select: {
-            id: true,
-            bookingNumber: true,
-            eventName: true,
-          },
-        },
-      },
-      orderBy: { startTime: "asc" },
-    });
-
-    return { success: true as const, data: serialize(allocations) };
-  } catch (error) {
-    console.error("[CHECK_CONFLICTS_ERROR]", error);
-    return { success: false as const, error: "Failed to check conflicts" };
-  }
-}
-
-// ============================================================
-// Get Resource Calendar (All allocations for a month)
-// ============================================================
-
-export async function getResourceCalendar(month: number, year: number) {
-  try {
-    const session = await auth();
-    if (!session?.user) {
-      return { success: false as const, error: "Unauthorized" };
-    }
-
-    if (!hasPermission(session.user.role, "resources:read")) {
-      return { success: false as const, error: "Insufficient permissions" };
-    }
-
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0, 23, 59, 59);
-
-    const allocations = await prisma.resourceAllocation.findMany({
-      where: {
-        date: {
-          gte: startDate,
-          lte: endDate,
-        },
-      },
-      include: {
-        resource: {
-          select: {
-            id: true,
-            name: true,
-            type: true,
-          },
-        },
-        booking: {
-          select: {
-            id: true,
-            bookingNumber: true,
-            eventName: true,
-          },
-        },
-      },
-      orderBy: [{ date: "asc" }, { startTime: "asc" }],
-    });
-
-    return { success: true as const, data: serialize(allocations) };
-  } catch (error) {
-    console.error("[GET_RESOURCE_CALENDAR_ERROR]", error);
-    return {
-      success: false as const,
-      error: "Failed to fetch resource calendar",
     };
   }
 }

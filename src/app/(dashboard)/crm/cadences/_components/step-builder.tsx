@@ -120,15 +120,23 @@ export function StepBuilder({ cadenceId, cadenceStatus, steps }: StepBuilderProp
   // ---- Create ----
   async function handleCreate(input: CadenceStepInput) {
     setLoading(true);
-    const result = await createStep(cadenceId, input);
-    setLoading(false);
-
-    if (result.success) {
-      toast.success("Step added");
-      setCreating(false);
+    try {
+      const result = await createStep(cadenceId, input);
+      if (result.success) {
+        toast.success("Step added");
+        setCreating(false);
+        router.refresh();
+      } else {
+        toast.error(result.error ?? "Failed to add step");
+        // Refetch so the UI reflects the true server state (e.g. the
+        // cadence was archived/changed concurrently and the write was rejected).
+        router.refresh();
+      }
+    } catch {
+      toast.error("Failed to add step. Please try again.");
       router.refresh();
-    } else {
-      toast.error(result.error);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -136,15 +144,21 @@ export function StepBuilder({ cadenceId, cadenceStatus, steps }: StepBuilderProp
   async function handleUpdate(input: CadenceStepInput) {
     if (!editing) return;
     setLoading(true);
-    const result = await updateStep(editing.id, input);
-    setLoading(false);
-
-    if (result.success) {
-      toast.success("Step updated");
-      setEditing(null);
+    try {
+      const result = await updateStep(editing.id, input);
+      if (result.success) {
+        toast.success("Step updated");
+        setEditing(null);
+        router.refresh();
+      } else {
+        toast.error(result.error ?? "Failed to update step");
+        router.refresh();
+      }
+    } catch {
+      toast.error("Failed to update step. Please try again.");
       router.refresh();
-    } else {
-      toast.error(result.error);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -152,15 +166,23 @@ export function StepBuilder({ cadenceId, cadenceStatus, steps }: StepBuilderProp
   async function handleDelete() {
     if (!deleting) return;
     setLoading(true);
-    const result = await deleteStep(deleting.id);
-    setLoading(false);
-
-    if (result.success) {
-      toast.success("Step deleted");
+    try {
+      const result = await deleteStep(deleting.id);
+      if (result.success) {
+        toast.success("Step deleted");
+        setDeleting(null);
+        router.refresh();
+      } else {
+        toast.error(result.error ?? "Failed to delete step");
+        setDeleting(null);
+        router.refresh();
+      }
+    } catch {
+      toast.error("Failed to delete step. Please try again.");
       setDeleting(null);
       router.refresh();
-    } else {
-      toast.error(result.error);
+    } finally {
+      setLoading(false);
     }
   }
 

@@ -89,9 +89,9 @@ export function CommissionCalcDialog({
     }
 
     const booking = bookings.find((b) => b.id === bookingId);
-    // invoiceAmount is required by the input schema but is NOT trusted by the
-    // action — it derives the true base from the booking server-side. We pass
-    // the booking's known total purely to satisfy the schema's positivity rule.
+    // The action derives the commission base from the booking server-side and
+    // never trusts a client-supplied amount, so we don't send one. We still
+    // guard the UI against picking a booking with no positive total.
     const invoiceAmount = booking ? Number(booking.totalAmount) : 0;
     if (!(invoiceAmount > 0)) {
       toast.error("Selected booking has no positive total amount.");
@@ -104,7 +104,6 @@ export function CommissionCalcDialog({
           ruleId,
           userId,
           bookingId,
-          invoiceAmount,
         });
 
         if (result.success) {

@@ -187,6 +187,31 @@ export async function createPayout(data: CreatePayoutInput) {
       }
     }
 
+    // Duplicate-payment control (Rule 4): block a near-identical payout to the
+    // same vendor (same amount + type within the dedup window) BEFORE creating
+    // it. Checking up-front — rather than warning after the row is already
+    // persisted — also closes the double-submit / retry race that would
+    // otherwise create two identical payouts. A failure in the dedup query
+    // itself must not block legitimate creation, so it is caught and ignored.
+    if (vendorId) {
+      try {
+        const dupes = await findDuplicatePayouts({
+          vendorId,
+          amount: payoutData.amount,
+          type: payoutData.type,
+        });
+        if (dupes.length > 0) {
+          const refs = dupes.map((d) => d.referenceNumber ?? d.id).join(", ");
+          return {
+            success: false as const,
+            error: `Duplicate payout blocked: ${dupes.length} recent payout(s) to this vendor for the same amount and type already exist (${refs}). Cancel the existing payout or change the amount/type before creating a new one.`,
+          };
+        }
+      } catch (dupErr) {
+        console.error("[PAYOUT_DUP_CHECK_ERROR]", dupErr);
+      }
+    }
+
     const payout = await prisma.payout.create({
       data: {
         amount: payoutData.amount,
@@ -215,27 +240,8 @@ export async function createPayout(data: CreatePayoutInput) {
       actionUrl: `/payouts/${payout.id}`,
     });
 
-    // Duplicate-payment control (Rule 4): warn the maker if a near-identical
-    // payout to the same vendor was raised recently. Non-blocking — surfaced so
-    // the approver can double-check before money moves.
-    let duplicateWarning: string | undefined;
-    try {
-      const dupes = await findDuplicatePayouts({
-        vendorId: payoutData.vendorId || null,
-        amount: payoutData.amount,
-        type: payoutData.type,
-        excludePayoutId: payout.id,
-      });
-      if (dupes.length > 0) {
-        const refs = dupes.map((d) => d.referenceNumber ?? d.id).join(", ");
-        duplicateWarning = `Possible duplicate: ${dupes.length} recent payout(s) to this vendor for the same amount (${refs}). Verify before approving.`;
-      }
-    } catch (dupErr) {
-      console.error("[PAYOUT_DUP_CHECK_ERROR]", dupErr);
-    }
-
     revalidatePath("/payouts");
-    return { success: true as const, data: serialize(payout), duplicateWarning };
+    return { success: true as const, data: serialize(payout) };
   } catch (error) {
     console.error("[CREATE_PAYOUT_ERROR]", error);
     return { success: false as const, error: "Failed to create payout" };
@@ -370,8 +376,35 @@ export async function markPayoutPaid(id: string) {
 
     // Post the disbursement to the General Ledger via after() so it survives a
     // serverless freeze (idempotent; reconcile backstop). Alerts on failure.
-    after(() =>
-      postPayoutPaid(payout.id, session.user.id as string).catch((err) => {
+    after(async () => {
+      try {
+        const res = await postPayoutPaid(payout.id, session.user.id as string);
+        // postPayoutPaid never throws — it returns {posted:false,reason} on a
+        // real failure (vs. benign no-ops like "not-seeded"/"already-posted").
+        // Surface only genuine failures so the accounting gap is auditable and
+        // can be retried/investigated, not silently swallowed.
+        const benign = new Set([
+          "not-seeded",
+          "already-posted",
+          "non-positive-amount",
+        ]);
+        if (!res.posted && !benign.has(res.reason)) {
+          console.error("[PAYOUT_GL_POST_ERROR]", payout.id, res.reason);
+          logActivity({
+            userId: session.user.id as string,
+            action: "updated",
+            entityType: "Payout",
+            entityId: payout.id,
+            changes: { glPostingFailed: res.reason },
+          });
+          void reportSystemFailure({
+            area: "GL posting",
+            title: "Vendor payout failed to post",
+            detail: `Payout ${payout.id}: ${res.reason}. AP/cash may be unreconciled.`,
+            actionUrl: "/finance",
+          });
+        }
+      } catch (err) {
         console.error("[PAYOUT_GL_POST_ERROR]", err);
         void reportSystemFailure({
           area: "GL posting",
@@ -379,8 +412,8 @@ export async function markPayoutPaid(id: string) {
           detail: `Payout ${payout.id}: ${err instanceof Error ? err.message : "unknown"}. AP/cash may be unreconciled.`,
           actionUrl: "/finance",
         });
-      })
-    );
+      }
+    });
 
     notify({
       userId: session.user.id as string,
@@ -505,97 +538,6 @@ export async function getPayoutStats() {
   } catch (error) {
     console.error("[GET_PAYOUT_STATS_ERROR]", error);
     return { success: false as const, error: "Failed to fetch payout stats" };
-  }
-}
-
-// ============================================================
-// Generate Venue Owner Payout from Booking
-// ============================================================
-
-export async function generateVenueOwnerPayout(bookingId: string) {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return { success: false as const, error: "Unauthorized" };
-    }
-
-    if (!hasPermission(session.user.role as string, "payouts:create")) {
-      return { success: false as const, error: "Not authorized to generate payouts" };
-    }
-
-    const booking = await prisma.booking.findUnique({
-      where: { id: bookingId },
-      select: {
-        id: true,
-        bookingNumber: true,
-        eventName: true,
-        totalAmount: true,
-        status: true,
-      },
-    });
-
-    if (!booking) {
-      return { success: false as const, error: "Booking not found" };
-    }
-
-    if (booking.status !== "COMPLETED" && booking.status !== "CONFIRMED") {
-      return {
-        success: false as const,
-        error: "Can only generate payouts for confirmed or completed bookings",
-      };
-    }
-
-    // Check if a payout already exists for this booking
-    const existingPayout = await prisma.payout.findFirst({
-      where: {
-        bookingId,
-        type: "OWNER_PAYOUT",
-        status: { not: "CANCELLED" },
-      },
-    });
-
-    if (existingPayout) {
-      return {
-        success: false as const,
-        error: "An owner payout already exists for this booking",
-      };
-    }
-
-    // Calculate owner payout: booking total amount (full amount for venue owner)
-    const payoutAmount = Number(booking.totalAmount);
-
-    const payout = await prisma.payout.create({
-      data: {
-        amount: payoutAmount,
-        type: "OWNER_PAYOUT",
-        description: `Owner payout for booking ${booking.bookingNumber} - ${booking.eventName}`,
-        referenceNumber: generateReferenceNumber(),
-        bookingId: booking.id,
-        notes: `Auto-generated from booking ${booking.bookingNumber}`,
-      },
-    });
-
-    logActivity({
-      userId: session.user.id as string,
-      action: "created",
-      entityType: "Payout",
-      entityId: payout.id,
-      changes: { bookingId, type: "OWNER_PAYOUT", amount: payoutAmount },
-    });
-
-    notify({
-      userId: session.user.id as string,
-      type: "SYSTEM",
-      title: "Owner Payout Generated",
-      message: `Owner payout ${payout.referenceNumber} generated from booking ${booking.bookingNumber}.`,
-      actionUrl: `/payouts/${payout.id}`,
-    });
-
-    revalidatePath("/payouts");
-    return { success: true as const, data: serialize(payout) };
-  } catch (error) {
-    console.error("[GENERATE_VENUE_OWNER_PAYOUT_ERROR]", error);
-    return { success: false as const, error: "Failed to generate owner payout" };
   }
 }
 

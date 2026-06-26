@@ -144,7 +144,16 @@ export async function getContract(id: string) {
     const contract = await prisma.contract.findUnique({
       where: { id },
       include: {
-        contact: true,
+        contact: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+            company: true,
+          },
+        },
         booking: {
           select: {
             id: true,
@@ -430,7 +439,7 @@ export async function sendContract(id: string) {
 
     const existing = await prisma.contract.findUnique({
       where: { id },
-      select: { status: true },
+      select: { status: true, expiresAt: true },
     });
 
     if (!existing) {
@@ -441,6 +450,15 @@ export async function sendContract(id: string) {
       return {
         success: false as const,
         error: "Only draft contracts can be sent",
+      };
+    }
+
+    // Server-side expiry guard: never send a contract whose expiry is already
+    // in the past — the client could only ever sign an expired document.
+    if (existing.expiresAt && new Date(existing.expiresAt) <= new Date()) {
+      return {
+        success: false as const,
+        error: "Contract has expired — update the expiry date before sending",
       };
     }
 
@@ -480,33 +498,57 @@ export async function sendContract(id: string) {
       actionUrl: `/contracts/${contract.id}`,
     });
 
-    // Fire-and-forget: Send contract email to signer or contact
+    // Await email + e-sign so a delivery failure surfaces to the user instead
+    // of leaving the contract silently SENT-but-never-received (serverless: a
+    // detached promise would not survive the response anyway).
+    let deliveryWarning: string | undefined;
     const recipientEmail =
       contract.signerEmail || contract.contact?.email;
-    if (recipientEmail) {
-      sendEmail({
-        to: recipientEmail,
-        subject: `Contract: ${contract.title}`,
-        html: contractSentEmail({
-          contactName: `${contract.contact?.firstName} ${contract.contact?.lastName}`,
-          contractTitle: contract.title,
-          signerName: contract.signerName ?? undefined,
-          expiresAt: contract.expiresAt
-            ? format(new Date(contract.expiresAt), "dd MMM yyyy")
-            : undefined,
-        }),
-      }).catch((err) => console.error("[CONTRACT_EMAIL_ERROR]", err));
+    if (!recipientEmail) {
+      deliveryWarning =
+        "Contract marked as sent, but no signer/contact email is on file — nothing was emailed.";
+    } else {
+      try {
+        const emailResult = await sendEmail({
+          to: recipientEmail,
+          subject: `Contract: ${contract.title}`,
+          html: contractSentEmail({
+            contactName: `${contract.contact?.firstName} ${contract.contact?.lastName}`,
+            contractTitle: contract.title,
+            signerName: contract.signerName ?? undefined,
+            expiresAt: contract.expiresAt
+              ? format(new Date(contract.expiresAt), "dd MMM yyyy")
+              : undefined,
+          }),
+        });
+        if (!emailResult.success) {
+          deliveryWarning =
+            "Contract marked as sent, but the email could not be delivered — please retry sending.";
+        }
 
-      // Trigger e-sign placeholder
-      requestSignature({
-        contractId: contract.id,
-        signerEmail: recipientEmail,
-      }).catch((err) => console.error("[ESIGN_ERROR]", err));
+        // Trigger e-sign placeholder
+        const esignResult = await requestSignature({
+          contractId: contract.id,
+          signerEmail: recipientEmail,
+        });
+        if (!esignResult.success && !deliveryWarning) {
+          deliveryWarning =
+            "Contract marked as sent, but the e-signature request failed — please retry sending.";
+        }
+      } catch (err) {
+        console.error("[CONTRACT_DELIVERY_ERROR]", err);
+        deliveryWarning =
+          "Contract marked as sent, but delivery failed — please retry sending.";
+      }
     }
 
     revalidatePath("/contracts");
     revalidatePath(`/contracts/${id}`);
-    return { success: true as const, data: serialize(contract) };
+    return {
+      success: true as const,
+      data: serialize(contract),
+      ...(deliveryWarning ? { warning: deliveryWarning } : {}),
+    };
   } catch (error) {
     console.error("[SEND_CONTRACT_ERROR]", error);
     return { success: false as const, error: "Failed to send contract" };
@@ -1096,18 +1138,29 @@ export async function getPortalContract(
 
   if (!contract) return null;
 
-  // Mark as VIEWED if currently SENT
+  // Mark as VIEWED if currently SENT — atomic conditional update so two
+  // concurrent portal opens don't both race on a stale SENT read. We only
+  // report VIEWED when this call (or a prior one) actually moved it there.
+  let effectiveStatus = contract.status;
   if (contract.status === "SENT") {
-    await prisma.contract.update({
-      where: { id: contractId },
-      data: { status: "VIEWED" },
-    });
+    try {
+      await prisma.contract.updateMany({
+        where: { id: contractId, status: "SENT" },
+        data: { status: "VIEWED" },
+      });
+      // Whether we won the race or another viewer did, the client-facing
+      // status is now VIEWED (it can only move forward from SENT).
+      effectiveStatus = "VIEWED";
+    } catch (err) {
+      console.error("[PORTAL_CONTRACT_VIEW_ERROR]", err);
+      // Non-fatal: fall back to the status we read so the contract still loads.
+    }
   }
 
   return serialize({
     id: contract.id,
     title: contract.title,
-    status: contract.status === "SENT" ? "VIEWED" : contract.status,
+    status: effectiveStatus,
     content: contract.content,
     sentAt: contract.sentAt,
     signedAt: contract.signedAt,
@@ -1180,26 +1233,38 @@ export async function portalSignContract(
       };
     }
 
-    // Check expiry
+    // Check expiry — transition to EXPIRED only while still signable so a
+    // concurrent sign cannot be clobbered by this guard (atomic conditional).
     if (contract.expiresAt && new Date(contract.expiresAt) < new Date()) {
-      await prisma.contract.update({
-        where: { id: contractId },
+      await prisma.contract.updateMany({
+        where: { id: contractId, status: { in: ["SENT", "VIEWED"] } },
         data: { status: "EXPIRED" },
       });
       return {
         success: false as const,
-        error: "This contract has expired",
+        error: "This contract has expired and can no longer be signed",
       };
     }
 
-    const updated = await prisma.contract.update({
-      where: { id: contractId },
+    // Atomic SENT/VIEWED -> SIGNED transition so two concurrent portal signs
+    // (or a staff-side mark-signed) cannot both succeed (TOCTOU).
+    const signed = await prisma.contract.updateMany({
+      where: { id: contractId, status: { in: ["SENT", "VIEWED"] } },
       data: {
         status: "SIGNED",
         signedAt: new Date(),
         signatureData,
         signedViaEsign: true,
       },
+    });
+    if (signed.count === 0) {
+      return {
+        success: false as const,
+        error: "Contract not found or already signed",
+      };
+    }
+    const updated = await prisma.contract.findUniqueOrThrow({
+      where: { id: contractId },
     });
 
     revalidatePath(`/portal/contracts/${contractId}`);

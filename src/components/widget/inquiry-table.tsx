@@ -172,12 +172,19 @@ function ActionsCell({ inquiry }: { inquiry: InquiryData }) {
   };
 
   const handleDelete = async () => {
-    const result = await deleteInquiry(inquiry.id);
-    if (result.success) {
-      toast.success("Inquiry deleted");
-      router.refresh();
-    } else {
-      toast.error(result.error);
+    setLoading(true);
+    try {
+      const result = await deleteInquiry(inquiry.id);
+      if (result.success) {
+        toast.success("Inquiry deleted");
+        router.refresh();
+      } else {
+        toast.error(result.error);
+      }
+    } catch {
+      toast.error("Failed to delete inquiry");
+    } finally {
+      setLoading(false);
     }
   };
 

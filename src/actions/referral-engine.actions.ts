@@ -209,8 +209,15 @@ export async function trackReferralConversion(data: TrackConversionInput) {
       },
     });
 
-    // Process rewards internally
-    await processReferralRewards(referral.id);
+    // Process rewards internally (caller already validated auth + permissions)
+    const rewardsResult = await processReferralRewards(referral.id, session.user.id);
+    if (!rewardsResult.success) {
+      console.error(
+        "[TRACK_REFERRAL_CONVERSION_REWARDS_ERROR]",
+        referral.id,
+        rewardsResult.error
+      );
+    }
 
     // Notify referrer if they have a userId
     if (referral.referrerUserId) {
@@ -249,17 +256,11 @@ export async function trackReferralConversion(data: TrackConversionInput) {
 // Process Referral Rewards (internal)
 // ============================================================
 
-async function processReferralRewards(referralId: string) {
+// NOTE: Internal helper only. Trusts the caller (trackReferralConversion) to
+// have already validated auth + permissions; does NOT re-check auth itself.
+// `actorUserId` is the validated caller's id, used for activity logging.
+async function processReferralRewards(referralId: string, actorUserId: string) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return { success: false as const, error: "Unauthorized" };
-    }
-
-    if (!hasPermission(session.user.role, "referrals:rewards")) {
-      return { success: false as const, error: "Insufficient permissions" };
-    }
-
     // Find referral with booking value
     const referral = await prisma.referral.findUnique({
       where: { id: referralId },
@@ -350,7 +351,7 @@ async function processReferralRewards(referralId: string) {
     }
 
     logActivity({
-      userId: session.user.id,
+      userId: actorUserId,
       action: "created",
       entityType: "ReferralReward",
       entityId: referral.id,

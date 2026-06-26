@@ -13,7 +13,8 @@ export const surveyQuestionSchema = z.object({
     error: "Invalid question type",
   }),
   options: z
-    .array(z.string().min(1, "Option cannot be empty"))
+    .array(z.string().min(1, "Option cannot be empty").max(200, "Option must be at most 200 characters"))
+    .max(100, "Maximum 100 options per question")
     .optional()
     .nullable(),
   isRequired: z.boolean().default(true),

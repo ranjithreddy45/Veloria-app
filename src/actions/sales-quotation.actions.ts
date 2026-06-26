@@ -33,6 +33,16 @@ function isAdmin(role?: string) {
   return role === "SUPER_ADMIN" || role === "ADMIN";
 }
 
+// Escape user-controlled values before interpolating into HTML email bodies.
+function escapeHtml(value: string): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 // Customer + context metadata captured alongside the calculator inputs.
 export interface QuotationMeta {
   clientName?: string;
@@ -489,9 +499,10 @@ export async function sendSalesQuotation(
   if (opts.method === "EMAIL") {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.theveloriagrand.com";
     const subject = opts.subject?.trim() || `Your Veloria Grand Quotation — ${row.quoteNumber}`;
+    const greetingName = escapeHtml(row.clientName || row.contact?.firstName || "Guest");
     const body =
       opts.body?.trim() ||
-      `Dear ${row.clientName || row.contact?.firstName || "Guest"},<br/><br/>Thank you for considering Veloria Grand. Please find your event quotation below.<br/><br/><a href="${appUrl}${pdfUrl}">View / download your quotation (PDF)</a><br/><br/>Grand total: ₹${row.grandTotal}<br/><br/>Warm regards,<br/>Veloria Grand`;
+      `Dear ${greetingName},<br/><br/>Thank you for considering Veloria Grand. Please find your event quotation below.<br/><br/><a href="${appUrl}${pdfUrl}">View / download your quotation (PDF)</a><br/><br/>Grand total: ₹${escapeHtml(String(row.grandTotal))}<br/><br/>Warm regards,<br/>Veloria Grand`;
     // after() so the quotation email survives a serverless freeze.
     after(() => sendEmail({ to: email, subject, html: body }).catch((e) => console.error("[QUOTATION_EMAIL_ERROR]", e)));
   }

@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { StatTile } from "@/components/ui/stat-tile";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ContractsTable } from "./_components/contracts-table";
 
 export const metadata = {
@@ -77,7 +78,25 @@ export default async function ContractsPage() {
         />
       </div>
 
-      <ContractsTable data={contracts} />
+      {contracts.length === 0 ? (
+        <div className="rounded-2xl border bg-card">
+          <EmptyState
+            icon={<FileSignatureIcon className="size-5" />}
+            title="No contracts yet"
+            description="Create your first contract to send for signatures and track signing status."
+            action={
+              <Button asChild className="hover-lift">
+                <Link href="/contracts/new">
+                  <PlusIcon className="mr-2 size-4" />
+                  New Contract
+                </Link>
+              </Button>
+            }
+          />
+        </div>
+      ) : (
+        <ContractsTable data={contracts} />
+      )}
     </div>
   );
 }

@@ -113,7 +113,15 @@ export interface TicketDTO extends TicketRow {
 // ------------------------------------------------------------
 // Reads
 // ------------------------------------------------------------
-export async function getTickets(opts?: { status?: string }): Promise<Result<TicketRow[]>> {
+// Default page size for the ticket list. Bounds an otherwise unbounded
+// findMany so a system with thousands of tickets does not serialize them all.
+const DEFAULT_TICKET_LIMIT = 100;
+const MAX_TICKET_LIMIT = 200;
+
+export async function getTickets(opts?: {
+  status?: string;
+  limit?: number;
+}): Promise<Result<TicketRow[]>> {
   const u = await requireUser();
   if (!u) return { success: false, error: "Unauthorized" };
   if (!canRead(u.role)) return { success: false, error: "Not authorized" };
@@ -121,8 +129,15 @@ export async function getTickets(opts?: { status?: string }): Promise<Result<Tic
   const where: Prisma.SupportTicketWhereInput = {};
   if (opts?.status && statusHueless(opts.status)) where.status = opts.status;
 
+  const rawLimit = Number(opts?.limit);
+  const take =
+    Number.isFinite(rawLimit) && rawLimit > 0
+      ? Math.min(Math.floor(rawLimit), MAX_TICKET_LIMIT)
+      : DEFAULT_TICKET_LIMIT;
+
   const rows = await prisma.supportTicket.findMany({
     where,
+    take,
     orderBy: [{ updatedAt: "desc" }],
     select: {
       id: true,
@@ -286,6 +301,26 @@ export async function createTicket(input: {
     : "MEDIUM";
   const description = input.description?.trim() || null;
 
+  // Validate optional foreign references exist before persisting. The schema
+  // does not enforce these as FK constraints, so a bad id would otherwise
+  // create an orphaned reference that breaks name resolution downstream.
+  const contactId = input.contactId?.trim() || null;
+  if (contactId) {
+    const contact = await prisma.contact.findFirst({
+      where: { id: contactId, deletedAt: null, isActive: true },
+      select: { id: true },
+    });
+    if (!contact) return { success: false, error: "Selected contact is not available" };
+  }
+  const bookingId = input.bookingId?.trim() || null;
+  if (bookingId) {
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      select: { id: true },
+    });
+    if (!booking) return { success: false, error: "Selected booking was not found" };
+  }
+
   // Retry loop guards against a concurrent allocation racing to the same number.
   let lastErr: unknown = null;
   for (let attempt = 0; attempt < 6; attempt++) {
@@ -305,8 +340,8 @@ export async function createTicket(input: {
           status: "OPEN",
           priority,
           category: input.category?.trim() || null,
-          contactId: input.contactId || null,
-          bookingId: input.bookingId || null,
+          contactId,
+          bookingId,
           createdById: u.id,
           // Seed the opening message from the description, if provided.
           ...(description

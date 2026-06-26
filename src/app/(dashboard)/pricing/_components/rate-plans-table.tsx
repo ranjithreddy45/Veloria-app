@@ -8,6 +8,7 @@ import {
   MoreHorizontalIcon,
   PencilIcon,
   StarIcon,
+  Trash2Icon,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -20,10 +21,21 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { formatINR } from "@/lib/utils";
-import { updateRatePlan } from "@/actions/pricing.actions";
+import { deleteRatePlan } from "@/actions/pricing.actions";
 
 // ============================================================
 // Types
@@ -51,6 +63,28 @@ interface RatePlansTableProps {
 
 export function RatePlansTable({ data }: RatePlansTableProps) {
   const router = useRouter();
+  const [deletingId, setDeletingId] = React.useState<string | null>(null);
+  const [confirmPlan, setConfirmPlan] = React.useState<RatePlanRow | null>(
+    null
+  );
+
+  async function handleDelete(planId: string) {
+    setDeletingId(planId);
+    try {
+      const result = await deleteRatePlan(planId);
+      if (result.success) {
+        toast.success("Rate plan deleted successfully");
+        router.refresh();
+      } else {
+        toast.error(result.error);
+      }
+    } catch {
+      toast.error("Failed to delete rate plan");
+    } finally {
+      setDeletingId(null);
+      setConfirmPlan(null);
+    }
+  }
 
   const columns: ColumnDef<RatePlanRow, unknown>[] = [
     {
@@ -132,11 +166,12 @@ export function RatePlansTable({ data }: RatePlansTableProps) {
       header: "",
       cell: ({ row }) => {
         const plan = row.original;
+        const isDeleting = deletingId === plan.id;
 
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon-xs">
+              <Button variant="ghost" size="icon-xs" disabled={isDeleting}>
                 <MoreHorizontalIcon className="size-4" />
                 <span className="sr-only">Actions</span>
               </Button>
@@ -148,6 +183,18 @@ export function RatePlansTable({ data }: RatePlansTableProps) {
                   Edit
                 </Link>
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-red-600 focus:text-red-600"
+                onSelect={(e) => {
+                  e.preventDefault();
+                  setConfirmPlan(plan);
+                }}
+                disabled={isDeleting}
+              >
+                <Trash2Icon className="mr-2 size-4" />
+                Delete
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         );
@@ -156,11 +203,45 @@ export function RatePlansTable({ data }: RatePlansTableProps) {
   ];
 
   return (
-    <DataTable
-      columns={columns}
-      data={data}
-      searchKey="name"
-      searchPlaceholder="Search rate plans..."
-    />
+    <>
+      <DataTable
+        columns={columns}
+        data={data}
+        searchKey="name"
+        searchPlaceholder="Search rate plans..."
+      />
+      <AlertDialog
+        open={confirmPlan !== null}
+        onOpenChange={(open) => {
+          if (!open) setConfirmPlan(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete rate plan?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the rate plan
+              {confirmPlan ? ` "${confirmPlan.name}"` : ""}. This action cannot
+              be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingId !== null}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 text-white hover:bg-red-700 focus:ring-red-600"
+              disabled={deletingId !== null}
+              onClick={(e) => {
+                e.preventDefault();
+                if (confirmPlan) handleDelete(confirmPlan.id);
+              }}
+            >
+              {deletingId !== null ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

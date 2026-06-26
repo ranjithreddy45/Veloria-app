@@ -20,29 +20,67 @@ import { applyRazorpayCapture, allocatePaidAmountToInstallments } from "@/lib/pa
 import { postPaymentReceived } from "@/lib/finance/receivables";
 
 // ============================================================
-// Helper: Generate Receipt Number (RCP-YYYY-NNNN)
+// Money math helpers — currency values are paise-exact
+// ------------------------------------------------------------
+// Invoice/Payment amounts are Prisma Decimal; converting to JS Number for
+// arithmetic accumulates IEEE-754 drift. We do all balance math in integer
+// paise and only convert back to rupees at the boundary, so a 0.01 "tolerance"
+// band-aid is never needed and we never persist micro-balances.
 // ============================================================
 
-async function generateReceiptNumber(): Promise<string> {
+/** Rupees (number/Decimal-as-number) → integer paise. */
+function toPaise(rupees: number): number {
+  return Math.round(rupees * 100);
+}
+
+/** Integer paise → rupees, rounded to 2 dp for a Decimal column. */
+function toRupees(paise: number): number {
+  return paise / 100;
+}
+
+// ============================================================
+// Helper: Generate Receipt Number (RCP-YYYY-NNNN)
+// ------------------------------------------------------------
+// Allocated from a gapless FinSequence counter INSIDE the caller's transaction
+// (mirrors ledger.ts allocateEntryNo), eliminating the read-then-generate
+// window that a non-@unique receiptNumber column otherwise leaves open under
+// concurrent payment creation.
+// ============================================================
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ReceiptTx = any;
+
+async function allocateReceiptNumber(tx: ReceiptTx): Promise<string> {
   const year = new Date().getFullYear();
+  const fy = String(year);
   const prefix = `RCP-${year}-`;
-
-  const lastPayment = await prisma.payment.findFirst({
-    where: { receiptNumber: { startsWith: prefix } },
-    orderBy: { receiptNumber: "desc" },
-    select: { receiptNumber: true },
+  const existing = await tx.finSequence.findUnique({
+    where: { entityId_series_fy: { entityId: "BILLION", series: "RCP", fy } },
   });
-
-  let nextNumber = 1;
-  if (lastPayment?.receiptNumber) {
-    const lastNum = parseInt(
-      lastPayment.receiptNumber.split("-").pop() || "0",
-      10
-    );
-    nextNumber = lastNum + 1;
+  let n: number;
+  if (!existing) {
+    // Seed the counter from any pre-FinSequence receipts already minted this
+    // year (legacy max-scan rows) so we never re-mint an existing number.
+    const last = await tx.payment.findFirst({
+      where: { receiptNumber: { startsWith: prefix } },
+      orderBy: { receiptNumber: "desc" },
+      select: { receiptNumber: true },
+    });
+    const lastNum = last?.receiptNumber
+      ? parseInt(last.receiptNumber.split("-").pop() || "0", 10) || 0
+      : 0;
+    n = lastNum + 1;
+    await tx.finSequence.create({
+      data: { entityId: "BILLION", series: "RCP", fy, nextNum: n + 1 },
+    });
+  } else {
+    await tx.finSequence.update({
+      where: { id: existing.id },
+      data: { nextNum: { increment: 1 } },
+    });
+    n = existing.nextNum;
   }
-
-  return `${prefix}${String(nextNumber).padStart(4, "0")}`;
+  return `${prefix}${String(n).padStart(4, "0")}`;
 }
 
 // ============================================================
@@ -145,7 +183,7 @@ export async function recordPayment(data: {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
-    if (data.amount <= 0) {
+    if (!Number.isFinite(data.amount) || data.amount <= 0) {
       return { success: false as const, error: "Amount must be positive" };
     }
 
@@ -185,11 +223,12 @@ export async function recordPayment(data: {
       };
     }
 
-    const balanceDue = Number(invoice.balanceDue);
-    if (data.amount > balanceDue + 0.01) {
+    const balancePaise = toPaise(Number(invoice.balanceDue));
+    const amountPaise = toPaise(data.amount);
+    if (amountPaise > balancePaise) {
       return {
         success: false as const,
-        error: `Payment amount exceeds balance due (${balanceDue.toFixed(2)})`,
+        error: `Payment amount exceeds balance due (${toRupees(balancePaise).toFixed(2)})`,
       };
     }
 
@@ -198,62 +237,48 @@ export async function recordPayment(data: {
       return { success: false as const, error: "Unsupported receipt — use an image, PDF or https link." };
     }
 
-    // Atomic: create the payment and CREDIT the invoice with a relative
-    // increment (not an absolute write from a stale read), then re-read inside
-    // the same transaction to set balance/status — so concurrent payments can't
-    // clobber each other and lose money.
-    //
-    // The RCP-YYYY-NNNN receipt number is allocated INSIDE a P2002 retry loop:
-    // two concurrent records can read the same max and mint a duplicate, so on a
-    // unique violation we re-allocate (mirroring the booking-number pattern).
-    // NOTE: Payment.receiptNumber is NOT @unique in the schema (and per the task
-    // we don't add the constraint), so P2002 can't fire today — re-reading the
-    // max each attempt narrows the window but can't fully guarantee uniqueness
-    // under true concurrency; a @unique index would be required. The catch is
-    // kept so the retry resolves correctly if the column is later made unique.
-    let txResult: { payment: Awaited<ReturnType<typeof prisma.payment.create>>; newPaidAmount: number; newBalanceDue: number } | null = null;
-    let receiptNumber = "";
-    let lastErr: unknown = null;
-    for (let attempt = 0; attempt < 5 && txResult === null; attempt++) {
-      receiptNumber = await generateReceiptNumber();
-      try {
-        txResult = await prisma.$transaction(async (tx) => {
-          const created = await tx.payment.create({
-            data: {
-              invoiceId: data.invoiceId,
-              amount: data.amount,
-              method: data.method,
-              status: "COMPLETED",
-              transactionId: data.transactionId || null,
-              receiptNumber,
-              notes: data.notes || null,
-              receiptUrl: data.receiptUrl || null,
-              receiptUploadedAt: data.receiptUrl ? new Date() : null,
-              paidAt: new Date(),
-            },
-          });
-          const credited = await tx.invoice.update({
-            where: { id: data.invoiceId },
-            data: { paidAmount: { increment: data.amount } },
-            select: { totalAmount: true, paidAmount: true },
-          });
-          const paid = Number(credited.paidAmount);
-          const bal = Number(credited.totalAmount) - paid;
-          await tx.invoice.update({
-            where: { id: data.invoiceId },
-            data: { balanceDue: Math.max(0, bal), status: bal <= 0.01 ? "PAID" : "PARTIALLY_PAID" },
-          });
-          // Flip fully-covered installments PENDING→COMPLETED in the same tx.
-          await allocatePaidAmountToInstallments(tx, data.invoiceId, paid);
-          return { payment: created, newPaidAmount: paid, newBalanceDue: bal };
-        });
-      } catch (e) {
-        lastErr = e;
-        if ((e as { code?: string }).code !== "P2002") throw e;
-      }
-    }
-    if (txResult === null) throw lastErr ?? new Error("Could not allocate a receipt number");
-    const { payment, newPaidAmount, newBalanceDue } = txResult;
+    // Atomic: allocate the receipt number from a gapless FinSequence counter,
+    // create the payment, and CREDIT the invoice with a relative increment (not
+    // an absolute write from a stale read), then re-read inside the same
+    // transaction to set balance/status — so concurrent payments can't clobber
+    // each other or mint a duplicate receipt number. All balance math is done in
+    // integer paise to avoid float drift; balanceDue is rounded (never negative,
+    // never a micro-balance) before persisting to the Decimal column.
+    const txResult = await prisma.$transaction(async (tx) => {
+      const receiptNumber = await allocateReceiptNumber(tx);
+      const created = await tx.payment.create({
+        data: {
+          invoiceId: data.invoiceId,
+          amount: data.amount,
+          method: data.method,
+          status: "COMPLETED",
+          transactionId: data.transactionId || null,
+          receiptNumber,
+          notes: data.notes || null,
+          receiptUrl: data.receiptUrl || null,
+          receiptUploadedAt: data.receiptUrl ? new Date() : null,
+          paidAt: new Date(),
+        },
+      });
+      const credited = await tx.invoice.update({
+        where: { id: data.invoiceId },
+        data: { paidAmount: { increment: data.amount } },
+        select: { totalAmount: true, paidAmount: true },
+      });
+      const paidPaise = toPaise(Number(credited.paidAmount));
+      const balPaise = toPaise(Number(credited.totalAmount)) - paidPaise;
+      await tx.invoice.update({
+        where: { id: data.invoiceId },
+        data: {
+          balanceDue: toRupees(Math.max(0, balPaise)),
+          status: balPaise <= 0 ? "PAID" : "PARTIALLY_PAID",
+        },
+      });
+      // Flip fully-covered installments PENDING→COMPLETED in the same tx.
+      await allocatePaidAmountToInstallments(tx, data.invoiceId, toRupees(paidPaise));
+      return { payment: created, receiptNumber, newBalanceDue: toRupees(balPaise) };
+    });
+    const { payment, receiptNumber, newBalanceDue } = txResult;
 
     await logActivity({
       userId: session.user.id as string,
@@ -284,7 +309,7 @@ export async function recordPayment(data: {
       });
 
       if (invoiceWithContact?.contact?.email) {
-        const isFullyPaid = newBalanceDue <= 0.01;
+        const isFullyPaid = newBalanceDue <= 0;
         const emailTo = invoiceWithContact.contact.email;
         // after() so the receipt email survives a serverless freeze.
         after(() =>
@@ -374,49 +399,35 @@ export async function verifyPaymentProof(paymentId: string) {
 
     // Atomic + idempotent: only the writer that flips this PENDING row proceeds
     // to credit the invoice (relative increment, re-read for status) — so a
-    // double-verify can't double-count.
-    //
-    // If the payment has no receipt number yet we allocate RCP-YYYY-NNNN inside
-    // a P2002 retry loop (re-allocating on a unique violation, mirroring the
-    // booking-number pattern). NOTE: Payment.receiptNumber is NOT @unique (and
-    // per the task we don't add the constraint), so P2002 can't fire today — the
-    // re-read narrows the window but can't fully guarantee uniqueness under true
-    // concurrency; a @unique index would be required. The catch is kept so the
-    // retry resolves correctly if the column is later made unique.
-    let receiptNumber = payment.receiptNumber || "";
-    let verified: boolean | null = null;
-    let lastErr: unknown = null;
-    for (let attempt = 0; attempt < 5 && verified === null; attempt++) {
-      if (!payment.receiptNumber) receiptNumber = await generateReceiptNumber();
-      try {
-        verified = await prisma.$transaction(async (tx) => {
-          const flip = await tx.payment.updateMany({
-            where: { id: paymentId, status: "PENDING" },
-            data: { status: "COMPLETED", paidAt: new Date(), receiptNumber },
-          });
-          if (flip.count !== 1) return false; // someone else verified it first
-          const credited = await tx.invoice.update({
-            where: { id: payment.invoice.id },
-            data: { paidAmount: { increment: Number(payment.amount) } },
-            select: { totalAmount: true, paidAmount: true },
-          });
-          const bal = Number(credited.totalAmount) - Number(credited.paidAmount);
-          await tx.invoice.update({
-            where: { id: payment.invoice.id },
-            data: { balanceDue: Math.max(0, bal), status: bal <= 0.01 ? "PAID" : "PARTIALLY_PAID" },
-          });
-          // Flip fully-covered installments PENDING→COMPLETED in the same tx.
-          await allocatePaidAmountToInstallments(tx, payment.invoice.id, Number(credited.paidAmount));
-          return true;
-        });
-      } catch (e) {
-        lastErr = e;
-        // A pre-existing receipt number can't collide on re-run, so a P2002 there
-        // is unexpected; only retry the freshly-allocated case.
-        if ((e as { code?: string }).code !== "P2002" || payment.receiptNumber) throw e;
-      }
-    }
-    if (verified === null) throw lastErr ?? new Error("Could not allocate a receipt number");
+    // double-verify can't double-count. If the payment has no receipt number yet
+    // we allocate one from the gapless FinSequence counter INSIDE the same
+    // transaction (no read-then-generate window). Balance math is integer paise.
+    const existingReceipt = payment.receiptNumber;
+    const { verified, receiptNumber } = await prisma.$transaction(async (tx) => {
+      const receiptNumber = existingReceipt || (await allocateReceiptNumber(tx));
+      const flip = await tx.payment.updateMany({
+        where: { id: paymentId, status: "PENDING" },
+        data: { status: "COMPLETED", paidAt: new Date(), receiptNumber },
+      });
+      if (flip.count !== 1) return { verified: false, receiptNumber }; // someone else verified it first
+      const credited = await tx.invoice.update({
+        where: { id: payment.invoice.id },
+        data: { paidAmount: { increment: Number(payment.amount) } },
+        select: { totalAmount: true, paidAmount: true },
+      });
+      const paidPaise = toPaise(Number(credited.paidAmount));
+      const balPaise = toPaise(Number(credited.totalAmount)) - paidPaise;
+      await tx.invoice.update({
+        where: { id: payment.invoice.id },
+        data: {
+          balanceDue: toRupees(Math.max(0, balPaise)),
+          status: balPaise <= 0 ? "PAID" : "PARTIALLY_PAID",
+        },
+      });
+      // Flip fully-covered installments PENDING→COMPLETED in the same tx.
+      await allocatePaidAmountToInstallments(tx, payment.invoice.id, toRupees(paidPaise));
+      return { verified: true, receiptNumber };
+    });
     if (!verified) return { success: false as const, error: "This payment was just verified by someone else" };
 
     await logActivity({
@@ -489,9 +500,12 @@ export async function createRazorpayOrder(invoiceId: string, amount: number) {
       };
     }
 
-    const balanceDue = Number(invoice.balanceDue);
+    if (!Number.isFinite(amount)) {
+      return { success: false as const, error: "Invalid payment amount" };
+    }
+    const balancePaise = toPaise(Number(invoice.balanceDue));
     const pay = Math.round(Number(amount));
-    if (!(pay >= 1) || pay > balanceDue + 0.01) {
+    if (!(pay >= 1) || toPaise(pay) > balancePaise) {
       return { success: false as const, error: "Invalid payment amount" };
     }
 

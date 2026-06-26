@@ -93,7 +93,19 @@ export function Workqueue({ data, userName }: { data: WorkqueueData; userName: s
 function TaskRow({ t, onOpen }: { t: WorkqueueTask; onOpen: () => void }) {
   const due = dueDisplay(t.dueDate);
   return (
-    <TableRow className="cursor-pointer transition-premium hover:bg-muted/40" onClick={onOpen}>
+    <TableRow
+      className="cursor-pointer transition-premium hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label={`Open task: ${t.title}`}
+    >
       <TableCell className="font-medium">{t.title}</TableCell>
       <TableCell>
         <span className={

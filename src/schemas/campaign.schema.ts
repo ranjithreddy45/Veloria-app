@@ -34,7 +34,14 @@ export type CampaignInput = z.infer<typeof campaignSchema>;
 export const scheduleCampaignSchema = z.object({
   scheduledAt: z
     .string()
-    .min(1, "Scheduled date/time is required"),
+    .min(1, "Scheduled date/time is required")
+    // Accept both ISO 8601 strings and datetime-local values (e.g. "2026-06-26T14:30").
+    .refine((val) => !Number.isNaN(new Date(val).getTime()), {
+      message: "Scheduled date/time must be a valid date",
+    })
+    .refine((val) => new Date(val).getTime() > Date.now(), {
+      message: "Scheduled date/time must be in the future",
+    }),
 });
 
 export type ScheduleCampaignInput = z.infer<typeof scheduleCampaignSchema>;

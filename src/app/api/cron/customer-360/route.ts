@@ -36,18 +36,24 @@ export async function GET(request: Request) {
       _max: { date: true },
     });
 
+    // Batch-fetch VIP flags for all grouped contacts in one query (avoids N+1).
+    const contactIds = grouped
+      .map((g) => g.contactId)
+      .filter((id): id is string => id != null);
+    const vipContacts = await prisma.contact.findMany({
+      where: { id: { in: contactIds } },
+      select: { id: true, vipCustomer: true },
+    });
+    const vipById = new Map(vipContacts.map((c) => [c.id, c.vipCustomer]));
+
     let updated = 0;
     for (const g of grouped) {
       const count = g._count._all;
       const revenue = g._sum.totalAmount ?? 0;
       const lastDate = g._max.date ?? null;
 
-      // Read the VIP flag so we don't downgrade a manually-flagged VIP.
-      const contact = await prisma.contact.findUnique({
-        where: { id: g.contactId },
-        select: { vipCustomer: true },
-      });
-      const customerType = contact?.vipCustomer
+      // Use the pre-fetched VIP flag so we don't downgrade a manually-flagged VIP.
+      const customerType = vipById.get(g.contactId)
         ? "VIP"
         : count > 1
           ? "Repeat"

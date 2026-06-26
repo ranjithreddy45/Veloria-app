@@ -20,6 +20,22 @@ import {
 } from "@/schemas/bulk.schema";
 import { revalidatePath } from "next/cache";
 
+// Roles a lead may be assigned to — mirrors ASSIGNABLE_ROLES in lead.actions.ts
+// so bulk-assign can't route leads to a deleted/disabled/non-sales user.
+const ASSIGNABLE_ROLES = ["SALES_EXEC", "SALES_HEAD", "EVENT_COORDINATOR", "ADMIN", "SUPER_ADMIN"];
+
+// Returns an error string if the id is not a real, active, assignable user; null if OK.
+async function assigneeInvalid(userId: string): Promise<string | null> {
+  const u = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, role: true, isActive: true },
+  });
+  if (!u || !u.isActive || !ASSIGNABLE_ROLES.includes(u.role)) {
+    return "Assigned user is invalid or not assignable.";
+  }
+  return null;
+}
+
 // ============================================================
 // Bulk Update Contacts
 // ============================================================
@@ -52,16 +68,19 @@ export async function bulkUpdateContacts(
       },
     });
 
-    // Log activity for each
-    for (const id of ids) {
-      logActivity({
-        action: "BULK_UPDATE",
-        entityType: "contact",
-        entityId: id,
-        changes: data,
-        userId: session.user.id,
-      });
-    }
+    // Log activity for each — await so the audit trail completes before the
+    // action returns (serverless can freeze the function once we respond).
+    await Promise.all(
+      ids.map((id) =>
+        logActivity({
+          action: "BULK_UPDATE",
+          entityType: "contact",
+          entityId: id,
+          changes: data,
+          userId: session.user.id,
+        })
+      )
+    );
 
     return { success: true as const, data: { count: result.count } };
   } catch (error) {
@@ -102,14 +121,16 @@ export async function bulkDeleteContacts(
       data: { deletedAt: new Date() },
     });
 
-    for (const id of parsed.data.ids) {
-      logActivity({
-        action: "BULK_DELETE",
-        entityType: "contact",
-        entityId: id,
-        userId: session.user.id,
-      });
-    }
+    await Promise.all(
+      parsed.data.ids.map((id) =>
+        logActivity({
+          action: "BULK_DELETE",
+          entityType: "contact",
+          entityId: id,
+          userId: session.user.id,
+        })
+      )
+    );
 
     revalidatePath("/contacts");
     revalidatePath("/settings/trash");
@@ -153,15 +174,17 @@ export async function bulkUpdateLeads(
       },
     });
 
-    for (const id of ids) {
-      logActivity({
-        action: "BULK_UPDATE",
-        entityType: "lead",
-        entityId: id,
-        changes: data,
-        userId: session.user.id,
-      });
-    }
+    await Promise.all(
+      ids.map((id) =>
+        logActivity({
+          action: "BULK_UPDATE",
+          entityType: "lead",
+          entityId: id,
+          changes: data,
+          userId: session.user.id,
+        })
+      )
+    );
 
     return { success: true as const, data: { count: result.count } };
   } catch (error) {
@@ -192,20 +215,29 @@ export async function bulkAssignLeads(
       return { success: false as const, error: parsed.error.issues[0]?.message ?? "Validation failed" };
     }
 
+    // Reject a tampered assignedToId before mutating: mirror the single-assign
+    // guard so leads can't be routed to a deleted/disabled/non-sales user.
+    const badAssignee = await assigneeInvalid(parsed.data.assignedToId);
+    if (badAssignee) {
+      return { success: false as const, error: badAssignee };
+    }
+
     const result = await prisma.lead.updateMany({
       where: { id: { in: parsed.data.ids } },
       data: { assignedToId: parsed.data.assignedToId },
     });
 
-    for (const id of parsed.data.ids) {
-      logActivity({
-        action: "BULK_ASSIGN",
-        entityType: "lead",
-        entityId: id,
-        changes: { assignedToId: parsed.data.assignedToId },
-        userId: session.user.id,
-      });
-    }
+    await Promise.all(
+      parsed.data.ids.map((id) =>
+        logActivity({
+          action: "BULK_ASSIGN",
+          entityType: "lead",
+          entityId: id,
+          changes: { assignedToId: parsed.data.assignedToId },
+          userId: session.user.id,
+        })
+      )
+    );
 
     return { success: true as const, data: { count: result.count } };
   } catch (error) {
@@ -245,14 +277,16 @@ export async function bulkDeleteLeads(
       data: { deletedAt: new Date() },
     });
 
-    for (const id of parsed.data.ids) {
-      logActivity({
-        action: "BULK_DELETE",
-        entityType: "lead",
-        entityId: id,
-        userId: session.user.id,
-      });
-    }
+    await Promise.all(
+      parsed.data.ids.map((id) =>
+        logActivity({
+          action: "BULK_DELETE",
+          entityType: "lead",
+          entityId: id,
+          userId: session.user.id,
+        })
+      )
+    );
 
     revalidatePath("/leads");
     revalidatePath("/settings/trash");
@@ -333,15 +367,17 @@ export async function bulkEnrollInCadence(
       }
     }
 
-    for (const id of ids) {
-      logActivity({
-        action: "BULK_ENROLL_CADENCE",
-        entityType: "lead",
-        entityId: id,
-        changes: { cadenceId, cadenceName: cadence.name },
-        userId: session.user.id,
-      });
-    }
+    await Promise.all(
+      ids.map((id) =>
+        logActivity({
+          action: "BULK_ENROLL_CADENCE",
+          entityType: "lead",
+          entityId: id,
+          changes: { cadenceId, cadenceName: cadence.name },
+          userId: session.user.id,
+        })
+      )
+    );
 
     revalidatePath("/leads");
     return { success: true as const, data: { count: enrolledCount } };
@@ -394,15 +430,17 @@ export async function bulkChangeLeadStatus(
       data: { status },
     });
 
-    for (const id of ids) {
-      logActivity({
-        action: "BULK_STATUS_CHANGE",
-        entityType: "lead",
-        entityId: id,
-        changes: { status },
-        userId: session.user.id,
-      });
-    }
+    await Promise.all(
+      ids.map((id) =>
+        logActivity({
+          action: "BULK_STATUS_CHANGE",
+          entityType: "lead",
+          entityId: id,
+          changes: { status },
+          userId: session.user.id,
+        })
+      )
+    );
 
     revalidatePath("/leads");
     return { success: true as const, data: { count: result.count } };

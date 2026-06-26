@@ -41,7 +41,7 @@ type ReferralRow = {
   convertedLeadId: string | null;
   notes: string | null;
   referralCode: string | null;
-  source: string;
+  source: string | null;
   createdAt: string;
   referrerContact: {
     id: string;
@@ -106,11 +106,15 @@ const columns: ColumnDef<ReferralRow, unknown>[] = [
   {
     accessorKey: "source",
     header: "Source",
-    cell: ({ row }) => (
-      <span className="text-sm capitalize">
-        {row.original.source.toLowerCase().replace("_", " ")}
-      </span>
-    ),
+    cell: ({ row }) => {
+      const source = row.original.source;
+      if (!source) return <span className="text-muted-foreground">--</span>;
+      return (
+        <span className="text-sm capitalize">
+          {source.toLowerCase().replace(/_/g, " ")}
+        </span>
+      );
+    },
     filterFn: (row, id, value) => {
       return value === "ALL" || row.getValue(id) === value;
     },

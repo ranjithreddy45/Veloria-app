@@ -33,8 +33,16 @@ export const createPayoutSchema = z.object({
     .max(500, "Description must be at most 500 characters")
     .optional()
     .or(z.literal("")),
-  vendorId: z.string().optional().or(z.literal("")),
-  bookingId: z.string().optional().or(z.literal("")),
+  // Accept empty strings from the form (its default values) but normalize them
+  // to undefined so falsy/blank ids never slip through as real references.
+  vendorId: z
+    .string()
+    .optional()
+    .transform((v) => (v && v.trim() !== "" ? v : undefined)),
+  bookingId: z
+    .string()
+    .optional()
+    .transform((v) => (v && v.trim() !== "" ? v : undefined)),
   notes: z
     .string()
     .max(2000, "Notes must be at most 2000 characters")

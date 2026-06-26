@@ -29,20 +29,30 @@ export async function getMyWorkqueue(): Promise<WorkqueueData | null> {
   if (!userId) return null;
 
   const now = new Date();
-  const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  // Use UTC date boundaries so categorization stays consistent with the
+  // UTC timestamps stored for dueDate (avoids local-timezone off-by-one).
+  const todayEnd = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999)
+  );
 
-  const [tasks, leads, bookings] = await Promise.all([
-    prisma.task.findMany({
-      where: { assigneeId: userId, status: { not: "DONE" } },
-      include: {
-        booking: { select: { id: true, eventName: true, contact: { select: { firstName: true, lastName: true } } } },
-      },
-      orderBy: [{ dueDate: "asc" }, { priority: "desc" }],
-      take: 100,
-    }),
-    prisma.lead.count({ where: { assignedToId: userId } }),
-    prisma.booking.count({ where: { createdById: userId } }),
-  ]);
+  let tasks, leads, bookings;
+  try {
+    [tasks, leads, bookings] = await Promise.all([
+      prisma.task.findMany({
+        where: { assigneeId: userId, status: { not: "DONE" } },
+        include: {
+          booking: { select: { id: true, eventName: true, contact: { select: { firstName: true, lastName: true } } } },
+        },
+        orderBy: [{ dueDate: "asc" }, { priority: "desc" }],
+        take: 100,
+      }),
+      prisma.lead.count({ where: { assignedToId: userId } }),
+      prisma.booking.count({ where: { createdById: userId } }),
+    ]);
+  } catch (err) {
+    console.error("getMyWorkqueue failed", err);
+    return null;
+  }
 
   let overdue = 0, dueToday = 0;
   const mapped: WorkqueueTask[] = tasks.map((t) => {

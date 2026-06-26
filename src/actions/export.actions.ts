@@ -182,9 +182,22 @@ export async function exportInvoices() {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
+    // Bound the export to a sane maximum to avoid loading an unbounded
+    // result set into memory. If the dataset exceeds the cap, fail loudly
+    // with guidance rather than silently truncating the export.
+    const EXPORT_MAX_ROWS = 5000;
+
+    const totalCount = await prisma.invoice.count();
+    if (totalCount > EXPORT_MAX_ROWS) {
+      return {
+        success: false as const,
+        error: `Too many records to export (${totalCount}). The export is limited to ${EXPORT_MAX_ROWS} invoices. Please filter the data before exporting.`,
+      };
+    }
+
     const invoices = await prisma.invoice.findMany({
       orderBy: { issueDate: "desc" },
-      take: 10000,
+      take: EXPORT_MAX_ROWS,
       include: {
         contact: { select: { firstName: true, lastName: true } },
       },

@@ -312,6 +312,30 @@ export async function createShift(data: CreateShiftInput) {
     const shiftDate = new Date(shiftData.date);
     shiftDate.setHours(0, 0, 0, 0);
 
+    // Validate the staff profile exists before create so the user gets a
+    // friendly message instead of a raw Prisma FK-constraint error, and so an
+    // orphaned shift can never be created if the FK is ever missing.
+    const staff = await prisma.staffProfile.findUnique({
+      where: { id: shiftData.staffId },
+      select: { id: true },
+    });
+    if (!staff) {
+      return { success: false as const, error: "Staff member not found" };
+    }
+
+    // bookingId is optional, but if supplied it must point at a real booking.
+    // Linking a shift to a deleted/invalid booking would corrupt the schedule.
+    const bookingId = shiftData.bookingId || null;
+    if (bookingId) {
+      const booking = await prisma.booking.findUnique({
+        where: { id: bookingId },
+        select: { id: true },
+      });
+      if (!booking) {
+        return { success: false as const, error: "Booking not found" };
+      }
+    }
+
     const shift = await prisma.shift.create({
       data: {
         date: shiftDate,
@@ -319,7 +343,7 @@ export async function createShift(data: CreateShiftInput) {
         endTime: shiftData.endTime,
         role: shiftData.role,
         staffId: shiftData.staffId,
-        bookingId: shiftData.bookingId || null,
+        bookingId,
       },
       include: {
         staff: {
@@ -341,6 +365,16 @@ export async function createShift(data: CreateShiftInput) {
     return { success: true as const, data: serialize(shift) };
   } catch (error) {
     console.error("[CREATE_SHIFT_ERROR]", error);
+    // Surface known FK / constraint violations as actionable messages instead
+    // of lumping every failure into a single generic string.
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === "P2003") {
+        return {
+          success: false as const,
+          error: "Staff member or booking reference is invalid",
+        };
+      }
+    }
     return { success: false as const, error: "Failed to create shift" };
   }
 }
@@ -392,7 +426,19 @@ export async function updateShift(id: string, data: UpdateShiftInput) {
     if (shiftData.hoursWorked !== undefined) updateData.hoursWorked = shiftData.hoursWorked;
     if (shiftData.overtimeHours !== undefined) updateData.overtimeHours = shiftData.overtimeHours;
     if (shiftData.bookingId !== undefined) {
-      updateData.bookingId = shiftData.bookingId || null;
+      const bookingId = shiftData.bookingId || null;
+      // Re-validate the booking reference on update — never allow re-pointing a
+      // shift at a deleted or non-existent booking.
+      if (bookingId) {
+        const booking = await prisma.booking.findUnique({
+          where: { id: bookingId },
+          select: { id: true },
+        });
+        if (!booking) {
+          return { success: false as const, error: "Booking not found" };
+        }
+      }
+      updateData.bookingId = bookingId;
     }
 
     const shift = await prisma.shift.update({
@@ -535,63 +581,90 @@ export async function generatePayroll(month: string) {
       return { success: false as const, error: "No staff profiles found" };
     }
 
+    // Fetch existing entries + all completed shifts for the whole month in
+    // two queries (instead of 2 per staff) and group in memory — avoids the
+    // N+1 pattern that scaled linearly with headcount.
+    const staffIds = staffProfiles.map((s) => s.id);
+
+    const existingEntries = await prisma.payrollEntry.findMany({
+      where: { staffId: { in: staffIds }, month },
+    });
+    const existingByStaff = new Map(existingEntries.map((e) => [e.staffId, e]));
+
+    const allShifts = await prisma.shift.findMany({
+      where: {
+        staffId: { in: staffIds },
+        date: { gte: startDate, lte: endDate },
+        status: "COMPLETED",
+      },
+      select: { staffId: true, hoursWorked: true, overtimeHours: true },
+    });
+    const shiftsByStaff = new Map<string, typeof allShifts>();
+    for (const s of allShifts) {
+      const list = shiftsByStaff.get(s.staffId);
+      if (list) list.push(s);
+      else shiftsByStaff.set(s.staffId, [s]);
+    }
+
     const results = [];
 
     for (const staff of staffProfiles) {
       // Check if payroll already exists for this staff+month
-      const existing = await prisma.payrollEntry.findUnique({
-        where: { staffId_month: { staffId: staff.id, month } },
-      });
+      const existing = existingByStaff.get(staff.id);
 
       if (existing) {
         results.push(existing);
         continue;
       }
 
-      // Get completed shifts for this staff in the month
-      const shifts = await prisma.shift.findMany({
-        where: {
-          staffId: staff.id,
-          date: { gte: startDate, lte: endDate },
-          status: "COMPLETED",
-        },
-      });
+      const shifts = shiftsByStaff.get(staff.id) ?? [];
 
-      // Calculate pay
+      // All money math runs through Prisma.Decimal so the DB's Decimal(12,2)
+      // precision is preserved end-to-end — JS floating-point arithmetic
+      // (e.g. hourlyRate * hours * 1.5 for overtime) accumulates rounding
+      // errors that would silently corrupt payroll amounts.
+      const D = Prisma.Decimal;
+
       const totalHoursWorked = shifts.reduce(
-        (sum, s) => sum + (s.hoursWorked ? Number(s.hoursWorked) : 0),
-        0
+        (sum, s) => sum.plus(s.hoursWorked ? new D(s.hoursWorked) : 0),
+        new D(0)
       );
       const totalOvertimeHours = shifts.reduce(
-        (sum, s) => sum + (s.overtimeHours ? Number(s.overtimeHours) : 0),
-        0
+        (sum, s) => sum.plus(s.overtimeHours ? new D(s.overtimeHours) : 0),
+        new D(0)
       );
 
-      let basePay = 0;
-      let overtimePay = 0;
+      const monthlyRate =
+        staff.monthlyRate != null ? new D(staff.monthlyRate) : new D(0);
+      const hourlyRate =
+        staff.hourlyRate != null ? new D(staff.hourlyRate) : new D(0);
 
-      if (staff.monthlyRate && Number(staff.monthlyRate) > 0) {
+      let basePay = new D(0);
+      let overtimePay = new D(0);
+
+      if (monthlyRate.greaterThan(0)) {
         // Monthly rate takes precedence
-        basePay = Number(staff.monthlyRate);
-      } else if (staff.hourlyRate && Number(staff.hourlyRate) > 0) {
-        basePay = totalHoursWorked * Number(staff.hourlyRate);
+        basePay = monthlyRate;
+      } else if (hourlyRate.greaterThan(0)) {
+        basePay = totalHoursWorked.times(hourlyRate);
       }
 
-      if (staff.hourlyRate && Number(staff.hourlyRate) > 0) {
+      if (hourlyRate.greaterThan(0)) {
         // Overtime at 1.5x hourly rate
-        overtimePay = totalOvertimeHours * Number(staff.hourlyRate) * 1.5;
+        overtimePay = totalOvertimeHours.times(hourlyRate).times(1.5);
       }
 
-      const deductions = 0;
-      const netPay = basePay + overtimePay - deductions;
+      const deductions = new D(0);
+      const netPay = basePay.plus(overtimePay).minus(deductions);
 
+      // Round to the schema's 2-decimal scale before persisting.
       const entry = await prisma.payrollEntry.create({
         data: {
           month,
-          basePay,
-          overtimePay,
-          deductions,
-          netPay,
+          basePay: basePay.toDecimalPlaces(2),
+          overtimePay: overtimePay.toDecimalPlaces(2),
+          deductions: deductions.toDecimalPlaces(2),
+          netPay: netPay.toDecimalPlaces(2),
           staffId: staff.id,
           status: "DRAFT",
         },

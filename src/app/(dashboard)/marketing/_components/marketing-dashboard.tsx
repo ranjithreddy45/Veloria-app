@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import {
   IndianRupeeIcon,
   TrendingUpIcon,
@@ -66,7 +67,9 @@ export function MarketingDashboard({
         getCampaignAttribution(params),
       ]);
       if (chRes.success) setChannels(chRes.data);
+      else toast.error(chRes.error ?? "Failed to load channel attribution");
       if (cmRes.success) setCampaigns(cmRes.data);
+      else toast.error(cmRes.error ?? "Failed to load campaign attribution");
     });
   }
 
@@ -79,7 +82,9 @@ export function MarketingDashboard({
         getCampaignAttribution(),
       ]);
       if (chRes.success) setChannels(chRes.data);
+      else toast.error(chRes.error ?? "Failed to load channel attribution");
       if (cmRes.success) setCampaigns(cmRes.data);
+      else toast.error(cmRes.error ?? "Failed to load campaign attribution");
     });
   }
 

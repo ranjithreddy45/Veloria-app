@@ -231,10 +231,18 @@ export async function deleteCommissionRule(id: string) {
 // Get Commission Entries
 // ============================================================
 
+// Hard cap on rows returned in a single page-load so the list query stays
+// bounded as the table grows. Headline totals are computed server-side via
+// aggregation (below) and are therefore correct across ALL matching rows, not
+// just the page that is returned here.
+const COMMISSION_ENTRIES_MAX_TAKE = 500;
+
 export async function getCommissionEntries(filters?: {
   status?: CommissionStatus;
   userId?: string;
   ruleId?: string;
+  take?: number;
+  skip?: number;
 }) {
   try {
     const session = await auth();
@@ -246,8 +254,7 @@ export async function getCommissionEntries(filters?: {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: any = {};
+    const where: Prisma.CommissionEntryWhereInput = {};
 
     if (filters?.status) {
       where.status = filters.status;
@@ -259,17 +266,62 @@ export async function getCommissionEntries(filters?: {
       where.ruleId = filters.ruleId;
     }
 
-    const entries = await prisma.commissionEntry.findMany({
-      where,
-      include: {
-        rule: {
-          select: { id: true, name: true, percentage: true },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+    // Validate/clamp pagination inputs: positive, integer, bounded.
+    const rawTake = Number(filters?.take);
+    const take =
+      Number.isFinite(rawTake) && rawTake > 0
+        ? Math.min(Math.floor(rawTake), COMMISSION_ENTRIES_MAX_TAKE)
+        : COMMISSION_ENTRIES_MAX_TAKE;
+    const rawSkip = Number(filters?.skip);
+    const skip =
+      Number.isFinite(rawSkip) && rawSkip > 0 ? Math.floor(rawSkip) : 0;
 
-    return { success: true as const, data: serialize(entries) };
+    // Compute headline totals server-side over the FULL filtered set via
+    // aggregation, so the KPI strip is accurate even though the row list is
+    // capped. Status splits come from a single groupBy rather than summing
+    // every row client-side.
+    const [entries, totalCount, sumAll, byStatus] = await Promise.all([
+      prisma.commissionEntry.findMany({
+        where,
+        include: {
+          rule: {
+            select: { id: true, name: true, percentage: true },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        take,
+        skip,
+      }),
+      prisma.commissionEntry.count({ where }),
+      prisma.commissionEntry.aggregate({
+        where,
+        _sum: { commissionAmount: true },
+      }),
+      prisma.commissionEntry.groupBy({
+        by: ["status"],
+        where,
+        _sum: { commissionAmount: true },
+      }),
+    ]);
+
+    const statusTotal = (status: CommissionStatus) =>
+      Number(
+        byStatus.find((g) => g.status === status)?._sum.commissionAmount ?? 0,
+      );
+
+    const totals = {
+      count: totalCount,
+      total: Number(sumAll._sum.commissionAmount ?? 0),
+      pending: statusTotal("PENDING"),
+      paid: statusTotal("PAID"),
+    };
+
+    return {
+      success: true as const,
+      data: serialize(entries),
+      totals,
+      pagination: { take, skip, total: totalCount },
+    };
   } catch (error) {
     console.error("[GET_COMMISSION_ENTRIES_ERROR]", error);
     return { success: false as const, error: "Failed to fetch commission entries" };
@@ -335,10 +387,22 @@ export async function calculateCommission(data: CalculateCommissionInput) {
     }
     const invoiceAmount = Number(booking.totalAmount);
 
-    // Calculate commission: percentage of invoice amount + optional flat amount
-    const percentageAmount = (invoiceAmount * Number(rule.percentage)) / 100;
-    const flatAmount = rule.flatAmount ? Number(rule.flatAmount) : 0;
-    const commissionAmount = percentageAmount + flatAmount;
+    // Calculate commission: percentage of invoice amount + optional flat amount.
+    // Money math is done with Prisma.Decimal (arbitrary precision) rather than
+    // JS floating-point, so e.g. ₹1000 @ 7.15% yields an exact ₹71.50 instead
+    // of a 0.1+0.2-style drift. The column is Decimal(12,2), so we round the
+    // final figure to 2 dp before persisting.
+    const invoiceDecimal = new Prisma.Decimal(booking.totalAmount.toString());
+    const percentageAmount = invoiceDecimal
+      .mul(new Prisma.Decimal(rule.percentage.toString()))
+      .div(100);
+    const flatDecimal = rule.flatAmount
+      ? new Prisma.Decimal(rule.flatAmount.toString())
+      : new Prisma.Decimal(0);
+    const commissionDecimal = percentageAmount
+      .add(flatDecimal)
+      .toDecimalPlaces(2);
+    const commissionAmount = commissionDecimal.toNumber();
 
     // Idempotency under concurrency: there is no DB @@unique on
     // (bookingId, ruleId), so the existence-check + create must run inside a
@@ -358,7 +422,7 @@ export async function calculateCommission(data: CalculateCommissionInput) {
           return tx.commissionEntry.create({
             data: {
               invoiceAmount,
-              commissionAmount,
+              commissionAmount: commissionDecimal,
               status: "PENDING",
               ruleId,
               userId,

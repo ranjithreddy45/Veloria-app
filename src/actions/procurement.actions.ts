@@ -110,23 +110,12 @@ function prDTO(
 }
 
 // ------------------------------------------------------------
-// Internal: recompute & persist totalAmount from current items
+// Internal: sum line items -> totalAmount (2-dp rounded)
 // ------------------------------------------------------------
 function sumItems(items: { quantity: Prisma.Decimal | number; unitPrice: Prisma.Decimal | number }[]): number {
   return Math.round(
     items.reduce((acc, it) => acc + dec(it.quantity as Prisma.Decimal) * dec(it.unitPrice as Prisma.Decimal), 0) * 100,
   ) / 100;
-}
-
-async function recomputeTotal(prId: string): Promise<void> {
-  const items = await prisma.purchaseRequisitionItem.findMany({
-    where: { prId },
-    select: { quantity: true, unitPrice: true },
-  });
-  await prisma.purchaseRequisition.update({
-    where: { id: prId },
-    data: { totalAmount: new Prisma.Decimal(sumItems(items)) },
-  });
 }
 
 // ------------------------------------------------------------
@@ -308,94 +297,10 @@ export async function updatePurchaseRequisition(
   return { success: true, data: { id } };
 }
 
-// ------------------------------------------------------------
-// Item CRUD — only while PENDING; recompute totalAmount on change
-// ------------------------------------------------------------
-async function assertPending(prId: string): Promise<Result<true>> {
-  const pr = await prisma.purchaseRequisition.findUnique({ where: { id: prId }, select: { status: true } });
-  if (!pr) return { success: false, error: "Requisition not found" };
-  if (pr.status !== "PENDING") return { success: false, error: "Items can only be changed while pending." };
-  return { success: true, data: true };
-}
-
-export async function addPurchaseRequisitionItem(
-  prId: string,
-  item: { name: string; quantity: number; unit?: string | null; unitPrice: number },
-): Promise<Result<{ id: string }>> {
-  const u = await requireUser();
-  if (!u) return { success: false, error: "Unauthorized" };
-  if (!canWrite(u.role)) return { success: false, error: "Not authorized" };
-
-  const guard = await assertPending(prId);
-  if (!guard.success) return guard;
-
-  if (!item.name?.trim()) return { success: false, error: "Item name is required" };
-  if (!(Number(item.quantity) > 0)) return { success: false, error: "Quantity must be > 0" };
-  if (Number(item.unitPrice) < 0) return { success: false, error: "Unit price can't be negative" };
-
-  await prisma.purchaseRequisitionItem.create({
-    data: {
-      prId,
-      name: item.name.trim(),
-      quantity: new Prisma.Decimal(Number(item.quantity)),
-      unit: item.unit?.trim() || null,
-      unitPrice: new Prisma.Decimal(Number(item.unitPrice)),
-    },
-  });
-  await recomputeTotal(prId);
-  revalidatePath(`/procurement/${prId}`);
-  return { success: true, data: { id: prId } };
-}
-
-export async function updatePurchaseRequisitionItem(
-  itemId: string,
-  patch: { name?: string; quantity?: number; unit?: string | null; unitPrice?: number },
-): Promise<Result<{ id: string }>> {
-  const u = await requireUser();
-  if (!u) return { success: false, error: "Unauthorized" };
-  if (!canWrite(u.role)) return { success: false, error: "Not authorized" };
-
-  const existing = await prisma.purchaseRequisitionItem.findUnique({ where: { id: itemId }, select: { prId: true } });
-  if (!existing) return { success: false, error: "Item not found" };
-  const guard = await assertPending(existing.prId);
-  if (!guard.success) return guard;
-
-  const data: Prisma.PurchaseRequisitionItemUpdateInput = {};
-  if (patch.name !== undefined) {
-    if (!patch.name.trim()) return { success: false, error: "Item name is required" };
-    data.name = patch.name.trim();
-  }
-  if (patch.quantity !== undefined) {
-    if (!(Number(patch.quantity) > 0)) return { success: false, error: "Quantity must be > 0" };
-    data.quantity = new Prisma.Decimal(Number(patch.quantity));
-  }
-  if (patch.unit !== undefined) data.unit = patch.unit?.trim() || null;
-  if (patch.unitPrice !== undefined) {
-    if (Number(patch.unitPrice) < 0) return { success: false, error: "Unit price can't be negative" };
-    data.unitPrice = new Prisma.Decimal(Number(patch.unitPrice));
-  }
-
-  await prisma.purchaseRequisitionItem.update({ where: { id: itemId }, data });
-  await recomputeTotal(existing.prId);
-  revalidatePath(`/procurement/${existing.prId}`);
-  return { success: true, data: { id: existing.prId } };
-}
-
-export async function deletePurchaseRequisitionItem(itemId: string): Promise<Result<{ id: string }>> {
-  const u = await requireUser();
-  if (!u) return { success: false, error: "Unauthorized" };
-  if (!canWrite(u.role)) return { success: false, error: "Not authorized" };
-
-  const existing = await prisma.purchaseRequisitionItem.findUnique({ where: { id: itemId }, select: { prId: true } });
-  if (!existing) return { success: false, error: "Item not found" };
-  const guard = await assertPending(existing.prId);
-  if (!guard.success) return guard;
-
-  await prisma.purchaseRequisitionItem.delete({ where: { id: itemId } });
-  await recomputeTotal(existing.prId);
-  revalidatePath(`/procurement/${existing.prId}`);
-  return { success: true, data: { id: existing.prId } };
-}
+// Item-level CRUD (add/update/delete a single line item) was removed: no UI
+// component called it, line items are created/edited via createPurchaseRequisition
+// at creation time, and an unused-but-exported server action is an unnecessary
+// surface. Reintroduce alongside detail-page inline editing if that ships.
 
 // ------------------------------------------------------------
 // Lifecycle (status machine, write-gated)
@@ -444,9 +349,12 @@ export async function rejectPR(id: string, reason?: string): Promise<Result<{ id
     ? `${pr.notes ? `${pr.notes}\n\n` : ""}Rejected: ${trimmed}`
     : pr.notes;
 
+  // Rejection is not an approval: don't stamp approvedById/approvedAt (the
+  // schema has no rejectedAt field). Record the rejector in the notes trail
+  // above and leave the approval columns untouched.
   await prisma.purchaseRequisition.update({
     where: { id },
-    data: { status: "REJECTED", approvedById: u.id, approvedAt: new Date(), notes },
+    data: { status: "REJECTED", notes },
   });
   revalidatePath(`/procurement/${id}`);
   revalidatePath("/procurement");

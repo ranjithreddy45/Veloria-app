@@ -174,7 +174,7 @@ export async function createCadence(
       },
     });
 
-    logActivity({
+    await logActivity({
       action: "CREATE_CADENCE",
       entityType: "cadence",
       entityId: cadence.id,
@@ -239,7 +239,7 @@ export async function updateCadence(
       },
     });
 
-    logActivity({
+    await logActivity({
       action: "UPDATE_CADENCE",
       entityType: "cadence",
       entityId: cadence.id,
@@ -277,7 +277,7 @@ export async function deleteCadence(
 
     await prisma.cadence.delete({ where: { id } });
 
-    logActivity({
+    await logActivity({
       action: "DELETE_CADENCE",
       entityType: "cadence",
       entityId: id,
@@ -332,7 +332,7 @@ export async function toggleCadenceStatus(
       data: { status: targetStatus },
     });
 
-    logActivity({
+    await logActivity({
       action: "TOGGLE_CADENCE_STATUS",
       entityType: "cadence",
       entityId: id,
@@ -372,6 +372,9 @@ export async function createStep(
     if (!cadence) {
       return { success: false as const, error: "Cadence not found" };
     }
+    if (cadence.status === "ARCHIVED") {
+      return { success: false as const, error: "Cannot modify steps of an ARCHIVED cadence" };
+    }
 
     const parsed = cadenceStepSchema.safeParse(input);
     if (!parsed.success) {
@@ -391,7 +394,7 @@ export async function createStep(
       },
     });
 
-    logActivity({
+    await logActivity({
       action: "CREATE_CADENCE_STEP",
       entityType: "cadence_step",
       entityId: step.id,
@@ -423,9 +426,15 @@ export async function updateStep(
       return { success: false as const, error: "Insufficient permissions" };
     }
 
-    const existingStep = await prisma.cadenceStep.findUnique({ where: { id } });
+    const existingStep = await prisma.cadenceStep.findUnique({
+      where: { id },
+      include: { cadence: { select: { status: true } } },
+    });
     if (!existingStep) {
       return { success: false as const, error: "Step not found" };
+    }
+    if (existingStep.cadence.status === "ARCHIVED") {
+      return { success: false as const, error: "Cannot modify steps of an ARCHIVED cadence" };
     }
 
     const parsed = cadenceStepSchema.safeParse(input);
@@ -446,7 +455,7 @@ export async function updateStep(
       },
     });
 
-    logActivity({
+    await logActivity({
       action: "UPDATE_CADENCE_STEP",
       entityType: "cadence_step",
       entityId: step.id,
@@ -474,14 +483,20 @@ export async function deleteStep(
       return { success: false as const, error: "Insufficient permissions" };
     }
 
-    const existingStep = await prisma.cadenceStep.findUnique({ where: { id } });
+    const existingStep = await prisma.cadenceStep.findUnique({
+      where: { id },
+      include: { cadence: { select: { status: true } } },
+    });
     if (!existingStep) {
       return { success: false as const, error: "Step not found" };
+    }
+    if (existingStep.cadence.status === "ARCHIVED") {
+      return { success: false as const, error: "Cannot modify steps of an ARCHIVED cadence" };
     }
 
     await prisma.cadenceStep.delete({ where: { id } });
 
-    logActivity({
+    await logActivity({
       action: "DELETE_CADENCE_STEP",
       entityType: "cadence_step",
       entityId: id,
@@ -510,6 +525,17 @@ export async function reorderSteps(
       return { success: false as const, error: "Insufficient permissions" };
     }
 
+    const cadence = await prisma.cadence.findUnique({
+      where: { id: cadenceId },
+      select: { status: true },
+    });
+    if (!cadence) {
+      return { success: false as const, error: "Cadence not found" };
+    }
+    if (cadence.status === "ARCHIVED") {
+      return { success: false as const, error: "Cannot modify steps of an ARCHIVED cadence" };
+    }
+
     // Verify every id belongs to the target cadence before reordering, so
     // step IDs from other cadences cannot be smuggled in.
     const ownedSteps = await prisma.cadenceStep.findMany({
@@ -529,7 +555,7 @@ export async function reorderSteps(
       )
     );
 
-    logActivity({
+    await logActivity({
       action: "REORDER_CADENCE_STEPS",
       entityType: "cadence",
       entityId: cadenceId,
@@ -548,6 +574,20 @@ export async function reorderSteps(
 // Enrollments
 // ============================================================
 
+/**
+ * Computes the next step execution time as a "time from now" offset.
+ *
+ * Intent: nextExecuteAt is anchored to the current clock (enrollment time, or
+ * resume time), NOT to when the previous step actually executed. This means a
+ * step's delay is applied fresh each time the enrollment becomes ACTIVE (e.g.
+ * resuming a paused enrollment re-applies the current step's full delay from
+ * the resume moment, rather than crediting time already elapsed).
+ *
+ * This is intentional so that paused enrollments do not "fire immediately" on
+ * resume. Crediting elapsed time would require persisting when each step was
+ * last executed (an executedAt field on the enrollment); that is a schema-level
+ * change tracked separately and deliberately out of scope here.
+ */
 function calculateNextExecuteAt(delayDays: number, delayHours: number): Date {
   const now = new Date();
   now.setDate(now.getDate() + delayDays);
@@ -608,7 +648,7 @@ export async function enrollEntity(
       },
     });
 
-    logActivity({
+    await logActivity({
       action: "ENROLL_CADENCE",
       entityType: "cadence_enrollment",
       entityId: enrollment.id,
@@ -672,7 +712,7 @@ export async function bulkEnroll(
     const enrolled = result.count;
     const skipped = entityIds.length - result.count;
 
-    logActivity({
+    await logActivity({
       action: "BULK_ENROLL_CADENCE",
       entityType: "cadence",
       entityId: cadenceId,
@@ -715,7 +755,7 @@ export async function pauseEnrollment(
       data: { status: "PAUSED", pausedAt: new Date() },
     });
 
-    logActivity({
+    await logActivity({
       action: "PAUSE_ENROLLMENT",
       entityType: "cadence_enrollment",
       entityId: enrollmentId,
@@ -775,7 +815,7 @@ export async function resumeEnrollment(
       },
     });
 
-    logActivity({
+    await logActivity({
       action: "RESUME_ENROLLMENT",
       entityType: "cadence_enrollment",
       entityId: enrollmentId,
@@ -823,7 +863,7 @@ export async function stopEnrollment(
       },
     });
 
-    logActivity({
+    await logActivity({
       action: "STOP_ENROLLMENT",
       entityType: "cadence_enrollment",
       entityId: enrollmentId,

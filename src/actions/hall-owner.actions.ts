@@ -9,7 +9,6 @@ import { serialize } from "@/lib/utils";
 import { coarseContactWhere, matchesContactKey } from "@/lib/dedup";
 import {
   hallOwnerSchema,
-  hallOwnerStatusValues,
   type HallOwnerInput,
 } from "@/schemas/hall-owner.schema";
 import type { HallOwnerStatus } from "@prisma/client";
@@ -160,57 +159,3 @@ export async function updateHallOwner(id: string, data: HallOwnerInput) {
   }
 }
 
-// Move an owner to a different funnel stage (board drag / quick action).
-export async function moveHallOwnerStage(id: string, status: string) {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) return { success: false as const, error: "Unauthorized" };
-    if (!hasPermission(session.user.role as string, "owners:update"))
-      return { success: false as const, error: "Insufficient permissions" };
-    if (!(hallOwnerStatusValues as readonly string[]).includes(status))
-      return { success: false as const, error: "Invalid stage" };
-
-    await prisma.hallOwner.update({
-      where: { id },
-      data: { contractStatus: status as HallOwnerStatus },
-    });
-    await logActivity({
-      userId: session.user.id as string,
-      action: "stage_changed",
-      entityType: "HallOwner",
-      entityId: id,
-      changes: { contractStatus: status },
-    });
-    revalidatePath("/owners");
-    revalidatePath(`/owners/${id}`);
-    return { success: true as const };
-  } catch (error) {
-    console.error("[MOVE_HALL_OWNER_ERROR]", error);
-    return { success: false as const, error: "Failed to move hall owner" };
-  }
-}
-
-export async function deleteHallOwner(id: string) {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) return { success: false as const, error: "Unauthorized" };
-    if (!hasPermission(session.user.role as string, "owners:delete"))
-      return { success: false as const, error: "Insufficient permissions" };
-
-    await prisma.hallOwner.update({
-      where: { id },
-      data: { deletedAt: new Date() },
-    });
-    await logActivity({
-      userId: session.user.id as string,
-      action: "deleted",
-      entityType: "HallOwner",
-      entityId: id,
-    });
-    revalidatePath("/owners");
-    return { success: true as const };
-  } catch (error) {
-    console.error("[DELETE_HALL_OWNER_ERROR]", error);
-    return { success: false as const, error: "Failed to delete hall owner" };
-  }
-}

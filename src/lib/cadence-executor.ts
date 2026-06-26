@@ -136,8 +136,10 @@ export async function processDueCadenceSteps(): Promise<{
                 console.error("[CADENCE_EMAIL_TRACKING_ERROR]", err);
               }
 
-              // Fire-and-forget: send the actual (tracked) email
-              sendEmail({
+              // Await the send so it completes before this serverless
+              // invocation can freeze. The DB Communication row is already
+              // created; a send failure is logged but never breaks the run.
+              await sendEmail({
                 to: contact.email,
                 subject: config.subject ?? "Update from Veloria Grand",
                 html,
@@ -175,9 +177,11 @@ export async function processDueCadenceSteps(): Promise<{
               },
             });
 
-            // Fire-and-forget: send the actual WhatsApp message
+            // Await the send so it completes before this serverless
+            // invocation can freeze. A send failure is logged but never
+            // breaks the run.
             if (contact?.phone) {
-              sendWhatsApp({
+              await sendWhatsApp({
                 to: contact.phone,
                 message: config.message ?? config.content ?? "",
                 template: config.templateId,
@@ -190,9 +194,10 @@ export async function processDueCadenceSteps(): Promise<{
         case "SEND_SMS": {
           // Best-effort SMS step. sendSms is graceful when unconfigured (it
           // records a FAILED row and returns an error rather than throwing),
-          // so this never breaks the cadence run. Fire-and-forget.
+          // so this never breaks the cadence run. Awaited so it completes
+          // before this serverless invocation can freeze.
           if (contactId && contact?.phone) {
-            sendSms(contact.phone, config.message ?? config.content ?? "", {
+            await sendSms(contact.phone, config.message ?? config.content ?? "", {
               contactId,
             }).catch((err) => console.error("[CADENCE_SMS_ERROR]", err));
           }

@@ -16,10 +16,7 @@ import { formatINR } from "@/lib/utils";
 import { CommissionTable } from "./_components/commission-table";
 import { CommissionRuleForm } from "./_components/commission-rule-form";
 import { CommissionCalcDialog } from "./_components/commission-calc-dialog";
-import {
-  CommissionStatStrip,
-  computeCommissionTotals,
-} from "./_components/commission-stats";
+import { CommissionStatStrip } from "./_components/commission-stats";
 
 export const metadata: Metadata = { title: "Commissions" };
 
@@ -46,7 +43,12 @@ export default async function CommissionsPage() {
   const users = usersResult.success ? usersResult.data.users : [];
   const bookings = bookingsResult.success ? bookingsResult.data.data : [];
 
-  const totals = computeCommissionTotals(entries);
+  // Totals are computed server-side over the full filtered set (aggregation),
+  // so they remain accurate even though the entries list above is capped.
+  const totals =
+    entriesResult.success && entriesResult.totals
+      ? entriesResult.totals
+      : { count: 0, total: 0, pending: 0, paid: 0 };
 
   return (
     <div className="space-y-6">

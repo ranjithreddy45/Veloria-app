@@ -41,7 +41,8 @@ export type GetConversationInput = z.infer<typeof getConversationSchema>;
 export const bulkSendWhatsAppSchema = z.object({
   contactIds: z
     .array(z.string().min(1))
-    .min(1, "At least one contact is required"),
+    .min(1, "At least one contact is required")
+    .max(500, "At most 500 contacts can be messaged at once"),
   templateName: z.string().min(1, "Template name is required"),
   params: z.record(z.string(), z.string()).optional(),
 });

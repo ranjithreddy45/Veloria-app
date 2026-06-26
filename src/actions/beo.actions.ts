@@ -332,7 +332,17 @@ export async function updateBeo(id: string, patch: BeoPatch): Promise<Result<{ i
   if (b.status === "LOCKED") return { success: false, error: "This function sheet is locked and read-only." };
 
   const data: Record<string, unknown> = {};
-  if (patch.covers !== undefined) data.covers = patch.covers == null ? null : Number(patch.covers);
+  if (patch.covers !== undefined) {
+    if (patch.covers === null) {
+      data.covers = null;
+    } else {
+      const covers = Number(patch.covers);
+      if (!Number.isInteger(covers) || covers < 0) {
+        return { success: false, error: "Covers must be a non-negative whole number." };
+      }
+      data.covers = covers;
+    }
+  }
   if (patch.runOfShow !== undefined) data.runOfShow = normalizeRunOfShow(patch.runOfShow);
   for (const k of ["menuNotes", "floorPlanNotes", "avNotes", "decorNotes", "staffingNotes", "specialInstructions"] as const) {
     if (patch[k] !== undefined) data[k] = patch[k] === "" ? null : patch[k];
@@ -419,6 +429,12 @@ export async function resolveBeoIncident(id: string): Promise<Result<{ id: strin
 
   const i = await prisma.beoIncident.findUnique({ where: { id }, select: { beoId: true, status: true } });
   if (!i) return { success: false, error: "Incident not found" };
+
+  // Verify the parent function sheet exists / is accessible before allowing
+  // the resolve, so a crafted incident id can't be acted on out of context.
+  const beo = await prisma.beo.findUnique({ where: { id: i.beoId }, select: { id: true } });
+  if (!beo) return { success: false, error: "Function sheet not found" };
+
   if (i.status === "RESOLVED") return { success: true, data: { id } };
 
   await prisma.beoIncident.update({ where: { id }, data: { status: "RESOLVED" } });

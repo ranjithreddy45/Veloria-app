@@ -10,30 +10,11 @@ import { StatTile } from "@/components/ui/stat-tile";
 import { StatusPill, type Hue } from "@/components/shared/status-pill";
 import { formatINR } from "@/lib/utils";
 
-export interface CommissionStatsInput {
-  commissionAmount: number;
-  status: string;
-}
-
 export interface CommissionTotals {
   count: number;
   total: number;
   pending: number;
   paid: number;
-}
-
-export function computeCommissionTotals(
-  entries: CommissionStatsInput[],
-): CommissionTotals {
-  let total = 0;
-  let pending = 0;
-  let paid = 0;
-  for (const e of entries) {
-    total += e.commissionAmount;
-    if (e.status === "PENDING") pending += e.commissionAmount;
-    if (e.status === "PAID") paid += e.commissionAmount;
-  }
-  return { count: entries.length, total, pending, paid };
 }
 
 // ------------------------------------------------------------

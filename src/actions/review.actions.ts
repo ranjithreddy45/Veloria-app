@@ -333,6 +333,11 @@ export async function getAverageRating() {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    const role = (session.user as { role?: string }).role;
+    if (!role || !hasPermission(role, "reviews:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const result = await prisma.review.aggregate({
       _avg: { rating: true },
       _count: { id: true },

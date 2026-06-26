@@ -370,6 +370,38 @@ export async function saveBookingMenu(
 
     const menuData = parsed.data;
 
+    // Validate that every referenced menu item exists and is active before we
+    // create selections. Prisma's FK constraint would reject unknown ids, but
+    // an explicit check gives a clear error and also blocks selections that
+    // point at deactivated items.
+    const menuItemIds = Array.from(
+      new Set(menuData.selections.map((sel) => sel.menuItemId))
+    );
+
+    if (menuItemIds.length > 0) {
+      const foundItems = await prisma.menuItem.findMany({
+        where: { id: { in: menuItemIds } },
+        select: { id: true, isActive: true },
+      });
+
+      const foundMap = new Map(foundItems.map((m) => [m.id, m]));
+      const missing = menuItemIds.filter((id) => !foundMap.has(id));
+      if (missing.length > 0) {
+        return {
+          success: false as const,
+          error: "One or more selected menu items no longer exist",
+        };
+      }
+
+      const inactive = menuItemIds.filter((id) => foundMap.get(id)?.isActive === false);
+      if (inactive.length > 0) {
+        return {
+          success: false as const,
+          error: "One or more selected menu items are inactive",
+        };
+      }
+    }
+
     // Calculate total price
     const totalPrice = menuData.pricePerHead * menuData.guestCount;
 

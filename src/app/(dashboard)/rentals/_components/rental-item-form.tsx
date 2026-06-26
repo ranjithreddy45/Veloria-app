@@ -283,6 +283,12 @@ export function RentalItemForm({ item }: RentalItemFormProps) {
                       step={1}
                       placeholder="e.g. 8"
                       {...field}
+                      // On edit the available count is derived server-side from
+                      // total quantity minus units currently out on active
+                      // rentals; any value typed here would be ignored, so the
+                      // field is read-only to avoid misleading the user.
+                      readOnly={isEditing}
+                      disabled={isEditing}
                       value={field.value ?? ""}
                       onChange={(e) =>
                         field.onChange(
@@ -291,6 +297,12 @@ export function RentalItemForm({ item }: RentalItemFormProps) {
                       }
                     />
                   </FormControl>
+                  {isEditing && (
+                    <p className="text-xs text-muted-foreground">
+                      Recalculated automatically from total quantity and active
+                      rentals.
+                    </p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}

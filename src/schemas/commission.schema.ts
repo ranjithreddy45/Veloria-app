@@ -47,15 +47,14 @@ export type CommissionRuleInput = z.infer<typeof commissionRuleSchema>;
 // Calculate Commission Schema
 // ============================================================
 
+// Note: invoiceAmount is intentionally NOT part of this schema. The action
+// derives the commission base from the booking record server-side and never
+// trusts a client-supplied amount, so accepting one here would be wasted
+// validation and could mislead callers into thinking it is used.
 export const calculateCommissionSchema = z.object({
   ruleId: z.string().min(1, "Commission rule is required"),
   userId: z.string().min(1, "User is required"),
   bookingId: z.string().min(1, "Booking is required"),
-  invoiceAmount: z
-    .number({
-      error: "Invoice amount must be a number",
-    })
-    .positive("Invoice amount must be positive"),
 });
 
 export type CalculateCommissionInput = z.infer<typeof calculateCommissionSchema>;

@@ -58,6 +58,8 @@ interface SendResult {
   failed: number;
   total: number;
   skippedNoPhone: string[];
+  duplicateSkipped?: number;
+  outcome?: "all" | "partial" | "none";
 }
 
 export function BulkWhatsAppDialog({
@@ -107,7 +109,13 @@ export function BulkWhatsAppDialog({
       if (res.success && res.data) {
         setResult(res.data);
         setStep("done");
-        if (res.data.sent > 0) {
+        if (res.data.outcome === "none" && res.data.failed > 0) {
+          toast.error("All WhatsApp messages failed to send");
+        } else if (res.data.sent > 0 && res.data.failed > 0) {
+          toast.warning(
+            `Sent ${res.data.sent}, ${res.data.failed} failed`
+          );
+        } else if (res.data.sent > 0) {
           toast.success(`Sent ${res.data.sent} WhatsApp messages`);
         }
       } else {

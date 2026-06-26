@@ -302,8 +302,15 @@ export async function createEmployee(input: CreateEmployeeInput): Promise<Result
     if (dupe) return { success: false, error: "An employee with that work email already exists." };
   }
 
-  const existingCodes = await prisma.employee.findMany({ select: { empCode: true } });
-  const empCode = nextEmpCode(existingCodes.map((e) => e.empCode));
+  // Codes are zero-padded fixed width (e.g. PPG-0001), so the lexicographically
+  // greatest empCode is also the numerically greatest. Fetch only the top few
+  // (small bound covers any non-conforming legacy codes) instead of every row.
+  const topCodes = await prisma.employee.findMany({
+    select: { empCode: true },
+    orderBy: { empCode: "desc" },
+    take: 5,
+  });
+  const empCode = nextEmpCode(topCodes.map((e) => e.empCode));
 
   try {
     const created = await prisma.$transaction(async (tx) => {
@@ -370,6 +377,25 @@ export async function updateEmployee(id: string, input: UpdateEmployeeInput): Pr
       select: { id: true },
     });
     if (dupe) return { success: false, error: "Another employee already uses that work email." };
+  }
+
+  // Validate FK existence before connecting (mirror createEmployee) so callers get
+  // a clear message instead of an opaque P2025. Empty string => disconnect, skip check.
+  if (input.legalEntityId) {
+    const entity = await prisma.legalEntity.findUnique({ where: { id: input.legalEntityId }, select: { id: true } });
+    if (!entity) return { success: false, error: "Selected legal entity no longer exists." };
+  }
+  if (input.businessVerticalId) {
+    const vertical = await prisma.businessVertical.findUnique({ where: { id: input.businessVerticalId }, select: { id: true } });
+    if (!vertical) return { success: false, error: "Selected business vertical no longer exists." };
+  }
+  if (input.departmentId) {
+    const department = await prisma.department.findUnique({ where: { id: input.departmentId }, select: { id: true } });
+    if (!department) return { success: false, error: "Selected department no longer exists." };
+  }
+  if (input.designationId) {
+    const designation = await prisma.hrDesignation.findUnique({ where: { id: input.designationId }, select: { id: true } });
+    if (!designation) return { success: false, error: "Selected designation no longer exists." };
   }
 
   const data: Prisma.EmployeeUpdateInput = {};

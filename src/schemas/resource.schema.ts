@@ -43,17 +43,37 @@ export type ResourceInput = z.infer<typeof resourceSchema>;
 // Resource Allocation Schema
 // ============================================================
 
-export const allocationSchema = z.object({
-  resourceId: z.string().min(1, "Resource is required"),
-  bookingId: z.string().min(1, "Booking is required"),
-  date: z.string().min(1, "Date is required"),
-  startTime: z.string().min(1, "Start time is required"),
-  endTime: z.string().min(1, "End time is required"),
-  notes: z
-    .string()
-    .max(2000, "Notes must be at most 2000 characters")
-    .optional()
-    .or(z.literal("")),
-});
+// 24-hour HH:mm (00:00–23:59).
+const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+// Convert a validated HH:mm string to minutes-since-midnight for ordering.
+const toMinutes = (time: string): number => {
+  const [h, m] = time.split(":").map(Number);
+  return h * 60 + m;
+};
+
+export const allocationSchema = z
+  .object({
+    resourceId: z.string().min(1, "Resource is required"),
+    bookingId: z.string().min(1, "Booking is required"),
+    date: z.string().min(1, "Date is required"),
+    startTime: z
+      .string()
+      .min(1, "Start time is required")
+      .regex(timeRegex, "Start time must be in HH:mm format"),
+    endTime: z
+      .string()
+      .min(1, "End time is required")
+      .regex(timeRegex, "End time must be in HH:mm format"),
+    notes: z
+      .string()
+      .max(2000, "Notes must be at most 2000 characters")
+      .optional()
+      .or(z.literal("")),
+  })
+  .refine((data) => toMinutes(data.startTime) < toMinutes(data.endTime), {
+    message: "Start time must be before end time",
+    path: ["endTime"],
+  });
 
 export type AllocationInput = z.infer<typeof allocationSchema>;

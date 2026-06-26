@@ -108,6 +108,15 @@ async function countCtq(
 ): Promise<{ units: number; defects: number }> {
   const { start, end } = range;
 
+  // Point-in-time correctness: time-based "overdue" conditions must be
+  // evaluated as of the END of the period being measured, not the live wall
+  // clock. For the current (in-progress) month `end` is in the future, so we
+  // clamp to `now` and behavior is unchanged. For any historical month `end`
+  // is already in the past, so we use it instead of `now` — otherwise items
+  // that were overdue back then but have since been resolved would no longer
+  // satisfy `< now` and would silently drop out of the historical trend.
+  const asOf = end <= now ? end : now;
+
   switch (ctqId) {
     case "lead-sla": {
       const base = {
@@ -120,7 +129,7 @@ async function countCtq(
           where: {
             ...base,
             OR: [
-              { firstRespondedAt: null, firstContactDue: { lt: now } },
+              { firstRespondedAt: null, firstContactDue: { lt: asOf } },
               { firstRespondedAt: { gt: prisma.lead.fields.firstContactDue } },
             ],
           },
@@ -145,7 +154,7 @@ async function countCtq(
               {
                 AND: [
                   { status: { not: "PAID" } },
-                  { dueDate: { lt: now } },
+                  { dueDate: { lt: asOf } },
                   { balanceDue: { gt: 0 } },
                 ],
               },
@@ -164,7 +173,7 @@ async function countCtq(
           where: {
             ...base,
             OR: [
-              { status: { not: "DONE" }, dueDate: { lt: now } },
+              { status: { not: "DONE" }, dueDate: { lt: asOf } },
               { completedAt: { gt: prisma.task.fields.dueDate } },
             ],
           },

@@ -60,7 +60,7 @@ export const packageSchema = z.object({
     .or(z.literal("")),
   basePrice: z
     .number({ message: "Base price must be a number" })
-    .min(0, "Base price must be positive"),
+    .min(0, "Base price must be non-negative"),
   tier: z.enum(packageTierValues, {
     message: "Tier is required",
   }),
@@ -70,7 +70,10 @@ export const packageSchema = z.object({
     .url("Must be a valid URL")
     .optional()
     .or(z.literal("")),
-  items: z.array(packageItemSchema).default([]),
+  items: z
+    .array(packageItemSchema)
+    .max(100, "Package cannot have more than 100 items")
+    .default([]),
 });
 
 export type PackageInput = z.infer<typeof packageSchema>;

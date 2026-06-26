@@ -122,11 +122,11 @@ export async function getPayrollRuns() {
 function computeSlip(ctcMonthly: number, basicPct: number) {
   const gross = Math.round(ctcMonthly * 100) / 100;
   const basic = (gross * basicPct) / 100;
-  const pf = Math.round(Math.min(basic, 15000) * 0.12);
+  const pf = Math.round(Math.min(basic, 15000) * 0.12 * 100) / 100;
   // Employer PF mirrors the employee PF; it is part of CTC but not of ESI wages.
   const employerPf = pf;
   const esiWages = Math.round((gross - employerPf) * 100) / 100;
-  const esi = esiWages <= 21000 ? Math.round(esiWages * 0.0075) : 0;
+  const esi = esiWages <= 21000 ? Math.round(esiWages * 0.0075 * 100) / 100 : 0;
   const pt = 200;
   const tds = 0;
   const net = Math.round((gross - pf - esi - pt - tds) * 100) / 100;

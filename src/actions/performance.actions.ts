@@ -94,11 +94,15 @@ export async function getTeamPerformance(params?: {
         },
         select: { id: true, name: true, role: true },
       }),
-      // Get leads with WON status grouped by assignedTo
+      // Get leads with WON status grouped by assignedTo.
+      // Conversion rate semantics: cohort = leads CREATED in the period, so the
+      // WON numerator must use the same date field (createdAt) as the leadTotals
+      // denominator below. Using updatedAt here would mix leads from different
+      // periods and skew the conversion rate.
       prisma.lead.findMany({
         where: {
           status: "WON",
-          ...(dateFilter ? { updatedAt: dateFilter } : {}),
+          ...(dateFilter ? { createdAt: dateFilter } : {}),
         },
         select: {
           assignedToId: true,
@@ -497,11 +501,14 @@ export async function getIndividualMetrics(
       },
     });
 
+    // Conversion rate semantics: cohort = leads CREATED in the period. The WON
+    // count must filter on the same date field (createdAt) as leadsAssigned
+    // above so numerator and denominator cover the same lead cohort.
     const leadsConverted = await prisma.lead.count({
       where: {
         assignedToId: userId,
         status: "WON",
-        ...(dateFilter ? { updatedAt: dateFilter } : {}),
+        ...(dateFilter ? { createdAt: dateFilter } : {}),
       },
     });
 

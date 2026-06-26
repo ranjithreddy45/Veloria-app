@@ -373,20 +373,14 @@ export async function reserveForBooking(data: InventoryReservationInput) {
 
     const resData = parsed.data;
 
-    // Verify item exists and has sufficient stock
+    // Verify item exists (pre-flight for a clear error message)
     const item = await prisma.inventoryItem.findUnique({
       where: { id: resData.itemId },
+      select: { id: true, availableQty: true },
     });
 
     if (!item) {
       return { success: false as const, error: "Inventory item not found" };
-    }
-
-    if (item.availableQty < resData.quantity) {
-      return {
-        success: false as const,
-        error: `Insufficient stock. Available: ${item.availableQty}, Requested: ${resData.quantity}`,
-      };
     }
 
     // Verify booking exists
@@ -399,9 +393,31 @@ export async function reserveForBooking(data: InventoryReservationInput) {
       return { success: false as const, error: "Booking not found" };
     }
 
-    // Create reservation and update available qty in a transaction
-    const [reservation] = await prisma.$transaction([
-      prisma.inventoryReservation.create({
+    // Create reservation and decrement available qty atomically.
+    // The stock check is performed INSIDE the transaction via a conditional
+    // update (WHERE availableQty >= quantity) so that two concurrent
+    // reservations cannot both pass a stale pre-check and drive availableQty
+    // negative. If the conditional update matches 0 rows, stock ran out
+    // between the pre-flight read and the write, so we roll back.
+    let insufficientStock = false;
+    const reservation = await prisma.$transaction(async (tx) => {
+      const stockUpdate = await tx.inventoryItem.updateMany({
+        where: {
+          id: resData.itemId,
+          availableQty: { gte: resData.quantity },
+        },
+        data: {
+          availableQty: { decrement: resData.quantity },
+        },
+      });
+
+      if (stockUpdate.count === 0) {
+        insufficientStock = true;
+        // Abort the transaction; nothing has been written yet.
+        throw new Error("INSUFFICIENT_STOCK");
+      }
+
+      return tx.inventoryReservation.create({
         data: {
           quantity: resData.quantity,
           date: resData.date,
@@ -415,14 +431,18 @@ export async function reserveForBooking(data: InventoryReservationInput) {
           item: { select: { id: true, name: true } },
           booking: { select: { id: true, bookingNumber: true, eventName: true } },
         },
-      }),
-      prisma.inventoryItem.update({
-        where: { id: resData.itemId },
-        data: {
-          availableQty: { decrement: resData.quantity },
-        },
-      }),
-    ]);
+      });
+    }).catch((err: unknown) => {
+      if (insufficientStock) return null;
+      throw err;
+    });
+
+    if (!reservation) {
+      return {
+        success: false as const,
+        error: `Insufficient stock. Available: ${item.availableQty}, Requested: ${resData.quantity}`,
+      };
+    }
 
     await logActivity({
       userId: session.user.id as string,
@@ -491,7 +511,20 @@ export async function releaseReservation(
       };
     }
 
-    // Update reservation status and restore available qty in a transaction
+    // Update reservation status and adjust stock in a transaction.
+    //
+    // Business logic:
+    //  - RETURNED: items come back into circulation, so restore them to
+    //    availableQty.
+    //  - DAMAGED: items are lost and must NOT re-enter available stock.
+    //    Write them off by reducing totalQuantity instead. availableQty is
+    //    left untouched (it was already decremented when reserved), keeping
+    //    the invariant availableQty <= totalQuantity intact.
+    const itemAdjustment =
+      releaseData.status === "RETURNED"
+        ? { availableQty: { increment: existing.quantity } }
+        : { totalQuantity: { decrement: existing.quantity } };
+
     const [reservation] = await prisma.$transaction([
       prisma.inventoryReservation.update({
         where: { id: reservationId },
@@ -502,9 +535,7 @@ export async function releaseReservation(
       }),
       prisma.inventoryItem.update({
         where: { id: existing.itemId },
-        data: {
-          availableQty: { increment: existing.quantity },
-        },
+        data: itemAdjustment,
       }),
     ]);
 
