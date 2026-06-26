@@ -658,6 +658,9 @@ export interface PublicHoldView {
   token: string;
   status: "INITIATED" | "SLOT_CLAIMED" | "PAID" | "CONFIRMED" | "EXPIRED" | "RELEASED";
   venueName: string;
+  /** Public-safe context for social-proof matching on /hold (non-PII). */
+  venueId: string;
+  eventType: string | null;
   dateISO: string;
   timeSlot: TimeSlot;
   slotLabel: string;
@@ -691,6 +694,8 @@ export async function getPublicHold(token: string): Promise<Result<PublicHoldVie
         expiresAt: true,
         paidAt: true,
         bookingId: true,
+        eventType: true,
+        venueId: true,
         venue: { select: { name: true } },
       },
     });
@@ -736,6 +741,8 @@ export async function getPublicHold(token: string): Promise<Result<PublicHoldVie
         token: hold.token,
         status: effectiveStatus,
         venueName: hold.venue.name,
+        venueId: hold.venueId,
+        eventType: hold.eventType,
         dateISO,
         timeSlot: hold.timeSlot,
         slotLabel: SLOT_LABEL[hold.timeSlot as keyof typeof SLOT_LABEL],

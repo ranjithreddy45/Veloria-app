@@ -187,6 +187,7 @@ export type Permission =
   // WhatsApp
   | "whatsapp:read"
   | "whatsapp:send"
+  | "whatsapp:reply"
   // Referrals
   | "referrals:read"
   | "referrals:create"
@@ -203,6 +204,9 @@ export type Permission =
   // Loyalty
   | "loyalty:read"
   | "loyalty:manage"
+  // Corporate Accounts (farming)
+  | "accounts:read"
+  | "accounts:manage"
   // Surveys
   | "surveys:read"
   | "surveys:create"
@@ -447,6 +451,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   "communications:delete",
   "whatsapp:read",
   "whatsapp:send",
+  "whatsapp:reply",
   "referrals:read",
   "referrals:create",
   "referrals:update",
@@ -459,6 +464,8 @@ export const ALL_PERMISSIONS: Permission[] = [
   "email-templates:delete",
   "loyalty:read",
   "loyalty:manage",
+  "accounts:read",
+  "accounts:manage",
   "surveys:read",
   "surveys:create",
   "surveys:update",
@@ -672,6 +679,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "communications:delete",
     "whatsapp:read",
     "whatsapp:send",
+    "whatsapp:reply",
     "referrals:read",
     "referrals:create",
     "referrals:update",
@@ -693,6 +701,8 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "dashboard:analytics",
     "loyalty:read",
     "loyalty:manage",
+    "accounts:read",
+    "accounts:manage",
     "surveys:read",
     "surveys:create",
     "surveys:update",
@@ -797,11 +807,13 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "communications:create",
     "whatsapp:read",
     "whatsapp:send",
+    "whatsapp:reply",
     "referrals:read",
     "referrals:create",
     "campaigns:read",
     "dashboard:read",
     "loyalty:read",
+    "accounts:read",
     "reviews:read",
     "gallery:read",
     "tastings:read",
@@ -855,11 +867,14 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "communications:create",
     "whatsapp:read",
     "whatsapp:send",
+    "whatsapp:reply",
     "referrals:read",
     "referrals:create",
     "campaigns:read",
     "dashboard:read",
     "loyalty:read",
+    "accounts:read",
+    "accounts:manage",
     "reviews:read",
     "gallery:read",
     "tastings:read",
@@ -1171,6 +1186,11 @@ export const ROUTE_PERMISSIONS: { prefix: string; permission: Permission }[] = [
   { prefix: "/settings/users", permission: "users:read" },
   { prefix: "/settings/roles", permission: "users:manage-roles" },
   { prefix: "/settings/public-quotes", permission: "publicquotes:read" },
+  // Smart-routing / rep-availability settings sub-pages. rep-availability is
+  // intentionally gated to leads:read (not settings:read) so Sales reps can
+  // view the board; the routing config page rides the broader /settings gate.
+  { prefix: "/settings/rep-availability", permission: "leads:read" },
+  { prefix: "/settings/whatsapp-catalog", permission: "settings:update" },
   { prefix: "/marketing", permission: "analytics:read" },
   { prefix: "/feedback", permission: "reviews:read" },
   { prefix: "/franchise", permission: "franchise:read" },
@@ -1213,11 +1233,14 @@ export const ROUTE_PERMISSIONS: { prefix: string; permission: Permission }[] = [
   { prefix: "/campaigns", permission: "campaigns:read" },
   { prefix: "/referrals", permission: "referrals:read" },
   { prefix: "/loyalty", permission: "loyalty:read" },
+  { prefix: "/accounts", permission: "accounts:read" },
+  { prefix: "/site-visits", permission: "tastings:read" },
   { prefix: "/surveys", permission: "surveys:read" },
   { prefix: "/reviews", permission: "reviews:read" },
   { prefix: "/gallery", permission: "gallery:read" },
   { prefix: "/competitors", permission: "competitors:read" },
   { prefix: "/documents", permission: "documents:read" },
+  { prefix: "/whatsapp/catalog", permission: "whatsapp:read" },
   { prefix: "/whatsapp", permission: "whatsapp:read" },
   { prefix: "/performance", permission: "performance:read" },
   { prefix: "/crm", permission: "communications:read" },

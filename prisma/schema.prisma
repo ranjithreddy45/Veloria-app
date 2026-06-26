@@ -493,24 +493,26 @@ model Contact {
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
 
-  leads            Lead[]
-  bookings         Booking[]
-  invoices         Invoice[]
-  quotes           Quote[]
-  contracts        Contract[]
-  communications   Communication[]
-  whatsappMessages WhatsAppMessage[]
-  referrals        Referral[]
-  loyaltyAccount   LoyaltyAccount?
-  reviews          Review[]
-  callLogs         CallLog[]
-  salesQuotations  SalesQuotation[]
-  reviewRequests   ReviewRequest[]
+  leads              Lead[]
+  bookings           Booking[]
+  invoices           Invoice[]
+  quotes             Quote[]
+  contracts          Contract[]
+  communications     Communication[]
+  whatsappMessages   WhatsAppMessage[]
+  referrals          Referral[]
+  loyaltyAccount     LoyaltyAccount?
+  reviews            Review[]
+  callLogs           CallLog[]
+  salesQuotations    SalesQuotation[]
+  reviewRequests     ReviewRequest[]
+  corporateAccountId String?
 
   @@index([email])
   @@index([phone])
   @@index([firstName, lastName])
   @@index([deletedAt, createdAt]) // hot list query: not-deleted, newest first
+  corporateAccount  CorporateAccount?  @relation("ContactCorporateAccount")
 }
 
 model Lead {
@@ -541,22 +543,25 @@ model Lead {
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 
-  contactId        String
-  contact          Contact            @relation(fields: [contactId], references: [id])
-  preferredVenueId String?
-  preferredVenue   Venue?             @relation("LeadPreferredVenue", fields: [preferredVenueId], references: [id])
-  assignedToId     String?
-  assignedTo       User?              @relation("AssignedTo", fields: [assignedToId], references: [id])
-  createdById      String
-  createdBy        User               @relation("CreatedBy", fields: [createdById], references: [id])
-  deal             Deal?
-  quotes           Quote[]
-  salesQuotations  SalesQuotation[]
-  utmSource        String?
-  utmMedium        String?
-  utmCampaign      String?
-  attribution      LeadAttribution?
-  firstResponse    LeadFirstResponse?
+  contactId         String
+  contact           Contact            @relation(fields: [contactId], references: [id])
+  preferredVenueId  String?
+  preferredVenue    Venue?             @relation("LeadPreferredVenue", fields: [preferredVenueId], references: [id])
+  assignedToId      String?
+  assignedTo        User?              @relation("AssignedTo", fields: [assignedToId], references: [id])
+  createdById       String
+  createdBy         User               @relation("CreatedBy", fields: [createdById], references: [id])
+  deal              Deal?
+  quotes            Quote[]
+  salesQuotations   SalesQuotation[]
+  utmSource         String?
+  utmMedium         String?
+  utmCampaign       String?
+  attribution       LeadAttribution?
+  firstResponse     LeadFirstResponse?
+  intent            String?
+  intentAt          DateTime?
+  coolingEnrolledAt DateTime?
 
   @@index([status])
   @@index([assignedToId])
@@ -650,6 +655,7 @@ model Venue {
   revenueShareConfigs RevenueShareConfig[] @relation("VenueRevenueShare")
   revenueSharePayouts RevenueSharePayout[] @relation("VenueRevenueSharePayouts")
   otaChannels         OtaChannel[]         @relation("VenueOtaChannels")
+  siteVisits          SiteVisitBooking[]   @relation("VenueSiteVisits")
 }
 
 model Booking {
@@ -2407,10 +2413,11 @@ model Review {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  contactId String
-  contact   Contact @relation(fields: [contactId], references: [id])
-  bookingId String
-  booking   Booking @relation(fields: [bookingId], references: [id])
+  contactId          String
+  contact            Contact @relation(fields: [contactId], references: [id])
+  bookingId          String
+  booking            Booking @relation(fields: [bookingId], references: [id])
+  referralCodeIssued Boolean @default(false)
 
   @@index([contactId])
   @@index([bookingId])
@@ -3956,16 +3963,16 @@ model AcqDeal {
   propertyId String? // denormalized; property.dealId is authoritative
   property   AcqProperty?   @relation("AcqDealProperty")
 
-  expectedCloseDate DateTime?
+  expectedCloseDate      DateTime?
   // Deal-preview commercial dates/fees (BD CRM)
   expectedSigningDate    DateTime?
   taFees                 Decimal?  @db.Decimal(12, 2) // transaction-advisory / brokerage fees
   expectedCollectionDate DateTime?
-  bdExecutiveId     String
-  bdExecutive       User      @relation("AcqDealBdExec", fields: [bdExecutiveId], references: [id])
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  deletedAt         DateTime?
+  bdExecutiveId          String
+  bdExecutive            User      @relation("AcqDealBdExec", fields: [bdExecutiveId], references: [id])
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  deletedAt              DateTime?
 
   evaluations AcqEvaluation[]
   attachments AcqAttachment[]
@@ -4610,7 +4617,10 @@ model SalesQuotation {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  transitions SalesQuotationTransition[]
+  transitions    SalesQuotationTransition[]
+  quoteGroupId   String?
+  tierLabel      String?
+  shareLinkToken String?
 
   @@index([status])
   @@index([leadId])
@@ -7097,4 +7107,713 @@ model CronRunLog {
 
   @@index([lane, createdAt])
   @@index([createdAt])
+}
+
+// ============================================================
+// SALES GROWTH ENGINE — 22-feature additive delta (Sales Wave)
+// Conventions: cuid ids, createdAt/updatedAt, money @db.Decimal,
+// plain String refs (no core-model FK widening — SalesQuotation/PublicHold
+// pattern), token String @unique for public routes, @db.Date + TimeSlot for
+// slot/date matching. ADDITIVE ONLY.
+// ============================================================
+
+// ------------------------------------------------------------
+// SHARED ENUMS
+// ------------------------------------------------------------
+
+enum QuoteShareStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+enum QuoteTierLabel {
+  SILVER
+  GOLD
+  PLATINUM
+  CUSTOM
+}
+
+enum QuoteViewDevice {
+  MOBILE
+  DESKTOP
+  TABLET
+  UNKNOWN
+}
+
+enum MessageIntent {
+  READY_TO_BUY
+  DATE_CHECK
+  PRICE_OBJECTION
+  COLD
+  GENERAL
+}
+
+enum RepAvailabilityStatus {
+  ONLINE
+  BUSY
+  AWAY
+  OFFLINE
+}
+
+enum SlaEscalationTier {
+  NONE
+  WARN_REP
+  ESCALATE_MANAGER
+  ESCALATE_ADMIN
+}
+
+enum WinbackKind {
+  ABANDONED_QUOTE
+  LOST_LEAD_REVIVAL
+  EVENT_DATE_PROXIMITY
+  COOLING_LEAD
+  CORPORATE_FARMING
+}
+
+enum WinbackStatus {
+  PENDING
+  ENROLLED
+  CONTACTED
+  RECOVERED
+  EXHAUSTED
+  SUPPRESSED
+}
+
+enum SiteVisitKind {
+  SITE_VISIT
+  MENU_TASTING
+}
+
+enum SiteVisitStatus {
+  REQUESTED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+  RESCHEDULED
+}
+
+enum ReferralPartnerType {
+  PLANNER
+  DECORATOR
+  VENDOR
+  GUEST
+  EMPLOYEE
+}
+
+enum BrochureCtaType {
+  HOLD_DATE
+  BOOK_VISIT
+  GET_QUOTE
+  WHATSAPP
+}
+
+enum CorporateAccountTier {
+  PROSPECT
+  ACTIVE
+  KEY
+  DORMANT
+  CHURNED
+}
+
+// ============================================================
+// (1) quote-radar / (2) quote-onetap-pay / (3) quote-tiers /
+//     (5) quote-ai-caption — shareable tracked public quote link
+// ============================================================
+
+// One shareable public link per quote (or per Good-Better-Best group).
+// Reuses the frozen SalesQuotation.outputsJson snapshot via plain refs.
+model QuoteShareLink {
+  id                 String           @id @default(cuid())
+  token              String           @unique // unguessable /q/<token> access token
+  status             QuoteShareStatus @default(ACTIVE)
+  // What this link renders. quoteGroupId groups parallel tiers (feature 3);
+  // primarySalesQuotationId is the default/highlighted tier.
+  quoteGroupId       String? // shared across tier variants on one page
+  primaryQuotationId String? // plain ref → SalesQuotation.id
+  // Plain CRM refs (un-widened)
+  leadId             String?
+  contactId          String?
+  venueId            String?
+  // Denormalised headline for fast render + WhatsApp caption
+  clientName         String?
+  clientPhone        String?
+  occasion           String?
+  eventDate          DateTime?
+  timeSlot           String?
+  grandTotal         Decimal          @default(0) @db.Decimal(12, 2)
+  currency           String           @default("INR")
+  // Social-proof toggle (feature 4) — render approved reviews/gallery inline
+  showSocialProof    Boolean          @default(true)
+  // AI caption (feature 5) snapshot of last generated WhatsApp message
+  aiCaption          String?          @db.Text
+  aiCaptionAt        DateTime?
+  // One-tap pay (feature 2) — invoice backing the "Pay 20%" button
+  payInvoiceId       String? // plain ref → Invoice.id
+  paymentLinkUrl     String?          @db.Text
+  // View analytics rollup (detail rows in QuoteView)
+  viewCount          Int              @default(0)
+  firstViewedAt      DateTime?
+  lastViewedAt       DateTime?
+  // Recovery trigger bookkeeping (feature 1 "opened-but-silent 24h")
+  silentNudgeFiredAt DateTime? // dedupe the auto cadence-enroll / rep notify
+  expiresAt          DateTime?
+  createdById        String? // rep who shared
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  views QuoteView[]
+  tiers QuoteTier[]
+
+  @@index([status])
+  @@index([quoteGroupId])
+  @@index([leadId])
+  @@index([contactId])
+  @@index([lastViewedAt])
+  @@index([silentNudgeFiredAt])
+  @@index([createdAt])
+}
+
+// Good-Better-Best parallel tier on one shared quote page (feature 3).
+// Each row points to a distinct SalesQuotation (its own outputsJson snapshot)
+// sharing the same quoteGroupId; customer selects one to pay.
+model QuoteTier {
+  id            String         @id @default(cuid())
+  shareLinkId   String
+  shareLink     QuoteShareLink @relation(fields: [shareLinkId], references: [id], onDelete: Cascade)
+  label         QuoteTierLabel @default(CUSTOM)
+  displayName   String // "Silver" | "Gold" | "Platinum" | custom
+  order         Int            @default(0)
+  quotationId   String // plain ref → SalesQuotation.id (priced variant)
+  grandTotal    Decimal        @default(0) @db.Decimal(12, 2)
+  isRecommended Boolean        @default(false) // anchor highlight
+  isSelected    Boolean        @default(false) // customer chose this tier
+  selectedAt    DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@unique([shareLinkId, quotationId])
+  @@index([shareLinkId, order])
+}
+
+// VIEW analytics event — one row per open of the public quote page.
+model QuoteView {
+  id                String          @id @default(cuid())
+  shareLinkId       String
+  shareLink         QuoteShareLink  @relation(fields: [shareLinkId], references: [id], onDelete: Cascade)
+  viewedAt          DateTime        @default(now())
+  device            QuoteViewDevice @default(UNKNOWN)
+  userAgent         String?         @db.Text
+  ipHash            String? // hashed ip for unique-visitor dedupe (no raw PII)
+  referrer          String?         @db.Text
+  // Which tier the viewer focused on (plain ref → SalesQuotation.id)
+  viewedQuotationId String?
+  durationMs        Int? // dwell time if measured client-side
+
+  @@index([shareLinkId, viewedAt])
+}
+
+// ============================================================
+// (6) channel-roi-reallocator — prescriptive ad-spend reallocation
+// ============================================================
+
+// Snapshot of a computed reallocation recommendation set (per run).
+// Reads existing per-channel CAC/ROAS/LTV; persists rupee-precise advice.
+model ChannelReallocationRun {
+  id                   String   @id @default(cuid())
+  periodStart          DateTime
+  periodEnd            DateTime
+  totalSpend           Decimal  @default(0) @db.Decimal(14, 2)
+  currency             String   @default("INR")
+  // Headline summary surfaced on the cockpit panel
+  projectedBookingLift Int      @default(0) // est. extra bookings from the plan
+  projectedRoasLift    Decimal  @default(0) @db.Decimal(6, 2)
+  notes                String?  @db.Text
+  createdById          String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  recommendations ChannelReallocationRec[]
+
+  @@index([periodEnd])
+  @@index([createdAt])
+}
+
+model ChannelReallocationRec {
+  id                   String                 @id @default(cuid())
+  runId                String
+  run                  ChannelReallocationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  fromChannel          String // e.g. "JUSTDIAL"
+  toChannel            String // e.g. "META"
+  segment              String? // e.g. "weddings"
+  shiftAmount          Decimal                @default(0) @db.Decimal(12, 2) // rupees to move
+  currency             String                 @default("INR")
+  expectedBookingDelta Int                    @default(0) // "+3 bookings"
+  rationale            String?                @db.Text
+  createdAt            DateTime               @default(now())
+
+  @@index([runId])
+}
+
+// ============================================================
+// (7) missed-call-rescue — inbound-call / unknown-number → WA lead rescue
+// ============================================================
+
+// Audit row for missed/unknown inbound rings turned into scored leads.
+// Idempotent on externalCallId to swallow webhook redeliveries.
+model MissedCallRescue {
+  id                String   @id @default(cuid())
+  provider          String   @default("UNKNOWN") // EXOTEL | KNOWLARITY | MYOPERATOR | IVR
+  externalCallId    String?  @unique // dedupe webhook redeliveries
+  callerPhone       String
+  receivedAt        DateTime @default(now())
+  wasKnownNumber    Boolean  @default(false) // matched an existing Contact
+  // Outcomes (plain refs — un-widened)
+  leadId            String? // lead minted via captureLeadFromExternal
+  contactId         String?
+  // Instant WhatsApp first-response result
+  whatsappSent      Boolean  @default(false)
+  whatsappMessageId String?
+  failReason        String?  @db.Text
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([callerPhone])
+  @@index([receivedAt])
+  @@index([leadId])
+}
+
+// ============================================================
+// (8) smart-routing / (11) known-contact-ack — rep availability + load
+// ============================================================
+
+// Live availability + capacity signal per rep, read by SMART routing.
+// 1:1 with User via @unique userId (plain ref to avoid widening User).
+model RepAvailability {
+  id                  String                @id @default(cuid())
+  userId              String                @unique // plain ref → User.id
+  status              RepAvailabilityStatus @default(OFFLINE)
+  // Capacity / load signal
+  openLeadCount       Int                   @default(0) // refreshed by cron / on assignment
+  capacityLimit       Int                   @default(50) // soft cap for lightest-loaded routing
+  // Skill-match dimensions for best-matched routing
+  eventTypeSkills     String[] // e.g. ["WEDDING","CORPORATE"]
+  languages           String[] // e.g. ["en","hi","te"]
+  lastSeenAt          DateTime?
+  autoOfflineAfterMin Int                   @default(15) // mark OFFLINE if idle
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  @@index([status])
+  @@index([openLeadCount])
+}
+
+// Audit row for each SMART routing decision (diagnostics + fairness review).
+model LeadRoutingDecision {
+  id                String   @id @default(cuid())
+  leadId            String // plain ref → Lead.id
+  assignedToId      String? // chosen rep (plain ref → User.id)
+  method            String   @default("SMART") // SMART | ROUND_ROBIN | DIRECT
+  // Why this rep won
+  matchedEventType  Boolean  @default(false)
+  matchedLanguage   Boolean  @default(false)
+  repLoadAtDecision Int      @default(0)
+  ruleId            String? // AssignmentRule.id if a rule produced it
+  scoreBreakdown    Json     @default("{}") // {availability, load, skill, ...}
+  createdAt         DateTime @default(now())
+
+  @@index([leadId])
+  @@index([assignedToId])
+  @@index([createdAt])
+}
+
+// ============================================================
+// (9) intent-classifier — inbound-message intent tag + hot re-score
+// ============================================================
+
+// Classification stamp for an inbound message (clone of sentiment pattern).
+// Plain ref to WhatsAppMessage/Communication so core comms models stay narrow.
+model MessageIntentClassification {
+  id                String        @id @default(cuid())
+  // Source message (one of these set)
+  whatsappMessageId String? // plain ref → WhatsAppMessage.id
+  communicationId   String? // plain ref → Communication.id
+  contactId         String? // plain ref → Contact.id
+  leadId            String? // plain ref → Lead.id
+  intent            MessageIntent @default(GENERAL)
+  confidence        Decimal       @default(0) @db.Decimal(4, 3) // 0.000–1.000
+  method            String        @default("KEYWORD") // LLM | KEYWORD
+  rawText           String?       @db.Text
+  // Action taken (READY_TO_BUY → ping rep + boost score)
+  scoreBoostApplied Int           @default(0)
+  repNotifiedAt     DateTime?
+  createdAt         DateTime      @default(now())
+
+  @@index([intent])
+  @@index([leadId])
+  @@index([contactId])
+  @@index([createdAt])
+}
+
+// ============================================================
+// (12) sla-warroom — first-response countdown + tiered auto-escalation
+// ============================================================
+
+// Per-lead escalation-tier ledger (war-room cockpit + cron escalation).
+// Builds on Lead.firstContactDue/slaEscalatedAt; idempotent per (leadId,tier).
+model LeadSlaEscalation {
+  id                String            @id @default(cuid())
+  leadId            String // plain ref → Lead.id
+  tier              SlaEscalationTier @default(WARN_REP)
+  firedAt           DateTime          @default(now())
+  // Who was alerted (plain refs)
+  notifiedRepId     String?
+  notifiedManagerId String?
+  breachMinutes     Int               @default(0) // minutes past firstContactDue when fired
+  resolvedAt        DateTime? // first response landed / lead progressed
+  createdAt         DateTime          @default(now())
+
+  @@unique([leadId, tier]) // alert each tier once per lead
+  @@index([leadId])
+  @@index([tier, firedAt])
+}
+
+// ============================================================
+// (13) whatsapp-console — 2-way reply console + AI co-pilot drafts
+// ============================================================
+
+// Ephemeral AI-drafted reply variants for the in-CRM console (1–3 options).
+// Stamps which variant the rep actually sent. Plain ref to Contact.
+model WhatsAppReplyDraft {
+  id               String    @id @default(cuid())
+  contactId        String // plain ref → Contact.id
+  leadId           String? // plain ref → Lead.id
+  // 24h session-window state at draft time (display gate)
+  sessionOpen      Boolean   @default(false)
+  sessionExpiresAt DateTime?
+  // Up to 3 AI variants: [{ tone, text }]
+  variants         Json      @default("[]")
+  model            String? // AI provider used (openai|groq|gemini|none)
+  sentVariantIdx   Int? // which variant the rep sent
+  sentMessageId    String? // plain ref → WhatsAppMessage.id
+  sentAt           DateTime?
+  createdById      String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([contactId])
+  @@index([leadId])
+  @@index([createdAt])
+}
+
+// ============================================================
+// (14) winback-crons / (15) cooling-lead-catch / (22) corporate-farming —
+// owned-demand win-back marker (one row per recovery attempt)
+// ============================================================
+
+// Marks a lead/contact targeted by a win-back cron, the cadence it enrolled
+// into, and the outcome — so reruns are idempotent and dashboards can report.
+model WinbackTarget {
+  id                String        @id @default(cuid())
+  kind              WinbackKind
+  status            WinbackStatus @default(PENDING)
+  // Subject (plain refs)
+  leadId            String?
+  contactId         String?
+  shareLinkId       String? // for ABANDONED_QUOTE (the viewed-but-unpaid link)
+  // Why it was selected (taxonomy / proximity)
+  lostReason        String? // for LOST_LEAD_REVIVAL
+  eventDate         DateTime? // for EVENT_DATE_PROXIMITY
+  coolOffUntil      DateTime? // earliest eligible re-engage time
+  // Recovery wiring
+  cadenceId         String? // plain ref → Cadence.id enrolled into
+  enrollmentId      String? // plain ref → CadenceEnrollment.id
+  whatsappMessageId String?
+  recoveredLeadId   String? // booked / re-warmed result
+  recoveredAt       DateTime?
+  attempts          Int           @default(0)
+  lastAttemptAt     DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([kind, status])
+  @@index([leadId])
+  @@index([contactId])
+  @@index([coolOffUntil])
+  @@index([createdAt])
+}
+
+// ============================================================
+// (16) referral-portal / (17) review-referral-flywheel — partner codes + payouts
+// ============================================================
+
+// Self-serve referral partner with a tokenized/QR intake link (/refer/<code>).
+// Wires the dormant Referral/ReferralReward engine to a public portal.
+model ReferralPartner {
+  id                 String              @id @default(cuid())
+  code               String              @unique // /refer/<code> + QR
+  type               ReferralPartnerType @default(PLANNER)
+  name               String
+  email              String?
+  phone              String?
+  // Plain refs to existing identities (no widening)
+  contactId          String?
+  userId             String?
+  vendorId           String?
+  // Source of the code (feature 17 review-to-referral)
+  issuedFromReviewId String? // plain ref → Review.id (5-star reviewer code)
+  // Payout config
+  payoutType         String              @default("FLAT") // FLAT | PERCENT | POINTS
+  payoutValue        Decimal             @default(0) @db.Decimal(12, 2)
+  payoutPercent      Decimal             @default(0) @db.Decimal(5, 2)
+  currency           String              @default("INR")
+  isActive           Boolean             @default(true)
+  // Denormalised partner-dashboard rollups (refreshed by cron)
+  submittedCount     Int                 @default(0)
+  convertedCount     Int                 @default(0)
+  totalEarned        Decimal             @default(0) @db.Decimal(14, 2)
+  totalPaid          Decimal             @default(0) @db.Decimal(14, 2)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  submissions ReferralPortalSubmission[]
+  payouts     ReferralPayout[]
+
+  @@index([type, isActive])
+  @@index([contactId])
+  @@index([userId])
+  @@index([vendorId])
+}
+
+// A referral submitted through the public portal — captures as a lead
+// (REFERRAL source, +score) with auto-attribution back to the partner.
+model ReferralPortalSubmission {
+  id                 String          @id @default(cuid())
+  partnerId          String
+  partner            ReferralPartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  // Prospect details supplied in the form
+  prospectName       String
+  prospectPhone      String?
+  prospectEmail      String?
+  eventType          String?
+  eventDate          DateTime?
+  guestCount         Int?
+  message            String?         @db.Text
+  // Outcomes (plain refs)
+  leadId             String? // captured lead
+  referralId         String? // plain ref → Referral.id created
+  convertedBookingId String?
+  bookingValue       Decimal?        @db.Decimal(12, 2)
+  // Attribution carried from the portal page
+  utmSource          String?
+  utmMedium          String?
+  utmCampaign        String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  @@index([partnerId])
+  @@index([leadId])
+  @@index([createdAt])
+}
+
+// Reliably-paid payout for a converted referral. Complements ReferralReward
+// (which is keyed to Referral); this is the partner-portal payable ledger.
+model ReferralPayout {
+  id                   String          @id @default(cuid())
+  partnerId            String
+  partner              ReferralPartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  // Source (plain refs)
+  submissionId         String?
+  referralId           String? // plain ref → Referral.id
+  referralRewardId     String? // plain ref → ReferralReward.id (if engine produced one)
+  loyaltyTransactionId String? // plain ref → LoyaltyTransaction.id (flywheel credit)
+  amount               Decimal         @default(0) @db.Decimal(12, 2)
+  currency             String          @default("INR")
+  status               String          @default("PENDING") // PENDING | APPROVED | PAID | CANCELLED
+  approvedAt           DateTime?
+  paidAt               DateTime?
+  paymentRef           String?
+  notes                String?         @db.Text
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  @@index([partnerId, status])
+  @@index([referralId])
+  @@index([createdAt])
+}
+
+// ============================================================
+// (18) empty-date-selldown — capacity-aware sell-down board snapshot
+// ============================================================
+
+// Persisted board snapshot of low-occupancy venue/date/slots to target.
+// Reads getAvailabilityGrid + bookings; matched open leads stored as refs.
+model SellDownTarget {
+  id               String   @id @default(cuid())
+  venueId          String // plain ref → Venue.id
+  date             DateTime @db.Date
+  timeSlot         TimeSlot
+  occupancyPct     Decimal  @default(0) @db.Decimal(5, 2)
+  isPeakDate       Boolean  @default(false) // perishable peak-date inventory
+  // Matched open leads to chase (plain ref id array)
+  matchedLeadIds   String[]
+  matchedLeadCount Int      @default(0)
+  // Action bookkeeping
+  status           String   @default("OPEN") // OPEN | WORKING | FILLED | EXPIRED
+  filledBookingId  String?
+  computedAt       DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([venueId, date, timeSlot])
+  @@index([status, date])
+  @@index([isPeakDate, date])
+}
+
+// ============================================================
+// (19) site-visit-booking — self-serve site-visit / menu-tasting scheduler
+// ============================================================
+
+// Public scheduler (/visit) booking → high-score lead + internal calendar
+// entry + reminders. Generalizes the BD AcqSiteVisit + availability pattern.
+model SiteVisitBooking {
+  id             String          @id @default(cuid())
+  token          String          @unique // /visit/<token> manage/confirm link
+  kind           SiteVisitKind   @default(SITE_VISIT)
+  status         SiteVisitStatus @default(REQUESTED)
+  // Prospect (no login)
+  customerName   String
+  customerPhone  String
+  customerEmail  String?
+  eventType      String?
+  guestCount     Int?
+  // Scheduling
+  venueId        String? // plain ref → Venue.id
+  scheduledAt    DateTime
+  durationMin    Int             @default(60)
+  notes          String?         @db.Text
+  // Outcomes (plain refs)
+  leadId         String? // high-score lead minted
+  contactId      String?
+  assignedToId   String? // host rep
+  // Reminders
+  reminderSentAt DateTime?
+  confirmedAt    DateTime?
+  completedAt    DateTime?
+  // Attribution carried from the public page
+  utmSource      String?
+  utmMedium      String?
+  utmCampaign    String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([venueId, scheduledAt])
+  @@index([leadId])
+  venue   Venue?   @relation("VenueSiteVisits", fields: [venueId], references: [id])
+}
+
+// ============================================================
+// (20) digital-brochure — immersive single-link venue/event microsite
+// ============================================================
+
+// Per-venue / event-type brochure config rendered at /v/<slug>.
+// Reuses storefront shell + Gallery/Review via plain refs.
+model DigitalBrochure {
+  id                 String            @id @default(cuid())
+  slug               String            @unique // /v/<slug>
+  venueId            String? // plain ref → Venue.id
+  eventType          String? // event-type-scoped variant
+  title              String
+  subtitle           String?
+  heroImageUrl       String?           @db.Text
+  // Immersive media
+  videoEmbedUrl      String?           @db.Text
+  tour360Url         String?           @db.Text
+  // Curated proof (plain ref id arrays into GalleryItem / Review)
+  galleryItemIds     String[]
+  reviewIds          String[]
+  // Pricing teaser
+  startingFromAmount Decimal?          @db.Decimal(12, 2)
+  currency           String            @default("INR")
+  // CTAs surfaced ("Hold this date" / "Book a visit")
+  enabledCtas        BrochureCtaType[]
+  whatsappNumber     String?
+  // Analytics rollup
+  isPublished        Boolean           @default(false)
+  viewCount          Int               @default(0)
+  lastViewedAt       DateTime?
+  seoDescription     String?           @db.Text
+  createdById        String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  @@index([venueId])
+  @@index([eventType])
+  @@index([isPublished])
+}
+
+// ============================================================
+// (21) whatsapp-catalog — auto-brochure / quick-reply session on first inbound
+// ============================================================
+
+// Tracks the interactive WhatsApp catalog session shown to a new number:
+// event-type quick-reply buttons → tailored package cards → brochure/quote CTA.
+model WhatsAppCatalogSession {
+  id                String    @id @default(cuid())
+  phone             String
+  contactId         String? // plain ref → Contact.id (once resolved/created)
+  leadId            String? // plain ref → Lead.id
+  // Flow state
+  stage             String    @default("PROMPTED") // PROMPTED | EVENT_SELECTED | CARDS_SENT | CTA_CLICKED | CLOSED
+  selectedEventType String? // event-type the user tapped
+  // What we sent back (plain refs / ids)
+  brochureSlug      String? // DigitalBrochure.slug returned
+  shareLinkToken    String? // QuoteShareLink.token if a quote was offered
+  lastMessageId     String? // plain ref → WhatsAppMessage.id
+  promptedAt        DateTime  @default(now())
+  respondedAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([phone])
+  @@index([contactId])
+  @@index([stage])
+}
+
+// ============================================================
+// (22) corporate-farming — corporate account command center
+// ============================================================
+
+// Treats a corporate Contact as an ACCOUNT with quarterly re-engagement +
+// multi-event commitment offers. Builds on Contact (customerType CORPORATE).
+model CorporateAccount {
+  id                     String               @id @default(cuid())
+  contactId              String               @unique // plain ref → Contact.id (the account)
+  accountName            String
+  tier                   CorporateAccountTier @default(PROSPECT)
+  // Recency-driven re-engagement cadence
+  lastEventDate          DateTime?
+  nextReengageAt         DateTime? // quarterly cadence anchor
+  reengageCadenceId      String? // plain ref → Cadence.id
+  // Multi-event commitment offer ("book 3/year → locked pricing")
+  committedEventsPerYear Int                  @default(0)
+  lockedPricePerPlate    Decimal?             @db.Decimal(10, 2)
+  commitmentStart        DateTime?
+  commitmentEnd          DateTime?
+  // Denormalised account rollups (refreshed by cron from bookings history)
+  pastEventCount         Int                  @default(0)
+  upcomingEventCount     Int                  @default(0)
+  lifetimeRevenue        Decimal              @default(0) @db.Decimal(14, 2)
+  ownerUserId            String? // account manager (plain ref → User.id)
+  notes                  String?              @db.Text
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+
+  @@index([tier])
+  @@index([nextReengageAt])
+  @@index([ownerUserId])
+  contact   Contact   @relation("ContactCorporateAccount", fields: [contactId], references: [id])
 }

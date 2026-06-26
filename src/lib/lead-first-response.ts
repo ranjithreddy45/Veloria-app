@@ -20,6 +20,9 @@ import { prisma } from "@/lib/prisma";
 import { notify } from "@/lib/notify";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
 import { evaluateAssignmentRules } from "@/actions/assignment-rule.actions";
+import { buildAiFirstResponse } from "@/lib/ai/first-response-message";
+import { plannerSlotToEnum, SLOT_LABEL, type TimeSlotEnum } from "@/lib/sales/slot";
+import { slotLikelyFree } from "@/lib/sales/slot-availability-internal";
 
 // Window in which a pre-existing OUTBOUND WhatsApp (e.g. an AutoWelcomeConfig
 // message already sent by captureLeadFromExternal) counts as the first
@@ -60,17 +63,6 @@ async function getSystemUserId(): Promise<string> {
   return admin?.id || "";
 }
 
-/** Build the instant first-response text. Greeting + reassurance, no internals. */
-function buildFirstResponseText(firstName: string | null | undefined): string {
-  const name = (firstName || "").trim();
-  const hello = name ? `Hi ${name}` : "Hello";
-  return (
-    `${hello}, thanks for reaching out to Veloria Grand! 🎉 ` +
-    `We've received your enquiry and one of our event consultants will reach you shortly. ` +
-    `For anything urgent, just reply to this message and we'll help right away.`
-  );
-}
-
 /**
  * Run speed-to-lead for one freshly created lead. Self-contained, idempotent,
  * never throws. Returns a small result for diagnostics / retry actions.
@@ -97,6 +89,7 @@ export async function runSpeedToLead(
 
     if (!assignedToId) {
       const candidate = await evaluateAssignmentRules({
+        id: lead.id,
         source: lead.source ?? "",
         eventType: lead.eventType ?? "",
         status: lead.status ?? "",
@@ -178,7 +171,8 @@ export async function runSpeedToLead(
           leadId: lead.id,
           status: recentOutbound.status === "FAILED" ? "FAILED" : "SENT",
           channel: "WHATSAPP",
-          templateName: null,
+          // Reused a pre-existing static AutoWelcome message — not an AI reply.
+          templateName: "STATIC_FIRST_RESPONSE",
           sentAt: recentOutbound.sentAt,
           latencyMs: Date.now() - startedAt,
           whatsappMessageId: recentOutbound.whatsappId ?? null,
@@ -193,8 +187,62 @@ export async function runSpeedToLead(
       return { ok: true, status: "SENT", reason: "reused_existing_welcome" };
     }
 
-    // ---- (3) Send the instant WhatsApp first-response. -------------------
-    const text = buildFirstResponseText(contact?.firstName);
+    // ---- (3) Build the AI first-response (LLM-first, static fallback). ----
+    // The SpeedToLeadLead interface only carries a subset, so re-query the
+    // lead (best-effort) for the fields that drive a personalised reply.
+    let eventType: string | null = lead.eventType ?? null;
+    let eventDate: Date | null = null;
+    let slotEnum: TimeSlotEnum | null = null;
+    let slotIsFree: boolean | null = null;
+    try {
+      const full = await prisma.lead.findUnique({
+        where: { id: lead.id },
+        select: {
+          eventType: true,
+          eventDate: true,
+          slot: true,
+          preferredVenueId: true,
+        },
+      });
+      if (full) {
+        eventType = full.eventType ?? eventType;
+        eventDate = full.eventDate ?? null;
+        slotEnum = full.slot ? plannerSlotToEnum(full.slot) : null;
+
+        // Resolve the venue: explicit preference, else the single active default.
+        let venueId = full.preferredVenueId ?? null;
+        if (!venueId) {
+          const venues = await prisma.venue.findMany({
+            where: { isActive: true },
+            select: { id: true },
+            take: 2,
+          });
+          if (venues.length === 1) venueId = venues[0].id;
+        }
+
+        // Only claim availability when venue + date + slot all resolve.
+        if (venueId && eventDate && slotEnum) {
+          try {
+            slotIsFree = await slotLikelyFree(venueId, eventDate, slotEnum);
+          } catch {
+            slotIsFree = null;
+          }
+        }
+      }
+    } catch (e) {
+      console.error("[runSpeedToLead] AI context re-query failed:", e);
+    }
+
+    const ai = await buildAiFirstResponse({
+      firstName: contact?.firstName,
+      eventType,
+      eventDate,
+      slotLabel: slotEnum ? SLOT_LABEL[slotEnum] : null,
+      slotLikelyFree: slotIsFree,
+    });
+    const text = ai.text;
+
+    // ---- (3b) Send the instant WhatsApp first-response. ------------------
     const result = await sendWhatsApp({ to: phone, message: text });
     const latencyMs = Date.now() - startedAt;
 
@@ -219,7 +267,8 @@ export async function runSpeedToLead(
         leadId: lead.id,
         status: result.success ? "SENT" : "FAILED",
         channel: "WHATSAPP",
-        templateName: null,
+        templateName:
+          ai.method === "LLM" ? "AI_FIRST_RESPONSE" : "STATIC_FIRST_RESPONSE",
         sentAt: result.success ? new Date() : null,
         latencyMs,
         whatsappMessageId: result.messageId || null,

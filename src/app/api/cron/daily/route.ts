@@ -27,6 +27,8 @@ const JOBS = [
   "event-lifecycle", // CONFIRMED→IN_PROGRESS on the day; auto-COMPLETE clean past events; nudge unclean ones
   "customer-360",
   "attribution-rollup", // recompute LeadAttribution.bookedRevenue + relink campaigns (after customer-360 so LTV is fresh)
+  "account-farming", // corporate-account lifetime rollups (after customer-360 + attribution-rollup so contact rollups are fresh)
+  "channel-reallocation", // compute channel spend reallocation plan (after attribution-rollup + customer-360 so CAC/ROAS/LTV are fresh)
   "invoice-due",
   "gl-reconcile", // self-heal: re-post any invoice/payment missing its GL entry
   "payment-reminders", // in-app nudges for invoices due soon / overdue (poka-yoke)
@@ -35,10 +37,18 @@ const JOBS = [
   "velos-slump", // Velos slump-catch sweep
   "hold-expiry", // cancel expired booking HOLDs so they stop blocking slots
   "public-hold-expiry", // release stale public (no-login) date holds
+  "site-visit-reminders", // ~24h-ahead site-visit reminders + past no-show sweep
   "review-requests", // enqueue + send Google-review requests for COMPLETED bookings
+  "referral-flywheel", // issue 5-star reviewer referral codes (after review-requests)
   "configurator-abandonment", // mark stale public quote drafts ABANDONED
+  "winback-abandoned-quote", // re-engage leads who abandoned a quote
+  "winback-lost-lead", // re-engage lost leads
+  "winback-event-proximity", // re-engage by event-date proximity
+  "cooling-lead-catch", // catch cooling leads (AFTER score-decay so it reads freshly-decayed Lead.score)
   "yield-demand-refresh", // recompute per-venue/date occupancy + demand signals
+  "sell-down-refresh", // refresh SellDownTarget (after yield-demand-refresh so VenueDemandSignal occupancy is fresh)
   "franchise-revshare", // accrue monthly franchise revenue-share payouts
+  "referral-payouts", // accrue converted-referral payouts + refresh partner rollups (after franchise-revshare)
 ] as const;
 
 export async function GET(request: Request) {

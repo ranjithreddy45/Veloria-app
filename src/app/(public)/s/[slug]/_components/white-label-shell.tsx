@@ -4,6 +4,9 @@ import * as React from "react";
 import { CheckCircle2, Loader2, Users } from "lucide-react";
 
 import { submitBookingInquiry, type StorefrontVenue } from "@/actions/storefront.actions";
+import { getSocialProofAction } from "@/actions/public-social-proof.actions";
+import { SocialProofStrip } from "@/components/public/social-proof-strip";
+import { EMPTY_SOCIAL_PROOF, type SocialProofData } from "@/lib/public/social-proof-types";
 import { formatINR } from "@/lib/utils";
 
 // ============================================================
@@ -38,6 +41,24 @@ export function WhiteLabelShell({
   const [submitting, setSubmitting] = React.useState(false);
   const [submitted, setSubmitted] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+
+  // Social proof — venue-matched 5★ reviews + past-event photos. Best-effort:
+  // fetched via the no-auth action (never throws); on failure the strip stays
+  // empty and renders nothing, so it can never block the storefront.
+  const [socialProof, setSocialProof] = React.useState<SocialProofData>(EMPTY_SOCIAL_PROOF);
+  React.useEffect(() => {
+    let active = true;
+    getSocialProofAction({ venueId: venue.id })
+      .then((res) => {
+        if (active) setSocialProof(res);
+      })
+      .catch(() => {
+        /* best-effort — keep empty */
+      });
+    return () => {
+      active = false;
+    };
+  }, [venue.id]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -140,6 +161,13 @@ export function WhiteLabelShell({
           </div>
         )}
       </div>
+
+      {/* Social proof — venue gallery + matched 5★ reviews */}
+      <SocialProofStrip
+        variant="gallery"
+        data={socialProof}
+        heading="Recent celebrations here"
+      />
 
       {/* Enquiry */}
       <div className="rounded-2xl border border-zinc-200/70 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">

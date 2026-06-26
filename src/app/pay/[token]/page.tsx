@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { CheckCircle2, ShieldCheck, FileText, AlertTriangle } from "lucide-react";
 import { getPublicInvoiceForPayment } from "@/actions/payment.actions";
+import { getSocialProof } from "@/lib/public/social-proof";
+import { SocialProofStrip } from "@/components/public/social-proof-strip";
 import { COMPANY_LEGAL_LINE } from "@/lib/constants";
 import { PublicPay } from "./_components/public-pay";
 
@@ -19,6 +21,15 @@ export default async function PayPage({
   const { token } = await params;
   const { amt } = await searchParams;
   const res = await getPublicInvoiceForPayment(token);
+
+  // Social proof — best-effort (getSocialProof never throws; returns empty on
+  // failure). A proof-query failure must never block the Razorpay button.
+  const socialProof = res.success
+    ? await getSocialProof({
+        eventType: res.data.eventType ?? undefined,
+        venueId: res.data.venueId ?? undefined,
+      }).catch(() => null)
+    : null;
 
   return (
     <main className="relative min-h-screen bg-aura bg-grid-faint">
@@ -55,6 +66,10 @@ export default async function PayPage({
             const payAmount = Math.max(1, Math.min(i.balanceDue, Number.isFinite(suggested) ? suggested : i.balanceDue));
 
             return (
+              <>
+              {!fullyPaid && socialProof && (
+                <SocialProofStrip variant="banner" data={socialProof} className="mb-4" />
+              )}
               <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-premium">
                 {/* Card header */}
                 <div className="flex items-start gap-3 border-b border-border/60 p-6">
@@ -127,6 +142,7 @@ export default async function PayPage({
                   )}
                 </div>
               </div>
+              </>
             );
           })()
         )}

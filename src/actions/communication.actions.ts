@@ -235,6 +235,21 @@ export async function logCommunication(data: LogCommunicationInput) {
       console.error("[SENTIMENT_IMPORT_ERROR]", err);
     }
 
+    // Message-intent classification: fire-and-forget for INBOUND comms only
+    // (boost + ping on READY_TO_BUY signals). stampMessageIntent resolves the
+    // contact's open leads itself, so no explicit leadId link is needed here.
+    if (commData.direction === "INBOUND") {
+      import("@/lib/ai/intent-stamp")
+        .then((m) =>
+          m.stampMessageIntent({
+            text: commData.content,
+            communicationId: communication.id,
+            contactId: commData.contactId,
+          })
+        )
+        .catch(() => {});
+    }
+
     // Log activity
     await logActivity({
       userId: session.user.id,

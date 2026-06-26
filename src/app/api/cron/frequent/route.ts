@@ -16,6 +16,8 @@ const JOBS = [
   "escalation-check", // overdue escalation sweep
   "support-sla", // support tickets past their priority SLA
   "acq-sla", // BD/acquisition first-contact SLA + re-engagement
+  "rep-availability", // refresh openLeadCount + auto-offline idle reps (smart-routing)
+  "quote-nudge", // viewed-but-unpaid 24h quote nudge (one-shot via QuoteShareLink.silentNudgeFiredAt; NOT quote-silent-nudge)
 ] as const;
 
 export async function GET(request: Request) {

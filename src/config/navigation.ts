@@ -98,6 +98,24 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["leads:read"],
       },
       {
+        title: "SLA War-Room",
+        href: "/leads/war-room",
+        icon: "Siren",
+        permissions: ["leads:read"],
+      },
+      {
+        title: "Missed Calls",
+        href: "/leads/missed-calls",
+        icon: "PhoneMissed",
+        permissions: ["leads:read"],
+      },
+      {
+        title: "Cooling Leads",
+        href: "/leads/cooling",
+        icon: "Snowflake",
+        permissions: ["leads:read"],
+      },
+      {
         title: "Public Quotes",
         href: "/settings/public-quotes",
         icon: "Calculator",
@@ -180,6 +198,18 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["whatsapp:read"],
       },
       {
+        title: "WhatsApp Console",
+        href: "/whatsapp/console",
+        icon: "MessagesSquare",
+        permissions: ["whatsapp:read"],
+      },
+      {
+        title: "Catalog Funnel",
+        href: "/whatsapp/catalog",
+        icon: "Package",
+        permissions: ["whatsapp:read"],
+      },
+      {
         title: "SMS",
         href: "/crm/sms",
         icon: "MessageSquare",
@@ -216,6 +246,18 @@ export const sidebarNavigation: NavItem[] = [
         href: "/availability",
         icon: "CalendarClock",
         permissions: ["bookings:read"],
+      },
+      {
+        title: "Sell-Down Board",
+        href: "/availability/sell-down",
+        icon: "Target",
+        permissions: ["bookings:read"],
+      },
+      {
+        title: "Site Visits",
+        href: "/site-visits",
+        icon: "CalendarCheck",
+        permissions: ["tastings:read"],
       },
     ],
   },
@@ -464,13 +506,25 @@ export const sidebarNavigation: NavItem[] = [
     title: "Marketing",
     href: "/campaigns",
     icon: "Megaphone",
-    permissions: ["campaigns:read", "referrals:read", "social:read", "loyalty:read"],
+    permissions: ["campaigns:read", "referrals:read", "social:read", "loyalty:read", "marketing:read", "accounts:read"],
     children: [
       {
         title: "Campaigns",
         href: "/campaigns",
         icon: "Send",
         permissions: ["campaigns:read"],
+      },
+      {
+        title: "Win-back",
+        href: "/marketing/winback",
+        icon: "History",
+        permissions: ["marketing:read"],
+      },
+      {
+        title: "Corporate Accounts",
+        href: "/accounts",
+        icon: "Building2",
+        permissions: ["accounts:read"],
       },
       {
         title: "Loyalty",
@@ -500,6 +554,12 @@ export const sidebarNavigation: NavItem[] = [
             title: "Leaderboard",
             href: "/referrals/leaderboard",
             icon: "Trophy",
+            permissions: ["referrals:read"],
+          },
+          {
+            title: "Partner Portal",
+            href: "/referrals/partners",
+            icon: "Handshake",
             permissions: ["referrals:read"],
           },
           {
@@ -540,6 +600,12 @@ export const sidebarNavigation: NavItem[] = [
         title: "Campaigns (spend)",
         href: "/marketing/campaigns",
         icon: "Target",
+        permissions: ["marketing:read"],
+      },
+      {
+        title: "Brochures",
+        href: "/marketing/brochures",
+        icon: "FileImage",
         permissions: ["marketing:read"],
       },
       {
@@ -793,6 +859,27 @@ export const sidebarNavigation: NavItem[] = [
         href: "/settings/assignment-rules",
         icon: "Route",
         permissions: ["leads:read"],
+      },
+      {
+        title: "Smart Routing",
+        href: "/settings/routing",
+        icon: "Route",
+        // /settings/routing rides the broad /settings -> settings:read middleware
+        // gate; visibility-gate the nav on the same key so we never advertise a
+        // link that would bounce to /not-authorized.
+        permissions: ["settings:read"],
+      },
+      {
+        title: "Rep Availability",
+        href: "/settings/rep-availability",
+        icon: "UserCog",
+        permissions: ["leads:read"],
+      },
+      {
+        title: "WhatsApp Auto-Catalog",
+        href: "/settings/whatsapp-catalog",
+        icon: "Package",
+        permissions: ["settings:update"],
       },
       {
         title: "Macros",

@@ -270,6 +270,53 @@ export async function evaluateAssignmentRules(
           return rule.assignToUserId;
         }
 
+        // SMART: pick the available, lightest-loaded, best-matched rep from the
+        // rule's candidate pool. On a miss, fall through to ROUND_ROBIN over the
+        // same pool so leads are never dropped. Never throws on the hot path.
+        if (rule.assignmentMethod === "SMART") {
+          try {
+            const { chooseSmartAssignee, recordRoutingDecision } = await import(
+              "@/lib/routing/smart-router"
+            );
+            const choice = await chooseSmartAssignee({
+              team: rule.assignToTeam,
+              eventType: String(leadData.eventType ?? ""),
+              languageHints: leadData.language ? [String(leadData.language)] : [],
+            });
+            if (choice) {
+              const leadId = leadData.id ? String(leadData.id) : null;
+              if (leadId) {
+                await recordRoutingDecision({
+                  leadId,
+                  assignedToId: choice.assigneeId,
+                  method: "SMART",
+                  matchedEventType: choice.matchedEventType,
+                  matchedLanguage: choice.matchedLanguage,
+                  repLoadAtDecision: choice.repLoadAtDecision,
+                  ruleId: rule.id,
+                  scoreBreakdown: choice.scoreBreakdown as unknown as Record<
+                    string,
+                    unknown
+                  >,
+                });
+              }
+              return choice.assigneeId;
+            }
+          } catch (e) {
+            console.error("[evaluateAssignmentRules] SMART error:", e);
+          }
+          // SMART miss → graceful ROUND_ROBIN over the same candidate pool.
+          if (rule.assignToTeam.length > 0) {
+            const nextIdx = (rule.lastAssignedIdx + 1) % rule.assignToTeam.length;
+            const assigneeId = rule.assignToTeam[nextIdx];
+            await prisma.assignmentRule.update({
+              where: { id: rule.id },
+              data: { lastAssignedIdx: nextIdx },
+            });
+            return assigneeId;
+          }
+        }
+
         if (rule.assignmentMethod === "ROUND_ROBIN" && rule.assignToTeam.length > 0) {
           const nextIdx = (rule.lastAssignedIdx + 1) % rule.assignToTeam.length;
           const assigneeId = rule.assignToTeam[nextIdx];

@@ -14,8 +14,10 @@ import {
   getCampaignAttribution,
 } from "@/actions/attribution-analytics.actions";
 import { getMarketingCampaigns } from "@/actions/marketing-campaign.actions";
+import { getLatestReallocationRun } from "@/actions/channel-reallocation.actions";
 
 import { MarketingDashboard } from "./_components/marketing-dashboard";
+import { ReallocationPanel } from "./_components/reallocation-panel";
 
 export const metadata: Metadata = {
   title: "Marketing Attribution",
@@ -38,15 +40,17 @@ export default async function MarketingPage() {
     redirect("/not-authorized");
   }
 
-  const [channelRes, campaignRes, campaignsRes] = await Promise.all([
+  const [channelRes, campaignRes, campaignsRes, realRes] = await Promise.all([
     getChannelAttribution(),
     getCampaignAttribution(),
     getMarketingCampaigns(),
+    getLatestReallocationRun(),
   ]);
 
   const channels = channelRes.success ? channelRes.data : [];
   const campaigns = campaignRes.success ? campaignRes.data : [];
   const campaignCount = campaignsRes.success ? campaignsRes.data.length : 0;
+  const latestRun = realRes.success ? realRes.data : null;
 
   const canManage = hasPermission(
     session.user.role as string,
@@ -71,6 +75,8 @@ export default async function MarketingPage() {
           </Button>
         )}
       </PageHeader>
+
+      <ReallocationPanel initialRun={latestRun} canManage={canManage} />
 
       <MarketingDashboard
         initialChannels={channels}

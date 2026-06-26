@@ -65,7 +65,7 @@ export function AssignmentRulesManager() {
   // Form state
   const [formName, setFormName] = React.useState("");
   const [formPriority, setFormPriority] = React.useState(0);
-  const [formMethod, setFormMethod] = React.useState<"DIRECT" | "ROUND_ROBIN">("DIRECT");
+  const [formMethod, setFormMethod] = React.useState<"DIRECT" | "ROUND_ROBIN" | "SMART">("DIRECT");
   const [formConditionField, setFormConditionField] = React.useState("source");
   const [formConditionOperator, setFormConditionOperator] = React.useState("equals");
   const [formConditionValue, setFormConditionValue] = React.useState("");
@@ -300,15 +300,21 @@ export function AssignmentRulesManager() {
               </div>
               <div className="space-y-2">
                 <Label>Method</Label>
-                <Select value={formMethod} onValueChange={(v) => setFormMethod(v as "DIRECT" | "ROUND_ROBIN")}>
+                <Select value={formMethod} onValueChange={(v) => setFormMethod(v as "DIRECT" | "ROUND_ROBIN" | "SMART")}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="DIRECT">Direct Assign</SelectItem>
                     <SelectItem value="ROUND_ROBIN">Round Robin</SelectItem>
+                    <SelectItem value="SMART">Smart (auto)</SelectItem>
                   </SelectContent>
                 </Select>
+                {formMethod === "SMART" && (
+                  <p className="text-xs text-zinc-500">
+                    Routes to the available, lightest-loaded, best-matched rep.
+                  </p>
+                )}
               </div>
             </div>
             <div className="space-y-2">

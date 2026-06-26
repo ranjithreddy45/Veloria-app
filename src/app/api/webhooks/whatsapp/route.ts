@@ -101,7 +101,13 @@ export async function POST(request: NextRequest) {
           for (const message of value.messages) {
             const from = message.from; // phone number (e.g., "919876543210")
             const waId = message.id;
-            const text = message.text?.body || "[Media message]";
+            // Interactive replies (button/list taps) carry the chosen option in
+            // a dedicated envelope — surface the tapped title as the message text
+            // so the inbox stores what the customer actually picked.
+            const br = message.interactive?.button_reply;
+            const lr = message.interactive?.list_reply;
+            const text =
+              br?.title || lr?.title || message.text?.body || "[Media message]";
 
             // Find contact by phone number (try multiple formats)
             const contact = await prisma.contact.findFirst({
@@ -126,7 +132,7 @@ export async function POST(request: NextRequest) {
                 : null;
 
               if (!existing) {
-                await prisma.whatsAppMessage.create({
+                const created = await prisma.whatsAppMessage.create({
                   data: {
                     direction: "INBOUND",
                     content: text,
@@ -139,6 +145,52 @@ export async function POST(request: NextRequest) {
                 // Prospect engaged → stop any running cadences for them.
                 await handleInboundReply(contact.id);
 
+                // Known-contact ack + smart re-route + lead re-wake. Inside the
+                // !existing guard so Meta redeliveries never re-ack/re-route.
+                // Never throws, but a defensive try/catch keeps us always-200.
+                try {
+                  const { handleKnownContactAck } = await import(
+                    "@/lib/inbound/known-contact-ack"
+                  );
+                  await handleKnownContactAck(contact.id, {
+                    inboundText: text,
+                    inboundMessageId: waId,
+                  });
+                } catch (e) {
+                  console.error("[WhatsApp Webhook] known-contact-ack error:", e);
+                }
+
+                // Fire-and-forget message-intent classification (boost + ping on
+                // READY_TO_BUY signals). Must not await-block or throw.
+                import("@/lib/ai/intent-stamp")
+                  .then((m) =>
+                    m.stampMessageIntent({
+                      text,
+                      whatsappMessageId: created.id,
+                      contactId: contact.id,
+                    })
+                  )
+                  .catch(() => {});
+
+                // Advance any in-flight catalog funnel when the customer tapped a
+                // button/list option. Best-effort; engine is idempotent on phone+stage.
+                if (message.interactive) {
+                  try {
+                    const { advanceCatalogSession } = await import(
+                      "@/lib/whatsapp/catalog-engine"
+                    );
+                    await advanceCatalogSession({
+                      phone: from,
+                      contactId: contact.id,
+                      buttonReplyId: br?.id,
+                      listReplyId: lr?.id,
+                      inboundText: text,
+                    });
+                  } catch (e) {
+                    console.error("[WhatsApp Webhook] catalog advance error:", e);
+                  }
+                }
+
                 console.log(
                   `[WhatsApp Webhook] Inbound message from ${from} → contact ${contact.id}`
                 );
@@ -147,7 +199,7 @@ export async function POST(request: NextRequest) {
               // Unknown number → a brand-new inbound lead (WhatsApp is the #1
               // inbound channel in India; never drop it). Capture creates the
               // contact + lead, scores, assigns, SLA-stamps, and auto-replies.
-              await captureLeadFromExternal({
+              const capture = await captureLeadFromExternal({
                 name: from,
                 phone: from.startsWith("+") ? from : `+${from}`,
                 source: "whatsapp",
@@ -156,6 +208,25 @@ export async function POST(request: NextRequest) {
               console.log(
                 `[WhatsApp Webhook] Captured new lead from unknown number: ${from}`
               );
+
+              // Kick off the WhatsApp catalog funnel for the first-touch lead.
+              // Best-effort; engine is idempotent on phone+stage (Meta redelivery safe).
+              if (capture?.success) {
+                try {
+                  const { runCatalogFirstInbound } = await import(
+                    "@/lib/whatsapp/catalog-engine"
+                  );
+                  await runCatalogFirstInbound({
+                    phone: from,
+                    contactId: capture.contactId,
+                    leadId: capture.leadId,
+                    messageId: waId,
+                    inboundText: text,
+                  });
+                } catch (e) {
+                  console.error("[WhatsApp Webhook] catalog first-inbound error:", e);
+                }
+              }
             }
           }
         }

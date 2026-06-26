@@ -645,7 +645,7 @@ export async function getPublicInvoiceForPayment(invoiceId: string) {
         balanceDue: true,
         paidAmount: true,
         contact: { select: { firstName: true, lastName: true, email: true, phone: true } },
-        booking: { select: { eventName: true, date: true } },
+        booking: { select: { eventName: true, date: true, eventType: true, venueId: true } },
       },
     });
     if (!invoice) return { success: false as const, error: "Invoice not found" };
@@ -662,6 +662,9 @@ export async function getPublicInvoiceForPayment(invoiceId: string) {
         customerEmail: invoice.contact.email ?? "",
         customerPhone: invoice.contact.phone ?? "",
         eventName: invoice.booking?.eventName ?? null,
+        // Public-safe context for social-proof matching on /pay (non-PII).
+        eventType: invoice.booking?.eventType ?? null,
+        venueId: invoice.booking?.venueId ?? null,
       },
     };
   } catch (error) {

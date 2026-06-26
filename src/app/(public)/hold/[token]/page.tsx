@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { CheckCircle2, Clock, CalendarDays, MapPin, Users } from "lucide-react";
 import { getPublicHold } from "@/actions/public-hold.actions";
+import { getSocialProof } from "@/lib/public/social-proof";
+import { SocialProofStrip } from "@/components/public/social-proof-strip";
 import { PublicPay } from "@/app/pay/[token]/_components/public-pay";
 import { HoldCountdown, ReleaseLink } from "../_components/availability-calendar";
 
@@ -59,6 +61,13 @@ export default async function HoldConfirmationPage({
   const expired = h.status === "EXPIRED";
   const released = h.status === "RELEASED";
 
+  // Social proof — best-effort (getSocialProof never throws; returns empty on
+  // failure). A proof-query failure must never block the hold/pay surface.
+  const socialProof = await getSocialProof({
+    eventType: h.eventType ?? undefined,
+    venueId: h.venueId,
+  }).catch(() => null);
+
   return (
     <div className="space-y-5">
       <header className="text-center">
@@ -108,6 +117,11 @@ export default async function HoldConfirmationPage({
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-center text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
               <HoldCountdown expiresAt={h.expiresAt} />
             </div>
+          )}
+
+          {/* Social proof — matched 5★ reviews + past-event photos */}
+          {socialProof && (
+            <SocialProofStrip variant="banner" data={socialProof} />
           )}
 
           {/* Pay token */}

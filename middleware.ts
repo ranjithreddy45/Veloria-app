@@ -101,6 +101,18 @@ const INTERNAL_ROUTES = [
   "/marketing",
   "/feedback", // internal staff dashboard; PUBLIC review landing is /r/[token]
   "/franchise", // internal partner mgmt; PUBLIC white-label storefront is /s/[slug]
+  "/accounts", // corporate-account farming dashboard (internal)
+  "/site-visits", // site-visit booking staff dashboard; PUBLIC booking page is /visit/[token]
+  // ------------------------------------------------------------------
+  // PUBLIC customer-facing routes are intentionally NOT listed here and
+  // therefore fall through the allowlist as public (mirroring /pay, /hold,
+  // /s, /r). Do NOT add these to INTERNAL_ROUTES or customer features break:
+  //   /q     -> self-serve quote share link (token-gated)
+  //   /refer -> referral partner landing (token-gated); note this does NOT
+  //             startsWith("/referrals"), so the internal /referrals gate is unaffected
+  //   /visit -> public site-visit self-booking (token-gated)
+  //   /v     -> public digital brochure (slug-gated)
+  // ------------------------------------------------------------------
 ];
 
 export default auth((req) => {

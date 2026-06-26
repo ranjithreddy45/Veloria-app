@@ -220,6 +220,19 @@ export async function stampLeadResponded(contactId: string): Promise<void> {
   } catch (e) {
     console.error("[stampLeadResponded] error:", e);
   }
+
+  // Resolve any open SLA war-room escalations for this contact — a rep responded
+  // somewhere in the system (not just via the cockpit button). Best-effort:
+  // a failure here must never break the SLA-clock stamp. Dynamic import avoids
+  // a static cycle (war-room-escalation imports LEAD_SLA_MINUTES from here).
+  try {
+    const { resolveOpenEscalationsForContact } = await import(
+      "@/lib/sla/war-room-escalation"
+    );
+    await resolveOpenEscalationsForContact(contactId);
+  } catch (e) {
+    console.error("[stampLeadResponded] resolve escalations error:", e);
+  }
 }
 
 // ------------------------------------------------------------

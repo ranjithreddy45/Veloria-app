@@ -9,6 +9,7 @@ import { useTheme } from "next-themes";
 import { NotificationPopover } from "@/components/layout/notification-popover";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { VelosChip } from "@/components/layout/velos-chip";
+import { AvailabilityToggle } from "@/components/availability/availability-toggle";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { cn } from "@/lib/utils";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -183,6 +184,10 @@ export function AppHeader() {
 
         {/* Command palette */}
         <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
+
+        {/* Self-serve availability toggle — flips the user's own rep availability
+            and keeps lastSeenAt fresh via heartbeat (smart-routing). */}
+        <AvailabilityToggle />
 
         {/* Velos engagement chip — live points + rank, celebrates on earn */}
         <VelosChip />

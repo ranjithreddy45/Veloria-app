@@ -14,7 +14,7 @@ export const assignmentRuleSchema = z.object({
   conditions: z.array(assignmentRuleConditionSchema).min(1, "At least one condition is required"),
   assignToUserId: z.string().optional().nullable(),
   assignToTeam: z.array(z.string()).default([]),
-  assignmentMethod: z.enum(["DIRECT", "ROUND_ROBIN"]).default("DIRECT"),
+  assignmentMethod: z.enum(["DIRECT", "ROUND_ROBIN", "SMART"]).default("DIRECT"),
 });
 
 export type AssignmentRuleInput = z.input<typeof assignmentRuleSchema>;

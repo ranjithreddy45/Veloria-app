@@ -82,6 +82,12 @@ import {
   PhoneCall,
   Webhook,
   Building2,
+  Siren,
+  PhoneMissed,
+  Snowflake,
+  MessagesSquare,
+  Handshake,
+  FileImage,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -196,6 +202,12 @@ const iconMap: Record<string, LucideIcon> = {
   PhoneCall,
   Webhook,
   Building2,
+  Siren,
+  PhoneMissed,
+  Snowflake,
+  MessagesSquare,
+  Handshake,
+  FileImage,
 };
 
 function getIcon(iconName: string): LucideIcon {

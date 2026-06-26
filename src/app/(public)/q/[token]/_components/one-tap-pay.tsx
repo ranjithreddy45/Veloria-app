@@ -1,0 +1,211 @@
+"use client";
+
+import { useCallback, useState } from "react";
+import { CalendarCheck, Loader2, CheckCircle2, AlertCircle, Lock, ShieldCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  createPublicRazorpayOrder,
+  verifyPublicRazorpayPayment,
+} from "@/actions/payment.actions";
+// Backend (quote-onetap agent) PUBLIC actions — ensure proforma, then block slot.
+import { startOneTapAdvance, confirmOneTapAndBlock } from "@/actions/quote-onetap.actions";
+
+// ============================================================
+// OneTapPay — "Pay {advance} to block your date" (PUBLIC, client).
+// ------------------------------------------------------------
+// Collapses quote-view → paid slot hold into a single tap. Adapted from the
+// existing PublicPay Razorpay client (same loadRazorpayScript + checkout
+// options shape). The hard part vs /pay/[token]: the slot must be locked at/
+// after payment so a confirmed pay actually secures the date.
+//
+// Flow on click:
+//   1. startOneTapAdvance(token) → { invoiceId, amount }  (idempotent proforma)
+//   2. createPublicRazorpayOrder(invoiceId, amount) → order (clamps ≤ balance)
+//   3. Razorpay checkout → handler success
+//   4. verifyPublicRazorpayPayment(resp)  (HMAC-verified capture → credit)
+//   5. confirmOneTapAndBlock(token)  (block slot under Serializable txn + auto-confirm)
+//   6. "Your date is secured" state
+//
+// All money math is server-side (advance from the actual first installment);
+// NEVER recompute 20% client-side. The button disables when the slot is BUSY.
+// ============================================================
+
+interface RazorpayResponse {
+  razorpay_payment_id: string;
+  razorpay_order_id: string;
+  razorpay_signature: string;
+}
+
+declare global {
+  interface Window {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    Razorpay: any;
+  }
+}
+
+function loadRazorpayScript(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (typeof window !== "undefined" && window.Razorpay) return resolve(true);
+    const s = document.createElement("script");
+    s.src = "https://checkout.razorpay.com/v1/checkout.js";
+    s.onload = () => resolve(true);
+    s.onerror = () => resolve(false);
+    document.body.appendChild(s);
+  });
+}
+
+const inr = (n: number) =>
+  new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n);
+
+export function OneTapPay({
+  token,
+  advanceAmount,
+  customerName,
+  slotBusy = false,
+  alreadySecured = false,
+}: {
+  token: string;
+  /** Server-computed 20% booking-advance amount (paise-exact, INR). */
+  advanceAmount: number;
+  customerName: string;
+  /** True when the chosen slot is no longer free — disables the button. */
+  slotBusy?: boolean;
+  /** True when the date is already secured (paid/blocked) — show success. */
+  alreadySecured?: boolean;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<"idle" | "securing" | "success" | "error">(
+    alreadySecured ? "success" : "idle",
+  );
+  const [error, setError] = useState("");
+
+  const pay = useCallback(async () => {
+    setLoading(true);
+    setStatus("idle");
+    setError("");
+    try {
+      const ok = await loadRazorpayScript();
+      if (!ok) throw new Error("Couldn't load the payment gateway. Please try again.");
+
+      // 1. Ensure the proforma invoice exists; get the exact advance + invoiceId.
+      const startRes = await startOneTapAdvance(token);
+      if (!startRes.success) throw new Error(startRes.error || "Couldn't start the payment.");
+      const { invoiceId, amount } = startRes.data;
+
+      // 2. Create the Razorpay order against that invoice (clamps ≤ balanceDue).
+      const orderRes = await createPublicRazorpayOrder(invoiceId, amount);
+      if (!orderRes.success) throw new Error(orderRes.error || "Couldn't start the payment.");
+      const { orderId, amount: paise, currency, keyId } = orderRes.data;
+
+      const options = {
+        key: keyId,
+        amount: paise,
+        currency: currency || "INR",
+        name: "Veloria Grand",
+        description: "Booking advance — block your date",
+        order_id: orderId,
+        prefill: { name: customerName, email: "", contact: "" },
+        theme: { color: "#7c3aed" },
+        handler: async (resp: RazorpayResponse) => {
+          try {
+            setStatus("securing");
+            // 3. Verify + credit the invoice (idempotent capture).
+            const v = await verifyPublicRazorpayPayment({
+              razorpay_payment_id: resp.razorpay_payment_id,
+              razorpay_order_id: resp.razorpay_order_id,
+              razorpay_signature: resp.razorpay_signature,
+            });
+            if (!v.success) throw new Error(v.error || "Payment could not be confirmed.");
+
+            // 4. Block the slot + auto-confirm (Serializable; idempotent).
+            const blockRes = await confirmOneTapAndBlock(token);
+            if (!blockRes.success) {
+              // Payment captured but the slot was just taken — graceful message.
+              setStatus("error");
+              setError(
+                blockRes.error ||
+                  "Payment received, but the slot was just taken. Our team will contact you right away.",
+              );
+              return;
+            }
+            setStatus("success");
+          } catch (e) {
+            setStatus("error");
+            setError(e instanceof Error ? e.message : "Payment could not be confirmed.");
+          }
+        },
+        modal: { ondismiss: () => setLoading(false) },
+      };
+      const rzp = new window.Razorpay(options);
+      rzp.on("payment.failed", (r: { error: { description: string } }) => {
+        setStatus("error");
+        setError(r.error?.description || "Payment failed. Please try again.");
+        setLoading(false);
+      });
+      rzp.open();
+    } catch (e) {
+      setStatus("error");
+      setError(e instanceof Error ? e.message : "Something went wrong.");
+      setLoading(false);
+    }
+  }, [token, customerName]);
+
+  if (status === "success") {
+    return (
+      <div className="animate-rise-in flex flex-col items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center dark:border-emerald-900 dark:bg-emerald-950/40">
+        <CheckCircle2 className="size-10 text-emerald-600 dark:text-emerald-400" />
+        <p className="text-lg font-semibold text-emerald-800 dark:text-emerald-300">
+          Your date is secured
+        </p>
+        <p className="text-sm text-emerald-700 dark:text-emerald-400">
+          Thank you! Your booking advance is received and the date is now blocked for you. Our team
+          will reach out to plan the details.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <Button
+        onClick={pay}
+        disabled={loading || slotBusy}
+        className="button-sheen sheen-sweep relative h-[3.5rem] w-full overflow-hidden rounded-2xl py-3.5 text-base font-semibold"
+      >
+        {loading || status === "securing" ? (
+          <Loader2 className="mr-2 size-5 animate-spin" />
+        ) : (
+          <CalendarCheck className="mr-2 size-5" />
+        )}
+        {status === "securing"
+          ? "Securing your date…"
+          : loading
+            ? "Opening secure checkout…"
+            : slotBusy
+              ? "This slot was just taken"
+              : `Pay ${inr(advanceAmount)} to block your date`}
+      </Button>
+
+      {!slotBusy && status !== "securing" && (
+        <p className="text-center text-[12.5px] text-muted-foreground">
+          Just the 20% booking advance now — it instantly blocks your date.
+        </p>
+      )}
+
+      {status === "error" && (
+        <p className="flex items-center justify-center gap-1.5 text-center text-sm text-destructive">
+          <AlertCircle className="size-4 shrink-0" /> {error}
+        </p>
+      )}
+
+      <div className="flex items-center justify-center gap-2 pt-1">
+        <span className="flex items-center gap-1.5 rounded-full bg-muted/60 px-3 py-1 text-[11.5px] font-medium text-muted-foreground">
+          <Lock className="size-3" /> Secured by Razorpay
+        </span>
+        <span className="flex items-center gap-1.5 rounded-full bg-muted/60 px-3 py-1 text-[11.5px] font-medium text-muted-foreground">
+          <ShieldCheck className="size-3 text-emerald-600 dark:text-emerald-400" /> UPI · Card · Net banking
+        </span>
+      </div>
+    </div>
+  );
+}

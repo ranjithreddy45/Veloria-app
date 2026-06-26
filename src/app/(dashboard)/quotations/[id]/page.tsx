@@ -4,7 +4,9 @@ import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
 import { getSalesQuotation } from "@/actions/sales-quotation.actions";
+import { getQuoteShareLink } from "@/actions/quote-share.actions";
 import { QuotationDetail } from "../_components/quotation-detail";
+import { QuoteRadarPanel } from "../_components/quote-radar-panel";
 
 export const metadata: Metadata = { title: "Quotation" };
 
@@ -62,10 +64,16 @@ export default async function QuotationPage({ params }: { params: Promise<{ id: 
     if (inv) advancePaid = Number(inv.paidAmount) >= Number(inv.totalAmount) * 0.2 - 1;
   }
 
+  // Quote radar: existing share-link signals (best-effort — never block render).
+  const radarRes = await getQuoteShareLink(id).catch(() => null);
+  const radarSignals = radarRes && radarRes.success ? radarRes.data : null;
+  const canShare = isAdmin || hasPermission(role, "quotes:send") || hasPermission(role, "publicquotes:manage");
+
   return (
     <div className="space-y-6">
       {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
       <QuotationDetail quote={res.data as any} perms={perms} leads={leads} venues={venues} advancePaid={advancePaid} />
+      <QuoteRadarPanel quotationId={id} initial={radarSignals} canShare={canShare} />
     </div>
   );
 }

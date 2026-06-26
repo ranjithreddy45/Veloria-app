@@ -7,6 +7,7 @@ import {
   escalateOverdueTasks,
 } from "@/lib/lead-pipeline";
 import { escalateAcqLeadSlaBreaches } from "@/lib/acq/sla-escalation";
+import { runSlaWarRoomEscalation } from "@/lib/sla/war-room-escalation";
 
 export const maxDuration = 120;
 
@@ -53,6 +54,11 @@ export async function GET(request: Request) {
     results.slaEscalations = await escalateLeadSlaBreaches();
   } catch (e) {
     results.slaEscalations = `error: ${e instanceof Error ? e.message : "unknown"}`;
+  }
+  try {
+    results.slaTieredEscalations = await runSlaWarRoomEscalation();
+  } catch (e) {
+    results.slaTieredEscalations = `error: ${e instanceof Error ? e.message : "unknown"}`;
   }
   try {
     results.overdueTaskEscalations = await escalateOverdueTasks();

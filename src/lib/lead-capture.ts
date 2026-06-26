@@ -247,6 +247,57 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
       triggeredByUserId: assignedToId ?? undefined,
     });
 
+    // Message-intent classification on the first-touch inbound message so a
+    // brand-new READY_TO_BUY lead also boosts + pings. Best-effort, never blocks.
+    if (data.message && data.message.trim().length > 0) {
+      try {
+        const { stampMessageIntent } = await import("@/lib/ai/intent-stamp");
+        await stampMessageIntent({
+          text: data.message,
+          leadId: lead.id,
+          contactId: contact.id,
+        });
+      } catch (e) {
+        console.error("[LeadCapture] intent-stamp error:", e);
+      }
+    }
+
+    // Referral-code ingestion for non-portal inbound channels (WhatsApp webhook
+    // / generic API). The public portal path calls recordReferralIngestion
+    // directly; this covers the other channels. Wrapped so it never blocks capture.
+    try {
+      const referralCode =
+        (typeof data.customFields?.referralCode === "string"
+          ? data.customFields.referralCode
+          : undefined) ??
+        (data.source.toLowerCase() === "referral" &&
+        typeof data.customFields?.code === "string"
+          ? data.customFields.code
+          : undefined);
+
+      if (referralCode) {
+        const { resolveReferralPartnerByCode, recordReferralIngestion } =
+          await import("@/lib/referral/ingest");
+        const partner = await resolveReferralPartnerByCode(referralCode);
+        if (partner) {
+          await recordReferralIngestion({
+            partnerId: partner.id,
+            leadId: lead.id,
+            contactId: contact.id,
+            prospectName: data.name,
+            prospectPhone: data.phone ?? null,
+            prospectEmail: data.email ?? null,
+            eventType: data.eventType ?? null,
+            eventDate: data.eventDate ? new Date(data.eventDate) : null,
+            guestCount: data.guestCount ?? null,
+            message: data.message ?? null,
+          });
+        }
+      }
+    } catch (e) {
+      console.error("[LeadCapture] referral-ingestion error:", e);
+    }
+
     return { success: true, leadId: lead.id, contactId: contact.id };
   } catch (error) {
     console.error("[LeadCapture] Error:", error);

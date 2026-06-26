@@ -13,7 +13,7 @@ import {
   Kanban, Target, UserCheck, GitBranch, Percent, Gift, Workflow, CheckSquare, SlidersHorizontal,
   AlertOctagon, Zap, FileText, FileSignature, ClipboardCheck, FileInput,
   Plug, MessageCircle, Phone, Calendar, Share2, Calculator, IndianRupee,
-  Trash2, ChevronRight, type LucideIcon,
+  Trash2, ChevronRight, Route, type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +43,8 @@ const CATEGORIES: Category[] = [
       { label: "Pipeline Stages", href: "/settings/pipeline", icon: Kanban, desc: "Deal stages & flow" },
       { label: "Scoring Rules", href: "/settings/scoring-rules", icon: Target, desc: "Lead scoring" },
       { label: "Assignment Rules", href: "/settings/assignment-rules", icon: UserCheck, desc: "Auto-route leads" },
+      { label: "Smart Routing", href: "/settings/routing", icon: Route, desc: "Route to the available, lightest-loaded, best-matched rep" },
+      { label: "Rep Availability", href: "/settings/rep-availability", icon: UserCheck, desc: "Live rep availability & load" },
       { label: "Blueprints", href: "/settings/blueprints", icon: GitBranch, desc: "Stage process guards" },
       { label: "Commissions", href: "/settings/commissions", icon: Percent, desc: "Payout rules" },
       { label: "Referral Rules", href: "/settings/referral-rules", icon: Gift, desc: "Referral rewards" },
@@ -72,6 +74,7 @@ const CATEGORIES: Category[] = [
     items: [
       { label: "All Integrations", href: "/settings/integrations", icon: Plug, desc: "Connected services" },
       { label: "WhatsApp", href: "/settings/integrations/whatsapp", icon: MessageCircle },
+      { label: "WhatsApp Auto-Catalog", href: "/settings/whatsapp-catalog", icon: MessageCircle, desc: "Catalog funnel auto-replies" },
       { label: "Telephony", href: "/settings/integrations/telephony", icon: Phone },
       { label: "Google Calendar", href: "/settings/integrations/google-calendar", icon: Calendar },
       { label: "Social", href: "/settings/integrations/social", icon: Share2 },

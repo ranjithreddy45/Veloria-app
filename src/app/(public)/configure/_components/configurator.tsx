@@ -32,6 +32,7 @@ import {
   type PublicQuoteDraftView,
 } from "@/actions/public-configurator.actions";
 import { PriceSummary } from "./price-summary";
+import { SocialProofAside } from "./social-proof-aside";
 
 interface Props {
   catalog: PublicConfiguratorCatalog;
@@ -636,8 +637,9 @@ export function Configurator({ catalog, venues, initialVenueId, resume }: Props)
       </div>
 
       {/* Right: live price */}
-      <div className="lg:sticky lg:top-6 lg:self-start">
+      <div className="lg:sticky lg:top-6 lg:self-start space-y-4">
         <PriceSummary result={result} />
+        <SocialProofAside occasion={occasion} venueId={venueId} />
       </div>
     </div>
   );

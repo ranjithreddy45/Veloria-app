@@ -164,6 +164,121 @@ export async function sendWhatsApp(
 }
 
 // ============================================================
+// Send Interactive Message (list / reply-buttons)
+// ------------------------------------------------------------
+// WhatsApp interactive messages — a tappable list or up to 3 reply buttons.
+// Only valid inside the 24h customer-service window (the caller falls back to a
+// plain text prompt when this fails). Returns the same shape as sendWhatsApp so
+// callers handle success/messageId/error uniformly.
+// ============================================================
+
+export interface WhatsAppInteractiveRow {
+  id: string;
+  title: string;
+  description?: string;
+}
+
+export interface SendWhatsAppInteractiveParams {
+  to: string;
+  header?: string;
+  body: string;
+  footer?: string;
+  /** Reply-buttons variant (max 3). Mutually exclusive with `list`. */
+  buttons?: { id: string; title: string }[];
+  /** Single-select list variant. Mutually exclusive with `buttons`. */
+  list?: {
+    button: string;
+    sections: { title?: string; rows: WhatsAppInteractiveRow[] }[];
+  };
+}
+
+export async function sendWhatsAppInteractive(
+  params: SendWhatsAppInteractiveParams
+): Promise<SendWhatsAppResult> {
+  const config = await getWhatsAppApiConfig();
+  if (!config) {
+    return {
+      success: false,
+      error: "WhatsApp not configured. Set up your credentials in Settings → Integrations → WhatsApp.",
+    };
+  }
+
+  const to = normalizePhone(params.to);
+
+  // Build the interactive object: a `list` (single-select) or reply `button`s.
+  // Meta caps button title at 20 chars and reply buttons at 3 — clamp/slice so a
+  // long option can never reject the whole send.
+  let interactive: Record<string, unknown>;
+  if (params.list) {
+    interactive = {
+      type: "list",
+      ...(params.header ? { header: { type: "text", text: params.header.slice(0, 60) } } : {}),
+      body: { text: params.body },
+      ...(params.footer ? { footer: { text: params.footer.slice(0, 60) } } : {}),
+      action: {
+        button: params.list.button.slice(0, 20),
+        sections: params.list.sections.map((s) => ({
+          ...(s.title ? { title: s.title.slice(0, 24) } : {}),
+          rows: s.rows.slice(0, 10).map((r) => ({
+            id: r.id.slice(0, 200),
+            title: r.title.slice(0, 24),
+            ...(r.description ? { description: r.description.slice(0, 72) } : {}),
+          })),
+        })),
+      },
+    };
+  } else {
+    interactive = {
+      type: "button",
+      ...(params.header ? { header: { type: "text", text: params.header.slice(0, 60) } } : {}),
+      body: { text: params.body },
+      ...(params.footer ? { footer: { text: params.footer.slice(0, 60) } } : {}),
+      action: {
+        buttons: (params.buttons ?? []).slice(0, 3).map((b) => ({
+          type: "reply",
+          reply: { id: b.id.slice(0, 256), title: b.title.slice(0, 20) },
+        })),
+      },
+    };
+  }
+
+  try {
+    const response = await fetch(
+      `${GRAPH_API_BASE}/${config.phoneNumberId}/messages`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${config.accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          recipient_type: "individual",
+          to,
+          type: "interactive",
+          interactive,
+        }),
+      }
+    );
+
+    const data = await response.json();
+    if (!response.ok) {
+      const errorMsg = data?.error?.message || `API error ${response.status}`;
+      console.error("[WhatsApp Interactive Error]", JSON.stringify(data));
+      return { success: false, error: errorMsg };
+    }
+    const messageId = data?.messages?.[0]?.id;
+    return { success: true, messageId: messageId || undefined };
+  } catch (error) {
+    console.error("[WhatsApp] Interactive send failed:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Network error",
+    };
+  }
+}
+
+// ============================================================
 // Send Template Message
 // ============================================================
 
