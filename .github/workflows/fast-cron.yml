@@ -1,0 +1,56 @@
+name: Fast cron (speed-to-lead, every ~5 min)
+
+# Pings the app's secured "fast" cron lane every ~5 minutes — the time-sensitive
+# sweep: first-response SLA escalation, tiered SLA war-room escalation, cadence
+# follow-up steps/exits, and overdue-task escalation. This is the speed-to-lead
+# lane: the difference between replying to a hot enquiry in minutes vs an hour.
+#
+# Complements hourly-cron.yml (which pings the broader "frequent" lane hourly).
+# The Vercel-native cron is throttled to daily on the Hobby plan, and GitHub's
+# scheduled runs only go as fine as every 5 minutes — together they restore a
+# minutes-level cadence for free, without Vercel Pro.
+#
+# SETUP (one-time — likely ALREADY DONE if hourly-cron.yml is running):
+#   1. Push this repo to GitHub.
+#   2. Repo → Settings → Secrets and variables → Actions → ensure:
+#        CRON_SECRET   = the same value set in Vercel (Project → Settings → Env Vars)
+#        FAST_CRON_URL = https://app.theveloriagrand.com/api/cron/fast  (optional; this is the default)
+#      CRON_SECRET is shared with hourly-cron.yml — no new secret needed.
+#   3. The schedule below fires every ~5 min. Run it manually from the Actions
+#      tab ("Run workflow") to test.
+#
+# Notes:
+#   • GitHub may delay scheduled runs a few minutes under load — fine here.
+#   • GitHub disables scheduled workflows after 60 days of repo inactivity; any
+#     push (or a manual run) re-arms them.
+
+on:
+  schedule:
+    - cron: "*/5 * * * *" # every 5 minutes (UTC) — GitHub's finest granularity
+  workflow_dispatch: {} # allow manual runs from the Actions tab
+
+# If a run is still going when the next fires, let the new one start; we don't
+# want a slow run to block speed-to-lead. (No concurrency gate on purpose.)
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger fast cron lane
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          FAST_CRON_URL: ${{ secrets.FAST_CRON_URL }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::CRON_SECRET repo secret is not set."
+            exit 1
+          fi
+          URL="${FAST_CRON_URL:-https://app.theveloriagrand.com/api/cron/fast}"
+          echo "Pinging $URL"
+          code=$(curl -sS -o /tmp/out.txt -w "%{http_code}" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            --max-time 150 "$URL")
+          echo "HTTP $code"
+          cat /tmp/out.txt
+          # 200 = ran OK. Fail the job on anything else so you get notified.
+          [ "$code" = "200" ]
