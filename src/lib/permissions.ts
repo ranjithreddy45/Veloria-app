@@ -109,6 +109,7 @@ export type Permission =
   | "projects:update"
   | "projects:approve"
   | "projects:audit"
+  | "projects:manage"
   // HR / People
   | "hr:read"
   | "hr:write"
@@ -389,6 +390,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   "projects:update",
   "projects:approve",
   "projects:audit",
+  "projects:manage",
   "hr:read",
   "hr:write",
   "hr:admin",
@@ -617,6 +619,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "projects:update",
     "projects:approve",
     "projects:audit",
+    "projects:manage",
     "hr:read",
     "hr:write",
     "hr:admin",
@@ -697,6 +700,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "users:read",
     "users:create",
     "users:update",
+    "users:manage-roles",
     "dashboard:read",
     "dashboard:analytics",
     "loyalty:read",
@@ -1091,6 +1095,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "tasks:update",
     "projects:read",
     "projects:audit", // ops runs the deep audit + sign-off on a readied venue
+    "projects:manage", // ops can manage project procurement/vendor/rate-card on a readied venue
     "execution:read",
     "execution:update",
     "bookings:read",
@@ -1101,6 +1106,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "projects:read",
     "projects:create",
     "projects:update",
+    "projects:manage",
     "tasks:read",
     "tasks:create",
     "tasks:update",
@@ -1114,6 +1120,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "projects:create",
     "projects:update",
     "projects:approve", // approves the CapEx projection + final handover go-ahead
+    "projects:manage", // manages project procurement/vendor/rate-card + clears the QC gate
     "tasks:read",
     "tasks:create",
     "tasks:update",

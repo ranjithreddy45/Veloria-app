@@ -18,10 +18,13 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Pass CRON_SECRET as the internal token so the (otherwise session-gated)
+    // recalc action authorizes this session-less cron caller.
+    const cronSecret = process.env.CRON_SECRET;
     const [leadResult, contactResult, dealResult] = await Promise.all([
-      recalculateScoresForEntityType("LEAD"),
-      recalculateScoresForEntityType("CONTACT"),
-      recalculateScoresForEntityType("DEAL"),
+      recalculateScoresForEntityType("LEAD", cronSecret),
+      recalculateScoresForEntityType("CONTACT", cronSecret),
+      recalculateScoresForEntityType("DEAL", cronSecret),
     ]);
 
     return NextResponse.json({

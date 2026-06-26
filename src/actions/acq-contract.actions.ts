@@ -361,6 +361,12 @@ export async function rejectAcqContract(id: string, reason: string): Promise<Res
   if (!reason.trim()) return { success: false, error: "A reason is required." };
   const c = await prisma.acqContract.findFirst({ where: { id, deletedAt: null } });
   if (!c) return { success: false, error: "Contract not found" };
+  // State-machine guard: only a draft awaiting approval can be rejected/reverted.
+  // Server actions are directly invocable, so UI gating isn't enough — without this,
+  // a SIGNED/ACTIVE/TERMINATED contract could be silently rolled back to DRAFT.
+  if (c.status !== "DRAFT" || c.phase !== "APPROVAL") {
+    return { success: false, error: "Only a contract awaiting approval can be rejected." };
+  }
   await prisma.acqContract.update({ where: { id }, data: { status: "DRAFT", phase: "AUTHORING" } });
   await logActivity(id, user.id, "NOTE", `Rejected: ${reason.trim()}`);
   notify({ userId: c.createdById, type: "SYSTEM", title: "Contract changes requested", message: `${c.propertyName}: ${reason.trim().slice(0, 120)}`, actionUrl: `/bd/contracts/${id}` });
@@ -422,6 +428,12 @@ export async function approveAcqContract(id: string): Promise<Result<{ id: strin
   // (or already-negotiated) contract, which would downgrade its status/phase.
   if (c.status !== "DRAFT") {
     return { success: false, error: "Only a draft contract can be approved." };
+  }
+  // Segregation of duties (maker-checker): the author can't approve their own
+  // contract — a different BD Head must, except SUPER_ADMIN (mirrors approveAcqDeal
+  // and procurement's approvePR).
+  if (c.createdById === user.id && user.role !== "SUPER_ADMIN") {
+    return { success: false, error: "A different BD Head must approve a contract you authored." };
   }
   await prisma.acqContract.update({
     where: { id },
@@ -588,6 +600,12 @@ export async function terminateAcqContract(
   const user = await requireUser();
   if (!user || !acqCan(user.role, "bdhead:approve")) {
     return { success: false, error: "Only a BD Head / manager can terminate a contract." };
+  }
+  // Validate the numeric gain/loss before it reaches the Decimal column. A free-text
+  // entry like "50,000" or "abc" coerces to NaN, which Prisma rejects when serializing
+  // to Decimal — guard it here with a friendly message instead of failing the write.
+  if (!Number.isFinite(gainLoss)) {
+    return { success: false, error: "Enter a valid gain/loss amount." };
   }
   const c = await prisma.acqContract.findFirst({ where: { id, deletedAt: null } });
   if (!c) return { success: false, error: "Contract not found" };

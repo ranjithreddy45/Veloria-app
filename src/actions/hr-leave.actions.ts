@@ -71,6 +71,34 @@ async function holidayKeySet(year: number): Promise<Set<string>> {
   return new Set(hols.map((h) => dateKey(h.date)));
 }
 
+// Split a leave range into the working-day count chargeable to EACH calendar
+// year it touches. A span crossing a year boundary (e.g. 30-Dec → 05-Jan) must
+// deduct each year's days from that year's LeaveBalance row, not dump them all
+// on the start year. Half-day parts only apply on the true first/last day, so
+// they ride with whichever year's window contains that boundary day.
+function workingDaysByYear(
+  start: Date,
+  end: Date,
+  startPart: HalfDayPart,
+  endPart: HalfDayPart,
+  holidays: Set<string>
+): Map<number, number> {
+  const byYear = new Map<number, number>();
+  const startYear = start.getUTCFullYear();
+  const endYear = end.getUTCFullYear();
+  for (let y = startYear; y <= endYear; y++) {
+    // Clamp this year's window to the leave range.
+    const segStart = y === startYear ? start : new Date(Date.UTC(y, 0, 1));
+    const segEnd = y === endYear ? end : new Date(Date.UTC(y, 11, 31));
+    // Half-day parts apply only on the genuine first/last day of the whole range.
+    const segStartPart = y === startYear ? startPart : "FULL";
+    const segEndPart = y === endYear ? endPart : "FULL";
+    const d = workingDays(segStart, segEnd, segStartPart, segEndPart, holidays);
+    if (d > 0) byYear.set(y, d);
+  }
+  return byYear;
+}
+
 // Ensure balance rows exist for an employee for a year (seeds from accrual).
 async function ensureBalances(employeeId: string, year: number) {
   const types = await prisma.leaveType.findMany({ where: { isActive: true } });
@@ -84,6 +112,30 @@ async function ensureBalances(employeeId: string, year: number) {
       });
     }
   }
+}
+
+// Recompute the per-year working-day split for an existing request, so the
+// approve/cancel pipeline moves balances on the SAME year rows applyLeave
+// reserved them on. Loads holidays for every year the request spans.
+async function requestDaysByYear(req: {
+  startDate: Date;
+  endDate: Date;
+  startPart: string;
+  endPart: string;
+}): Promise<Map<number, number>> {
+  const startYear = req.startDate.getUTCFullYear();
+  const endYear = req.endDate.getUTCFullYear();
+  const holidays = new Set<string>();
+  for (let y = startYear; y <= endYear; y++) {
+    for (const k of await holidayKeySet(y)) holidays.add(k);
+  }
+  return workingDaysByYear(
+    req.startDate,
+    req.endDate,
+    req.startPart as HalfDayPart,
+    req.endPart as HalfDayPart,
+    holidays
+  );
 }
 
 // ============================================================
@@ -168,6 +220,10 @@ export async function applyLeave(input: ApplyLeaveInput): Promise<Result<{ id: s
   const days = workingDays(start, end, startPart, endPart, holidays);
   if (days <= 0) return { success: false, error: "The selected dates are all weekends/holidays — no working days to apply." };
 
+  // Per-year breakdown so a range crossing a year boundary charges each year's
+  // own LeaveBalance row (and is validated against that year's entitlement).
+  const daysByYear = workingDaysByYear(start, end, startPart, endPart, holidays);
+
   // Overlap guard against existing pending/approved requests.
   const existing = await prisma.leaveRequest.findMany({
     where: { employeeId, status: { in: ["PENDING", "APPROVED"] } },
@@ -180,14 +236,17 @@ export async function applyLeave(input: ApplyLeaveInput): Promise<Result<{ id: s
 
   try {
     const created = await prisma.$transaction(async (tx) => {
-      // Balance check (unless the type allows negative, e.g. LOP).
+      // Balance check (unless the type allows negative, e.g. LOP). Validate
+      // EACH calendar year the leave touches against that year's own row.
       if (!type.allowNegative) {
-        const bal = await tx.leaveBalance.findUnique({
-          where: { employeeId_leaveTypeId_year: { employeeId: employeeId!, leaveTypeId: type.id, year } },
-        });
-        const available = (bal?.entitled ?? 0) + (bal?.carriedForward ?? 0) - (bal?.used ?? 0) - (bal?.pending ?? 0);
-        if (days > available + 1e-9)
-          throw new Error(`Insufficient ${type.code} balance: ${available} day(s) available, ${days} requested.`);
+        for (const [y, d] of daysByYear) {
+          const bal = await tx.leaveBalance.findUnique({
+            where: { employeeId_leaveTypeId_year: { employeeId: employeeId!, leaveTypeId: type.id, year: y } },
+          });
+          const available = (bal?.entitled ?? 0) + (bal?.carriedForward ?? 0) - (bal?.used ?? 0) - (bal?.pending ?? 0);
+          if (d > available + 1e-9)
+            throw new Error(`Insufficient ${type.code} balance for ${y}: ${available} day(s) available, ${d} requested.`);
+        }
       }
 
       const req = await tx.leaveRequest.create({
@@ -206,11 +265,14 @@ export async function applyLeave(input: ApplyLeaveInput): Promise<Result<{ id: s
         },
       });
 
-      // Reserve the balance (pending) — or directly used if auto-approved.
-      await tx.leaveBalance.update({
-        where: { employeeId_leaveTypeId_year: { employeeId: employeeId!, leaveTypeId: type.id, year } },
-        data: type.requiresApproval ? { pending: { increment: days } } : { used: { increment: days } },
-      });
+      // Reserve the balance (pending) — or directly used if auto-approved —
+      // on each year's row by that year's share of the days.
+      for (const [y, d] of daysByYear) {
+        await tx.leaveBalance.update({
+          where: { employeeId_leaveTypeId_year: { employeeId: employeeId!, leaveTypeId: type.id, year: y } },
+          data: type.requiresApproval ? { pending: { increment: d } } : { used: { increment: d } },
+        });
+      }
 
       await tx.activityLog.create({
         data: { action: "LEAVE_APPLIED", entityType: "LEAVE_REQUEST", entityId: req.id, userId: u.id, changes: { type: type.code, days } },
@@ -267,25 +329,28 @@ export async function decideLeave(requestId: string, decision: "APPROVED" | "REJ
   const isRoutedManager = me && req.approverId === me.id;
   if (!isHrApprover && !isRoutedManager) return { success: false, error: "You're not the approver for this request." };
 
-  const year = req.startDate.getUTCFullYear();
+  // Per-year split so the reserved pending balance is moved off the same year
+  // rows applyLeave reserved it on (a span crossing a year boundary touches two).
+  const daysByYear = await requestDaysByYear(req);
 
   await prisma.$transaction(async (tx) => {
     await tx.leaveRequest.update({
       where: { id: requestId },
       data: { status: decision, decidedAt: new Date(), decisionNote: note || null, approverId: me?.id ?? req.approverId },
     });
-    // Move the reserved pending balance.
-    const bal = await tx.leaveBalance.findUnique({
-      where: { employeeId_leaveTypeId_year: { employeeId: req.employeeId, leaveTypeId: req.leaveTypeId, year } },
-    });
-    if (bal) {
+    // Move the reserved pending balance on each year's row.
+    for (const [year, d] of daysByYear) {
+      const bal = await tx.leaveBalance.findUnique({
+        where: { employeeId_leaveTypeId_year: { employeeId: req.employeeId, leaveTypeId: req.leaveTypeId, year } },
+      });
+      if (!bal) continue;
       if (decision === "APPROVED") {
         await tx.leaveBalance.update({
           where: { id: bal.id },
-          data: { pending: { decrement: req.days }, used: { increment: req.days } },
+          data: { pending: { decrement: d }, used: { increment: d } },
         });
       } else {
-        await tx.leaveBalance.update({ where: { id: bal.id }, data: { pending: { decrement: req.days } } });
+        await tx.leaveBalance.update({ where: { id: bal.id }, data: { pending: { decrement: d } } });
       }
     }
     await tx.activityLog.create({
@@ -313,15 +378,18 @@ export async function cancelLeave(requestId: string): Promise<Result<{ id: strin
   if (!ownsIt && !can(u.role, "hr:write")) return { success: false, error: "Not authorized." };
   if (req.status !== "PENDING" && req.status !== "APPROVED") return { success: false, error: "Only pending or approved leave can be cancelled." };
 
-  const year = req.startDate.getUTCFullYear();
+  // Per-year split so the release lands on the same year rows that were charged.
+  const daysByYear = await requestDaysByYear(req);
+  const wasPending = req.status === "PENDING";
   await prisma.$transaction(async (tx) => {
     await tx.leaveRequest.update({ where: { id: requestId }, data: { status: "CANCELLED", decidedAt: new Date() } });
-    const bal = await tx.leaveBalance.findUnique({
-      where: { employeeId_leaveTypeId_year: { employeeId: req.employeeId, leaveTypeId: req.leaveTypeId, year } },
-    });
-    if (bal) {
-      if (req.status === "PENDING") await tx.leaveBalance.update({ where: { id: bal.id }, data: { pending: { decrement: req.days } } });
-      else await tx.leaveBalance.update({ where: { id: bal.id }, data: { used: { decrement: req.days } } });
+    for (const [year, d] of daysByYear) {
+      const bal = await tx.leaveBalance.findUnique({
+        where: { employeeId_leaveTypeId_year: { employeeId: req.employeeId, leaveTypeId: req.leaveTypeId, year } },
+      });
+      if (!bal) continue;
+      if (wasPending) await tx.leaveBalance.update({ where: { id: bal.id }, data: { pending: { decrement: d } } });
+      else await tx.leaveBalance.update({ where: { id: bal.id }, data: { used: { decrement: d } } });
     }
     await tx.activityLog.create({
       data: { action: "LEAVE_CANCELLED", entityType: "LEAVE_REQUEST", entityId: requestId, userId: u.id },

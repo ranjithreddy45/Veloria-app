@@ -189,6 +189,18 @@ export async function trackReferralConversion(data: TrackConversionInput) {
       return { success: false as const, error: "Referral not found for the given code" };
     }
 
+    // Idempotency guard (mirrors markConverted in referral.actions.ts): a
+    // referral that already reached BOOKING_CONFIRMED/CONVERTED must not be
+    // re-stamped or re-rewarded. Without this, a double-click or a re-submit
+    // (e.g. to correct bookingValue) would re-run processReferralRewards and
+    // mint duplicate ReferralReward rows, inflating payable referral liability.
+    if (
+      referral.status === "BOOKING_CONFIRMED" ||
+      referral.status === "CONVERTED"
+    ) {
+      return { success: false as const, error: "Referral already converted" };
+    }
+
     // Verify booking exists
     const booking = await prisma.booking.findUnique({
       where: { id: bookingId },
@@ -319,6 +331,17 @@ async function processReferralRewards(referralId: string, actorUserId: string) {
       }
 
       if (matches) {
+        // Idempotency: never mint a second reward for the same (referral, rule).
+        // Defends against re-entry even if the status guard upstream is bypassed
+        // (there is no DB @@unique on (referralId, ruleId) per project policy).
+        const existingReward = await prisma.referralReward.findFirst({
+          where: { referralId: referral.id, ruleId: rule.id },
+          select: { id: true },
+        });
+        if (existingReward) {
+          continue;
+        }
+
         // Calculate reward value with optional bonus multiplier
         let rewardValue = Number(rule.rewardValue);
         if (rule.bonusMultiplier) {

@@ -108,7 +108,11 @@ async function bumpIndividualQuests(client: Client, userId: string, eventType: s
 export async function clawbackEntity(client: Client, entityId: string, note?: string): Promise<{ reversed: number; points: number }> {
   // Which event types are sale-side / clawback-eligible.
   const eligible = await client.velosConfig.findMany({ where: { clawbackEligible: true }, select: { eventType: true } });
-  const eligibleTypes = eligible.map((e) => e.eventType);
+  // assist_credit is a percentage-of-close bonus (a derivative of the close,
+  // not genuine effort like site_visit_done), so it must be reversed with the
+  // close it was awarded from — otherwise assisters' leaderboards don't
+  // reconcile after a cancellation.
+  const eligibleTypes = Array.from(new Set([...eligible.map((e) => e.eventType), "assist_credit"]));
   if (eligibleTypes.length === 0) return { reversed: 0, points: 0 };
 
   const rows = await client.velosLedger.findMany({

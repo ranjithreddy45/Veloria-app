@@ -120,7 +120,7 @@ export async function createScoringRuleSet(
       return { success: false as const, error: "Unauthorized" };
     }
 
-    if (!hasPermission(session.user.role, "settings:read")) {
+    if (!hasPermission(session.user.role, "settings:update")) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
@@ -170,7 +170,7 @@ export async function updateScoringRuleSet(
       return { success: false as const, error: "Unauthorized" };
     }
 
-    if (!hasPermission(session.user.role, "settings:read")) {
+    if (!hasPermission(session.user.role, "settings:update")) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
@@ -217,7 +217,7 @@ export async function deleteScoringRuleSet(
       return { success: false as const, error: "Unauthorized" };
     }
 
-    if (!hasPermission(session.user.role, "settings:read")) {
+    if (!hasPermission(session.user.role, "settings:update")) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
@@ -247,7 +247,7 @@ export async function toggleScoringRuleSet(
       return { success: false as const, error: "Unauthorized" };
     }
 
-    if (!hasPermission(session.user.role, "settings:read")) {
+    if (!hasPermission(session.user.role, "settings:update")) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
@@ -280,7 +280,7 @@ export async function createScoringRule(
       return { success: false as const, error: "Unauthorized" };
     }
 
-    if (!hasPermission(session.user.role, "settings:read")) {
+    if (!hasPermission(session.user.role, "settings:update")) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
@@ -331,7 +331,7 @@ export async function updateScoringRule(
       return { success: false as const, error: "Unauthorized" };
     }
 
-    if (!hasPermission(session.user.role, "settings:read")) {
+    if (!hasPermission(session.user.role, "settings:update")) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
@@ -378,7 +378,7 @@ export async function deleteScoringRule(
       return { success: false as const, error: "Unauthorized" };
     }
 
-    if (!hasPermission(session.user.role, "settings:read")) {
+    if (!hasPermission(session.user.role, "settings:update")) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
@@ -408,7 +408,7 @@ export async function reorderScoringRules(
       return { success: false as const, error: "Unauthorized" };
     }
 
-    if (!hasPermission(session.user.role, "settings:read")) {
+    if (!hasPermission(session.user.role, "settings:update")) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
@@ -642,12 +642,33 @@ export async function bulkRecalculateScores(
 // Session-free core, callable from cron (which has no user session). Does the
 // actual recalculation; auth is the caller's responsibility.
 export async function recalculateScoresForEntityType(
-  entityType: string
+  entityType: string,
+  internalToken?: string
 ): Promise<
   | { success: true; data: { processed: number; updated: number } }
   | { success: false; error: string }
 > {
   try {
+    // Authorization gate. This is a "use server" export, so it is directly
+    // dispatchable by any client — without a guard, anyone could trigger a
+    // full-table rescan + mass score write (RBAC bypass + resource exhaustion).
+    // Two legitimate callers:
+    //   1) the score-decay cron — has no user session, so it proves itself by
+    //      passing the server-only CRON_SECRET (unforgeable from a client, which
+    //      cannot read the env var);
+    //   2) an authenticated staff user with settings:read (e.g. via bulkRecalculateScores).
+    const cronSecret = process.env.CRON_SECRET;
+    const isCron = !!cronSecret && internalToken === cronSecret;
+    if (!isCron) {
+      const session = await auth();
+      if (!session?.user?.id) {
+        return { success: false as const, error: "Unauthorized" };
+      }
+      if (!hasPermission(session.user.role, "settings:read")) {
+        return { success: false as const, error: "Insufficient permissions" };
+      }
+    }
+
     // Find active rule set for the entity type
     const ruleSet = await prisma.scoringRuleSet.findFirst({
       where: { entityType, isActive: true },

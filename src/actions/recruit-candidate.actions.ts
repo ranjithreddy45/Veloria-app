@@ -29,6 +29,18 @@ type InterviewStatus = (typeof INTERVIEW_STATUSES)[number];
 const OFFER_STATUSES = ["DRAFT", "SENT", "ACCEPTED", "DECLINED", "WITHDRAWN"] as const;
 type OfferStatus = (typeof OFFER_STATUSES)[number];
 
+// Allowed offer state transitions (mirrors the client OfferActions matrix).
+// ACCEPTED/DECLINED/WITHDRAWN are terminal — once reached, the offer is frozen
+// (no reopen/alter), so the downstream hire gate that keys off ACCEPTED offers
+// can't be silently invalidated by flipping a settled offer.
+const OFFER_TRANSITIONS: Record<OfferStatus, readonly OfferStatus[]> = {
+  DRAFT: ["SENT", "WITHDRAWN"],
+  SENT: ["ACCEPTED", "DECLINED", "WITHDRAWN"],
+  ACCEPTED: [],
+  DECLINED: [],
+  WITHDRAWN: [],
+};
+
 async function requireUser() {
   const session = await auth();
   if (!session?.user?.id) return null;
@@ -309,9 +321,21 @@ export async function setOfferStatus(
   try {
     const existing = await prisma.recOffer.findUnique({
       where: { id },
-      select: { candidateId: true },
+      select: { candidateId: true, status: true },
     });
     if (!existing) return { success: false, error: "Offer not found." };
+
+    // Server-side state-machine guard (the client matrix is advisory only).
+    const current = existing.status as OfferStatus;
+    if (current !== next) {
+      const allowed = OFFER_TRANSITIONS[current] ?? [];
+      if (!allowed.includes(next)) {
+        return {
+          success: false,
+          error: `Cannot change offer from ${current} to ${next}.`,
+        };
+      }
+    }
 
     await prisma.recOffer.update({ where: { id }, data: { status: next } });
     revalidatePath(`/recruitment/candidates/${existing.candidateId}`);

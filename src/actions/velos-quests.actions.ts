@@ -46,7 +46,11 @@ export async function getQuests() {
   const silverPlus = await isSilverPlus(u.id);
 
   const quests = await prisma.quest.findMany({
-    where: { status: "ACTIVE" },
+    // Personal/recovery quests carry ownerUserId and target one user; org-wide
+    // quests have ownerUserId=null. Scope the board to the viewer (mirrors
+    // bumpIndividualQuests) so user A's private slump-catch quest never appears
+    // on user B's board where it can never be progressed.
+    where: { status: "ACTIVE", OR: [{ ownerUserId: null }, { ownerUserId: u.id }] },
     include: { progress: { where: { userId: u.id }, select: { currentCount: true, completedAt: true } } },
     orderBy: [{ scope: "asc" }, { createdAt: "desc" }],
   });

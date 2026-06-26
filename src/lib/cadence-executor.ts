@@ -71,6 +71,28 @@ export async function processDueCadenceSteps(): Promise<{
     try {
       const { cadence } = enrollment;
 
+      // 1b. ATOMICALLY CLAIM this enrollment before doing any send. Guarded on
+      // the exact (status, nextExecuteAt, currentStepOrder) we read, so two
+      // overlapping cron runs can't both fire the same step's customer message
+      // (the /api/cron/frequent, /api/cron/fast pinger, and
+      // /api/cron/cadence-executor routes can run concurrently). We null
+      // nextExecuteAt as the claim marker; it's recomputed at the end of the
+      // iteration (or on COMPLETED). A second concurrent run sees count===0 and
+      // skips. Mirrors the slot-claim updateMany pattern used elsewhere.
+      const claim = await prisma.cadenceEnrollment.updateMany({
+        where: {
+          id: enrollment.id,
+          status: "ACTIVE",
+          currentStepOrder: enrollment.currentStepOrder,
+          nextExecuteAt: { lte: now },
+        },
+        data: { nextExecuteAt: null },
+      });
+      if (claim.count !== 1) {
+        // Another concurrent run already claimed this enrollment/step — skip.
+        continue;
+      }
+
       // 2. Load the current step by currentStepOrder
       const currentStep = cadence.steps.find(
         (s) => s.order === enrollment.currentStepOrder
@@ -287,6 +309,18 @@ export async function processDueCadenceSteps(): Promise<{
         error
       );
       errors++;
+
+      // We claimed this enrollment (nextExecuteAt → null) before the failure.
+      // Restore it to `now` so the next cron run re-selects and retries this
+      // step, rather than leaving the enrollment permanently stranded at null.
+      try {
+        await prisma.cadenceEnrollment.updateMany({
+          where: { id: enrollment.id, status: "ACTIVE", nextExecuteAt: null },
+          data: { nextExecuteAt: now },
+        });
+      } catch {
+        // Ignore — best-effort requeue.
+      }
 
       // Record the error in enrollment step
       const currentStep = enrollment.cadence.steps.find(

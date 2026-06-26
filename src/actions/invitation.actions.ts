@@ -484,7 +484,8 @@ export async function processRsvpResponse(data: RsvpResponseInput) {
       return { success: false as const, error: "Invalid RSVP link" };
     }
 
-    // Check if already responded
+    // Early bail for a clearly-already-responded invitation (cheap UX path;
+    // the authoritative guard is the atomic claim below).
     if (invitation.rsvpRespondedAt) {
       return { success: false as const, error: "Already responded" };
     }
@@ -492,15 +493,24 @@ export async function processRsvpResponse(data: RsvpResponseInput) {
     const guest = invitation.guest;
     const booking = guest.guestList.booking;
 
-    // Update invitation status
-    await prisma.guestInvitation.update({
-      where: { rsvpToken: token },
+    // Atomically claim the response: only the first concurrent submission whose
+    // rsvpRespondedAt is still null matches the guard and writes. A read-then-
+    // write check is TOCTOU on this public/unauthenticated token endpoint
+    // (double-click, prefetch, retry) — two writers could both pass and both
+    // fire the owner notification / overwrite fields. updateMany guarded on
+    // rsvpRespondedAt === null makes the transition happen exactly once.
+    const claim = await prisma.guestInvitation.updateMany({
+      where: { rsvpToken: token, rsvpRespondedAt: null },
       data: {
         invitationStatus: response === "ACCEPTED" ? "RSVP_ACCEPTED" : "RSVP_DECLINED",
         rsvpRespondedAt: new Date(),
         rsvpResponse: response,
       },
     });
+
+    if (claim.count === 0) {
+      return { success: false as const, error: "Already responded" };
+    }
 
     // Update guest RSVP status and optional fields
     await prisma.guest.update({

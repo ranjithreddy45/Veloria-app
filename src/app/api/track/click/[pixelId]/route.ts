@@ -70,6 +70,12 @@ export async function GET(
     console.error("[TRACK_CLICK_ERROR]", error);
   }
 
-  // 302 redirect to the original URL
-  return NextResponse.redirect(redirectUrl, 302);
+  // 302 redirect to the original URL. NextResponse.redirect requires an
+  // ABSOLUTE URL in Next 16 — passing the relative "/" fallback throws and the
+  // route 500s. Resolve against the request origin so a verified absolute URL
+  // passes through unchanged while the "/" fallback becomes an absolute URL.
+  return NextResponse.redirect(
+    new URL(redirectUrl, request.nextUrl.origin),
+    302
+  );
 }

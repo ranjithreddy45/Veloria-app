@@ -216,6 +216,53 @@ export async function toggleAssignmentRule(
 // Evaluate Assignment Rules
 // ============================================================
 
+// Roles a lead can be auto-assigned to (mirrors lead.actions.ts ASSIGNABLE_ROLES
+// and the new/edit form's user list). A rule's stored assignToUserId/assignToTeam
+// ids are NOT re-validated at config time, so a rep who is later deactivated or
+// role-changed can linger in a rule. Re-check the candidate here before returning
+// it, so leads never auto-route to a non-functional account (dead queue).
+const ASSIGNABLE_ROLES = [
+  "SALES_EXEC",
+  "SALES_HEAD",
+  "EVENT_COORDINATOR",
+  "ADMIN",
+  "SUPER_ADMIN",
+];
+
+// Returns true if the id is a real, active, assignable user.
+async function isAssignableUser(userId: string): Promise<boolean> {
+  if (!userId) return false;
+  const u = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true, isActive: true },
+  });
+  return !!u && u.isActive && ASSIGNABLE_ROLES.includes(u.role);
+}
+
+// Round-robin over a rule's team, advancing past members who are no longer
+// active/assignable. Persists the index actually used so the rotation stays fair
+// and returns the chosen id, or null if the whole pool is non-assignable.
+async function pickRoundRobinAssignee(rule: {
+  id: string;
+  assignToTeam: string[];
+  lastAssignedIdx: number;
+}): Promise<string | null> {
+  const team = rule.assignToTeam;
+  if (team.length === 0) return null;
+  for (let step = 1; step <= team.length; step++) {
+    const idx = (rule.lastAssignedIdx + step) % team.length;
+    const candidate = team[idx];
+    if (await isAssignableUser(candidate)) {
+      await prisma.assignmentRule.update({
+        where: { id: rule.id },
+        data: { lastAssignedIdx: idx },
+      });
+      return candidate;
+    }
+  }
+  return null;
+}
+
 // Internal function — called by authenticated lead creation actions
 export async function evaluateAssignmentRules(
   leadData: Record<string, unknown>
@@ -267,7 +314,13 @@ export async function evaluateAssignmentRules(
 
       if (allMatch) {
         if (rule.assignmentMethod === "DIRECT" && rule.assignToUserId) {
-          return rule.assignToUserId;
+          // Skip a deactivated/role-changed direct assignee so the lead falls
+          // through to the next rule / capture's fallbacks instead of landing
+          // in a dead queue.
+          if (await isAssignableUser(rule.assignToUserId)) {
+            return rule.assignToUserId;
+          }
+          continue;
         }
 
         // SMART: pick the available, lightest-loaded, best-matched rep from the
@@ -307,27 +360,16 @@ export async function evaluateAssignmentRules(
           }
           // SMART miss → graceful ROUND_ROBIN over the same candidate pool.
           if (rule.assignToTeam.length > 0) {
-            const nextIdx = (rule.lastAssignedIdx + 1) % rule.assignToTeam.length;
-            const assigneeId = rule.assignToTeam[nextIdx];
-            await prisma.assignmentRule.update({
-              where: { id: rule.id },
-              data: { lastAssignedIdx: nextIdx },
-            });
-            return assigneeId;
+            const picked = await pickRoundRobinAssignee(rule);
+            if (picked) return picked;
           }
         }
 
         if (rule.assignmentMethod === "ROUND_ROBIN" && rule.assignToTeam.length > 0) {
-          const nextIdx = (rule.lastAssignedIdx + 1) % rule.assignToTeam.length;
-          const assigneeId = rule.assignToTeam[nextIdx];
-
-          // Update the round-robin index
-          await prisma.assignmentRule.update({
-            where: { id: rule.id },
-            data: { lastAssignedIdx: nextIdx },
-          });
-
-          return assigneeId;
+          const picked = await pickRoundRobinAssignee(rule);
+          if (picked) return picked;
+          // No assignable member in the pool → fall through to the next rule.
+          continue;
         }
       }
     }

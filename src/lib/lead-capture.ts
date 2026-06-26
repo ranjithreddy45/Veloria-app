@@ -143,29 +143,81 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
     }
 
     // Create the lead — stamp the speed-to-lead SLA clock on capture.
-    const lead = await prisma.lead.create({
-      data: {
-        title: `${data.source} Lead — ${firstName} ${lastName}`.trim(),
-        description: [
-          data.message || `Auto-captured from ${data.source}`,
-          externalId ? externalIdMarker(externalId) : null,
-        ]
-          .filter(Boolean)
-          .join(" "),
-        status: "NEW",
-        source: mapSource(data.source) as any,
-        score,
-        eventType: data.eventType || null,
-        eventDate: data.eventDate ? new Date(data.eventDate) : null,
-        guestCount: data.guestCount || null,
-        estimatedValue,
-        preferredVenueId: data.venueId || null,
-        firstContactDue: leadSlaDeadline(),
-        contactId: contact.id,
-        assignedToId,
-        createdById: await getSystemUserId(),
-      },
-    });
+    //
+    // Idempotency under concurrent webhook redelivery: the pre-check above is a
+    // non-atomic find, so two parallel deliveries of the same externalId can both
+    // miss it and both reach here. We re-check the marker inside a Serializable
+    // transaction and create atomically; concurrent inserts for the same id then
+    // conflict (write-skew), one transaction aborts, and we fall back to returning
+    // the row the winner created instead of duplicating the lead + side effects.
+    const systemUserId = await getSystemUserId();
+    let lead: { id: string; contactId: string | null } & Record<string, any>;
+    try {
+      const created = await prisma.$transaction(
+        async (tx) => {
+          if (externalId) {
+            const dup = await tx.lead.findFirst({
+              where: { description: { contains: externalIdMarker(externalId) } },
+              select: { id: true, contactId: true },
+            });
+            if (dup) return { tag: "existing" as const, row: dup };
+          }
+          const row = await tx.lead.create({
+            data: {
+              title: `${data.source} Lead — ${firstName} ${lastName}`.trim(),
+              description: [
+                data.message || `Auto-captured from ${data.source}`,
+                externalId ? externalIdMarker(externalId) : null,
+              ]
+                .filter(Boolean)
+                .join(" "),
+              status: "NEW",
+              source: mapSource(data.source) as any,
+              score,
+              eventType: data.eventType || null,
+              eventDate: data.eventDate ? new Date(data.eventDate) : null,
+              guestCount: data.guestCount || null,
+              estimatedValue,
+              preferredVenueId: data.venueId || null,
+              firstContactDue: leadSlaDeadline(),
+              contactId: contact.id,
+              assignedToId,
+              createdById: systemUserId,
+            },
+          });
+          return { tag: "created" as const, row };
+        },
+        { isolationLevel: "Serializable" }
+      );
+
+      if (created.tag === "existing") {
+        return {
+          success: true,
+          leadId: created.row.id,
+          contactId: created.row.contactId,
+          deduped: true,
+        };
+      }
+      lead = created.row;
+    } catch (txErr) {
+      // A serialization conflict means a concurrent delivery for the same
+      // externalId won the race — return its row instead of duplicating.
+      if (externalId) {
+        const winner = await prisma.lead.findFirst({
+          where: { description: { contains: externalIdMarker(externalId) } },
+          select: { id: true, contactId: true },
+        });
+        if (winner) {
+          return {
+            success: true,
+            leadId: winner.id,
+            contactId: winner.contactId,
+            deduped: true,
+          };
+        }
+      }
+      throw txErr;
+    }
 
     // First-touch marketing attribution (best-effort; helper swallows errors).
     // Awaited so the campaign linkage isn't dropped on a serverless freeze.

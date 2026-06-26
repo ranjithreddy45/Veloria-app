@@ -159,7 +159,11 @@ export async function acknowledgeAnomaly(alertId: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
-    if (!hasPermission(session.user.role as string, "ai:use")) {
+    // Triage (acknowledge/resolve) must use the same gate family as the
+    // anomaly READ path and the /analytics/anomalies route (analytics:read).
+    // Gating on the unrelated ai:use left the buttons dead for read-only roles
+    // (e.g. AUDITOR) that can open the page and see the controls.
+    if (!hasPermission(session.user.role as string, "analytics:read")) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
@@ -207,7 +211,8 @@ export async function resolveAnomaly(alertId: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
-    if (!hasPermission(session.user.role as string, "ai:use")) {
+    // Same gate as acknowledge / read: analytics:read, not the unrelated ai:use.
+    if (!hasPermission(session.user.role as string, "analytics:read")) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 

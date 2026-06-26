@@ -426,14 +426,30 @@ export async function submitVendorBid(data: VendorPortalBidInput) {
 
     const bidData = parsed.data;
 
-    // Verify booking exists
-    const booking = await prisma.booking.findUnique({
-      where: { id: bidData.bookingId },
+    // Verify booking exists AND is in a biddable state (mirror the read-path
+    // guard in getAvailableBookingsForBid — the mutating action must not trust
+    // the client-supplied bookingId for state/date).
+    const booking = await prisma.booking.findFirst({
+      where: {
+        id: bidData.bookingId,
+        status: { in: ["CONFIRMED", "IN_PROGRESS", "HOLD", "TENTATIVE"] },
+        date: { gte: new Date() },
+      },
       select: { id: true, bookingNumber: true, eventName: true },
     });
 
     if (!booking) {
-      return { success: false as const, error: "Booking not found" };
+      return { success: false as const, error: "This booking is not open for bids" };
+    }
+
+    // Dedup guard: one active bid per vendor per booking (no DB unique
+    // constraint by design, so guard in code).
+    const existingBid = await prisma.vendorBid.findFirst({
+      where: { bookingId: bidData.bookingId, vendorId: vendor.id },
+      select: { id: true },
+    });
+    if (existingBid) {
+      return { success: false as const, error: "You have already bid on this booking" };
     }
 
     const bid = await prisma.vendorBid.create({

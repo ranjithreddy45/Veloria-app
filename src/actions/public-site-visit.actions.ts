@@ -177,10 +177,13 @@ export async function submitVisitBooking(
   try {
     // (d) Dedup guard: same phone + same exact slot created very recently → hand
     // back the existing token instead of re-minting a lead + re-sending WhatsApp
-    // (spam / cost protection). Match on normalized phone tail.
+    // (spam / cost protection). Match on EXACT normalized-phone equality — a
+    // `contains` substring match could collide with a different customer whose
+    // stored phone merely ends with these digits and leak THEIR manage token.
+    // createSiteVisitBooking stores the same normalized value, so exact is right.
     const recent = await prisma.siteVisitBooking.findFirst({
       where: {
-        customerPhone: { contains: normPhone },
+        customerPhone: normPhone,
         scheduledAt,
         status: { notIn: ["CANCELLED"] },
         createdAt: { gte: new Date(Date.now() - 10 * 60 * 1000) },

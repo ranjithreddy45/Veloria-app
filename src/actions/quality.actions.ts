@@ -195,6 +195,16 @@ async function countCtq(
 
     case "handover-snag": {
       const base = { createdAt: { gte: start, lt: end } };
+      // Point-in-time "still open" as of period-end: a snag counts as open at
+      // `asOf` if it was either never verified-closed, or only verified-closed
+      // *after* asOf. Using `now`/unbounded status here (the previous code)
+      // over-counted historical months — a snag that became overdue or was
+      // still open *today* was charged against the past month even if it had
+      // been fine at that month's end. This mirrors the asOf semantics of the
+      // other CTQs (lead-sla, payment-punctuality, task-on-time).
+      const openAsOf = {
+        OR: [{ verifiedAt: null }, { verifiedAt: { gt: asOf } }],
+      };
       const [units, defects] = await Promise.all([
         prisma.projectSnag.count({ where: base }),
         prisma.projectSnag.count({
@@ -204,14 +214,14 @@ async function countCtq(
               { status: "REOPENED" },
               {
                 AND: [
-                  { status: { not: "VERIFIED_CLOSED" } },
-                  { dueDate: { not: null, lt: now } },
+                  openAsOf,
+                  { dueDate: { not: null, lt: asOf } },
                 ],
               },
               {
                 AND: [
                   { severity: "CRITICAL" },
-                  { status: { not: "VERIFIED_CLOSED" } },
+                  openAsOf,
                 ],
               },
             ],

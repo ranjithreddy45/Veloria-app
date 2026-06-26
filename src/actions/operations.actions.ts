@@ -19,9 +19,10 @@ import {
   type AssignOperationVendorInput,
 } from "@/schemas/operations.schema";
 import { serialize } from "@/lib/utils";
-import { assertTransition } from "@/lib/ops/state-machine";
+import { assertTransition, computeOperationReadiness } from "@/lib/ops/state-machine";
 import { logActivity } from "@/lib/activity-logger";
 import { notify } from "@/lib/notify";
+import { randomUUID } from "crypto";
 import type { Prisma } from "@prisma/client";
 
 // ============================================================
@@ -235,6 +236,22 @@ export async function updateOperation(
     if (updateData.status !== undefined && updateData.status !== existing.status) {
       const gate = assertTransition("operation", existing.status, updateData.status);
       if (!gate.ok) return { success: false as const, error: gate.error! };
+
+      // Required readiness gates must clear before an operation can go LIVE.
+      // SUPER_ADMIN may override (matches the app-wide override pattern).
+      if (updateData.status === "LIVE" && session.user.role !== "SUPER_ADMIN") {
+        const readiness = await computeOperationReadiness(existing.id);
+        if (readiness && !readiness.canGoLive) {
+          const blocking = readiness.gates
+            .filter((g) => g.required && !g.ready)
+            .map((g) => g.label)
+            .join(", ");
+          return {
+            success: false as const,
+            error: `Cannot go LIVE — readiness gates still blocking: ${blocking || "required gates incomplete"}.`,
+          };
+        }
+      }
     }
 
     const operation = await prisma.eventOperation.update({
@@ -565,10 +582,28 @@ export async function assignVendor(
       return { success: false as const, error: "Booking vendor not found" };
     }
 
+    // Guard against assigning the same booking-vendor to this operation twice.
+    const duplicate = await prisma.operationVendorAssignment.findFirst({
+      where: { operationId, bookingVendorId: vendorData.bookingVendorId },
+      select: { id: true },
+    });
+    if (duplicate) {
+      return {
+        success: false as const,
+        error: "This vendor is already assigned to the operation.",
+      };
+    }
+
     const assignment = await prisma.operationVendorAssignment.create({
       data: {
         operationId,
         bookingVendorId: vendorData.bookingVendorId,
+        // Mint a respondToken + NOTIFIED status (mirrors provision.ts) so the
+        // confirm/decline/remind lifecycle and the /vendor-confirm link apply to
+        // manually-assigned vendors — otherwise the "Vendors confirmed" readiness
+        // gate would be pinned to blocking forever with no path to clear it.
+        status: "NOTIFIED",
+        respondToken: randomUUID().replace(/-/g, ""),
         arrivalTime: vendorData.arrivalTime || null,
         setupTime: vendorData.setupTime || null,
         teardownTime: vendorData.teardownTime || null,

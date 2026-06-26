@@ -10,6 +10,7 @@ import {
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
 import { hasPermission } from "@/lib/permissions";
+import { utcDayRange } from "@/lib/sales/slot-util";
 
 // ============================================================
 // Get Venue Hierarchy
@@ -214,8 +215,11 @@ export async function getCoordinatedSchedule(venueIds: string[], date: Date) {
       };
     }
 
-    const bookingDate = new Date(parsed.data.date);
-    bookingDate.setHours(0, 0, 0, 0);
+    // Booking.date / BlackoutDate.date are @db.Date (UTC-midnight). Query a UTC
+    // day window [gte, lt) and post-filter by getUTCDate() — a local-midnight
+    // exact-equality (`date: bookingDate`) matches nothing on non-UTC hosts and
+    // would silently report a fully-booked date as FREE. Mirrors checkAvailability.
+    const { gte: dayGte, lt: dayLt, utcDay } = utcDayRange(new Date(parsed.data.date));
 
     // Fetch all venues with their details
     const venues = await prisma.venue.findMany({
@@ -224,10 +228,10 @@ export async function getCoordinatedSchedule(venueIds: string[], date: Date) {
     });
 
     // Fetch all bookings for the given venues on the given date
-    const bookings = await prisma.booking.findMany({
+    const bookingsRaw = await prisma.booking.findMany({
       where: {
         venueId: { in: parsed.data.venueIds },
-        date: bookingDate,
+        date: { gte: dayGte, lt: dayLt },
         status: { notIn: ["CANCELLED"] },
       },
       select: {
@@ -237,21 +241,29 @@ export async function getCoordinatedSchedule(venueIds: string[], date: Date) {
         timeSlot: true,
         venueId: true,
         venueGroupId: true,
+        date: true,
       },
     });
+    const bookings = bookingsRaw.filter(
+      (b) => new Date(b.date).getUTCDate() === utcDay
+    );
 
     // Fetch blackout dates for the given venues on the given date
-    const blackouts = await prisma.blackoutDate.findMany({
+    const blackoutsRaw = await prisma.blackoutDate.findMany({
       where: {
         venueId: { in: parsed.data.venueIds },
-        date: bookingDate,
+        date: { gte: dayGte, lt: dayLt },
       },
       select: {
         venueId: true,
         timeSlot: true,
         reason: true,
+        date: true,
       },
     });
+    const blackouts = blackoutsRaw.filter(
+      (b) => new Date(b.date).getUTCDate() === utcDay
+    );
 
     // Build availability map per venue
     const schedule = venues.map((venue) => {

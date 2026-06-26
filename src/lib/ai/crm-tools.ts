@@ -1073,18 +1073,33 @@ async function moveDealStageTool(
     prisma.deal.findUnique({ where: { id: dealId }, select: { id: true, title: true } }),
     prisma.pipelineStage.findFirst({
       where: { name: { contains: stageName, mode: "insensitive" } },
-      select: { id: true, name: true, isWonStage: true },
+      select: { id: true, name: true, isWonStage: true, isLostStage: true },
     }),
   ]);
   if (!deal) return JSON.stringify({ error: "Deal not found." });
   if (!stage) return JSON.stringify({ error: `No pipeline stage matched "${stageName}".` });
 
+  // Mirror the canonical pipeline.moveDeal side effects (pipeline.actions.ts):
+  // set wonDate/lostDate for won/lost stages and clear the stale opposite, so
+  // AI-moved deals don't linger as "active" (wonDate: null, lostDate: null) and
+  // skew the ai-scoring cron and pipeline/ROAS analytics.
+  const dealUpdate: Record<string, unknown> = { stageId: stage.id };
+  if (stage.isWonStage) {
+    dealUpdate.wonDate = new Date();
+    dealUpdate.lostDate = null;
+    dealUpdate.lostReason = null;
+  } else if (stage.isLostStage) {
+    dealUpdate.lostDate = new Date();
+    dealUpdate.wonDate = null;
+  } else {
+    dealUpdate.wonDate = null;
+    dealUpdate.lostDate = null;
+    dealUpdate.lostReason = null;
+  }
+
   await prisma.deal.update({
     where: { id: dealId },
-    data: {
-      stageId: stage.id,
-      ...(stage.isWonStage ? { wonDate: new Date() } : {}),
-    },
+    data: dealUpdate,
   });
 
   logActivity({

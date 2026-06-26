@@ -8,7 +8,10 @@ import { KraDetail } from "../_components/kra-detail";
 
 export const metadata: Metadata = { title: "KRA Scorecard" };
 
-const MANAGER_ROLES = ["SUPER_ADMIN", "ADMIN", "BD_HEAD", "HR_MANAGER"];
+// Must match KRA_MANAGE_ROLES in src/actions/kra.actions.ts — the server action
+// authorizes SALES_HEAD to manage scorecards, so the UI must surface the
+// manager controls for it too (single source of truth for the evaluator seat).
+const MANAGER_ROLES = ["SUPER_ADMIN", "ADMIN", "BD_HEAD", "SALES_HEAD", "HR_MANAGER"];
 
 export default async function KraScorecardDetailPage({
   params,

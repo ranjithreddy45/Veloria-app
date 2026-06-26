@@ -233,7 +233,10 @@ export async function updateExecutionTaskStatus(
 
     const existing = await prisma.executionTask.findUnique({
       where: { id: taskId },
-      include: { phase: { include: { plan: { select: { bookingId: true } } } } },
+      include: {
+        phase: { include: { plan: { select: { bookingId: true } } } },
+        proofs: true,
+      },
     });
 
     if (!existing) {
@@ -249,7 +252,19 @@ export async function updateExecutionTaskStatus(
       statusUpdates.actualStart = new Date();
     }
     if (status === "COMPLETED") {
+      // Mirror completeTask() sign-off gates so this path cannot bypass them.
+      if (existing.requiresProof && existing.proofs.length === 0) {
+        return {
+          success: false as const,
+          error: "Task requires proof before it can be completed",
+        };
+      }
       statusUpdates.actualEnd = new Date();
+      // Completion of an approval-required task must re-enter the approval
+      // workflow (approveTask sets isApproved=true) rather than stay approved.
+      if (existing.requiresApproval) {
+        statusUpdates.isApproved = false;
+      }
     }
     if (status === "DELAYED" || status === "BLOCKED") {
       statusUpdates.delayReason = delayReason || null;

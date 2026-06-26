@@ -1,8 +1,40 @@
 "use server";
 
 import { auth } from "@/../auth";
+import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
+import { isValidCronSecret } from "@/lib/cron-auth";
+
+/**
+ * Authorize a caller for the destructive trash-purge operation. As a top-level
+ * export of a "use server" module, purgeOldTrash is independently dispatchable
+ * by any client, so it must enforce its own gate rather than trust the cron
+ * route. Allow either the trusted cron path (a valid CRON_SECRET on the
+ * in-process request) or an authenticated session with leads:delete (same gate
+ * as the sibling getTrash). Using the request authorization header keeps the
+ * existing no-arg cron call working without changing its call site.
+ */
+async function authorizePurge(): Promise<
+  { ok: true } | { ok: false; error: string }
+> {
+  try {
+    const h = await headers();
+    if (isValidCronSecret(h.get("authorization"))) {
+      return { ok: true };
+    }
+  } catch {
+    // headers() can throw outside a request scope — fall through to session auth.
+  }
+  const session = await auth();
+  if (!session?.user) {
+    return { ok: false, error: "Unauthorized" };
+  }
+  if (!hasPermission(session.user.role as string, "leads:delete")) {
+    return { ok: false, error: "Insufficient permissions" };
+  }
+  return { ok: true };
+}
 
 export interface TrashItem {
   id: string;
@@ -107,12 +139,23 @@ export async function getTrash(): Promise<{
  * quote, or a contact with leads/bookings/invoices, is left in trash and
  * surfaced via `skipped` so an admin can resolve it. This avoids the cron
  * crashing on a foreign-key violation mid-batch.
+ *
+ * AUTH: this is a top-level "use server" export, so it is independently
+ * dispatchable by any client and MUST gate itself. The cron route is trusted
+ * via its CRON_SECRET request header; interactive callers are authorized via
+ * session + leads:delete.
  */
 export async function purgeOldTrash(): Promise<{
   leadsPurged: number;
   contactsPurged: number;
   skipped: number;
+  error?: string;
 }> {
+  const authz = await authorizePurge();
+  if (!authz.ok) {
+    return { leadsPurged: 0, contactsPurged: 0, skipped: 0, error: authz.error };
+  }
+
   const cutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000);
   let leadsPurged = 0;
   let contactsPurged = 0;

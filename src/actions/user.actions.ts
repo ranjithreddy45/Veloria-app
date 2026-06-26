@@ -213,6 +213,28 @@ export async function updateUser(
       if (!isAssignableRole(data.role)) {
         return { success: false as const, error: "Invalid role" };
       }
+
+      // Cannot demote the last active SUPER_ADMIN: moving the only super-admin
+      // out of SUPER_ADMIN irreversibly loses manage-roles (no in-app recovery).
+      // Mirrors the last-super-admin guard in toggleUserActive.
+      if (data.role !== "SUPER_ADMIN") {
+        const target = await prisma.user.findUnique({
+          where: { id },
+          select: { role: true, isActive: true },
+        });
+        if (target?.role === "SUPER_ADMIN" && target.isActive) {
+          const superAdminCount = await prisma.user.count({
+            where: { role: "SUPER_ADMIN", isActive: true },
+          });
+          if (superAdminCount <= 1) {
+            return {
+              success: false as const,
+              error: "Cannot demote the last Super Admin",
+            };
+          }
+        }
+      }
+
       updateData.role = data.role;
     }
 

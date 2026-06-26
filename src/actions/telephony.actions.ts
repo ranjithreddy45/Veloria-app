@@ -197,6 +197,12 @@ export async function initiateCall(input: InitiateCallInput) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    // Placing a real, billable outbound call is a communications mutation —
+    // gate it on the same permission as logCall (communications:create).
+    if (!hasPermission(session.user.role, "communications:create")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const parsed = initiateCallSchema.safeParse(input);
     if (!parsed.success) {
       return { success: false as const, error: parsed.error.issues[0]?.message ?? "Validation failed" };

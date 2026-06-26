@@ -359,13 +359,37 @@ export async function approveAcqDeal(dealId: string): Promise<Result<{ id: strin
   if (!deal.model) {
     return { success: false, error: "Set the deal model and commercials before approving." };
   }
+
+  // When the BD Head approves a high-value deal (>= ₹15L projected fee), the same
+  // approval also records the dedicated large-deal Won sign-off (largeDealSignoffById).
+  // This is what makes the large-deal Won gate reachable: "approve" is the only
+  // BD-Head-only governance control wired into the deal UI, and the segregation-of-duties
+  // check above already guarantees the approver is not the deal owner. The two gate
+  // fields stay distinct in the schema/state-machine — we simply stamp both from the one
+  // authorized BD-Head action so a >= ₹15L deal can actually progress to Won.
+  const cfg = await getAcqConfig();
+  const isLargeDeal =
+    deal.projectedFeeValue != null &&
+    Number(deal.projectedFeeValue) >= cfg.LARGE_DEAL_SIGNOFF_VALUE;
+
   await prisma.acqDeal.update({
     where: { id: dealId },
-    data: { bdHeadApprovedById: user.id, bdHeadApprovedAt: new Date() },
+    data: {
+      bdHeadApprovedById: user.id,
+      bdHeadApprovedAt: new Date(),
+      ...(isLargeDeal && !deal.largeDealSignoffById
+        ? { largeDealSignoffById: user.id, largeDealSignoffAt: new Date() }
+        : {}),
+    },
   });
   await prisma.acqDealNote.create({
     data: { dealId, noteType: "CHANGE_LOG", body: "BD Head approved the deal commercials.", authorId: user.id },
   });
+  if (isLargeDeal && !deal.largeDealSignoffById) {
+    await prisma.acqDealNote.create({
+      data: { dealId, noteType: "CHANGE_LOG", body: "BD Head signed off the large deal for Won.", authorId: user.id },
+    });
+  }
   revalidatePath(`/bd/deals/${dealId}`);
   revalidatePath("/bd/dashboard");
   return { success: true, data: { id: dealId } };

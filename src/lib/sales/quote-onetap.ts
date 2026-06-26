@@ -29,6 +29,7 @@ import {
 } from "@/lib/sales/quotation-calc";
 import { SLOT_LABEL, plannerSlotToEnum, type TimeSlotEnum } from "@/lib/sales/slot";
 import { utcDayRange } from "@/lib/sales/slot-util";
+import { reportSystemFailure } from "@/lib/ops-alert";
 import { generateBookingNumber } from "@/actions/booking.actions";
 import { maybeConfirmBookingOnPayment } from "@/lib/sales/confirm-booking";
 import { getSystemUserId } from "@/lib/lead-capture";
@@ -540,7 +541,18 @@ export async function finalizeOneTapBlock(
         await prisma.invoice.update({ where: { id: invId }, data: { bookingId } });
         await maybeConfirmBookingOnPayment(invId);
       } catch (e) {
+        // The advance is already captured and the HOLD booking exists, but
+        // linking/confirming failed — the customer paid yet the slot isn't
+        // confirmed. Don't fail silently: alert ops to confirm manually. (The
+        // payment webhook re-invokes finalizeOneTapBlock, which hits the
+        // idempotent "already booked → confirm" branch and retries the confirm.)
         console.error("[FINALIZE_ONETAP_CONFIRM_ERROR]", e);
+        void reportSystemFailure({
+          area: "One-tap booking",
+          title: "Paid one-tap booking stuck in HOLD",
+          detail: `Booking ${bookingId} (invoice ${invId}) was created + paid but auto-confirm failed: ${e instanceof Error ? e.message : "unknown"}. Confirm it manually.`,
+          actionUrl: `/bookings/${bookingId}`,
+        });
       }
     }
 

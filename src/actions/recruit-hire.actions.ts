@@ -98,6 +98,22 @@ export async function createEmployeeFromCandidate(
     }
   }
 
+  // Email-independent idempotency guard. RecCandidate has no employeeId link,
+  // so for candidates with no email (referral/phone) we fall back to the
+  // recruitment-source marker this action writes into Employee.notes below
+  // ("...recruitment candidate <id>."). Without this, every click of the
+  // "Create employee" button would insert a brand-new Employee, since neither
+  // the email dedupe above nor createEmployee's own (workEmail-gated) dedupe
+  // fires when the candidate has no email.
+  const sourceMarker = `recruitment candidate ${candidateId}`;
+  const dup = await prisma.employee.findFirst({
+    where: { deletedAt: null, notes: { contains: sourceMarker } },
+    select: { id: true },
+  });
+  if (dup) {
+    return { success: true, data: { employeeId: dup.id, created: false } };
+  }
+
   // --- Resolve the legal entity. Candidate.entityId holds a LegalEntity
   // shortCode (e.g. "BILLION"); fall back to the first active entity.
   const entity =

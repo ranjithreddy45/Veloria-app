@@ -181,9 +181,20 @@ export async function setTicketStatus(ticketId: string, status: string): Promise
   if (!agent && t.requesterId !== u.id) return { success: false, error: "Not authorized." };
   if (!agent && !["CLOSED", "OPEN"].includes(status)) return { success: false, error: "Only an agent can set that status." };
 
+  // Stamp resolvedAt when entering RESOLVED; clear it on any reopen so a
+  // reopened (or re-resolved) ticket never keeps a stale resolution time.
+  // CLOSED preserves the existing resolvedAt (undefined = leave unchanged).
   await prisma.helpdeskTicket.update({
     where: { id: ticketId },
-    data: { status: status as Prisma.HelpdeskTicketUpdateInput["status"], resolvedAt: status === "RESOLVED" ? new Date() : undefined },
+    data: {
+      status: status as Prisma.HelpdeskTicketUpdateInput["status"],
+      resolvedAt:
+        status === "RESOLVED"
+          ? new Date()
+          : status === "OPEN" || status === "IN_PROGRESS" || status === "WAITING"
+            ? null
+            : undefined,
+    },
   });
   revalidatePath(`/people/helpdesk/${ticketId}`);
   revalidatePath("/people/helpdesk");

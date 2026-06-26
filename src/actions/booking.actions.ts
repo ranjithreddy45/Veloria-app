@@ -544,7 +544,14 @@ export async function createBooking(data: BookingInput) {
       actionUrl: `/bookings/${booking.id}`,
     });
 
-    // Fire-and-forget: Send booking confirmation email
+    // Fire-and-forget: Send booking email.
+    // A freshly-created booking is on HOLD (unpaid). Sending the hard
+    // "Booking Confirmed" email here would falsely tell the customer their
+    // slot is locked before any advance has cleared — and would duplicate the
+    // confirmation that maybeConfirmBookingOnPayment sends once the advance
+    // lands. So only send the confirmation template when the booking is
+    // actually CONFIRMED; otherwise send a tentative "hold / pending advance"
+    // notice. maybeConfirmBookingOnPayment owns the real confirmation.
     if (booking.contact) {
       const contactEmail = await prisma.contact.findUnique({
         where: { id: bookingData.contactId },
@@ -557,22 +564,44 @@ export async function createBooking(data: BookingInput) {
           select: { name: true },
         });
 
-        sendEmail({
-          to: contactEmail.email,
-          subject: `Booking Confirmed — ${booking.bookingNumber}`,
-          html: bookingConfirmationEmail({
-            contactName: `${booking.contact.firstName} ${booking.contact.lastName}`,
-            bookingNumber: booking.bookingNumber,
-            eventName: bookingData.eventName,
-            eventType: bookingData.eventType,
-            date: format(bookingDate, "dd MMM yyyy"),
-            timeSlot: bookingData.timeSlot,
-            venueName: venueForEmail?.name || "Venue",
-            guestCount: bookingData.guestCount,
-            totalAmount: formatINR(bookingData.totalAmount),
-            specialRequests: bookingData.specialRequests,
-          }),
-        }).catch((err) => console.error("[BOOKING_EMAIL_ERROR]", err));
+        const contactName = `${booking.contact.firstName} ${booking.contact.lastName}`;
+        const venueName = venueForEmail?.name || "Venue";
+
+        if (booking.status === "CONFIRMED") {
+          sendEmail({
+            to: contactEmail.email,
+            subject: `Booking Confirmed — ${booking.bookingNumber}`,
+            html: bookingConfirmationEmail({
+              contactName,
+              bookingNumber: booking.bookingNumber,
+              eventName: bookingData.eventName,
+              eventType: bookingData.eventType,
+              date: format(bookingDate, "dd MMM yyyy"),
+              timeSlot: bookingData.timeSlot,
+              venueName,
+              guestCount: bookingData.guestCount,
+              totalAmount: formatINR(bookingData.totalAmount),
+              specialRequests: bookingData.specialRequests,
+            }),
+          }).catch((err) => console.error("[BOOKING_EMAIL_ERROR]", err));
+        } else {
+          // Tentative HOLD notice — explicitly NOT a confirmation.
+          sendEmail({
+            to: contactEmail.email,
+            subject: `Booking Received (Pending Advance) — ${booking.bookingNumber}`,
+            html: `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#18181b;">
+  <h2 style="font-size:20px;font-weight:600;margin:0 0 8px;">We've received your booking request</h2>
+  <p style="color:#52525b;font-size:14px;line-height:1.6;margin:0 0 16px;">
+    Dear ${contactName},<br/>
+    Your booking <strong>${booking.bookingNumber}</strong> for <strong>${bookingData.eventName}</strong> on <strong>${format(bookingDate, "dd MMM yyyy")}</strong> at <strong>${venueName}</strong> is currently on a tentative hold.
+  </p>
+  <p style="color:#52525b;font-size:14px;line-height:1.6;margin:0 0 16px;">
+    The slot is <strong>not yet confirmed</strong>. To lock it in your name, please pay the advance. We'll send a confirmation as soon as your advance clears.
+  </p>
+  <p style="color:#a1a1aa;font-size:12px;margin:16px 0 0;">This is an automated message. Please do not reply directly.</p>
+</div>`,
+          }).catch((err) => console.error("[BOOKING_HOLD_EMAIL_ERROR]", err));
+        }
       }
     }
 
@@ -1276,8 +1305,14 @@ export async function createBlackoutDate(data: {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
-    const blackoutDate = new Date(data.date);
-    blackoutDate.setHours(0, 0, 0, 0);
+    // Pin to UTC midnight of the input's UTC calendar day so the stored
+    // @db.Date day agrees with the availability scans (getUTCDate-bucketed) on
+    // any server timezone (a local setHours(0,0,0,0) shifts the day on non-UTC
+    // hosts → blackout lands on the wrong day). Mirrors createBooking.
+    const srcBlackout = new Date(data.date);
+    const blackoutDate = new Date(
+      Date.UTC(srcBlackout.getUTCFullYear(), srcBlackout.getUTCMonth(), srcBlackout.getUTCDate())
+    );
 
     const blackout = await prisma.blackoutDate.create({
       data: {

@@ -147,14 +147,20 @@ export async function creditReferrerOnConversion(
 
     // For POINTS partners, credit loyalty directly (replicating earnPoints'
     // $transaction since the auth-gated action cannot run from cron context).
+    // The credit is idempotent on referenceId: creditLoyaltyPoints guards
+    // against an existing EARNED txn for this referral/submission, so if the
+    // payout.create below fails and the cron retries, the points are NOT
+    // re-credited (the dedupe-row check above plus this referenceId guard both
+    // protect the loyalty balance).
+    const loyaltyReferenceId = input.referralId ?? input.submissionId ?? undefined;
     let loyaltyTransactionId: string | null = null;
-    if (points > 0 && partner.contactId) {
+    if (points > 0 && partner.contactId && loyaltyReferenceId) {
       try {
         loyaltyTransactionId = await creditLoyaltyPoints(
           partner.contactId,
           points,
           `Referral reward — converted booking${input.bookingId ? ` ${input.bookingId}` : ""}`,
-          input.referralId ?? input.submissionId ?? undefined,
+          loyaltyReferenceId,
         );
       } catch (e) {
         console.error("[referral.payout] loyalty credit failed", e);
@@ -194,12 +200,19 @@ export async function creditReferrerOnConversion(
  * Credit loyalty points to a contact's account in one transaction, mirroring
  * earnPoints (update points/totalEarned/tier + an EARNED LoyaltyTransaction).
  * Creates the account if missing. Returns the LoyaltyTransaction id.
+ *
+ * Idempotent on referenceId: before crediting, it checks (inside the same
+ * transaction) for an existing EARNED LoyaltyTransaction with this account +
+ * referenceId. If one is found the existing txn id is returned and NO new
+ * points are credited — so a cron retry (e.g. after the payout-row insert
+ * failed) never double-credits the referrer's balance. referenceId is required
+ * precisely so this guard is always meaningful.
  */
 async function creditLoyaltyPoints(
   contactId: string,
   points: number,
   description: string,
-  referenceId?: string,
+  referenceId: string,
 ): Promise<string> {
   return prisma.$transaction(async (tx) => {
     let account = await tx.loyaltyAccount.findUnique({
@@ -212,6 +225,15 @@ async function creditLoyaltyPoints(
         select: { id: true, points: true, totalEarned: true },
       });
       account = created;
+    }
+
+    // Idempotency guard: skip if this referral/submission was already credited.
+    const existingTxn = await tx.loyaltyTransaction.findFirst({
+      where: { accountId: account.id, referenceId, type: "EARNED" },
+      select: { id: true },
+    });
+    if (existingTxn) {
+      return existingTxn.id;
     }
 
     const newTotalEarned = account.totalEarned + points;
@@ -229,7 +251,7 @@ async function creditLoyaltyPoints(
         type: "EARNED",
         points,
         description,
-        referenceId: referenceId || null,
+        referenceId,
         accountId: account.id,
       },
       select: { id: true },

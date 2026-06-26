@@ -14,6 +14,26 @@ import { logActivity } from "@/lib/activity-logger";
 import { notify } from "@/lib/notify";
 
 // ============================================================
+// Expiry derivation: policies past their endDate are EXPIRED.
+// Status is a stored column (the list filters on it directly and the UI
+// exposes an EXPIRED filter), so we lazily persist the transition on read
+// rather than relying on a manual status change. Idempotent: only flips
+// ACTIVE rows whose endDate has passed; no-op once they are EXPIRED/CLAIMED.
+// ============================================================
+
+async function transitionExpiredPolicies(): Promise<void> {
+  try {
+    await prisma.insurancePolicy.updateMany({
+      where: { status: "ACTIVE", endDate: { lt: new Date() } },
+      data: { status: "EXPIRED" },
+    });
+  } catch (error) {
+    // Non-fatal: never block a read if the write-back fails.
+    console.error("[TRANSITION_EXPIRED_POLICIES_ERROR]", error);
+  }
+}
+
+// ============================================================
 // Get Insurance Policies (Filtered)
 // ============================================================
 
@@ -31,6 +51,8 @@ export async function getInsurancePolicies(filters?: {
     if (!hasPermission(session.user.role, "insurance:read")) {
       return { success: false as const, error: "Insufficient permissions" };
     }
+
+    await transitionExpiredPolicies();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {};
@@ -422,6 +444,8 @@ export async function getExpiringPolicies(daysAhead: number = 30) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
+    await transitionExpiredPolicies();
+
     const now = new Date();
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + daysAhead);
@@ -465,6 +489,8 @@ export async function getInsuranceStats() {
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
     }
+
+    await transitionExpiredPolicies();
 
     const now = new Date();
     const thirtyDaysFromNow = new Date();

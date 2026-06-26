@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { maybeConfirmBookingOnPayment } from "@/lib/sales/confirm-booking";
 import { postPaymentReceived } from "@/lib/finance/receivables";
 import { reportSystemFailure } from "@/lib/ops-alert";
+import { allocateReceiptNumber } from "@/lib/finance/receipt-number";
+import { finalizeOneTapBlock } from "@/lib/sales/quote-onetap";
 
 /**
  * Allocate an invoice's cumulative paidAmount across its Installments,
@@ -72,20 +74,6 @@ export async function allocatePaidAmountToInstallments(
   }
 }
 
-// Prisma tx client type is broad; keep it loose to avoid importing internals.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function nextReceiptNumber(tx: any): Promise<string> {
-  const year = new Date().getFullYear();
-  const prefix = `RCP-${year}-`;
-  const last = await tx.payment.findFirst({
-    where: { receiptNumber: { startsWith: prefix } },
-    orderBy: { receiptNumber: "desc" },
-    select: { receiptNumber: true },
-  });
-  const lastNum = last?.receiptNumber ? parseInt(last.receiptNumber.split("-").pop() || "0", 10) : 0;
-  return `${prefix}${String(lastNum + 1).padStart(4, "0")}`;
-}
-
 export type CaptureResult =
   | { ok: true; invoiceId: string; alreadyProcessed: boolean }
   | { ok: false; error: string };
@@ -112,22 +100,20 @@ export async function applyRazorpayCapture(opts: {
     return { ok: true, invoiceId: payment.invoiceId, alreadyProcessed: true };
   }
 
-  // Allocate the RCP-YYYY-NNNN receipt number and apply the capture inside one
-  // transaction, wrapped in a retry loop: two concurrent captures can read the
-  // same max receiptNumber and mint a duplicate. On a P2002 unique violation we
-  // retry, re-reading the max (mirroring the booking-number pattern).
-  //
-  // NOTE: Payment.receiptNumber is NOT @unique in the schema (and per the task
-  // we don't add the constraint), so P2002 can't fire today — the in-transaction
-  // re-read narrows the window but cannot fully guarantee uniqueness under true
-  // concurrency; a @unique index would be required for that. The catch is kept
-  // so the retry resolves correctly if the column is later made unique.
+  // Allocate the RCP-YYYY-NNNN receipt number from the shared gapless
+  // FinSequence counter and apply the capture inside one transaction. The
+  // counter's atomic increment makes the number monotonic across BOTH the
+  // online (this) and manual payment paths, so duplicates can't occur. The
+  // retry loop is retained as defense-in-depth (resolves cleanly if a P2002
+  // ever fires, e.g. once receiptNumber is later made @unique).
   let credited: boolean | null = null;
   let lastErr: unknown = null;
   for (let attempt = 0; attempt < 5 && credited === null; attempt++) {
     try {
       credited = await prisma.$transaction(async (tx) => {
-        const receiptNumber = await nextReceiptNumber(tx);
+        // Allocate from the SHARED FinSequence counter — the same one the manual
+        // payment paths use — so online + manual receipts never collide.
+        const receiptNumber = await allocateReceiptNumber(tx);
         const flip = await tx.payment.updateMany({
           where: { id: payment.id, status: { not: "COMPLETED" } },
           data: {
@@ -178,5 +164,38 @@ export async function applyRazorpayCapture(opts: {
 
   // BookMyShow-style: confirm the held slot once the advance is covered.
   await maybeConfirmBookingOnPayment(payment.invoiceId);
+
+  // One-tap quote-share: the slot block + booking creation must NOT depend on
+  // the browser success handler running (the tab can close, or only Razorpay's
+  // server webhook fires). If this captured invoice is the pay-invoice of a
+  // QuoteShareLink, finalize server-side here. finalizeOneTapBlock is idempotent,
+  // so this is safe alongside the client path; on failure we ESCALATE so a paid
+  // customer is never silently left without a blocked slot.
+  try {
+    const link = await prisma.quoteShareLink.findFirst({
+      where: { payInvoiceId: payment.invoiceId, status: "ACTIVE" },
+      select: { id: true },
+    });
+    if (link) {
+      const fin = await finalizeOneTapBlock(link.id);
+      if (!fin.success && fin.error !== "SLOT_TAKEN") {
+        void reportSystemFailure({
+          area: "One-tap booking",
+          title: "Paid quote-share advance — slot not blocked",
+          detail: `Invoice ${payment.invoiceId} / link ${link.id}: ${fin.error}. Customer paid; block the slot manually.`,
+          actionUrl: "/quotations",
+        });
+      }
+    }
+  } catch (err) {
+    console.error("[ONETAP_WEBHOOK_FINALIZE_ERROR]", err);
+    void reportSystemFailure({
+      area: "One-tap booking",
+      title: "Paid quote-share advance — finalize threw",
+      detail: `Invoice ${payment.invoiceId}: ${err instanceof Error ? err.message : "unknown"}. Customer paid; block the slot manually.`,
+      actionUrl: "/quotations",
+    });
+  }
+
   return { ok: true, invoiceId: payment.invoiceId, alreadyProcessed: false };
 }

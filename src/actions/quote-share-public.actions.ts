@@ -232,6 +232,55 @@ export async function selectTier(
     if (!link.tiers.some((t) => t.quotationId === quotationId))
       return { success: false, error: "That option isn't available on this quote." };
 
+    const isSwitch = link.primaryQuotationId !== quotationId;
+
+    // Switching tiers before payment leaves the PREVIOUS tier's proforma minted
+    // and orphaned (its SalesQuotation.invoiceId + the link's payInvoiceId both
+    // point at a SENT invoice with full balanceDue). The daily GL reconciler
+    // sweeps any SENT/UNPAID invoice into AR as phantom revenue, so we must
+    // VOID/detach that old proforma — but only when it's safe: a real (non
+    // '__pending__') invoice that the customer has NOT paid against.
+    if (isSwitch && link.primaryQuotationId) {
+      const oldQuotationId = link.primaryQuotationId;
+      const oldQuote = await prisma.salesQuotation.findUnique({
+        where: { id: oldQuotationId },
+        select: { invoiceId: true },
+      });
+      const oldInvoiceId =
+        oldQuote?.invoiceId && oldQuote.invoiceId !== "__pending__"
+          ? oldQuote.invoiceId
+          : link.payInvoiceId && link.payInvoiceId !== "__pending__"
+            ? link.payInvoiceId
+            : null;
+      if (oldInvoiceId) {
+        const oldInvoice = await prisma.invoice.findUnique({
+          where: { id: oldInvoiceId },
+          select: {
+            status: true,
+            paidAmount: true,
+            payments: { where: { status: "COMPLETED" }, select: { id: true }, take: 1 },
+          },
+        });
+        // Only void an unpaid, not-already-settled proforma. If the customer
+        // paid (or it's PAID/PARTIALLY_PAID/CANCELLED/REFUNDED), leave it alone.
+        if (
+          oldInvoice &&
+          oldInvoice.status === "SENT" &&
+          oldInvoice.payments.length === 0 &&
+          Number(oldInvoice.paidAmount) <= 0
+        ) {
+          await prisma.invoice
+            .update({ where: { id: oldInvoiceId }, data: { status: "CANCELLED" } })
+            .catch((e) => console.error("[SELECT_TIER_VOID_OLD_INVOICE_ERROR]", e));
+          // Detach so re-selecting the old tier mints a fresh proforma rather
+          // than reusing the cancelled one.
+          await prisma.salesQuotation
+            .updateMany({ where: { id: oldQuotationId, invoiceId: oldInvoiceId }, data: { invoiceId: null } })
+            .catch((e) => console.error("[SELECT_TIER_DETACH_OLD_QUOTE_ERROR]", e));
+        }
+      }
+    }
+
     // Mark the selected tier, clear the others (idempotent on re-select). Also
     // re-point the link's primaryQuotationId at the chosen tier so the proforma
     // + the one-tap helper invoice the right snapshot.
@@ -251,7 +300,7 @@ export async function selectTier(
         // proforma is minted for the newly-chosen snapshot.
         data: {
           primaryQuotationId: quotationId,
-          ...(link.primaryQuotationId !== quotationId ? { payInvoiceId: null, paymentLinkUrl: null } : {}),
+          ...(isSwitch ? { payInvoiceId: null, paymentLinkUrl: null } : {}),
         },
       }),
     ]);

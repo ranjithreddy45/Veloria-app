@@ -696,26 +696,38 @@ export async function approveRequest(
     // the submitter notification / APPROVAL_COMPLETED log on the final step).
     // The transition mirrors advanceApprovalChain so behavior is unchanged; we
     // run only its post-transition side effects below, exactly once.
-    const claim = await prisma.approvalRequest.updateMany({
-      where: { id: requestId, currentStep: expectedStep, status: "PENDING_APPROVAL" },
-      data: isLastStep
-        ? { status: "APPROVED", resolvedAt: new Date() }
-        : { currentStep: nextStepOrder as number },
+    // Wrap the compare-and-set transition AND its decision/audit row in one
+    // transaction so a half-commit can't advance/approve the request while
+    // losing the corresponding decision record. notify/logActivity stay
+    // outside the transaction.
+    const claimCount = await prisma.$transaction(async (tx) => {
+      const claim = await tx.approvalRequest.updateMany({
+        where: { id: requestId, currentStep: expectedStep, status: "PENDING_APPROVAL" },
+        data: isLastStep
+          ? { status: "APPROVED", resolvedAt: new Date() }
+          : { currentStep: nextStepOrder as number },
+      });
+      if (claim.count === 0) {
+        return 0;
+      }
+
+      // Create the approval decision (only the winning writer reaches here)
+      await tx.approvalDecision.create({
+        data: {
+          action: "APPROVE",
+          comment: comment ?? null,
+          stepOrder: expectedStep,
+          requestId,
+          decidedById: session.user.id,
+        },
+      });
+
+      return claim.count;
     });
-    if (claim.count === 0) {
+
+    if (claimCount === 0) {
       return { success: false as const, error: "Request is no longer pending" };
     }
-
-    // Create the approval decision (only the winning writer reaches here)
-    await prisma.approvalDecision.create({
-      data: {
-        action: "APPROVE",
-        comment: comment ?? null,
-        stepOrder: expectedStep,
-        requestId,
-        decidedById: session.user.id,
-      },
-    });
 
     // Post-transition side effects (the state change itself already happened
     // atomically above, exactly once).
@@ -834,27 +846,38 @@ export async function rejectRequest(
     // (id, currentStep, status): only the first writer flips the request to
     // REJECTED; concurrent rejections / double-submits see count 0 and bail, so
     // the reject decision and the submitter notification fire exactly once.
-    const claim = await prisma.approvalRequest.updateMany({
-      where: { id: requestId, currentStep: expectedStep, status: "PENDING_APPROVAL" },
-      data: {
-        status: "REJECTED",
-        resolvedAt: new Date(),
-      },
+    // Wrap the compare-and-set transition AND its decision/audit row in one
+    // transaction so a half-commit can't reject the request while losing the
+    // corresponding decision record. notify/logActivity stay outside.
+    const claimCount = await prisma.$transaction(async (tx) => {
+      const claim = await tx.approvalRequest.updateMany({
+        where: { id: requestId, currentStep: expectedStep, status: "PENDING_APPROVAL" },
+        data: {
+          status: "REJECTED",
+          resolvedAt: new Date(),
+        },
+      });
+      if (claim.count === 0) {
+        return 0;
+      }
+
+      // Create the reject decision (only the winning writer reaches here)
+      await tx.approvalDecision.create({
+        data: {
+          action: "REJECT",
+          comment,
+          stepOrder: expectedStep,
+          requestId,
+          decidedById: session.user.id,
+        },
+      });
+
+      return claim.count;
     });
-    if (claim.count === 0) {
+
+    if (claimCount === 0) {
       return { success: false as const, error: "Request is no longer pending" };
     }
-
-    // Create the reject decision (only the winning writer reaches here)
-    await prisma.approvalDecision.create({
-      data: {
-        action: "REJECT",
-        comment,
-        stepOrder: expectedStep,
-        requestId,
-        decidedById: session.user.id,
-      },
-    });
 
     // Notify submitter
     notify({

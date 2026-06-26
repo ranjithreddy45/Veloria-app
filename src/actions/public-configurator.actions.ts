@@ -263,6 +263,39 @@ export async function priceAndCreateAdvanceLink(
       };
     }
 
+    // ATOMIC CLAIM before minting: guard on invoiceId still being null so two
+    // concurrent submits for the same token can't both pass the read-then-write
+    // idempotency check and mint two SENT advance invoices + two CRM leads.
+    // Mirrors the '__pending__' claim in quote-onetap.ts. The loser gets
+    // count===0, re-reads the draft, and returns the winner's link (or a
+    // try-again if the winner hasn't finished minting yet).
+    const claim = await prisma.publicQuoteDraft.updateMany({
+      where: { token, invoiceId: null },
+      data: { status: "PRICED" },
+    });
+    if (claim.count === 0) {
+      const fresh = await prisma.publicQuoteDraft.findUnique({
+        where: { token },
+        select: {
+          paymentLinkUrl: true,
+          invoiceId: true,
+          advanceAmount: true,
+          grandTotal: true,
+        },
+      });
+      if (fresh?.paymentLinkUrl && fresh.invoiceId) {
+        return {
+          success: true,
+          data: {
+            payUrl: fresh.paymentLinkUrl,
+            advanceAmount: Number(fresh.advanceAmount),
+            grandTotal: Number(fresh.grandTotal),
+          },
+        };
+      }
+      return { success: false, error: "We're preparing your payment link. Please try again in a moment." };
+    }
+
     // NEVER trust the client total: re-validate and RE-PRICE from stored inputs.
     const input = sanitizePublicInput(row.inputsJson as unknown as QuotationInput);
     const errs = validateQuotationInput(input);

@@ -15,12 +15,14 @@
 // segregation of duties.
 
 import { auth } from "@/../auth";
+import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
 import { hasPermission } from "@/lib/permissions";
+import { isValidCronSecret } from "@/lib/cron-auth";
 import {
   revenueShareConfigSchema,
   recomputePayoutSchema,
@@ -282,9 +284,14 @@ async function resolveActiveConfig(partnerId: string, venueId: string) {
 }
 
 /**
- * Internal core used by both the action and the cron route. Does NOT auth —
- * callers must gate. Idempotent: upserts on @@unique[partnerId,venueId,period]
- * and refuses to overwrite an APPROVED/PAID/CANCELLED payout.
+ * Internal core used by both the action and the cron route. Writes money rows,
+ * so as a top-level "use server" export it is independently dispatchable and
+ * MUST gate itself rather than trust callers. Authorizes via session +
+ * franchise:revshare (same gate as recomputePayoutForPeriod) and ignores any
+ * caller-supplied makerUserId in favour of the authenticated user's id, so the
+ * [maker:<id>] marker can't be forged to defeat maker-checker on approve.
+ * Idempotent: upserts on @@unique[partnerId,venueId,period] and refuses to
+ * overwrite an APPROVED/PAID/CANCELLED payout.
  */
 export async function recomputePayoutCore(
   input: RecomputePayoutInput,
@@ -294,6 +301,31 @@ export async function recomputePayoutCore(
   | { success: true; data: unknown; skipped: true; reason: string }
   | { success: false; error: string }
 > {
+  // Authorize: either the trusted cron path (valid CRON_SECRET on the in-process
+  // request) or an interactive user holding franchise:revshare. This closes the
+  // standalone server-action endpoint while keeping the cron caller working.
+  let cronAuthorized = false;
+  try {
+    const h = await headers();
+    cronAuthorized = isValidCronSecret(h.get("authorization"));
+  } catch {
+    // headers() can throw outside a request scope — treat as not-cron.
+    cronAuthorized = false;
+  }
+
+  if (!cronAuthorized) {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Unauthorized" };
+    }
+    if (!hasPermission(getRole(session), "franchise:revshare")) {
+      return { success: false, error: "Insufficient permissions" };
+    }
+    // Never trust a caller-supplied maker id: the marker drives segregation of
+    // duties in approveRevenueSharePayout, so bind it to the authenticated user.
+    makerUserId = session.user.id as string;
+  }
+
   const parsed = recomputePayoutSchema.safeParse(input);
   if (!parsed.success) {
     return { success: false, error: "Validation failed" };

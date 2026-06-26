@@ -41,47 +41,11 @@ function toRupees(paise: number): number {
 // ============================================================
 // Helper: Generate Receipt Number (RCP-YYYY-NNNN)
 // ------------------------------------------------------------
-// Allocated from a gapless FinSequence counter INSIDE the caller's transaction
-// (mirrors ledger.ts allocateEntryNo), eliminating the read-then-generate
-// window that a non-@unique receiptNumber column otherwise leaves open under
-// concurrent payment creation.
+// Allocated from the SHARED gapless FinSequence counter (src/lib/finance/
+// receipt-number.ts) INSIDE the caller's transaction — the SAME allocator the
+// Razorpay capture path uses, so manual and online receipts never collide.
 // ============================================================
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type ReceiptTx = any;
-
-async function allocateReceiptNumber(tx: ReceiptTx): Promise<string> {
-  const year = new Date().getFullYear();
-  const fy = String(year);
-  const prefix = `RCP-${year}-`;
-  const existing = await tx.finSequence.findUnique({
-    where: { entityId_series_fy: { entityId: "BILLION", series: "RCP", fy } },
-  });
-  let n: number;
-  if (!existing) {
-    // Seed the counter from any pre-FinSequence receipts already minted this
-    // year (legacy max-scan rows) so we never re-mint an existing number.
-    const last = await tx.payment.findFirst({
-      where: { receiptNumber: { startsWith: prefix } },
-      orderBy: { receiptNumber: "desc" },
-      select: { receiptNumber: true },
-    });
-    const lastNum = last?.receiptNumber
-      ? parseInt(last.receiptNumber.split("-").pop() || "0", 10) || 0
-      : 0;
-    n = lastNum + 1;
-    await tx.finSequence.create({
-      data: { entityId: "BILLION", series: "RCP", fy, nextNum: n + 1 },
-    });
-  } else {
-    await tx.finSequence.update({
-      where: { id: existing.id },
-      data: { nextNum: { increment: 1 } },
-    });
-    n = existing.nextNum;
-  }
-  return `${prefix}${String(n).padStart(4, "0")}`;
-}
+import { allocateReceiptNumber } from "@/lib/finance/receipt-number";
 
 // ============================================================
 // Get Payments (Paginated + Filtered)
@@ -680,11 +644,20 @@ export async function createPublicRazorpayOrder(invoiceId: string, amount: numbe
     }
     const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
-      select: { id: true, invoiceNumber: true, balanceDue: true, status: true },
+      select: {
+        id: true, invoiceNumber: true, balanceDue: true, status: true,
+        booking: { select: { status: true } },
+      },
     });
     if (!invoice) return { success: false as const, error: "Invoice not found" };
     if (invoice.status === "PAID" || invoice.status === "CANCELLED") {
       return { success: false as const, error: "This invoice is not payable" };
+    }
+    // A public hold link's invoice stays SENT after the 4h expiry cron releases
+    // the booking. Refuse to take an advance for a slot that's already been
+    // cancelled/re-sold — otherwise money is captured with no confirmable slot.
+    if (invoice.booking && invoice.booking.status === "CANCELLED") {
+      return { success: false as const, error: "This hold has expired and the date is no longer reserved. Please request a fresh link." };
     }
     const balanceDue = Number(invoice.balanceDue);
     const pay = Math.round(Number(amount));

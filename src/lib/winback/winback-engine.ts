@@ -351,8 +351,15 @@ export async function runAbandonedQuoteWinback(): Promise<WinbackRunResult> {
           actionUrl: link.leadId ? `/leads/${link.leadId}` : `/quotations`,
         });
 
-        // One-shot: stamp silentNudgeFiredAt so this link is never re-scanned.
-        await markLinkNudged(link.id);
+        // One-shot: stamp silentNudgeFiredAt ONLY on a successful dispatch so
+        // this link is never re-scanned. On 'error' (cadence enroll returned
+        // null, WhatsApp send failed, or a thrown exception) leave the flag null
+        // — attempts is already incremented on the WinbackTarget — so the next
+        // daily sweep retries instead of silently dropping the customer.
+        // Mirrors cooling-lead-catch.ts (stamp one-shot only on success).
+        if (outcome !== "error") {
+          await markLinkNudged(link.id);
+        }
         tally(result, outcome);
       } catch (e) {
         console.error("[runAbandonedQuoteWinback] row error:", e);

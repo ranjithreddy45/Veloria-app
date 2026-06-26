@@ -117,8 +117,16 @@ export async function importSalesLeads(
     await prisma.$transaction(
       async (tx) => {
         if (opts.replaceExisting) {
+          // Never soft-delete leads that are converted (own a Deal) or already
+          // resolved (WON/LOST) — doing so orphans the linked Deal/Booking and
+          // diverges pipeline KPIs. This mirrors the single-lead delete guard in
+          // lead.actions.ts ("Cannot delete a lead that has been converted...").
           const del = await tx.lead.updateMany({
-            where: { deletedAt: null },
+            where: {
+              deletedAt: null,
+              deal: { is: null },
+              status: { notIn: ["WON", "LOST"] },
+            },
             data: { deletedAt: new Date() },
           });
           summary.replaced = del.count;

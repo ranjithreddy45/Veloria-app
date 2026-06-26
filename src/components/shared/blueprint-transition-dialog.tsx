@@ -24,6 +24,10 @@ import {
   validateBlueprintTransition,
   executeBlueprintTransition,
 } from "@/actions/blueprint.actions";
+import {
+  ENTITY_REQUIRED_FIELDS,
+  REQUIRED_ACTION_LABELS,
+} from "@/lib/blueprint-engine";
 
 // ============================================================
 // Status Label Maps
@@ -83,6 +87,11 @@ export function BlueprintTransitionDialog({
   const [transitionName, setTransitionName] = React.useState<string | null>(
     null
   );
+  const [requirements, setRequirements] = React.useState<{
+    requiredFields: string[];
+    requiredActions: string[];
+    allowedRoles: string[];
+  } | null>(null);
   const [isProceedPending, setIsProceedPending] = React.useState(false);
 
   // Validate the transition when dialog opens
@@ -92,6 +101,7 @@ export function BlueprintTransitionDialog({
     setState("loading");
     setErrors([]);
     setTransitionName(null);
+    setRequirements(null);
 
     validateBlueprintTransition(
       entityType,
@@ -112,6 +122,14 @@ export function BlueprintTransitionDialog({
           setTransitionName(validation.transition.name);
         }
 
+        if (validation.transition) {
+          setRequirements({
+            requiredFields: validation.transition.requiredFields ?? [],
+            requiredActions: validation.transition.requiredActions ?? [],
+            allowedRoles: validation.transition.allowedRoles ?? [],
+          });
+        }
+
         if (validation.allowed) {
           setState("allowed");
         } else {
@@ -126,8 +144,17 @@ export function BlueprintTransitionDialog({
   }, [open, entityType, entityId, currentStatus, targetStatus]);
 
   const handleProceed = async () => {
+    // Defense-in-depth: never proceed from a non-allowed client state. The
+    // authoritative gate is the server re-validation below, but this prevents
+    // a stale/raced click from ever reaching the mutation callback.
+    if (state !== "allowed" || isProceedPending) return;
+
     setIsProceedPending(true);
     try {
+      // Re-validate + log on the server. executeBlueprintTransition re-runs the
+      // full blueprint gate (allowedRoles, requiredFields, requiredActions) and
+      // returns success:false when the transition is no longer allowed, so the
+      // mutation in onSuccess() can only fire on a confirmed allow.
       const result = await executeBlueprintTransition(
         entityType,
         entityId,
@@ -135,13 +162,19 @@ export function BlueprintTransitionDialog({
         targetStatus
       );
 
-      if (result.success) {
+      if (result.success && result.data?.allowed === true) {
         onSuccess();
         onOpenChange(false);
       } else {
+        // Blocked by the blueprint (role/field/action gate) — surface the
+        // requirements and keep the mutation from running.
         setState("blocked");
         setErrors(
-          result.errors ?? [result.error ?? "Failed to execute transition"]
+          result.success
+            ? ["This transition is not allowed by the active blueprint."]
+            : result.errors ?? [
+                result.error ?? "Failed to execute transition",
+              ]
         );
       }
     } catch {
@@ -210,6 +243,42 @@ export function BlueprintTransitionDialog({
                 change.
               </p>
             </div>
+            {requirements &&
+              (requirements.requiredFields.length > 0 ||
+                requirements.requiredActions.length > 0 ||
+                requirements.allowedRoles.length > 0) && (
+                <div className="w-full text-xs text-muted-foreground space-y-1 border rounded-md p-2.5">
+                  {requirements.allowedRoles.length > 0 && (
+                    <p>
+                      <span className="font-medium">Allowed roles:</span>{" "}
+                      {requirements.allowedRoles
+                        .map((r) => r.replace(/_/g, " "))
+                        .join(", ")}
+                    </p>
+                  )}
+                  {requirements.requiredFields.length > 0 && (
+                    <p>
+                      <span className="font-medium">Required fields:</span>{" "}
+                      {requirements.requiredFields
+                        .map(
+                          (f) =>
+                            ENTITY_REQUIRED_FIELDS[entityType]?.find(
+                              (e) => e.value === f
+                            )?.label ?? f
+                        )
+                        .join(", ")}
+                    </p>
+                  )}
+                  {requirements.requiredActions.length > 0 && (
+                    <p>
+                      <span className="font-medium">Required actions:</span>{" "}
+                      {requirements.requiredActions
+                        .map((a) => REQUIRED_ACTION_LABELS[a] ?? a)
+                        .join(", ")}
+                    </p>
+                  )}
+                </div>
+              )}
           </div>
         )}
 
@@ -264,7 +333,7 @@ export function BlueprintTransitionDialog({
               </Button>
               <Button
                 onClick={handleProceed}
-                disabled={isProceedPending}
+                disabled={isProceedPending || state !== "allowed"}
               >
                 {isProceedPending && (
                   <Loader2Icon className="mr-2 size-4 animate-spin" />

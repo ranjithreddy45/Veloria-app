@@ -26,6 +26,18 @@ export interface AccrualResult {
 
 const BATCH = 500;
 
+// Self-referral suppression marker written by recordReferralIngestion
+// (src/lib/referral/ingest.ts) into submission.message. There is no durable
+// boolean column on ReferralPortalSubmission, so the marker IS the suppression
+// flag — a submission whose message carries this prefix must never accrue a
+// payout or loyalty credit (anti-fraud guard for self-referrals). Kept in sync
+// with the string written at ingest time.
+const SELF_REFERRAL_SUPPRESS_MARKER = "[self-referral — payout suppressed]";
+
+function isPayoutSuppressed(message: string | null): boolean {
+  return !!message && message.includes(SELF_REFERRAL_SUPPRESS_MARKER);
+}
+
 export async function enqueueReferralPayoutsForConvertedReferrals(): Promise<AccrualResult> {
   const result: AccrualResult = {
     scanned: 0,
@@ -38,7 +50,7 @@ export async function enqueueReferralPayoutsForConvertedReferrals(): Promise<Acc
   // 1) Detect conversions on submissions not yet marked converted.
   const open = await prisma.referralPortalSubmission.findMany({
     where: { convertedBookingId: null },
-    select: { id: true, leadId: true, referralId: true, partnerId: true },
+    select: { id: true, leadId: true, referralId: true, partnerId: true, message: true },
     orderBy: { createdAt: "asc" },
     take: BATCH,
   });
@@ -46,6 +58,10 @@ export async function enqueueReferralPayoutsForConvertedReferrals(): Promise<Acc
 
   for (const sub of open) {
     try {
+      // Self-referrals are payout-suppressed at ingest: never stamp them as
+      // converted, so they can never enter the accrual loop below.
+      if (isPayoutSuppressed(sub.message)) continue;
+
       const conversion = await detectConversion(sub.referralId, sub.leadId);
       if (!conversion) continue;
 
@@ -71,6 +87,7 @@ export async function enqueueReferralPayoutsForConvertedReferrals(): Promise<Acc
       referralId: true,
       convertedBookingId: true,
       bookingValue: true,
+      message: true,
     },
     orderBy: { updatedAt: "desc" },
     take: BATCH,
@@ -80,6 +97,11 @@ export async function enqueueReferralPayoutsForConvertedReferrals(): Promise<Acc
 
   for (const sub of converted) {
     try {
+      // Enforce the self-referral suppression marker: such submissions accrue
+      // nothing (no payout, no loyalty credit). Guarded here too in case a row
+      // was stamped converted by an earlier run before suppression was enforced.
+      if (isPayoutSuppressed(sub.message)) continue;
+
       const credit = await creditReferrerOnConversion({
         partnerId: sub.partnerId,
         submissionId: sub.id,
