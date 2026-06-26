@@ -216,6 +216,15 @@ export async function updateDocument(id: string, data: DocumentUpdateInput) {
       return { success: false as const, error: "Document not found" };
     }
 
+    // Ownership guard: only the uploader may edit their own document; admins may edit any.
+    const isPrivileged = role === "SUPER_ADMIN" || role === "ADMIN";
+    if (existing.uploadedById !== session.user.id && !isPrivileged) {
+      return {
+        success: false as const,
+        error: "You can only edit documents you uploaded",
+      };
+    }
+
     const updateData = parsed.data;
 
     const document = await prisma.document.update({
@@ -269,6 +278,15 @@ export async function deleteDocument(id: string) {
 
     if (!existing) {
       return { success: false as const, error: "Document not found" };
+    }
+
+    // Ownership guard: only the uploader may delete their own document; admins may delete any.
+    const isPrivileged = role === "SUPER_ADMIN" || role === "ADMIN";
+    if (existing.uploadedById !== session.user.id && !isPrivileged) {
+      return {
+        success: false as const,
+        error: "You can only delete documents you uploaded",
+      };
     }
 
     await prisma.document.delete({ where: { id } });

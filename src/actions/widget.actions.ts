@@ -105,6 +105,21 @@ export async function processInquiry(id: string) {
       return { success: false as const, error: "Inquiry already processed" };
     }
 
+    // Atomically claim the inquiry before doing any writes. The earlier
+    // findUnique check is racy: two concurrent requests could both read
+    // isProcessed=false and each create a duplicate contact + lead. This
+    // conditional update only flips the flag if it is still false, and the
+    // affected-row count tells us whether THIS request won the claim.
+    const claim = await prisma.widgetInquiry.updateMany({
+      where: { id, isProcessed: false },
+      data: { isProcessed: true },
+    });
+
+    if (claim.count === 0) {
+      // Another concurrent request already claimed/processed this inquiry.
+      return { success: false as const, error: "Inquiry already processed" };
+    }
+
     // Split name into firstName / lastName
     const nameParts = inquiry.name.trim().split(/\s+/);
     const firstName = nameParts[0] || inquiry.name;
@@ -127,6 +142,13 @@ export async function processInquiry(id: string) {
           type: "INDIVIDUAL",
           notes: `Created from widget inquiry: ${inquiry.message}`,
         },
+      }).catch(async (e) => {
+        // Conversion failed before producing a lead — release our claim so the
+        // inquiry can be retried instead of being stuck as processed-with-no-lead.
+        await prisma.widgetInquiry
+          .updateMany({ where: { id, isProcessed: true }, data: { isProcessed: false } })
+          .catch(() => {});
+        throw e;
       });
     }
 
@@ -154,6 +176,11 @@ export async function processInquiry(id: string) {
     });
 
     if (!leadResult.success) {
+      // Lead creation failed — release the claim so this inquiry isn't left
+      // marked processed without an associated lead (and can be retried).
+      await prisma.widgetInquiry
+        .updateMany({ where: { id, isProcessed: true }, data: { isProcessed: false } })
+        .catch(() => {});
       return {
         success: false as const,
         error: leadResult.error || "Failed to create lead from inquiry",
@@ -161,11 +188,7 @@ export async function processInquiry(id: string) {
     }
     const lead = leadResult.data;
 
-    // Mark inquiry as processed
-    await prisma.widgetInquiry.update({
-      where: { id },
-      data: { isProcessed: true },
-    });
+    // Inquiry was already atomically marked processed via the claim above.
 
     await logActivity({
       userId: session.user.id as string,

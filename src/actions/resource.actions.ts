@@ -32,6 +32,10 @@ export async function getResources(params?: {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "resources:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const page = params?.page ?? 1;
     const limit = params?.limit ?? 50;
     const skip = (page - 1) * limit;
@@ -97,6 +101,10 @@ export async function getResource(id: string) {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "resources:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const resource = await prisma.resource.findUnique({
@@ -454,6 +462,10 @@ export async function checkConflicts(resourceId: string, date: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "resources:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const allocations = await prisma.resourceAllocation.findMany({
       where: {
         resourceId,
@@ -487,6 +499,10 @@ export async function getResourceCalendar(month: number, year: number) {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "resources:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const startDate = new Date(year, month - 1, 1);

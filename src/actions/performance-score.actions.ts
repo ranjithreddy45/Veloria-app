@@ -189,6 +189,14 @@ export async function getIndividualPerformanceDetail(userId: string) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
+    // IDOR guard: a user may view their OWN performance detail; viewing
+    // anyone else's (scores, badges, incentive/bonus data) requires the
+    // management-level permission held by HR/managers/admins.
+    const isSelf = userId === session.user.id;
+    if (!isSelf && !hasPermission(session.user.role, "performance:manage")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const [scores, badges, incentives] = await Promise.all([
       prisma.performanceScore.findMany({
         where: { userId },

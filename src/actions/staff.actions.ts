@@ -127,6 +127,28 @@ export async function updateStaffProfile(id: string, data: StaffProfileInput) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
+    // IDOR guard: the profile id comes from the client. Resolve the profile so
+    // we know whose record this is before mutating sensitive fields.
+    const target = await prisma.staffProfile.findUnique({
+      where: { id },
+      select: { id: true, userId: true },
+    });
+    if (!target) {
+      return { success: false as const, error: "Staff profile not found" };
+    }
+
+    // Only a staff/payroll administrator may modify *someone else's* profile.
+    // A user may always update their own profile; sensitive payroll fields
+    // (bankDetails, hourly/monthly rate) are still admin-only even on self.
+    const isSelf = target.userId === session.user.id;
+    const isStaffAdmin = hasPermission(role, "staff:payroll");
+    if (!isSelf && !isStaffAdmin) {
+      return {
+        success: false as const,
+        error: "You can only modify your own staff profile",
+      };
+    }
+
     const parsed = staffProfileSchema.safeParse(data);
     if (!parsed.success) {
       return {
@@ -138,16 +160,37 @@ export async function updateStaffProfile(id: string, data: StaffProfileInput) {
 
     const profileData = parsed.data;
 
+    // Sensitive financial fields (pay rates, bank details) are payroll-admin
+    // only. A user editing their own profile cannot self-assign a rate or
+    // silently change banking details outside the approval chain.
+    if (
+      !isStaffAdmin &&
+      (profileData.hourlyRate != null ||
+        profileData.monthlyRate != null ||
+        profileData.bankDetails != null)
+    ) {
+      return {
+        success: false as const,
+        error: "Only a payroll administrator can change pay rates or bank details",
+      };
+    }
+
     const profile = await prisma.staffProfile.update({
       where: { id },
       data: {
         department: profileData.department || null,
         designation: profileData.designation || null,
-        hourlyRate: profileData.hourlyRate || null,
-        monthlyRate: profileData.monthlyRate || null,
-        bankDetails: profileData.bankDetails
-          ? (profileData.bankDetails as Prisma.InputJsonValue)
-          : undefined,
+        // Pay rates + bank details are written only by a payroll admin, so a
+        // self-edit can never set, change, or null them out.
+        ...(isStaffAdmin
+          ? {
+              hourlyRate: profileData.hourlyRate || null,
+              monthlyRate: profileData.monthlyRate || null,
+              bankDetails: profileData.bankDetails
+                ? (profileData.bankDetails as Prisma.InputJsonValue)
+                : undefined,
+            }
+          : {}),
         emergencyContact: profileData.emergencyContact
           ? (profileData.emergencyContact as Prisma.InputJsonValue)
           : undefined,

@@ -15,7 +15,7 @@ async function getClientContactIds(userId: string): Promise<string[]> {
   if (!user?.email) return [];
 
   const contacts = await prisma.contact.findMany({
-    where: { email: user.email },
+    where: { email: user.email, deletedAt: null },
     select: { id: true },
   });
 

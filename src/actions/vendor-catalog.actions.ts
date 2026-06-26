@@ -522,6 +522,8 @@ export async function addPackageImage(packageId: string, url: string): Promise<R
   try {
     if (!url?.trim() || !/^https?:\/\//i.test(url.trim()))
       return { success: false, error: "Enter a valid image URL (http/https)" };
+    const pkg = await prisma.vendorPackage.findUnique({ where: { id: packageId }, select: { id: true } });
+    if (!pkg) return { success: false, error: "Package not found" };
     const count = await prisma.vendorPackageImage.count({ where: { packageId } });
     const img = await prisma.vendorPackageImage.create({
       data: { packageId, url: url.trim(), sortOrder: count },
@@ -546,6 +548,8 @@ export async function setPackageCover(packageId: string, imageId: string): Promi
   const u = await requirePerm("vendors:update");
   if (!u) return { success: false, error: "Unauthorized" };
   try {
+    const pkg = await prisma.vendorPackage.findUnique({ where: { id: packageId }, select: { id: true } });
+    if (!pkg) return { success: false, error: "Package not found" };
     const img = await prisma.vendorPackageImage.findFirst({ where: { id: imageId, packageId }, select: { id: true } });
     if (!img) return { success: false, error: "Image does not belong to this package" };
     await prisma.vendorPackage.update({ where: { id: packageId }, data: { coverImageId: imageId } });
@@ -562,7 +566,8 @@ export async function deletePackageImage(packageId: string, imageId: string): Pr
   const u = await requirePerm("vendors:update");
   if (!u) return { success: false, error: "Unauthorized" };
   try {
-    const pkg = await prisma.vendorPackage.findUnique({ where: { id: packageId }, select: { coverImageId: true } });
+    const pkg = await prisma.vendorPackage.findUnique({ where: { id: packageId }, select: { id: true, coverImageId: true } });
+    if (!pkg) return { success: false, error: "Package not found" };
     await prisma.vendorPackageImage.deleteMany({ where: { id: imageId, packageId } });
     if (pkg?.coverImageId === imageId) {
       const next = await prisma.vendorPackageImage.findFirst({ where: { packageId }, orderBy: { sortOrder: "asc" }, select: { id: true } });
@@ -581,6 +586,8 @@ export async function reorderPackageImages(packageId: string, orderedIds: string
   const u = await requirePerm("vendors:update");
   if (!u) return { success: false, error: "Unauthorized" };
   try {
+    const pkg = await prisma.vendorPackage.findUnique({ where: { id: packageId }, select: { id: true } });
+    if (!pkg) return { success: false, error: "Package not found" };
     await prisma.$transaction(
       orderedIds.map((imgId, i) =>
         prisma.vendorPackageImage.updateMany({ where: { id: imgId, packageId }, data: { sortOrder: i } })

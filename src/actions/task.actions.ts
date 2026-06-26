@@ -7,6 +7,14 @@ import { revalidatePath } from "next/cache";
 import { taskSchema, type TaskInput } from "@/schemas/task.schema";
 import { velosOnTaskDone } from "@/lib/velos/triggers";
 
+// Whitelist of valid task statuses (must match Prisma TaskStatus enum).
+const TASK_STATUSES = ["TODO", "IN_PROGRESS", "IN_REVIEW", "DONE"] as const;
+type TaskStatusValue = (typeof TASK_STATUSES)[number];
+
+function isValidTaskStatus(value: string): value is TaskStatusValue {
+  return (TASK_STATUSES as readonly string[]).includes(value);
+}
+
 // ============================================================
 // Get Tasks (Paginated + Search + Filters)
 // ============================================================
@@ -319,10 +327,14 @@ export async function updateTaskStatus(id: string, status: string) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
+    if (!isValidTaskStatus(status)) {
+      return { success: false as const, error: "Invalid task status" };
+    }
+
     const task = await prisma.task.update({
       where: { id },
       data: {
-        status: status as "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "DONE",
+        status,
         completedAt: status === "DONE" ? new Date() : null,
       },
     });
@@ -360,10 +372,18 @@ export async function moveTask(
       return { success: false as const, error: "Insufficient permissions" };
     }
 
+    if (!isValidTaskStatus(newStatus)) {
+      return { success: false as const, error: "Invalid task status" };
+    }
+
+    if (!Number.isInteger(newOrder) || newOrder < 0) {
+      return { success: false as const, error: "Invalid order value" };
+    }
+
     const task = await prisma.task.update({
       where: { id: taskId },
       data: {
-        status: newStatus as "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "DONE",
+        status: newStatus,
         order: newOrder,
         completedAt: newStatus === "DONE" ? new Date() : null,
       },

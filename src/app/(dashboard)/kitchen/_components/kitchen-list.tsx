@@ -183,6 +183,13 @@ function NewPlanDialog() {
       toast.error("Select an event");
       return;
     }
+    if (covers) {
+      const coversNum = Number(covers);
+      if (!Number.isFinite(coversNum) || coversNum <= 0) {
+        toast.error("Covers must be a positive number");
+        return;
+      }
+    }
     setSubmitting(true);
     const res = await createKitchenPlan({
       bookingId,

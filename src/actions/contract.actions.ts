@@ -322,8 +322,10 @@ export async function updateContract(id: string, data: ContractInput) {
 
     const contractData = parsed.data;
 
-    const contract = await prisma.contract.update({
-      where: { id },
+    // Atomic guarded update: only mutate while still DRAFT so a concurrent
+    // send/sign (e.g. portal) cannot be silently overwritten (TOCTOU).
+    const guarded = await prisma.contract.updateMany({
+      where: { id, status: "DRAFT" },
       data: {
         title: contractData.title,
         content: contractData.content,
@@ -336,6 +338,13 @@ export async function updateContract(id: string, data: ContractInput) {
         contactId: contractData.contactId,
       },
     });
+    if (guarded.count === 0) {
+      return {
+        success: false as const,
+        error: "Only draft contracts can be edited",
+      };
+    }
+    const contract = await prisma.contract.findUniqueOrThrow({ where: { id } });
 
     await logActivity({
       userId: session.user.id as string,
@@ -384,7 +393,17 @@ export async function deleteContract(id: string) {
       };
     }
 
-    await prisma.contract.delete({ where: { id } });
+    // Atomic guarded delete: only remove while still DRAFT so a contract that
+    // was sent/signed concurrently cannot be destroyed (TOCTOU).
+    const removed = await prisma.contract.deleteMany({
+      where: { id, status: "DRAFT" },
+    });
+    if (removed.count === 0) {
+      return {
+        success: false as const,
+        error: "Only draft contracts can be deleted",
+      };
+    }
 
     revalidatePath("/contracts");
     return { success: true as const, data: { id } };
@@ -425,9 +444,20 @@ export async function sendContract(id: string) {
       };
     }
 
-    const contract = await prisma.contract.update({
-      where: { id },
+    // Atomic DRAFT -> SENT transition so a contract cannot be sent twice or
+    // race a concurrent edit/delete (TOCTOU).
+    const transitioned = await prisma.contract.updateMany({
+      where: { id, status: "DRAFT" },
       data: { status: "SENT", sentAt: new Date() },
+    });
+    if (transitioned.count === 0) {
+      return {
+        success: false as const,
+        error: "Only draft contracts can be sent",
+      };
+    }
+    const contract = await prisma.contract.findUniqueOrThrow({
+      where: { id },
       include: {
         contact: {
           select: { firstName: true, lastName: true, email: true },
@@ -503,13 +533,16 @@ export async function markContractSigned(
 
     const existing = await prisma.contract.findUnique({
       where: { id },
-      select: { status: true, title: true },
+      select: { status: true, title: true, notes: true },
     });
 
     if (!existing) {
       return { success: false as const, error: "Contract not found" };
     }
 
+    // State-transition guard: a contract may only be marked SIGNED from a
+    // SENT/VIEWED state — never from DRAFT/EXPIRED/already-SIGNED. This blocks
+    // forcibly signing an unsent contract to fake compliance.
     if (existing.status !== "SENT" && existing.status !== "VIEWED") {
       return {
         success: false as const,
@@ -517,14 +550,39 @@ export async function markContractSigned(
       };
     }
 
-    const contract = await prisma.contract.update({
-      where: { id },
+    // Manual staff-side marking (offline/paper signing) carries no e-sign
+    // signature; record who recorded it for an accountability audit trail.
+    const manualMark = !signatureData;
+    const auditStamp = `Marked signed by ${
+      session.user.name || session.user.email || session.user.id
+    } on ${format(new Date(), "dd MMM yyyy HH:mm")}`;
+
+    // Atomic SENT/VIEWED -> SIGNED transition so a portal sign happening
+    // concurrently cannot be clobbered or double-processed (TOCTOU).
+    const transitioned = await prisma.contract.updateMany({
+      where: { id, status: { in: ["SENT", "VIEWED"] } },
       data: {
         status: "SIGNED",
         signedAt: new Date(),
         signatureData: signatureData || null,
         signedViaEsign: !!signatureData,
+        ...(manualMark
+          ? {
+              notes: existing.notes
+                ? `${existing.notes}\n${auditStamp}`
+                : auditStamp,
+            }
+          : {}),
       },
+    });
+    if (transitioned.count === 0) {
+      return {
+        success: false as const,
+        error: "Contract must be sent or viewed before signing",
+      };
+    }
+    const contract = await prisma.contract.findUniqueOrThrow({
+      where: { id },
       include: {
         contact: {
           select: { firstName: true, lastName: true },

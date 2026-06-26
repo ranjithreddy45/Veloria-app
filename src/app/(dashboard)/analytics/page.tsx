@@ -37,6 +37,14 @@ export default async function AnalyticsPage() {
     redirect("/not-authorized");
   }
 
+  // Top clients and cashflow require the advanced permission. Only request them
+  // when the user is actually entitled, so we don't silently mask a permission
+  // failure as empty data for users who only hold analytics:read.
+  const canViewAdvanced = hasPermission(
+    session.user.role as string,
+    "analytics:advanced",
+  );
+
   // Fetch all initial data in parallel
   const [
     revenueRes,
@@ -52,8 +60,8 @@ export default async function AnalyticsPage() {
     getLeadConversionFunnel(),
     getVenueUtilization(),
     getMonthOverMonth(),
-    getTopClients(10),
-    getCashflow(),
+    canViewAdvanced ? getTopClients(10) : Promise.resolve(null),
+    canViewAdvanced ? getCashflow() : Promise.resolve(null),
   ]);
 
   // Extract data or fall back to empty defaults
@@ -80,8 +88,8 @@ export default async function AnalyticsPage() {
   const funnel = funnelRes.success ? funnelRes.data : [];
   const utilization = utilizationRes.success ? utilizationRes.data : [];
   const mom = momRes.success ? momRes.data : [];
-  const topClients = topClientsRes.success ? topClientsRes.data : [];
-  const cashflow = cashflowRes.success ? cashflowRes.data : [];
+  const topClients = topClientsRes?.success ? topClientsRes.data : [];
+  const cashflow = cashflowRes?.success ? cashflowRes.data : [];
 
   return (
     <div className="space-y-6">

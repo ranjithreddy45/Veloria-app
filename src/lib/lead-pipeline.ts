@@ -9,7 +9,7 @@
 // ============================================================
 
 import { prisma } from "@/lib/prisma";
-import { notify } from "@/lib/notify";
+import { notifyAwait } from "@/lib/notify";
 import { logActivity } from "@/lib/activity-logger";
 import { triggerWorkflows } from "@/lib/workflow-executor";
 import { checkExitCriteria } from "@/lib/cadence-exit-checker";
@@ -260,15 +260,18 @@ export async function escalateLeadSlaBreaches(): Promise<number> {
       if (lead.assignedToId) recipients.add(lead.assignedToId);
       managers.forEach((m) => recipients.add(m.id));
 
-      for (const userId of recipients) {
-        notify({
-          userId,
-          title: "⏰ Lead SLA breached",
-          message: `No first response yet for ${who}. Contact them now.`,
-          type: "SLA_WARNING",
-          actionUrl: `/leads/${lead.id}`,
-        });
-      }
+      // Await notification writes so serverless cron cannot drop them.
+      await Promise.allSettled(
+        Array.from(recipients).map((userId) =>
+          notifyAwait({
+            userId,
+            title: "⏰ Lead SLA breached",
+            message: `No first response yet for ${who}. Contact them now.`,
+            type: "SLA_WARNING",
+            actionUrl: `/leads/${lead.id}`,
+          })
+        )
+      );
       await prisma.lead.update({
         where: { id: lead.id },
         data: { slaEscalatedAt: now },
@@ -297,7 +300,8 @@ export async function escalateOverdueTasks(): Promise<number> {
     });
     for (const task of overdue) {
       if (task.assigneeId) {
-        notify({
+        // Await the notification write so serverless cron cannot drop it.
+        await notifyAwait({
           userId: task.assigneeId,
           title: "⏰ Overdue follow-up",
           message: `"${task.title}" is past due. Action it now.`,

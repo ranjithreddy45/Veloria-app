@@ -674,7 +674,8 @@ export async function recalculateScoresForEntityType(
     switch (entityType) {
       case "LEAD": {
         // Fetch full rows up front so we don't re-fetch each lead inside the loop.
-        const leads = await prisma.lead.findMany();
+        // Exclude soft-deleted leads (they must not be rescored or resurface).
+        const leads = await prisma.lead.findMany({ where: { deletedAt: null } });
 
         // Resolve communication counts for every contact in a single batched pass.
         const countsByContact = await loadCommunicationCountsBatch(
@@ -711,6 +712,7 @@ export async function recalculateScoresForEntityType(
       case "CONTACT": {
         // Contact doesn't have a score field by default, just process
         const contacts = await prisma.contact.findMany({
+          where: { deletedAt: null },
           select: { id: true },
         });
         processed = contacts.length;

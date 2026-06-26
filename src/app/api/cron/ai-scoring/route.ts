@@ -35,6 +35,7 @@ export async function GET(request: Request) {
     const leads = await prisma.lead.findMany({
       where: {
         status: { notIn: ["WON", "LOST"] },
+        deletedAt: null,
       },
       select: { id: true },
       orderBy: { aiScoredAt: { sort: "asc", nulls: "first" } },

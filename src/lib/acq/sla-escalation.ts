@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { notify } from "@/lib/notify";
+import { notifyAwait } from "@/lib/notify";
 
 // FEAT-003 — escalate overdue BD first-contact SLAs.
 // A NEW lead whose firstContactDue has passed without a firstContactAt is breached.
@@ -25,32 +25,44 @@ export async function escalateAcqLeadSlaBreaches(): Promise<{ checked: number; e
     select: { id: true },
   });
 
+  // Collect notification writes and await them before returning, so the
+  // serverless function doesn't freeze before the fire-and-forget DB writes
+  // land (which would silently drop SLA alerts). See /api/cron/acq-sla.
+  const pending: Promise<void>[] = [];
+
   let escalated = 0;
   for (const lead of breached) {
     const where = `${lead.propertyName}, ${lead.locality}`;
     // Nudge the owner.
     if (lead.bdExecutiveId) {
-      notify({
-        userId: lead.bdExecutiveId,
-        type: "TASK_ASSIGNED",
-        title: "Lead past first-contact SLA",
-        message: `${where} hasn't been contacted within the SLA window. Call now and log the contact.`,
-        actionUrl: `/bd/leads/${lead.id}`,
-      });
+      pending.push(
+        notifyAwait({
+          userId: lead.bdExecutiveId,
+          type: "TASK_ASSIGNED",
+          title: "Lead past first-contact SLA",
+          message: `${where} hasn't been contacted within the SLA window. Call now and log the contact.`,
+          actionUrl: `/bd/leads/${lead.id}`,
+        })
+      );
     }
     // Escalate to BD leadership (skip the owner if they're also a head).
     for (const h of heads) {
       if (h.id === lead.bdExecutiveId) continue;
-      notify({
-        userId: h.id,
-        type: "SYSTEM",
-        title: "BD SLA breach",
-        message: `${where} is past its first-contact SLA and not yet contacted.`,
-        actionUrl: `/bd/leads/${lead.id}`,
-      });
+      pending.push(
+        notifyAwait({
+          userId: h.id,
+          type: "SYSTEM",
+          title: "BD SLA breach",
+          message: `${where} is past its first-contact SLA and not yet contacted.`,
+          actionUrl: `/bd/leads/${lead.id}`,
+        })
+      );
     }
     escalated++;
   }
+
+  // Ensure all notification writes complete before the function returns.
+  await Promise.allSettled(pending);
 
   await prisma.acqLead.updateMany({
     where: { id: { in: breached.map((l) => l.id) } },

@@ -160,14 +160,41 @@ export async function createPayout(data: CreatePayoutInput) {
 
     const payoutData = parsed.data;
 
+    // Normalize optional FKs ("" is allowed by the schema but is not a real id).
+    const vendorId = payoutData.vendorId || null;
+    const bookingId = payoutData.bookingId || null;
+
+    // Validate that referenced vendor/booking actually exist before creating the
+    // payout. The schema only checks these are strings, so without this guard we
+    // could persist orphaned payouts pointing at non-existent records.
+    if (vendorId) {
+      const vendor = await prisma.vendor.findUnique({
+        where: { id: vendorId },
+        select: { id: true },
+      });
+      if (!vendor) {
+        return { success: false as const, error: "Selected vendor does not exist" };
+      }
+    }
+
+    if (bookingId) {
+      const booking = await prisma.booking.findUnique({
+        where: { id: bookingId },
+        select: { id: true },
+      });
+      if (!booking) {
+        return { success: false as const, error: "Selected booking does not exist" };
+      }
+    }
+
     const payout = await prisma.payout.create({
       data: {
         amount: payoutData.amount,
         type: payoutData.type,
         description: payoutData.description || null,
         referenceNumber: generateReferenceNumber(),
-        vendorId: payoutData.vendorId || null,
-        bookingId: payoutData.bookingId || null,
+        vendorId,
+        bookingId,
         notes: payoutData.notes || null,
         createdById: session.user.id as string,
       },

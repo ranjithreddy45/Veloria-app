@@ -566,6 +566,27 @@ export async function getApprovalRequest(
       return { success: false as const, error: "Approval request not found" };
     }
 
+    // Authorization: an approval request exposes the submitter's identity and
+    // the full decision/chain history. Only parties to the request may view it —
+    // the submitter, any approver in the chain (USER by id or ROLE by role), a
+    // user who was delegated a step, or an admin. Authentication alone is not
+    // sufficient (would be IDOR — any user could read any request by id).
+    const viewerId = session.user.id;
+    const viewerRole = (session.user as { role?: string }).role ?? "";
+    const isAdmin = viewerRole === "SUPER_ADMIN" || viewerRole === "ADMIN";
+    const isSubmitter = request.submittedById === viewerId;
+    const isChainApprover = request.rule.approverChain.some(
+      (s) =>
+        (s.approverType === "USER" && s.approverId === viewerId) ||
+        (s.approverType === "ROLE" && s.approverId === viewerRole)
+    );
+    const isDelegate = request.decisions.some(
+      (d) => d.action === "DELEGATE" && d.delegatedToId === viewerId
+    );
+    if (!isAdmin && !isSubmitter && !isChainApprover && !isDelegate) {
+      return { success: false as const, error: "You are not authorized to view this approval request." };
+    }
+
     const enriched = await enrichRequestWithUsers(request);
 
     return {
@@ -656,8 +677,14 @@ export async function approveRequest(
 
     const expectedStep = request.currentStep;
     const chain = request.rule.approverChain;
-    const nextStepIndex = expectedStep + 1;
-    const isLastStep = nextStepIndex >= chain.length;
+    // Chain step `order` values may be non-contiguous (e.g. [0, 5, 10]).
+    // `currentStep` stores the `order` of the active step, not an array index —
+    // so the next step must be found by the next-greater `order`, never by
+    // arithmetic (+1) or array length. `chain` is ordered by `order` asc, so the
+    // first step whose order exceeds expectedStep is the next approver.
+    const nextStep = chain.find((s) => s.order > expectedStep) ?? null;
+    const isLastStep = nextStep === null;
+    const nextStepOrder = nextStep?.order ?? null;
 
     // Atomically claim AND apply this step's transition in one compare-and-set
     // keyed on (id, currentStep, status). Concurrent approvals (or a
@@ -673,7 +700,7 @@ export async function approveRequest(
       where: { id: requestId, currentStep: expectedStep, status: "PENDING_APPROVAL" },
       data: isLastStep
         ? { status: "APPROVED", resolvedAt: new Date() }
-        : { currentStep: nextStepIndex },
+        : { currentStep: nextStepOrder as number },
     });
     if (claim.count === 0) {
       return { success: false as const, error: "Request is no longer pending" };
@@ -710,7 +737,6 @@ export async function approveRequest(
       });
     } else {
       // Advanced to the next step — notify the next approver(s).
-      const nextStep = chain[nextStepIndex];
       if (nextStep) {
         const metadata = request.metadata as Record<string, unknown> | null;
         const entityLabel =

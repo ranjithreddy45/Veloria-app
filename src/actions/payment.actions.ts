@@ -564,13 +564,17 @@ export async function verifyRazorpayPayment(data: {
 
     const crypto = (await import("crypto")).default;
 
-    // Verify payment signature
+    // Verify payment signature (timing-safe)
     const generatedSignature = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
       .update(`${data.razorpay_order_id}|${data.razorpay_payment_id}`)
       .digest("hex");
 
-    if (generatedSignature !== data.razorpay_signature) {
+    const genBuf = Buffer.from(generatedSignature);
+    const provBuf = Buffer.from(data.razorpay_signature || "");
+    const signatureValid =
+      genBuf.length === provBuf.length && crypto.timingSafeEqual(genBuf, provBuf);
+    if (!signatureValid) {
       await prisma.payment.updateMany({
         where: { razorpayOrderId: data.razorpay_order_id },
         data: { status: "FAILED" },
@@ -719,7 +723,11 @@ export async function verifyPublicRazorpayPayment(data: {
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
       .update(`${data.razorpay_order_id}|${data.razorpay_payment_id}`)
       .digest("hex");
-    if (generatedSignature !== data.razorpay_signature) {
+    const genBuf = Buffer.from(generatedSignature);
+    const provBuf = Buffer.from(data.razorpay_signature || "");
+    const signatureValid =
+      genBuf.length === provBuf.length && crypto.timingSafeEqual(genBuf, provBuf);
+    if (!signatureValid) {
       await prisma.payment.updateMany({
         where: { razorpayOrderId: data.razorpay_order_id },
         data: { status: "FAILED" },

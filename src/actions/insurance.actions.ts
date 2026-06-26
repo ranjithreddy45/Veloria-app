@@ -27,6 +27,10 @@ export async function getInsurancePolicies(filters?: {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "insurance:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {};
 
@@ -89,6 +93,10 @@ export async function getInsurancePolicyById(id: string) {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "insurance:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const policy = await prisma.insurancePolicy.findUnique({
@@ -160,6 +168,26 @@ export async function createInsurancePolicy(data: InsurancePolicyInput) {
         success: false as const,
         error: "End date must be after start date",
       };
+    }
+
+    // Validate linked references exist before associating
+    if (policyData.bookingId) {
+      const booking = await prisma.booking.findUnique({
+        where: { id: policyData.bookingId },
+        select: { id: true },
+      });
+      if (!booking) {
+        return { success: false as const, error: "Linked booking not found" };
+      }
+    }
+    if (policyData.venueId) {
+      const venue = await prisma.venue.findUnique({
+        where: { id: policyData.venueId },
+        select: { id: true },
+      });
+      if (!venue) {
+        return { success: false as const, error: "Linked venue not found" };
+      }
     }
 
     const policy = await prisma.insurancePolicy.create({
@@ -248,6 +276,26 @@ export async function updateInsurancePolicy(
       };
     }
 
+    // Validate linked references exist before associating
+    if (policyData.bookingId) {
+      const booking = await prisma.booking.findUnique({
+        where: { id: policyData.bookingId },
+        select: { id: true },
+      });
+      if (!booking) {
+        return { success: false as const, error: "Linked booking not found" };
+      }
+    }
+    if (policyData.venueId) {
+      const venue = await prisma.venue.findUnique({
+        where: { id: policyData.venueId },
+        select: { id: true },
+      });
+      if (!venue) {
+        return { success: false as const, error: "Linked venue not found" };
+      }
+    }
+
     const policy = await prisma.insurancePolicy.update({
       where: { id },
       data: {
@@ -334,6 +382,10 @@ export async function getExpiringPolicies(daysAhead: number = 30) {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "insurance:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const now = new Date();

@@ -892,6 +892,10 @@ export async function getClientLedger(contactId: string) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
+    if (typeof contactId !== "string" || contactId.trim().length === 0) {
+      return { success: false as const, error: "Invalid contact" };
+    }
+
     const [contact, invoices, payments] = await Promise.all([
       prisma.contact.findUnique({
         where: { id: contactId },

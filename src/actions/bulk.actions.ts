@@ -375,9 +375,23 @@ export async function bulkChangeLeadStatus(
 
     const { ids, status } = parsed.data;
 
+    // A lead can't be marked Won without an owner (SCRM-004) — accountability for the close.
+    // Mirror the single-lead updateLeadStatus guard so bulk ops can't bypass it.
+    if (status === "WON") {
+      const unassigned = await prisma.lead.count({
+        where: { id: { in: ids }, assignedToId: null },
+      });
+      if (unassigned > 0) {
+        return {
+          success: false as const,
+          error: "Assign an owner to every selected lead before marking them Won.",
+        };
+      }
+    }
+
     const result = await prisma.lead.updateMany({
       where: { id: { in: ids } },
-      data: { status: status as any },
+      data: { status },
     });
 
     for (const id of ids) {

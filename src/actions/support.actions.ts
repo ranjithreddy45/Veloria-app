@@ -441,10 +441,16 @@ export async function assignTicket(
   if (userId) {
     const target = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, isActive: true },
+      select: { id: true, isActive: true, role: true },
     });
     if (!target || !target.isActive) {
       return { success: false, error: "Selected user is not available" };
+    }
+    if (!canWrite(target.role)) {
+      return {
+        success: false,
+        error: "Selected user cannot be assigned support tickets",
+      };
     }
   }
 

@@ -26,8 +26,12 @@ import { logActivity } from "@/lib/activity-logger";
 export async function getChart(bookingId: string) {
   try {
     const session = await auth();
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "operations:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const chart = await prisma.seatingChart.findUnique({

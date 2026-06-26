@@ -29,6 +29,9 @@ export async function getBudgets(filters?: {
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
     }
+    if (!hasPermission(session.user.role as string, "budget:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {};
@@ -250,6 +253,9 @@ export async function getForecastEntries(year?: number) {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+    if (!hasPermission(session.user.role as string, "forecast:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -477,6 +483,9 @@ export async function getVenuesForBudget() {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+    if (!hasPermission(session.user.role as string, "budget:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const venues = await prisma.venue.findMany({

@@ -17,6 +17,45 @@ import { hasPermission } from "@/lib/permissions";
 import { generateUniqueCode, buildReferralLink } from "@/lib/referral-code";
 
 // ============================================================
+// Get Referrer Contact Options (for the new-referral form)
+// ============================================================
+
+export async function getReferrerContactOptions() {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+
+    // Creating a referral requires both the ability to create referrals
+    // and to read the contact directory used to pick a referrer.
+    if (
+      !hasPermission(session.user.role, "referrals:create") ||
+      !hasPermission(session.user.role, "contacts:read")
+    ) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
+    const contacts = await prisma.contact.findMany({
+      where: { deletedAt: null, isActive: true },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+      },
+      orderBy: { firstName: "asc" },
+    });
+
+    return { success: true as const, data: serialize(contacts) };
+  } catch (error) {
+    console.error("[GET_REFERRER_CONTACT_OPTIONS_ERROR]", error);
+    return { success: false as const, error: "Failed to fetch contacts" };
+  }
+}
+
+// ============================================================
 // Get Referrals (List with filters)
 // ============================================================
 

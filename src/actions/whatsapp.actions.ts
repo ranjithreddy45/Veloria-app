@@ -331,9 +331,13 @@ export async function getWhatsAppStats() {
     const delivered = statusMap["DELIVERED"] ?? 0;
     const read = statusMap["READ"] ?? 0;
     const failed = statusMap["FAILED"] ?? 0;
-    // Rates are computed over messages that actually left our side (excludes
-    // failed), so a batch of pure failures reads as 0% rather than NaN.
-    const successTotal = sent + delivered + read;
+    // Rates are computed only over messages that have reached a terminal state
+    // (DELIVERED, READ, or FAILED). SENT is an intermediate state in the
+    // WhatsApp lifecycle (SENT -> DELIVERED -> READ) whose final outcome is
+    // not yet known, so including it in the denominator would understate the
+    // true delivery/read rate. Excluding it gives an honest picture and avoids
+    // NaN (the guard returns 0 when no message has reached a terminal state).
+    const terminalTotal = delivered + read + failed;
 
     const stats: WhatsAppStatsData = {
       sent,
@@ -341,8 +345,8 @@ export async function getWhatsAppStats() {
       read,
       failed,
       total,
-      deliveryRate: successTotal > 0 ? Math.round(((delivered + read) / successTotal) * 100) : 0,
-      readRate: successTotal > 0 ? Math.round((read / successTotal) * 100) : 0,
+      deliveryRate: terminalTotal > 0 ? Math.round(((delivered + read) / terminalTotal) * 100) : 0,
+      readRate: terminalTotal > 0 ? Math.round((read / terminalTotal) * 100) : 0,
       configured: config !== null,
     };
 

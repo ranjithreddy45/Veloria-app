@@ -31,6 +31,10 @@ export async function getMenuItems(params?: {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "menu:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const page = params?.page ?? 1;
     const limit = params?.limit ?? 100;
     const skip = (page - 1) * limit;
@@ -94,6 +98,10 @@ export async function getMenuItem(id: string) {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "menu:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const item = await prisma.menuItem.findUnique({
@@ -287,6 +295,13 @@ export async function getBookingMenu(bookingId: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (
+      !hasPermission(session.user.role, "menu:read") &&
+      !hasPermission(session.user.role, "bookings:read")
+    ) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const bookingMenu = await prisma.bookingMenu.findUnique({
       where: { bookingId },
       include: {
@@ -324,7 +339,13 @@ export async function saveBookingMenu(
       return { success: false as const, error: "Unauthorized" };
     }
 
-    if (!hasPermission(session.user.role, "menu:update")) {
+    // Editing a booking's menu is a mutation on the booking; require both the
+    // menu-update and booking-update permissions. Staff collaborate on bookings,
+    // so we intentionally do NOT scope by createdById (single-company ERP).
+    if (
+      !hasPermission(session.user.role, "menu:update") ||
+      !hasPermission(session.user.role, "bookings:update")
+    ) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
@@ -449,6 +470,10 @@ export async function calculateMenuTotal(
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "menu:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     if (!selections || selections.length === 0) {

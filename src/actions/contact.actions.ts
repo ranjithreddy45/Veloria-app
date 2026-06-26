@@ -237,7 +237,7 @@ export async function updateContact(id: string, data: ContactInput) {
     // Check duplicates excluding current contact
     if (contactData.email && contactData.email !== existing.email) {
       const emailDup = await prisma.contact.findFirst({
-        where: { email: contactData.email, id: { not: id } },
+        where: { email: contactData.email, id: { not: id }, deletedAt: null },
       });
       if (emailDup) {
         return {
@@ -249,7 +249,7 @@ export async function updateContact(id: string, data: ContactInput) {
 
     if (contactData.phone && contactData.phone !== existing.phone) {
       const phoneDup = await prisma.contact.findFirst({
-        where: { phone: contactData.phone, id: { not: id } },
+        where: { phone: contactData.phone, id: { not: id }, deletedAt: null },
       });
       if (phoneDup) {
         return {

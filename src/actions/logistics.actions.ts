@@ -20,6 +20,14 @@ export type DispatchStatus =
   | "RETURNED"
   | "CANCELLED";
 
+// Booking statuses a dispatch may be linked to: committed events only.
+// Excludes HOLD / TENTATIVE (not yet committed) and CANCELLED.
+const DISPATCHABLE_BOOKING_STATUSES = [
+  "CONFIRMED",
+  "IN_PROGRESS",
+  "COMPLETED",
+] as const;
+
 async function requireUser() {
   const session = await auth();
   if (!session?.user?.id) return null;
@@ -312,13 +320,21 @@ export async function createDispatch(input: {
     if (!Number.isNaN(dt.getTime())) scheduledAt = dt;
   }
 
-  // Validate the optional booking link.
+  // Validate the optional booking link: the booking must exist AND be in a
+  // committed status. Dispatching goods against a HOLD/TENTATIVE/CANCELLED
+  // booking would link them to an event that may never happen. (IN_PROGRESS /
+  // COMPLETED are allowed because dispatch/return happens around event time.)
   if (input.bookingId) {
-    const exists = await prisma.booking.findUnique({
+    const booking = await prisma.booking.findUnique({
       where: { id: input.bookingId },
-      select: { id: true },
+      select: { status: true },
     });
-    if (!exists) return { success: false, error: "Linked booking not found." };
+    if (!booking) return { success: false, error: "Linked booking not found." };
+    if (!(DISPATCHABLE_BOOKING_STATUSES as readonly string[]).includes(booking.status))
+      return {
+        success: false,
+        error: "Only a confirmed booking can be linked to a dispatch.",
+      };
   }
 
   const id = await createWithNumber(
@@ -370,11 +386,18 @@ export async function updateDispatch(
   const data: Record<string, unknown> = {};
   if ("bookingId" in patch) {
     if (patch.bookingId) {
-      const exists = await prisma.booking.findUnique({
+      // Same guard as createDispatch: booking must exist AND be in a
+      // committed (dispatchable) status.
+      const booking = await prisma.booking.findUnique({
         where: { id: patch.bookingId },
-        select: { id: true },
+        select: { status: true },
       });
-      if (!exists) return { success: false, error: "Linked booking not found." };
+      if (!booking) return { success: false, error: "Linked booking not found." };
+      if (!(DISPATCHABLE_BOOKING_STATUSES as readonly string[]).includes(booking.status))
+        return {
+          success: false,
+          error: "Only a confirmed booking can be linked to a dispatch.",
+        };
       data.bookingId = patch.bookingId;
     } else {
       data.bookingId = null;
@@ -523,48 +546,63 @@ export async function markDispatched(
   // stock than the line claims), while return/cancel restore the full quantity —
   // inflating inventory above what physically left. Failing here keeps dispatch
   // and restore symmetric.
+  // Aggregate per-inventory-item demand: the same item may appear on multiple
+  // lines, so decrement the summed quantity in one atomic op per item.
+  const demand = new Map<string, number>();
+  for (const it of d.items) {
+    if (!it.inventoryItemId) continue;
+    demand.set(
+      it.inventoryItemId,
+      (demand.get(it.inventoryItemId) ?? 0) + it.quantity,
+    );
+  }
+
   let raced = false;
   let insufficient = false;
-  await prisma.$transaction(async (tx) => {
-    const flip = await tx.dispatchOrder.updateMany({
-      where: { id, status: "PLANNED" },
-      data: { status: "DISPATCHED", dispatchedAt: new Date() },
-    });
-    if (flip.count === 0) {
-      raced = true;
-      return;
-    }
-    // First pass: validate every linked line has enough stock. Throwing rolls
-    // back the status flip too, so an insufficient line leaves the order PLANNED.
-    for (const it of d.items) {
-      if (!it.inventoryItemId) continue;
-      const inv = await tx.inventoryItem.findUnique({
-        where: { id: it.inventoryItemId },
-        select: { availableQty: true },
+  let missing = false;
+  await prisma
+    .$transaction(async (tx) => {
+      const flip = await tx.dispatchOrder.updateMany({
+        where: { id, status: "PLANNED" },
+        data: { status: "DISPATCHED", dispatchedAt: new Date() },
       });
-      if (!inv) continue;
-      if (inv.availableQty < it.quantity) {
-        insufficient = true;
-        throw new Error("INSUFFICIENT_STOCK");
+      if (flip.count === 0) {
+        raced = true;
+        return;
       }
-    }
-    // Second pass: decrement now that all lines are known to be satisfiable.
-    for (const it of d.items) {
-      if (!it.inventoryItemId) continue;
-      const inv = await tx.inventoryItem.findUnique({
-        where: { id: it.inventoryItemId },
-        select: { availableQty: true },
-      });
-      if (!inv) continue;
-      await tx.inventoryItem.update({
-        where: { id: it.inventoryItemId },
-        data: { availableQty: inv.availableQty - it.quantity },
-      });
-    }
-  }).catch((e) => {
-    if (insufficient) return; // handled below
-    throw e;
-  });
+      // Atomic conditional decrement per linked inventory item. updateMany with
+      // WHERE availableQty >= qty means two concurrent calls (or any concurrent
+      // stock movement) can never drive availableQty negative: the request that
+      // would over-draw matches 0 rows. We require the affected count to be 1;
+      // 0 means either insufficient stock or the item was deleted — both abort
+      // the whole transaction (rolling back the status flip), keeping dispatch
+      // and the later return/cancel restore symmetric.
+      for (const [inventoryItemId, qty] of demand) {
+        const dec = await tx.inventoryItem.updateMany({
+          where: { id: inventoryItemId, availableQty: { gte: qty } },
+          data: { availableQty: { decrement: qty } },
+        });
+        if (dec.count === 1) continue;
+        // Distinguish "item gone" from "not enough stock" for a clear message.
+        const stillExists = await tx.inventoryItem.findUnique({
+          where: { id: inventoryItemId },
+          select: { id: true },
+        });
+        if (!stillExists) missing = true;
+        else insufficient = true;
+        throw new Error("STOCK_BLOCKED");
+      }
+    })
+    .catch((e) => {
+      if (insufficient || missing) return; // handled below
+      throw e;
+    });
+  if (missing)
+    return {
+      success: false,
+      error:
+        "A linked inventory item no longer exists. Update the dispatch lines and try again.",
+    };
   if (insufficient)
     return {
       success: false,
@@ -635,30 +673,54 @@ export async function recordReturn(
   const newQty = new Map(d.items.map((it) => [it.id, it.returnedQty]));
   for (const up of updates) newQty.set(up.id, up.returnedQty);
 
-  await prisma.$transaction(async (tx) => {
-    for (const up of updates) {
-      const item = byId.get(up.id)!;
-      await tx.dispatchItem.update({
-        where: { id: up.id },
-        data: { returnedQty: up.returnedQty },
-      });
-      // Restore stock by the newly-returned delta (not the absolute total), so
-      // repeated/partial return entries never over-credit the inventory.
-      const delta = up.returnedQty - item.returnedQty;
-      if (delta !== 0 && item.inventoryItemId) {
-        const inv = await tx.inventoryItem.findUnique({
-          where: { id: item.inventoryItemId },
-          select: { availableQty: true, totalQuantity: true },
+  let missingInventory = false;
+  await prisma
+    .$transaction(async (tx) => {
+      for (const up of updates) {
+        const item = byId.get(up.id)!;
+        await tx.dispatchItem.update({
+          where: { id: up.id },
+          data: { returnedQty: up.returnedQty },
         });
-        if (inv) {
+        // Restore stock by the newly-returned delta (not the absolute total), so
+        // repeated/partial return entries never over-credit the inventory.
+        const delta = up.returnedQty - item.returnedQty;
+        if (delta !== 0 && item.inventoryItemId) {
+          // Re-read inside the txn against the CURRENT availableQty/totalQuantity
+          // (both may have changed since this dispatch went out). If the linked
+          // item was deleted between dispatch and return, do NOT silently skip
+          // the restore — that would strand the returned units and leave stock
+          // artificially low. Abort the whole return with a clear error instead.
+          const inv = await tx.inventoryItem.findUnique({
+            where: { id: item.inventoryItemId },
+            select: { availableQty: true, totalQuantity: true },
+          });
+          if (!inv) {
+            missingInventory = true;
+            throw new Error("INVENTORY_MISSING");
+          }
           await tx.inventoryItem.update({
             where: { id: item.inventoryItemId },
-            data: { availableQty: Math.min(inv.totalQuantity, Math.max(0, inv.availableQty + delta)) },
+            data: {
+              availableQty: Math.min(
+                inv.totalQuantity,
+                Math.max(0, inv.availableQty + delta),
+              ),
+            },
           });
         }
       }
-    }
-  });
+    })
+    .catch((e) => {
+      if (missingInventory) return; // handled below
+      throw e;
+    });
+  if (missingInventory)
+    return {
+      success: false,
+      error:
+        "A linked inventory item no longer exists, so its returned stock cannot be restored. Re-link or recreate the item, then record the return.",
+    };
 
   // All returnable items fully returned? (non-returnable items are ignored)
   const returnable = d.items.filter((it) => it.returnable);

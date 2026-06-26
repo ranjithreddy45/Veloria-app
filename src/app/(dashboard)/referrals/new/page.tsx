@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import { prisma } from "@/lib/prisma";
+import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
+import { getReferrerContactOptions } from "@/actions/referral.actions";
 import { ReferralForm } from "../_components/referral-form";
 
 export const metadata: Metadata = { title: "New Referral" };
@@ -10,18 +11,15 @@ export const metadata: Metadata = { title: "New Referral" };
 // ============================================================
 
 export default async function NewReferralPage() {
-  // Fetch contacts for the referrer selector
-  const contacts = await prisma.contact.findMany({
-    where: { deletedAt: null, isActive: true },
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      email: true,
-      phone: true,
-    },
-    orderBy: { firstName: "asc" },
-  });
+  // Fetch contacts for the referrer selector via a permission-guarded
+  // server action (requires both referrals:create and contacts:read).
+  const result = await getReferrerContactOptions();
+
+  if (!result.success) {
+    notFound();
+  }
+
+  const contacts = result.data;
 
   return (
     <div className="space-y-6">

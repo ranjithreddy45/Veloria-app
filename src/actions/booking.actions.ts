@@ -151,9 +151,10 @@ export async function getBookings(params?: {
     // Derived display flag: a HOLD/TENTATIVE whose event date has already
     // passed is effectively a dead hold. We never mutate the stored status —
     // this is a read-only hint the UI can surface as "Hold — expired".
-    // Compare on the calendar day (local midnight) to stay TZ-safe.
+    // Compare on the UTC calendar day to match how @db.Date is stored
+    // (local midnight drifts the day on a non-UTC server).
     const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    todayStart.setUTCHours(0, 0, 0, 0);
     const serialized = serialize(bookings).map((b) => ({
       ...b,
       isExpiredHold:
@@ -658,8 +659,12 @@ export async function updateBooking(id: string, data: BookingInput) {
     }
 
     const bookingData = parsed.data;
-    const bookingDate = new Date(bookingData.date);
-    bookingDate.setHours(0, 0, 0, 0);
+    // Pin to UTC midnight of the input's UTC calendar day so the comparison
+    // against the stored @db.Date and the conflict scan agree on any server tz.
+    const srcDate = new Date(bookingData.date);
+    const bookingDate = new Date(
+      Date.UTC(srcDate.getUTCFullYear(), srcDate.getUTCMonth(), srcDate.getUTCDate())
+    );
 
     // Re-check availability if venue, date, or slot changed
     const dateChanged =
@@ -808,8 +813,10 @@ export async function completeBooking(
 
     // ---- Quality gate (poka-yoke) ----
     const now = new Date();
+    // End of the stored UTC calendar day (booking.date is @db.Date UTC-midnight);
+    // setUTCHours keeps the completion gate correct on a non-UTC server.
     const eventEnd = new Date(booking.date);
-    eventEnd.setHours(23, 59, 59, 999);
+    eventEnd.setUTCHours(23, 59, 59, 999);
 
     const gate: string[] = [];
     const balanceOwed = booking.invoices.some((i) => Number(i.balanceDue) > 0);

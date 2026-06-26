@@ -134,7 +134,13 @@ export function ApprovalQueue({
   return (
     <div className="space-y-3 animate-stagger-1">
       {requests.map((request) => {
-        const chainLength = request.rule.approverChain.length;
+        const chain = request.rule.approverChain;
+        const chainLength = chain.length;
+        // `currentStep` stores the active step's `order` value, which may be
+        // non-contiguous (e.g. [0, 5, 10]). Resolve the human-facing position
+        // by matching `order`, not by treating `currentStep` as an array index.
+        const stepIdx = chain.findIndex((s) => s.order === request.currentStep);
+        const stepPosition = stepIdx >= 0 ? stepIdx + 1 : null;
         const isLoading = loadingId === request.id;
 
         return (
@@ -176,7 +182,7 @@ export function ApprovalQueue({
                       {format(new Date(request.submittedAt), "dd MMM yyyy, HH:mm")}
                     </span>
                     <span className="rounded bg-muted px-1.5 py-0.5 font-medium tabular-nums">
-                      Step {request.currentStep + 1} of {chainLength}
+                      Step {stepPosition ?? "—"} of {chainLength}
                     </span>
                   </div>
                 </div>

@@ -59,6 +59,9 @@ export const inventoryItemSchema = z.object({
     .optional()
     .or(z.literal("")),
   isActive: z.boolean().optional().default(true),
+}).refine((data) => data.availableQty <= data.totalQuantity, {
+  message: "Available quantity cannot exceed total quantity",
+  path: ["availableQty"],
 });
 
 export type InventoryItemInput = z.infer<typeof inventoryItemSchema>;

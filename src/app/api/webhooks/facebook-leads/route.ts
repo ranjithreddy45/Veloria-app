@@ -16,8 +16,9 @@ export async function GET(request: NextRequest) {
   const token = searchParams.get("hub.verify_token");
   const challenge = searchParams.get("hub.challenge");
 
-  // Try reading verify token from DB config first, then fall back to env var
-  let verifyToken = process.env.FACEBOOK_WEBHOOK_VERIFY_TOKEN || "veloria_fb_verify";
+  // Verify token from DB config, else env var. NO hardcoded fallback — an
+  // unconfigured webhook must fail closed, not accept a publicly-known default.
+  let verifyToken = process.env.FACEBOOK_WEBHOOK_VERIFY_TOKEN || "";
   try {
     const config = await prisma.leadCaptureConfig.findFirst({
       where: { platform: "FACEBOOK", isActive: true },
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
     // Fall back to env var
   }
 
-  if (mode === "subscribe" && token === verifyToken) {
+  if (mode === "subscribe" && verifyToken && token === verifyToken) {
     console.log("[FacebookLeads] Webhook verified");
     return new NextResponse(challenge, { status: 200 });
   }

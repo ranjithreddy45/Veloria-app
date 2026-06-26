@@ -20,6 +20,7 @@ import {
   EyeOff,
   Filter,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -188,36 +189,69 @@ export function NotificationList({
   const handleToggleRead = useCallback(
     (notificationId: string) => {
       startTransition(async () => {
-        await markAsRead(notificationId);
+        // Snapshot for rollback, then apply optimistic update.
+        const snapshot = notifications;
         setNotifications((prev) =>
           prev.map((n) =>
             n.id === notificationId ? { ...n, isRead: true } : n
           )
         );
+        try {
+          await markAsRead(notificationId);
+        } catch (err) {
+          // Server rejected (e.g. Unauthorized / Not found) — revert UI.
+          setNotifications(snapshot);
+          toast.error(
+            err instanceof Error
+              ? err.message
+              : "Could not mark notification as read"
+          );
+        }
       });
     },
-    []
+    [notifications]
   );
 
   // Mark all as read
   const handleMarkAllAsRead = useCallback(() => {
     startTransition(async () => {
-      await markAllAsRead(userId);
-      setNotifications((prev) =>
-        prev.map((n) => ({ ...n, isRead: true }))
-      );
+      const snapshot = notifications;
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      try {
+        await markAllAsRead(userId);
+      } catch (err) {
+        setNotifications(snapshot);
+        toast.error(
+          err instanceof Error
+            ? err.message
+            : "Could not mark all notifications as read"
+        );
+      }
     });
-  }, [userId]);
+  }, [userId, notifications]);
 
   // Delete notification
-  const handleDelete = useCallback((notificationId: string) => {
-    startTransition(async () => {
-      await deleteNotification(notificationId);
-      setNotifications((prev) =>
-        prev.filter((n) => n.id !== notificationId)
-      );
-    });
-  }, []);
+  const handleDelete = useCallback(
+    (notificationId: string) => {
+      startTransition(async () => {
+        const snapshot = notifications;
+        setNotifications((prev) =>
+          prev.filter((n) => n.id !== notificationId)
+        );
+        try {
+          await deleteNotification(notificationId);
+        } catch (err) {
+          setNotifications(snapshot);
+          toast.error(
+            err instanceof Error
+              ? err.message
+              : "Could not delete notification"
+          );
+        }
+      });
+    },
+    [notifications]
+  );
 
   return (
     <div className="space-y-4">

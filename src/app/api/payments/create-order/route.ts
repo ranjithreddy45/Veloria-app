@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
         select: { email: true },
       });
       const myContacts = u?.email
-        ? await prisma.contact.findMany({ where: { email: u.email }, select: { id: true } })
+        ? await prisma.contact.findMany({ where: { email: u.email, deletedAt: null }, select: { id: true } })
         : [];
       if (!myContacts.some((c) => c.id === invoice.contactId)) {
         // Don't leak existence — return 404.

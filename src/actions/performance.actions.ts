@@ -462,6 +462,17 @@ export async function getIndividualMetrics(
       return { success: false as const, error: "Insufficient permissions" };
     }
 
+    // IDOR guard: a user may only view their OWN detailed metrics unless they
+    // hold the elevated performance:manage permission (HR / managers / admins).
+    const isSelf = userId === session.user.id;
+    const canViewAny = hasPermission(
+      session.user.role as string,
+      "performance:manage"
+    );
+    if (!isSelf && !canViewAny) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const dateFilter = buildDateFilter(params?.startDate, params?.endDate);
 
     // Bookings managed (created by this user)

@@ -394,10 +394,19 @@ export async function updateEmployee(id: string, input: UpdateEmployeeInput): Pr
   if (input.reportingManagerId !== undefined)
     data.reportingManager = input.reportingManagerId ? { connect: { id: input.reportingManagerId } } : { disconnect: true };
 
-  await prisma.$transaction(async (tx) => {
-    await tx.employee.update({ where: { id }, data });
-    await hrAudit(tx, u!.id, { action: "EMPLOYEE_UPDATED", entityId: id, changes: input as Prisma.InputJsonValue });
-  });
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.employee.update({ where: { id }, data });
+      await hrAudit(tx, u!.id, { action: "EMPLOYEE_UPDATED", entityId: id, changes: input as Prisma.InputJsonValue });
+    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError) {
+      if (err.code === "P2002") return { success: false, error: "Another employee already uses that work email." };
+      // P2025: a connected related record (entity/vertical/department/designation/manager) no longer exists.
+      if (err.code === "P2025") return { success: false, error: "A selected related record no longer exists. Please refresh and try again." };
+    }
+    return { success: false, error: "Could not update employee." };
+  }
   revalidatePath("/people");
   revalidatePath(`/people/${id}`);
   return { success: true, data: { id } };

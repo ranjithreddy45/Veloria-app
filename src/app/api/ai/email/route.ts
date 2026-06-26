@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
 
     // Fetch recent leads for the contact (last 3)
     const recentLeads = await prisma.lead.findMany({
-      where: { contactId },
+      where: { contactId, deletedAt: null },
       orderBy: { createdAt: "desc" },
       take: 3,
       select: {

@@ -63,10 +63,10 @@ function parseLocalDate(iso: string): Date {
   return new Date(iso);
 }
 
-/** Today at local midnight (for past-date rejection). */
+/** Today at UTC midnight (for past-date rejection vs @db.Date UTC-midnight values). */
 function todayLocalMidnight(): Date {
   const d = new Date();
-  d.setHours(0, 0, 0, 0);
+  d.setUTCHours(0, 0, 0, 0);
   return d;
 }
 

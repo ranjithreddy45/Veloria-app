@@ -15,7 +15,7 @@ export default async function NewOwnerPage() {
   }
 
   const bdUsers = await prisma.user.findMany({
-    where: { isActive: true, role: { in: ["SUPER_ADMIN", "ADMIN", "SALES_EXEC"] } },
+    where: { isActive: true, role: { in: ["SUPER_ADMIN", "ADMIN", "BD_EXECUTIVE", "BD_HEAD"] } },
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });

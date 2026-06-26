@@ -13,6 +13,10 @@ import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
 import { hasPermission } from "@/lib/permissions";
 
+// Sentinel used to roll back the rentItem transaction when the atomic
+// availability guard finds insufficient stock (e.g. lost a concurrent race).
+class RentalUnavailableError extends Error {}
+
 // ============================================================
 // Get Rental Items (Paginated + Filtered)
 // ============================================================
@@ -369,7 +373,8 @@ export async function rentItem(data: RentItemInput) {
       return { success: false as const, error: "Booking not found" };
     }
 
-    // Check availability
+    // Pre-check availability (early, friendly error). The authoritative,
+    // race-safe check is performed atomically inside the transaction below.
     if (rentalItem.availableQty < rentData.quantity) {
       return {
         success: false as const,
@@ -398,31 +403,55 @@ export async function rentItem(data: RentItemInput) {
       totalAmount = days * dailyRate * rentData.quantity;
     }
 
-    // Create rental booking and decrease available qty in a transaction
-    const [rentalBooking] = await prisma.$transaction([
-      prisma.rentalBooking.create({
-        data: {
-          rentalItemId: rentData.rentalItemId,
-          bookingId: rentData.bookingId,
-          quantity: rentData.quantity,
-          startDate: rentData.startDate,
-          endDate: rentData.endDate,
-          dailyRate: dailyRate,
-          totalAmount: totalAmount,
-          status: "RESERVED",
-        },
-        include: {
-          rentalItem: { select: { id: true, name: true } },
-          booking: {
-            select: { id: true, bookingNumber: true, eventName: true },
+    // Atomically decrement available qty and create the booking in a single
+    // transaction. The conditional updateMany (WHERE availableQty >= quantity)
+    // is the authoritative guard: if two concurrent requests race, only the one
+    // that still finds enough stock will affect a row, so availableQty can never
+    // go negative or double-process.
+    let rentalBooking;
+    try {
+      rentalBooking = await prisma.$transaction(async (tx) => {
+        const decremented = await tx.rentalItem.updateMany({
+          where: {
+            id: rentData.rentalItemId,
+            availableQty: { gte: rentData.quantity },
           },
-        },
-      }),
-      prisma.rentalItem.update({
-        where: { id: rentData.rentalItemId },
-        data: { availableQty: { decrement: rentData.quantity } },
-      }),
-    ]);
+          data: { availableQty: { decrement: rentData.quantity } },
+        });
+
+        if (decremented.count === 0) {
+          // Lost the race (or stock changed): not enough available anymore.
+          throw new RentalUnavailableError();
+        }
+
+        return tx.rentalBooking.create({
+          data: {
+            rentalItemId: rentData.rentalItemId,
+            bookingId: rentData.bookingId,
+            quantity: rentData.quantity,
+            startDate: rentData.startDate,
+            endDate: rentData.endDate,
+            dailyRate: dailyRate,
+            totalAmount: totalAmount,
+            status: "RESERVED",
+          },
+          include: {
+            rentalItem: { select: { id: true, name: true } },
+            booking: {
+              select: { id: true, bookingNumber: true, eventName: true },
+            },
+          },
+        });
+      });
+    } catch (txError) {
+      if (txError instanceof RentalUnavailableError) {
+        return {
+          success: false as const,
+          error: `Not enough units available for ${rentData.quantity} requested.`,
+        };
+      }
+      throw txError;
+    }
 
     await logActivity({
       userId: session.user.id as string,

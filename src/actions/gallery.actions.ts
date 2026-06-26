@@ -213,6 +213,16 @@ export async function updateGalleryItem(
       return { success: false as const, error: "Gallery item not found" };
     }
 
+    // Ownership guard: only the uploader may edit their item; admins bypass.
+    const role = session.user.role as string;
+    const isAdmin = role === "SUPER_ADMIN" || role === "ADMIN";
+    if (!isAdmin && existing.uploadedById !== session.user.id) {
+      return {
+        success: false as const,
+        error: "You can only modify gallery items you uploaded",
+      };
+    }
+
     const updateData = parsed.data;
 
     const item = await prisma.galleryItem.update({
@@ -278,6 +288,16 @@ export async function deleteGalleryItem(id: string) {
     const existing = await prisma.galleryItem.findUnique({ where: { id } });
     if (!existing) {
       return { success: false as const, error: "Gallery item not found" };
+    }
+
+    // Ownership guard: only the uploader may delete their item; admins bypass.
+    const role = session.user.role as string;
+    const isAdmin = role === "SUPER_ADMIN" || role === "ADMIN";
+    if (!isAdmin && existing.uploadedById !== session.user.id) {
+      return {
+        success: false as const,
+        error: "You can only delete gallery items you uploaded",
+      };
     }
 
     await prisma.galleryItem.delete({ where: { id } });

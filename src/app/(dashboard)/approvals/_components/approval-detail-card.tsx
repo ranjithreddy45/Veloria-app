@@ -84,13 +84,16 @@ export function ApprovalDetailCard({ request }: ApprovalDetailCardProps) {
         <CardContent>
           <div className="flex items-center gap-2 flex-wrap">
             {chain.map((step, index) => {
-              const isCompleted = index < request.currentStep;
-              const isCurrent = index === request.currentStep;
+              // Steps are ordered by `order`, which may be non-contiguous
+              // (0, 5, 10...). Compare against the step's `order` value, not
+              // its array index, to mirror the server-side current-step logic.
+              const isCompleted = step.order < request.currentStep;
+              const isCurrent = step.order === request.currentStep;
               const isRejected = request.status === "REJECTED" && isCurrent;
               const isApproved = request.status === "APPROVED";
 
               let stepColor = "bg-zinc-200 text-zinc-600";
-              if (isCompleted || (isApproved && index <= request.currentStep)) {
+              if (isCompleted || (isApproved && step.order <= request.currentStep)) {
                 stepColor = "bg-green-500 text-white";
               } else if (isRejected) {
                 stepColor = "bg-red-500 text-white";
@@ -107,7 +110,7 @@ export function ApprovalDetailCard({ request }: ApprovalDetailCardProps) {
                         stepColor
                       )}
                     >
-                      {index + 1}
+                      {step.order + 1}
                     </div>
                     <div className="text-center max-w-20">
                       <p className="text-[10px] text-zinc-500 leading-tight">

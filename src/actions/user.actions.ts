@@ -8,6 +8,35 @@ import bcryptjs from "bcryptjs";
 import { hasPermission } from "@/lib/permissions";
 import { logActivity } from "@/lib/activity-logger";
 
+// Roles that may be assigned to internal users via this admin surface.
+// Excludes CLIENT/VENDOR (portal identities, provisioned through other flows).
+const ASSIGNABLE_ROLES = [
+  "SUPER_ADMIN",
+  "ADMIN",
+  "SALES_EXEC",
+  "SALES_HEAD",
+  "EVENT_COORDINATOR",
+  "FINANCE",
+  "STAFF",
+  "BD_EXECUTIVE",
+  "BD_HEAD",
+  "OPERATIONS",
+  "PROJECTS_EXEC",
+  "PROJECTS_HEAD",
+  "DESIGN_EXEC",
+  "DESIGN_HEAD",
+  "LEGAL",
+  "HR_MANAGER",
+  "HR_EXECUTIVE",
+  "AUDITOR",
+] as const;
+
+type AssignableRole = (typeof ASSIGNABLE_ROLES)[number];
+
+function isAssignableRole(value: unknown): value is AssignableRole {
+  return typeof value === "string" && (ASSIGNABLE_ROLES as readonly string[]).includes(value);
+}
+
 // ============================================================
 // Get Users (Paginated)
 // ============================================================
@@ -102,6 +131,16 @@ export async function createUser(data: {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
+    // Validate the requested role against an allowlist (never trust the client cast).
+    if (!isAssignableRole(data.role)) {
+      return { success: false as const, error: "Invalid role" };
+    }
+
+    // Assigning a role is a privileged operation gated behind manage-roles.
+    if (!hasPermission(session.user.role as string, "users:manage-roles")) {
+      return { success: false as const, error: "Cannot assign user roles without manage-roles permission" };
+    }
+
     // Check email uniqueness
     const existing = await prisma.user.findUnique({
       where: { email: data.email.toLowerCase() },
@@ -118,7 +157,7 @@ export async function createUser(data: {
         name: data.name,
         email: data.email.toLowerCase(),
         hashedPassword,
-        role: data.role as "SUPER_ADMIN" | "ADMIN" | "SALES_EXEC" | "SALES_HEAD" | "EVENT_COORDINATOR" | "FINANCE" | "STAFF",
+        role: data.role,
         phone: data.phone || null,
       },
     });
@@ -166,7 +205,15 @@ export async function updateUser(
     if (data.name !== undefined) updateData.name = data.name;
     if (data.phone !== undefined) updateData.phone = data.phone || null;
     if (data.role !== undefined) {
-      updateData.role = data.role as "SUPER_ADMIN" | "ADMIN" | "SALES_EXEC" | "SALES_HEAD" | "EVENT_COORDINATOR" | "FINANCE" | "STAFF";
+      // Role changes are a privilege-escalation vector: gate behind manage-roles
+      // and validate the target role against the allowlist before assigning.
+      if (!hasPermission(session.user.role as string, "users:manage-roles")) {
+        return { success: false as const, error: "Cannot modify user roles without manage-roles permission" };
+      }
+      if (!isAssignableRole(data.role)) {
+        return { success: false as const, error: "Invalid role" };
+      }
+      updateData.role = data.role;
     }
 
     const user = await prisma.user.update({

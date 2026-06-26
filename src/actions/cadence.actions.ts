@@ -79,6 +79,10 @@ export async function getCadences(): Promise<
       return { success: false as const, error: "Unauthorized" };
     }
 
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     const cadences = await prisma.cadence.findMany({
       orderBy: { updatedAt: "desc" },
       include: {
@@ -102,6 +106,10 @@ export async function getCadence(id: string): Promise<
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "settings:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
     }
 
     const cadence = await prisma.cadence.findUnique({
@@ -360,6 +368,11 @@ export async function createStep(
       return { success: false as const, error: "Insufficient permissions" };
     }
 
+    const cadence = await prisma.cadence.findUnique({ where: { id: cadenceId } });
+    if (!cadence) {
+      return { success: false as const, error: "Cadence not found" };
+    }
+
     const parsed = cadenceStepSchema.safeParse(input);
     if (!parsed.success) {
       return { success: false as const, error: parsed.error.issues[0]?.message ?? "Validation failed" };
@@ -410,6 +423,11 @@ export async function updateStep(
       return { success: false as const, error: "Insufficient permissions" };
     }
 
+    const existingStep = await prisma.cadenceStep.findUnique({ where: { id } });
+    if (!existingStep) {
+      return { success: false as const, error: "Step not found" };
+    }
+
     const parsed = cadenceStepSchema.safeParse(input);
     if (!parsed.success) {
       return { success: false as const, error: parsed.error.issues[0]?.message ?? "Validation failed" };
@@ -456,6 +474,11 @@ export async function deleteStep(
       return { success: false as const, error: "Insufficient permissions" };
     }
 
+    const existingStep = await prisma.cadenceStep.findUnique({ where: { id } });
+    if (!existingStep) {
+      return { success: false as const, error: "Step not found" };
+    }
+
     await prisma.cadenceStep.delete({ where: { id } });
 
     logActivity({
@@ -487,10 +510,20 @@ export async function reorderSteps(
       return { success: false as const, error: "Insufficient permissions" };
     }
 
+    // Verify every id belongs to the target cadence before reordering, so
+    // step IDs from other cadences cannot be smuggled in.
+    const ownedSteps = await prisma.cadenceStep.findMany({
+      where: { cadenceId, id: { in: orderedIds } },
+      select: { id: true },
+    });
+    if (ownedSteps.length !== orderedIds.length) {
+      return { success: false as const, error: "One or more steps do not belong to this cadence" };
+    }
+
     await prisma.$transaction(
       orderedIds.map((id, index) =>
-        prisma.cadenceStep.update({
-          where: { id },
+        prisma.cadenceStep.updateMany({
+          where: { id, cadenceId },
           data: { order: index },
         })
       )

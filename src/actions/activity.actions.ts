@@ -3,6 +3,7 @@
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/utils";
+import { hasPermission } from "@/lib/permissions";
 
 // ============================================================
 // Activity Log Types
@@ -39,15 +40,30 @@ export async function getActivityLogs(params?: {
       return { success: false as const, error: "Unauthorized" };
     }
 
-    const page = params?.page ?? 1;
-    const limit = params?.limit ?? 30;
+    // Validate & bound pagination so untrusted page/limit can't be abused.
+    const page = Math.max(1, Math.floor(Number(params?.page) || 1));
+    const limit = Math.min(100, Math.max(1, Math.floor(Number(params?.limit) || 30)));
     const skip = (page - 1) * limit;
+
+    const role = session.user.role as string;
+    const selfId = session.user.id as string;
+    // Only privileged roles (people-admins) may filter the feed by an arbitrary
+    // user's id. A non-privileged employee can only query their own activity —
+    // this prevents enumerating another specific user's full action history
+    // (personal-data IDOR). The broad unfiltered team feed itself stays
+    // staff-wide by design.
+    const canQueryAnyUser = hasPermission(role, "users:read");
 
     // Build where clause
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {};
     if (params?.entityType) where.entityType = params.entityType;
-    if (params?.userId) where.userId = params.userId;
+    if (params?.userId) {
+      if (!canQueryAnyUser && params.userId !== selfId) {
+        return { success: false as const, error: "Forbidden" };
+      }
+      where.userId = params.userId;
+    }
 
     const [logs, total] = await Promise.all([
       prisma.activityLog.findMany({

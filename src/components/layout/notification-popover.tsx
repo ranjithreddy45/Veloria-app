@@ -16,6 +16,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -191,10 +192,15 @@ export function NotificationPopover() {
   // Mark single as read
   const handleMarkAsRead = useCallback(
     async (notificationId: string) => {
-      await markAsRead(notificationId);
-      queryClient.invalidateQueries({
-        queryKey: ["notifications"],
-      });
+      try {
+        await markAsRead(notificationId);
+        queryClient.invalidateQueries({
+          queryKey: ["notifications"],
+        });
+      } catch (error) {
+        console.error("Failed to mark notification as read:", error);
+        toast.error("Couldn't mark notification as read. Please try again.");
+      }
     },
     [queryClient]
   );
@@ -202,10 +208,15 @@ export function NotificationPopover() {
   // Mark all as read
   const handleMarkAllAsRead = useCallback(async () => {
     if (!userId) return;
-    await markAllAsRead(userId);
-    queryClient.invalidateQueries({
-      queryKey: ["notifications"],
-    });
+    try {
+      await markAllAsRead(userId);
+      queryClient.invalidateQueries({
+        queryKey: ["notifications"],
+      });
+    } catch (error) {
+      console.error("Failed to mark all notifications as read:", error);
+      toast.error("Couldn't mark notifications as read. Please try again.");
+    }
   }, [userId, queryClient]);
 
   return (

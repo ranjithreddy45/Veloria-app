@@ -125,6 +125,20 @@ export interface VenueMonth { venueId: string; venueName: string; days: MonthDay
 
 export async function getAvailabilityMonth(year: number, month: number): Promise<Result<{ days: number; rows: VenueMonth[] }>> {
   if (!(await requireRead())) return { success: false, error: "Unauthorized" };
+  // Validate month/year before any Date math: the Date constructor silently rolls
+  // over out-of-range months (month=13 → next Jan, month=0 → prev Dec), which would
+  // quietly query the wrong period instead of erroring. Reject anything that isn't a
+  // sane integer month (1–12) and a reasonable integer year.
+  if (
+    !Number.isInteger(year) ||
+    !Number.isInteger(month) ||
+    month < 1 ||
+    month > 12 ||
+    year < 1970 ||
+    year > 9999
+  ) {
+    return { success: false, error: "Invalid month or year" };
+  }
   // Scan in UTC to match how `@db.Date` reads back (UTC-midnight) and how each day
   // is bucketed below (getUTCDate). Using a local-tz range here would drop or
   // double-count the boundary days (1st/last) under a non-UTC server.

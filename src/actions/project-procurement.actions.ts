@@ -74,7 +74,11 @@ export async function getProjectProcurement(projectId: string) {
 export async function createWorkPackage(input: { projectId: string; title: string; categoryKey?: string; budgetAmount?: number }): Promise<Result<{ id: string }>> {
   const u = await requireUser();
   if (!canManage(u?.role)) return { success: false, error: "Not authorized." };
+  if (!input.projectId?.trim()) return { success: false, error: "Project is required." };
   if (!input.title?.trim()) return { success: false, error: "Title required." };
+  if (input.budgetAmount !== undefined && !(input.budgetAmount >= 0)) return { success: false, error: "Budget must be zero or positive." };
+  const project = await prisma.acqOnboardingProject.findUnique({ where: { id: input.projectId }, select: { id: true } });
+  if (!project) return { success: false, error: "Project not found." };
   const max = await prisma.projectWorkPackage.aggregate({ where: { projectId: input.projectId }, _max: { order: true } });
   const w = await prisma.projectWorkPackage.create({
     data: { projectId: input.projectId, title: input.title.trim(), categoryKey: input.categoryKey || null, budgetAmount: input.budgetAmount ?? 0, order: (max._max.order ?? 0) + 1 },
@@ -87,7 +91,11 @@ const WORK_PACKAGE_STATUSES = ["PLANNED", "IN_PROGRESS", "DONE", "ON_HOLD"];
 export async function updateWorkPackage(id: string, input: { budgetAmount?: number; status?: string }): Promise<Result<{ id: string }>> {
   const u = await requireUser();
   if (!canManage(u?.role)) return { success: false, error: "Not authorized." };
+  if (!id?.trim()) return { success: false, error: "Work package id is required." };
   if (input.status !== undefined && !WORK_PACKAGE_STATUSES.includes(input.status)) return { success: false, error: "Invalid status." };
+  if (input.budgetAmount !== undefined && !(input.budgetAmount >= 0)) return { success: false, error: "Budget must be zero or positive." };
+  const existing = await prisma.projectWorkPackage.findUnique({ where: { id }, select: { id: true } });
+  if (!existing) return { success: false, error: "Work package not found." };
   const wp = await prisma.projectWorkPackage.update({
     where: { id },
     data: {
@@ -102,8 +110,16 @@ export async function updateWorkPackage(id: string, input: { budgetAmount?: numb
 export async function createPurchaseOrder(input: { projectId: string; description: string; amount: number; vendorId?: string; workPackageId?: string }): Promise<Result<{ id: string }>> {
   const u = await requireUser();
   if (!canManage(u?.role)) return { success: false, error: "Not authorized." };
+  if (!input.projectId?.trim()) return { success: false, error: "Project is required." };
   if (!input.description?.trim()) return { success: false, error: "Description required." };
   if (!(input.amount > 0)) return { success: false, error: "Amount must be positive." };
+  const project = await prisma.acqOnboardingProject.findUnique({ where: { id: input.projectId }, select: { id: true } });
+  if (!project) return { success: false, error: "Project not found." };
+  // A linked work package must belong to the same project (prevents cross-project linkage).
+  if (input.workPackageId) {
+    const wp = await prisma.projectWorkPackage.findUnique({ where: { id: input.workPackageId }, select: { projectId: true } });
+    if (!wp || wp.projectId !== input.projectId) return { success: false, error: "Work package does not belong to this project." };
+  }
   const po = await prisma.projectPurchaseOrder.create({
     data: { projectId: input.projectId, description: input.description.trim(), amount: input.amount, vendorId: input.vendorId || null, workPackageId: input.workPackageId || null },
   });
@@ -114,8 +130,11 @@ export async function createPurchaseOrder(input: { projectId: string; descriptio
 export async function updatePurchaseOrderStatus(id: string, status: string): Promise<Result<{ id: string }>> {
   const u = await requireUser();
   if (!canManage(u?.role)) return { success: false, error: "Not authorized." };
+  if (!id?.trim()) return { success: false, error: "Purchase order id is required." };
   const valid = ["DRAFT", "ISSUED", "RECEIVED", "PAID", "CANCELLED"];
   if (!valid.includes(status)) return { success: false, error: "Invalid status." };
+  const existing = await prisma.projectPurchaseOrder.findUnique({ where: { id }, select: { id: true } });
+  if (!existing) return { success: false, error: "Purchase order not found." };
   const po = await prisma.projectPurchaseOrder.update({
     where: { id },
     data: { status: status as Prisma.ProjectPurchaseOrderUpdateInput["status"], issuedAt: status === "ISSUED" ? new Date() : undefined },
