@@ -48,6 +48,10 @@ import {
 beforeEach(() => {
   vi.clearAllMocks();
   authMock.mockResolvedValue({ user: { id: "u1", role: "ADMIN" } });
+  // Default: the package exists (satisfies the "Package not found" existence
+  // guard added to addPackageImage/setPackageCover). Tests that need a missing
+  // package override this with mockResolvedValue(null).
+  db.vendorPackage.findUnique.mockResolvedValue({ id: "p1", coverImageId: null });
   // $transaction supports both the array form and the callback form.
   db.$transaction.mockImplementation(async (arg: unknown) =>
     typeof arg === "function" ? (arg as (tx: typeof db) => unknown)(db) : Promise.all((arg as unknown[]) ?? [])
