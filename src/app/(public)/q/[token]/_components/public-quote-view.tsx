@@ -115,6 +115,7 @@ function TierCard({
             customerName={view.clientFirstName}
             slotBusy={!secured && slotBusy}
             alreadySecured={secured}
+            tierQuotationId={view.tiers.length > 1 ? tier.quotationId : undefined}
           />
         </div>
       </div>

@@ -9,6 +9,8 @@ import {
 } from "@/actions/payment.actions";
 // Backend (quote-onetap agent) PUBLIC actions — ensure proforma, then block slot.
 import { startOneTapAdvance, confirmOneTapAndBlock } from "@/actions/quote-onetap.actions";
+// Good-Better-Best: pick a specific tier (re-points the link + mints its proforma).
+import { selectTier } from "@/actions/quote-share-public.actions";
 
 // ============================================================
 // OneTapPay — "Pay {advance} to block your date" (PUBLIC, client).
@@ -63,6 +65,7 @@ export function OneTapPay({
   customerName,
   slotBusy = false,
   alreadySecured = false,
+  tierQuotationId,
 }: {
   token: string;
   /** Server-computed 20% booking-advance amount (paise-exact, INR). */
@@ -72,6 +75,12 @@ export function OneTapPay({
   slotBusy?: boolean;
   /** True when the date is already secured (paid/blocked) — show success. */
   alreadySecured?: boolean;
+  /**
+   * Multi-tier links only: the quotation id this card pays for. When set, the
+   * pay flow first re-points the link to this tier (selectTier) so the proforma
+   * + slot block invoice the chosen snapshot. Omitted for single-tier links.
+   */
+  tierQuotationId?: string;
 }) {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<"idle" | "securing" | "success" | "error">(
@@ -88,9 +97,22 @@ export function OneTapPay({
       if (!ok) throw new Error("Couldn't load the payment gateway. Please try again.");
 
       // 1. Ensure the proforma invoice exists; get the exact advance + invoiceId.
-      const startRes = await startOneTapAdvance(token);
-      if (!startRes.success) throw new Error(startRes.error || "Couldn't start the payment.");
-      const { invoiceId, amount } = startRes.data;
+      //    Multi-tier link: re-point to THIS tier first (selectTier mints its
+      //    proforma); single-tier: the plain one-tap proforma. Both return the
+      //    server-computed advance + invoiceId — never recompute money here.
+      let invoiceId: string;
+      let amount: number;
+      if (tierQuotationId) {
+        const sel = await selectTier(token, tierQuotationId);
+        if (!sel.success) throw new Error(sel.error || "Couldn't select this option.");
+        invoiceId = sel.data.invoiceId;
+        amount = sel.data.advanceAmount;
+      } else {
+        const startRes = await startOneTapAdvance(token);
+        if (!startRes.success) throw new Error(startRes.error || "Couldn't start the payment.");
+        invoiceId = startRes.data.invoiceId;
+        amount = startRes.data.amount;
+      }
 
       // 2. Create the Razorpay order against that invoice (clamps ≤ balanceDue).
       const orderRes = await createPublicRazorpayOrder(invoiceId, amount);
@@ -148,7 +170,7 @@ export function OneTapPay({
       setError(e instanceof Error ? e.message : "Something went wrong.");
       setLoading(false);
     }
-  }, [token, customerName]);
+  }, [token, customerName, tierQuotationId]);
 
   if (status === "success") {
     return (

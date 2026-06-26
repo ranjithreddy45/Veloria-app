@@ -28,6 +28,9 @@ import {
   Clock,
   Ban,
   Flame,
+  Sparkles,
+  Send,
+  RefreshCw,
 } from "lucide-react";
 
 import {
@@ -35,9 +38,15 @@ import {
   revokeQuoteShareLink,
   type QuoteRadarSignals,
 } from "@/actions/quote-share.actions";
+import {
+  generateAndPreviewQuoteCaption,
+  regenerateQuoteCaption,
+  sendQuoteCaptionWhatsApp,
+} from "@/actions/quote-caption.actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Props {
   quotationId: string;
@@ -72,7 +81,45 @@ export function QuoteRadarPanel({ quotationId, initial, canShare }: Props) {
   const [copied, setCopied] = useState(false);
   const [pending, startTransition] = useTransition();
 
+  // AI caption draft (rep can generate, edit, then send on WhatsApp).
+  const [caption, setCaption] = useState<string>(initial?.aiCaption ?? "");
+  const [captionBusy, setCaptionBusy] = useState(false);
+
   const link = signals && signals.status === "ACTIVE" ? signals : null;
+
+  async function handleGenerateCaption(regen: boolean) {
+    if (!link) return;
+    setCaptionBusy(true);
+    try {
+      const res = regen
+        ? await regenerateQuoteCaption(link.id)
+        : await generateAndPreviewQuoteCaption(link.id);
+      if (!res.success) {
+        toast.error(res.error || "Could not generate a caption.");
+        return;
+      }
+      setCaption(res.data.caption);
+      setSignals((s) => (s ? { ...s, aiCaption: res.data.caption } : s));
+      toast.success(res.data.method === "LLM" ? "AI caption ready" : "Caption ready");
+    } finally {
+      setCaptionBusy(false);
+    }
+  }
+
+  async function handleSendCaption() {
+    if (!link) return;
+    setCaptionBusy(true);
+    try {
+      const res = await sendQuoteCaptionWhatsApp(link.id, { captionOverride: caption.trim() || undefined });
+      if (!res.success) {
+        toast.error(res.error || "Could not send the WhatsApp message.");
+        return;
+      }
+      toast.success("Quote sent on WhatsApp.");
+    } finally {
+      setCaptionBusy(false);
+    }
+  }
 
   function refresh() {
     startTransition(() => router.refresh());
@@ -198,6 +245,44 @@ export function QuoteRadarPanel({ quotationId, initial, canShare }: Props) {
                 )}
               </div>
             </div>
+
+            {/* AI WhatsApp caption — generate, edit, send the quote in one tap. */}
+            {canShare && (
+              <div className="space-y-2 rounded-lg border bg-muted/20 p-2.5">
+                <div className="flex items-center justify-between">
+                  <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    <Sparkles className="size-3.5 text-violet-600" /> WhatsApp message
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 gap-1.5 px-2 text-xs"
+                    onClick={() => handleGenerateCaption(!!caption)}
+                    disabled={captionBusy}
+                  >
+                    {captionBusy ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : caption ? (
+                      <RefreshCw className="size-3.5" />
+                    ) : (
+                      <Sparkles className="size-3.5" />
+                    )}
+                    {caption ? "Regenerate" : "Generate"}
+                  </Button>
+                </div>
+                <Textarea
+                  value={caption}
+                  onChange={(e) => setCaption(e.target.value)}
+                  placeholder="Generate an AI message, or write your own — the link is appended automatically when you send."
+                  rows={3}
+                  className="text-sm"
+                />
+                <Button size="sm" className="gap-1.5" onClick={handleSendCaption} disabled={captionBusy || !caption.trim()}>
+                  {captionBusy ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
+                  Send on WhatsApp
+                </Button>
+              </div>
+            )}
 
             {/* Radar stats */}
             <div className="grid grid-cols-3 gap-2">

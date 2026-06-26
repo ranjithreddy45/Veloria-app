@@ -5,8 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
 import { getSalesQuotation } from "@/actions/sales-quotation.actions";
 import { getQuoteShareLink } from "@/actions/quote-share.actions";
+import type { QuotationInput } from "@/lib/sales/quotation-calc";
 import { QuotationDetail } from "../_components/quotation-detail";
 import { QuoteRadarPanel } from "../_components/quote-radar-panel";
+import { TierBuilder } from "../_components/tier-builder";
 
 export const metadata: Metadata = { title: "Quotation" };
 
@@ -68,12 +70,26 @@ export default async function QuotationPage({ params }: { params: Promise<{ id: 
   const radarRes = await getQuoteShareLink(id).catch(() => null);
   const radarSignals = radarRes && radarRes.success ? radarRes.data : null;
   const canShare = isAdmin || hasPermission(role, "quotes:send") || hasPermission(role, "publicquotes:manage");
+  const canBuildTiers = isAdmin || hasPermission(role, "quotes:create");
+
+  // Base calculator inputs (frozen on the quote) seed the Good-Better-Best builder.
+  const quoteData = res.data as { inputsJson?: unknown; status?: string };
+  const baseInput = quoteData.inputsJson as QuotationInput | undefined;
+  const quoteStatus = quoteData.status ?? "";
 
   return (
     <div className="space-y-6">
       {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
       <QuotationDetail quote={res.data as any} perms={perms} leads={leads} venues={venues} advancePaid={advancePaid} />
       <QuoteRadarPanel quotationId={id} initial={radarSignals} canShare={canShare} />
+      {baseInput && typeof baseInput === "object" && (
+        <TierBuilder
+          baseQuotationId={id}
+          baseInput={baseInput}
+          status={quoteStatus}
+          canBuild={canBuildTiers}
+        />
+      )}
     </div>
   );
 }
