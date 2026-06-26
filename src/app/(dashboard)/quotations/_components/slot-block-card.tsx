@@ -32,9 +32,11 @@ interface Props {
   defaultPlannerSlot?: string | null;
   blocked: { bookingId: string; at: string | null } | null;
   invoiceId?: string | null;
+  /** True once the 20% booking advance has been paid on the quotation's invoice. */
+  advancePaid?: boolean;
 }
 
-export function SlotBlockCard({ quotationId, venues, defaultVenueId, defaultDateISO, defaultPlannerSlot, blocked, invoiceId }: Props) {
+export function SlotBlockCard({ quotationId, venues, defaultVenueId, defaultDateISO, defaultPlannerSlot, blocked, invoiceId, advancePaid }: Props) {
   const router = useRouter();
   const [venueId, setVenueId] = useState(defaultVenueId ?? "");
   const [date, setDate] = useState(defaultDateISO ? defaultDateISO.slice(0, 10) : "");
@@ -122,6 +124,34 @@ export function SlotBlockCard({ quotationId, venues, defaultVenueId, defaultDate
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        {/* Step 1 — proforma invoice + advance. The slot is ONLY blocked after
+            the 20% advance is paid (blocking then auto-confirms the booking). */}
+        <div className="space-y-2 rounded-md border bg-muted/30 p-3">
+          <p className="text-sm font-medium">Step 1 — Collect the 20% advance</p>
+          {!invoiceId ? (
+            <Button size="sm" className="w-full" onClick={genInvoice} disabled={invoicing}>
+              {invoicing ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+              Generate proforma invoice (20% advance)
+            </Button>
+          ) : advancePaid ? (
+            <p className="flex items-center gap-1.5 text-sm text-emerald-600">
+              <CheckCircle2 className="h-4 w-4" /> Advance received — block the slot below.
+            </p>
+          ) : (
+            <div className="space-y-1.5">
+              <p className="text-xs text-amber-600">
+                Advance pending. Record the 20% advance to unlock slot booking.
+              </p>
+              <Button asChild variant="outline" size="sm" className="w-full">
+                <a href={`/invoices/${invoiceId}`}>
+                  <Receipt className="h-4 w-4" /> Open invoice to record advance
+                </a>
+              </Button>
+            </div>
+          )}
+        </div>
+
+        <p className="text-sm font-medium">Step 2 — Block the slot</p>
         <div className="space-y-1.5">
           <Label>Venue</Label>
           <Select value={venueId} onValueChange={(v) => { setVenueId(v); setAvail(null); }}>
@@ -180,12 +210,14 @@ export function SlotBlockCard({ quotationId, venues, defaultVenueId, defaultDate
           </div>
         )}
 
-        <Button className="w-full" onClick={block} disabled={blocking || (selectedAvail ? !selectedAvail.available : false)}>
+        <Button className="w-full" onClick={block} disabled={blocking || !advancePaid || (selectedAvail ? !selectedAvail.available : false)}>
           {blocking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-          Block this slot
+          {advancePaid ? "Block this slot" : "Block slot (after advance)"}
         </Button>
         <p className="text-xs text-muted-foreground">
-          Creates a held booking for the customer. Next: collect the 20% booking advance to confirm.
+          {advancePaid
+            ? "Advance received — blocking the slot confirms the booking and hands it to operations."
+            : "Slot booking unlocks once the 20% advance is paid in Step 1."}
         </p>
       </CardContent>
     </Card>

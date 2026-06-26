@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { notify } from "@/lib/notify";
 import { hasPermission } from "@/lib/permissions";
 import { checkAvailability, createBooking } from "@/actions/booking.actions";
+import { maybeConfirmBookingOnPayment } from "@/lib/sales/confirm-booking";
 import { updateLeadStatus } from "@/actions/lead.actions";
 import { updateDeal } from "@/actions/pipeline.actions";
 import { BOOKABLE_SLOTS, SLOT_LABEL, plannerSlotToEnum, type TimeSlotEnum } from "@/lib/sales/slot";
@@ -238,6 +239,19 @@ export async function blockSlotFromQuotation(
     await releaseClaim();
     console.error("[BLOCK_SLOT_LINK_ERROR]", e);
     return { success: false, error: "Could not finalize the slot block — please try again." };
+  }
+
+  // Proforma-first flow: if the advance invoice was already raised (and likely
+  // paid), attach it to this new booking and auto-confirm if the 20% advance has
+  // cleared — so blocking the slot AFTER payment immediately confirms it (+ ops
+  // handoff). Best-effort; the HOLD simply stays pending if the advance isn't paid.
+  if (q.invoiceId && q.invoiceId !== "__pending__") {
+    try {
+      await prisma.invoice.update({ where: { id: q.invoiceId }, data: { bookingId } });
+      await maybeConfirmBookingOnPayment(q.invoiceId);
+    } catch (e) {
+      console.error("[BLOCK_SLOT_INVOICE_LINK_ERROR]", e);
+    }
   }
 
   notify({

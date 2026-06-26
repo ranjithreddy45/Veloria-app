@@ -50,10 +50,22 @@ export default async function QuotationPage({ params }: { params: Promise<{ id: 
     clientEmail: l.contact?.email ?? null,
   }));
 
+  // Proforma-first flow: slot booking is gated until the 20% advance is paid
+  // on the quotation's invoice.
+  const quoteInvoiceId = (res.data as { invoiceId?: string | null }).invoiceId;
+  let advancePaid = false;
+  if (quoteInvoiceId && quoteInvoiceId !== "__pending__") {
+    const inv = await prisma.invoice.findUnique({
+      where: { id: quoteInvoiceId },
+      select: { paidAmount: true, totalAmount: true },
+    });
+    if (inv) advancePaid = Number(inv.paidAmount) >= Number(inv.totalAmount) * 0.2 - 1;
+  }
+
   return (
     <div className="space-y-6">
       {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-      <QuotationDetail quote={res.data as any} perms={perms} leads={leads} venues={venues} />
+      <QuotationDetail quote={res.data as any} perms={perms} leads={leads} venues={venues} advancePaid={advancePaid} />
     </div>
   );
 }

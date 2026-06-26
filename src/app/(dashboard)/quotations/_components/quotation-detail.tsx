@@ -96,9 +96,10 @@ interface Props {
   perms: { canApprove: boolean; canSend: boolean; canCreate: boolean; canEdit: boolean };
   leads: LeadOpt[];
   venues: VenueOpt[];
+  advancePaid?: boolean;
 }
 
-export function QuotationDetail({ quote, perms, leads, venues }: Props) {
+export function QuotationDetail({ quote, perms, leads, venues, advancePaid }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
@@ -281,6 +282,7 @@ export function QuotationDetail({ quote, perms, leads, venues }: Props) {
               defaultPlannerSlot={quote.timeSlot}
               blocked={quote.bookingId ? { bookingId: quote.bookingId, at: quote.slotBlockedAt } : null}
               invoiceId={quote.invoiceId}
+              advancePaid={advancePaid}
             />
           )}
           <Card>

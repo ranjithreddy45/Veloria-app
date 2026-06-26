@@ -56,9 +56,7 @@ export default async function InvoicePdfPage({ params }: InvoicePdfPageProps) {
       : null;
 
   return (
-    <html lang="en">
-      <head>
-        <title>{docTitle} {invoice.invoiceNumber} - Veloria Grand</title>
+    <>
         <style
           dangerouslySetInnerHTML={{
             __html: `
@@ -174,17 +172,8 @@ export default async function InvoicePdfPage({ params }: InvoicePdfPageProps) {
             `,
           }}
         />
-      </head>
-      <body>
-        {/* Print action bar */}
-        <div className="auto-print-bar">
-          <span>Invoice {invoice.invoiceNumber} — Ready to save as PDF</span>
-          <button id="print-btn">
-            Save as PDF / Print
-          </button>
-        </div>
 
-        <div className="invoice" style={{ marginTop: "60px" }}>
+        <div className="invoice">
           {/* Header */}
           <div className="header">
             <div className="company">
@@ -433,7 +422,6 @@ export default async function InvoicePdfPage({ params }: InvoicePdfPageProps) {
               : "This is a computer-generated proforma invoice and does not require a physical signature."}
           </div>
         </div>
-      </body>
-    </html>
+    </>
   );
 }

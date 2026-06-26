@@ -10,6 +10,7 @@ import {
   UnlockIcon,
   CheckCircle2Icon,
   AlertTriangleIcon,
+  CalendarIcon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -176,6 +177,10 @@ export function BookingActions({ bookingId, currentStatus, canOverride = false }
               Place Hold
             </DropdownMenuItem>
           )}
+          <DropdownMenuItem onClick={() => router.push(`/bookings/${bookingId}/edit`)}>
+            <CalendarIcon className="mr-2 size-4" />
+            Change / Reschedule slot
+          </DropdownMenuItem>
           {(currentStatus === "CONFIRMED" || currentStatus === "IN_PROGRESS") && (
             <DropdownMenuItem
               onClick={() => {

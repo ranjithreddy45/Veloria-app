@@ -34,8 +34,10 @@ export async function createBookingInvoiceFromQuotation(
   if (!q) return { success: false, error: "Quotation not found." };
   if (q.status !== "APPROVED" && q.status !== "SENT")
     return { success: false, error: "Approve the quotation before invoicing." };
-  if (!q.bookingId)
-    return { success: false, error: "Block the slot first — the invoice attaches to that booking." };
+  // The proforma invoice is raised FIRST (to collect the advance) — the slot is
+  // only blocked AFTER the advance is paid. So the booking may not exist yet;
+  // the invoice attaches to it later, when the slot is blocked (see
+  // blockSlotFromQuotation, which links + auto-confirms once the advance clears).
   if (!q.contactId)
     return { success: false, error: "Link a customer/contact to the quotation first." };
   const PENDING = "__pending__";
@@ -110,7 +112,9 @@ export async function createBookingInvoiceFromQuotation(
 
     const inv = await createInvoice({
       contactId: q.contactId,
-      bookingId: q.bookingId,
+      // May be null in the proforma-first flow (slot blocked later); the invoice
+      // is linked to the booking when the slot is blocked after the advance.
+      bookingId: q.bookingId ?? undefined,
       dueDate: dueNow,
       lineItems,
       discountPercent: Number(q.discountPct) || 0,
