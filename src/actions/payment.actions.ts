@@ -9,6 +9,7 @@ import { serialize, formatINR } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
 import { notify } from "@/lib/notify";
 import { reportSystemFailure } from "@/lib/ops-alert";
+import { after } from "next/server";
 import { sendEmail } from "@/lib/email";
 import { paymentReceivedEmail } from "@/lib/email-templates/payment-received";
 import { format } from "date-fns";
@@ -303,17 +304,21 @@ export async function recordPayment(data: {
       console.error("[PAYMENT_EMAIL_ERROR]", emailErr);
     }
 
-    // Post the cash receipt to the General Ledger (best-effort: no-op if
-    // Finance isn't set up; never blocks recording the payment).
-    postPaymentReceived(payment.id, session.user.id as string).catch((err) => {
-      console.error("[PAYMENT_GL_POST_ERROR]", err);
-      void reportSystemFailure({
-        area: "GL posting",
-        title: "Payment cash-receipt failed to post",
-        detail: `Payment ${payment.id}: ${err instanceof Error ? err.message : "unknown"}. AR/cash may be unreconciled.`,
-        actionUrl: "/finance",
-      });
-    });
+    // Post the cash receipt to the General Ledger. Runs in after() so it's
+    // guaranteed to execute post-response on serverless (instead of being a
+    // fire-and-forget promise that can be dropped on function freeze), without
+    // blocking the response. Idempotent; the daily gl-reconcile is the backstop.
+    after(() =>
+      postPaymentReceived(payment.id, session.user.id as string).catch((err) => {
+        console.error("[PAYMENT_GL_POST_ERROR]", err);
+        void reportSystemFailure({
+          area: "GL posting",
+          title: "Payment cash-receipt failed to post",
+          detail: `Payment ${payment.id}: ${err instanceof Error ? err.message : "unknown"}. AR/cash may be unreconciled.`,
+          actionUrl: "/finance",
+        });
+      })
+    );
 
     // BookMyShow-style: if this payment covers the booking advance, the held
     // slot auto-confirms and the customer gets confirmations (best-effort).
@@ -417,16 +422,19 @@ export async function verifyPaymentProof(paymentId: string) {
       entityId: paymentId,
     });
 
-    // Post the verified cash receipt to the General Ledger (best-effort).
-    postPaymentReceived(paymentId, session.user.id as string).catch((err) => {
-      console.error("[PAYMENT_GL_POST_ERROR]", err);
-      void reportSystemFailure({
-        area: "GL posting",
-        title: "Payment cash-receipt failed to post",
-        detail: `Payment ${paymentId}: ${err instanceof Error ? err.message : "unknown"}. AR/cash may be unreconciled.`,
-        actionUrl: "/finance",
-      });
-    });
+    // Post the verified cash receipt to the General Ledger via after() so it
+    // can't be dropped on a serverless freeze (idempotent; reconcile backstop).
+    after(() =>
+      postPaymentReceived(paymentId, session.user.id as string).catch((err) => {
+        console.error("[PAYMENT_GL_POST_ERROR]", err);
+        void reportSystemFailure({
+          area: "GL posting",
+          title: "Payment cash-receipt failed to post",
+          detail: `Payment ${paymentId}: ${err instanceof Error ? err.message : "unknown"}. AR/cash may be unreconciled.`,
+          actionUrl: "/finance",
+        });
+      })
+    );
 
     // Same BookMyShow-style confirm + customer notifications as a recorded payment.
     await maybeConfirmBookingOnPayment(payment.invoice.id);

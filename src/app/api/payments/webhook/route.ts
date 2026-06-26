@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { applyRazorpayCapture } from "@/lib/payments/apply-capture";
+import { reportSystemFailure } from "@/lib/ops-alert";
 
 // ============================================================
 // POST: Razorpay Webhook Handler
@@ -88,10 +89,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("[RAZORPAY_WEBHOOK_ERROR]", error);
-    // Return 200 even on errors to prevent Razorpay from retrying excessively
+    // Return 500 so Razorpay RETRIES — a transient DB/processing error must not
+    // be swallowed as success, or a paid customer's invoice silently stays
+    // unpaid. Razorpay caps its own retries, so this won't loop forever.
+    void reportSystemFailure({
+      area: "Payment webhook",
+      title: "Razorpay webhook processing failed",
+      detail: error instanceof Error ? error.message : "unknown error",
+      actionUrl: "/finance",
+    });
     return NextResponse.json(
       { success: false, error: "Webhook processing failed" },
-      { status: 200 }
+      { status: 500 }
     );
   }
 }

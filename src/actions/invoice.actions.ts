@@ -11,6 +11,7 @@ import { calculateInvoiceTotals } from "@/lib/invoice-calc";
 import { logActivity } from "@/lib/activity-logger";
 import { notify } from "@/lib/notify";
 import { reportSystemFailure } from "@/lib/ops-alert";
+import { after } from "next/server";
 import { postInvoiceIssued } from "@/lib/finance/receivables";
 import { sendEmail } from "@/lib/email";
 import { invoiceSentEmail } from "@/lib/email-templates/invoice-sent";
@@ -490,15 +491,17 @@ export async function sendInvoice(id: string) {
 
     // Recognise revenue in the General Ledger (best-effort: no-op if Finance
     // isn't set up yet; never blocks sending the invoice).
-    postInvoiceIssued(invoice.id, session.user.id as string).catch((err) => {
-      console.error("[INVOICE_GL_POST_ERROR]", err);
-      void reportSystemFailure({
-        area: "GL posting",
-        title: "Invoice revenue failed to post",
-        detail: `Invoice ${invoice.id}: ${err instanceof Error ? err.message : "unknown"}. Revenue/AR may be unreconciled.`,
-        actionUrl: "/finance",
-      });
-    });
+    after(() =>
+      postInvoiceIssued(invoice.id, session.user.id as string).catch((err) => {
+        console.error("[INVOICE_GL_POST_ERROR]", err);
+        void reportSystemFailure({
+          area: "GL posting",
+          title: "Invoice revenue failed to post",
+          detail: `Invoice ${invoice.id}: ${err instanceof Error ? err.message : "unknown"}. Revenue/AR may be unreconciled.`,
+          actionUrl: "/finance",
+        });
+      })
+    );
 
     notify({
       userId: session.user.id as string,

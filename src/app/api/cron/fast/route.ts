@@ -65,9 +65,14 @@ export async function GET(request: Request) {
     results.bdSlaEscalations = `error: ${e instanceof Error ? e.message : "unknown"}`;
   }
 
-  return NextResponse.json({
-    success: true,
-    ranAt: new Date().toISOString(),
-    results,
-  });
+  // Surface partial failures with a non-2xx so the lane orchestrator
+  // (runCronLane) counts it as failed and alerts admins — otherwise a broken
+  // SLA/cadence task reports success and goes unnoticed.
+  const failed = Object.values(results).filter(
+    (v) => typeof v === "string" && v.startsWith("error:")
+  );
+  return NextResponse.json(
+    { success: failed.length === 0, ranAt: new Date().toISOString(), results },
+    { status: failed.length > 0 ? 500 : 200 }
+  );
 }

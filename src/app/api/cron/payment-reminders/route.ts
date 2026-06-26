@@ -59,7 +59,8 @@ export async function GET(request: Request) {
       });
     } catch (e) {
       console.error("[PAYMENT_REMINDERS] query failed:", e);
-      return NextResponse.json({ reminded: 0 });
+      // 500 so the lane orchestrator counts a failure and alerts admins.
+      return NextResponse.json({ reminded: 0, error: "query-failed" }, { status: 500 });
     }
 
     let reminded = 0;

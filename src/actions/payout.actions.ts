@@ -12,6 +12,8 @@ import type { PayoutStatus } from "@prisma/client";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
 import { notify } from "@/lib/notify";
+import { reportSystemFailure } from "@/lib/ops-alert";
+import { after } from "next/server";
 import { hasPermission } from "@/lib/permissions";
 import { postPayoutPaid, findDuplicatePayouts } from "@/lib/finance/payables";
 
@@ -339,9 +341,18 @@ export async function markPayoutPaid(id: string) {
       changes: { status: "PAID" },
     });
 
-    // Post the disbursement to the General Ledger (best-effort, idempotent).
-    postPayoutPaid(payout.id, session.user.id as string).catch((err) =>
-      console.error("[PAYOUT_GL_POST_ERROR]", err),
+    // Post the disbursement to the General Ledger via after() so it survives a
+    // serverless freeze (idempotent; reconcile backstop). Alerts on failure.
+    after(() =>
+      postPayoutPaid(payout.id, session.user.id as string).catch((err) => {
+        console.error("[PAYOUT_GL_POST_ERROR]", err);
+        void reportSystemFailure({
+          area: "GL posting",
+          title: "Vendor payout failed to post",
+          detail: `Payout ${payout.id}: ${err instanceof Error ? err.message : "unknown"}. AP/cash may be unreconciled.`,
+          actionUrl: "/finance",
+        });
+      })
     );
 
     notify({

@@ -99,13 +99,11 @@ export async function GET(request: Request) {
     abandoned = res.count;
   } catch (e) {
     console.error("[CONFIGURATOR_ABANDONMENT_ERROR]", e);
-    // Never throw from a cron — report a soft failure.
-    return NextResponse.json({
-      success: false,
-      ranAt: now.toISOString(),
-      abandoned,
-      followUps,
-    });
+    // 500 so the lane orchestrator counts a failure and alerts admins.
+    return NextResponse.json(
+      { success: false, ranAt: now.toISOString(), abandoned, followUps },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json({
