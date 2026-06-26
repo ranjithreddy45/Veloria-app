@@ -3,7 +3,8 @@ import { notify } from "@/lib/notify";
 import { sendEmail } from "@/lib/email";
 import { sendSMSFireAndForget } from "@/lib/sms";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
-import { instantiateExecutionPlanFromSOP } from "@/lib/sales/ops-handoff";
+import { provisionEventOperations } from "@/lib/ops/provision";
+import { reportSystemFailure } from "@/lib/ops-alert";
 import {
   notifyOpsAssignees,
   triggerVendorsForBooking,
@@ -144,49 +145,29 @@ export async function maybeConfirmBookingOnPayment(invoiceId: string): Promise<v
       venueName: b.venue?.name ?? "the venue",
     };
 
-    // Ops handoff: auto-populate the execution plan + tasks from the SOP
-    // template AND auto-assign each task to the team that owns its category, so
-    // the operations team has its checklist — already routed — the moment we
-    // confirm. Then nudge each assignee with their task count.
-    const assignments = await instantiateExecutionPlanFromSOP(b.id, b.createdById, b.eventType);
-    notifyOpsAssignees(assignments, eventInfo);
+    // Ops handoff: provision EVERY team's workspace off one EventOperation root
+    // — execution plan + auto-routed tasks, BEO/function sheet, kitchen plan,
+    // procurement requisitions, dispatch orders, and vendor-assignment records —
+    // from the matched SOP template. Idempotent; on failure we ESCALATE to admins
+    // (the reconcile-ops cron is the backstop) rather than failing silently, so a
+    // confirmed booking can never end up with no ops checklist unnoticed.
+    try {
+      const prov = await provisionEventOperations(b.id, b.createdById, b.eventType);
+      notifyOpsAssignees(prov.assignments, eventInfo);
+    } catch (e) {
+      console.error("[CONFIRM_OPS_PROVISION_ERROR]", e);
+      await reportSystemFailure({
+        area: "Ops provisioning",
+        title: `Ops not fully provisioned for ${b.bookingNumber}`,
+        detail: `Booking ${b.id}: ${(e as Error).message}. The reconcile-ops cron will retry.`,
+        actionUrl: `/bookings/${b.id}`,
+      }).catch(() => {});
+    }
 
     // Vendor trigger: alert every attached vendor on their own channels and the
     // internal vendor-coordination team, so the vendor side is engaged on confirm.
     await triggerVendorsForBooking(b.id, eventInfo);
-
-    // Auto-create the Function Sheet (BEO) so ops has the day-of document ready.
-    // Best-effort + idempotent (one BEO per booking).
-    await ensureBeoForBooking(b.id, b.createdById, b.guestCount ?? null).catch((e) =>
-      console.error("[CONFIRM_BEO_ERROR]", e)
-    );
   } catch (e) {
     console.error("[CONFIRM_BOOKING_ON_PAYMENT_ERROR]", e);
-  }
-}
-
-// System-level BEO creation (no session) for the auto-confirm path. Mirrors
-// createBeo's sequential number allocation + P2002 retry, and is idempotent:
-// one Function Sheet per booking.
-async function ensureBeoForBooking(
-  bookingId: string,
-  createdById: string,
-  covers: number | null
-): Promise<void> {
-  const existing = await prisma.beo.findFirst({ where: { bookingId }, select: { id: true } });
-  if (existing) return;
-  const year = new Date().getFullYear();
-  for (let attempt = 0; attempt < 8; attempt++) {
-    const count = await prisma.beo.count({ where: { beoNumber: { startsWith: `BEO-${year}-` } } });
-    const beoNumber = `BEO-${year}-${String(count + 1 + attempt).padStart(3, "0")}`;
-    try {
-      await prisma.beo.create({
-        data: { beoNumber, bookingId, status: "DRAFT", covers, createdById },
-      });
-      return;
-    } catch (e) {
-      if ((e as { code?: string })?.code === "P2002") continue; // number raced — retry
-      throw e;
-    }
   }
 }

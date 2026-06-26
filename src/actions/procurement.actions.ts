@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { hasPermission } from "@/lib/permissions";
 import { Prisma } from "@prisma/client";
+import { assertTransition } from "@/lib/ops/state-machine";
 import { postPurchaseReceivedWithinTx } from "@/lib/finance/procurement";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
@@ -219,6 +220,11 @@ export async function createPurchaseRequisition(input: {
   const totalAmount = sumItems(items.map((it) => ({ quantity: it.quantity, unitPrice: it.unitPrice })));
   const neededBy = input.neededBy ? new Date(input.neededBy) : null;
 
+  // Link to the per-booking EventOperation aggregate root if one exists.
+  const op = input.bookingId
+    ? await prisma.eventOperation.findUnique({ where: { bookingId: input.bookingId }, select: { id: true } })
+    : null;
+
   // Retry on the unique-prNumber collision under concurrency.
   const MAX_RETRY = 5;
   for (let attempt = 0; attempt < MAX_RETRY; attempt++) {
@@ -230,6 +236,7 @@ export async function createPurchaseRequisition(input: {
           title,
           status: "PENDING",
           bookingId: input.bookingId || null,
+          operationId: op?.id ?? null,
           vendorId: input.vendorId || null,
           department: input.department?.trim() || null,
           neededBy,
@@ -320,6 +327,8 @@ export async function approvePR(id: string): Promise<Result<{ id: string }>> {
   });
   if (!pr) return { success: false, error: "Requisition not found" };
   if (pr.status !== "PENDING") return { success: false, error: "Only a pending requisition can be approved." };
+  const approveGate = assertTransition("procurement", pr.status, "APPROVED");
+  if (!approveGate.ok) return { success: false, error: approveGate.error! };
   // Maker-checker: you can't approve your own requisition — except SUPER_ADMIN,
   // who is never gated by the approval process.
   if (pr.requestedById === u.id && u.role !== "SUPER_ADMIN") {
@@ -343,6 +352,8 @@ export async function rejectPR(id: string, reason?: string): Promise<Result<{ id
   const pr = await prisma.purchaseRequisition.findUnique({ where: { id }, select: { status: true, notes: true } });
   if (!pr) return { success: false, error: "Requisition not found" };
   if (pr.status !== "PENDING") return { success: false, error: "Only a pending requisition can be rejected." };
+  const rejectGate = assertTransition("procurement", pr.status, "REJECTED");
+  if (!rejectGate.ok) return { success: false, error: rejectGate.error! };
 
   const trimmed = reason?.trim();
   const notes = trimmed
@@ -369,6 +380,8 @@ export async function markOrdered(id: string): Promise<Result<{ id: string }>> {
   const pr = await prisma.purchaseRequisition.findUnique({ where: { id }, select: { status: true } });
   if (!pr) return { success: false, error: "Requisition not found" };
   if (pr.status !== "APPROVED") return { success: false, error: "Only an approved requisition can be ordered." };
+  const orderGate = assertTransition("procurement", pr.status, "ORDERED");
+  if (!orderGate.ok) return { success: false, error: orderGate.error! };
 
   await prisma.purchaseRequisition.update({
     where: { id },
@@ -387,6 +400,8 @@ export async function markReceived(id: string): Promise<Result<{ id: string }>> 
   const pr = await prisma.purchaseRequisition.findUnique({ where: { id }, select: { status: true } });
   if (!pr) return { success: false, error: "Requisition not found" };
   if (pr.status !== "ORDERED") return { success: false, error: "Only an ordered requisition can be received." };
+  const receiveGate = assertTransition("procurement", pr.status, "RECEIVED");
+  if (!receiveGate.ok) return { success: false, error: receiveGate.error! };
 
   // Receipt + GL accrual in ONE transaction so they're durable together: an
   // unexpected GL failure rolls the receipt back (user retries) instead of

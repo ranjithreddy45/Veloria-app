@@ -66,3 +66,71 @@ export const updateSOPTaskDefSchema = z.object({
 });
 
 export type UpdateSOPTaskDefInput = z.infer<typeof updateSOPTaskDefSchema>;
+
+// ============================================================
+// Provisioning seeds — these JSON shapes are consumed VERBATIM by
+// src/lib/ops/provision.ts when a booking is confirmed. Do NOT change a field
+// name without updating that consumer.
+// ============================================================
+
+// kitchenSeed → KitchenPlan items: [{ name, category, quantity, unit, estUnitCost }]
+export const kitchenSeedItemSchema = z.object({
+  name: z.string().min(1, "Item name is required").max(300),
+  category: z.string().max(120).optional().or(z.literal("")),
+  quantity: z.number().min(0).optional(),
+  unit: z.string().max(60).optional().or(z.literal("")),
+  estUnitCost: z.number().min(0).optional(),
+});
+
+// procurementSeed → PurchaseRequisition (neededBy = eventDate − neededByOffsetDays)
+export const procurementSeedItemSchema = z.object({
+  name: z.string().min(1, "Item name is required").max(300),
+  quantity: z.number().min(0).optional(),
+  unit: z.string().max(60).optional().or(z.literal("")),
+  unitPrice: z.number().min(0).optional(),
+});
+
+export const procurementSeedSchema = z.object({
+  title: z.string().min(1, "Requisition title is required").max(300),
+  department: z.string().max(120).optional().or(z.literal("")),
+  neededByOffsetDays: z.number().int().min(0).optional(),
+  items: z.array(procurementSeedItemSchema).optional(),
+});
+
+// dispatchSeed → DispatchOrder: [{ fromLocation, toLocation, items: [{ name, quantity, returnable }] }]
+export const dispatchSeedItemSchema = z.object({
+  name: z.string().min(1, "Item name is required").max(300),
+  quantity: z.number().min(0).optional(),
+  returnable: z.boolean().optional(),
+});
+
+export const dispatchSeedSchema = z.object({
+  fromLocation: z.string().max(200).optional().or(z.literal("")),
+  toLocation: z.string().max(200).optional().or(z.literal("")),
+  items: z.array(dispatchSeedItemSchema).optional(),
+});
+
+// beoDefaults → BEO notes
+export const beoDefaultsSchema = z.object({
+  menuNotes: z.string().max(5000).optional().or(z.literal("")),
+  floorPlanNotes: z.string().max(5000).optional().or(z.literal("")),
+  avNotes: z.string().max(5000).optional().or(z.literal("")),
+  decorNotes: z.string().max(5000).optional().or(z.literal("")),
+  staffingNotes: z.string().max(5000).optional().or(z.literal("")),
+  specialInstructions: z.string().max(5000).optional().or(z.literal("")),
+});
+
+export const updateSOPTemplateSeedsSchema = z.object({
+  kitchenSeed: z.array(kitchenSeedItemSchema).nullable().optional(),
+  procurementSeed: z.array(procurementSeedSchema).nullable().optional(),
+  dispatchSeed: z.array(dispatchSeedSchema).nullable().optional(),
+  beoDefaults: beoDefaultsSchema.nullable().optional(),
+});
+
+export type KitchenSeedItem = z.infer<typeof kitchenSeedItemSchema>;
+export type ProcurementSeed = z.infer<typeof procurementSeedSchema>;
+export type DispatchSeed = z.infer<typeof dispatchSeedSchema>;
+export type BeoDefaults = z.infer<typeof beoDefaultsSchema>;
+export type UpdateSOPTemplateSeedsInput = z.infer<
+  typeof updateSOPTemplateSeedsSchema
+>;

@@ -19,6 +19,7 @@ import {
   type AssignOperationVendorInput,
 } from "@/schemas/operations.schema";
 import { serialize } from "@/lib/utils";
+import { assertTransition } from "@/lib/ops/state-machine";
 import { logActivity } from "@/lib/activity-logger";
 import { notify } from "@/lib/notify";
 import type { Prisma } from "@prisma/client";
@@ -229,6 +230,12 @@ export async function updateOperation(
     }
 
     const updateData = parsed.data;
+
+    // Centralized state-machine guard for any status change.
+    if (updateData.status !== undefined && updateData.status !== existing.status) {
+      const gate = assertTransition("operation", existing.status, updateData.status);
+      if (!gate.ok) return { success: false as const, error: gate.error! };
+    }
 
     const operation = await prisma.eventOperation.update({
       where: { id },

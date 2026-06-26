@@ -1440,7 +1440,7 @@ model EventOperation {
   updatedAt     DateTime        @updatedAt
 
   bookingId   String  @unique
-  booking     Booking @relation(fields: [bookingId], references: [id])
+  booking     Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   createdById String
   createdBy   User    @relation("OperationCreatedBy", fields: [createdById], references: [id])
 
@@ -1448,6 +1448,14 @@ model EventOperation {
   vendorAssignments OperationVendorAssignment[]
 
   @@index([status])
+  opsProvisionedAt  DateTime?
+  provisioningError String?
+  executionPlans       ExecutionPlan[]       @relation("OperationExecutionPlan")
+  beos                 Beo[]                 @relation("OperationBeo")
+  kitchenPlans         KitchenPlan[]         @relation("OperationKitchenPlan")
+  purchaseRequisitions PurchaseRequisition[] @relation("OperationPurchaseReqs")
+  dispatchOrders       DispatchOrder[]       @relation("OperationDispatches")
+  supportTickets       SupportTicket[]       @relation("OperationSupportTickets")
 }
 
 model StaffAssignment {
@@ -1483,6 +1491,11 @@ model OperationVendorAssignment {
   bookingVendor   BookingVendor  @relation(fields: [bookingVendorId], references: [id])
 
   @@index([operationId])
+  status       String    @default("NOTIFIED") // NOTIFIED | CONFIRMED | DECLINED
+  confirmedAt  DateTime?
+  declinedAt   DateTime?
+  remindedAt   DateTime?
+  respondToken String?
 }
 
 // 6.2 Event Day Manager
@@ -2621,6 +2634,10 @@ model SOPTemplate {
 
   @@index([eventType])
   @@index([isActive])
+  kitchenSeed     Json? // [{ name, category, quantity, unit, estUnitCost }]
+  procurementSeed Json? // [{ title, department, neededByOffsetDays, items:[{name,quantity,unit,unitPrice}] }]
+  dispatchSeed    Json? // [{ fromLocation, toLocation, items:[{name,quantity,returnable}] }]
+  beoDefaults     Json? // { menuNotes, floorPlanNotes, avNotes, decorNotes, staffingNotes, specialInstructions }
 }
 
 model SOPPhase {
@@ -2682,6 +2699,8 @@ model ExecutionPlan {
 
   @@index([status])
   @@index([eventDate])
+  operationId String?
+  operation   EventOperation? @relation("OperationExecutionPlan", fields: [operationId], references: [id])
 }
 
 model ExecutionPhase {
@@ -6284,6 +6303,8 @@ model Beo {
 
   @@index([bookingId])
   @@index([status])
+  operationId String?
+  operation   EventOperation? @relation("OperationBeo", fields: [operationId], references: [id])
 }
 
 model BeoIncident {
@@ -6320,6 +6341,8 @@ model KitchenPlan {
 
   @@index([bookingId])
   @@index([status])
+  operationId String?
+  operation   EventOperation? @relation("OperationKitchenPlan", fields: [operationId], references: [id])
 }
 
 model KitchenPlanItem {
@@ -6361,6 +6384,9 @@ model PurchaseRequisition {
 
   @@index([status])
   @@index([bookingId])
+  operationId String?
+  operation   EventOperation? @relation("OperationPurchaseReqs", fields: [operationId], references: [id])
+  @@index([operationId])
 }
 
 model PurchaseRequisitionItem {
@@ -6399,6 +6425,9 @@ model SupportTicket {
 
   @@index([status])
   @@index([assignedToId])
+  operationId String?
+  operation   EventOperation? @relation("OperationSupportTickets", fields: [operationId], references: [id])
+  @@index([operationId])
 }
 
 model SupportTicketMessage {
@@ -6437,6 +6466,9 @@ model DispatchOrder {
 
   @@index([status])
   @@index([bookingId])
+  operationId String?
+  operation   EventOperation? @relation("OperationDispatches", fields: [operationId], references: [id])
+  @@index([operationId])
 }
 
 model DispatchItem {

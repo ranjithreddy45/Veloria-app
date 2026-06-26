@@ -3,6 +3,7 @@
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
+import { assertTransition } from "@/lib/ops/state-machine";
 import { revalidatePath } from "next/cache";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
@@ -279,6 +280,11 @@ export async function createBeo(input: { bookingId: string; covers?: number }): 
   const existingBeo = await prisma.beo.findFirst({ where: { bookingId: input.bookingId }, select: { id: true } });
   if (existingBeo) return { success: true, data: { id: existingBeo.id } };
 
+  // Link to the per-booking EventOperation aggregate root if one exists.
+  const op = input.bookingId
+    ? await prisma.eventOperation.findUnique({ where: { bookingId: input.bookingId }, select: { id: true } })
+    : null;
+
   const year = new Date().getFullYear();
   const covers = input.covers != null && Number.isFinite(input.covers) ? input.covers : booking.guestCount ?? null;
 
@@ -292,6 +298,7 @@ export async function createBeo(input: { bookingId: string; covers?: number }): 
         data: {
           beoNumber,
           bookingId: input.bookingId,
+          operationId: op?.id ?? null,
           status: "DRAFT",
           covers,
           createdById: u.id,
@@ -373,6 +380,8 @@ export async function setBeoStatus(id: string, status: BeoStatus): Promise<Resul
   if (!b) return { success: false, error: "Function sheet not found" };
   const from = b.status as BeoStatus;
   if (from === status) return { success: true, data: { id } };
+  const gate = assertTransition("beo", from, status);
+  if (!gate.ok) return { success: false, error: gate.error! };
   if (!ALLOWED_TRANSITIONS[from]?.includes(status)) {
     return { success: false, error: `Can't move from ${from} to ${status}.` };
   }

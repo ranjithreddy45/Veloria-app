@@ -25,6 +25,7 @@ const JOBS = [
   "trash-purge",
   "event-triggers",
   "event-lifecycle", // CONFIRMED→IN_PROGRESS on the day; auto-COMPLETE clean past events; nudge unclean ones
+  "reconcile-ops", // backstop: re-provision ops for CONFIRMED/IN_PROGRESS bookings whose ops weren't fully created
   "customer-360",
   "attribution-rollup", // recompute LeadAttribution.bookedRevenue + relink campaigns (after customer-360 so LTV is fresh)
   "account-farming", // corporate-account lifetime rollups (after customer-360 + attribution-rollup so contact rollups are fresh)
@@ -38,6 +39,7 @@ const JOBS = [
   "hold-expiry", // cancel expired booking HOLDs so they stop blocking slots
   "public-hold-expiry", // release stale public (no-login) date holds
   "site-visit-reminders", // ~24h-ahead site-visit reminders + past no-show sweep
+  "vendor-reminders", // nudge still-NOTIFIED vendor assignments for upcoming events (confirm/decline link)
   "review-requests", // enqueue + send Google-review requests for COMPLETED bookings
   "referral-flywheel", // issue 5-star reviewer referral codes (after review-requests)
   "configurator-abandonment", // mark stale public quote drafts ABANDONED

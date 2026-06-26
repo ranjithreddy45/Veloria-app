@@ -1,13 +1,21 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeftIcon } from "lucide-react";
+import {
+  ArrowLeftIcon,
+  FileTextIcon,
+  ChefHatIcon,
+  ShoppingCartIcon,
+  TruckIcon,
+} from "lucide-react";
 
 import { getBooking } from "@/actions/booking.actions";
 import { getOperation, getStaffUsers } from "@/actions/operations.actions";
+import { getOperationReadinessForBooking } from "@/actions/ops-readiness.actions";
 import { getBookingVendors } from "@/actions/vendor.actions";
 import { Button } from "@/components/ui/button";
 import { OperationsView } from "./_components/operations-view";
+import { ReadinessPanel } from "./_components/readiness-panel";
 import { serialize } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Event Operations" };
@@ -23,13 +31,20 @@ interface OperationsPageProps {
 export default async function OperationsPage({ params }: OperationsPageProps) {
   const { bookingId } = await params;
 
-  const [bookingResult, operationResult, staffResult, bookingVendorsResult] =
-    await Promise.all([
-      getBooking(bookingId),
-      getOperation(bookingId),
-      getStaffUsers(),
-      getBookingVendors(bookingId),
-    ]);
+  const [
+    bookingResult,
+    operationResult,
+    staffResult,
+    bookingVendorsResult,
+    readinessResult,
+  ] = await Promise.all([
+    getBooking(bookingId),
+    getOperation(bookingId),
+    getStaffUsers(),
+    getBookingVendors(bookingId),
+    // Best-effort: readiness must never break the page.
+    getOperationReadinessForBooking(bookingId).catch(() => null),
+  ]);
 
   if (!bookingResult.success || !bookingResult.data) {
     notFound();
@@ -41,6 +56,15 @@ export default async function OperationsPage({ params }: OperationsPageProps) {
   const bookingVendors = bookingVendorsResult.success
     ? bookingVendorsResult.data
     : [];
+  const readiness =
+    readinessResult && readinessResult.success ? readinessResult.data : null;
+
+  const childLinks = [
+    { href: "/beo", label: "Function Sheet (BEO)", icon: FileTextIcon },
+    { href: "/kitchen", label: "Kitchen / F&B", icon: ChefHatIcon },
+    { href: "/procurement", label: "Procurement", icon: ShoppingCartIcon },
+    { href: "/logistics", label: "Logistics / Dispatch", icon: TruckIcon },
+  ];
 
   return (
     <div className="space-y-6">
@@ -62,6 +86,26 @@ export default async function OperationsPage({ params }: OperationsPageProps) {
             {booking.eventName} | {booking.bookingNumber}
           </p>
         </div>
+      </div>
+
+      {/* Readiness checklist (best-effort; absent until an operation exists) */}
+      {readiness && <ReadinessPanel readiness={readiness} />}
+
+      {/* Quick links to the operation's child modules */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {childLinks.map(({ href, label, icon: Icon }) => (
+          <Button
+            key={href}
+            variant="outline"
+            asChild
+            className="h-auto justify-start gap-2 py-3"
+          >
+            <Link href={href}>
+              <Icon className="size-4 shrink-0" />
+              <span className="truncate text-left text-sm">{label}</span>
+            </Link>
+          </Button>
+        ))}
       </div>
 
       {/* Operations Content */}

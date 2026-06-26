@@ -28,6 +28,7 @@ import {
   EVENT_PHASE_LABELS,
   TASK_CATEGORY_LABELS,
 } from "@/lib/constants";
+import { SeedBuilder } from "../_components/seed-builder";
 
 export const metadata: Metadata = {
   title: "SOP Template",
@@ -50,7 +51,8 @@ export default async function SOPTemplateDetailPage({
 
   const template = result.data;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const phases = (template as any).phases ?? [];
+  const t = template as any;
+  const phases = t.phases ?? [];
 
   return (
     <div className="space-y-6">
@@ -112,6 +114,15 @@ export default async function SOPTemplateDetailPage({
           </div>
         </CardContent>
       </Card>
+
+      {/* Provisioning seeds */}
+      <SeedBuilder
+        templateId={templateId}
+        initialKitchenSeed={t.kitchenSeed ?? null}
+        initialProcurementSeed={t.procurementSeed ?? null}
+        initialDispatchSeed={t.dispatchSeed ?? null}
+        initialBeoDefaults={t.beoDefaults ?? null}
+      />
 
       {/* Phases */}
       <div className="space-y-4">

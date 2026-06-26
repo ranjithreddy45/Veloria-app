@@ -2,7 +2,9 @@
 
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { hasPermission } from "@/lib/permissions";
+import { assertTransition } from "@/lib/ops/state-machine";
 import { revalidatePath } from "next/cache";
 
 // ============================================================
@@ -238,10 +240,7 @@ type ItemInput = { name: string; quantity: number; returnable: boolean; inventor
 // Allocate the next DSP-YYYY-NNN number via count()+1, with a P2002 retry loop
 // so concurrent creates don't collide on the @unique dispatchNumber.
 async function createWithNumber(
-  data: Omit<
-    Parameters<typeof prisma.dispatchOrder.create>[0]["data"],
-    "dispatchNumber" | "items"
-  >,
+  data: Omit<Prisma.DispatchOrderUncheckedCreateInput, "dispatchNumber" | "items">,
   items: ItemInput[],
 ): Promise<string> {
   const year = new Date().getFullYear();
@@ -337,9 +336,15 @@ export async function createDispatch(input: {
       };
   }
 
+  // Link to the per-booking EventOperation aggregate root if one exists.
+  const op = input.bookingId
+    ? await prisma.eventOperation.findUnique({ where: { bookingId: input.bookingId }, select: { id: true } })
+    : null;
+
   const id = await createWithNumber(
     {
       bookingId: input.bookingId || null,
+      operationId: op?.id ?? null,
       status: "PLANNED",
       fromLocation: input.fromLocation?.trim() || null,
       toLocation: input.toLocation?.trim() || null,
@@ -535,6 +540,8 @@ export async function markDispatched(
       success: false,
       error: "Only a planned dispatch can be marked dispatched.",
     };
+  const dispatchGate = assertTransition("dispatch", d.status, "DISPATCHED");
+  if (!dispatchGate.ok) return { success: false, error: dispatchGate.error! };
 
   // Move stock out for any line linked to an inventory item. The status flip is
   // a conditional updateMany INSIDE the txn (keyed on status=PLANNED), so two
@@ -631,6 +638,8 @@ export async function markDelivered(
       success: false,
       error: "Only a dispatched order can be marked delivered.",
     };
+  const deliverGate = assertTransition("dispatch", d.status, "DELIVERED");
+  if (!deliverGate.ok) return { success: false, error: deliverGate.error! };
 
   await prisma.dispatchOrder.update({
     where: { id },
@@ -730,6 +739,8 @@ export async function recordReturn(
 
   let status = d.status as DispatchStatus;
   if (allReturned && d.status !== "RETURNED") {
+    const returnGate = assertTransition("dispatch", d.status, "RETURNED");
+    if (!returnGate.ok) return { success: false, error: returnGate.error! };
     await prisma.dispatchOrder.update({
       where: { id },
       data: { status: "RETURNED", returnedAt: new Date() },
@@ -762,6 +773,13 @@ export async function cancelDispatch(
       success: false,
       error: "Only a planned or dispatched order can be cancelled.",
     };
+  // State-machine guard only for the modeled PLANNED→CANCELLED move. The
+  // DISPATCHED→CANCELLED path is an intentional existing flow (with stock
+  // restoration below) that the central machine doesn't model, so we keep it.
+  if (d.status === "PLANNED") {
+    const cancelGate = assertTransition("dispatch", d.status, "CANCELLED");
+    if (!cancelGate.ok) return { success: false, error: cancelGate.error! };
+  }
 
   // If the order had already gone out (DISPATCHED), stock was decremented on
   // dispatch — cancelling means the goods didn't actually leave, so restore the

@@ -4,6 +4,7 @@ import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { hasPermission } from "@/lib/permissions";
+import { assertTransition } from "@/lib/ops/state-machine";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -276,6 +277,14 @@ export async function createKitchenPlan(input: {
   });
   if (!booking) return { success: false, error: "Booking not found" };
 
+  // Idempotent: one kitchen plan per booking. If one already exists, return it
+  // rather than creating a duplicate (mirrors createBeo's one-per-booking guard).
+  const existingPlan = await prisma.kitchenPlan.findFirst({
+    where: { bookingId: booking.id },
+    select: { id: true },
+  });
+  if (existingPlan) return { success: true, data: { id: existingPlan.id } };
+
   // Prefill covers from booking guestCount when not supplied.
   const covers =
     input.covers != null && input.covers > 0
@@ -289,10 +298,17 @@ export async function createKitchenPlan(input: {
     select: { id: true },
   });
 
+  // Link to the per-booking EventOperation aggregate root if one exists.
+  const op = await prisma.eventOperation.findUnique({
+    where: { bookingId: booking.id },
+    select: { id: true },
+  });
+
   const created = await prisma.kitchenPlan.create({
     data: {
       bookingId: booking.id,
       beoId: beo?.id ?? null,
+      operationId: op?.id ?? null,
       covers,
       status: "PLANNED",
       estFoodCost: 0,
@@ -315,7 +331,7 @@ export async function updateKitchenPlan(
   const { error } = await requireWrite();
   if (error) return { success: false, error };
 
-  const plan = await prisma.kitchenPlan.findUnique({ where: { id }, select: { id: true } });
+  const plan = await prisma.kitchenPlan.findUnique({ where: { id }, select: { id: true, status: true } });
   if (!plan) return { success: false, error: "Kitchen plan not found" };
 
   const data: Record<string, unknown> = {};
@@ -325,6 +341,8 @@ export async function updateKitchenPlan(
   }
   if (patch.status != null) {
     if (!VALID_STATUS.has(patch.status)) return { success: false, error: "Invalid status" };
+    const gate = assertTransition("kitchen", plan.status, patch.status);
+    if (!gate.ok) return { success: false, error: gate.error! };
     data.status = patch.status;
   }
   if (patch.notes !== undefined) data.notes = patch.notes || null;

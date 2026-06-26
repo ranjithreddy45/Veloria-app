@@ -10,12 +10,14 @@ import {
   updateSOPPhaseSchema,
   addSOPTaskDefSchema,
   updateSOPTaskDefSchema,
+  updateSOPTemplateSeedsSchema,
   type CreateSOPTemplateInput,
   type UpdateSOPTemplateInput,
   type AddSOPPhaseInput,
   type UpdateSOPPhaseInput,
   type AddSOPTaskDefInput,
   type UpdateSOPTaskDefInput,
+  type UpdateSOPTemplateSeedsInput,
 } from "@/schemas/sop-template.schema";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
@@ -259,6 +261,111 @@ export async function updateSOPTemplate(
   } catch (error) {
     console.error("[UPDATE_SOP_TEMPLATE_ERROR]", error);
     return { success: false as const, error: "Failed to update SOP template" };
+  }
+}
+
+// ============================================================
+// Update SOP Template Provisioning Seeds
+// ------------------------------------------------------------
+// Writes the 4 JSON seed columns consumed by src/lib/ops/provision.ts when a
+// booking is confirmed. Each field is independently optional: pass only the
+// seeds you intend to change. Pass `null` to clear a seed.
+// ============================================================
+
+export async function updateSOPTemplateSeeds(
+  templateId: string,
+  data: UpdateSOPTemplateSeedsInput
+) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+
+    // Reuse the same gate as updateSOPTemplate.
+    if (!hasPermission(session.user.role, "sop:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
+    const parsed = updateSOPTemplateSeedsSchema.safeParse(data);
+    if (!parsed.success) {
+      return {
+        success: false as const,
+        error: "Validation failed",
+        details: parsed.error.flatten().fieldErrors,
+      };
+    }
+
+    const existing = await prisma.sOPTemplate.findUnique({
+      where: { id: templateId },
+      select: { id: true, name: true },
+    });
+
+    if (!existing) {
+      return { success: false as const, error: "SOP template not found" };
+    }
+
+    const seeds = parsed.data;
+
+    // Map each provided seed to a Prisma JSON write. `undefined` → skip the
+    // column; `null` → clear it (Prisma.DbNull); a value → store it.
+    const toJson = (
+      value: unknown
+    ): Prisma.InputJsonValue | typeof Prisma.DbNull | undefined => {
+      if (value === undefined) return undefined;
+      if (value === null) return Prisma.DbNull;
+      return value as Prisma.InputJsonValue;
+    };
+
+    const template = await prisma.sOPTemplate.update({
+      where: { id: templateId },
+      data: {
+        ...(seeds.kitchenSeed !== undefined && {
+          kitchenSeed: toJson(seeds.kitchenSeed),
+        }),
+        ...(seeds.procurementSeed !== undefined && {
+          procurementSeed: toJson(seeds.procurementSeed),
+        }),
+        ...(seeds.dispatchSeed !== undefined && {
+          dispatchSeed: toJson(seeds.dispatchSeed),
+        }),
+        ...(seeds.beoDefaults !== undefined && {
+          beoDefaults: toJson(seeds.beoDefaults),
+        }),
+      },
+      include: {
+        phases: {
+          orderBy: { order: "asc" },
+          include: {
+            taskDefinitions: {
+              orderBy: { order: "asc" },
+            },
+          },
+        },
+      },
+    });
+
+    logActivity({
+      userId: session.user.id,
+      action: "updated",
+      entityType: "SOPTemplate",
+      entityId: templateId,
+      changes: {
+        seeds: Object.keys(seeds).filter(
+          (k) => seeds[k as keyof typeof seeds] !== undefined
+        ),
+      },
+    });
+
+    revalidatePath("/settings/sop-templates");
+    revalidatePath(`/settings/sop-templates/${templateId}`);
+    return { success: true as const, data: serialize(template) };
+  } catch (error) {
+    console.error("[UPDATE_SOP_TEMPLATE_SEEDS_ERROR]", error);
+    return {
+      success: false as const,
+      error: "Failed to update provisioning seeds",
+    };
   }
 }
 

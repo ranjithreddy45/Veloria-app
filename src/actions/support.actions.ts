@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { hasPermission } from "@/lib/permissions";
+import { assertTransition } from "@/lib/ops/state-machine";
 
 // ============================================================
 // Customer Support / Ticketing actions
@@ -321,6 +322,11 @@ export async function createTicket(input: {
     if (!booking) return { success: false, error: "Selected booking was not found" };
   }
 
+  // Link to the per-booking EventOperation aggregate root if one exists.
+  const op = bookingId
+    ? await prisma.eventOperation.findUnique({ where: { bookingId }, select: { id: true } })
+    : null;
+
   // Retry loop guards against a concurrent allocation racing to the same number.
   let lastErr: unknown = null;
   for (let attempt = 0; attempt < 6; attempt++) {
@@ -342,6 +348,7 @@ export async function createTicket(input: {
           category: input.category?.trim() || null,
           contactId,
           bookingId,
+          operationId: op?.id ?? null,
           createdById: u.id,
           // Seed the opening message from the description, if provided.
           ...(description
@@ -441,6 +448,8 @@ export async function setTicketStatus(
 
   const current = ticket.status as TicketStatus;
   if (current === next) return { success: true, data: { id } }; // no-op
+  const gate = assertTransition("support", current, next);
+  if (!gate.ok) return { success: false, error: gate.error! };
   if (!TRANSITIONS[current]?.includes(next)) {
     return { success: false, error: `Cannot move a ${current} ticket to ${next}` };
   }
