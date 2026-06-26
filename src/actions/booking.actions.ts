@@ -929,6 +929,13 @@ export async function cancelBooking(id: string, reason?: string) {
       },
     });
 
+    // Release the slot on the sales side: unlink any quotation that booked this
+    // slot so it can re-block the (now free) slot. Without this the quotation's
+    // bookingId guard rejects re-blocking with "already has a booked slot".
+    await prisma.salesQuotation
+      .updateMany({ where: { bookingId: id }, data: { bookingId: null, slotBlockedAt: null } })
+      .catch((e) => console.error("[CANCEL_UNLINK_QUOTATION_ERROR]", e));
+
     notify({
       userId: session.user.id as string,
       type: "BOOKING_CANCELLED",

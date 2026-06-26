@@ -16,6 +16,23 @@ import { seedTemplates } from "./seed-templates";
 const prisma = new PrismaClient();
 
 async function main() {
+  // ---- 0. Slot uniqueness: PARTIAL unique index (excludes CANCELLED) ----
+  // A cancelled booking must release its slot so the date+slot can be re-booked.
+  // The old full @@unique([venueId,date,timeSlot]) kept cancelled rows holding
+  // the slot (re-book hit a P2002). Replace it with a partial unique index.
+  // Idempotent + non-destructive.
+  try {
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "Booking" DROP CONSTRAINT IF EXISTS "Booking_venueId_date_timeSlot_key";`
+    );
+    await prisma.$executeRawUnsafe(
+      `CREATE UNIQUE INDEX IF NOT EXISTS "Booking_active_slot_key" ON "Booking" ("venueId", "date", "timeSlot") WHERE "status" <> 'CANCELLED';`
+    );
+    console.log("[bootstrap] Booking active-slot partial unique index ensured.");
+  } catch (e) {
+    console.error("[bootstrap] slot index setup failed (non-fatal):", e);
+  }
+
   // ---- 1. Ensure a SUPER_ADMIN exists ----
   const adminEmail =
     process.env.BOOTSTRAP_ADMIN_EMAIL || "admin@veloriagrand.com";

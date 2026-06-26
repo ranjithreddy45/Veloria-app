@@ -718,7 +718,10 @@ model Booking {
   reviewRequests    ReviewRequest[]
   signatureRequests SignatureRequest[]
 
-  @@unique([venueId, date, timeSlot])
+  // Slot uniqueness is enforced by a PARTIAL unique index (status <> 'CANCELLED')
+  // created in prisma/bootstrap.ts — so a CANCELLED booking releases its slot
+  // and the date+slot can be re-booked. A plain index covers the query path.
+  @@index([venueId, date, timeSlot])
   @@index([date])
   @@index([status])
   @@index([contactId])
