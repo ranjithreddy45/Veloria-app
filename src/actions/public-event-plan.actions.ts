@@ -162,9 +162,13 @@ export async function getPublicEventPlan(token: string): Promise<Result<PublicEv
       loadBookingServices(op.bookingId),
     ]);
 
-    // Strip ALL cost fields — clients see names + a friendly detail line only.
+    // Strip ALL cost fields — clients see friendly names only. The quotation's
+    // plan label carries an internal "(rate × guests)" rate note (e.g.
+    // "Veg Platinum package (899 × 180)") — drop that parenthetical so the
+    // customer never sees the per-plate cost.
+    const cleanName = (n: string) => n.replace(/\s*\([^)]*[×x][^)]*\)\s*$/u, "").trim();
     const menuItems = (menuRaw?.items ?? []).map((it) => ({
-      name: it.name,
+      name: cleanName(it.name),
       detail:
         it.unit === "kg"
           ? `${it.quantity} ${it.unit}`
