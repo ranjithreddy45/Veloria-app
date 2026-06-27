@@ -113,3 +113,71 @@ export async function sendEventDayTaskReminders(): Promise<EventReminderResult> 
 
   return result;
 }
+
+export interface EventBriefingResult {
+  events: number;
+  briefed: number;
+}
+
+/**
+ * Daily morning briefing — for every event happening TODAY, send each assigned
+ * team member ONE summary of their tasks for the day (count + first task +
+ * time). This works on the once-a-day Vercel-native cron (no frequent pinger
+ * needed), so every team knows their day's run of show even without the 5-min
+ * "task starting soon" nudges. Best-effort; never throws.
+ */
+export async function sendEventDayBriefings(): Promise<EventBriefingResult> {
+  const res: EventBriefingResult = { events: 0, briefed: 0 };
+  try {
+    const now = new Date();
+    const todayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const tomorrowUtc = new Date(todayUtc.getTime() + 86_400_000);
+
+    const tasks = await prisma.executionTask.findMany({
+      where: {
+        status: { not: "COMPLETED" },
+        assigneeId: { not: null },
+        phase: { plan: { eventDate: { gte: todayUtc, lt: tomorrowUtc } } },
+      },
+      select: {
+        title: true,
+        slaStartBy: true,
+        assigneeId: true,
+        phase: { select: { plan: { select: { bookingId: true } } } },
+      },
+      orderBy: { slaStartBy: "asc" },
+      take: 2000,
+    });
+    if (tasks.length === 0) return res;
+    res.events = new Set(tasks.map((t) => t.phase?.plan?.bookingId).filter(Boolean)).size;
+
+    const byUser = new Map<string, typeof tasks>();
+    for (const t of tasks) {
+      if (!t.assigneeId) continue;
+      const list = byUser.get(t.assigneeId) ?? [];
+      list.push(t);
+      byUser.set(t.assigneeId, list);
+    }
+
+    for (const [userId, list] of byUser) {
+      try {
+        const first = list.find((t) => t.slaStartBy) ?? list[0];
+        const bookingId = first.phase?.plan?.bookingId;
+        const timeStr = first.slaStartBy ? formatStartTime(new Date(first.slaStartBy)) : "today";
+        await notifyAwait({
+          userId,
+          type: "TASK_ASSIGNED",
+          title: `📋 Today: ${list.length} task${list.length > 1 ? "s" : ""} on the event floor`,
+          message: `Your first is "${first.title}" at ${timeStr}. Open the live cockpit for your full run of show.`,
+          actionUrl: bookingId ? `/bookings/${bookingId}/control` : undefined,
+        });
+        res.briefed++;
+      } catch (e) {
+        console.error("[sendEventDayBriefings] user error:", userId, e);
+      }
+    }
+  } catch (e) {
+    console.error("[sendEventDayBriefings] error:", e);
+  }
+  return res;
+}
