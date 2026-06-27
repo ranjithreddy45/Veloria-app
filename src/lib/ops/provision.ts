@@ -97,7 +97,8 @@ async function ensureOperation(
   if (existing) return { ...existing, created: false };
   try {
     const op = await prisma.eventOperation.create({
-      data: { bookingId, createdById, status: "PLANNING" },
+      // clientToken backs the public /event/<token> client plan page.
+      data: { bookingId, createdById, status: "PLANNING", clientToken: randomUUID().replace(/-/g, "") },
       select: { id: true, opsProvisionedAt: true },
     });
     return { ...op, created: true };
@@ -153,6 +154,11 @@ export async function provisionEventOperations(
   // The customer's actual chosen menu (from their quotation) drives the kitchen
   // plan + BEO menu note — so the kitchen team gets THE order, not a template.
   const bookingMenu = await loadBookingMenu(bookingId, booking.guestCount ?? 0);
+  // Scale standard procurement/dispatch seed quantities to the ACTUAL guest count
+  // (the seeds are written for a ~200-guest baseline) so a 50-guest event doesn't
+  // get 200 chairs. Fixed items (AV kit, stage) round to ~1 and stay sensible.
+  const guestRatio = Math.max(0.1, (booking.guestCount || 200) / 200);
+  const scaleQty = (q: number) => Math.max(1, Math.round((Number(q) || 0) * guestRatio));
   const errors: string[] = [];
 
   // 1) Execution plan + tasks (existing engine; idempotent) → then link to root.
@@ -261,7 +267,8 @@ export async function provisionEventOperations(
       });
       if (exists) continue;
       const items = seed.items ?? [];
-      const total = round2(items.reduce((s, it) => s + (Number(it.quantity) || 0) * (Number(it.unitPrice) || 0), 0));
+      // Total must match the SCALED line quantities written below.
+      const total = round2(items.reduce((s, it) => s + scaleQty(Number(it.quantity) || 0) * (Number(it.unitPrice) || 0), 0));
       const neededBy = seed.neededByOffsetDays != null
         ? new Date(new Date(booking.date).getTime() - seed.neededByOffsetDays * 86400000)
         : null;
@@ -276,7 +283,7 @@ export async function provisionEventOperations(
               department: seed.department ?? null, neededBy, totalAmount: total, requestedById: createdById,
               items: {
                 create: items.map((it) => ({
-                  name: it.name, quantity: Number(it.quantity) || 0, unit: it.unit ?? null,
+                  name: it.name, quantity: scaleQty(Number(it.quantity) || 0), unit: it.unit ?? null,
                   unitPrice: round2(Number(it.unitPrice) || 0),
                 })),
               },
@@ -310,7 +317,7 @@ export async function provisionEventOperations(
               scheduledAt: booking.date, createdById,
               items: {
                 create: items.map((it) => ({
-                  name: it.name, quantity: Number(it.quantity) || 0, returnable: !!it.returnable,
+                  name: it.name, quantity: scaleQty(Number(it.quantity) || 0), returnable: !!it.returnable,
                 })),
               },
             },

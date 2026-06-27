@@ -19,6 +19,43 @@ import { notify } from "@/lib/notify";
 import { hasPermission } from "@/lib/permissions";
 
 // ============================================================
+// Cross-team handoff signal
+// ------------------------------------------------------------
+// When a task is completed, the assignees of any tasks that DEPEND ON it can
+// now start. Notify each so the next team isn't waiting blind. Best-effort:
+// a failure here must never break the status write that triggered it.
+// ============================================================
+
+async function notifyDependentTaskAssignees(
+  completedTaskId: string,
+  completedTaskTitle: string,
+  bookingId: string
+): Promise<void> {
+  try {
+    const dependents = await prisma.executionTask.findMany({
+      where: {
+        dependsOnTaskId: completedTaskId,
+        assigneeId: { not: null },
+      },
+      select: { id: true, title: true, assigneeId: true },
+    });
+
+    for (const dep of dependents) {
+      if (!dep.assigneeId) continue;
+      notify({
+        userId: dep.assigneeId,
+        type: "TASK_ASSIGNED" as never,
+        title: "✅ Dependency cleared",
+        message: `"${completedTaskTitle}" is done — "${dep.title}" can start now.`,
+        actionUrl: `/bookings/${bookingId}/control`,
+      });
+    }
+  } catch (err) {
+    console.error("[NOTIFY_DEPENDENT_TASKS_ERROR]", err);
+  }
+}
+
+// ============================================================
 // Add Execution Task to Phase
 // ============================================================
 
@@ -296,6 +333,15 @@ export async function updateExecutionTaskStatus(
       });
     }
 
+    // Cross-team handoff: dependents can start now that this is COMPLETED.
+    if (status === "COMPLETED") {
+      await notifyDependentTaskAssignees(
+        task.id,
+        existing.title,
+        existing.phase.plan.bookingId
+      );
+    }
+
     logActivity({
       userId: session.user.id,
       action: "status_changed",
@@ -527,6 +573,13 @@ export async function completeTask(taskId: string) {
         timestamp: new Date(),
       },
     });
+
+    // Cross-team handoff: dependents can start now that this is COMPLETED.
+    await notifyDependentTaskAssignees(
+      task.id,
+      existing.title,
+      existing.phase.plan.bookingId
+    );
 
     logActivity({
       userId: session.user.id,
@@ -951,6 +1004,52 @@ export async function getEventControlDashboard(bookingId: string) {
       0
     );
 
+    // Time-anchored timeline grouped by phase (every task, in run order) — the
+    // day-of cockpit view. Each task carries its SLA window + status so the UI
+    // can highlight current/next and render countdowns.
+    const phaseTimeline = plan.phases.map((phase) => ({
+      id: phase.id,
+      name: phase.name,
+      phase: phase.phase,
+      status: phase.status,
+      tasks: phase.tasks
+        .slice()
+        .sort((a, b) => {
+          const at = a.slaStartBy ? new Date(a.slaStartBy).getTime() : Infinity;
+          const bt = b.slaStartBy ? new Date(b.slaStartBy).getTime() : Infinity;
+          if (at !== bt) return at - bt;
+          return a.order - b.order;
+        })
+        .map((t) => ({
+          id: t.id,
+          title: t.title,
+          status: t.status,
+          priority: t.priority,
+          category: t.category,
+          slaStartBy: t.slaStartBy,
+          slaFinishBy: t.slaFinishBy,
+          requiresProof: t.requiresProof,
+          assignee: t.assignee,
+        })),
+    }));
+
+    // Tasks that still need a photo/proof and aren't done yet — surfaced so the
+    // on-site team can capture before sign-off.
+    const proofNeeded = allTasks
+      .filter((t) => t.requiresProof && t.status !== "COMPLETED")
+      .sort((a, b) => {
+        const at = a.slaStartBy ? new Date(a.slaStartBy).getTime() : Infinity;
+        const bt = b.slaStartBy ? new Date(b.slaStartBy).getTime() : Infinity;
+        return at - bt;
+      })
+      .map((t) => ({
+        id: t.id,
+        title: t.title,
+        status: t.status,
+        slaStartBy: t.slaStartBy,
+        assignee: t.assignee,
+      }));
+
     const dashboard = {
       planId: plan.id,
       planStatus: plan.status,
@@ -967,6 +1066,8 @@ export async function getEventControlDashboard(bookingId: string) {
       upcomingTasks,
       overdueTasks,
       activeEscalations,
+      phaseTimeline,
+      proofNeeded,
     };
 
     return { success: true as const, data: serialize(dashboard) };

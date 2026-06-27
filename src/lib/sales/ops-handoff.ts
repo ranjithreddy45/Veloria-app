@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { buildOpsAssigner, type OpsAssignment } from "@/lib/sales/ops-assignment";
+import { eventStartUtc, scheduleTask } from "@/lib/ops/schedule";
 
 /**
  * Ops auto-task population from SOPs.
@@ -25,9 +26,10 @@ export async function instantiateExecutionPlanFromSOP(
 
     const booking = await prisma.booking.findUnique({
       where: { id: bookingId },
-      select: { date: true, eventType: true },
+      select: { date: true, eventType: true, timeSlot: true },
     });
     if (!booking) return [];
+    const eventStart = eventStartUtc(booking.date, booking.timeSlot);
 
     const withPhases = {
       phases: {
@@ -88,7 +90,12 @@ export async function instantiateExecutionPlanFromSOP(
         // copy each task's checklistItems — mirroring the manual applySOPToBooking
         // path so the two never drift (previously these were silently dropped).
         const taskOrderToId: Record<number, string> = {};
+        const phaseCount = ph.taskDefinitions.length;
+        let ti = 0;
         for (const t of ph.taskDefinitions) {
+          // Anchor the task to a real clock time so the live cockpit shows
+          // countdowns and the reminder cron can nudge the owner beforehand.
+          const sched = scheduleTask(eventStart, ph.phase, ti++, phaseCount, t.estimatedMinutes);
           const task = await tx.executionTask.create({
             data: {
               phaseId: phase.id,
@@ -97,6 +104,8 @@ export async function instantiateExecutionPlanFromSOP(
               category: t.category,
               priority: t.priority,
               estimatedMinutes: t.estimatedMinutes,
+              slaStartBy: sched.slaStartBy,
+              slaFinishBy: sched.slaFinishBy,
               isMandatory: t.isMandatory,
               requiresApproval: t.requiresApproval,
               requiresProof: t.requiresProof,

@@ -1456,6 +1456,7 @@ model EventOperation {
   purchaseRequisitions PurchaseRequisition[] @relation("OperationPurchaseReqs")
   dispatchOrders       DispatchOrder[]       @relation("OperationDispatches")
   supportTickets       SupportTicket[]       @relation("OperationSupportTickets")
+  clientToken       String? // unguessable token for the public client event-plan page
 }
 
 model StaffAssignment {
@@ -2772,6 +2773,7 @@ model ExecutionTask {
   @@index([vendorId])
   @@index([status])
   @@index([slaFinishBy])
+  reminderSentAt   DateTime? // one-shot day-of "task starting soon" nudge
 }
 
 model ExecutionChecklist {

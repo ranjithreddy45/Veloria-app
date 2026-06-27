@@ -14,8 +14,11 @@ import {
 } from "@/components/ui/card";
 import {
   AlertTriangleIcon,
+  CameraIcon,
   CheckCircle2Icon,
+  CircleIcon,
   ClockIcon,
+  GaugeIcon,
   ListChecksIcon,
   OctagonIcon,
   PlayIcon,
@@ -37,12 +40,15 @@ interface ControlDashboardProps {
   dashboard: any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   escalations: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  readiness?: any;
   bookingId: string;
 }
 
 export function ControlDashboard({
   dashboard,
   escalations,
+  readiness,
   bookingId,
 }: ControlDashboardProps) {
   const router = useRouter();
@@ -88,6 +94,8 @@ export function ControlDashboard({
     phaseProgress,
     upcomingTasks,
     overdueTasks,
+    phaseTimeline,
+    proofNeeded,
   } = dashboard;
 
   function getTimeAgo(dateStr: string) {
@@ -124,6 +132,47 @@ export function ControlDashboard({
     const mins = diffMins % 60;
     return `${hours}h ${mins}m overdue`;
   }
+
+  function fmtTime(dateStr: string) {
+    return new Date(dateStr).toLocaleTimeString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  const TASK_STATUS_DOT: Record<string, string> = {
+    COMPLETED: "bg-emerald-500",
+    IN_PROGRESS: "bg-blue-500",
+    BLOCKED: "bg-red-500",
+    DELAYED: "bg-amber-500",
+    NOT_STARTED: "bg-zinc-300 dark:bg-zinc-600",
+  };
+
+  // Across the whole timeline, find the single "current" task (in-progress, or
+  // the earliest not-started whose start window has opened) and the "next"
+  // upcoming not-started task — so we can highlight them on the day-of view.
+  const flatTimeline: { id: string; status: string; slaStartBy?: string }[] =
+    Array.isArray(phaseTimeline)
+      ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        phaseTimeline.flatMap((p: any) => p.tasks ?? [])
+      : [];
+  const nowMs = Date.now();
+  const currentTask =
+    flatTimeline.find((t) => t.status === "IN_PROGRESS") ??
+    flatTimeline.find(
+      (t) =>
+        t.status === "NOT_STARTED" &&
+        t.slaStartBy &&
+        new Date(t.slaStartBy).getTime() <= nowMs
+    );
+  const nextTask = flatTimeline.find(
+    (t) =>
+      t.status === "NOT_STARTED" &&
+      t.id !== currentTask?.id &&
+      (!t.slaStartBy || new Date(t.slaStartBy).getTime() > nowMs)
+  );
+  const currentTaskId = currentTask?.id;
+  const nextTaskId = nextTask?.id;
 
   return (
     <div className="space-y-6">
@@ -164,6 +213,96 @@ export function ControlDashboard({
           </span>
         )}
       </div>
+
+      {/* Live Readiness Header */}
+      {readiness && (
+        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm overflow-hidden">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <div className="relative shrink-0">
+                <GaugeIcon
+                  className={`size-9 ${
+                    readiness.canGoLive
+                      ? "text-emerald-500"
+                      : readiness.readyPct >= 60
+                      ? "text-amber-500"
+                      : "text-red-500"
+                  }`}
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-sm text-muted-foreground">
+                    Event Readiness
+                  </p>
+                  {readiness.canGoLive ? (
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] px-1.5 py-0 bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                    >
+                      Ready to go live
+                    </Badge>
+                  ) : (
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] px-1.5 py-0 bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+                    >
+                      Blocking gates open
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <p
+                    className={`text-3xl font-bold ${
+                      readiness.canGoLive
+                        ? "text-emerald-600"
+                        : readiness.readyPct >= 60
+                        ? "text-amber-600"
+                        : "text-red-600"
+                    }`}
+                  >
+                    {readiness.readyPct}%
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {readiness.readyCount}/{readiness.totalCount} gates ready
+                  </p>
+                </div>
+                <Progress value={readiness.readyPct} className="h-1.5 mt-2" />
+              </div>
+            </div>
+
+            {/* Gate chips */}
+            {Array.isArray(readiness.gates) && readiness.gates.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-1.5">
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {readiness.gates.map((g: any) => (
+                  <span
+                    key={g.key}
+                    title={g.detail ?? undefined}
+                    className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] ${
+                      g.ready
+                        ? "bg-emerald-50/60 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-300 dark:border-emerald-900"
+                        : g.required
+                        ? "bg-red-50/60 text-red-700 border-red-200 dark:bg-red-950/20 dark:text-red-300 dark:border-red-900"
+                        : "bg-zinc-50 text-zinc-600 border-zinc-200 dark:bg-zinc-900/40 dark:text-zinc-400 dark:border-zinc-700"
+                    }`}
+                  >
+                    {g.ready ? (
+                      <CheckCircle2Icon className="size-3" />
+                    ) : (
+                      <CircleIcon className="size-3" />
+                    )}
+                    {g.label}
+                    {!g.ready && g.required && (
+                      <span className="font-semibold">·req</span>
+                    )}
+                  </span>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -401,6 +540,174 @@ export function ControlDashboard({
           </CardContent>
         </Card>
       </div>
+
+      {/* Proof Needed */}
+      {Array.isArray(proofNeeded) && proofNeeded.length > 0 && (
+        <Card className="border-amber-200/70 dark:border-amber-800/50 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <CameraIcon className="size-4 text-amber-500" />
+              Photo Proof Needed ({proofNeeded.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+              {proofNeeded.map((task: any) => (
+                <Link
+                  key={task.id}
+                  href={`/bookings/${bookingId}/execution`}
+                  className="flex items-center justify-between gap-2 rounded-lg bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-800/40 p-3 transition-colors hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                >
+                  <div className="min-w-0 space-y-1">
+                    <p className="text-sm font-medium truncate">{task.title}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                        {task.status?.replace("_", " ")}
+                      </Badge>
+                      {task.assignee && (
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                          <UserIcon className="size-2.5" />
+                          {task.assignee.name ?? task.assignee.email}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <CameraIcon className="size-4 text-amber-500 shrink-0" />
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Time-anchored Task Timeline */}
+      {Array.isArray(phaseTimeline) && phaseTimeline.length > 0 && (
+        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <ListChecksIcon className="size-4 text-blue-500" />
+              Run-of-Show Timeline
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+              {phaseTimeline.map((phase: any) => (
+                <div key={phase.id} className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant="outline"
+                      className={`text-[10px] px-1.5 py-0 ${EVENT_PHASE_COLORS[phase.phase] ?? ""}`}
+                    >
+                      {EVENT_PHASE_LABELS[phase.phase] ?? phase.phase}
+                    </Badge>
+                    <span className="text-sm font-medium">{phase.name}</span>
+                  </div>
+
+                  {phase.tasks.length === 0 ? (
+                    <p className="text-xs text-muted-foreground pl-1">
+                      No tasks in this phase.
+                    </p>
+                  ) : (
+                    <div className="relative pl-4 space-y-1.5 before:absolute before:left-[5px] before:top-1 before:bottom-1 before:w-px before:bg-zinc-200 dark:before:bg-zinc-700">
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                      {phase.tasks.map((task: any) => {
+                        const isCurrent = task.id === currentTaskId;
+                        const isNext = task.id === nextTaskId;
+                        const overdue =
+                          task.slaFinishBy &&
+                          task.status !== "COMPLETED" &&
+                          new Date(task.slaFinishBy).getTime() < nowMs;
+                        return (
+                          <div
+                            key={task.id}
+                            className={`relative rounded-lg border p-2.5 ${
+                              isCurrent
+                                ? "border-blue-300 dark:border-blue-700 bg-blue-50/60 dark:bg-blue-950/20 ring-1 ring-blue-300/50"
+                                : isNext
+                                ? "border-indigo-200 dark:border-indigo-800/60 bg-indigo-50/40 dark:bg-indigo-950/10"
+                                : "border-zinc-200/80 dark:border-zinc-700/80"
+                            }`}
+                          >
+                            <span
+                              className={`absolute -left-[14px] top-3.5 size-2.5 rounded-full ring-2 ring-white dark:ring-zinc-900 ${TASK_STATUS_DOT[task.status] ?? "bg-zinc-300"}`}
+                            />
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0 space-y-1">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <p className="text-sm font-medium truncate">
+                                    {task.title}
+                                  </p>
+                                  {isCurrent && (
+                                    <Badge className="text-[9px] px-1.5 py-0 bg-blue-600 hover:bg-blue-600">
+                                      NOW
+                                    </Badge>
+                                  )}
+                                  {isNext && (
+                                    <Badge
+                                      variant="outline"
+                                      className="text-[9px] px-1.5 py-0 border-indigo-300 text-indigo-600 dark:text-indigo-300"
+                                    >
+                                      NEXT
+                                    </Badge>
+                                  )}
+                                  {task.requiresProof && (
+                                    <CameraIcon className="size-3 text-amber-500" />
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 flex-wrap text-[10px] text-muted-foreground">
+                                  <span className="flex items-center gap-0.5">
+                                    <span
+                                      className={`inline-block size-1.5 rounded-full ${TASK_STATUS_DOT[task.status] ?? "bg-zinc-300"}`}
+                                    />
+                                    {task.status?.replace("_", " ")}
+                                  </span>
+                                  {task.assignee && (
+                                    <span className="flex items-center gap-0.5">
+                                      <UserIcon className="size-2.5" />
+                                      {task.assignee.name ?? task.assignee.email}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                {task.slaStartBy && (
+                                  <p className="text-[11px] font-medium tabular-nums">
+                                    {fmtTime(task.slaStartBy)}
+                                  </p>
+                                )}
+                                {task.status === "NOT_STARTED" &&
+                                  task.slaStartBy && (
+                                    <p className="text-[10px] text-blue-600 dark:text-blue-400">
+                                      starts {getCountdown(task.slaStartBy)}
+                                    </p>
+                                  )}
+                                {overdue && task.slaFinishBy && (
+                                  <p className="text-[10px] text-red-600 dark:text-red-400 font-semibold">
+                                    {getOverdueTime(task.slaFinishBy)}
+                                  </p>
+                                )}
+                                {!overdue &&
+                                  task.status === "IN_PROGRESS" &&
+                                  task.slaFinishBy && (
+                                    <p className="text-[10px] text-amber-600 dark:text-amber-400">
+                                      due {getCountdown(task.slaFinishBy)}
+                                    </p>
+                                  )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Active Escalations List */}
       {escalations.length > 0 && (

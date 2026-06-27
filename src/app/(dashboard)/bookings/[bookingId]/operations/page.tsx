@@ -12,10 +12,13 @@ import {
 import { getBooking } from "@/actions/booking.actions";
 import { getOperation, getStaffUsers } from "@/actions/operations.actions";
 import { getOperationReadinessForBooking } from "@/actions/ops-readiness.actions";
+import { getEventOpsFinancials } from "@/actions/ops-financials.actions";
 import { getBookingVendors } from "@/actions/vendor.actions";
 import { Button } from "@/components/ui/button";
 import { OperationsView } from "./_components/operations-view";
 import { ReadinessPanel } from "./_components/readiness-panel";
+import { FinancialsPanel } from "./_components/financials-panel";
+import { ShareClientPlan } from "./_components/share-client-plan";
 import { serialize } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Event Operations" };
@@ -37,6 +40,7 @@ export default async function OperationsPage({ params }: OperationsPageProps) {
     staffResult,
     bookingVendorsResult,
     readinessResult,
+    financialsResult,
   ] = await Promise.all([
     getBooking(bookingId),
     getOperation(bookingId),
@@ -44,6 +48,8 @@ export default async function OperationsPage({ params }: OperationsPageProps) {
     getBookingVendors(bookingId),
     // Best-effort: readiness must never break the page.
     getOperationReadinessForBooking(bookingId).catch(() => null),
+    // Best-effort: financials must never break the page.
+    getEventOpsFinancials(bookingId).catch(() => null),
   ]);
 
   if (!bookingResult.success || !bookingResult.data) {
@@ -58,6 +64,10 @@ export default async function OperationsPage({ params }: OperationsPageProps) {
     : [];
   const readiness =
     readinessResult && readinessResult.success ? readinessResult.data : null;
+  const financials =
+    financialsResult && financialsResult.success
+      ? financialsResult.data
+      : null;
 
   const childLinks = [
     { href: "/beo", label: "Function Sheet (BEO)", icon: FileTextIcon },
@@ -86,10 +96,19 @@ export default async function OperationsPage({ params }: OperationsPageProps) {
             {booking.eventName} | {booking.bookingNumber}
           </p>
         </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link href={`/bookings/${booking.id}/control`}>Live cockpit</Link>
+          </Button>
+          <ShareClientPlan bookingId={booking.id} />
+        </div>
       </div>
 
       {/* Readiness checklist (best-effort; absent until an operation exists) */}
       {readiness && <ReadinessPanel readiness={readiness} />}
+
+      {/* Per-event financial control (best-effort; budget vs actual) */}
+      {financials && <FinancialsPanel fin={financials} />}
 
       {/* Quick links to the operation's child modules */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

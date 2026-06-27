@@ -8,6 +8,7 @@ import {
 } from "@/lib/lead-pipeline";
 import { escalateAcqLeadSlaBreaches } from "@/lib/acq/sla-escalation";
 import { runSlaWarRoomEscalation } from "@/lib/sla/war-room-escalation";
+import { sendEventDayTaskReminders } from "@/lib/ops/event-reminders";
 
 export const maxDuration = 120;
 
@@ -69,6 +70,13 @@ export async function GET(request: Request) {
     results.bdSlaEscalations = await escalateAcqLeadSlaBreaches();
   } catch (e) {
     results.bdSlaEscalations = `error: ${e instanceof Error ? e.message : "unknown"}`;
+  }
+  try {
+    // Day-of "your task starts soon" nudges (one-shot via reminderSentAt). On the
+    // fast lane so the ~45-min lead window is honoured (5-min external cadence).
+    results.eventTaskReminders = await sendEventDayTaskReminders();
+  } catch (e) {
+    results.eventTaskReminders = `error: ${e instanceof Error ? e.message : "unknown"}`;
   }
 
   // Surface partial failures with a non-2xx so the lane orchestrator

@@ -62,6 +62,38 @@ export async function loadBookingMenu(bookingId: string, covers: number): Promis
   }
 }
 
+export interface BookingServices {
+  decor: string | null;
+  activities: string[];
+  cake: string | null;
+  photography: string | null;
+  accommodation: boolean;
+}
+
+/** What the customer actually booked (decor / activities / cake / photography),
+ *  read from the frozen quotation, so the plan is event-specific not generic. */
+export async function loadBookingServices(bookingId: string): Promise<BookingServices> {
+  const empty: BookingServices = { decor: null, activities: [], cake: null, photography: null, accommodation: false };
+  try {
+    const q = await prisma.salesQuotation.findFirst({
+      where: { bookingId }, orderBy: { updatedAt: "desc" }, select: { outputsJson: true },
+    });
+    const out = q?.outputsJson as unknown as { lines?: { particulars: string; plan: string; amount: number }[] } | null;
+    const lines = Array.isArray(out?.lines) ? out!.lines : [];
+    const pick = (p: string) => lines.find((l) => l.particulars === p && Number(l.amount) > 0);
+    const clean = (s?: string) => (s && s !== "—" ? s.trim() : null);
+    return {
+      decor: clean(pick("Decor Plan")?.plan),
+      activities: lines.filter((l) => l.particulars === "Activity Plan" && Number(l.amount) > 0).map((l) => l.plan).filter((p) => p && p !== "—"),
+      cake: clean(pick("Cake Plan")?.plan),
+      photography: clean(pick("Photography / Videography")?.plan),
+      accommodation: !!pick("Accommodation (Hotel Rooms)"),
+    };
+  } catch {
+    return empty;
+  }
+}
+
 interface BeoDefaults {
   menuNotes?: string; floorPlanNotes?: string; avNotes?: string;
   decorNotes?: string; staffingNotes?: string; specialInstructions?: string;
@@ -102,23 +134,29 @@ const hhmm = (mins: number) => {
   return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 };
 
-/** A sensible default event-day timeline, anchored on the booking's slot. The
- *  coordinator can edit it — but it's never blank. */
-export function buildDefaultRunOfShow(timeSlot?: string | null): RunOfShowEntry[] {
+/** An event-day timeline anchored on the booking's slot, tailored with the
+ *  customer's ACTUAL booked services (decor / activities / cake / photography)
+ *  when provided. The coordinator can edit it — but it's never blank or generic. */
+export function buildDefaultRunOfShow(timeSlot?: string | null, services?: BookingServices): RunOfShowEntry[] {
   const start = SLOT_START[(timeSlot || "EVENING").toUpperCase()] ?? SLOT_START.EVENING;
+  const s = services;
   const rows: [number, string, string][] = [
     [-240, "Team & vendor arrival; setup begins", "Operations"],
-    [-180, "Decor & stage installation", "Event Coordinator / Decor"],
+    [-180, s?.decor ? `Decor & stage installation: ${s.decor}` : "Decor & stage installation", "Event Coordinator / Decor"],
     [-120, "AV / sound & lighting check", "AV / Operations"],
     [-90, "Kitchen mise-en-place & F&B setup", "Catering"],
+    ...(s?.photography ? [[-60, `Photography / videography team briefing: ${s.photography}`, "Coordinator"] as [number, string, string]] : []),
     [-30, "Final walkthrough & readiness check", "Event Coordinator"],
     [0, "Guest arrival & welcome", "Guest Relations"],
-    [60, "Main program / ceremonies begin", "Entertainment"],
+    ...((s?.activities && s.activities.length > 0)
+      ? s.activities.map((a, i) => [45 + i * 30, `Programme: ${a}`, "Entertainment"] as [number, string, string])
+      : [[60, "Main program / ceremonies begin", "Entertainment"] as [number, string, string]]),
+    ...(s?.cake ? [[110, `Cake-cutting ceremony: ${s.cake}`, "Coordinator / Catering"] as [number, string, string]] : []),
     [120, "Dinner / main service", "Catering"],
     [240, "Wind-down & guest departure", "Operations"],
     [270, "Teardown & equipment dispatch return", "Logistics"],
   ];
-  return rows.map(([off, activity, owner]) => ({ time: hhmm(start + off), activity, owner }));
+  return rows.sort((a, b) => a[0] - b[0]).map(([off, activity, owner]) => ({ time: hhmm(start + off), activity, owner }));
 }
 
 export interface BeoContent {
@@ -140,18 +178,33 @@ export async function composeBeoContent(bookingId: string): Promise<BeoContent> 
   const booking = await prisma.booking
     .findUnique({ where: { id: bookingId }, select: { eventType: true, timeSlot: true, guestCount: true } })
     .catch(() => null);
-  const [menu, d] = await Promise.all([
+  const [menu, services, d] = await Promise.all([
     loadBookingMenu(bookingId, booking?.guestCount ?? 0),
+    loadBookingServices(bookingId),
     selectBeoDefaults(booking?.eventType),
   ]);
+
+  // Event-specific special instructions: call out the actual booked services +
+  // guest count so each team knows what THIS event needs, not a generic note.
+  const booked: string[] = [];
+  if (services.decor) booked.push(`decor "${services.decor}"`);
+  if (services.activities.length) booked.push(`programme (${services.activities.join(", ")})`);
+  if (services.cake) booked.push(`cake (${services.cake})`);
+  if (services.photography) booked.push(`photography (${services.photography})`);
+  if (services.accommodation) booked.push("guest accommodation");
+  const eventSpecific = booked.length
+    ? `This ${booking?.eventType || "event"} for ${booking?.guestCount ?? "—"} guests includes: ${booked.join("; ")}. Coordinate each with its vendor/team per the run of show. ` +
+      (d?.specialInstructions || FALLBACK_NOTES.specialInstructions)
+    : (d?.specialInstructions || FALLBACK_NOTES.specialInstructions);
+
   return {
     menuNotes: menu?.menuNotes ?? d?.menuNotes ?? null,
     floorPlanNotes: d?.floorPlanNotes || FALLBACK_NOTES.floorPlanNotes,
     avNotes: d?.avNotes || FALLBACK_NOTES.avNotes,
-    decorNotes: d?.decorNotes || FALLBACK_NOTES.decorNotes,
+    decorNotes: (services.decor ? `Booked: ${services.decor}. ` : "") + (d?.decorNotes || FALLBACK_NOTES.decorNotes),
     staffingNotes: d?.staffingNotes || FALLBACK_NOTES.staffingNotes,
-    specialInstructions: d?.specialInstructions || FALLBACK_NOTES.specialInstructions,
-    runOfShow: buildDefaultRunOfShow(booking?.timeSlot),
+    specialInstructions: eventSpecific,
+    runOfShow: buildDefaultRunOfShow(booking?.timeSlot, services),
   };
 }
 

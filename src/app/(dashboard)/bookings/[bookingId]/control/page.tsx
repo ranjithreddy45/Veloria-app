@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getEventControlDashboard } from "@/actions/execution-task.actions";
 import { getActiveEscalations } from "@/actions/escalation.actions";
+import { getOperationReadinessForBooking } from "@/actions/ops-readiness.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { ControlDashboard } from "./_components/control-dashboard";
 
@@ -13,15 +14,17 @@ interface ControlPageProps {
 export default async function EventControlPage({ params }: ControlPageProps) {
   const { bookingId } = await params;
 
-  const [dashResult, escalationsResult] = await Promise.all([
+  const [dashResult, escalationsResult, readinessResult] = await Promise.all([
     getEventControlDashboard(bookingId),
     getActiveEscalations(bookingId),
+    getOperationReadinessForBooking(bookingId),
   ]);
 
   const dashboard = dashResult.success ? dashResult.data : null;
   const escalations = escalationsResult.success
     ? (escalationsResult.data ?? [])
     : [];
+  const readiness = readinessResult.success ? readinessResult.data : null;
 
   return (
     <div className="space-y-6">
@@ -34,6 +37,7 @@ export default async function EventControlPage({ params }: ControlPageProps) {
         <ControlDashboard
           dashboard={dashboard}
           escalations={escalations}
+          readiness={readiness}
           bookingId={bookingId}
         />
       ) : (
