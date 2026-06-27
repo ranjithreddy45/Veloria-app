@@ -31,13 +31,62 @@ interface PhaseDef {
   phase: Phase;
   tasks: TaskDef[];
 }
+interface TemplateSeeds {
+  procurement?: { title: string; department?: string; neededByOffsetDays?: number; items: { name: string; quantity: number; unit: string; unitPrice: number }[] }[];
+  dispatch?: { fromLocation?: string; toLocation?: string; items: { name: string; quantity: number; returnable: boolean }[] }[];
+  beo?: { menuNotes?: string; floorPlanNotes?: string; avNotes?: string; decorNotes?: string; staffingNotes?: string; specialInstructions?: string };
+}
+
 interface SOPDef {
   name: string;
   eventType: string | null;
   isDefault?: boolean;
   description: string;
   phases: PhaseDef[];
+  seeds?: TemplateSeeds;
 }
+
+// Standard provisioning seeds applied to every template — the consumer engine
+// (src/lib/ops/provision.ts) stamps these into a Procurement requisition, a
+// Logistics dispatch, and the BEO when a booking is confirmed, so those teams
+// get a starting workspace automatically (drafts the ops team confirms/adjusts).
+// Kitchen is NOT seeded here — it's built from the customer's actual quotation
+// menu at provisioning time, which is more accurate than any template.
+const DEFAULT_SEEDS: TemplateSeeds = {
+  procurement: [
+    {
+      title: "Event consumables & disposables",
+      department: "Operations",
+      neededByOffsetDays: 2,
+      items: [
+        { name: "Disposable plates / cutlery / glasses", quantity: 200, unit: "set", unitPrice: 8 },
+        { name: "Tissues & napkins", quantity: 50, unit: "pack", unitPrice: 30 },
+        { name: "Housekeeping & cleaning supplies", quantity: 1, unit: "lot", unitPrice: 1500 },
+        { name: "Decor consumables (flowers / fabric / fasteners)", quantity: 1, unit: "lot", unitPrice: 3000 },
+      ],
+    },
+  ],
+  dispatch: [
+    {
+      fromLocation: "Central Store",
+      toLocation: "Event Venue",
+      items: [
+        { name: "Round tables", quantity: 20, returnable: true },
+        { name: "Banquet chairs", quantity: 200, returnable: true },
+        { name: "Table linen & chair covers", quantity: 40, returnable: true },
+        { name: "AV kit (speakers / mics / mixer)", quantity: 1, returnable: true },
+        { name: "Stage & backdrop panels", quantity: 1, returnable: true },
+      ],
+    },
+  ],
+  beo: {
+    floorPlanNotes: "Confirm final floor plan & guest count with the client; mark stage, buffet, and entry/exit.",
+    avNotes: "Sound check 2h before guest arrival; confirm mic count and music cues with the client.",
+    decorNotes: "Theme & colour per client brief; install and photo-proof before guest arrival.",
+    staffingNotes: "Assign a captain + service staff per ~25 guests; brief every team from this function sheet.",
+    specialInstructions: "Review the customer's quotation menu (see Menu) and any dietary notes before service.",
+  },
+};
 
 // ---- Shared building blocks reused across event types ----
 const PRE_EVENT_COMMON: TaskDef[] = [
@@ -103,6 +152,7 @@ type Specifics = Partial<Record<Phase, TaskDef[]>>;
 function sop(name: string, eventType: string | null, description: string, s: Specifics = {}, isDefault = false): SOPDef {
   return {
     name, eventType, isDefault, description,
+    seeds: DEFAULT_SEEDS,
     phases: [
       { name: "Pre-Event Preparation", phase: "PRE_EVENT", tasks: [...PRE_EVENT_COMMON, ...(s.PRE_EVENT ?? [])] },
       { name: "Venue Setup", phase: "SETUP", tasks: [...SETUP_COMMON, ...(s.SETUP ?? [])] },
@@ -591,7 +641,12 @@ export async function seedTemplates(prisma: PrismaClient | any): Promise<void> {
       await prisma.sOPPhase.deleteMany({ where: { templateId: existing.id } });
       await prisma.sOPTemplate.update({
         where: { id: existing.id },
-        data: { eventType: t.eventType, isActive: true, phases: buildPhases(t) },
+        data: {
+          eventType: t.eventType, isActive: true, phases: buildPhases(t),
+          procurementSeed: t.seeds?.procurement ?? undefined,
+          dispatchSeed: t.seeds?.dispatch ?? undefined,
+          beoDefaults: t.seeds?.beo ?? undefined,
+        },
       });
       sopRefreshed++;
     } else {
@@ -602,6 +657,9 @@ export async function seedTemplates(prisma: PrismaClient | any): Promise<void> {
           isActive: true,
           isDefault: !!t.isDefault && !hasDefault,
           phases: buildPhases(t),
+          procurementSeed: t.seeds?.procurement ?? undefined,
+          dispatchSeed: t.seeds?.dispatch ?? undefined,
+          beoDefaults: t.seeds?.beo ?? undefined,
         },
       });
       sopCreated++;

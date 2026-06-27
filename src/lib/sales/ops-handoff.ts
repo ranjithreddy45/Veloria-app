@@ -110,11 +110,25 @@ export async function instantiateExecutionPlanFromSOP(
           });
           taskOrderToId[t.order] = task.id;
           if (t.checklistItems) {
-            const items = t.checklistItems as Array<{ title: string; order: number }>;
-            if (Array.isArray(items) && items.length > 0) {
-              await tx.executionChecklist.createMany({
-                data: items.map((it) => ({ taskId: task.id, title: it.title, order: it.order })),
-              });
+            // Be tolerant of whatever shape checklistItems was stored in — a
+            // string[], or objects keyed title/text/label/name. A single malformed
+            // item must NEVER throw and roll back the WHOLE execution plan (which
+            // would silently leave the event with no team tasks at all).
+            const raw = Array.isArray(t.checklistItems) ? t.checklistItems : [];
+            const items = raw
+              .map((it: unknown, idx: number) => {
+                const o = (it ?? {}) as Record<string, unknown>;
+                const title =
+                  typeof it === "string"
+                    ? it
+                    : (o.title ?? o.text ?? o.label ?? o.name ?? null);
+                if (title == null || String(title).trim() === "") return null;
+                const order = Number(o.order);
+                return { taskId: task.id, title: String(title).slice(0, 500), order: Number.isFinite(order) ? order : idx };
+              })
+              .filter((x): x is { taskId: string; title: string; order: number } => x !== null);
+            if (items.length > 0) {
+              await tx.executionChecklist.createMany({ data: items });
             }
           }
         }
