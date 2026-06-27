@@ -391,6 +391,7 @@ model User {
 
   @@index([email])
   @@index([role])
+  signedOffOperations EventOperation[] @relation("OperationSignedOffBy")
 }
 
 model Account {
@@ -1457,6 +1458,10 @@ model EventOperation {
   dispatchOrders       DispatchOrder[]       @relation("OperationDispatches")
   supportTickets       SupportTicket[]       @relation("OperationSupportTickets")
   clientToken       String? // unguessable token for the public client event-plan page
+  signedOffAt        DateTime?
+  signedOffById      String?
+  signedOffBy        User?     @relation("OperationSignedOffBy", fields: [signedOffById], references: [id])
+  lastWatchdogAlertAt DateTime? // throttle the readiness watchdog escalation to ~once/day
 }
 
 model StaffAssignment {

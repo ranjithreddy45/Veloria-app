@@ -19,6 +19,8 @@ import { OperationsView } from "./_components/operations-view";
 import { ReadinessPanel } from "./_components/readiness-panel";
 import { FinancialsPanel } from "./_components/financials-panel";
 import { ShareClientPlan } from "./_components/share-client-plan";
+import { SignOffPanel } from "./_components/signoff-panel";
+import { getEventSignOff } from "@/actions/event-signoff.actions";
 import { serialize } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Event Operations" };
@@ -41,6 +43,7 @@ export default async function OperationsPage({ params }: OperationsPageProps) {
     bookingVendorsResult,
     readinessResult,
     financialsResult,
+    signOffResult,
   ] = await Promise.all([
     getBooking(bookingId),
     getOperation(bookingId),
@@ -50,6 +53,8 @@ export default async function OperationsPage({ params }: OperationsPageProps) {
     getOperationReadinessForBooking(bookingId).catch(() => null),
     // Best-effort: financials must never break the page.
     getEventOpsFinancials(bookingId).catch(() => null),
+    // Best-effort: sign-off state.
+    getEventSignOff(bookingId).catch(() => null),
   ]);
 
   if (!bookingResult.success || !bookingResult.data) {
@@ -68,6 +73,8 @@ export default async function OperationsPage({ params }: OperationsPageProps) {
     financialsResult && financialsResult.success
       ? financialsResult.data
       : null;
+  const signOff =
+    signOffResult && signOffResult.success ? signOffResult.data : null;
 
   const childLinks = [
     { href: "/beo", label: "Function Sheet (BEO)", icon: FileTextIcon },
@@ -106,6 +113,9 @@ export default async function OperationsPage({ params }: OperationsPageProps) {
 
       {/* Readiness checklist (best-effort; absent until an operation exists) */}
       {readiness && <ReadinessPanel readiness={readiness} />}
+
+      {/* Enforced human sign-off gate (best-effort; absent until an operation exists) */}
+      {signOff && <SignOffPanel bookingId={booking.id} initial={signOff} canManage={signOff.canManage} />}
 
       {/* Per-event financial control (best-effort; budget vs actual) */}
       {financials && <FinancialsPanel fin={financials} />}

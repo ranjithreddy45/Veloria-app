@@ -27,6 +27,7 @@ const JOBS = [
   "event-lifecycle", // CONFIRMED→IN_PROGRESS on the day; auto-COMPLETE clean past events; nudge unclean ones
   "reconcile-ops", // backstop: re-provision ops for CONFIRMED/IN_PROGRESS bookings whose ops weren't fully created
   "event-briefings", // morning briefing: each team member's tasks for today's events (works on native daily cron, no pinger)
+  "readiness-watchdog", // escalate near-term events with gaps (orphaned tasks / unconfirmed vendors / open procurement / no sign-off) to Ops Head
   "customer-360",
   "attribution-rollup", // recompute LeadAttribution.bookedRevenue + relink campaigns (after customer-360 so LTV is fresh)
   "account-farming", // corporate-account lifetime rollups (after customer-360 + attribution-rollup so contact rollups are fresh)

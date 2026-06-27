@@ -223,7 +223,7 @@ export async function updateOperation(
 
     const existing = await prisma.eventOperation.findUnique({
       where: { id },
-      select: { id: true, bookingId: true, status: true },
+      select: { id: true, bookingId: true, status: true, signedOffAt: true },
     });
 
     if (!existing) {
@@ -249,6 +249,13 @@ export async function updateOperation(
           return {
             success: false as const,
             error: `Cannot go LIVE — readiness gates still blocking: ${blocking || "required gates incomplete"}.`,
+          };
+        }
+        // Enforced human gate: a person must sign off before the event runs.
+        if (!existing.signedOffAt) {
+          return {
+            success: false as const,
+            error: "Cannot go LIVE — the event needs an Ops sign-off first (Operations → Sign off readiness).",
           };
         }
       }

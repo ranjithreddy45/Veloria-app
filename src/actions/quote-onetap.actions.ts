@@ -328,6 +328,13 @@ export async function confirmOneTapAndBlock(
     if (!tokenSchema.safeParse(token).success)
       return { success: false, error: "This link is not valid." };
 
+    // Rate-limit this mutating endpoint (parity with startOneTapAdvance): it
+    // creates a HOLD booking + mints a contact via finalizeOneTapBlock, so an
+    // unthrottled caller could spam slot-block attempts / contact creation.
+    const ip = await clientIp();
+    if (rateLimited(ip))
+      return { success: false, error: "Too many requests. Please try again in a little while." };
+
     const link = await prisma.quoteShareLink.findUnique({
       where: { token },
       select: { id: true, status: true, payInvoiceId: true },
