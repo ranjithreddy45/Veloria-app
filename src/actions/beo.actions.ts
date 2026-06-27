@@ -4,6 +4,7 @@ import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
 import { assertTransition } from "@/lib/ops/state-machine";
+import { composeBeoContent } from "@/lib/ops/beo-content";
 import { revalidatePath } from "next/cache";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
@@ -288,6 +289,10 @@ export async function createBeo(input: { bookingId: string; covers?: number }): 
   const year = new Date().getFullYear();
   const covers = input.covers != null && Number.isFinite(input.covers) ? input.covers : booking.guestCount ?? null;
 
+  // Pre-fill the sheet so it's never blank: the customer's menu (from their
+  // quotation) + standard notes (template) + a slot-aware run of show.
+  const c = await composeBeoContent(input.bookingId);
+
   // beoNumber is @unique. Allocate sequentially via count() and retry on the
   // unique-constraint collision (P2002) that a concurrent create would cause.
   for (let attempt = 0; attempt < 8; attempt++) {
@@ -302,6 +307,13 @@ export async function createBeo(input: { bookingId: string; covers?: number }): 
           status: "DRAFT",
           covers,
           createdById: u.id,
+          menuNotes: c.menuNotes,
+          floorPlanNotes: c.floorPlanNotes,
+          avNotes: c.avNotes,
+          decorNotes: c.decorNotes,
+          staffingNotes: c.staffingNotes,
+          specialInstructions: c.specialInstructions,
+          runOfShow: c.runOfShow as unknown as object,
         },
         select: { id: true },
       });

@@ -22,6 +22,7 @@ import { randomUUID } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { instantiateExecutionPlanFromSOP } from "@/lib/sales/ops-handoff";
 import type { OpsAssignment } from "@/lib/sales/ops-assignment";
+import { loadBookingMenu, composeBeoContent } from "@/lib/ops/beo-content";
 
 export interface ProvisionSummary {
   operationId: string;
@@ -115,56 +116,6 @@ async function ensureOperation(
 
 interface KitchenSeedItem { name: string; category?: string; quantity?: number; unit?: string; estUnitCost?: number }
 
-interface BookingMenu {
-  items: { name: string; category: string; quantity: number; unit: string; estUnitCost: number }[];
-  estFoodCost: number;
-  menuNotes: string;
-}
-
-/**
- * The kitchen team needs THIS customer's actual menu, not a generic template.
- * Pull the F&B lines (Food / Cake / Drinks) from the booking's frozen quotation
- * snapshot and turn them into kitchen-plan items + a readable BEO menu note.
- * Returns null when there's no quotation / no F&B (caller falls back to the
- * template's kitchenSeed). Never throws.
- */
-async function loadBookingMenu(bookingId: string, covers: number): Promise<BookingMenu | null> {
-  try {
-    const q = await prisma.salesQuotation.findFirst({
-      where: { bookingId },
-      orderBy: { updatedAt: "desc" },
-      select: { outputsJson: true, inputsJson: true, guestCount: true },
-    });
-    const out = q?.outputsJson as unknown as { lines?: { particulars: string; plan: string; amount: number }[] } | null;
-    const lines = Array.isArray(out?.lines) ? out!.lines : [];
-    if (lines.length === 0) return null;
-
-    const input = (q?.inputsJson ?? {}) as { cakeKg?: number };
-    const guests = Math.max(1, covers || q?.guestCount || 1);
-    const FNB: Record<string, string> = { "Food Plan": "Food", "Cake Plan": "Cake", "Drinks Plan": "Drinks" };
-
-    const items: BookingMenu["items"] = [];
-    for (const l of lines) {
-      const cat = FNB[l.particulars];
-      if (!cat || !(Number(l.amount) > 0)) continue;
-      let quantity = guests;
-      let unit = "plate";
-      if (cat === "Cake") { quantity = Math.max(1, Number(input.cakeKg) || 1); unit = "kg"; }
-      const estUnitCost = round2(Number(l.amount) / quantity);
-      const name = l.plan && l.plan !== "—" ? `${cat}: ${l.plan}` : cat;
-      items.push({ name, category: cat, quantity, unit, estUnitCost });
-    }
-    if (items.length === 0) return null;
-
-    const estFoodCost = round2(items.reduce((s, it) => s + it.quantity * it.estUnitCost, 0));
-    const menuNotes =
-      `Menu for ${guests} guests (from the customer's quotation):\n` +
-      items.map((it) => `• ${it.name} — ${it.quantity} ${it.unit}`).join("\n");
-    return { items, estFoodCost, menuNotes };
-  } catch {
-    return null;
-  }
-}
 interface ProcurementSeedItem { name: string; quantity?: number; unit?: string; unitPrice?: number }
 interface ProcurementSeed { title: string; department?: string; neededByOffsetDays?: number; items?: ProcurementSeedItem[] }
 interface DispatchSeed { fromLocation?: string; toLocation?: string; items?: { name: string; quantity?: number; returnable?: boolean }[] }
@@ -216,17 +167,35 @@ export async function provisionEventOperations(
     errors.push(`execution plan: ${(e as Error).message}`);
   }
 
-  // 2) BEO / function sheet (one per booking) seeded from template defaults.
+  // 2) BEO / function sheet (one per booking): a fully-composed sheet — the
+  //    customer's menu + standard notes + a slot-aware run of show — so it's
+  //    never blank. If a (possibly empty) BEO already exists, link it and
+  //    backfill any still-empty content.
   try {
-    const existing = await prisma.beo.findFirst({ where: { bookingId }, select: { id: true, operationId: true } });
+    const c = await composeBeoContent(bookingId);
+    const existing = await prisma.beo.findFirst({
+      where: { bookingId },
+      select: { id: true, operationId: true, menuNotes: true, floorPlanNotes: true, decorNotes: true, avNotes: true, staffingNotes: true, specialInstructions: true },
+    });
     if (existing) {
-      if (!existing.operationId)
-        await prisma.beo.update({ where: { id: existing.id }, data: { operationId: op.id } });
+      const blank = (v: string | null) => !v || v.trim() === "";
+      const wasEmpty =
+        blank(existing.menuNotes) && blank(existing.floorPlanNotes) && blank(existing.decorNotes) &&
+        blank(existing.avNotes) && blank(existing.staffingNotes) && blank(existing.specialInstructions);
+      const data: Record<string, unknown> = {};
+      if (!existing.operationId) data.operationId = op.id;
+      if (wasEmpty) {
+        data.menuNotes = c.menuNotes ?? undefined;
+        data.floorPlanNotes = c.floorPlanNotes ?? undefined;
+        data.avNotes = c.avNotes ?? undefined;
+        data.decorNotes = c.decorNotes ?? undefined;
+        data.staffingNotes = c.staffingNotes ?? undefined;
+        data.specialInstructions = c.specialInstructions ?? undefined;
+        data.runOfShow = c.runOfShow as unknown as object;
+      }
+      if (Object.keys(data).length > 0)
+        await prisma.beo.update({ where: { id: existing.id }, data });
     } else {
-      const d = (template?.beoDefaults ?? null) as BeoDefaults | null;
-      // Prefer the customer's actual menu for the function sheet; fall back to
-      // the template's standard menu note.
-      const menuNotes = bookingMenu?.menuNotes ?? d?.menuNotes ?? null;
       await createWithNumber(
         "BEO",
         bookingId,
@@ -235,8 +204,9 @@ export async function provisionEventOperations(
           prisma.beo.create({
             data: {
               beoNumber, bookingId, operationId: op.id, status: "DRAFT", covers: booking.guestCount ?? null, createdById,
-              menuNotes, floorPlanNotes: d?.floorPlanNotes, avNotes: d?.avNotes,
-              decorNotes: d?.decorNotes, staffingNotes: d?.staffingNotes, specialInstructions: d?.specialInstructions,
+              menuNotes: c.menuNotes, floorPlanNotes: c.floorPlanNotes, avNotes: c.avNotes,
+              decorNotes: c.decorNotes, staffingNotes: c.staffingNotes, specialInstructions: c.specialInstructions,
+              runOfShow: c.runOfShow as unknown as object,
             },
           })
       );

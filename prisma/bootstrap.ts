@@ -580,6 +580,17 @@ async function main() {
     console.error("[bootstrap] template seeding failed (non-fatal):", e);
   }
 
+  // ---- Backfill blank function sheets (idempotent; runs AFTER seedTemplates so
+  // template beoDefaults exist). Only touches BEOs with no notes — never an
+  // already-edited one. Fills historical empty sheets with menu + notes + run-of-show.
+  try {
+    const { backfillEmptyBeos } = await import("../src/lib/ops/beo-content");
+    const r = await backfillEmptyBeos();
+    console.log(`[bootstrap] Function sheets backfilled: ${r.filled} populated of ${r.scanned} blank`);
+  } catch (e) {
+    console.error("[bootstrap] BEO backfill failed (non-fatal):", e);
+  }
+
   console.log("[bootstrap] Done.");
 }
 
