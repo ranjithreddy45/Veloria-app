@@ -7856,3 +7856,41 @@ model CorporateAccount {
   @@index([ownerUserId])
   contact   Contact   @relation("ContactCorporateAccount", fields: [contactId], references: [id])
 }
+
+// ============================================================
+// Date-demand (yield) pricing — Muhurtham / festival / weekend premiums.
+// ------------------------------------------------------------
+// Tells the team how much to charge on scarce, high-demand dates so peak
+// inventory isn't under-priced. PeakDate marks specific auspicious/festival
+// dates; weekends + scarcity are derived. Premiums are advisory (% uplift on
+// the whole quote) and surfaced in the quote builder.
+// ============================================================
+model PeakDate {
+  id          String   @id @default(cuid())
+  date        DateTime  @db.Date
+  type        String    // MUHURTHAM | FESTIVAL | CUSTOM
+  label       String
+  premiumPct  Int? // per-date override; null → DemandPricingConfig default for the type
+  venueId     String? // null = applies to all venues
+  isActive    Boolean  @default(true)
+  note        String?  @db.Text
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([date])
+  @@index([isActive])
+}
+
+// Singleton config (one row) — the demand-pricing knobs the admin tunes.
+model DemandPricingConfig {
+  id              String   @id @default(cuid())
+  enabled         Boolean  @default(true)
+  muhurthamPct    Int      @default(20)
+  festivalPct     Int      @default(15)
+  saturdayPct     Int      @default(12)
+  sundayPct       Int      @default(8)
+  scarcityStepPct Int      @default(5) // +this per already-booked slot on the date
+  scarcityCapPct  Int      @default(30) // cap on the scarcity bump
+  updatedAt       DateTime @updatedAt
+}

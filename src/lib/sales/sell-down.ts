@@ -190,6 +190,16 @@ export function computeSellDownDrafts(input: {
   windowStartKey: string;
   windowDays?: number;
   lowOccupancyMax?: number;
+  /**
+   * Date keys ("YYYY-MM-DD") that carry a date-demand premium and must NEVER be
+   * offered as sell-down (discount) targets. We never auto-suggest discounting a
+   * scarce date. Two sources are excluded:
+   *   - weekends (derived here from the UTC weekday), and
+   *   - active PeakDate rows (Muhurtham / festival / custom) the caller passes in.
+   * Caller passes the all-venues + venue-specific peak keys; a venue-scoped peak
+   * key is encoded as "venueId|YYYY-MM-DD".
+   */
+  peakDateKeys?: Set<string>;
 }): SellDownTargetDraft[] {
   const {
     venues,
@@ -199,6 +209,7 @@ export function computeSellDownDrafts(input: {
     windowStartKey,
     windowDays = SELL_DOWN_WINDOW_DAYS,
     lowOccupancyMax = LOW_OCCUPANCY_PCT_MAX,
+    peakDateKeys,
   } = input;
 
   if (venues.length === 0) return [];
@@ -258,6 +269,17 @@ export function computeSellDownDrafts(input: {
 
       // Whole-day blackout → not sellable inventory, skip entirely.
       if (wholeDayBlackoutKeys.has(`${venueId}|${dayKey}`)) continue;
+
+      // Date-demand exclusion: NEVER suggest discounting a scarce, premium date.
+      // Skip weekends and any active PeakDate (all-venues "YYYY-MM-DD" key or
+      // venue-scoped "venueId|YYYY-MM-DD" key) entirely from the sell-down board.
+      if (
+        isWeekendKey(dayKey) ||
+        peakDateKeys?.has(dayKey) ||
+        peakDateKeys?.has(`${venueId}|${dayKey}`)
+      ) {
+        continue;
+      }
 
       const inquiryCount = inquiryByKey.get(`${venueId}|${dayKey}`) ?? 0;
 

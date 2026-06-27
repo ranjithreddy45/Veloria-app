@@ -446,6 +446,12 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["pricing:read"],
       },
       {
+        title: "Date Demand",
+        href: "/pricing/demand",
+        icon: "CalendarHeart",
+        permissions: ["pricing:read"],
+      },
+      {
         title: "Inventory",
         href: "/inventory",
         icon: "Warehouse",

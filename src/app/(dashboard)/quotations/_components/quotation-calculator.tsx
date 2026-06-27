@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2, Save, Send } from "lucide-react";
+import { getDateDemand, type DateDemandResult } from "@/actions/date-demand.actions";
+import { DateDemandBanner } from "./date-demand-banner";
 
 import {
   computeQuotation,
@@ -149,6 +151,17 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
   );
 
   const result = useMemo(() => computeQuotation(input), [input]);
+
+  // Demand-based pricing guidance for the chosen date (Muhurtham / weekend / scarcity).
+  const [demand, setDemand] = useState<DateDemandResult | null>(null);
+  useEffect(() => {
+    if (!eventDate) { setDemand(null); return; }
+    let active = true;
+    getDateDemand(eventDate, venueId || null, timeSlot || null)
+      .then((r) => { if (active) setDemand(r.success ? r.data : null); })
+      .catch(() => { if (active) setDemand(null); });
+    return () => { active = false; };
+  }, [eventDate, venueId, timeSlot]);
 
   const meta: QuotationMeta = {
     clientName, clientPhone, clientEmail, occasion,
@@ -445,6 +458,13 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
 
       {/* ---- Live preview ---- */}
       <div className="lg:sticky lg:top-6 lg:self-start space-y-4">
+        {/* How much to charge for this date (Muhurtham / weekend / scarcity). */}
+        <DateDemandBanner
+          demand={demand}
+          subtotal={result.subtotal}
+          taxableAmount={result.taxableAmount}
+          discountPct={result.discountPct}
+        />
         <Card>
           <CardHeader><CardTitle className="text-base">Live Quotation</CardTitle></CardHeader>
           <CardContent className="space-y-3">

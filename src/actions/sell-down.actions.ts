@@ -217,7 +217,7 @@ export async function computeSellDownNow(): Promise<Result<{ upserts: number }>>
   if (venueRows.length === 0) return { success: true, data: { upserts: 0 } };
   const venueIds = venueRows.map((v) => v.id);
 
-  const [bookings, blackouts, leads] = await Promise.all([
+  const [bookings, blackouts, leads, peakDates] = await Promise.all([
     prisma.booking.findMany({
       where: {
         venueId: { in: venueIds },
@@ -245,7 +245,20 @@ export async function computeSellDownNow(): Promise<Result<{ upserts: number }>>
         score: true,
       },
     }),
+    // Active date-demand peak dates in-window — NEVER offered as discount targets.
+    prisma.peakDate.findMany({
+      where: { isActive: true, date: { gte: windowStart, lt: windowEnd } },
+      select: { date: true, venueId: true },
+    }),
   ]);
+
+  // Peak-date exclusion keys: all-venues rows as "YYYY-MM-DD", venue-scoped
+  // rows as "venueId|YYYY-MM-DD". Weekends are excluded inside the engine.
+  const peakDateKeys = new Set<string>();
+  for (const p of peakDates) {
+    const key = utcDayKey(p.date);
+    peakDateKeys.add(p.venueId ? `${p.venueId}|${key}` : key);
+  }
 
   const venues: SellDownVenue[] = venueRows;
   const drafts = computeSellDownDrafts({
@@ -255,6 +268,7 @@ export async function computeSellDownNow(): Promise<Result<{ upserts: number }>>
     leads: leads as SellDownLead[],
     windowStartKey: todayKey,
     windowDays: SELL_DOWN_WINDOW_DAYS,
+    peakDateKeys,
   });
 
   let upserts = 0;
