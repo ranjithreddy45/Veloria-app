@@ -182,7 +182,6 @@ async function main() {
   ];
 
   const allVenues = await prisma.venue.findMany({ select: { id: true, name: true } });
-  const realNames = new Set(REAL_VENUES.map((v) => v.name));
 
   for (const v of REAL_VENUES) {
     const existing = allVenues.find((e) => e.name === v.name);
@@ -192,16 +191,21 @@ async function main() {
       });
     }
   }
-  // Deactivate placeholder venues so the storefront shows only the real five.
+  // Retire ONLY explicitly-named legacy venues (NOT every non-real venue) —
+  // otherwise venues added later via Settings → Venues would be silently
+  // deactivated on the next deploy. Already-inactive placeholders stay inactive.
+  const RETIRED_VENUE_NAMES = new Set<string>([
+    "Veloria Grand — Hosa Road", // split into · Pearl Hall + · Grand Hall
+  ]);
   for (const e of allVenues) {
-    if (!realNames.has(e.name)) {
+    if (RETIRED_VENUE_NAMES.has(e.name)) {
       await prisma.venue.update({
         where: { id: e.id },
         data: { isActive: false },
       });
     }
   }
-  console.log("[bootstrap] Synced 5 real venues (placeholders deactivated)");
+  console.log("[bootstrap] Synced real venues; retired legacy venue names");
 
   // ---- 3b. Seed email templates (spec §8) — idempotent by name ----
   const TEMPLATES = [
