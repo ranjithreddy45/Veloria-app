@@ -127,20 +127,20 @@ async function main() {
     // Hosa Road has TWO bookable halls — each is its own venue so bookings/leads
     // are attributed to the correct hall and each hall has its own calendar.
     // (The old combined "Veloria Grand — Hosa Road" is auto-deactivated below
-    // since it is no longer in this list.) Capacities are placeholders — adjust
-    // per hall in Settings → Venues.
+    // since it is no longer in this list.) capacity = max seating; the range is
+    // in the description. Editable per hall in Settings → Venues.
     {
       name: "Veloria Grand — Hosa Road · Pearl Hall",
       description:
-        "Pearl Hall at our Hosa Road banquet — elegant interiors, ample parking, ideal for weddings and receptions.",
-      capacity: 300,
+        "Pearl Hall at our Hosa Road banquet — intimate hall seating 80–100 guests; elegant interiors, ample parking.",
+      capacity: 100,
       pricePerSlot: 150000,
     },
     {
       name: "Veloria Grand — Hosa Road · Grand Hall",
       description:
-        "Grand Hall at our Hosa Road banquet — our larger hall for big weddings and grand receptions.",
-      capacity: 300,
+        "Grand Hall at our Hosa Road banquet — larger hall seating 150–200 guests; ideal for big weddings and receptions.",
+      capacity: 200,
       pricePerSlot: 150000,
     },
     {
@@ -191,6 +191,21 @@ async function main() {
       });
     }
   }
+
+  // One-time capacity correction for the two Hosa halls (first seeded with a 300
+  // placeholder). Only updates while still at the placeholder, so a later manual
+  // edit in Settings → Venues is never overwritten on subsequent deploys.
+  const HALL_CAPACITY: Record<string, number> = {
+    "Veloria Grand — Hosa Road · Pearl Hall": 100,
+    "Veloria Grand — Hosa Road · Grand Hall": 200,
+  };
+  for (const [name, capacity] of Object.entries(HALL_CAPACITY)) {
+    await prisma.venue.updateMany({
+      where: { name, capacity: 300 },
+      data: { capacity },
+    });
+  }
+
   // Retire ONLY explicitly-named legacy venues (NOT every non-real venue) —
   // otherwise venues added later via Settings → Venues would be silently
   // deactivated on the next deploy. Already-inactive placeholders stay inactive.
