@@ -17,7 +17,7 @@ import { hasPermission } from "@/lib/permissions";
 import { maybeConfirmBookingOnPayment } from "@/lib/sales/confirm-booking";
 import { isSafeReceiptUrl } from "@/lib/sales/receipt";
 import { applyRazorpayCapture, allocatePaidAmountToInstallments } from "@/lib/payments/apply-capture";
-import { razorpayKeyId, razorpayKeySecret, razorpayConfigured } from "@/lib/payments/razorpay-creds";
+import { razorpayKeyId, razorpayKeySecret, razorpayConfigured, razorpayCredFingerprint } from "@/lib/payments/razorpay-creds";
 import { postPaymentReceived } from "@/lib/finance/receivables";
 
 // ============================================================
@@ -667,6 +667,8 @@ export async function createPublicRazorpayOrder(invoiceId: string, amount: numbe
       return { success: false as const, error: "Invalid payment amount" };
     }
 
+    // Diagnostic (safe — no secret value): what credential is this server using?
+    console.log("[RAZORPAY_CRED_FINGERPRINT]", razorpayCredFingerprint());
     const Razorpay = (await import("razorpay")).default;
     const razorpay = new Razorpay({
       key_id: razorpayKeyId(),
