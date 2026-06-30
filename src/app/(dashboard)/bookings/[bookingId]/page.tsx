@@ -51,8 +51,13 @@ import { CommunicationTimeline } from "@/components/shared/communication-timelin
 import { BookingActions } from "./_components/booking-actions";
 import { BookingOpsLinks } from "./_components/booking-ops-links";
 import { BookingReadinessCard } from "./_components/booking-readiness-card";
+import { ServiceConfirmationCard } from "./_components/service-confirmation-card";
+import { getBookingServices } from "@/actions/booking-services.actions";
 import { EventPipelineTracker, type PipelineStage } from "./_components/event-pipeline-tracker";
 import { SignaturePanel } from "./_components/signature-panel";
+import { VendorWorkOrdersCard } from "./_components/vendor-work-orders-card";
+import { getWorkOrders } from "@/actions/work-order.actions";
+import { getVendors } from "@/actions/vendor.actions";
 import { formatINR, cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Booking Details" };
@@ -114,6 +119,20 @@ export default async function BookingDetailPage({
     where: { bookingId: booking.id },
     select: { status: true, vendorAssignments: { select: { status: true } } },
   });
+
+  // CR-004: Service confirmation (Stage 2) — selections + 24h SLA.
+  const servicesResult = await getBookingServices(booking.id);
+  const servicesData = servicesResult.success ? servicesResult.data : null;
+
+  // CR-005: Vendor work orders (Stage 3) + active-vendor list for the picker.
+  const [workOrdersResult, vendorsResult] = await Promise.all([
+    getWorkOrders(booking.id),
+    getVendors({ status: "ACTIVE", limit: 200 }),
+  ]);
+  const workOrders = workOrdersResult.success ? workOrdersResult.data : [];
+  const vendorOptions = vendorsResult.success
+    ? vendorsResult.data.data.map((v) => ({ id: v.id, name: v.name }))
+    : [];
   const isConfirmed = ["CONFIRMED", "IN_PROGRESS", "COMPLETED"].includes(booking.status);
   const beoStatus = existingBeo?.status ?? null;
   const va = operation?.vendorAssignments ?? [];
@@ -270,6 +289,18 @@ export default async function BookingDetailPage({
         )}
         guestCount={booking.guestCount}
         eventDate={booking.date}
+      />
+
+      {/* CR-004: Service confirmation (Stage 2) — décor, photo/video, add-ons + 24h SLA */}
+      {servicesData && (
+        <ServiceConfirmationCard bookingId={booking.id} data={servicesData} />
+      )}
+
+      {/* CR-005: Vendor notification & work orders (Stage 3) */}
+      <VendorWorkOrdersCard
+        bookingId={booking.id}
+        workOrders={workOrders}
+        vendors={vendorOptions}
       />
 
       {/* Quick Access Links */}

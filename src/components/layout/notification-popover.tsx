@@ -155,6 +155,14 @@ const NOTIFICATION_ICONS: Record<
     color: "text-red-600",
     bg: "bg-red-50",
   },
+  VENDOR_WORK_ORDER_SENT: { icon: FileText, color: "text-blue-600", bg: "bg-blue-50" },
+  VENDOR_CONFIRMATION_REMINDER: { icon: AlertTriangle, color: "text-amber-600", bg: "bg-amber-50" },
+  ADVANCE_PAYMENT_RELEASED: { icon: CreditCard, color: "text-emerald-600", bg: "bg-emerald-50" },
+  VENDOR_SLA_BREACH: { icon: AlertTriangle, color: "text-red-600", bg: "bg-red-50" },
+  SERVICES_NOT_LOCKED: { icon: AlertTriangle, color: "text-amber-600", bg: "bg-amber-50" },
+  PROPERTY_CHECKLIST_DUE: { icon: CheckSquare, color: "text-purple-600", bg: "bg-purple-50" },
+  REVIEW_POINTS_VERIFIED: { icon: Trophy, color: "text-emerald-600", bg: "bg-emerald-50" },
+  REVIEW_POINTS_PAYOUT_DUE: { icon: CreditCard, color: "text-green-600", bg: "bg-green-50" },
 };
 
 // ============================================================

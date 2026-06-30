@@ -177,6 +177,15 @@ enum NotificationType {
   INVITATION_SENT
   RSVP_RECEIVED
   REMINDER_FAILED
+  // OMS Operations module (CR-005/006/008/009)
+  VENDOR_WORK_ORDER_SENT
+  VENDOR_CONFIRMATION_REMINDER
+  ADVANCE_PAYMENT_RELEASED
+  VENDOR_SLA_BREACH
+  SERVICES_NOT_LOCKED
+  PROPERTY_CHECKLIST_DUE
+  REVIEW_POINTS_VERIFIED
+  REVIEW_POINTS_PAYOUT_DUE
 }
 
 // ============================================================
@@ -680,6 +689,9 @@ model Booking {
 
   // Banquet commercials (mirrors Zoho Bookings/Deals custom fields)
   hallBooked    String? // specific hall/section within the venue
+  // OMS CR-004 service confirmation: when all services were locked + summary sent.
+  servicesLockedAt      DateTime?
+  servicesSummarySentAt DateTime?
   perPlatePrice Decimal? @db.Decimal(12, 2)
   hallRental    Decimal? @db.Decimal(12, 2)
   decorCharges  Decimal? @db.Decimal(12, 2)
@@ -1557,6 +1569,59 @@ model MenuItem {
   menuSelections BookingMenuSelection[]
 
   @@index([category])
+}
+
+// ============================================================
+// OMS Operations module — CR-004 service confirmation + CR-005 vendor work orders.
+// Booking/vendor references are plain scalars (no FK relations) to stay fully
+// additive and avoid editing the large Booking/Vendor models.
+// ============================================================
+
+// CR-004: a locked service selection on a booking (F&B / Décor / Photo-Video / Add-on).
+model BookingServiceSelection {
+  id        String   @id @default(cuid())
+  bookingId String
+  // FNB | DECOR | PHOTO_VIDEO | ADDON
+  category  String
+  name      String
+  enabled   Boolean  @default(true)
+  // free-form structured details (theme, colours, deliverables, package, count, etc.)
+  details   Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([bookingId])
+  @@index([bookingId, category])
+}
+
+// CR-005: a vendor Work Order generated from a booking's confirmed service.
+model WorkOrder {
+  id            String    @id @default(cuid())
+  woNumber      String?   @unique
+  bookingId     String
+  vendorId      String
+  serviceType   String
+  scope         String?   @db.Text
+  terms         String?   @db.Text
+  advanceAmount Decimal?  @db.Decimal(12, 2)
+  // DRAFT | SENT | ACKNOWLEDGED | SIGNED | DECLINED
+  status        String    @default("DRAFT")
+  sentAt           DateTime?
+  acknowledgedAt   DateTime?
+  signedAt         DateTime?
+  signerName       String?
+  signatureUrl     String?   @db.Text // data-URL or hosted link for the vendor's e-sign
+  declinedAt       DateTime?
+  declineReason    String?
+  advanceReleasedAt   DateTime?
+  advanceReleasedById String?
+  createdById   String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([bookingId])
+  @@index([vendorId])
+  @@index([status])
 }
 
 model BookingMenu {
