@@ -25,6 +25,8 @@ enum UserRole {
   BD_EXECUTIVE
   BD_HEAD
   OPERATIONS
+  OPERATIONS_HEAD
+  PROPERTY_MANAGER
   LEGAL
   // Projects team — readies an acquired venue to Veloria Grand standards
   PROJECTS_EXEC

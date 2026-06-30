@@ -53,7 +53,7 @@ import { BookingOpsLinks } from "./_components/booking-ops-links";
 import { BookingReadinessCard } from "./_components/booking-readiness-card";
 import { EventPipelineTracker, type PipelineStage } from "./_components/event-pipeline-tracker";
 import { SignaturePanel } from "./_components/signature-panel";
-import { formatINR } from "@/lib/utils";
+import { formatINR, cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Booking Details" };
 
@@ -212,6 +212,54 @@ export default async function BookingDetailPage({
 
       {/* CR-002: 6-stage event lifecycle pipeline + health % */}
       <EventPipelineTracker stages={pipelineStages} />
+
+      {/* CR-003: Stage 1 payment summary (Total invoiced / Collected / Pending) */}
+      {booking.invoices.length > 0 &&
+        (() => {
+          const totalInvoiced = booking.invoices.reduce((s, i) => s + Number(i.totalAmount), 0);
+          const pending = booking.invoices.reduce((s, i) => s + Number(i.balanceDue), 0);
+          const collected = Math.max(0, totalInvoiced - pending);
+          const pct = totalInvoiced > 0 ? Math.round((collected / totalInvoiced) * 100) : 0;
+          const dueDates = booking.invoices
+            .filter((i) => Number(i.balanceDue) > 0 && i.dueDate)
+            .map((i) => new Date(i.dueDate as unknown as string).getTime())
+            .sort((a, b) => a - b);
+          const nextDue = dueDates.length ? new Date(dueDates[0]) : null;
+          return (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <IndianRupeeIcon className="size-4 text-emerald-600" /> Payment summary
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Total invoiced</p>
+                    <p className="mt-0.5 text-lg font-semibold tabular-nums">{formatINR(totalInvoiced)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Collected</p>
+                    <p className="mt-0.5 text-lg font-semibold tabular-nums text-emerald-600">{formatINR(collected)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Pending</p>
+                    <p className={cn("mt-0.5 text-lg font-semibold tabular-nums", pending > 0 ? "text-amber-600" : "text-muted-foreground")}>{formatINR(pending)}</p>
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <div className="flex items-center justify-between text-[12px] text-muted-foreground">
+                    <span>{pct}% collected</span>
+                    {nextDue && pending > 0 && <span>Next due {format(nextDue, "d MMM yyyy")}</span>}
+                  </div>
+                  <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-muted">
+                    <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
 
       {/* Readiness checklist (poka-yoke) — informational, never blocking */}
       <BookingReadinessCard

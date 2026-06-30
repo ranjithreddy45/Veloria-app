@@ -24,6 +24,8 @@ const INTERNAL_ROLES = [
   "BD_EXECUTIVE",
   "BD_HEAD",
   "OPERATIONS",
+  "OPERATIONS_HEAD",
+  "PROPERTY_MANAGER",
   "LEGAL",
   // Projects team
   "PROJECTS_EXEC",
