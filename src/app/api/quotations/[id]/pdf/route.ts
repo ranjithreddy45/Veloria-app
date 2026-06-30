@@ -176,7 +176,17 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   </div>
 </body></html>`;
 
+  // Safari treats a URL ending in `/pdf` as a file to download (saving a
+  // plain, extension-less "pdf" file that opens as raw text) unless the
+  // response explicitly declares `inline` disposition. Chrome renders inline
+  // either way; this header makes Safari render the branded page in-tab too,
+  // where the customer can use "Save as PDF / Print".
+  const safeName = (q.quoteNumber || "quotation").replace(/[^a-zA-Z0-9._-]+/g, "-");
   return new Response(html, {
-    headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Content-Disposition": `inline; filename="Quotation-${safeName}.html"`,
+      "Cache-Control": "no-store",
+    },
   });
 }
