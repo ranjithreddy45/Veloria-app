@@ -469,7 +469,7 @@ export function AIChatPanel() {
                   </div>
                   <div className="grid gap-2 text-xs">
                     {[
-                      "Is Veloria Grand — Hosa Road free on 12 Dec evening?",
+                      "Is Veloria Grand — Hosa Road · Pearl Hall free on 12 Dec evening?",
                       "Log a call: Priya wants a 300-guest wedding in December",
                       "Show me the pipeline summary",
                       "Create a task to follow up with new leads tomorrow",

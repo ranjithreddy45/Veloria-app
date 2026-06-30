@@ -23,7 +23,7 @@ export default async function EditBookingPage({
 
   const [bookingResult, venuesResult, contactsResult] = await Promise.all([
     getBooking(bookingId),
-    getVenues(),
+    getVenues({ activeOnly: false }), // editing an existing booking — keep its venue selectable even if retired
     getContacts({ limit: 200 }),
   ]);
 

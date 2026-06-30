@@ -124,11 +124,23 @@ async function main() {
   // Adds the real venues if missing; deactivates non-matching placeholders
   // (kept, not deleted, since bookings may reference them).
   const REAL_VENUES = [
+    // Hosa Road has TWO bookable halls — each is its own venue so bookings/leads
+    // are attributed to the correct hall and each hall has its own calendar.
+    // (The old combined "Veloria Grand — Hosa Road" is auto-deactivated below
+    // since it is no longer in this list.) Capacities are placeholders — adjust
+    // per hall in Settings → Venues.
     {
-      name: "Veloria Grand — Hosa Road",
+      name: "Veloria Grand — Hosa Road · Pearl Hall",
       description:
-        "Our Hosa Road banquet — elegant interiors, ample parking, ideal for weddings and large receptions.",
-      capacity: 600,
+        "Pearl Hall at our Hosa Road banquet — elegant interiors, ample parking, ideal for weddings and receptions.",
+      capacity: 300,
+      pricePerSlot: 150000,
+    },
+    {
+      name: "Veloria Grand — Hosa Road · Grand Hall",
+      description:
+        "Grand Hall at our Hosa Road banquet — our larger hall for big weddings and grand receptions.",
+      capacity: 300,
       pricePerSlot: 150000,
     },
     {

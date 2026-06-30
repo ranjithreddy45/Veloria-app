@@ -1190,7 +1190,7 @@ export async function getLeadsForCalendar(
 // Venue CRUD
 // ============================================================
 
-export async function getVenues() {
+export async function getVenues(opts?: { activeOnly?: boolean }) {
   try {
     const session = await auth();
     if (!session?.user) {
@@ -1201,7 +1201,12 @@ export async function getVenues() {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
+    // Default to ACTIVE venues only so retired venues (e.g. a venue split into
+    // separate halls) never appear in booking/quote/calendar pickers. Management
+    // screens pass { activeOnly: false } to still see and manage inactive venues.
+    const activeOnly = opts?.activeOnly ?? true;
     const venues = await prisma.venue.findMany({
+      where: activeOnly ? { isActive: true } : undefined,
       orderBy: { name: "asc" },
       include: {
         _count: { select: { bookings: true } },
