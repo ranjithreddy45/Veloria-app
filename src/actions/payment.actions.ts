@@ -698,7 +698,14 @@ export async function createPublicRazorpayOrder(invoiceId: string, amount: numbe
       raw: desc ? undefined : error,
     });
     if (e?.statusCode === 401) {
-      return { success: false as const, error: "Payment gateway authentication failed. Please contact us — the link will be reissued." };
+      // TEMP DIAGNOSTIC (remove after fix): surface the non-secret credential
+      // fingerprint so we can see, from the page itself, exactly what the live
+      // server is using. keyId is public; only the secret's length is shown.
+      const fp = razorpayCredFingerprint();
+      return {
+        success: false as const,
+        error: `Payment gateway authentication failed. [diag key=${fp.keyId ?? "MISSING"} mode=${fp.keyIdMode} secretLen=${fp.secretLen}]`,
+      };
     }
     return {
       success: false as const,
