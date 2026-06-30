@@ -8,6 +8,7 @@ import {
   UsersIcon,
   MapPinIcon,
   AlertTriangleIcon,
+  InboxIcon,
 } from "lucide-react";
 
 import {
@@ -49,10 +50,23 @@ interface BlackoutDateEntry {
   venue: { id: string; name: string };
 }
 
+interface CalendarLead {
+  id: string;
+  title: string;
+  status: string;
+  eventType: string | null;
+  eventDate: Date | string | null;
+  slot: string | null;
+  guestCount: number | null;
+  contact: { firstName: string | null; lastName: string | null; company: string | null } | null;
+  preferredVenue: { id: string; name: string } | null;
+}
+
 interface DayDetailPanelProps {
   selectedDay: Date | null;
   bookings: CalendarBooking[];
   blackouts: BlackoutDateEntry[];
+  leads?: CalendarLead[];
   onClose: () => void;
   onBookSlot: (timeSlot: string) => void;
 }
@@ -75,10 +89,16 @@ export function DayDetailPanel({
   selectedDay,
   bookings,
   blackouts,
+  leads = [],
   onClose,
   onBookSlot,
 }: DayDetailPanelProps) {
   const isOpen = selectedDay !== null;
+
+  function leadName(l: CalendarLead): string {
+    const n = [l.contact?.firstName, l.contact?.lastName].filter(Boolean).join(" ").trim();
+    return n || l.contact?.company || l.title || "Enquiry";
+  }
 
   // Check if a specific slot is booked
   function getBookingForSlot(slotKey: string): CalendarBooking | undefined {
@@ -107,7 +127,8 @@ export function DayDetailPanel({
             {selectedDay ? format(selectedDay, "EEEE, MMMM d, yyyy") : ""}
           </SheetTitle>
           <SheetDescription>
-            {bookings.length} booking{bookings.length !== 1 ? "s" : ""} on this day
+            {bookings.length} booking{bookings.length !== 1 ? "s" : ""}
+            {leads.length > 0 && ` · ${leads.length} enquir${leads.length !== 1 ? "ies" : "y"}`} on this day
           </SheetDescription>
         </SheetHeader>
 
@@ -293,6 +314,42 @@ export function DayDetailPanel({
                       colorMap={BOOKING_STATUS_COLORS}
                       className="text-[10px]"
                     />
+                  </Link>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Leads / enquiries received for this day */}
+          {leads.length > 0 && (
+            <>
+              <Separator />
+              <h3 className="flex items-center gap-1.5 text-sm font-semibold text-sky-700">
+                <InboxIcon className="size-4" />
+                Enquiries / leads ({leads.length})
+              </h3>
+              <p className="-mt-1 text-xs text-muted-foreground">
+                Not booked yet — these customers have asked about this date.
+              </p>
+              <div className="space-y-2">
+                {leads.map((lead) => (
+                  <Link
+                    key={lead.id}
+                    href={`/leads/${lead.id}`}
+                    className="flex items-center justify-between rounded-lg border border-dashed border-sky-300 bg-sky-50/50 p-3 transition-colors hover:bg-sky-50 dark:border-sky-900 dark:bg-sky-950/30"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{leadName(lead)}</p>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        {lead.slot && <span className="flex items-center gap-1"><ClockIcon className="size-3" />{lead.slot}</span>}
+                        {lead.preferredVenue && <span className="flex items-center gap-1"><MapPinIcon className="size-3" />{lead.preferredVenue.name}</span>}
+                        {typeof lead.guestCount === "number" && <span className="flex items-center gap-1"><UsersIcon className="size-3" />{lead.guestCount}</span>}
+                        {lead.eventType && <span>{lead.eventType}</span>}
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="shrink-0 border-sky-200 bg-sky-100 text-[10px] text-sky-700 dark:border-sky-900 dark:bg-sky-950/50 dark:text-sky-300">
+                      {lead.status}
+                    </Badge>
                   </Link>
                 ))}
               </div>

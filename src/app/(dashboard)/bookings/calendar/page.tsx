@@ -4,7 +4,9 @@ import { PlusIcon, ListIcon, BanIcon } from "lucide-react";
 
 import {
   getBookingsForCalendar,
+  getLeadsForCalendar,
   getBlackoutDates,
+  getVenues,
 } from "@/actions/booking.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { PageHelp } from "@/lib/page-help";
@@ -22,13 +24,19 @@ export default async function CalendarPage() {
   const month = now.getMonth() + 1;
   const year = now.getFullYear();
 
-  const [bookingsResult, blackoutsResult] = await Promise.all([
+  const [bookingsResult, leadsResult, blackoutsResult, venuesResult] = await Promise.all([
     getBookingsForCalendar(month, year),
+    getLeadsForCalendar(month, year),
     getBlackoutDates({ month, year }),
+    getVenues(),
   ]);
 
   const bookings = bookingsResult.success ? bookingsResult.data : [];
+  const leads = leadsResult.success ? leadsResult.data : [];
   const blackouts = blackoutsResult.success ? blackoutsResult.data : [];
+  const venues = (venuesResult.success ? venuesResult.data : []).map(
+    (v: { id: string; name: string }) => ({ id: v.id, name: v.name })
+  );
 
   return (
     <div className="space-y-6">
@@ -58,7 +66,9 @@ export default async function CalendarPage() {
       </PageHeader>
       <BookingCalendar
         initialBookings={bookings}
+        initialLeads={leads}
         initialBlackouts={blackouts}
+        venues={venues}
         initialMonth={month}
         initialYear={year}
       />

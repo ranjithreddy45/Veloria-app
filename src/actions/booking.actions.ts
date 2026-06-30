@@ -1133,6 +1133,60 @@ export async function getBookingsForCalendar(
 }
 
 // ============================================================
+// Get Leads for Calendar (enquiries with an event date in the month)
+// ------------------------------------------------------------
+// Lets the calendar show which dates already have ENQUIRIES (leads), distinct
+// from dates that are already BOOKED — optionally scoped to one venue via the
+// lead's preferred venue. Open leads only (won leads become bookings).
+// ============================================================
+
+export async function getLeadsForCalendar(
+  month: number,
+  year: number,
+  venueId?: string
+) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+    if (!hasPermission(session.user.role, "leads:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+
+    const leads = await prisma.lead.findMany({
+      where: {
+        eventDate: { gte: startDate, lte: endDate },
+        deletedAt: null,
+        // Open enquiries only — WON leads have converted to bookings, LOST are dead.
+        status: { notIn: ["WON", "LOST"] },
+        ...(venueId ? { preferredVenueId: venueId } : {}),
+      },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        eventType: true,
+        eventDate: true,
+        slot: true,
+        guestCount: true,
+        contact: { select: { firstName: true, lastName: true, company: true } },
+        preferredVenue: { select: { id: true, name: true } },
+      },
+      orderBy: { eventDate: "asc" },
+    });
+
+    return { success: true as const, data: serialize(leads) };
+  } catch (error) {
+    console.error("[GET_LEADS_CALENDAR_ERROR]", error);
+    return { success: false as const, error: "Failed to fetch calendar leads" };
+  }
+}
+
+// ============================================================
 // Venue CRUD
 // ============================================================
 

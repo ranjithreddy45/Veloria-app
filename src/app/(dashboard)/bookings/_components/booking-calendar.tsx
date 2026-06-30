@@ -14,14 +14,15 @@ import {
   subMonths,
   getDay,
 } from "date-fns";
-import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-} from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { getBookingsForCalendar, getBlackoutDates } from "@/actions/booking.actions";
+import {
+  getBookingsForCalendar,
+  getBlackoutDates,
+  getLeadsForCalendar,
+} from "@/actions/booking.actions";
 import { DayDetailPanel } from "./day-detail-panel";
 
 // ============================================================
@@ -40,6 +41,18 @@ interface CalendarBooking {
   venue: { id: string; name: string };
 }
 
+interface CalendarLead {
+  id: string;
+  title: string;
+  status: string;
+  eventType: string | null;
+  eventDate: Date | string | null;
+  slot: string | null;
+  guestCount: number | null;
+  contact: { firstName: string | null; lastName: string | null; company: string | null } | null;
+  preferredVenue: { id: string; name: string } | null;
+}
+
 interface BlackoutDateEntry {
   id: string;
   date: Date | string;
@@ -48,12 +61,21 @@ interface BlackoutDateEntry {
   venue: { id: string; name: string };
 }
 
+interface VenueOption {
+  id: string;
+  name: string;
+}
+
 interface BookingCalendarProps {
   initialBookings: CalendarBooking[];
+  initialLeads: CalendarLead[];
   initialBlackouts: BlackoutDateEntry[];
+  venues: VenueOption[];
   initialMonth: number;
   initialYear: number;
 }
+
+type ViewMode = "all" | "bookings" | "leads";
 
 // ============================================================
 // Status Colors for Calendar Pills
@@ -68,11 +90,12 @@ const STATUS_PILL_COLORS: Record<string, string> = {
   CANCELLED: "bg-red-50 text-red-400 border-red-100 line-through",
 };
 
-// ============================================================
-// Day Names
-// ============================================================
-
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function leadName(l: CalendarLead): string {
+  const n = [l.contact?.firstName, l.contact?.lastName].filter(Boolean).join(" ").trim();
+  return n || l.contact?.company || l.title || "Enquiry";
+}
 
 // ============================================================
 // BookingCalendar Component
@@ -80,7 +103,9 @@ const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export function BookingCalendar({
   initialBookings,
+  initialLeads,
   initialBlackouts,
+  venues,
   initialMonth,
   initialYear,
 }: BookingCalendarProps) {
@@ -89,203 +114,241 @@ export function BookingCalendar({
     new Date(initialYear, initialMonth - 1, 1)
   );
   const [bookings, setBookings] = React.useState<CalendarBooking[]>(initialBookings);
+  const [leads, setLeads] = React.useState<CalendarLead[]>(initialLeads);
   const [blackouts, setBlackouts] = React.useState<BlackoutDateEntry[]>(initialBlackouts);
   const [selectedDay, setSelectedDay] = React.useState<Date | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [view, setView] = React.useState<ViewMode>("all");
+  const [venueId, setVenueId] = React.useState<string>("");
+
+  const showBookings = view !== "leads";
+  const showLeads = view !== "bookings";
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
-  // Pad the start of the month to align with day of week
   const startDayOfWeek = getDay(monthStart);
   const paddingDays = Array.from({ length: startDayOfWeek }, (_, i) => {
     const d = new Date(monthStart);
     d.setDate(d.getDate() - (startDayOfWeek - i));
     return d;
   });
-
-  // Pad the end to fill the last week
   const endDayOfWeek = getDay(monthEnd);
   const trailingDays = Array.from({ length: 6 - endDayOfWeek }, (_, i) => {
     const d = new Date(monthEnd);
     d.setDate(d.getDate() + (i + 1));
     return d;
   });
-
   const allDays = [...paddingDays, ...daysInMonth, ...trailingDays];
 
-  // Navigate months
-  async function navigateMonth(direction: "prev" | "next") {
+  // Load all three datasets for a given month + venue scope.
+  const loadData = React.useCallback(async (date: Date, venue: string) => {
     setIsLoading(true);
-    const newDate =
-      direction === "prev" ? subMonths(currentDate, 1) : addMonths(currentDate, 1);
-    setCurrentDate(newDate);
-
-    const month = newDate.getMonth() + 1;
-    const year = newDate.getFullYear();
-
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+    const v = venue || undefined;
     try {
-      const [bookingsResult, blackoutsResult] = await Promise.all([
-        getBookingsForCalendar(month, year),
+      const [bRes, lRes, blRes] = await Promise.all([
+        getBookingsForCalendar(month, year, v),
+        getLeadsForCalendar(month, year, v),
         getBlackoutDates({ month, year }),
       ]);
-
-      if (bookingsResult.success) {
-        setBookings(bookingsResult.data);
-      }
-      if (blackoutsResult.success) {
-        setBlackouts(blackoutsResult.data as BlackoutDateEntry[]);
-      }
+      if (bRes.success) setBookings(bRes.data as CalendarBooking[]);
+      if (lRes.success) setLeads(lRes.data as CalendarLead[]);
+      if (blRes.success) setBlackouts(blRes.data as BlackoutDateEntry[]);
     } catch {
-      // Keep existing data on error
+      // keep existing data on error
     } finally {
       setIsLoading(false);
     }
+  }, []);
+
+  function navigateMonth(direction: "prev" | "next") {
+    const newDate = direction === "prev" ? subMonths(currentDate, 1) : addMonths(currentDate, 1);
+    setCurrentDate(newDate);
+    void loadData(newDate, venueId);
   }
 
-  // Get bookings for a specific day
+  function goToday() {
+    const today = new Date();
+    const first = new Date(today.getFullYear(), today.getMonth(), 1);
+    setCurrentDate(first);
+    void loadData(first, venueId);
+  }
+
+  function onVenueChange(v: string) {
+    setVenueId(v);
+    void loadData(currentDate, v);
+  }
+
   function getBookingsForDay(day: Date): CalendarBooking[] {
     return bookings.filter((b) => isSameDay(new Date(b.date), day));
   }
-
-  // Check if day has blackouts
+  function getLeadsForDay(day: Date): CalendarLead[] {
+    return leads.filter((l) => l.eventDate && isSameDay(new Date(l.eventDate), day));
+  }
   function getBlackoutsForDay(day: Date): BlackoutDateEntry[] {
     return blackouts.filter((b) => isSameDay(new Date(b.date), day));
   }
 
-  // Handle day click
   function handleDayClick(day: Date) {
-    if (isSameMonth(day, currentDate)) {
-      setSelectedDay(day);
-    }
+    if (isSameMonth(day, currentDate)) setSelectedDay(day);
   }
+
+  const venueLabel = venueId ? venues.find((v) => v.id === venueId)?.name : "All venues";
 
   return (
     <div className="space-y-4">
-      {/* Month Navigation */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      {/* Toolbar: month nav + view toggle + venue filter */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 sm:gap-3">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => navigateMonth("prev")}
-            disabled={isLoading}
-          >
+          <Button variant="outline" size="icon" onClick={() => navigateMonth("prev")} disabled={isLoading}>
             <ChevronLeftIcon className="size-4" />
           </Button>
-          <h2 className="text-lg font-semibold min-w-[140px] text-center sm:min-w-[200px]">
+          <h2 className="min-w-[140px] text-center text-lg font-semibold sm:min-w-[180px]">
             {format(currentDate, "MMMM yyyy")}
           </h2>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => navigateMonth("next")}
-            disabled={isLoading}
-          >
+          <Button variant="outline" size="icon" onClick={() => navigateMonth("next")} disabled={isLoading}>
             <ChevronRightIcon className="size-4" />
           </Button>
+          <Button variant="outline" size="sm" onClick={goToday} disabled={isLoading}>
+            Today
+          </Button>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            const today = new Date();
-            setCurrentDate(new Date(today.getFullYear(), today.getMonth(), 1));
-            const month = today.getMonth() + 1;
-            const year = today.getFullYear();
-            setIsLoading(true);
-            Promise.all([
-              getBookingsForCalendar(month, year),
-              getBlackoutDates({ month, year }),
-            ]).then(([bResult, blResult]) => {
-              if (bResult.success) setBookings(bResult.data);
-              if (blResult.success) setBlackouts(blResult.data as BlackoutDateEntry[]);
-              setIsLoading(false);
-            });
-          }}
-        >
-          Today
-        </Button>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {/* View toggle */}
+          <div className="inline-flex rounded-lg border border-border bg-card p-0.5 text-[13px]">
+            {([
+              { k: "all", label: "Both" },
+              { k: "bookings", label: "Bookings" },
+              { k: "leads", label: "Leads" },
+            ] as const).map((opt) => (
+              <button
+                key={opt.k}
+                type="button"
+                onClick={() => setView(opt.k)}
+                className={cn(
+                  "rounded-md px-3 py-1 font-medium transition-colors",
+                  view === opt.k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Venue filter */}
+          <select
+            value={venueId}
+            onChange={(e) => onVenueChange(e.target.value)}
+            disabled={isLoading}
+            className="h-9 rounded-lg border border-border bg-card px-3 text-[13px] font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label="Filter by venue"
+          >
+            <option value="">All venues</option>
+            {venues.map((v) => (
+              <option key={v.id} value={v.id}>{v.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Legend */}
+      <div className="flex flex-wrap items-center gap-4 text-[12px] text-muted-foreground">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="inline-block size-3 rounded border border-green-200 bg-green-100" /> Booked (confirmed event)
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="inline-block size-3 rounded border border-dashed border-sky-300 bg-sky-50" /> Lead (enquiry, not booked)
+        </span>
+        {venueId && <span className="font-medium text-foreground/70">· Showing: {venueLabel}</span>}
       </div>
 
       {/* Calendar Grid */}
-      <div className={cn("rounded-lg border bg-card", isLoading && "opacity-60 pointer-events-none")}>
-        {/* Day Headers */}
+      <div className={cn("rounded-lg border bg-card", isLoading && "pointer-events-none opacity-60")}>
         <div className="grid grid-cols-7 border-b">
           {DAY_NAMES.map((day) => (
-            <div
-              key={day}
-              className="px-2 py-2.5 text-center text-xs font-medium text-zinc-500 uppercase tracking-wide"
-            >
+            <div key={day} className="px-2 py-2.5 text-center text-xs font-medium uppercase tracking-wide text-zinc-500">
               {day}
             </div>
           ))}
         </div>
 
-        {/* Day Cells */}
         <div className="grid grid-cols-7">
           {allDays.map((day, i) => {
-            const dayBookings = getBookingsForDay(day);
+            const dayBookings = showBookings ? getBookingsForDay(day) : [];
+            const dayLeads = showLeads ? getLeadsForDay(day) : [];
             const dayBlackouts = getBlackoutsForDay(day);
             const isCurrentMonth = isSameMonth(day, currentDate);
             const isTodayDate = isToday(day);
             const isSelected = selectedDay ? isSameDay(day, selectedDay) : false;
             const hasBlackouts = dayBlackouts.length > 0;
 
+            // Combine pills (bookings first, then leads), cap at 3.
+            const pills: React.ReactNode[] = [];
+            for (const b of dayBookings) {
+              pills.push(
+                <div
+                  key={`b-${b.id}`}
+                  className={cn(
+                    "truncate rounded border px-1.5 py-0.5 text-[11px] font-medium leading-tight",
+                    STATUS_PILL_COLORS[b.status] || "bg-muted text-muted-foreground"
+                  )}
+                  title={`Booking: ${b.eventName} (${b.venue.name})`}
+                >
+                  {b.eventName}
+                </div>
+              );
+            }
+            for (const l of dayLeads) {
+              pills.push(
+                <div
+                  key={`l-${l.id}`}
+                  className="truncate rounded border border-dashed border-sky-300 bg-sky-50 px-1.5 py-0.5 text-[11px] font-medium leading-tight text-sky-700"
+                  title={`Lead: ${leadName(l)}${l.preferredVenue ? ` (${l.preferredVenue.name})` : ""}`}
+                >
+                  ◦ {leadName(l)}
+                </div>
+              );
+            }
+            const hiddenCount = pills.length - 3;
+
             return (
               <div
                 key={i}
                 className={cn(
-                  "relative min-h-[110px] border-b border-r p-1.5 cursor-pointer transition-colors",
+                  "relative min-h-[110px] cursor-pointer border-b border-r p-1.5 transition-colors",
                   !isCurrentMonth && "bg-zinc-50/50",
                   isCurrentMonth && "hover:bg-zinc-50",
                   isSelected && "bg-indigo-50 ring-1 ring-inset ring-indigo-200",
                   hasBlackouts && isCurrentMonth && "bg-red-50/40",
-                  // Remove right border for last column
-                  (i + 1) % 7 === 0 && "border-r-0",
+                  (i + 1) % 7 === 0 && "border-r-0"
                 )}
                 onClick={() => handleDayClick(day)}
               >
-                {/* Date Number */}
-                <div className="flex items-center justify-between mb-1">
+                <div className="mb-1 flex items-center justify-between">
                   <span
                     className={cn(
                       "inline-flex items-center justify-center text-sm",
                       !isCurrentMonth && "text-zinc-300",
                       isCurrentMonth && "text-zinc-700",
-                      isTodayDate &&
-                        "bg-indigo-600 text-white rounded-full size-7 font-semibold",
+                      isTodayDate && "size-7 rounded-full bg-indigo-600 font-semibold text-white"
                     )}
                   >
                     {format(day, "d")}
                   </span>
                   {hasBlackouts && isCurrentMonth && (
-                    <span className="text-[10px] text-red-500 font-medium">
-                      Blocked
-                    </span>
+                    <span className="text-[10px] font-medium text-red-500">Blocked</span>
                   )}
                 </div>
 
-                {/* Booking Pills */}
                 {isCurrentMonth && (
                   <div className="space-y-0.5">
-                    {dayBookings.slice(0, 3).map((booking) => (
-                      <div
-                        key={booking.id}
-                        className={cn(
-                          "truncate rounded px-1.5 py-0.5 text-[11px] leading-tight font-medium border",
-                          STATUS_PILL_COLORS[booking.status] || "bg-muted text-muted-foreground",
-                        )}
-                        title={`${booking.eventName} (${booking.venue.name})`}
-                      >
-                        {booking.eventName}
-                      </div>
-                    ))}
-                    {dayBookings.length > 3 && (
-                      <div className="text-[10px] text-zinc-400 font-medium pl-1">
-                        +{dayBookings.length - 3} more
-                      </div>
+                    {pills.slice(0, 3)}
+                    {hiddenCount > 0 && (
+                      <div className="pl-1 text-[10px] font-medium text-zinc-400">+{hiddenCount} more</div>
                     )}
                   </div>
                 )}
@@ -299,6 +362,7 @@ export function BookingCalendar({
       <DayDetailPanel
         selectedDay={selectedDay}
         bookings={selectedDay ? getBookingsForDay(selectedDay) : []}
+        leads={selectedDay ? getLeadsForDay(selectedDay) : []}
         blackouts={selectedDay ? getBlackoutsForDay(selectedDay) : []}
         onClose={() => setSelectedDay(null)}
         onBookSlot={(timeSlot) => {
