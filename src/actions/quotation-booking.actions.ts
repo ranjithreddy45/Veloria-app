@@ -112,6 +112,29 @@ export async function blockSlotFromQuotation(
   if (q.bookingId) return { success: false, error: "This quotation already has a booked slot." };
   if (!opts.venueId) return { success: false, error: "Select a venue to block." };
 
+  // Advance-payment gate: blocking a slot before the 20% booking advance has
+  // been received is reserved for a Super Admin. Everyone else must collect the
+  // advance first. The threshold mirrors the auto-confirm logic in
+  // confirm-booking.ts (20% of the value, with a ₹1 rounding tolerance), and is
+  // anchored on the invoice total (the number the 20% installment was computed
+  // from) when an invoice exists, else on the quotation grand total.
+  const gateGrandTotal = Number(q.grandTotal) || 0;
+  let advanceMet = gateGrandTotal <= 0; // a ₹0 quote can't be advance-gated
+  if (!advanceMet && q.invoiceId && q.invoiceId !== "__pending__") {
+    const inv = await prisma.invoice.findUnique({
+      where: { id: q.invoiceId },
+      select: { paidAmount: true, totalAmount: true },
+    });
+    if (inv) advanceMet = Number(inv.paidAmount) >= Number(inv.totalAmount) * 0.2 - 1;
+  }
+  if (!advanceMet && user.role !== "SUPER_ADMIN") {
+    return {
+      success: false,
+      error:
+        "Advance payment is below 20%. Only a Super Admin can block this slot before the booking advance is received.",
+    };
+  }
+
   // Atomically claim the quotation before doing any booking work, so two
   // concurrent calls can't both pass the bookingId guard above and create two
   // HOLD bookings (orphaning the first when the second overwrites bookingId).

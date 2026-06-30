@@ -80,7 +80,7 @@ export default async function QuotationPage({ params }: { params: Promise<{ id: 
   return (
     <div className="space-y-6">
       {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-      <QuotationDetail quote={res.data as any} perms={perms} leads={leads} venues={venues} advancePaid={advancePaid} />
+      <QuotationDetail quote={res.data as any} perms={perms} leads={leads} venues={venues} advancePaid={advancePaid} isSuperAdmin={role === "SUPER_ADMIN"} />
       <QuoteRadarPanel quotationId={id} initial={radarSignals} canShare={canShare} />
       {baseInput && typeof baseInput === "object" && (
         <TierBuilder

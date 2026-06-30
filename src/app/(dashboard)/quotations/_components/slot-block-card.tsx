@@ -34,9 +34,11 @@ interface Props {
   invoiceId?: string | null;
   /** True once the 20% booking advance has been paid on the quotation's invoice. */
   advancePaid?: boolean;
+  /** Super Admins may block the slot before the 20% advance is received. */
+  isSuperAdmin?: boolean;
 }
 
-export function SlotBlockCard({ quotationId, venues, defaultVenueId, defaultDateISO, defaultPlannerSlot, blocked, invoiceId, advancePaid }: Props) {
+export function SlotBlockCard({ quotationId, venues, defaultVenueId, defaultDateISO, defaultPlannerSlot, blocked, invoiceId, advancePaid, isSuperAdmin }: Props) {
   const router = useRouter();
   const [venueId, setVenueId] = useState(defaultVenueId ?? "");
   const [date, setDate] = useState(defaultDateISO ? defaultDateISO.slice(0, 10) : "");
@@ -101,8 +103,16 @@ export function SlotBlockCard({ quotationId, venues, defaultVenueId, defaultDate
     }
   }
 
+  // Super Admins may block before the advance is collected; everyone else is
+  // gated on the 20% advance (the server enforces this too).
+  const canBlock = advancePaid || isSuperAdmin;
+  const overriding = !advancePaid && !!isSuperAdmin;
+
   async function block() {
     if (!venueId || !date) return toast.error("Pick a venue and date first.");
+    if (overriding && !window.confirm(
+      "The 20% advance has NOT been received. Block this slot anyway? (Super Admin override — the booking stays on HOLD until the advance clears.)"
+    )) return;
     setBlocking(true);
     try {
       const res = await blockSlotFromQuotation(quotationId, { venueId, dateISO: date, timeSlot: slot });
@@ -210,14 +220,16 @@ export function SlotBlockCard({ quotationId, venues, defaultVenueId, defaultDate
           </div>
         )}
 
-        <Button className="w-full" onClick={block} disabled={blocking || !advancePaid || (selectedAvail ? !selectedAvail.available : false)}>
+        <Button className="w-full" onClick={block} disabled={blocking || !canBlock || (selectedAvail ? !selectedAvail.available : false)}>
           {blocking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-          {advancePaid ? "Block this slot" : "Block slot (after advance)"}
+          {advancePaid ? "Block this slot" : overriding ? "Block slot (Super Admin override)" : "Block slot (after advance)"}
         </Button>
         <p className="text-xs text-muted-foreground">
           {advancePaid
             ? "Advance received — blocking the slot confirms the booking and hands it to operations."
-            : "Slot booking unlocks once the 20% advance is paid in Step 1."}
+            : overriding
+            ? "Super Admin override: you can block before the 20% advance is received. The booking stays on HOLD until the advance clears. Others must collect the advance first."
+            : "Slot booking unlocks once the 20% advance is paid in Step 1. Only a Super Admin can block before then."}
         </p>
       </CardContent>
     </Card>

@@ -97,9 +97,10 @@ interface Props {
   leads: LeadOpt[];
   venues: VenueOpt[];
   advancePaid?: boolean;
+  isSuperAdmin?: boolean;
 }
 
-export function QuotationDetail({ quote, perms, leads, venues, advancePaid }: Props) {
+export function QuotationDetail({ quote, perms, leads, venues, advancePaid, isSuperAdmin }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
@@ -283,6 +284,7 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid }: Pr
               blocked={quote.bookingId ? { bookingId: quote.bookingId, at: quote.slotBlockedAt } : null}
               invoiceId={quote.invoiceId}
               advancePaid={advancePaid}
+              isSuperAdmin={isSuperAdmin}
             />
           )}
           <Card>
