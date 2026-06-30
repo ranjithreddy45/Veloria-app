@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { applyRazorpayCapture } from "@/lib/payments/apply-capture";
 import { reportSystemFailure } from "@/lib/ops-alert";
+import { razorpayWebhookSecret } from "@/lib/payments/razorpay-creds";
 
 // ============================================================
 // POST: Razorpay Webhook Handler
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify webhook signature
-    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    const webhookSecret = razorpayWebhookSecret();
     if (!webhookSecret) {
       console.error("[RAZORPAY_WEBHOOK] RAZORPAY_WEBHOOK_SECRET not configured");
       return NextResponse.json(

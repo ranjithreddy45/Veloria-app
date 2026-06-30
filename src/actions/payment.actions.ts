@@ -17,6 +17,7 @@ import { hasPermission } from "@/lib/permissions";
 import { maybeConfirmBookingOnPayment } from "@/lib/sales/confirm-booking";
 import { isSafeReceiptUrl } from "@/lib/sales/receipt";
 import { applyRazorpayCapture, allocatePaidAmountToInstallments } from "@/lib/payments/apply-capture";
+import { razorpayKeyId, razorpayKeySecret, razorpayConfigured } from "@/lib/payments/razorpay-creds";
 import { postPaymentReceived } from "@/lib/finance/receivables";
 
 // ============================================================
@@ -444,7 +445,7 @@ export async function createRazorpayOrder(invoiceId: string, amount: number) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
-    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+    if (!razorpayConfigured()) {
       return { success: false as const, error: "Razorpay is not configured" };
     }
 
@@ -476,8 +477,8 @@ export async function createRazorpayOrder(invoiceId: string, amount: number) {
     // Create Razorpay order directly via SDK
     const Razorpay = (await import("razorpay")).default;
     const razorpay = new Razorpay({
-      key_id: process.env.RAZORPAY_KEY_ID,
-      key_secret: process.env.RAZORPAY_KEY_SECRET,
+      key_id: razorpayKeyId(),
+      key_secret: razorpayKeySecret(),
     });
 
     const amountInPaise = Math.round(pay * 100);
@@ -508,7 +509,7 @@ export async function createRazorpayOrder(invoiceId: string, amount: number) {
         orderId: order.id,
         amount: amountInPaise,
         currency: "INR",
-        keyId: process.env.RAZORPAY_KEY_ID,
+        keyId: razorpayKeyId(),
       },
     };
   } catch (error) {
@@ -540,7 +541,8 @@ export async function verifyRazorpayPayment(data: {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
-    if (!process.env.RAZORPAY_KEY_SECRET) {
+    const keySecret = razorpayKeySecret();
+    if (!keySecret) {
       return { success: false as const, error: "Razorpay is not configured" };
     }
 
@@ -548,7 +550,7 @@ export async function verifyRazorpayPayment(data: {
 
     // Verify payment signature (timing-safe)
     const generatedSignature = crypto
-      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .createHmac("sha256", keySecret)
       .update(`${data.razorpay_order_id}|${data.razorpay_payment_id}`)
       .digest("hex");
 
@@ -639,7 +641,7 @@ export async function getPublicInvoiceForPayment(invoiceId: string) {
 
 export async function createPublicRazorpayOrder(invoiceId: string, amount: number) {
   try {
-    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+    if (!razorpayConfigured()) {
       return { success: false as const, error: "Online payment is not configured" };
     }
     const invoice = await prisma.invoice.findUnique({
@@ -667,8 +669,8 @@ export async function createPublicRazorpayOrder(invoiceId: string, amount: numbe
 
     const Razorpay = (await import("razorpay")).default;
     const razorpay = new Razorpay({
-      key_id: process.env.RAZORPAY_KEY_ID,
-      key_secret: process.env.RAZORPAY_KEY_SECRET,
+      key_id: razorpayKeyId(),
+      key_secret: razorpayKeySecret(),
     });
     const order = await razorpay.orders.create({
       amount: Math.round(pay * 100),
@@ -681,7 +683,7 @@ export async function createPublicRazorpayOrder(invoiceId: string, amount: numbe
     });
     return {
       success: true as const,
-      data: { orderId: order.id, amount: Math.round(pay * 100), currency: "INR", keyId: process.env.RAZORPAY_KEY_ID },
+      data: { orderId: order.id, amount: Math.round(pay * 100), currency: "INR", keyId: razorpayKeyId() },
     };
   } catch (error: unknown) {
     // Razorpay SDK errors look like { statusCode, error: { code, description } }.
@@ -709,12 +711,13 @@ export async function verifyPublicRazorpayPayment(data: {
   razorpay_signature: string;
 }) {
   try {
-    if (!process.env.RAZORPAY_KEY_SECRET) {
+    const keySecret = razorpayKeySecret();
+    if (!keySecret) {
       return { success: false as const, error: "Online payment is not configured" };
     }
     const crypto = (await import("crypto")).default;
     const generatedSignature = crypto
-      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .createHmac("sha256", keySecret)
       .update(`${data.razorpay_order_id}|${data.razorpay_payment_id}`)
       .digest("hex");
     const genBuf = Buffer.from(generatedSignature);

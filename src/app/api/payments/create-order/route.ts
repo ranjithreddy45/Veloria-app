@@ -3,6 +3,7 @@ import Razorpay from "razorpay";
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { razorpayKeyId, razorpayKeySecret } from "@/lib/payments/razorpay-creds";
 
 // ============================================================
 // Razorpay Instance (lazy init to avoid build-time errors)
@@ -10,8 +11,8 @@ import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 function getRazorpay() {
   return new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID!,
-    key_secret: process.env.RAZORPAY_KEY_SECRET!,
+    key_id: razorpayKeyId(),
+    key_secret: razorpayKeySecret(),
   });
 }
 
@@ -121,7 +122,7 @@ export async function POST(request: NextRequest) {
         orderId: order.id,
         amount: amountInPaise,
         currency: "INR",
-        keyId: process.env.RAZORPAY_KEY_ID,
+        keyId: razorpayKeyId(),
       },
     });
   } catch (error) {

@@ -4,6 +4,7 @@ import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { applyRazorpayCapture } from "@/lib/payments/apply-capture";
+import { razorpayKeySecret } from "@/lib/payments/razorpay-creds";
 
 // ============================================================
 // POST: Verify Razorpay Payment
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     // Verify payment signature
     const generatedSignature = crypto
-      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
+      .createHmac("sha256", razorpayKeySecret() ?? "")
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
       .digest("hex");
 
