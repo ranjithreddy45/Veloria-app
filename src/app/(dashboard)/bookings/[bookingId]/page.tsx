@@ -51,6 +51,7 @@ import { CommunicationTimeline } from "@/components/shared/communication-timelin
 import { BookingActions } from "./_components/booking-actions";
 import { BookingOpsLinks } from "./_components/booking-ops-links";
 import { BookingReadinessCard } from "./_components/booking-readiness-card";
+import { EventPipelineTracker, type PipelineStage } from "./_components/event-pipeline-tracker";
 import { SignaturePanel } from "./_components/signature-panel";
 import { formatINR } from "@/lib/utils";
 
@@ -106,6 +107,42 @@ export default async function BookingDetailPage({
         }),
       ])
     : [null, null, null];
+
+  // CR-002: derive the 6-stage event lifecycle from existing data (no new
+  // source of truth). Stages 4–6 light up as CR-006/007 modules ship.
+  const operation = await prisma.eventOperation.findUnique({
+    where: { bookingId: booking.id },
+    select: { status: true, vendorAssignments: { select: { status: true } } },
+  });
+  const isConfirmed = ["CONFIRMED", "IN_PROGRESS", "COMPLETED"].includes(booking.status);
+  const beoStatus = existingBeo?.status ?? null;
+  const va = operation?.vendorAssignments ?? [];
+  const vendorsConfirmed = va.length > 0 && va.every((v) => v.status === "CONFIRMED");
+  const pipelineStages: PipelineStage[] = [
+    {
+      name: "Booking confirmed",
+      status: isConfirmed ? "COMPLETED" : ["HOLD", "TENTATIVE"].includes(booking.status) ? "IN_PROGRESS" : "PENDING",
+      who: "Sales",
+      detail: "Payment / contract confirmed and the slot is locked.",
+    },
+    {
+      name: "Services confirmed",
+      status: beoStatus === "LOCKED" ? "COMPLETED" : beoStatus === "PUBLISHED" ? "IN_PROGRESS" : "PENDING",
+      who: "Event coordinator",
+      detail: "Menu, décor and all services finalised on the function sheet (BEO).",
+    },
+    {
+      name: "Vendor notification",
+      status: vendorsConfirmed ? "COMPLETED" : va.length > 0 ? "IN_PROGRESS" : "PENDING",
+      who: "Operations",
+      detail: va.length
+        ? `${va.filter((v) => v.status === "CONFIRMED").length}/${va.length} vendors confirmed.`
+        : "Vendors not yet assigned / notified.",
+    },
+    { name: "Property readiness", status: "PENDING", who: "Property manager", detail: "T-2 day property checklist (rolling out)." },
+    { name: "Vendor readiness", status: "PENDING", who: "Operations", detail: "Day-before vendor confirmation (rolling out)." },
+    { name: "Guest event readiness", status: "PENDING", who: "Event coordinator", detail: "Guest pre-event brief sent (rolling out)." },
+  ];
 
   return (
     <div className="space-y-6">
@@ -172,6 +209,9 @@ export default async function BookingDetailPage({
           </div>
         </div>
       )}
+
+      {/* CR-002: 6-stage event lifecycle pipeline + health % */}
+      <EventPipelineTracker stages={pipelineStages} />
 
       {/* Readiness checklist (poka-yoke) — informational, never blocking */}
       <BookingReadinessCard

@@ -283,8 +283,15 @@ export const sidebarNavigation: NavItem[] = [
     title: "Operations",
     href: "/tasks",
     icon: "Cog",
-    permissions: ["tasks:read", "vendors:read", "resources:read", "staff:read"],
+    permissions: ["tasks:read", "vendors:read", "resources:read", "staff:read", "bookings:read"],
     children: [
+      {
+        // CR-001: same Bookings dataset, second entry point under Operations.
+        title: "Bookings / Event List",
+        href: "/bookings",
+        icon: "CalendarCheck",
+        permissions: ["bookings:read"],
+      },
       {
         title: "Tasks",
         href: "/tasks",
