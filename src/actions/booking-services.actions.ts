@@ -21,7 +21,8 @@ import { revalidatePath } from "next/cache";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
-export const SERVICE_CATEGORIES = ["FNB", "DECOR", "PHOTO_VIDEO", "ADDON"] as const;
+// NOTE: not exported — a "use server" file may only export async functions.
+const SERVICE_CATEGORIES = ["FNB", "DECOR", "PHOTO_VIDEO", "ADDON"] as const;
 export type ServiceCategory = (typeof SERVICE_CATEGORIES)[number];
 
 const HOURS_24_MS = 24 * 60 * 60 * 1000;
