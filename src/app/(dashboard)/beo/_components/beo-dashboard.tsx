@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Plus, ClipboardList, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -120,6 +121,17 @@ export function BeoDashboard({
       <Card>
         <CardHeader><CardTitle className="text-[15px]">Function sheets</CardTitle></CardHeader>
         <CardContent className="p-0">
+          {beos.length === 0 ? (
+            <EmptyState
+              icon={<ClipboardList className="size-6" />}
+              title="No function sheets yet"
+              description={
+                canWrite
+                  ? "A function sheet (BEO) is the day-of playbook for a confirmed event. Click “New function sheet” above and pick a confirmed booking to build your first one."
+                  : "Function sheets appear here once they’re created for confirmed events."
+              }
+            />
+          ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[680px] border-collapse text-[13px]">
               <thead>
@@ -133,7 +145,7 @@ export function BeoDashboard({
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={5} className="px-3 py-10 text-center text-muted-foreground">No function sheets.</td></tr>
+                  <tr><td colSpan={5} className="px-3 py-10 text-center text-muted-foreground">No function sheets match this filter.</td></tr>
                 ) : (
                   filtered.map((b) => (
                     <tr key={b.id} className="border-b border-border last:border-0 hover:bg-muted/30">
@@ -159,6 +171,7 @@ export function BeoDashboard({
               </tbody>
             </table>
           </div>
+          )}
         </CardContent>
       </Card>
 

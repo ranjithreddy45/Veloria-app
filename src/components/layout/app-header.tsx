@@ -14,6 +14,11 @@ import {
   CircleHelp,
   BookOpen,
   Sparkles,
+  Plus,
+  UserPlus,
+  FileText,
+  CalendarCheck,
+  Users,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { NotificationPopover } from "@/components/layout/notification-popover";
@@ -169,6 +174,42 @@ export function AppHeader() {
 
       {/* Spacer */}
       <div className="ml-auto flex items-center gap-2">
+        {/* Quick create — visible shortcut to the most common "new X" forms,
+            so staff (esp. on mobile) don't need to hunt for create buttons. */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              size="sm"
+              className="h-9 gap-1.5 rounded-full px-3 shadow-sm"
+              title="Create new"
+            >
+              <Plus className="size-4" />
+              <span className="hidden sm:inline">Create</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-52" align="end" sideOffset={8}>
+            <DropdownMenuLabel>Create new</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuItem asChild>
+                <Link href="/leads/new" className="cursor-pointer"><UserPlus className="mr-2 size-4" /> Enquiry / Lead</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/quotations/new" className="cursor-pointer"><FileText className="mr-2 size-4" /> Quotation</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/bookings/new" className="cursor-pointer"><CalendarCheck className="mr-2 size-4" /> Booking</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/contacts/new" className="cursor-pointer"><Users className="mr-2 size-4" /> Contact</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/invoices/new" className="cursor-pointer"><FileText className="mr-2 size-4" /> Invoice</Link>
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         {/* Search trigger — opens command palette */}
         <Button
           variant="outline"

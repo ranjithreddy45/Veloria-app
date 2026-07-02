@@ -22,6 +22,7 @@ import { Donut } from "@/components/ui/donut";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusPill } from "@/components/shared/status-pill";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHelp } from "@/lib/page-help";
 import { formatINR, cn } from "@/lib/utils";
 import { createBudget, addBudgetLine, deleteBudgetLine } from "@/actions/finance-budget.actions";
 
@@ -65,7 +66,7 @@ export function BudgetsWorkspace({
   );
 
   const header = (
-    <PageHeader eyebrow="Finance · Budgets" title="Budgets" description="Plan figures by account and track budget-vs-actual variance for the year.">
+    <PageHeader eyebrow="Finance · Budgets" title="Budgets" help={<PageHelp id="budget" />} description="Plan figures by account and track budget-vs-actual variance for the year.">
       {canManage && <NewBudgetDialog onDone={() => router.refresh()} />}
     </PageHeader>
   );
