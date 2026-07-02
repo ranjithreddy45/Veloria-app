@@ -33,27 +33,3 @@ export function razorpayWebhookSecret(): string | undefined {
 export function razorpayConfigured(): boolean {
   return !!(razorpayKeyId() && razorpayKeySecret());
 }
-
-/**
- * Non-sensitive fingerprint of the configured credentials, safe to log for
- * diagnosing 401s. The key id is NOT a secret (it's sent to the browser
- * checkout); the secret is reduced to its length only — never its value.
- */
-export function razorpayCredFingerprint() {
-  const id = razorpayKeyId();
-  const secret = razorpayKeySecret();
-  return {
-    keyIdPresent: !!id,
-    keyIdMode: id?.startsWith("rzp_live_")
-      ? "live"
-      : id?.startsWith("rzp_test_")
-      ? "test"
-      : id
-      ? "unknown-prefix"
-      : "missing",
-    keyId: id ?? null, // safe: public value
-    keyIdLen: id?.length ?? 0,
-    secretPresent: !!secret,
-    secretLen: secret?.length ?? 0,
-  };
-}

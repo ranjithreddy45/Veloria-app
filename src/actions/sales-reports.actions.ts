@@ -82,11 +82,16 @@ export async function getSalesRevenueCollections(params: Params): Promise<Result
   const inRange = { gte: range.start, lte: range.end };
   const empIds = params.employeeIds?.length ? params.employeeIds : null;
 
+  // Payment/Installment have no owner column — scope them by the employee filter
+  // through invoice → booking.createdById so collections/milestones share the
+  // same scope as revenue (which filters on Booking.createdById directly).
+  const bookingEmp = empIds ? { booking: { createdById: { in: empIds } } } : {};
+  const invoiceEmp = empIds ? { invoice: { booking: { createdById: { in: empIds } } } } : {};
   const [confirmed, payments, openInvoices, installments] = await Promise.all([
     prisma.booking.findMany({ where: { status: "CONFIRMED", createdAt: inRange, ...(empIds ? { createdById: { in: empIds } } : {}) }, select: { totalAmount: true, decorCharges: true, otherServices: true } }),
-    prisma.payment.findMany({ where: { status: "COMPLETED", paidAt: inRange }, select: { amount: true } }),
-    prisma.invoice.findMany({ where: { status: { in: ["SENT", "PARTIALLY_PAID", "OVERDUE"] } }, select: { balanceDue: true } }),
-    prisma.installment.findMany({ where: { dueDate: inRange }, select: { label: true, amount: true, status: true } }),
+    prisma.payment.findMany({ where: { status: "COMPLETED", paidAt: inRange, ...invoiceEmp }, select: { amount: true } }),
+    prisma.invoice.findMany({ where: { status: { in: ["SENT", "PARTIALLY_PAID", "OVERDUE"] }, ...bookingEmp }, select: { balanceDue: true } }),
+    prisma.installment.findMany({ where: { dueDate: inRange, ...invoiceEmp }, select: { label: true, amount: true, status: true } }),
   ]);
 
   const revenueBooked = confirmed.reduce((s, b) => s + num(b.totalAmount), 0);

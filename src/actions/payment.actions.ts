@@ -17,7 +17,7 @@ import { hasPermission } from "@/lib/permissions";
 import { maybeConfirmBookingOnPayment } from "@/lib/sales/confirm-booking";
 import { isSafeReceiptUrl } from "@/lib/sales/receipt";
 import { applyRazorpayCapture, allocatePaidAmountToInstallments } from "@/lib/payments/apply-capture";
-import { razorpayKeyId, razorpayKeySecret, razorpayConfigured, razorpayCredFingerprint } from "@/lib/payments/razorpay-creds";
+import { razorpayKeyId, razorpayKeySecret, razorpayConfigured } from "@/lib/payments/razorpay-creds";
 import { postPaymentReceived } from "@/lib/finance/receivables";
 
 // ============================================================
@@ -667,8 +667,6 @@ export async function createPublicRazorpayOrder(invoiceId: string, amount: numbe
       return { success: false as const, error: "Invalid payment amount" };
     }
 
-    // Diagnostic (safe — no secret value): what credential is this server using?
-    console.log("[RAZORPAY_CRED_FINGERPRINT]", razorpayCredFingerprint());
     const Razorpay = (await import("razorpay")).default;
     const razorpay = new Razorpay({
       key_id: razorpayKeyId(),
@@ -698,14 +696,7 @@ export async function createPublicRazorpayOrder(invoiceId: string, amount: numbe
       raw: desc ? undefined : error,
     });
     if (e?.statusCode === 401) {
-      // TEMP DIAGNOSTIC (remove after fix): surface the non-secret credential
-      // fingerprint so we can see, from the page itself, exactly what the live
-      // server is using. keyId is public; only the secret's length is shown.
-      const fp = razorpayCredFingerprint();
-      return {
-        success: false as const,
-        error: `Payment gateway authentication failed. [diag key=${fp.keyId ?? "MISSING"} mode=${fp.keyIdMode} secretLen=${fp.secretLen}]`,
-      };
+      return { success: false as const, error: "Payment gateway authentication failed. Please contact us — the link will be reissued." };
     }
     return {
       success: false as const,

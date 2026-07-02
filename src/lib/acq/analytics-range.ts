@@ -53,7 +53,7 @@ function endOfIstDay(instant: Date): Date {
 /** IST yyyy-mm-dd string for an instant. */
 export function istDateStr(instant: Date): string {
   const { y, m, d } = istYmd(instant);
-  return `${y}-${String(m + 1).padStart(2, "0")}-${String(d + 1).padStart(2, "0")}`;
+  return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 }
 
 const MONTHS = [

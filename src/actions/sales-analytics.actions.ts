@@ -139,10 +139,16 @@ export async function getSalesAnalytics(params: SalesRangeParams): Promise<Resul
   for (const p of payments) {
     const owner = p.invoice?.booking?.createdById ?? p.invoice?.createdById;
     const amt = num(p.amount);
-    advanceTotal += amt;
-    if (p.invoice?.bookingId) advanceBookingIds.add(p.invoice.bookingId);
+    // Accumulate the total + funnel count only for owners that pass the employee
+    // filter, so headline totals reconcile with the per-employee rows. (owner is
+    // always present — Invoice.createdById is required — so the no-filter case
+    // still counts every payment.)
     const r = ensure(owner);
-    if (r) r.advanceCollected += amt;
+    if (r) {
+      r.advanceCollected += amt;
+      advanceTotal += amt;
+      if (p.invoice?.bookingId) advanceBookingIds.add(p.invoice.bookingId);
+    }
   }
 
   let revenueBooked = 0, upsellTotal = 0;
