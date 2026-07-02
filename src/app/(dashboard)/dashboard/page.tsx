@@ -6,6 +6,7 @@ import { getDashboardStats } from "@/actions/dashboard.actions";
 import { getVelosHeaderSummary } from "@/actions/velos.actions";
 import { getOnboardingProgress } from "@/actions/onboarding.actions";
 import { GettingStarted } from "./_components/getting-started";
+import { WelcomeTour } from "./_components/welcome-tour";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { KpiCards } from "./_components/kpi-cards";
 import { RevenueChart, BookingsChart } from "./_components/charts-lazy";
@@ -68,6 +69,9 @@ export default async function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-[1400px] space-y-8 px-1">
+      {/* First-login orientation — self-gates via localStorage, shows once. */}
+      <WelcomeTour />
+
       {/* ============================================================
           Hero — premium aura command-center header.
           Avatar + greeting + live daily briefing on an ambient violet wash.
