@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { HelpHint } from "@/components/layout/help-hint";
 import { Button } from "@/components/ui/button";
 import { StatTile } from "@/components/ui/stat-tile";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ContactsTable } from "./_components/contacts-table";
 
 export const metadata: Metadata = { title: "Enquiry" };
@@ -71,34 +72,52 @@ export default async function ContactsPage() {
           </Link>
         </Button>
       </PageHeader>
-      {contacts.length > 0 && (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 animate-rise-in animate-stagger-1">
-          <StatTile
-            label="Total contacts"
-            value={contacts.length}
-            accent="violet"
-            icon={<UsersIcon className="size-4" />}
-            sub="In your directory"
-          />
-          <StatTile
-            label="Individual"
-            value={individual}
-            accent="cyan"
-            icon={<UserIcon className="size-4" />}
-            sub="Personal contacts"
-          />
-          <StatTile
-            label="Corporate"
-            value={corporate}
-            accent="amber"
-            icon={<Building2Icon className="size-4" />}
-            sub="Business accounts"
+      {contacts.length === 0 ? (
+        <div className="animate-rise-in animate-stagger-1 rounded-xl border border-dashed bg-card shadow-premium">
+          <EmptyState
+            icon={<UsersIcon className="size-6" />}
+            title="No contacts yet"
+            description="This is your address book — every client and prospect you talk to. Add your first contact, and their leads, bookings, and history will roll up here."
+            action={
+              <Button asChild>
+                <Link href="/contacts/new">
+                  <PlusIcon className="size-3.5" strokeWidth={2.5} />
+                  New contact
+                </Link>
+              </Button>
+            }
           />
         </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 animate-rise-in animate-stagger-1">
+            <StatTile
+              label="Total contacts"
+              value={contacts.length}
+              accent="violet"
+              icon={<UsersIcon className="size-4" />}
+              sub="In your directory"
+            />
+            <StatTile
+              label="Individual"
+              value={individual}
+              accent="cyan"
+              icon={<UserIcon className="size-4" />}
+              sub="Personal contacts"
+            />
+            <StatTile
+              label="Corporate"
+              value={corporate}
+              accent="amber"
+              icon={<Building2Icon className="size-4" />}
+              sub="Business accounts"
+            />
+          </div>
+          <div className="animate-rise-in animate-stagger-2">
+            <ContactsTable data={contacts} />
+          </div>
+        </>
       )}
-      <div className="animate-rise-in animate-stagger-2">
-        <ContactsTable data={contacts} />
-      </div>
     </div>
   );
 }

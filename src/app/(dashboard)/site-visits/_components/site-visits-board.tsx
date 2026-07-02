@@ -17,6 +17,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StatTile } from "@/components/ui/stat-tile";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   confirmSiteVisit,
@@ -111,8 +112,12 @@ function VisitList({
 
   if (rows.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-zinc-200 bg-white/50 p-10 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/40">
-        No visits here yet.
+      <div className="rounded-2xl border border-dashed border-zinc-200 bg-white/50 dark:border-zinc-800 dark:bg-zinc-900/40">
+        <EmptyState
+          icon={<CalendarCheck className="size-6" />}
+          title="No site visits scheduled"
+          description="Prospects book venue tours and menu tastings themselves from the public scheduler. Share the /visit link, and requests will appear here for you to confirm and assign."
+        />
       </div>
     );
   }

@@ -5,6 +5,7 @@ import { getInquiries } from "@/actions/widget.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { PageHelp } from "@/lib/page-help";
 import { StatTile } from "@/components/ui/stat-tile";
+import { EmptyState } from "@/components/ui/empty-state";
 import { InquiryTable } from "@/components/widget/inquiry-table";
 
 export const metadata: Metadata = { title: "Widget Inquiries" };
@@ -72,7 +73,17 @@ export default async function InquiriesPage() {
       )}
 
       <div className="animate-rise-in animate-stagger-2">
-        <InquiryTable data={inquiries} />
+        {total === 0 ? (
+          <div className="rounded-xl border border-dashed bg-card shadow-premium">
+            <EmptyState
+              icon={<InboxIcon className="size-6" />}
+              title="No inquiries yet"
+              description="This is your unopened mailbox — enquiries from your booking widget and web forms land here automatically. Once they arrive, process each one to create a Contact and Lead."
+            />
+          </div>
+        ) : (
+          <InquiryTable data={inquiries} />
+        )}
       </div>
     </div>
   );

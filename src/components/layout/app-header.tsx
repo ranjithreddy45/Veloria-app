@@ -4,7 +4,17 @@ import * as React from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { Search, User, Settings, LogOut, Sun, Moon } from "lucide-react";
+import {
+  Search,
+  User,
+  Settings,
+  LogOut,
+  Sun,
+  Moon,
+  CircleHelp,
+  BookOpen,
+  Sparkles,
+} from "lucide-react";
 import { useTheme } from "next-themes";
 import { NotificationPopover } from "@/components/layout/notification-popover";
 import { CommandPalette } from "@/components/layout/command-palette";
@@ -208,6 +218,53 @@ export function AppHeader() {
             )}
           </Button>
         )}
+
+        {/* Help & Guidance launcher — always available to every user, ungated */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-9 rounded-full text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-foreground active:scale-[0.94]"
+              title="Help & guidance"
+            >
+              <CircleHelp className="size-4" />
+              <span className="sr-only">Help & guidance</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-60" align="end" sideOffset={8}>
+            <DropdownMenuLabel>Help & guidance</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuItem asChild>
+                <Link href="/playbook" className="cursor-pointer">
+                  <BookOpen className="mr-2 size-4" />
+                  Guided Playbook
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard" className="cursor-pointer">
+                  <Sparkles className="mr-2 size-4" />
+                  Getting started
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onSelect={() => setCommandOpen(true)}
+              >
+                <Search className="mr-2 size-4" />
+                Search & shortcuts
+                <kbd className="pointer-events-none ml-auto flex h-5 select-none items-center gap-0.5 rounded-md border border-border bg-background/60 px-1.5 font-sans text-[10px] font-medium text-muted-foreground">
+                  <span>⌘</span>K
+                </kbd>
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <div className="px-2 py-1.5 text-xs text-muted-foreground">
+              Need help? Ask your admin.
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* Notifications */}
         <NotificationPopover />

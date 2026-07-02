@@ -14,6 +14,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { HelpHint } from "@/components/layout/help-hint";
 import { Button } from "@/components/ui/button";
 import { StatTile } from "@/components/ui/stat-tile";
+import { EmptyState } from "@/components/ui/empty-state";
 import { BookingsTable } from "./_components/bookings-table";
 
 export const metadata: Metadata = { title: "Bookings" };
@@ -152,7 +153,25 @@ export default async function BookingsPage() {
       )}
 
       <div className="animate-rise-in animate-stagger-2">
-        <BookingsTable data={bookings} />
+        {bookings.length === 0 ? (
+          <div className="rounded-xl border border-dashed bg-card shadow-premium">
+            <EmptyState
+              icon={<CalendarCheckIcon className="size-6" />}
+              title="No bookings yet"
+              description="A booking is a confirmed event — a venue, date, and slot reserved for a client. Create your first booking, or convert a won deal, to start filling the calendar."
+              action={
+                <Button asChild>
+                  <Link href="/bookings/new">
+                    <PlusIcon className="mr-2 size-4" />
+                    New Booking
+                  </Link>
+                </Button>
+              }
+            />
+          </div>
+        ) : (
+          <BookingsTable data={bookings} />
+        )}
       </div>
     </div>
   );

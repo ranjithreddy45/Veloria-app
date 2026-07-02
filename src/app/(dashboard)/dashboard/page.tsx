@@ -4,6 +4,8 @@ import { auth } from "@/../auth";
 import { CalendarDays, IndianRupee, ListChecks, Trophy } from "lucide-react";
 import { getDashboardStats } from "@/actions/dashboard.actions";
 import { getVelosHeaderSummary } from "@/actions/velos.actions";
+import { getOnboardingProgress } from "@/actions/onboarding.actions";
+import { GettingStarted } from "./_components/getting-started";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { KpiCards } from "./_components/kpi-cards";
 import { RevenueChart, BookingsChart } from "./_components/charts-lazy";
@@ -34,10 +36,11 @@ function getGreeting(): string {
 // ============================================================
 
 export default async function DashboardPage() {
-  const [session, stats, velos] = await Promise.all([
+  const [session, stats, velos, onboarding] = await Promise.all([
     auth(),
     getDashboardStats(),
     getVelosHeaderSummary(),
+    getOnboardingProgress(),
   ]);
 
   const fullName = session?.user?.name || "there";
@@ -117,6 +120,11 @@ export default async function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Getting Started — first-run adoption guide; auto-hides once complete. */}
+      {onboarding && !onboarding.allDone && (
+        <GettingStarted steps={onboarding.steps} doneCount={onboarding.doneCount} total={onboarding.total} />
+      )}
 
       {/* ============================================================
           KPI cockpit

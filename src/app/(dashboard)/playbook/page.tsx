@@ -9,9 +9,9 @@ export default function PlaybookPage() {
     <div className="space-y-6">
       <PageHeader
         aura
-        eyebrow="Company Playbook"
-        title="How VeloriaApp works"
-        description="The complete process map — every major flow in plain language. For each step you can see who does it, what happens, what the system does automatically, and where an approval is needed. Great for onboarding and for understanding how the funnel fits together."
+        eyebrow="Guide"
+        title="Playbook — how Veloria Grand runs"
+        description="A friendly, plain-language map of every major flow: who does what, what the system automates, and where approvals kick in."
       />
       <ProcessFlows />
     </div>

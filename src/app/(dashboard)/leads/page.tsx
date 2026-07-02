@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PlusIcon, UploadCloud as UploadCloudIcon } from "lucide-react";
+import { PlusIcon, UploadCloud as UploadCloudIcon, Sparkles as SparklesIcon } from "lucide-react";
 
 import { getLeads, getLeadStats } from "@/actions/lead.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { HelpHint } from "@/components/layout/help-hint";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { LeadsTable } from "./_components/leads-table";
 import { LeadsStatStrip } from "./_components/leads-stat-strip";
 
@@ -95,14 +96,32 @@ export default async function LeadsPage() {
           </Link>
         </Button>
       </PageHeader>
-      {leads.length > 0 && (
-        <div className="animate-rise-in animate-stagger-1">
-          <LeadsStatStrip data={leads} />
+      {leads.length === 0 ? (
+        <div className="animate-rise-in animate-stagger-1 rounded-xl border border-dashed bg-card shadow-premium">
+          <EmptyState
+            icon={<SparklesIcon className="size-6" />}
+            title="No enquiries yet"
+            description="Every event opportunity starts here. Add your first lead — or import a list — to begin tracking and qualifying enquiries from first contact to close."
+            action={
+              <Button asChild>
+                <Link href="/leads/new">
+                  <PlusIcon className="size-3.5" strokeWidth={2.5} />
+                  New lead
+                </Link>
+              </Button>
+            }
+          />
         </div>
+      ) : (
+        <>
+          <div className="animate-rise-in animate-stagger-1">
+            <LeadsStatStrip data={leads} />
+          </div>
+          <div className="animate-rise-in animate-stagger-2">
+            <LeadsTable data={leads} />
+          </div>
+        </>
       )}
-      <div className="animate-rise-in animate-stagger-2">
-        <LeadsTable data={leads} />
-      </div>
     </div>
   );
 }
