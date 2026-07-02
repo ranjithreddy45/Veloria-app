@@ -72,6 +72,12 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["owners:read"],
       },
       {
+        title: "Reports",
+        href: "/bd/reports",
+        icon: "BarChart3",
+        permissions: ["owners:read"],
+      },
+      {
         title: "Hall Owners",
         href: "/owners",
         icon: "Users",
