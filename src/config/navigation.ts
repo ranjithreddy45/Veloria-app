@@ -92,6 +92,18 @@ export const sidebarNavigation: NavItem[] = [
     permissions: ["contacts:read", "leads:read"],
     children: [
       {
+        title: "Dashboard",
+        href: "/sales/dashboard",
+        icon: "LayoutDashboard",
+        permissions: ["leads:read"],
+      },
+      {
+        title: "Reports",
+        href: "/sales/reports",
+        icon: "BarChart3",
+        permissions: ["leads:read"],
+      },
+      {
         title: "Enquiry",
         href: "/contacts",
         icon: "Contact",
