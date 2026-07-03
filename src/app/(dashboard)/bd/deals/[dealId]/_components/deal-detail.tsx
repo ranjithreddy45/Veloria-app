@@ -380,6 +380,7 @@ export function DealDetail({
         <Tabs defaultValue="overview" className="w-full">
           <TabsList className="w-full justify-start overflow-x-auto">
             <TabsTrigger value="overview" className="shrink-0 whitespace-nowrap">Overview</TabsTrigger>
+            <TabsTrigger value="contact" className="shrink-0 whitespace-nowrap">Contact</TabsTrigger>
             <TabsTrigger value="economics" className="shrink-0 whitespace-nowrap">Economics &amp; Model</TabsTrigger>
             <TabsTrigger value="evaluation" className="shrink-0 whitespace-nowrap">Evaluation</TabsTrigger>
             <TabsTrigger value="projection" className="shrink-0 whitespace-nowrap">Projection</TabsTrigger>
@@ -389,6 +390,9 @@ export function DealDetail({
 
           <TabsContent value="overview" className="mt-4">
             <OverviewTab deal={deal} userRole={userRole} onMutate={() => router.refresh()} />
+          </TabsContent>
+          <TabsContent value="contact" className="mt-4">
+            <ContactTab deal={deal} userRole={userRole} onMutate={() => router.refresh()} />
           </TabsContent>
           <TabsContent value="economics" className="mt-4">
             <EconomicsTab deal={deal} userRole={userRole} onMutate={() => router.refresh()} />
@@ -410,6 +414,123 @@ export function DealDetail({
 
       <StagePanel deal={deal} onMutate={() => router.refresh()} />
     </div>
+  );
+}
+
+// ------------------------------------------------------------
+// Contact tab — owner contact details (name / phones / email).
+// These live on the deal's originating lead (the deal snapshot carries only
+// ownerName + ownerType), so we capture/edit them there via editAcqLead —
+// reusing the existing lead-write action rather than adding new owner columns.
+// ------------------------------------------------------------
+function ContactTab({
+  deal,
+  userRole,
+  onMutate,
+}: {
+  deal: AcqDealDetail;
+  userRole?: string;
+  onMutate: () => void;
+}) {
+  const canEdit = acqCan(userRole, "lead:write") && !!deal.lead;
+  const lead = deal.lead;
+  const [ownerName, setOwnerName] = useState(lead?.ownerName ?? deal.ownerName ?? "");
+  const [mobilePrimary, setMobilePrimary] = useState(lead?.mobilePrimary ?? "");
+  const [mobileAlternate, setMobileAlternate] = useState(lead?.mobileAlternate ?? "");
+  const [email, setEmail] = useState(lead?.email ?? "");
+  const [busy, setBusy] = useState(false);
+
+  async function save() {
+    if (!lead) return;
+    if (!ownerName.trim()) {
+      toast.error("Owner name is required.");
+      return;
+    }
+    setBusy(true);
+    const res = await editAcqLead(lead.id, {
+      ownerName: ownerName.trim(),
+      mobilePrimary: mobilePrimary.trim(),
+      mobileAlternate: mobileAlternate.trim() || undefined,
+      email: email.trim() || undefined,
+    });
+    setBusy(false);
+    if (!res.success) {
+      toast.error(res.error);
+      return;
+    }
+    toast.success("Contact details saved");
+    onMutate();
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-[15px]">
+          <Users className="size-4" /> Owner contact
+        </CardTitle>
+        <CardDescription>
+          The venue owner&apos;s point of contact for this acquisition.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {!lead ? (
+          <p className="text-[12.5px] text-muted-foreground">
+            Contact details are captured on the deal&apos;s originating lead, which
+            isn&apos;t available for this deal.
+          </p>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>Owner name</Label>
+                <Input
+                  value={ownerName}
+                  onChange={(e) => setOwnerName(e.target.value)}
+                  disabled={!canEdit}
+                  placeholder="Owner / signatory name"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={!canEdit}
+                  placeholder="owner@example.com"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Primary mobile</Label>
+                <Input
+                  value={mobilePrimary}
+                  onChange={(e) => setMobilePrimary(e.target.value)}
+                  disabled={!canEdit}
+                  placeholder="Primary phone"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Alternate mobile</Label>
+                <Input
+                  value={mobileAlternate}
+                  onChange={(e) => setMobileAlternate(e.target.value)}
+                  disabled={!canEdit}
+                  placeholder="Alternate phone (optional)"
+                />
+              </div>
+            </div>
+            {canEdit && (
+              <div className="flex justify-end">
+                <Button onClick={save} disabled={busy}>
+                  {busy && <Loader2 className="size-3.5 animate-spin" />}
+                  Save contact
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

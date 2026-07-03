@@ -9,6 +9,7 @@ import { format } from "date-fns";
 import { CalendarIcon, ChevronsUpDownIcon, CheckIcon, Loader2Icon } from "lucide-react";
 import { leadSchema, type LeadInput } from "@/schemas/lead.schema";
 import { createLead, updateLead } from "@/actions/lead.actions";
+import { LeadImagesField } from "./lead-images-field";
 import { getDaySlotAvailability } from "@/actions/quotation-booking.actions";
 import { EVENT_TYPES, LEAD_SOURCE_LABELS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -579,6 +580,16 @@ export function LeadForm({ contacts, venues = [], users = [], lead }: LeadFormPr
                 </FormItem>
               )}
             />
+          </CardContent>
+        </Card>
+
+        {/* Images */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Images</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-2">
+            <LeadImagesField />
           </CardContent>
         </Card>
 

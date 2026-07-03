@@ -903,6 +903,101 @@ export async function updateLeadStatus(id: string, status: LeadStatus) {
 }
 
 // ============================================================
+// Convert Lead → Deal (explicit user action from the lead detail).
+// Reuses syncPipelineDealForLead so the created Deal is identical to the one the
+// Qualified-status bridge produces (same entry stage, value, owner, ordering).
+// If the lead is still NEW/CONTACTED we promote it to QUALIFIED as part of the
+// same transaction — a Deal only exists for qualified-or-later leads (SCRM-001).
+// Idempotent: if a Deal already exists we return it rather than erroring.
+// ============================================================
+export async function convertLeadToDeal(leadId: string) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+
+    // Same guard family as other lead mutations, plus pipeline write (creates a Deal).
+    if (
+      !hasPermission(session.user.role, "leads:update") ||
+      !hasPermission(session.user.role, "pipeline:update")
+    ) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
+    const existing = await prisma.lead.findFirst({
+      where: { id: leadId, deletedAt: null },
+      include: { deal: { select: { id: true } } },
+    });
+    if (!existing) {
+      return { success: false as const, error: "Lead not found" };
+    }
+
+    // Already converted — surface the existing deal, don't create a second one.
+    if (existing.deal) {
+      return {
+        success: true as const,
+        data: { dealId: existing.deal.id, alreadyExisted: true },
+      };
+    }
+
+    if (existing.status === "LOST") {
+      return { success: false as const, error: "A lost lead can't be converted to a deal." };
+    }
+
+    // A Deal exists only for QUALIFIED-or-later leads; promote NEW/CONTACTED so the
+    // pipeline sync will actually create the deal. WON keeps its status.
+    const PROMOTE_FROM: LeadStatus[] = ["NEW", "CONTACTED"];
+    const targetStatus: LeadStatus = PROMOTE_FROM.includes(existing.status as LeadStatus)
+      ? "QUALIFIED"
+      : (existing.status as LeadStatus);
+
+    const dealId = await prisma.$transaction(async (tx) => {
+      if (targetStatus !== existing.status) {
+        const score = calculateLeadScore({
+          estimatedValue: existing.estimatedValue ? Number(existing.estimatedValue) : null,
+          eventDate: existing.eventDate,
+          followUpDate: existing.followUpDate,
+          source: existing.source,
+          guestCount: existing.guestCount,
+          status: targetStatus,
+          createdAt: existing.createdAt,
+        });
+        await tx.lead.update({ where: { id: leadId }, data: { status: targetStatus, score } });
+      }
+      await syncPipelineDealForLead(tx, leadId, targetStatus, existing);
+      const deal = await tx.deal.findUnique({ where: { leadId }, select: { id: true } });
+      if (!deal) {
+        // Only happens when no pipeline stage is configured — surface a clear error.
+        throw new Error("NO_PIPELINE_STAGE");
+      }
+      return deal.id;
+    });
+
+    await logActivity({
+      userId: session.user.id as string,
+      action: "converted_to_deal",
+      entityType: "Lead",
+      entityId: leadId,
+    });
+
+    revalidatePath("/leads");
+    revalidatePath(`/leads/${leadId}`);
+    revalidatePath("/pipeline");
+    return { success: true as const, data: { dealId, alreadyExisted: false } };
+  } catch (error) {
+    if (error instanceof Error && error.message === "NO_PIPELINE_STAGE") {
+      return {
+        success: false as const,
+        error: "No pipeline stage is configured. Set up your pipeline stages first.",
+      };
+    }
+    console.error("[CONVERT_LEAD_TO_DEAL_ERROR]", error);
+    return { success: false as const, error: "Failed to convert lead to deal" };
+  }
+}
+
+// ============================================================
 // Backfill: ensure every open/won lead has a pipeline Deal (audit S-9).
 // The lead→Deal bridge only fires on updateLeadStatus, so leads that were
 // seeded or imported directly into an open/won status never produced a Deal —

@@ -417,7 +417,7 @@ export function Candidates({
           className="hidden lg:block"
         />
 
-        <Card className="flex-1 overflow-hidden p-0 shadow-card">
+        <Card className="min-w-0 flex-1 overflow-hidden p-0 shadow-card">
           {visible.length === 0 ? (
             <EmptyState
               icon={<Users className="size-5" />}

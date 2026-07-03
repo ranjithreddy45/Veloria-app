@@ -36,6 +36,7 @@ export function EmployeeFormDialog({ entities, verticals, departments, designati
   const [firstName, setFirstName] = React.useState("");
   const [lastName, setLastName] = React.useState("");
   const [workEmail, setWorkEmail] = React.useState("");
+  const [personalEmail, setPersonalEmail] = React.useState("");
   const [phone, setPhone] = React.useState("");
   const [gender, setGender] = React.useState("");
   const [dob, setDob] = React.useState("");
@@ -50,7 +51,7 @@ export function EmployeeFormDialog({ entities, verticals, departments, designati
   const [status, setStatus] = React.useState("ONBOARDING");
 
   function reset() {
-    setFirstName(""); setLastName(""); setWorkEmail(""); setPhone(""); setGender(""); setDob("");
+    setFirstName(""); setLastName(""); setWorkEmail(""); setPersonalEmail(""); setPhone(""); setGender(""); setDob("");
     setLegalEntityId(""); setBusinessVerticalId(""); setDepartmentId(""); setDesignationId("");
     setEmploymentType("FULL_TIME"); setDateOfJoining(""); setWorkLocation(""); setReportingManagerId("");
     setStatus("ONBOARDING"); setError(null);
@@ -64,6 +65,7 @@ export function EmployeeFormDialog({ entities, verticals, departments, designati
     const res = await createEmployee({
       firstName, lastName,
       workEmail: workEmail || undefined,
+      personalEmail: personalEmail || undefined,
       phone: phone || undefined,
       gender: gender || undefined,
       dob: dob || undefined,
@@ -110,6 +112,9 @@ export function EmployeeFormDialog({ entities, verticals, departments, designati
           </Field>
           <Field label="Work email">
             <Input type="email" value={workEmail} onChange={(e) => setWorkEmail(e.target.value)} placeholder="name@propertyplush.in" />
+          </Field>
+          <Field label="Personal email">
+            <Input type="email" value={personalEmail} onChange={(e) => setPersonalEmail(e.target.value)} placeholder="name@gmail.com" />
           </Field>
           <Field label="Phone">
             <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91 ..." />

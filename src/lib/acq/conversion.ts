@@ -5,7 +5,7 @@
 // endpoint). Reused by the WON state transition and the post-signing
 // convertDealToProject handoff so both produce an identical property + project.
 
-import type { Prisma, AcqPropertyType } from "@prisma/client";
+import type { Prisma, AcqPropertyType, PropertyType, CommercialModel } from "@prisma/client";
 import { ONBOARDING_SEED_TASKS } from "@/lib/acq/constants";
 
 // The minimal deal snapshot the property/onboarding creation needs.
@@ -18,7 +18,32 @@ export type DealSnapshot = {
   locality: string;
   seatingTheatre: number | null;
   seatingFloating: number | null;
+  // Optional — used to seed the acquired-property Hall Owner CRM record on win.
+  // Full AcqDeal records carry these; the type keeps them optional so lighter
+  // snapshots (e.g. imports) still satisfy it.
+  bdExecutiveId?: string | null;
+  model?: string | null; // AcqDealModel: MANAGEMENT | FRANCHISE
+  baseFeePct?: Prisma.Decimal | number | null;
+  royaltyPct?: Prisma.Decimal | number | null;
 };
+
+// AcqPropertyType (deal/property vocabulary) → HallOwner.PropertyType (owner CRM
+// vocabulary). The two enums don't line up 1:1, so anything without a clean
+// mapping falls back to MIXED.
+const HALL_OWNER_PROPERTY_TYPE: Record<AcqPropertyType, PropertyType> = {
+  BANQUET: "BANQUET_HALL",
+  MARRIAGE_HALL: "MARRIAGE_GARDEN",
+  CONVENTION_CENTRE: "CONVENTION_CENTER",
+  RESORT: "MIXED",
+  LAWN: "MARRIAGE_GARDEN",
+};
+
+// AcqDealModel → HallOwner.CommercialModel (best-effort; unknown → undefined).
+function hallOwnerCommercialModel(model: string | null | undefined): CommercialModel | undefined {
+  if (model === "MANAGEMENT") return "MANAGEMENT_FEE";
+  if (model === "FRANCHISE") return "REVENUE_SHARE";
+  return undefined;
+}
 
 /**
  * Idempotently create the ONBOARDING property + onboarding project + seed tasks
@@ -77,5 +102,60 @@ export async function ensureDealProperty(
     });
   }
 
+  // Hall Owner CRM record (§ acquired-property owner). Created alongside the
+  // property so a won deal always yields BOTH an AcqProperty AND a HallOwner.
+  // NOTE (flagged schema gap): HallOwner has no dealId/propertyId FK, so the link
+  // back to the deal/property is by shared ownerName + city + bdOwner rather than
+  // a relation. If a hard link is needed, add `dealId String? @unique` (and/or
+  // `propertyId`) to HallOwner and switch the idempotency guard below to it.
+  await ensureDealHallOwner(tx, deal);
+
   return { propertyId: property.id, projectId: project.id, propertyName: property.propertyName, created };
+}
+
+/**
+ * Idempotently create the HallOwner CRM record for a won deal. Guarded by
+ * (ownerName + propertyCity + bdOwner, not deleted) since HallOwner carries no
+ * deal/property FK. Safe to call twice — reuses an existing matching owner.
+ */
+async function ensureDealHallOwner(
+  tx: Prisma.TransactionClient,
+  deal: DealSnapshot
+): Promise<string> {
+  const existing = await tx.hallOwner.findFirst({
+    where: {
+      deletedAt: null,
+      ownerName: deal.ownerName,
+      propertyCity: deal.city,
+      ...(deal.bdExecutiveId ? { bdOwnerId: deal.bdExecutiveId } : {}),
+    },
+    select: { id: true },
+  });
+  if (existing) return existing.id;
+
+  const totalCapacity =
+    deal.seatingTheatre ?? deal.seatingFloating ?? null;
+  const revenueSharePct =
+    deal.model === "FRANCHISE"
+      ? deal.royaltyPct ?? null
+      : deal.model === "MANAGEMENT"
+        ? deal.baseFeePct ?? null
+        : null;
+
+  const owner = await tx.hallOwner.create({
+    data: {
+      ownerName: deal.ownerName,
+      propertyCity: deal.city,
+      propertyType: HALL_OWNER_PROPERTY_TYPE[deal.propertyType] ?? "MIXED",
+      numberOfHalls: 1,
+      totalCapacity,
+      commercialModel: hallOwnerCommercialModel(deal.model),
+      revenueSharePercent: revenueSharePct as never,
+      // A won deal means the owner is signed & onboarding into the platform.
+      contractStatus: "SIGNED",
+      bdOwnerId: deal.bdExecutiveId ?? null,
+    },
+    select: { id: true },
+  });
+  return owner.id;
 }

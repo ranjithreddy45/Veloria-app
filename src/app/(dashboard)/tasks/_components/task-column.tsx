@@ -82,14 +82,18 @@ export function TaskColumn({ status, tasks }: TaskColumnProps) {
       />
 
       {/* Column Header */}
-      <div className="flex items-center justify-between px-3 py-3">
+      <div className="flex items-center justify-between px-3.5 py-3">
         <div className="flex items-center gap-2">
+          <span
+            className="size-2 rounded-full"
+            style={{ backgroundColor: config.color }}
+          />
           <h3 className="text-sm font-semibold text-zinc-800">
             {config.label}
           </h3>
           <Badge
             variant="secondary"
-            className="h-5 min-w-[20px] justify-center px-1.5 text-[10px] font-semibold"
+            className="h-5 min-w-[20px] justify-center px-1.5 text-[10px] font-semibold tabular-nums"
           >
             {tasks.length}
           </Badge>
@@ -99,7 +103,7 @@ export function TaskColumn({ status, tasks }: TaskColumnProps) {
       {/* Task Cards Container */}
       <div
         ref={setNodeRef}
-        className="flex flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2"
+        className="flex flex-1 flex-col gap-2.5 overflow-y-auto px-2.5 pb-3"
       >
         <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
           {tasks.map((task) => (
@@ -108,8 +112,18 @@ export function TaskColumn({ status, tasks }: TaskColumnProps) {
         </SortableContext>
 
         {tasks.length === 0 && (
-          <div className="flex flex-1 items-center justify-center rounded-lg border-2 border-dashed border-zinc-200 py-8">
-            <p className="text-xs text-zinc-400">Drop tasks here</p>
+          <div
+            className={cn(
+              "flex flex-1 flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed py-10 text-center transition-colors",
+              isOver ? "border-indigo-300 bg-indigo-50/60" : "border-zinc-200/80"
+            )}
+          >
+            <span
+              className="size-2 rounded-full"
+              style={{ backgroundColor: config.color, opacity: 0.5 }}
+            />
+            <p className="text-xs font-medium text-zinc-400">No tasks</p>
+            <p className="text-[11px] text-zinc-300">Drag a card here</p>
           </div>
         )}
       </div>

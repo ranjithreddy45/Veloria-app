@@ -15,6 +15,7 @@ import {
   MailIcon,
   PhoneIcon,
   CopyIcon,
+  GitBranchPlusIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -55,7 +56,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { deleteLead } from "@/actions/lead.actions";
+import { deleteLead, convertLeadToDeal, updateLeadStatus } from "@/actions/lead.actions";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
 import { bulkDeleteLeads, bulkChangeLeadStatus } from "@/actions/bulk.actions";
 import { aiScoreAllLeads } from "@/actions/ai.actions";
 import { exportLeads } from "@/actions/export.actions";
@@ -155,6 +162,19 @@ function QuickActions({ lead }: { lead: LeadWithContact }) {
     }
   };
 
+  const handleConvert = async () => {
+    const result = await convertLeadToDeal(lead.id);
+    if (result.success) {
+      toast.success(
+        result.data.alreadyExisted ? "Lead already has a deal" : "Converted to a deal"
+      );
+      router.push(`/pipeline?deal=${result.data.dealId}`);
+      router.refresh();
+    } else {
+      toast.error(result.error);
+    }
+  };
+
   return (
     <div className="flex items-center justify-end gap-0.5 opacity-100 [@media(hover:hover)]:opacity-0 group-hover/row:opacity-100 group-focus-within/row:opacity-100 transition-opacity">
       {lead.contact.email && (
@@ -244,6 +264,15 @@ function QuickActions({ lead }: { lead: LeadWithContact }) {
                 <PencilIcon className="mr-2 size-3.5" />
                 Edit
               </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.preventDefault();
+                handleConvert();
+              }}
+            >
+              <GitBranchPlusIcon className="mr-2 size-3.5" />
+              Convert to Deal
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <AlertDialogTrigger asChild>
@@ -353,6 +382,67 @@ function StatusTabs({
 }
 
 // ============================================================
+// Inline status cell — change a lead's status straight from the row (auto-save
+// via updateLeadStatus). A trigger styled to look like the status pill; the full
+// server-side guards (e.g. Won-needs-owner) still apply and surface as a toast.
+// ============================================================
+
+const ROW_STATUSES: Array<{ value: string; label: string }> = [
+  { value: "NEW", label: "New" },
+  { value: "CONTACTED", label: "Contacted" },
+  { value: "QUALIFIED", label: "Qualified" },
+  { value: "PROPOSAL_SENT", label: "Proposal Sent" },
+  { value: "NEGOTIATION", label: "Negotiation" },
+  { value: "WON", label: "Won" },
+  { value: "LOST", label: "Lost" },
+];
+
+function InlineStatusCell({ lead }: { lead: LeadWithContact }) {
+  const router = useRouter();
+  const [pending, setPending] = React.useState(false);
+
+  async function onChange(next: string) {
+    if (next === lead.status) return;
+    setPending(true);
+    try {
+      const result = await updateLeadStatus(
+        lead.id,
+        next as "NEW" | "CONTACTED" | "QUALIFIED" | "PROPOSAL_SENT" | "NEGOTIATION" | "WON" | "LOST"
+      );
+      if (result.success) {
+        toast.success(`Status updated to ${next.replace(/_/g, " ").toLowerCase()}`);
+        router.refresh();
+      } else {
+        toast.error(result.error);
+      }
+    } catch {
+      toast.error("Failed to update status");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <Select value={lead.status} onValueChange={onChange} disabled={pending}>
+      <SelectTrigger
+        aria-label="Change status"
+        className="h-auto border-0 bg-transparent p-0 shadow-none focus:ring-0 [&>svg]:opacity-40"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <LeadStatusPill status={lead.status} size="xs" />
+      </SelectTrigger>
+      <SelectContent onClick={(e) => e.stopPropagation()}>
+        {ROW_STATUSES.map((s) => (
+          <SelectItem key={s.value} value={s.value}>
+            {s.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+// ============================================================
 // Columns
 // ============================================================
 
@@ -428,7 +518,7 @@ const columns: ColumnDef<LeadWithContact>[] = [
   {
     accessorKey: "status",
     header: "Status",
-    cell: ({ row }) => <LeadStatusPill status={row.original.status} size="xs" />,
+    cell: ({ row }) => <InlineStatusCell lead={row.original} />,
   },
   {
     id: "assignedTo",

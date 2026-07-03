@@ -292,12 +292,12 @@ export function LeadInbox({ leads, bdUsers }: LeadInboxProps) {
 
         <div className="flex items-center gap-2">
           <div className="relative flex-1 sm:flex-none">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search owner, property, city…"
-              className="h-8 w-full pl-8 text-[13px] sm:w-[230px]"
+              className="h-8 w-full pl-9 text-[13px] sm:w-[230px]"
             />
           </div>
           <Button

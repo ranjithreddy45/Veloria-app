@@ -5,7 +5,8 @@ import { getAcqDeals } from "@/actions/acq-deal.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
-import { DealBoard, type AcqDealCard } from "./_components/deal-board";
+import { type AcqDealCard } from "./_components/deal-board";
+import { DealsWorkspace } from "./_components/deals-workspace";
 
 export const metadata: Metadata = { title: "Deal Board" };
 
@@ -29,7 +30,7 @@ export default async function BdDealsPage() {
           </Link>
         </Button>
       </PageHeader>
-      <DealBoard deals={deals} />
+      <DealsWorkspace deals={deals} />
     </div>
   );
 }

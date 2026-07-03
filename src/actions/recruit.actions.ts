@@ -98,6 +98,57 @@ export async function getJobOpenings() {
   }));
 }
 
+// Job detail — the opening plus every candidate linked to it (via applications).
+// Powers the Job → Candidates cross-navigation on /recruitment/jobs/[id].
+export async function getJobOpeningDetail(id: string) {
+  const u = await requireUser();
+  if (!canRead(u?.role)) return null;
+
+  const opening = await prisma.recJobOpening.findUnique({ where: { id } });
+  if (!opening) return null;
+
+  const [applications, names] = await Promise.all([
+    prisma.recApplication.findMany({
+      where: { jobOpeningId: id },
+      include: {
+        candidate: {
+          select: { id: true, firstName: true, lastName: true, email: true, phone: true, city: true, rating: true, stage: true },
+        },
+      },
+      orderBy: { updatedAt: "desc" },
+    }),
+    userMap(),
+  ]);
+
+  return {
+    opening: {
+      id: opening.id,
+      postingTitle: opening.postingTitle,
+      department: opening.department,
+      city: opening.city,
+      status: opening.status as string,
+      numberOfPositions: opening.numberOfPositions,
+      description: opening.description,
+      targetDate: opening.targetDate ? opening.targetDate.toISOString() : null,
+      hiringManager: opening.hiringManagerId ? names.get(opening.hiringManagerId) ?? null : null,
+      assignedRecruiter: opening.assignedRecruiterId ? names.get(opening.assignedRecruiterId) ?? null : null,
+      createdAt: opening.createdAt.toISOString(),
+    },
+    candidates: applications.map((a) => ({
+      applicationId: a.id,
+      applicationStage: a.stage as string,
+      applicationRating: a.rating,
+      id: a.candidate.id,
+      name: `${a.candidate.firstName} ${a.candidate.lastName}`.trim(),
+      email: a.candidate.email,
+      phone: a.candidate.phone,
+      city: a.candidate.city,
+      rating: a.candidate.rating,
+      stage: a.candidate.stage as string,
+    })),
+  };
+}
+
 export async function createJobOpening(input: {
   postingTitle: string; department?: string; city?: string; numberOfPositions?: number;
   targetDate?: string; hiringManagerId?: string; assignedRecruiterId?: string; description?: string;
@@ -236,19 +287,51 @@ export async function getRecruitFormOptions() {
   };
 }
 
-export async function createApplication(candidateId: string, jobOpeningId: string): Promise<Result<{ id: string }>> {
+// Create an application. Either pass an existing `candidateId`, or pass a typed
+// `candidateName` (free text) — in which case a lightweight candidate record is
+// created on the fly and linked. This lets recruiters add an applicant by name
+// without pre-registering them in the talent pool first.
+export async function createApplication(
+  candidateIdOrOpts: string | { candidateId?: string; candidateName?: string; jobOpeningId: string },
+  jobOpeningIdArg?: string,
+): Promise<Result<{ id: string }>> {
   const u = await requireUser();
   if (!canWrite(u?.role)) return { success: false, error: "Not authorized." };
-  if (!candidateId || !jobOpeningId) return { success: false, error: "Pick a candidate and a job opening." };
+
+  // Backwards-compatible: positional (candidateId, jobOpeningId) OR an options object.
+  const opts =
+    typeof candidateIdOrOpts === "string"
+      ? { candidateId: candidateIdOrOpts, jobOpeningId: jobOpeningIdArg ?? "" }
+      : candidateIdOrOpts;
+
+  const jobOpeningId = opts.jobOpeningId;
+  const typedName = opts.candidateName?.trim();
+  if (!jobOpeningId) return { success: false, error: "Pick a job opening." };
+  if (!opts.candidateId && !typedName)
+    return { success: false, error: "Pick a candidate or type an applicant name." };
+
   try {
-    const [candidate, opening] = await Promise.all([
-      prisma.recCandidate.findUnique({ where: { id: candidateId }, select: { id: true } }),
-      prisma.recJobOpening.findUnique({ where: { id: jobOpeningId }, select: { id: true } }),
-    ]);
-    if (!candidate) return { success: false, error: "That candidate no longer exists." };
+    const opening = await prisma.recJobOpening.findUnique({ where: { id: jobOpeningId }, select: { id: true } });
     if (!opening) return { success: false, error: "That job opening no longer exists." };
+
+    // Resolve the candidate: an explicit pick wins; otherwise create from the typed name.
+    let candidateId = opts.candidateId;
+    if (candidateId) {
+      const candidate = await prisma.recCandidate.findUnique({ where: { id: candidateId }, select: { id: true } });
+      if (!candidate) return { success: false, error: "That candidate no longer exists." };
+    } else {
+      const parts = typedName!.split(/\s+/).filter(Boolean);
+      const firstName = parts[0];
+      const lastName = parts.slice(1).join(" ");
+      const c = await prisma.recCandidate.create({
+        data: { firstName, lastName, source: "Direct", ownerId: u!.id, createdById: u!.id },
+      });
+      candidateId = c.id;
+    }
+
     const a = await prisma.recApplication.create({ data: { candidateId, jobOpeningId, createdById: u!.id } });
     revalidatePath("/recruitment/applications");
+    revalidatePath("/recruitment/candidates");
     return { success: true, data: { id: a.id } };
   } catch {
     return { success: false, error: "That candidate is already on this opening." };

@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, FileText, IndianRupee, TrendingUp, CalendarDays } from "lucide-react";
+import { Plus, FileText, IndianRupee, TrendingUp, CalendarDays, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -132,12 +132,15 @@ export function ContractsDashboard({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-[14px] font-semibold text-foreground">Contracts by status</h2>
         <div className="flex items-center gap-2">
-          <Input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search number, title, property, owner…"
-            className="h-9 w-full sm:w-72"
-          />
+          <div className="relative w-full sm:w-72">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search number, title, property, owner…"
+              className="h-9 w-full pl-9"
+            />
+          </div>
           <Button size="sm" onClick={() => setCreateOpen(true)} className="shrink-0">
             <Plus className="size-3.5" /> New
           </Button>

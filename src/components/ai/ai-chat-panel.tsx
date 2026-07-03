@@ -429,7 +429,10 @@ export function AIChatPanel() {
         >
           {/* Header */}
           <SheetHeader className="px-4 py-3 border-b flex-shrink-0">
-            <div className="flex items-center justify-between">
+            {/* pr-10 reserves room for the Sheet's built-in close (X) button,
+                which is absolutely positioned at top-4 right-4 — otherwise the
+                reload button below overlaps it. */}
+            <div className="flex items-center justify-between pr-10">
               <div className="flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
                   <Sparkles className="h-4 w-4 text-primary" />

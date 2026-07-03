@@ -8,7 +8,6 @@ import { HelpHint } from "@/components/layout/help-hint";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LeadsTable } from "./_components/leads-table";
-import { LeadsStatStrip } from "./_components/leads-stat-strip";
 
 export const metadata: Metadata = { title: "Leads" };
 
@@ -113,14 +112,11 @@ export default async function LeadsPage() {
           />
         </div>
       ) : (
-        <>
-          <div className="animate-rise-in animate-stagger-1">
-            <LeadsStatStrip data={leads} />
-          </div>
-          <div className="animate-rise-in animate-stagger-2">
-            <LeadsTable data={leads} />
-          </div>
-        </>
+        <div className="animate-rise-in animate-stagger-1">
+          {/* KPI strip is rendered inside LeadsTable (co-located with its
+              status tabs + facets) so it must NOT be duplicated here. */}
+          <LeadsTable data={leads} />
+        </div>
       )}
     </div>
   );

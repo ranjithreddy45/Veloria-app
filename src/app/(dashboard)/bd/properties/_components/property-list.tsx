@@ -25,6 +25,9 @@ export interface PropertyListItem {
   status: string;
   propertyManagerId: string | null;
   propertyManager?: { id: string; name: string | null } | null;
+  // Originating deal (for row context) + a cover photo pulled from the deal's
+  // PHOTO attachments.
+  deal?: { id: string; attachments?: { url: string }[] } | null;
   onboardingProject?: {
     status: "OPEN" | "COMPLETED";
     _count?: { tasks: number };
@@ -138,13 +141,27 @@ export function PropertyList({ properties }: PropertyListProps) {
                 className="cursor-pointer"
               >
                 <TableCell>
-                  <div className="flex flex-col">
-                    <span className="text-[13px] font-medium text-foreground">
-                      {p.propertyName}
-                    </span>
-                    {place && (
-                      <span className="text-[12px] text-muted-foreground">{place}</span>
+                  <div className="flex items-center gap-2.5">
+                    {p.deal?.attachments?.[0]?.url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={p.deal.attachments[0].url}
+                        alt={p.propertyName}
+                        className="size-9 shrink-0 rounded-md border border-border/60 object-cover"
+                      />
+                    ) : (
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border/60 bg-muted">
+                        <Building2 className="size-4 text-muted-foreground" />
+                      </span>
                     )}
+                    <div className="flex flex-col">
+                      <span className="text-[13px] font-medium text-foreground">
+                        {p.propertyName}
+                      </span>
+                      {place && (
+                        <span className="text-[12px] text-muted-foreground">{place}</span>
+                      )}
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell className="text-[12.5px] text-muted-foreground">

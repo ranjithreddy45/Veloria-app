@@ -2,12 +2,15 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
 import {
   Building2,
   CheckCircle2,
+  ImageIcon,
   Megaphone,
   UserCog,
+  ArrowUpRight,
   Loader2,
 } from "lucide-react";
 import {
@@ -57,7 +60,12 @@ export interface AcqPropertyDetail {
   availableAt: string | null;
   propertyManagerId: string | null;
   propertyManager?: { id: string; name: string | null } | null;
-  deal?: { id: string; name: string } | null;
+  deal?: {
+    id: string;
+    name: string;
+    ownerName?: string | null;
+    attachments?: { id: string; url: string; label: string | null }[];
+  } | null;
   onboardingProject?: {
     id: string;
     status: "OPEN" | "COMPLETED";
@@ -215,7 +223,25 @@ export function PropertyDetail({ property, managers, userRole }: PropertyDetailP
           </div>
 
           <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
-            <Field label="Owner" value={property.ownerName ?? "—"} />
+            {/* Owner links back to its originating deal when one exists. */}
+            <div className="flex flex-col gap-0.5">
+              <dt className="text-[11px] uppercase tracking-[0.04em] text-muted-foreground">
+                Owner
+              </dt>
+              <dd className="text-[12.5px] text-foreground">
+                {property.deal ? (
+                  <Link
+                    href={`/bd/deals/${property.deal.id}`}
+                    className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+                  >
+                    {property.ownerName ?? "—"}
+                    <ArrowUpRight className="size-3" />
+                  </Link>
+                ) : (
+                  property.ownerName ?? "—"
+                )}
+              </dd>
+            </div>
             <Field label="Type" value={formatType(property.propertyType)} />
             <Field label="Location" value={place || "—"} />
             <Field
@@ -225,6 +251,9 @@ export function PropertyDetail({ property, managers, userRole }: PropertyDetailP
           </dl>
         </CardContent>
       </Card>
+
+      {/* Property images — pulled from the deal's PHOTO attachments. */}
+      <PropertyPhotos deal={property.deal} />
 
       {/* Sales-notification banner */}
       <div className="flex items-start gap-3 rounded-lg border border-amber-200/80 bg-amber-50 px-4 py-3">
@@ -384,6 +413,61 @@ export function PropertyDetail({ property, managers, userRole }: PropertyDetailP
         </div>
       </div>
     </div>
+  );
+}
+
+// Property images come from the originating deal's PHOTO attachments (there is
+// no image column on AcqProperty — see flagged schema gap). When a deal link
+// exists the "Manage photos" action deep-links to the deal's evaluation tab.
+function PropertyPhotos({
+  deal,
+}: {
+  deal: AcqPropertyDetail["deal"];
+}) {
+  const photos = deal?.attachments ?? [];
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <CardTitle className="flex items-center gap-2 text-[13.5px]">
+          <ImageIcon className="size-4 text-muted-foreground" />
+          Property images
+        </CardTitle>
+        {deal && (
+          <Link
+            href={`/bd/deals/${deal.id}`}
+            className="text-[12px] font-medium text-primary hover:underline"
+          >
+            Manage photos
+          </Link>
+        )}
+      </CardHeader>
+      <CardContent>
+        {photos.length === 0 ? (
+          <p className="text-[12.5px] text-muted-foreground">
+            No images yet. Photos uploaded on the acquisition deal appear here.
+          </p>
+        ) : (
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            {photos.map((p) => (
+              <a
+                key={p.id}
+                href={p.url}
+                target="_blank"
+                rel="noreferrer"
+                className="group relative aspect-square overflow-hidden rounded-md border border-border/60 bg-muted"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={p.url}
+                  alt={p.label ?? "Property photo"}
+                  className="size-full object-cover transition-transform group-hover:scale-105"
+                />
+              </a>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

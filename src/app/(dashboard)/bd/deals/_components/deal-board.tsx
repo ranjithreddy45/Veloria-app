@@ -15,9 +15,12 @@ export interface AcqDealCard {
   stage: AcqDealStage;
   propertyName: string;
   locality: string;
+  city?: string | null;
   model: string | null;
   evalScore: number | string | null;
   ownerName: string;
+  projectedFeeValue?: number | string | null;
+  updatedAt?: string | null;
   seatingTheatre?: number | null;
   seatingFloating?: number | null;
   banquetSizeSft?: number | null;

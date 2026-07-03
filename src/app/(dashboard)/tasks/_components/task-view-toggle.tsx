@@ -54,13 +54,20 @@ export function TaskViewToggle({ tasks, tasksByStatus }: TaskViewToggleProps) {
       </div>
 
       {/* View Content */}
-      <div className="flex-1 overflow-hidden">
-        {view === "board" ? (
+      {/* Board manages its own internal column scroll, so it stays clipped to
+          the available height. The list, however, is a plain table with no
+          internal scroll region — inside `overflow-hidden` it gets clipped and
+          only the first row(s) stay visible. Give the list view its own
+          vertical scroll so every row is reachable. */}
+      {view === "board" ? (
+        <div className="flex-1 overflow-hidden">
           <TaskBoard initialTasksByStatus={tasksByStatus} />
-        ) : (
+        </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto pb-4">
           <TaskList tasks={tasks} />
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

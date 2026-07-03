@@ -34,7 +34,7 @@ const CATEGORIES: Category[] = [
       { label: "Users", href: "/settings/users", icon: Users, desc: "Team members & invites" },
       { label: "Roles & Permissions", href: "/settings/roles", icon: ShieldCheck, desc: "Who can do what" },
       { label: "Activity Log", href: "/settings/activity-log", icon: History, desc: "Full audit trail" },
-      { label: "Emergency Access", href: "/settings/emergency", icon: Siren, desc: "Break-glass controls" },
+      { label: "Emergency Response", href: "/settings/emergency", icon: Siren, desc: "Venue safety protocols & incident log" },
     ],
   },
   {

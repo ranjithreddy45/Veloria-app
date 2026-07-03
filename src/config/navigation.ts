@@ -844,25 +844,13 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["settings:read"],
       },
       {
-        title: "Lead Capture",
-        href: "/settings/integrations/lead-capture",
-        icon: "Webhook",
-        permissions: ["settings:read"],
-      },
-      {
-        title: "Telephony",
-        href: "/settings/integrations/telephony",
-        icon: "PhoneCall",
-        permissions: ["settings:read"],
-      },
-      {
         title: "OTA Syndication",
         href: "/settings/integrations/ota",
         icon: "Store",
         permissions: ["settings:read"],
       },
       {
-        title: "Emergency",
+        title: "Emergency Response",
         href: "/settings/emergency",
         icon: "AlertTriangle",
         permissions: ["emergency:read"],

@@ -14,8 +14,10 @@ import {
   ClockIcon,
   TrendingUpIcon,
   FileTextIcon,
+  ImageIcon,
 } from "lucide-react";
 
+import { prisma } from "@/lib/prisma";
 import { getLead } from "@/actions/lead.actions";
 import { calculateLeadScoreWithBreakdown } from "@/lib/lead-scoring";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -37,6 +39,8 @@ import { cn } from "@/lib/utils";
 import { MacroButton } from "@/components/shared/macro-button";
 import { LeadStatusSelect } from "./_components/lead-status-select";
 import { LeadDeleteButton } from "./_components/lead-delete-button";
+import { LeadQuickActions } from "./_components/lead-quick-actions";
+import { LeadInlineFields } from "./_components/lead-inline-fields";
 import { AIScoreCard } from "./_components/ai-score-card";
 import { AIEmailComposer } from "@/components/ai/ai-email-composer";
 import { SmartSuggestions } from "@/components/ai/smart-suggestions";
@@ -60,6 +64,16 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
   }
 
   const lead = result.data;
+
+  // Assignable users for the inline owner editor (mirrors the edit form's list).
+  const users = await prisma.user.findMany({
+    where: {
+      isActive: true,
+      role: { in: ["SALES_EXEC", "SALES_HEAD", "EVENT_COORDINATOR", "ADMIN", "SUPER_ADMIN"] },
+    },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
 
   // Calculate score breakdown
   const scoreBreakdown = calculateLeadScoreWithBreakdown({
@@ -118,6 +132,12 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
             contactEmail={lead.contact.email}
           />
           <MacroButton entityType="LEAD" entityId={lead.id} />
+          <LeadQuickActions
+            leadId={lead.id}
+            leadTitle={lead.title}
+            contactEmail={lead.contact.email}
+            alreadyConverted={!!lead.deal}
+          />
           <Button size="sm" asChild>
             <Link href={`/quotations/new?leadId=${lead.id}`}>
               <FileTextIcon className="mr-2 size-4" />
@@ -222,18 +242,21 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                     </div>
                   </div>
                 )}
-                {lead.assignedTo && (
-                  <div className="flex items-start gap-3">
-                    <UserIcon className="text-muted-foreground mt-0.5 size-4" />
-                    <div>
-                      <p className="text-muted-foreground text-xs">Assigned To</p>
-                      <p className="text-sm font-medium">
-                        {lead.assignedTo.name ?? lead.assignedTo.email}
-                      </p>
-                    </div>
-                  </div>
-                )}
               </div>
+
+              {/* Inline (auto-save) editors — owner + next follow-up. Quick
+                  edits without opening the full Edit form. */}
+              <Separator className="my-4" />
+              <p className="text-muted-foreground mb-3 text-xs font-medium uppercase tracking-wide">
+                Quick edit
+              </p>
+              <LeadInlineFields
+                leadId={lead.id}
+                assignedToId={lead.assignedToId ?? null}
+                followUpDate={lead.followUpDate ?? null}
+                users={users}
+              />
+
               {lead.description && (
                 <>
                   <Separator className="my-4" />
@@ -355,6 +378,30 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                   one — the customer and event info will be pre-filled.
                 </p>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Images */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <ImageIcon className="size-4" />
+                Images
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {/* No image records exist yet: the Lead model has no image
+                  field/relation (persistence needs a schema change — flagged).
+                  Once stored, map lead images into a thumbnail grid here. */}
+              <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed py-8 text-center">
+                <ImageIcon className="text-muted-foreground/50 size-8" />
+                <p className="text-muted-foreground text-sm">No images yet</p>
+                <p className="text-muted-foreground/70 max-w-xs text-xs">
+                  Add reference photos when creating or editing the lead. Note:
+                  image storage for leads needs a database field before uploads
+                  persist.
+                </p>
+              </div>
             </CardContent>
           </Card>
 

@@ -209,8 +209,10 @@ export function DataTable<TData, TValue>({
         </div>
       </div>
 
-      {/* Table */}
-      <div className="rounded-lg border border-border bg-card overflow-hidden">
+      {/* Table — clip the rounded corners but let wide tables scroll inside
+          their own box instead of overflowing the page (and sliding under the
+          sidebar when it collapses). */}
+      <div className="rounded-lg border border-border bg-card overflow-x-auto">
         <Table>
           <TableHeader className="bg-muted/30">
             {table.getHeaderGroups().map((headerGroup) => (

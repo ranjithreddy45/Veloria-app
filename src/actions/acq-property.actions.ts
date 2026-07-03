@@ -31,6 +31,19 @@ export async function getAcqProperties(): Promise<Result<unknown[]>> {
     include: {
       propertyManager: { select: { id: true, name: true } },
       onboardingProject: { include: { _count: { select: { tasks: true } }, tasks: { select: { done: true } } } },
+      // Originating deal id (for the row → deal link) + a single cover photo
+      // pulled from the deal's PHOTO attachments so the list can show a thumbnail.
+      deal: {
+        select: {
+          id: true,
+          attachments: {
+            where: { kind: "PHOTO" },
+            orderBy: { createdAt: "asc" },
+            take: 1,
+            select: { url: true },
+          },
+        },
+      },
     },
     orderBy: { createdAt: "desc" },
     take: 500,
@@ -45,7 +58,21 @@ export async function getAcqProperty(id: string): Promise<Result<unknown>> {
     where: { id, deletedAt: null },
     include: {
       propertyManager: { select: { id: true, name: true } },
-      deal: { select: { id: true, name: true } },
+      // Deal link + all of the deal's PHOTO attachments (property images live on
+      // the deal as AcqAttachment kind=PHOTO — there is no image column on
+      // AcqProperty; see flagged schema gap in the report).
+      deal: {
+        select: {
+          id: true,
+          name: true,
+          ownerName: true,
+          attachments: {
+            where: { kind: "PHOTO" },
+            orderBy: { createdAt: "asc" },
+            select: { id: true, url: true, label: true },
+          },
+        },
+      },
       onboardingProject: { include: { tasks: { orderBy: { createdAt: "asc" }, include: { assignee: { select: { name: true } } } } } },
     },
   });

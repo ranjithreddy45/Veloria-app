@@ -25,6 +25,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -216,23 +218,43 @@ function StageSelect({
 function NewApplicationDialog({ options }: { options: Options }) {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
+  // "pick" = choose an existing candidate; "type" = type a new applicant's name.
+  const [mode, setMode] = React.useState<"pick" | "type">("pick");
   const [candidateId, setCandidateId] = React.useState("");
+  const [candidateName, setCandidateName] = React.useState("");
   const [jobOpeningId, setJobOpeningId] = React.useState("");
   const [pending, setPending] = React.useState(false);
 
+  const ready =
+    !!jobOpeningId && (mode === "pick" ? !!candidateId : !!candidateName.trim());
+
+  function reset() {
+    setMode("pick");
+    setCandidateId("");
+    setCandidateName("");
+    setJobOpeningId("");
+  }
+
   async function onSubmit() {
-    if (!candidateId || !jobOpeningId) {
-      toast.error("Pick a candidate and a job opening.");
+    if (!jobOpeningId) {
+      toast.error("Pick a job opening.");
+      return;
+    }
+    if (mode === "pick" ? !candidateId : !candidateName.trim()) {
+      toast.error("Pick a candidate or type an applicant name.");
       return;
     }
     setPending(true);
-    const res = await createApplication(candidateId, jobOpeningId);
+    const res = await createApplication({
+      jobOpeningId,
+      candidateId: mode === "pick" ? candidateId : undefined,
+      candidateName: mode === "type" ? candidateName.trim() : undefined,
+    });
     setPending(false);
     if (res.success) {
       toast.success("Application created.");
       setOpen(false);
-      setCandidateId("");
-      setJobOpeningId("");
+      reset();
       router.refresh();
     } else {
       toast.error(res.error);
@@ -240,7 +262,7 @@ function NewApplicationDialog({ options }: { options: Options }) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
       <DialogTrigger asChild>
         <Button size="sm">
           <Plus className="size-4" /> New application
@@ -250,27 +272,50 @@ function NewApplicationDialog({ options }: { options: Options }) {
         <DialogHeader>
           <DialogTitle>New application</DialogTitle>
           <DialogDescription>
-            Add a candidate to an open requisition. They&apos;ll start in screening.
+            Add an applicant to an open requisition. They&apos;ll start in screening.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-1">
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Candidate</label>
-            <Select value={candidateId} onValueChange={setCandidateId}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select a candidate" />
-              </SelectTrigger>
-              <SelectContent>
-                {options.candidates.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-medium text-muted-foreground">Applicant</Label>
+              <button
+                type="button"
+                className="text-[11px] font-medium text-primary hover:underline"
+                onClick={() => setMode((m) => (m === "pick" ? "type" : "pick"))}
+              >
+                {mode === "pick" ? "Type a name instead" : "Pick from talent pool"}
+              </button>
+            </div>
+            {mode === "pick" ? (
+              <Select value={candidateId} onValueChange={setCandidateId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a candidate" />
+                </SelectTrigger>
+                <SelectContent>
+                  {options.candidates.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <>
+                <Input
+                  value={candidateName}
+                  onChange={(e) => setCandidateName(e.target.value)}
+                  placeholder="e.g. Karthik Kumar"
+                  autoFocus
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  A new candidate will be created and linked to this opening.
+                </p>
+              </>
+            )}
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Job opening</label>
+            <Label className="text-xs font-medium text-muted-foreground">Job opening</Label>
             <Select value={jobOpeningId} onValueChange={setJobOpeningId}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select a job opening" />
@@ -289,7 +334,7 @@ function NewApplicationDialog({ options }: { options: Options }) {
           <Button variant="ghost" onClick={() => setOpen(false)} disabled={pending}>
             Cancel
           </Button>
-          <Button onClick={onSubmit} disabled={pending || !candidateId || !jobOpeningId}>
+          <Button onClick={onSubmit} disabled={pending || !ready}>
             {pending && <Loader2 className="size-4 animate-spin" />}
             Create application
           </Button>
@@ -384,7 +429,7 @@ export function Applications({
         </div>
 
         {/* Table */}
-        <Card className="flex-1 overflow-hidden p-0">
+        <Card className="min-w-0 flex-1 overflow-hidden p-0">
           {filtered.length === 0 ? (
             <EmptyState
               icon={<FileSearch className="size-5" />}
@@ -397,6 +442,7 @@ export function Applications({
               action={canWrite && apps.length === 0 ? <NewApplicationDialog options={options} /> : undefined}
             />
           ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -420,7 +466,14 @@ export function Applications({
                         <span className="min-w-0 truncate text-sm font-medium">{a.name}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{a.candidateName}</TableCell>
+                    <TableCell className="text-sm">
+                      <a
+                        href={`/recruitment/candidates/${a.candidateId}`}
+                        className="text-muted-foreground hover:text-primary hover:underline"
+                      >
+                        {a.candidateName}
+                      </a>
+                    </TableCell>
                     <TableCell>
                       <StageStepper stage={a.stage} />
                     </TableCell>
@@ -440,6 +493,7 @@ export function Applications({
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </Card>
       </div>
