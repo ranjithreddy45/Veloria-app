@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 
 import { getIndividualPerformanceDetail } from "@/actions/performance-score.actions";
+import { getCoachingNotes, canCurrentUserCoach } from "@/actions/coaching.actions";
+import { CoachingPanel } from "./_components/coaching-panel";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -56,6 +58,12 @@ export default async function IndividualPerformancePage({
   }
 
   const { scores, badges, incentives } = result.data;
+
+  const [coachingRes, canCoach] = await Promise.all([
+    getCoachingNotes(userId),
+    canCurrentUserCoach(),
+  ]);
+  const coachingNotes = (coachingRes.success ? coachingRes.data : []) as Parameters<typeof CoachingPanel>[0]["notes"];
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const latestScore: any = scores.length > 0 ? scores[0] : null;
@@ -197,6 +205,9 @@ export default async function IndividualPerformancePage({
           )}
         </CardContent>
       </Card>
+
+      {/* Coaching & 1:1s — the manager↔report ritual */}
+      <CoachingPanel userId={userId} notes={coachingNotes} canCoach={canCoach} />
 
       {/* Badges Section */}
       <div>

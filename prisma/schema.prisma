@@ -319,6 +319,8 @@ model User {
   sessions            Session[]
   assignedLeads       Lead[]            @relation("AssignedTo")
   createdLeads        Lead[]            @relation("CreatedBy")
+  coachingReceived    CoachingNote[]    @relation("CoachingSubject")
+  coachingGiven       CoachingNote[]    @relation("CoachingManager")
   assignedDeals       Deal[]            @relation("DealAssignee")
   createdBookings     Booking[]         @relation("BookingCreatedBy")
   assignedTasks       Task[]            @relation("TaskAssignee")
@@ -3759,6 +3761,32 @@ enum OwnershipStatus {
   SELF_OWNED
   LEASED
   FAMILY_PROPERTY
+}
+
+// ============================================================
+// Performance — 1:1 Coaching / check-in log (A-player operating rhythm).
+// The manager↔report conversation that turns KRA/Velos/dashboard numbers into
+// action: a win, the one focus area, an agreed next step, and a follow-up.
+// ============================================================
+model CoachingNote {
+  id         String    @id @default(cuid())
+  subjectId  String // the team member this check-in is about
+  subject    User      @relation("CoachingSubject", fields: [subjectId], references: [id], onDelete: Cascade)
+  managerId  String // who logged it
+  manager    User      @relation("CoachingManager", fields: [managerId], references: [id])
+  period     String // 'YYYY-MM'
+  win        String?   @db.Text // what went well
+  focus      String?   @db.Text // the one thing to improve
+  actionItem String?   @db.Text // agreed next step
+  rating     Int? // optional 1-5 pulse
+  followUpAt DateTime?
+  status     String    @default("OPEN") // OPEN | DONE
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([subjectId])
+  @@index([managerId])
+  @@index([status, followUpAt])
 }
 
 model HallOwner {
