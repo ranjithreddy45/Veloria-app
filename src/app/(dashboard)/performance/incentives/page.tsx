@@ -9,6 +9,9 @@ import {
 } from "lucide-react";
 
 import { getIncentives } from "@/actions/performance-score.actions";
+import { auth } from "@/../auth";
+import { hasPermission } from "@/lib/permissions";
+import { AutoIncentivePanel } from "./_components/auto-incentive-panel";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,8 +33,9 @@ export const metadata: Metadata = {
 // ============================================================
 
 export default async function IncentivesPage() {
-  const result = await getIncentives();
+  const [result, session] = await Promise.all([getIncentives(), auth()]);
   const incentives = result.success ? result.data ?? [] : [];
+  const canManage = hasPermission((session?.user as { role?: string } | undefined)?.role ?? "", "performance:manage");
 
   const pending = incentives.filter(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -55,6 +59,8 @@ export default async function IncentivesPage() {
           </Link>
         </Button>
       </PageHeader>
+
+      {canManage && <AutoIncentivePanel />}
 
       {/* Summary */}
       <div className="grid gap-4 sm:grid-cols-3">
