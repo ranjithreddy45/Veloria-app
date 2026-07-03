@@ -6,7 +6,7 @@ import { serialize } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 import { notify } from "@/lib/notify";
 import { logActivity } from "@/lib/activity-logger";
-import { isSafeReceiptUrl } from "@/lib/sales/receipt";
+import { isSafeReceiptUrl, isSafeReceiptDataUrl } from "@/lib/sales/receipt";
 import { ensureDealProperty } from "@/lib/acq/conversion";
 import {
   isLegalTransition,
@@ -163,6 +163,32 @@ export async function updateAcqDeal(
     });
   }
   revalidatePath(`/bd/deals/${id}`);
+  revalidatePath("/bd/dashboard");
+  return { success: true, data: { id } };
+}
+
+// ------------------------------------------------------------
+// Property photos captured on the deal (AcqDeal.images) — base64 image
+// data-URLs. Displayed on the linked property's detail. Guarded the same way
+// as other deal writes (lead:write). Only safe image data-URLs are stored.
+// ------------------------------------------------------------
+export async function updateAcqDealImages(
+  id: string,
+  images: string[]
+): Promise<Result<{ id: string }>> {
+  const user = await requireUser();
+  if (!user || !acqCan(user.role, "lead:write")) return { success: false, error: "Unauthorized" };
+  const deal = await prisma.acqDeal.findFirst({ where: { id, deletedAt: null }, select: { id: true } });
+  if (!deal) return { success: false, error: "Deal not found" };
+
+  const safe = (Array.isArray(images) ? images : [])
+    .filter((v): v is string => typeof v === "string")
+    .filter((v) => isSafeReceiptDataUrl(v) && v.startsWith("data:image/"))
+    .slice(0, 24);
+
+  await prisma.acqDeal.update({ where: { id }, data: { images: safe } });
+  revalidatePath(`/bd/deals/${id}`);
+  revalidatePath("/bd/properties");
   revalidatePath("/bd/dashboard");
   return { success: true, data: { id } };
 }

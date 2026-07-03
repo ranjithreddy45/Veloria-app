@@ -104,34 +104,49 @@ export async function ensureDealProperty(
 
   // Hall Owner CRM record (§ acquired-property owner). Created alongside the
   // property so a won deal always yields BOTH an AcqProperty AND a HallOwner.
-  // NOTE (flagged schema gap): HallOwner has no dealId/propertyId FK, so the link
-  // back to the deal/property is by shared ownerName + city + bdOwner rather than
-  // a relation. If a hard link is needed, add `dealId String? @unique` (and/or
-  // `propertyId`) to HallOwner and switch the idempotency guard below to it.
-  await ensureDealHallOwner(tx, deal);
+  // Hard-linked to its originating deal + property via HallOwner.dealId /
+  // HallOwner.propertyId (schema now carries both FKs).
+  await ensureDealHallOwner(tx, deal, property.id);
 
   return { propertyId: property.id, projectId: project.id, propertyName: property.propertyName, created };
 }
 
 /**
- * Idempotently create the HallOwner CRM record for a won deal. Guarded by
- * (ownerName + propertyCity + bdOwner, not deleted) since HallOwner carries no
- * deal/property FK. Safe to call twice — reuses an existing matching owner.
+ * Idempotently create the HallOwner CRM record for a won deal, hard-linked to
+ * its originating deal + property via HallOwner.dealId / HallOwner.propertyId.
+ * The idempotency guard prefers the deal FK; it falls back to
+ * (ownerName + propertyCity + bdOwner) so pre-existing owners created before the
+ * FKs are still matched (and then linked). Safe to call twice.
  */
 async function ensureDealHallOwner(
   tx: Prisma.TransactionClient,
-  deal: DealSnapshot
+  deal: DealSnapshot,
+  propertyId: string
 ): Promise<string> {
   const existing = await tx.hallOwner.findFirst({
     where: {
       deletedAt: null,
-      ownerName: deal.ownerName,
-      propertyCity: deal.city,
-      ...(deal.bdExecutiveId ? { bdOwnerId: deal.bdExecutiveId } : {}),
+      OR: [
+        { dealId: deal.id },
+        {
+          ownerName: deal.ownerName,
+          propertyCity: deal.city,
+          ...(deal.bdExecutiveId ? { bdOwnerId: deal.bdExecutiveId } : {}),
+        },
+      ],
     },
-    select: { id: true },
+    select: { id: true, dealId: true, propertyId: true },
   });
-  if (existing) return existing.id;
+  if (existing) {
+    // Backfill the hard link on an owner matched by the legacy heuristic.
+    if (existing.dealId !== deal.id || existing.propertyId !== propertyId) {
+      await tx.hallOwner.update({
+        where: { id: existing.id },
+        data: { dealId: deal.id, propertyId },
+      });
+    }
+    return existing.id;
+  }
 
   const totalCapacity =
     deal.seatingTheatre ?? deal.seatingFloating ?? null;
@@ -144,6 +159,8 @@ async function ensureDealHallOwner(
 
   const owner = await tx.hallOwner.create({
     data: {
+      dealId: deal.id,
+      propertyId,
       ownerName: deal.ownerName,
       propertyCity: deal.city,
       propertyType: HALL_OWNER_PROPERTY_TYPE[deal.propertyType] ?? "MIXED",

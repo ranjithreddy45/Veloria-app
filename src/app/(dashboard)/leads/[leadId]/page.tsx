@@ -390,18 +390,34 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {/* No image records exist yet: the Lead model has no image
-                  field/relation (persistence needs a schema change — flagged).
-                  Once stored, map lead images into a thumbnail grid here. */}
-              <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed py-8 text-center">
-                <ImageIcon className="text-muted-foreground/50 size-8" />
-                <p className="text-muted-foreground text-sm">No images yet</p>
-                <p className="text-muted-foreground/70 max-w-xs text-xs">
-                  Add reference photos when creating or editing the lead. Note:
-                  image storage for leads needs a database field before uploads
-                  persist.
-                </p>
-              </div>
+              {lead.images && lead.images.length > 0 ? (
+                <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+                  {lead.images.map((src: string, idx: number) => (
+                    <a
+                      key={idx}
+                      href={src}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="group relative aspect-square overflow-hidden rounded-md border bg-muted"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={src}
+                        alt={`Lead image ${idx + 1}`}
+                        className="size-full object-cover transition-transform group-hover:scale-105"
+                      />
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed py-8 text-center">
+                  <ImageIcon className="text-muted-foreground/50 size-8" />
+                  <p className="text-muted-foreground text-sm">No images yet</p>
+                  <p className="text-muted-foreground/70 max-w-xs text-xs">
+                    Add reference photos when creating or editing the lead.
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 

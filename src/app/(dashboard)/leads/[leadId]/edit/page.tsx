@@ -78,6 +78,7 @@ export default async function EditLeadPage({ params }: EditLeadPageProps) {
             vegNonVeg: lead.vegNonVeg ?? null,
             perPlateBudget: lead.perPlateBudget ? Number(lead.perPlateBudget) : null,
             description: lead.description,
+            images: lead.images ?? [],
           }}
         />
       </div>

@@ -72,6 +72,7 @@ interface LeadData {
   vegNonVeg: string | null;
   perPlateBudget: number | null;
   description: string | null;
+  images?: string[] | null;
 }
 
 interface LeadFormProps {
@@ -96,6 +97,7 @@ export function LeadForm({ contacts, venues = [], users = [], lead }: LeadFormPr
   const searchParams = useSearchParams();
   const [isPending, setIsPending] = React.useState(false);
   const [contactOpen, setContactOpen] = React.useState(false);
+  const [images, setImages] = React.useState<string[]>(lead?.images ?? []);
 
   const isEditing = !!lead;
   const preselectedContactId = lead?.contactId ?? searchParams.get("contactId") ?? "";
@@ -123,9 +125,10 @@ export function LeadForm({ contacts, venues = [], users = [], lead }: LeadFormPr
   async function onSubmit(data: LeadInput) {
     setIsPending(true);
     try {
+      const payload = { ...data, images };
       const result = isEditing
-        ? await updateLead(lead.id, data)
-        : await createLead(data);
+        ? await updateLead(lead.id, payload)
+        : await createLead(payload);
       if (result.success) {
         toast.success(isEditing ? "Lead updated successfully" : "Lead created successfully");
         router.push(isEditing ? `/leads/${lead.id}` : "/leads");
@@ -589,7 +592,7 @@ export function LeadForm({ contacts, venues = [], users = [], lead }: LeadFormPr
             <CardTitle>Images</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
-            <LeadImagesField />
+            <LeadImagesField value={images} onChange={setImages} />
           </CardContent>
         </Card>
 

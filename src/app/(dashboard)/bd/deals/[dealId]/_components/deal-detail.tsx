@@ -37,7 +37,9 @@ import {
   approveAcqDeal,
   setAcqDealEconomicsFrozen,
   editAcqDealOverview,
+  updateAcqDealImages,
 } from "@/actions/acq-deal.actions";
+import { LeadImagesField } from "@/app/(dashboard)/leads/_components/lead-images-field";
 import { editAcqLead } from "@/actions/acq-lead.actions";
 import {
   convertDealToProject,
@@ -191,6 +193,7 @@ export interface AcqDealDetail {
   expectedSigningDate?: string | null;
   taFees?: Num;
   expectedCollectionDate?: string | null;
+  images: string[];
   evaluations: AcqEvaluationRow[];
   attachments: AcqAttachmentRow[];
   notes: AcqNoteRow[];
@@ -921,6 +924,9 @@ function OverviewTab({
           </dl>
         </div>
 
+        {/* Property photos captured on the deal (shown on the linked property) */}
+        <DealImagesSection deal={deal} userRole={userRole} onMutate={onMutate} />
+
         {/* Transparent change log */}
         <div className="space-y-2">
           <div className="text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
@@ -964,6 +970,80 @@ function OverviewTab({
         />
       )}
     </Card>
+  );
+}
+
+// Property photos captured on the deal (AcqDeal.images). Reuses the controlled
+// LeadImagesField for the picker; persists via updateAcqDealImages. These images
+// are displayed on the linked property's detail page.
+function DealImagesSection({
+  deal,
+  userRole,
+  onMutate,
+}: {
+  deal: AcqDealDetail;
+  userRole?: string;
+  onMutate: () => void;
+}) {
+  const canEdit = acqCan(userRole, "lead:write");
+  const [images, setImages] = useState<string[]>(deal.images ?? []);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    setImages(deal.images ?? []);
+  }, [deal.images]);
+
+  const dirty =
+    images.length !== (deal.images?.length ?? 0) ||
+    images.some((v, i) => v !== deal.images?.[i]);
+
+  async function save() {
+    setBusy(true);
+    try {
+      const res = await updateAcqDealImages(deal.id, images);
+      if (!res.success) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Property photos saved");
+      onMutate();
+    } catch {
+      toast.error("Couldn't save — please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="space-y-3 rounded-md border border-border/60 p-3.5">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+          <Camera className="size-3.5" /> Property photos
+        </div>
+        {canEdit && dirty && (
+          <Button size="sm" onClick={save} disabled={busy}>
+            {busy && <Loader2 className="size-3.5 animate-spin" />}
+            Save photos
+          </Button>
+        )}
+      </div>
+      {canEdit ? (
+        <div className="grid gap-4">
+          <LeadImagesField value={images} onChange={setImages} />
+        </div>
+      ) : images.length === 0 ? (
+        <p className="text-[12.5px] text-muted-foreground">No photos yet.</p>
+      ) : (
+        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+          {images.map((src, idx) => (
+            <div key={idx} className="aspect-square overflow-hidden rounded-md border bg-muted">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={src} alt={`Property photo ${idx + 1}`} className="size-full object-cover" />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

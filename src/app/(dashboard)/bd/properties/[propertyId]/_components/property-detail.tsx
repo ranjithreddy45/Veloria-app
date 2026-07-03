@@ -64,6 +64,7 @@ export interface AcqPropertyDetail {
     id: string;
     name: string;
     ownerName?: string | null;
+    images?: string[];
     attachments?: { id: string; url: string; label: string | null }[];
   } | null;
   onboardingProject?: {
@@ -416,15 +417,21 @@ export function PropertyDetail({ property, managers, userRole }: PropertyDetailP
   );
 }
 
-// Property images come from the originating deal's PHOTO attachments (there is
-// no image column on AcqProperty — see flagged schema gap). When a deal link
-// exists the "Manage photos" action deep-links to the deal's evaluation tab.
+// Property images are pulled from the originating deal: the deal's `images`
+// (base64 photos captured on the deal) plus any PHOTO attachments. There is no
+// image column on AcqProperty — the property mirrors what the deal holds. When a
+// deal link exists the "Manage photos" action deep-links to the deal.
 function PropertyPhotos({
   deal,
 }: {
   deal: AcqPropertyDetail["deal"];
 }) {
-  const photos = deal?.attachments ?? [];
+  const dealImages = (deal?.images ?? []).map((url, i) => ({
+    id: `img-${i}`,
+    url,
+    label: null as string | null,
+  }));
+  const photos = [...dealImages, ...(deal?.attachments ?? [])];
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">

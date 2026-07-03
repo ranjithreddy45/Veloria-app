@@ -1,18 +1,10 @@
 "use client";
 
 // ============================================================
-// LeadImagesField — image upload UI for the Lead create/edit form. Uses the
-// app-standard FileUpload (base64 data-URL) pattern and shows thumbnail
-// previews with remove buttons.
-//
-// PERSISTENCE FLAG: the Lead model currently has NO field/relation to store
-// image references (unlike ProjectPhoto / VendorPackageImage, which are their
-// own tables). Persisting these requires a schema change (e.g. a `Lead.images
-// String[]` @db.Text column or a `LeadImage` relation) + migration, which is
-// intentionally out of scope here. So this field is presentational: picked
-// images live in local component state and are NOT saved on submit. Once a
-// storage field exists, lift `value`/`onChange` into the parent form and wire
-// it into createLead/updateLead.
+// LeadImagesField — controlled image upload UI for the Lead create/edit form.
+// Uses the app-standard FileUpload (base64 data-URL) pattern and shows thumbnail
+// previews with remove buttons. Picked images are lifted into the parent form
+// (`value` / `onChange`) and persisted to `Lead.images` by createLead/updateLead.
 // ============================================================
 
 import * as React from "react";
@@ -22,9 +14,13 @@ import { toast } from "sonner";
 import { FileUpload } from "@/components/ui/file-upload";
 import { isSafeReceiptDataUrl } from "@/lib/sales/receipt";
 
-export function LeadImagesField() {
-  const [images, setImages] = React.useState<string[]>([]);
-
+export function LeadImagesField({
+  value,
+  onChange,
+}: {
+  value: string[];
+  onChange: (images: string[]) => void;
+}) {
   function handleUploaded(dataUrl: string) {
     // Reuse the app's data-URL safety check (image/PDF only). PDFs won't render
     // as a thumbnail but are harmless; we only accept image data-URLs here.
@@ -32,11 +28,11 @@ export function LeadImagesField() {
       toast.error("Only image files are supported.");
       return;
     }
-    setImages((prev) => [...prev, dataUrl]);
+    onChange([...value, dataUrl]);
   }
 
   function remove(idx: number) {
-    setImages((prev) => prev.filter((_, i) => i !== idx));
+    onChange(value.filter((_, i) => i !== idx));
   }
 
   return (
@@ -55,9 +51,9 @@ export function LeadImagesField() {
         />
       </div>
 
-      {images.length > 0 && (
+      {value.length > 0 && (
         <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
-          {images.map((src, idx) => (
+          {value.map((src, idx) => (
             <div
               key={idx}
               className="group relative aspect-square overflow-hidden rounded-md border bg-muted"
@@ -80,12 +76,6 @@ export function LeadImagesField() {
           ))}
         </div>
       )}
-
-      <p className="text-muted-foreground rounded-md border border-dashed px-3 py-2 text-[11.5px]">
-        Note: image storage for leads isn&apos;t wired to the database yet — a
-        schema field is needed to persist these. Uploads here are preview-only
-        until that field is added.
-      </p>
     </div>
   );
 }

@@ -531,6 +531,7 @@ model Lead {
   id               String     @id @default(cuid())
   title            String
   description      String?    @db.Text
+  images           String[] // uploaded reference photos (base64 data-URLs)
   status           LeadStatus @default(NEW)
   source           LeadSource @default(WEBSITE)
   score            Int        @default(0)
@@ -3763,6 +3764,10 @@ enum OwnershipStatus {
 model HallOwner {
   id                      String           @id @default(cuid())
   ownerName               String
+  // Hard links back to the BD deal/property that created this owner (set on
+  // deal-won auto-provision; nullable for owners created directly).
+  dealId                  String?
+  propertyId              String?
   companyName             String?
   email                   String?
   phone                   String?
@@ -3998,6 +4003,7 @@ model AcqSiteVisit {
 model AcqDeal {
   id     String       @id @default(cuid())
   name   String
+  images String[] // property photos captured on the deal, shown on the property
   leadId String       @unique
   lead   AcqLead      @relation("AcqDealOrigin", fields: [leadId], references: [id])
   stage  AcqDealStage @default(QUALIFIED)

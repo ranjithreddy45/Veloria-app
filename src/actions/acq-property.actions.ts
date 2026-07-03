@@ -66,6 +66,7 @@ export async function getAcqProperty(id: string): Promise<Result<unknown>> {
           id: true,
           name: true,
           ownerName: true,
+          images: true, // property photos captured on the deal (base64 data-URLs)
           attachments: {
             where: { kind: "PHOTO" },
             orderBy: { createdAt: "asc" },

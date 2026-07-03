@@ -6,6 +6,7 @@ import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { leadSchema, type LeadInput } from "@/schemas/lead.schema";
+import { isSafeReceiptDataUrl } from "@/lib/sales/receipt";
 import { calculateLeadScore } from "@/lib/lead-scoring";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
@@ -41,6 +42,17 @@ function nextBusinessDay(from: Date = new Date()): Date {
   else if (d.getDay() === 0) d.setDate(d.getDate() + 1);
   d.setHours(9, 0, 0, 0);
   return d;
+}
+
+// Keep only safe image data-URLs (base64 image/PDF). Anything else — a bare
+// string, an https link, a data:text/html payload — is dropped so a tampered
+// client can't write an unsafe value into Lead.images. Caps the count too.
+function sanitizeLeadImages(images: unknown): string[] {
+  if (!Array.isArray(images)) return [];
+  return images
+    .filter((v): v is string => typeof v === "string")
+    .filter((v) => isSafeReceiptDataUrl(v) && v.startsWith("data:image/"))
+    .slice(0, 24);
 }
 
 // Returns an error string if the id is not a real, active, assignable user; null if OK.
@@ -261,7 +273,7 @@ export async function getLead(id: string) {
 // Create Lead
 // ============================================================
 
-export async function createLead(data: LeadInput) {
+export async function createLead(data: LeadInput & { images?: string[] }) {
   try {
     const session = await auth();
     if (!session?.user) {
@@ -322,6 +334,7 @@ export async function createLead(data: LeadInput) {
         vegNonVeg: leadData.vegNonVeg || null,
         perPlateBudget: leadData.perPlateBudget || null,
         description: leadData.description || null,
+        images: sanitizeLeadImages(data.images),
         score,
         firstContactDue: leadSlaDeadline(),
         // Default next follow-up so the lead lands in the Follow-ups queue (S-11).
@@ -412,7 +425,7 @@ export async function createLead(data: LeadInput) {
 
 export async function updateLead(
   id: string,
-  data: Partial<LeadInput> & { assignedToId?: string | null; followUpDate?: Date | null; lostReason?: string | null }
+  data: Partial<LeadInput> & { assignedToId?: string | null; followUpDate?: Date | null; lostReason?: string | null; images?: string[] }
 ) {
   try {
     const session = await auth();
@@ -472,6 +485,8 @@ export async function updateLead(
       updateData.perPlateBudget = data.perPlateBudget || null;
     if (data.description !== undefined)
       updateData.description = data.description || null;
+    if (data.images !== undefined)
+      updateData.images = sanitizeLeadImages(data.images);
     if (data.assignedToId !== undefined) {
       if (data.assignedToId) {
         const bad = await assigneeInvalid(data.assignedToId);
