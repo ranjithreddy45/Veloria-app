@@ -51,6 +51,7 @@ import { toast } from "sonner";
 import { updateDeal, deleteDeal, moveDeal, getPipelineStages } from "@/actions/pipeline.actions";
 import type { DealItem } from "./pipeline-board";
 import { DealScoreCard } from "@/components/ai/deal-score-card";
+import { EntityActivityTimeline } from "@/components/shared/entity-activity-timeline";
 
 // ============================================================
 // Formatting
@@ -548,17 +549,17 @@ export function DealDetailSheet({
               )}
             </div>
 
-            {/* Activity Timeline Placeholder */}
+            {/* Activity Timeline */}
             <Separator />
             <div>
               <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-3">
                 Activity Timeline
               </h4>
-              <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-zinc-200 py-6">
-                <p className="text-xs text-zinc-400">
-                  Activity tracking coming soon
-                </p>
-              </div>
+              <EntityActivityTimeline
+                entityType="Deal"
+                entityId={deal.id}
+                enabled={open}
+              />
             </div>
 
             {/* Actions */}

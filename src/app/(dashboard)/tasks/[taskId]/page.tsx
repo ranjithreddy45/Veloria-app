@@ -28,6 +28,7 @@ import { TaskChecklist } from "./_components/task-checklist";
 import { TaskSubtasks } from "./_components/task-subtasks";
 import { TaskStatusSelect } from "./_components/task-status-select";
 import { TaskDeleteButton } from "./_components/task-delete-button";
+import { EntityActivityTimeline } from "@/components/shared/entity-activity-timeline";
 
 export const metadata: Metadata = { title: "Task Details" };
 
@@ -201,17 +202,13 @@ export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
             </CardContent>
           </Card>
 
-          {/* Activity Log (placeholder) */}
+          {/* Activity Log */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Activity</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-center py-8 text-zinc-400">
-                <p className="text-sm">
-                  Activity log coming soon...
-                </p>
-              </div>
+              <EntityActivityTimeline entityType="Task" entityId={task.id} />
             </CardContent>
           </Card>
         </div>

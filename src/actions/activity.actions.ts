@@ -109,6 +109,57 @@ export async function getActivityLogs(params?: {
 }
 
 // ============================================================
+// Get Activity for a Single Entity (read-only, for detail timelines)
+// ============================================================
+// Returns the newest-first activity log for one entity (e.g. a Task or a
+// Deal), with the actor resolved to a name. Any authenticated user may read
+// it — the app is a single-company ERP where staff-wide visibility is
+// by-design. Read-only; never mutates.
+
+export async function getEntityActivity(
+  entityType: string,
+  entityId: string,
+  limit = 30
+) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!entityType || !entityId) {
+      return { success: false as const, error: "Missing entity reference" };
+    }
+
+    const take = Math.min(100, Math.max(1, Math.floor(Number(limit) || 30)));
+
+    const logs = await prisma.activityLog.findMany({
+      where: { entityType, entityId },
+      include: {
+        user: {
+          select: { id: true, name: true, email: true, image: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take,
+    });
+
+    return serialize({
+      success: true as const,
+      data: { logs },
+    });
+  } catch (error) {
+    console.error("[GET_ENTITY_ACTIVITY_ERROR]", error);
+    return {
+      success: false as const,
+      code: "FETCH_FAILED" as const,
+      error:
+        "Couldn't load activity right now. This is usually temporary — please retry in a moment.",
+    };
+  }
+}
+
+// ============================================================
 // Get Team Users (for filter dropdown)
 // ============================================================
 

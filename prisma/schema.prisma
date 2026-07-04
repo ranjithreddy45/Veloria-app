@@ -3764,6 +3764,95 @@ enum OwnershipStatus {
 }
 
 // ============================================================
+// People P2 — Timesheets, OKRs, Engagement pulse surveys.
+// Plain userId refs (denormalized, no User back-relation) to stay additive.
+// ============================================================
+model Timesheet {
+  id           String            @id @default(cuid())
+  userId       String
+  weekStart    DateTime          @db.Date // Monday of the week
+  status       String            @default("DRAFT") // DRAFT | SUBMITTED | APPROVED | REJECTED
+  submittedAt  DateTime?
+  approvedById String?
+  approvedAt   DateTime?
+  note         String?           @db.Text
+  entries      TimesheetEntry[]
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@unique([userId, weekStart])
+  @@index([userId])
+  @@index([status])
+}
+
+model TimesheetEntry {
+  id          String    @id @default(cuid())
+  timesheetId String
+  timesheet   Timesheet @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
+  date        DateTime  @db.Date
+  hours       Decimal   @db.Decimal(5, 2)
+  project     String?
+  notes       String?
+
+  @@index([timesheetId])
+}
+
+model Objective {
+  id          String      @id @default(cuid())
+  ownerId     String // whose objective (userId)
+  title       String
+  description String?     @db.Text
+  period      String // e.g. 'Q3-2026' or 'YYYY-MM'
+  status      String      @default("ACTIVE") // ACTIVE | DONE | ARCHIVED
+  progress    Int         @default(0) // 0-100, derived from key results
+  keyResults  KeyResult[]
+  createdById String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([ownerId])
+  @@index([period])
+}
+
+model KeyResult {
+  id          String    @id @default(cuid())
+  objectiveId String
+  objective   Objective @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+  title       String
+  target      Decimal?  @db.Decimal(12, 2)
+  current     Decimal?  @db.Decimal(12, 2)
+  unit        String? // e.g. '₹', '%', 'bookings'
+  progress    Int       @default(0) // 0-100
+
+  @@index([objectiveId])
+}
+
+model PulseSurvey {
+  id          String          @id @default(cuid())
+  title       String
+  question    String          @db.Text
+  isActive    Boolean         @default(true)
+  createdById String?
+  responses   PulseResponse[]
+  createdAt   DateTime        @default(now())
+
+  @@index([isActive])
+}
+
+model PulseResponse {
+  id        String      @id @default(cuid())
+  surveyId  String
+  survey    PulseSurvey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  userId    String
+  score     Int // 1-5
+  comment   String?     @db.Text
+  createdAt DateTime    @default(now())
+
+  @@unique([surveyId, userId])
+  @@index([surveyId])
+}
+
+// ============================================================
 // Performance — 1:1 Coaching / check-in log (A-player operating rhythm).
 // The manager↔report conversation that turns KRA/Velos/dashboard numbers into
 // action: a win, the one focus area, an agreed next step, and a follow-up.
