@@ -16,12 +16,7 @@ import {
 import { PageHeader } from "@/components/layout/page-header";
 import { PageHelp } from "@/lib/page-help";
 import { formatINR } from "@/lib/utils";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { StatTile } from "@/components/ui/stat-tile";
 import { GenerateForecastButton } from "./_components/generate-forecast-button";
 import { ForecastDashboard } from "./_components/forecast-dashboard";
 
@@ -81,6 +76,8 @@ export default async function ForecastPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        aura
+        eyebrow="Analytics · Forecast"
         title="Revenue Forecast"
         help={<PageHelp id="forecast" />}
         description="AI-powered demand forecasting with predicted revenue, bookings, and venue demand heatmaps."
@@ -88,71 +85,44 @@ export default async function ForecastPage() {
         <GenerateForecastButton />
       </PageHeader>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Next Month Predicted Revenue
-            </CardTitle>
-            <TrendingUpIcon className="size-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {nextMonthForecast
-                ? formatINR(nextMonthForecast.predictedRevenue)
-                : "--"}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {nextMonthForecast
-                ? `For ${nextMonthForecast.month}`
-                : "No forecast generated yet"}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Next Month Predicted Bookings
-            </CardTitle>
-            <CalendarIcon className="size-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {nextMonthForecast
-                ? nextMonthForecast.predictedBookings
-                : "--"}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {nextMonthForecast
-                ? `For ${nextMonthForecast.month}`
-                : "No forecast generated yet"}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Average Confidence
-            </CardTitle>
-            <TargetIcon className="size-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {entries.length > 0
-                ? `${Math.round(avgConfidence * 100)}%`
-                : "--"}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Across {entries.length} forecast{entries.length !== 1 ? "s" : ""}
-              {" | "}
-              Total predicted: {formatINR(totalPredictedRevenue)},{" "}
-              {totalPredictedBookings} bookings
-            </p>
-          </CardContent>
-        </Card>
+      {/* KPI tiles */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <StatTile
+          label="Next Month Predicted Revenue"
+          value={
+            nextMonthForecast
+              ? formatINR(nextMonthForecast.predictedRevenue)
+              : "--"
+          }
+          accent="emerald"
+          icon={<TrendingUpIcon className="size-4" />}
+          sub={
+            nextMonthForecast
+              ? `For ${nextMonthForecast.month}`
+              : "No forecast generated yet"
+          }
+        />
+        <StatTile
+          label="Next Month Predicted Bookings"
+          value={nextMonthForecast ? nextMonthForecast.predictedBookings : "--"}
+          accent="blue"
+          icon={<CalendarIcon className="size-4" />}
+          sub={
+            nextMonthForecast
+              ? `For ${nextMonthForecast.month}`
+              : "No forecast generated yet"
+          }
+        />
+        <StatTile
+          label="Average Confidence"
+          value={
+            entries.length > 0 ? `${Math.round(avgConfidence * 100)}%` : "--"
+          }
+          accent="violet"
+          icon={<TargetIcon className="size-4" />}
+          pct={entries.length > 0 ? Math.round(avgConfidence * 100) : undefined}
+          sub={`Across ${entries.length} forecast${entries.length !== 1 ? "s" : ""} · Total predicted: ${formatINR(totalPredictedRevenue)}, ${totalPredictedBookings} bookings`}
+        />
       </div>
 
       {/* Forecast Dashboard with Tabs */}

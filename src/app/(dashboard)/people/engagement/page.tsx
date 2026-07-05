@@ -23,7 +23,8 @@ export default async function Page() {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="People"
+        aura
+        eyebrow="People · HR"
         title="Engagement"
         description="Anonymous pulse surveys — a fast read on how the team is feeling."
       />

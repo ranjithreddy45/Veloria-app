@@ -39,34 +39,34 @@ export function DealsWorkspace({ deals }: { deals: AcqDealCard[] }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        {/* View toggle */}
-        <div className="flex items-center gap-1 rounded-lg border bg-muted/50 p-1 w-fit">
-          <button
-            type="button"
-            onClick={() => setView("list")}
-            className={cn(
-              "flex items-center gap-2 rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors",
-              view === "list"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <ListIcon className="size-4" />
-            List
-          </button>
-          <button
-            type="button"
-            onClick={() => setView("board")}
-            className={cn(
-              "flex items-center gap-2 rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors",
-              view === "board"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <LayoutGrid className="size-4" />
-            Board
-          </button>
+        {/* View toggle — segmented control */}
+        <div
+          role="group"
+          aria-label="Deal view"
+          className="inline-flex w-fit shrink-0 items-center gap-0.5 rounded-xl border border-border/70 bg-muted/60 p-1"
+        >
+          {(
+            [
+              { key: "list", label: "List", Icon: ListIcon },
+              { key: "board", label: "Board", Icon: LayoutGrid },
+            ] as const
+          ).map(({ key, label, Icon }) => (
+            <button
+              key={key}
+              type="button"
+              aria-pressed={view === key}
+              onClick={() => setView(key)}
+              className={cn(
+                "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium tracking-[-0.01em] transition-all",
+                view === key
+                  ? "bg-background text-foreground shadow-sm ring-1 ring-border/70"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Icon className="size-3.5" />
+              {label}
+            </button>
+          ))}
         </div>
 
         {/* Search */}

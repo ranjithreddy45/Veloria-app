@@ -16,8 +16,9 @@ export default async function FinanceEInvoicePage() {
   const rows = await getEInvoiceRows();
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       <PageHeader
+        aura
         eyebrow="Finance · E-Invoicing"
         title="GST E-Invoicing"
         description="Generate IRP-style Invoice Reference Numbers (IRN) and signed-QR for your issued invoices, then reconcile input credit against GSTR-2B."

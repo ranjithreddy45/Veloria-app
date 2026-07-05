@@ -38,8 +38,9 @@ export default async function Page() {
   return (
     <div className="space-y-5">
       <PageHeader
+        aura
         title="Timesheets"
-        eyebrow="People"
+        eyebrow="People · HR"
         description="Log your weekly hours against projects, then submit for approval."
       />
       <TimesheetGrid initial={initial} initialApprovals={initialApprovals} canApprove={canApprove} />

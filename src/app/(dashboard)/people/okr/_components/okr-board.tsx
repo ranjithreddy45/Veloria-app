@@ -3,14 +3,15 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Loader2, Target, Trash2, CheckCircle2, Archive, RotateCcw } from "lucide-react";
+import { Plus, Loader2, Target, Trash2, CheckCircle2, Archive, RotateCcw, TrendingUp, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { Card, CardContent } from "@/components/ui/card";
+import { StatTile } from "@/components/ui/stat-tile";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
@@ -23,11 +24,35 @@ import {
   type ObjectiveDTO, type KeyResultDTO,
 } from "@/actions/okr.actions";
 
-const STATUS_META: Record<string, { label: string; variant: "success" | "warning" | "outline" }> = {
-  ACTIVE: { label: "Active", variant: "warning" },
-  DONE: { label: "Done", variant: "success" },
-  ARCHIVED: { label: "Archived", variant: "outline" },
+const STATUS_META: Record<string, { label: string; variant: "success" | "warning" | "outline"; bar: string; fill: string }> = {
+  ACTIVE: {
+    label: "Active", variant: "warning",
+    bar: "bg-gradient-to-b from-indigo-500 to-violet-500",
+    fill: "bg-gradient-to-r from-indigo-500 to-violet-500",
+  },
+  DONE: {
+    label: "Done", variant: "success",
+    bar: "bg-gradient-to-b from-emerald-500 to-teal-500",
+    fill: "bg-gradient-to-r from-emerald-500 to-teal-500",
+  },
+  ARCHIVED: {
+    label: "Archived", variant: "outline",
+    bar: "bg-muted-foreground/30",
+    fill: "bg-muted-foreground/40",
+  },
 };
+
+/** Slim progress bar with a gradient fill. */
+function GradientProgress({ value, fill, className }: { value: number; fill: string; className?: string }) {
+  return (
+    <div className={cn("h-2 overflow-hidden rounded-full bg-muted", className)}>
+      <div
+        className={cn("h-full rounded-full transition-all duration-500", fill)}
+        style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
+      />
+    </div>
+  );
+}
 
 export function OkrBoard({
   objectives,
@@ -48,6 +73,13 @@ export function OkrBoard({
 }) {
   const router = useRouter();
   const [pending, startTransition] = React.useTransition();
+
+  const active = objectives.filter((o) => o.status === "ACTIVE");
+  const done = objectives.filter((o) => o.status === "DONE");
+  const scored = objectives.filter((o) => o.status !== "ARCHIVED");
+  const avgProgress = scored.length > 0
+    ? Math.round(scored.reduce((s, o) => s + o.progress, 0) / scored.length)
+    : 0;
 
   function switchOwner(id: string) {
     const params = new URLSearchParams();
@@ -84,6 +116,33 @@ export function OkrBoard({
         </div>
         {!viewingOther && <NewObjectiveDialog onDone={() => router.refresh()} />}
       </div>
+
+      {objectives.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <StatTile
+            label="Active objectives"
+            value={active.length}
+            accent="indigo"
+            icon={<Target className="size-4" />}
+            sub={`${objectives.length} total`}
+          />
+          <StatTile
+            label="Avg progress"
+            value={`${avgProgress}%`}
+            accent="violet"
+            icon={<TrendingUp className="size-4" />}
+            pct={avgProgress}
+          />
+          <StatTile
+            label="Done"
+            value={done.length}
+            accent="emerald"
+            icon={<Trophy className="size-4" />}
+            sub="objectives completed"
+            className="col-span-2 sm:col-span-1"
+          />
+        </div>
+      )}
 
       {objectives.length === 0 ? (
         <div className="rounded-xl border border-dashed p-12 text-center">
@@ -136,8 +195,9 @@ function ObjectiveCard({
   }
 
   return (
-    <Card>
-      <CardHeader className="gap-3">
+    <Card className="relative gap-0 overflow-hidden py-0">
+      <span aria-hidden className={cn("absolute inset-y-0 left-0 w-1", meta.bar)} />
+      <CardContent className="space-y-4 px-5 py-5 pl-6">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 space-y-1">
             <div className="flex flex-wrap items-center gap-2">
@@ -172,11 +232,9 @@ function ObjectiveCard({
             <span className="font-medium text-muted-foreground">Overall progress</span>
             <span className="font-semibold tabular-nums text-foreground">{objective.progress}%</span>
           </div>
-          <Progress value={objective.progress} />
+          <GradientProgress value={objective.progress} fill={meta.fill} />
         </div>
-      </CardHeader>
 
-      <CardContent className="space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             Key results ({objective.keyResults.length})
@@ -264,7 +322,11 @@ function KeyResultRow({
       </div>
 
       <div className="mt-2">
-        <Progress value={kr.progress} />
+        <GradientProgress
+          value={kr.progress}
+          fill={kr.progress >= 100 ? "bg-gradient-to-r from-emerald-500 to-teal-500" : "bg-gradient-to-r from-violet-500 to-fuchsia-500"}
+          className="h-1.5"
+        />
       </div>
 
       <div className="mt-2.5 flex flex-wrap items-center gap-2 text-[12px]">

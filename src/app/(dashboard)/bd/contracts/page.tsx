@@ -28,8 +28,10 @@ export default async function BdContractsPage() {
   const userRole = (session?.user as { role?: string } | undefined)?.role;
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       <PageHeader
+        aura
+        eyebrow="Business Development · Acquisition"
         title="Acquisition Contracts"
         description="Authoring → Approval → Negotiation → Execution → Post-Execution. Track value, signings and gain/loss."
       />

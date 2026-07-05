@@ -21,8 +21,9 @@ export default async function FinanceRevenuePage() {
   ]);
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       <PageHeader
+        aura
         eyebrow="Finance · Revenue Automation"
         title="Revenue Automation"
         description="Turn confirmed contracts into invoices and track vendor payout statements — all read-derived, nothing posts to the ledger."

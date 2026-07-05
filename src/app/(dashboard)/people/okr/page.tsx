@@ -36,7 +36,8 @@ export default async function Page({
   return (
     <div className="space-y-5">
       <PageHeader
-        eyebrow="People"
+        aura
+        eyebrow="People · HR"
         title="OKR"
         description="Objectives with measurable key results. Progress rolls up automatically from each key result."
       />

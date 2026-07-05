@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { MessagesSquare, Plus, Trophy, Target, CircleCheck, CalendarClock, Loader2, Star } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -77,11 +77,12 @@ export function CoachingPanel({ userId, notes, canCoach }: { userId: string; not
   }
 
   return (
-    <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="flex items-center gap-2 text-base">
+    <Card className="gap-0 py-0">
+      <CardContent className="space-y-3 px-5 py-5">
+        <div className="flex flex-row items-center justify-between">
+        <h2 className="flex items-center gap-2 text-[13px] font-semibold tracking-[-0.01em] text-foreground">
           <MessagesSquare className="size-4 text-muted-foreground" /> Coaching & 1:1s
-        </CardTitle>
+        </h2>
         {canCoach && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
@@ -132,8 +133,7 @@ export function CoachingPanel({ userId, notes, canCoach }: { userId: string; not
             </DialogContent>
           </Dialog>
         )}
-      </CardHeader>
-      <CardContent>
+        </div>
         {notes.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">
             No check-ins yet.{canCoach ? " Log the first 1:1 to start the coaching rhythm." : ""}
@@ -149,20 +149,32 @@ export function CoachingPanel({ userId, notes, canCoach }: { userId: string; not
                     <Badge variant="secondary" className="text-[10px]">{n.period}</Badge>
                   </span>
                 </div>
-                <div className="space-y-1 text-[13px]">
-                  {n.win && <p><Trophy className="mr-1 inline size-3.5 text-amber-500" />{n.win}</p>}
-                  {n.focus && <p><Target className="mr-1 inline size-3.5 text-indigo-500" />{n.focus}</p>}
+                <div className="space-y-1.5 text-[13px]">
+                  {n.win && (
+                    <p className="border-l-2 border-amber-400/80 pl-2.5">
+                      <Trophy className="mr-1 inline size-3.5 text-amber-500" />{n.win}
+                    </p>
+                  )}
+                  {n.focus && (
+                    <p className="border-l-2 border-indigo-400/80 pl-2.5">
+                      <Target className="mr-1 inline size-3.5 text-indigo-500" />{n.focus}
+                    </p>
+                  )}
                   {n.actionItem && (
-                    <p className="flex items-start justify-between gap-2">
+                    <p className="flex items-start justify-between gap-2 border-l-2 border-emerald-400/80 pl-2.5">
                       <span><CircleCheck className="mr-1 inline size-3.5 text-emerald-500" />{n.actionItem}</span>
                       {canCoach && n.status === "OPEN" && (
                         <Button variant="ghost" size="sm" className="h-6 shrink-0 px-2 text-[11px]" onClick={() => markDone(n.id)}>Mark done</Button>
                       )}
-                      {n.status === "DONE" && <Badge className="shrink-0 bg-emerald-500 text-[10px]">Done</Badge>}
+                      {n.status === "DONE" && (
+                        <Badge className="shrink-0 border-transparent bg-emerald-100 text-[10px] text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">Done</Badge>
+                      )}
                     </p>
                   )}
                   {n.followUpAt && (
-                    <p className="text-[12px] text-muted-foreground"><CalendarClock className="mr-1 inline size-3.5" />Follow up {fmt(n.followUpAt)}</p>
+                    <p className="border-l-2 border-border pl-2.5 text-[12px] text-muted-foreground">
+                      <CalendarClock className="mr-1 inline size-3.5" />Follow up {fmt(n.followUpAt)}
+                    </p>
                   )}
                 </div>
               </li>

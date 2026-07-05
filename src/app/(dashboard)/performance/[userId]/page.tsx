@@ -19,12 +19,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { StatTile } from "@/components/ui/stat-tile";
 import {
   Table,
   TableBody,
@@ -75,6 +71,8 @@ export default async function IndividualPerformancePage({
   return (
     <div className="space-y-6">
       <PageHeader
+        aura
+        eyebrow="Performance · Coaching"
         title="Individual Performance"
         description={
           latestScore
@@ -90,71 +88,50 @@ export default async function IndividualPerformancePage({
         </Button>
       </PageHeader>
 
-      {/* KPI Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Overall Score
-            </CardTitle>
-            <TargetIcon className="size-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{overallScore.toFixed(1)}%</p>
-            <Progress value={overallScore} className="mt-2 h-2" />
-          </CardContent>
-        </Card>
-
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              On-Time Rate
-            </CardTitle>
-            <ClockIcon className="size-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{onTimeRate.toFixed(1)}%</p>
-            <Progress value={onTimeRate} className="mt-2 h-2" />
-          </CardContent>
-        </Card>
-
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Quality Score
-            </CardTitle>
-            <StarIcon className="size-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{qualityScore.toFixed(1)}%</p>
-            <Progress value={qualityScore} className="mt-2 h-2" />
-          </CardContent>
-        </Card>
-
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Tasks Completed
-            </CardTitle>
-            <CheckCircleIcon className="size-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{totalCompleted}</p>
-          </CardContent>
-        </Card>
+      {/* KPI tiles */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatTile
+          label="Overall Score"
+          value={`${overallScore.toFixed(1)}%`}
+          accent="indigo"
+          icon={<TargetIcon className="size-4" />}
+          pct={overallScore}
+        />
+        <StatTile
+          label="On-Time Rate"
+          value={`${onTimeRate.toFixed(1)}%`}
+          accent="blue"
+          icon={<ClockIcon className="size-4" />}
+          pct={onTimeRate}
+        />
+        <StatTile
+          label="Quality Score"
+          value={`${qualityScore.toFixed(1)}%`}
+          accent="violet"
+          icon={<StarIcon className="size-4" />}
+          pct={qualityScore}
+        />
+        <StatTile
+          label="Tasks Completed"
+          value={totalCompleted}
+          accent="emerald"
+          icon={<CheckCircleIcon className="size-4" />}
+          sub={latestScore ? `period ${latestScore.period}` : undefined}
+        />
       </div>
 
       {/* Score History */}
-      <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
-        <CardHeader>
-          <CardTitle>Score History (Last 12 Months)</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
+      <Card className="gap-0 py-0">
+        <CardContent className="space-y-3 px-5 py-5">
+          <h2 className="text-[13px] font-semibold tracking-[-0.01em] text-foreground">
+            Score history (last 12 months)
+          </h2>
           {scores.length === 0 ? (
             <div className="py-8 text-center text-muted-foreground">
               No score history available.
             </div>
           ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -202,6 +179,7 @@ export default async function IndividualPerformancePage({
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -211,13 +189,15 @@ export default async function IndividualPerformancePage({
 
       {/* Badges Section */}
       <div>
-        <div className="flex items-center gap-2 mb-4">
-          <AwardIcon className="size-5 text-muted-foreground" />
-          <h2 className="text-lg font-semibold">Badges Earned</h2>
+        <div className="mb-4 flex items-center gap-2">
+          <span className="flex size-7 items-center justify-center rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-950/50 dark:text-amber-300">
+            <AwardIcon className="size-4" />
+          </span>
+          <h2 className="text-[15px] font-semibold tracking-[-0.01em]">Badges Earned</h2>
         </div>
         {badges.length === 0 ? (
-          <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
-            <CardContent className="py-8 text-center text-muted-foreground">
+          <Card className="gap-0 py-0">
+            <CardContent className="px-5 py-8 text-center text-muted-foreground">
               No badges earned yet.
             </CardContent>
           </Card>
@@ -225,11 +205,8 @@ export default async function IndividualPerformancePage({
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             {badges.map((badge: any) => (
-              <Card
-                key={badge.id}
-                className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm"
-              >
-                <CardContent className="pt-6">
+              <Card key={badge.id} className="gap-0 py-0">
+                <CardContent className="px-5 py-5">
                   <div className="flex items-start gap-3">
                     <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
                       <AwardIcon className="size-5 text-amber-600 dark:text-amber-400" />
@@ -265,13 +242,15 @@ export default async function IndividualPerformancePage({
 
       {/* Incentives Section */}
       <div>
-        <div className="flex items-center gap-2 mb-4">
-          <GiftIcon className="size-5 text-muted-foreground" />
-          <h2 className="text-lg font-semibold">Incentives</h2>
+        <div className="mb-4 flex items-center gap-2">
+          <span className="flex size-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-300">
+            <GiftIcon className="size-4" />
+          </span>
+          <h2 className="text-[15px] font-semibold tracking-[-0.01em]">Incentives</h2>
         </div>
         {incentives.length === 0 ? (
-          <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
-            <CardContent className="py-8 text-center text-muted-foreground">
+          <Card className="gap-0 py-0">
+            <CardContent className="px-5 py-8 text-center text-muted-foreground">
               No incentives assigned yet.
             </CardContent>
           </Card>
@@ -279,11 +258,8 @@ export default async function IndividualPerformancePage({
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             {incentives.map((incentive: any) => (
-              <Card
-                key={incentive.id}
-                className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm"
-              >
-                <CardContent className="pt-6">
+              <Card key={incentive.id} className="gap-0 py-0">
+                <CardContent className="px-5 py-5">
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="font-medium">{incentive.title}</p>

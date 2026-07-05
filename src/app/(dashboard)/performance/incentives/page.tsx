@@ -3,9 +3,10 @@ import Link from "next/link";
 import {
   GiftIcon,
   ArrowLeftIcon,
-  PlusIcon,
   UserIcon,
   BuildingIcon,
+  HourglassIcon,
+  BadgeCheckIcon,
 } from "lucide-react";
 
 import { getIncentives } from "@/actions/performance-score.actions";
@@ -15,12 +16,8 @@ import { AutoIncentivePanel } from "./_components/auto-incentive-panel";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { StatTile } from "@/components/ui/stat-tile";
 
 import { AwardIncentiveButton } from "./_components/award-incentive-button";
 
@@ -49,6 +46,8 @@ export default async function IncentivesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        aura
+        eyebrow="Performance · Rewards"
         title="Incentives"
         description="Manage performance incentives and rewards for staff and vendors."
       >
@@ -63,47 +62,35 @@ export default async function IncentivesPage() {
       {canManage && <AutoIncentivePanel />}
 
       {/* Summary */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Incentives
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{incentives.length}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Pending
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-amber-600">
-              {pending.length}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Awarded
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-emerald-600">
-              {awarded.length}
-            </p>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <StatTile
+          label="Total incentives"
+          value={incentives.length}
+          accent="indigo"
+          icon={<GiftIcon className="size-4" />}
+          sub="staff and vendors"
+        />
+        <StatTile
+          label="Pending"
+          value={pending.length}
+          accent="amber"
+          icon={<HourglassIcon className="size-4" />}
+          sub="awaiting award"
+        />
+        <StatTile
+          label="Awarded"
+          value={awarded.length}
+          accent="emerald"
+          icon={<BadgeCheckIcon className="size-4" />}
+          sub="paid out"
+          className="col-span-2 sm:col-span-1"
+        />
       </div>
 
       {/* Incentive Cards */}
       {incentives.length === 0 ? (
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
-          <CardContent className="flex flex-col items-center justify-center py-16">
+        <Card className="gap-0 py-0">
+          <CardContent className="flex flex-col items-center justify-center px-5 py-16">
             <GiftIcon className="mb-4 size-12 text-muted-foreground/40" />
             <p className="text-lg font-medium text-muted-foreground">
               No incentives found
@@ -124,11 +111,8 @@ export default async function IncentivesPage() {
             const isVendor = !!vendor;
 
             return (
-              <Card
-                key={incentive.id}
-                className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm"
-              >
-                <CardContent className="pt-6">
+              <Card key={incentive.id} className="gap-0 py-0">
+                <CardContent className="px-5 py-5">
                   <div className="flex items-start justify-between">
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold truncate">
@@ -145,7 +129,11 @@ export default async function IncentivesPage() {
                     </div>
                     <Badge
                       variant={incentive.isAwarded ? "default" : "outline"}
-                      className="shrink-0"
+                      className={
+                        incentive.isAwarded
+                          ? "shrink-0 border-transparent bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"
+                          : "shrink-0 border-amber-300/60 text-amber-700 dark:text-amber-300"
+                      }
                     >
                       {incentive.isAwarded ? "Awarded" : "Pending"}
                     </Badge>

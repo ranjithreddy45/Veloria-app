@@ -3,8 +3,8 @@ import { CallsTable } from "./_components/calls-table";
 import { CallStatsCards } from "./_components/call-stats-cards";
 import { CallAnalyticsCharts } from "./_components/call-analytics-charts-lazy";
 import { CallDispositionDialog } from "./_components/call-disposition-dialog";
+import { PageHeader } from "@/components/layout/page-header";
 import { PageHelp } from "@/lib/page-help";
-import { Phone } from "lucide-react";
 
 export const metadata = {
   title: "Call Log",
@@ -44,20 +44,24 @@ export default async function CallsPage({
   const analytics = analyticsResult.success ? analyticsResult.data : null;
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Phone className="h-6 w-6 text-primary" />
-            Call Log
-            <PageHelp id="call-log" />
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Track and manage all call activities
-          </p>
-        </div>
+    <div className="space-y-6">
+      <PageHeader
+        aura
+        eyebrow={
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>Engagement · CRM</span>
+            <span className="h-3 w-px bg-border" />
+            <span className="text-foreground/80">
+              <span className="font-semibold tabular-nums">{total}</span> call{total === 1 ? "" : "s"} logged
+            </span>
+          </div>
+        }
+        title="Call Log"
+        help={<PageHelp id="call-log" />}
+        description="Track and manage all call activities."
+      >
         <CallDispositionDialog />
-      </div>
+      </PageHeader>
 
       {analytics && <CallStatsCards analytics={analytics} />}
 

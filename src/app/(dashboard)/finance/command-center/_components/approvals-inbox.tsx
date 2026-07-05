@@ -21,7 +21,7 @@ export function ApprovalsInbox({ approvals, count }: ApprovalsInboxProps) {
   return (
     <Card className="shadow-card">
       <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
-        <CardTitle className="flex items-center gap-2 text-base">
+        <CardTitle className="flex items-center gap-2 text-[13px] font-semibold tracking-[-0.01em]">
           <span className="flex size-7 items-center justify-center rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-950/50 dark:text-amber-300">
             <Inbox className="size-4" />
           </span>

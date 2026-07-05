@@ -56,6 +56,16 @@ export default async function FeedbackPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        aura
+        eyebrow={
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>Engagement · Reviews</span>
+            <span className="h-3 w-px bg-border" />
+            <span className="text-foreground/80">
+              <span className="font-semibold tabular-nums">{stats.total}</span> review request{stats.total === 1 ? "" : "s"}
+            </span>
+          </div>
+        }
         title="Feedback"
         description="Track the review-request funnel and resolve private feedback before it becomes a public problem."
       />

@@ -9,6 +9,7 @@ import {
   MessageSquare,
   Star,
   Send,
+  Hourglass,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ import {
   Card,
   CardContent,
 } from "@/components/ui/card";
+import { StatTile } from "@/components/ui/stat-tile";
 import {
   Dialog,
   DialogContent,
@@ -151,41 +153,31 @@ export function ReviewsModerationList({
   return (
     <div className="space-y-6">
       {/* Rating Summary */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-        <Card>
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex size-12 items-center justify-center rounded-full bg-yellow-50">
-              <Star className="size-6 text-yellow-500 fill-yellow-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">
-                {stats.average || "--"}
-              </p>
-              <p className="text-xs text-muted-foreground">Average Rating</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-4 p-5">
-            <div>
-              <p className="text-2xl font-bold text-foreground">{stats.total}</p>
-              <p className="text-xs text-muted-foreground">Total Reviews</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-4 p-5">
-            <div>
-              <p className="text-2xl font-bold text-amber-600">
-                {pendingReviews.length}
-              </p>
-              <p className="text-xs text-muted-foreground">Pending Moderation</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-5">
-            <p className="mb-2 text-xs font-medium text-muted-foreground">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatTile
+          label="Average Rating"
+          value={stats.average ? stats.average.toFixed(1) : "—"}
+          accent="amber"
+          icon={<Star className="size-4" />}
+          sub="out of 5 stars"
+        />
+        <StatTile
+          label="Total Reviews"
+          value={stats.total}
+          accent="indigo"
+          icon={<MessageSquare className="size-4" />}
+          sub="all time"
+        />
+        <StatTile
+          label="Pending Moderation"
+          value={pendingReviews.length}
+          accent="violet"
+          icon={<Hourglass className="size-4" />}
+          sub="awaiting review"
+        />
+        <Card className="gap-0 py-0">
+          <CardContent className="px-5 py-5">
+            <p className="mb-2 text-[13px] font-semibold tracking-[-0.01em] text-foreground">
               Rating Distribution
             </p>
             <div className="space-y-1">
@@ -195,17 +187,17 @@ export function ReviewsModerationList({
                 return (
                   <div key={star} className="flex items-center gap-2 text-xs">
                     <span
-                      className={`w-4 text-right font-medium ${REVIEW_RATING_COLORS[star] ?? ""}`}
+                      className={`w-4 text-right font-medium tabular-nums ${REVIEW_RATING_COLORS[star] ?? ""}`}
                     >
                       {star}
                     </span>
                     <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
                       <div
-                        className="h-full rounded-full bg-yellow-400 transition-all"
+                        className="h-full rounded-full bg-gradient-to-r from-amber-400 to-yellow-300 transition-all"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
-                    <span className="w-6 text-right text-muted-foreground/70">
+                    <span className="w-6 text-right tabular-nums text-muted-foreground/70">
                       {count}
                     </span>
                   </div>
@@ -253,9 +245,9 @@ export function ReviewsModerationList({
 
         <TabsContent value="pending" className="mt-4 space-y-4">
           {pendingReviews.length === 0 ? (
-            <Card className="">
-              <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                <CheckCircle2 className="size-10 text-green-400" />
+            <Card className="gap-0 py-0">
+              <CardContent className="flex flex-col items-center justify-center px-5 py-12 text-center">
+                <CheckCircle2 className="size-10 text-emerald-400" />
                 <h3 className="mt-3 text-sm font-semibold text-foreground">
                   All caught up
                 </h3>
@@ -367,8 +359,8 @@ export function ReviewsModerationList({
 
         <TabsContent value="approved" className="mt-4 space-y-4">
           {approvedReviews.length === 0 ? (
-            <Card className="">
-              <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+            <Card className="gap-0 py-0">
+              <CardContent className="flex flex-col items-center justify-center px-5 py-12 text-center">
                 <Star className="size-10 text-muted-foreground/40" />
                 <h3 className="mt-3 text-sm font-semibold text-foreground">
                   No approved reviews

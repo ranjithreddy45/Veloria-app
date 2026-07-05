@@ -73,7 +73,7 @@ export function TaxWorkspace({ summary, fiscalYears }: { summary: TaxSummary; fi
         {/* GSTR-3B — net GST summary */}
         <TabsContent value="gstr3b">
           <Card className="border-0 shadow-card">
-            <CardHeader className="pb-2"><CardTitle className="text-sm">GSTR-3B summary · FY {fy}</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-[13px] font-semibold tracking-[-0.01em]">GSTR-3B summary · FY {fy}</CardTitle></CardHeader>
             <CardContent className="px-0">
               <Table>
                 <TableHeader>
@@ -92,7 +92,7 @@ export function TaxWorkspace({ summary, fiscalYears }: { summary: TaxSummary; fi
         {/* GSTR-1 — invoice-wise outward supplies */}
         <TabsContent value="gstr1">
           <Card className="border-0 shadow-card">
-            <CardHeader className="pb-2"><CardTitle className="text-sm">Outward supplies (B2B/B2C) · FY {fy}</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-[13px] font-semibold tracking-[-0.01em]">Outward supplies (B2B/B2C) · FY {fy}</CardTitle></CardHeader>
             <CardContent className="px-0">
               {gstr1.invoices.length === 0 ? (
                 <EmptyState icon={<FileText className="size-5" />} title="No outward supplies" description="No SENT or PAID invoices in this financial year. GSTR-1 is built from issued invoices." />
@@ -148,7 +148,7 @@ export function TaxWorkspace({ summary, fiscalYears }: { summary: TaxSummary; fi
         {/* TDS — payable / receivable */}
         <TabsContent value="tds">
           <Card className="border-0 shadow-card">
-            <CardHeader className="pb-2"><CardTitle className="text-sm">TDS position · FY {fy}</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-[13px] font-semibold tracking-[-0.01em]">TDS position · FY {fy}</CardTitle></CardHeader>
             <CardContent className="px-0">
               {tds.payable === 0 && tds.receivable === 0 ? (
                 <EmptyState icon={<Landmark className="size-5" />} title="No TDS activity" description="No TDS has been deducted or accrued in this financial year." />

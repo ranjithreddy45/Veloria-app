@@ -196,15 +196,15 @@ function CompetitorCard({
   onEdit: (competitor: CompetitorData) => void;
 }) {
   return (
-    <Card className="relative">
-      <CardHeader className="pb-3">
+    <Card className="relative gap-0 py-0">
+      <CardHeader className="px-5 pb-3 pt-5">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
-            <CardTitle className="text-base font-semibold">
+            <CardTitle className="text-sm font-semibold tracking-[-0.01em]">
               {competitor.name}
             </CardTitle>
             {competitor.location && (
-              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1 text-[12.5px] text-muted-foreground">
                 <MapPinIcon className="size-3.5" />
                 {competitor.location}
               </div>
@@ -213,7 +213,7 @@ function CompetitorCard({
           <ActionsCell competitor={competitor} onEdit={onEdit} />
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 px-5 pb-5">
         {/* Rating */}
         <RatingStars rating={competitor.rating} />
 
@@ -254,21 +254,21 @@ function CompetitorCard({
         {/* Strengths & Weaknesses */}
         <div className="grid gap-3">
           {competitor.strengths && (
-            <div className="rounded-md border border-green-200 bg-green-50 p-3 dark:border-green-900 dark:bg-green-950/30">
-              <p className="text-xs font-semibold text-green-700 dark:text-green-400 mb-1">
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900 dark:bg-emerald-950/30">
+              <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 mb-1">
                 Strengths
               </p>
-              <p className="text-sm text-green-800 dark:text-green-300 whitespace-pre-line">
+              <p className="text-sm text-emerald-800 dark:text-emerald-300 whitespace-pre-line">
                 {competitor.strengths}
               </p>
             </div>
           )}
           {competitor.weaknesses && (
-            <div className="rounded-md border border-red-200 bg-red-50 p-3 dark:border-red-900 dark:bg-red-950/30">
-              <p className="text-xs font-semibold text-red-700 dark:text-red-400 mb-1">
+            <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 dark:border-rose-900 dark:bg-rose-950/30">
+              <p className="text-xs font-semibold text-rose-700 dark:text-rose-400 mb-1">
                 Weaknesses
               </p>
-              <p className="text-sm text-red-800 dark:text-red-300 whitespace-pre-line">
+              <p className="text-sm text-rose-800 dark:text-rose-300 whitespace-pre-line">
                 {competitor.weaknesses}
               </p>
             </div>
@@ -403,7 +403,7 @@ export function CompetitorList({ data }: CompetitorListProps) {
 
       {/* Table View */}
       {view === "table" && filtered.length > 0 && (
-        <Card>
+        <Card className="gap-0 overflow-hidden py-0">
           <Table>
             <TableHeader>
               <TableRow>

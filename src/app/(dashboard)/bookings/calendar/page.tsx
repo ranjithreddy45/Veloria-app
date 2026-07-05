@@ -41,6 +41,16 @@ export default async function CalendarPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        aura
+        eyebrow={
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>Bookings · Operations</span>
+            <span className="h-3 w-px bg-border" />
+            <span className="text-foreground/80">
+              <span className="font-semibold tabular-nums">{bookings.length}</span> booking{bookings.length === 1 ? "" : "s"} this month
+            </span>
+          </div>
+        }
         title="Booking Calendar"
         help={<PageHelp id="bookings-calendar" />}
         description="View and manage bookings in calendar format."

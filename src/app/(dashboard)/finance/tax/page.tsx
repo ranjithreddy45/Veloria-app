@@ -19,8 +19,9 @@ export default async function FinanceTaxPage({ searchParams }: { searchParams: P
   const summary = await getTaxSummary(fy);
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       <PageHeader
+        aura
         eyebrow="Finance · Tax & Compliance"
         title="GST & TDS"
         description="GSTR-3B, GSTR-1 outward supplies and TDS — derived live from the posted ledger. No figures are posted here."

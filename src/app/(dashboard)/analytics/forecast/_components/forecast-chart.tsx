@@ -1,13 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { formatINR } from "@/lib/utils";
 import { FORECAST_CONFIDENCE_COLORS } from "@/lib/constants";
 
@@ -71,27 +65,31 @@ export function ForecastChart({ predictions, actuals }: ForecastChartProps) {
 
   if (predictions.length === 0 && actuals.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Revenue Forecast Chart</CardTitle>
-          <CardDescription>
+      <Card className="gap-0 py-0">
+        <CardContent className="px-5 py-5">
+          <h2 className="text-[13px] font-semibold tracking-[-0.01em] text-foreground">
+            Revenue Forecast Chart
+          </h2>
+          <p className="mt-1 text-[12px] text-muted-foreground">
             No forecast data available. Generate a forecast to see the chart.
-          </CardDescription>
-        </CardHeader>
+          </p>
+        </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Revenue Forecast Chart</CardTitle>
-        <CardDescription>
-          AI-predicted revenue by month. Dashed bars indicate predicted values,
-          solid bars show existing forecast entries.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+    <Card className="gap-0 py-0">
+      <CardContent className="px-5 py-5">
+        <div className="mb-4">
+          <h2 className="text-[13px] font-semibold tracking-[-0.01em] text-foreground">
+            Revenue Forecast Chart
+          </h2>
+          <p className="mt-1 text-[12px] text-muted-foreground">
+            AI-predicted revenue by month. Dashed bars indicate predicted
+            values, solid bars show existing forecast entries.
+          </p>
+        </div>
         {/* Legend */}
         <div className="mb-4 flex flex-wrap items-center gap-4 text-sm">
           <div className="flex items-center gap-1.5">
@@ -201,7 +199,7 @@ export function ForecastChart({ predictions, actuals }: ForecastChartProps) {
 
         {/* Prediction Details */}
         <div className="mt-6 space-y-2">
-          <h4 className="text-sm font-medium text-muted-foreground">
+          <h4 className="text-[13px] font-semibold tracking-[-0.01em] text-foreground">
             AI Prediction Details
           </h4>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">

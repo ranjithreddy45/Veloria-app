@@ -114,7 +114,7 @@ export function EInvoiceWorkspace({ rows, canWrite }: { rows: EInvoiceRow[]; can
 
       <div className="rounded-xl border bg-card shadow-card">
         <div className="border-b px-5 py-3.5">
-          <h2 className="text-sm font-medium text-foreground">Issued invoices</h2>
+          <h2 className="text-[13px] font-semibold tracking-[-0.01em] text-foreground">Issued invoices</h2>
           <p className="text-xs text-muted-foreground">Generate an IRN per issued invoice. Showing up to 200 most recent.</p>
         </div>
 

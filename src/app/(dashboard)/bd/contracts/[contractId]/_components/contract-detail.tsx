@@ -155,7 +155,7 @@ export function ContractDetail({ contract, userRole }: { contract: ContractFull;
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         {/* Details */}
         <Card className="lg:col-span-2">
-          <CardHeader><CardTitle className="text-[15px]">Details</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-[13px] tracking-[-0.01em]">Details</CardTitle></CardHeader>
           <CardContent>
             <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
               <F label="Owner" value={contract.ownerName} />
@@ -176,7 +176,7 @@ export function ContractDetail({ contract, userRole }: { contract: ContractFull;
 
         {/* Lifecycle actions */}
         <Card>
-          <CardHeader><CardTitle className="text-[15px]">Actions</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-[13px] tracking-[-0.01em]">Actions</CardTitle></CardHeader>
           <CardContent className="grid gap-2">
             {contract.status === "DRAFT" && contract.phase !== "APPROVAL" && canWrite && (
               <Button size="sm" disabled={busy !== null} onClick={() => run("submit", () => submitContractForApproval(contract.id), "Submitted for approval")}>
@@ -246,7 +246,7 @@ export function ContractDetail({ contract, userRole }: { contract: ContractFull;
 
       {/* Activity */}
       <Card>
-        <CardHeader><CardTitle className="text-[15px]">Activity</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-[13px] tracking-[-0.01em]">Activity</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <AddNote contractId={contract.id} />
           {contract.activities.length === 0 ? (
@@ -307,7 +307,7 @@ function ContractAuthoring({ contract }: { contract: ContractFull }) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="flex items-center gap-1.5 text-[15px]">
+        <CardTitle className="flex items-center gap-1.5 text-[13px] tracking-[-0.01em]">
           <FileText className="size-4" /> Authoring
         </CardTitle>
         <div className="flex gap-2">
@@ -393,7 +393,7 @@ function ContractDocs({ contractId, docs }: { contractId: string; docs: Contract
   }
   return (
     <Card>
-      <CardHeader><CardTitle className="text-[15px]">Documents</CardTitle></CardHeader>
+      <CardHeader><CardTitle className="text-[13px] tracking-[-0.01em]">Documents</CardTitle></CardHeader>
       <CardContent className="space-y-3">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <FileUpload onUploaded={onUploaded} label={busy ? "Uploading…" : "Upload document"} disabled={busy} />
@@ -432,7 +432,7 @@ function ContractVersions({ contractId, versions }: { contractId: string; versio
   }
   return (
     <Card>
-      <CardHeader><CardTitle className="text-[15px]">Version history</CardTitle></CardHeader>
+      <CardHeader><CardTitle className="text-[13px] tracking-[-0.01em]">Version history</CardTitle></CardHeader>
       <CardContent>
         {versions.length === 0 ? (
           <p className="text-[13px] text-muted-foreground">No saved versions yet. Each saved draft is snapshotted here.</p>

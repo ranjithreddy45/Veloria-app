@@ -11,10 +11,11 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   HeartPulse, Plus, Loader2, CheckCircle2, BarChart3, MessageSquareQuote,
-  Lock, Users,
+  Lock, Users, Sparkles,
 } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { StatTile } from "@/components/ui/stat-tile";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -58,19 +59,19 @@ function PulseAnswerCard({ survey }: { survey: ActiveSurveyForMe }) {
   }
 
   return (
-    <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
-      <CardHeader>
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-base">{survey.title}</CardTitle>
-          {answered && (
-            <Badge className="shrink-0 bg-emerald-500 text-[10px]">
-              <CheckCircle2 className="mr-1 size-3" /> Recorded
-            </Badge>
-          )}
+    <Card className="gap-0 py-0">
+      <CardContent className="space-y-4 px-5 py-5">
+        <div className="space-y-1">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="text-[13px] font-semibold tracking-[-0.01em] text-foreground">{survey.title}</h3>
+            {answered && (
+              <Badge className="shrink-0 border-transparent bg-emerald-100 text-[10px] text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
+                <CheckCircle2 className="mr-1 size-3" /> Recorded
+              </Badge>
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground">{survey.question}</p>
         </div>
-        <p className="text-sm text-muted-foreground">{survey.question}</p>
-      </CardHeader>
-      <CardContent className="space-y-4">
         <div>
           <div className="flex gap-2">
             {[1, 2, 3, 4, 5].map((n) => (
@@ -79,10 +80,10 @@ function PulseAnswerCard({ survey }: { survey: ActiveSurveyForMe }) {
                 type="button"
                 onClick={() => setScore(n)}
                 aria-label={`${n} — ${SCORE_LABELS[n]}`}
-                className={`flex size-11 items-center justify-center rounded-xl border text-base font-semibold transition ${
+                className={`flex h-11 flex-1 items-center justify-center rounded-full border text-base font-semibold tabular-nums transition-all duration-200 ease-[cubic-bezier(0.34,1.4,0.64,1)] ${
                   n === score
-                    ? "border-violet-500 bg-violet-500 text-white shadow-sm"
-                    : "border-border bg-background text-muted-foreground hover:border-violet-400 hover:text-foreground"
+                    ? "scale-105 border-transparent bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-md"
+                    : "border-border bg-background text-muted-foreground hover:-translate-y-0.5 hover:border-violet-400 hover:text-foreground hover:shadow-sm"
                 }`}
               >
                 {n}
@@ -90,7 +91,7 @@ function PulseAnswerCard({ survey }: { survey: ActiveSurveyForMe }) {
             ))}
           </div>
           {score > 0 && (
-            <p className="mt-1.5 text-[12px] text-muted-foreground">{SCORE_LABELS[score]}</p>
+            <p className="mt-2 text-[12px] font-medium text-violet-600 dark:text-violet-300">{SCORE_LABELS[score]}</p>
           )}
         </div>
         <Textarea
@@ -322,17 +323,49 @@ export function EngagementSurface({
   surveys: ActiveSurveyForMe[];
   canManage: boolean;
 }) {
+  const answered = surveys.filter((s) => !!s.myResponse);
+  const myAvg = answered.length > 0
+    ? answered.reduce((sum, s) => sum + (s.myResponse?.score ?? 0), 0) / answered.length
+    : null;
+
   return (
     <div className="space-y-8">
+      {surveys.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <StatTile
+            label="Active pulses"
+            value={surveys.length}
+            accent="pink"
+            icon={<HeartPulse className="size-4" />}
+            sub="open right now"
+          />
+          <StatTile
+            label="Answered"
+            value={answered.length}
+            accent="emerald"
+            icon={<CheckCircle2 className="size-4" />}
+            sub={`of ${surveys.length} by you`}
+          />
+          <StatTile
+            label="Your avg score"
+            value={myAvg != null ? myAvg.toFixed(1) : "—"}
+            accent="violet"
+            icon={<Sparkles className="size-4" />}
+            sub="across answered pulses"
+            className="col-span-2 sm:col-span-1"
+          />
+        </div>
+      )}
+
       {canManage && (
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <BarChart3 className="size-4 text-muted-foreground" /> Manage surveys
-            </CardTitle>
-            <CreateSurveyDialog />
-          </CardHeader>
-          <CardContent>
+        <Card className="gap-0 py-0">
+          <CardContent className="space-y-3 px-5 py-5">
+            <div className="flex flex-row items-center justify-between">
+              <h2 className="flex items-center gap-2 text-[13px] font-semibold tracking-[-0.01em] text-foreground">
+                <BarChart3 className="size-4 text-muted-foreground" /> Manage surveys
+              </h2>
+              <CreateSurveyDialog />
+            </div>
             {surveys.length === 0 ? (
               <p className="py-4 text-center text-sm text-muted-foreground">
                 No active surveys. Create one to start collecting the team pulse.

@@ -3,7 +3,8 @@ import Link from "next/link";
 import { CalendarClock, AlertTriangle, CalendarDays } from "lucide-react";
 import { getFollowupQueue } from "@/actions/acq-lead.actions";
 import { PageHeader } from "@/components/layout/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { StatTile } from "@/components/ui/stat-tile";
 import { StatusPill } from "@/components/shared/status-pill";
 import { formatDate } from "@/lib/utils";
 
@@ -32,17 +33,15 @@ function Bucket({
   icon: React.ComponentType<{ className?: string }>;
   leads: FollowupLead[];
 }) {
-  const ring = hue === "rose" ? "text-rose-600" : hue === "amber" ? "text-amber-600" : "text-muted-foreground";
+  const ring = hue === "rose" ? "text-rose-600 dark:text-rose-400" : hue === "amber" ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground";
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-sm">
+    <Card className="gap-0 py-0">
+      <CardContent className="space-y-1.5 px-5 py-5">
+        <h2 className="flex items-center gap-2 pb-1.5 text-[13px] font-semibold tracking-[-0.01em] text-foreground">
           <Icon className={`size-4 ${ring}`} />
           {title}
-          <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums text-muted-foreground">{leads.length}</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-1.5">
+          <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-[11px] tabular-nums text-muted-foreground">{leads.length}</span>
+        </h2>
         {leads.length === 0 ? (
           <p className="py-3 text-center text-[13px] text-muted-foreground">Nothing here.</p>
         ) : (
@@ -80,11 +79,21 @@ export default async function FollowupsPage() {
   const upcoming = data.upcoming as FollowupLead[];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
+        aura
+        eyebrow="Business Development · Acquisition"
         title="Follow-ups"
         description="Your active leads by next follow-up date. Overdue first — clear them, log the contact, and the SLA stays green."
       />
+
+      {/* Queue counts */}
+      <div className="grid grid-cols-3 gap-3">
+        <StatTile label="Overdue" value={overdue.length} accent="rose" icon={<AlertTriangle className="size-4" />} />
+        <StatTile label="Today" value={today.length} accent="amber" icon={<CalendarClock className="size-4" />} />
+        <StatTile label="Upcoming" value={upcoming.length} accent="indigo" icon={<CalendarDays className="size-4" />} />
+      </div>
+
       <div className="grid gap-4 lg:grid-cols-3">
         <Bucket title="Overdue" hue="rose" icon={AlertTriangle} leads={overdue} />
         <Bucket title="Today" hue="amber" icon={CalendarClock} leads={today} />

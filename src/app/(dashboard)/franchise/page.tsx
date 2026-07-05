@@ -55,6 +55,16 @@ export default async function FranchisePage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        aura
+        eyebrow={
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>Growth</span>
+            <span className="h-3 w-px bg-border" />
+            <span className="text-foreground/80">
+              <span className="font-semibold tabular-nums">{partners.length}</span> partner{partners.length === 1 ? "" : "s"}
+            </span>
+          </div>
+        }
         title="Franchise"
         description="Onboard partners, run per-venue P&L, and accrue revenue-share payouts."
       >
@@ -66,7 +76,7 @@ export default async function FranchisePage() {
         </Button>
       </PageHeader>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatTile
           label="Active partners"
           value={activePartners}

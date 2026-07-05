@@ -257,9 +257,9 @@ export function PropertyDetail({ property, managers, userRole }: PropertyDetailP
       <PropertyPhotos deal={property.deal} />
 
       {/* Sales-notification banner */}
-      <div className="flex items-start gap-3 rounded-lg border border-amber-200/80 bg-amber-50 px-4 py-3">
-        <Megaphone className="mt-0.5 size-4 shrink-0 text-amber-600" />
-        <p className="text-[12.5px] leading-relaxed text-amber-800">
+      <div className="flex items-start gap-3 rounded-xl border border-amber-200/80 bg-amber-50 px-4 py-3 dark:border-amber-900/50 dark:bg-amber-950/30">
+        <Megaphone className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+        <p className="text-[12.5px] leading-relaxed text-amber-800 dark:text-amber-200">
           <span className="font-semibold">
             Sales is notified ONLY when this property is marked Available.
           </span>{" "}
@@ -271,7 +271,7 @@ export function PropertyDetail({ property, managers, userRole }: PropertyDetailP
         {/* Onboarding checklist */}
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="flex items-center gap-2 text-[13.5px]">
+            <CardTitle className="flex items-center gap-2 text-[13px] tracking-[-0.01em]">
               <CheckCircle2 className="size-4 text-muted-foreground" />
               Onboarding checklist
             </CardTitle>
@@ -331,7 +331,7 @@ export function PropertyDetail({ property, managers, userRole }: PropertyDetailP
         <div className="flex flex-col gap-5">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-[13.5px]">
+              <CardTitle className="flex items-center gap-2 text-[13px] tracking-[-0.01em]">
                 <UserCog className="size-4 text-muted-foreground" />
                 Property Manager
               </CardTitle>
@@ -384,7 +384,7 @@ export function PropertyDetail({ property, managers, userRole }: PropertyDetailP
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-[13.5px]">Publish to Sales</CardTitle>
+              <CardTitle className="text-[13px] tracking-[-0.01em]">Publish to Sales</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
               <Button
@@ -435,7 +435,7 @@ function PropertyPhotos({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
-        <CardTitle className="flex items-center gap-2 text-[13.5px]">
+        <CardTitle className="flex items-center gap-2 text-[13px] tracking-[-0.01em]">
           <ImageIcon className="size-4 text-muted-foreground" />
           Property images
         </CardTitle>

@@ -41,6 +41,21 @@ const STAGE_HUE: Record<AcqDealStage, Parameters<typeof StatusPill>[0]["hue"]> =
   ON_HOLD: "slate",
 };
 
+// Column chrome per stage — dot + soft column wash (kept in step with
+// STAGE_HUE so the same stage reads the same colour everywhere).
+const STAGE_STYLE: Record<AcqDealStage, { dot: string; wash: string }> = {
+  QUALIFIED: { dot: "bg-cyan-500", wash: "bg-cyan-50/50 dark:bg-cyan-950/20" },
+  EVALUATION: { dot: "bg-blue-500", wash: "bg-blue-50/50 dark:bg-blue-950/20" },
+  EVALUATION_COMPLETED: { dot: "bg-indigo-500", wash: "bg-indigo-50/50 dark:bg-indigo-950/20" },
+  PROPOSAL_SENT: { dot: "bg-violet-500", wash: "bg-violet-50/50 dark:bg-violet-950/20" },
+  NEGOTIATION: { dot: "bg-amber-500", wash: "bg-amber-50/50 dark:bg-amber-950/20" },
+  CONTRACT_SENT: { dot: "bg-orange-500", wash: "bg-orange-50/50 dark:bg-orange-950/20" },
+  SIGNED: { dot: "bg-teal-500", wash: "bg-teal-50/50 dark:bg-teal-950/20" },
+  WON: { dot: "bg-emerald-500", wash: "bg-emerald-50/50 dark:bg-emerald-950/20" },
+  LOST: { dot: "bg-red-500", wash: "bg-red-50/50 dark:bg-red-950/20" },
+  ON_HOLD: { dot: "bg-slate-400", wash: "bg-slate-50/60 dark:bg-slate-900/30" },
+};
+
 // Columns: every stage except LOST (WON and ON_HOLD are shown).
 const BOARD_STAGES = ACQ_DEAL_STAGE.filter(
   (s): s is AcqDealStage => s !== "LOST"
@@ -60,25 +75,31 @@ export function DealBoard({ deals }: { deals: AcqDealCard[] }) {
     <div className="flex gap-3 overflow-x-auto pb-4">
       {BOARD_STAGES.map((stage) => {
         const items = byStage.get(stage) ?? [];
+        const style = STAGE_STYLE[stage];
         return (
           <div
             key={stage}
-            className="flex w-[280px] shrink-0 flex-col rounded-lg border border-border/60 bg-muted/30"
+            className={cn(
+              "flex w-[280px] shrink-0 flex-col rounded-xl border border-border/60",
+              style.wash
+            )}
           >
-            <div className="flex items-center justify-between gap-2 border-b border-border/60 px-3 py-2.5">
-              <span className="text-[12.5px] font-medium tracking-[-0.01em] text-foreground">
+            <div className="flex items-center justify-between gap-2 border-b border-border/60 px-3.5 py-2.5">
+              <span className="flex items-center gap-2 text-[12.5px] font-semibold tracking-[-0.01em] text-foreground">
+                <span aria-hidden className={cn("size-2 shrink-0 rounded-full", style.dot)} />
                 {ACQ_DEAL_STAGE_LABEL[stage]}
               </span>
-              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1.5 text-[11px] font-medium text-muted-foreground">
+              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-background/80 px-1.5 text-[11px] font-semibold tabular-nums text-muted-foreground ring-1 ring-border/60">
                 {items.length}
               </span>
             </div>
 
-            <div className="flex flex-col gap-2 p-2">
+            <div className="flex flex-col gap-2 p-2.5">
               {items.length === 0 && (
-                <p className="px-1 py-4 text-center text-[11.5px] text-muted-foreground/70">
-                  No deals
-                </p>
+                <div className="flex flex-col items-center gap-1.5 rounded-lg border border-dashed border-border/70 px-1 py-6 text-center">
+                  <span aria-hidden className={cn("size-2 rounded-full opacity-50", style.dot)} />
+                  <p className="text-[11.5px] text-muted-foreground/70">No deals</p>
+                </div>
               )}
               {items.map((deal) => {
                 const score =
@@ -93,8 +114,8 @@ export function DealBoard({ deals }: { deals: AcqDealCard[] }) {
                     type="button"
                     onClick={() => router.push(`/bd/deals/${deal.id}`)}
                     className={cn(
-                      "group flex flex-col gap-2 rounded-md border border-border/60 bg-background p-3 text-left",
-                      "transition-colors hover:border-border hover:bg-accent/40"
+                      "group flex flex-col gap-2 rounded-lg border border-border/60 bg-card p-3 text-left shadow-xs",
+                      "transition-all hover:-translate-y-px hover:border-border hover:shadow-sm"
                     )}
                   >
                     <div className="flex items-start justify-between gap-2">

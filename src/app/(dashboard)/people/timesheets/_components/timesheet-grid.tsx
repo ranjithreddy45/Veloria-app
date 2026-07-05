@@ -2,11 +2,12 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, CalendarDays, Loader2, Save, Send, Check, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, Loader2, Save, Send, Check, X, Clock3, BadgeCheck, Inbox } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { StatTile, type Accent } from "@/components/ui/stat-tile";
 import { formatDate } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -26,15 +27,22 @@ type Status = TimesheetDTO["status"];
 function statusBadge(status: Status) {
   switch (status) {
     case "SUBMITTED":
-      return <Badge variant="secondary">Submitted</Badge>;
+      return <Badge className="border-transparent bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">Submitted</Badge>;
     case "APPROVED":
-      return <Badge className="bg-emerald-600 text-white">Approved</Badge>;
+      return <Badge className="border-transparent bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">Approved</Badge>;
     case "REJECTED":
-      return <Badge variant="destructive">Rejected</Badge>;
+      return <Badge className="border-transparent bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300">Rejected</Badge>;
     default:
       return <Badge variant="outline">Draft</Badge>;
   }
 }
+
+const STATUS_TILE: Record<string, { label: string; accent: Accent }> = {
+  DRAFT: { label: "Draft", accent: "amber" },
+  SUBMITTED: { label: "Submitted", accent: "blue" },
+  APPROVED: { label: "Approved", accent: "emerald" },
+  REJECTED: { label: "Rejected", accent: "rose" },
+};
 
 /** Add `days` to an ISO date (yyyy-mm-dd), returning ISO date. */
 function shiftISO(iso: string, days: number): string {
@@ -155,31 +163,60 @@ export function TimesheetGrid({
   }
 
   const weekEnd = shiftISO(weekStart, 6);
+  const statusTile = STATUS_TILE[ts.status] ?? STATUS_TILE.DRAFT;
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
-          <div className="flex items-center gap-2">
-            <CardTitle className="flex items-center gap-2">
-              <CalendarDays className="size-4 text-muted-foreground" />
-              {formatDate(weekStart)} <span className="text-muted-foreground">→</span> {formatDate(weekEnd)}
-            </CardTitle>
-            {statusBadge(ts.status)}
+      {/* Summary tiles */}
+      <div className={`grid grid-cols-2 gap-3 ${canApprove ? "sm:grid-cols-3" : ""}`}>
+        <StatTile
+          label="Total hours"
+          value={total.toFixed(2)}
+          accent="indigo"
+          icon={<Clock3 className="size-4" />}
+          sub="logged this week"
+        />
+        <StatTile
+          label="Week status"
+          value={statusTile.label}
+          accent={statusTile.accent}
+          icon={<BadgeCheck className="size-4" />}
+          sub={`${formatDate(weekStart)} → ${formatDate(weekEnd)}`}
+        />
+        {canApprove && (
+          <StatTile
+            label="Pending approvals"
+            value={initialApprovals.length}
+            accent="amber"
+            icon={<Inbox className="size-4" />}
+            sub="timesheets waiting on you"
+            className="col-span-2 sm:col-span-1"
+          />
+        )}
+      </div>
+
+      <Card className="gap-0 py-0">
+        <CardContent className="space-y-4 px-5 py-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <h2 className="flex items-center gap-2 text-[13px] font-semibold tracking-[-0.01em] text-foreground">
+                <CalendarDays className="size-4 text-muted-foreground" />
+                {formatDate(weekStart)} <span className="text-muted-foreground">→</span> {formatDate(weekEnd)}
+              </h2>
+              {statusBadge(ts.status)}
+            </div>
+            <div className="flex items-center gap-1">
+              <Button variant="outline" size="icon" onClick={() => nav(-7)} disabled={loading} aria-label="Previous week">
+                <ChevronLeft className="size-4" />
+              </Button>
+              <Button variant="outline" size="sm" onClick={goThisWeek} disabled={loading}>
+                This week
+              </Button>
+              <Button variant="outline" size="icon" onClick={() => nav(7)} disabled={loading} aria-label="Next week">
+                <ChevronRight className="size-4" />
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" onClick={() => nav(-7)} disabled={loading} aria-label="Previous week">
-              <ChevronLeft className="size-4" />
-            </Button>
-            <Button variant="outline" size="sm" onClick={goThisWeek} disabled={loading}>
-              This week
-            </Button>
-            <Button variant="outline" size="icon" onClick={() => nav(7)} disabled={loading} aria-label="Next week">
-              <ChevronRight className="size-4" />
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
           {ts.status === "REJECTED" && ts.note && (
             <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-[13px] text-destructive">
               This timesheet was rejected. Update it and resubmit.
@@ -189,7 +226,7 @@ export function TimesheetGrid({
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
-                <tr className="border-b text-left text-[12px] uppercase tracking-wide text-muted-foreground">
+                <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted-foreground">
                   <th className="w-32 py-2 pr-3 font-medium">Day</th>
                   <th className="w-28 py-2 pr-3 font-medium">Hours</th>
                   <th className="w-48 py-2 pr-3 font-medium">Project</th>
@@ -296,11 +333,11 @@ function PendingApprovals({ initial }: { initial: PendingTimesheetDTO[] }) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Pending approvals</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <Card className="gap-0 py-0">
+      <CardContent className="space-y-3 px-5 py-5">
+        <h2 className="flex items-center gap-2 text-[13px] font-semibold tracking-[-0.01em] text-foreground">
+          <Inbox className="size-4 text-muted-foreground" /> Pending approvals
+        </h2>
         {rows.length === 0 ? (
           <div className="rounded-lg border border-dashed p-8 text-center text-[13px] text-muted-foreground">
             No timesheets waiting on you.

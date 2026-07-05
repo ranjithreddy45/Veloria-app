@@ -12,12 +12,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { formatINR } from "@/lib/utils";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { StatTile } from "@/components/ui/stat-tile";
 import { BudgetTable } from "./_components/budget-table";
 import { BudgetYearFilter } from "./_components/budget-year-filter";
 
@@ -55,6 +50,8 @@ export default async function BudgetPage({ searchParams }: BudgetPageProps) {
   return (
     <div className="space-y-6">
       <PageHeader
+        aura
+        eyebrow="Analytics · Budgets"
         title="Budgets"
         help={<PageHelp id="budget" />}
         description="Manage budget entries and track financial performance."
@@ -70,65 +67,29 @@ export default async function BudgetPage({ searchParams }: BudgetPageProps) {
         </div>
       </PageHeader>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Budgeted Revenue
-            </CardTitle>
-            <IndianRupeeIcon className="size-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">
-              {formatINR(totalRevenue)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {budgets.length} budget{budgets.length !== 1 ? "s" : ""}{" "}
-              {yearFilter ? `in ${yearFilter}` : "total"}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Budgeted Expenses
-            </CardTitle>
-            <TrendingDownIcon className="size-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-700 dark:text-red-400">
-              {formatINR(totalExpenses)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Across all budget entries
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Budgeted Profit
-            </CardTitle>
-            <TrendingUpIcon className="size-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div
-              className={`text-2xl font-bold ${
-                totalProfit >= 0
-                  ? "text-emerald-700 dark:text-emerald-400"
-                  : "text-red-700 dark:text-red-400"
-              }`}
-            >
-              {formatINR(totalProfit)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Revenue minus expenses
-            </p>
-          </CardContent>
-        </Card>
+      {/* KPI tiles */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatTile
+          label="Total Budgeted Revenue"
+          value={formatINR(totalRevenue)}
+          accent="emerald"
+          icon={<IndianRupeeIcon className="size-4" />}
+          sub={`${budgets.length} budget${budgets.length !== 1 ? "s" : ""} ${yearFilter ? `in ${yearFilter}` : "total"}`}
+        />
+        <StatTile
+          label="Total Budgeted Expenses"
+          value={formatINR(totalExpenses)}
+          accent="rose"
+          icon={<TrendingDownIcon className="size-4" />}
+          sub="Across all budget entries"
+        />
+        <StatTile
+          label="Total Budgeted Profit"
+          value={formatINR(totalProfit)}
+          accent={totalProfit >= 0 ? "indigo" : "rose"}
+          icon={<TrendingUpIcon className="size-4" />}
+          sub="Revenue minus expenses"
+        />
       </div>
 
       {/* Budget Table */}

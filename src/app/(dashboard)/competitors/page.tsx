@@ -19,6 +19,8 @@ export default async function CompetitorsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        aura
+        eyebrow="Analytics · Market Intel"
         title="Competitor Analysis"
         help={<PageHelp id="competitors" />}
         description="Track and compare competitors in the event management space."

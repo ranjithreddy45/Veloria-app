@@ -468,7 +468,7 @@ function ContactTab({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-[15px]">
+        <CardTitle className="flex items-center gap-2 text-[13px] tracking-[-0.01em]">
           <Users className="size-4" /> Owner contact
         </CardTitle>
         <CardDescription>
@@ -765,7 +765,7 @@ function OverviewTab({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-[15px]">Overview</CardTitle>
+        <CardTitle className="text-[13px] tracking-[-0.01em]">Overview</CardTitle>
         {canEdit && (
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             <Pencil className="size-3.5" /> Edit
@@ -1507,7 +1507,7 @@ function EconomicsTab({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-[15px]">Economics &amp; Model</CardTitle>
+        <CardTitle className="text-[13px] tracking-[-0.01em]">Economics &amp; Model</CardTitle>
         <CardDescription>
           Floors: base ≥ 5%, incentive ≥ 15%, royalty ≥ 20%, lock-in ≥ 3 yrs.
           Below these requires BD Head approval.
@@ -1764,7 +1764,7 @@ function EvaluationTab({
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle className="text-[15px]">Evaluation scorecard</CardTitle>
+          <CardTitle className="text-[13px] tracking-[-0.01em]">Evaluation scorecard</CardTitle>
           <CardDescription>Score each criterion 1–5.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -1864,7 +1864,7 @@ function PhotoGrid({
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-[15px]">
+        <CardTitle className="flex items-center gap-2 text-[13px] tracking-[-0.01em]">
           <Camera className="size-4" /> Photos
           <span className="text-[12px] font-normal text-muted-foreground">
             {photos.length}/8 required
@@ -1941,7 +1941,7 @@ function AttachmentAdder({
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-[15px]">
+        <CardTitle className="flex items-center gap-2 text-[13px] tracking-[-0.01em]">
           <Paperclip className="size-4" /> Documents
         </CardTitle>
         <CardDescription>Attach GPA, agreement or other documents.</CardDescription>
@@ -2031,7 +2031,7 @@ function NegotiationTab({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-[15px]">Negotiation notes</CardTitle>
+        <CardTitle className="text-[13px] tracking-[-0.01em]">Negotiation notes</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
@@ -2275,7 +2275,7 @@ function ContractTab({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-[15px]">Contract</CardTitle>
+        <CardTitle className="text-[13px] tracking-[-0.01em]">Contract</CardTitle>
         <CardDescription className="flex items-center gap-2">
           Status:
           <StatusPill

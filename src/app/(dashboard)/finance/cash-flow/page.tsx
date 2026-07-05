@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import {
-  Wallet, TrendingDown, LineChart, Gauge, Info, BarChart3,
+  Wallet, TrendingUp, TrendingDown, LineChart, Gauge, Info, BarChart3,
 } from "lucide-react";
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
@@ -35,8 +35,9 @@ export default async function CashFlowPage({
         : "amber";
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       <PageHeader
+        aura
         eyebrow="Finance · Cash Flow"
         title="13-Week Cash Flow"
         description="A rolling forecast of cash on hand — open receivables flowing in against an estimated weekly burn — and how many weeks of runway that leaves."
@@ -62,7 +63,7 @@ export default async function CashFlowPage({
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             <StatTile
               label="Cash now"
               value={formatINR(forecast.cashNow)}
@@ -71,18 +72,25 @@ export default async function CashFlowPage({
               sub="Bank GL balance (posted)"
             />
             <StatTile
-              label="Projected · week 13"
-              value={formatINR(forecast.projectedEnd)}
-              accent={forecast.projectedEnd < 0 ? "rose" : "violet"}
-              icon={<LineChart className="size-4" />}
-              sub="End of the 13-week horizon"
+              label="Expected inflow"
+              value={formatINR(forecast.openReceivables)}
+              accent="emerald"
+              icon={<TrendingUp className="size-4" />}
+              sub="Open receivables · 13-week horizon"
             />
             <StatTile
               label="Weekly burn"
               value={formatINR(forecast.weeklyBurn)}
-              accent="amber"
+              accent="rose"
               icon={<TrendingDown className="size-4" />}
               sub="Avg outflow · last 8 weeks"
+            />
+            <StatTile
+              label="Projected · week 13"
+              value={formatINR(forecast.projectedEnd)}
+              accent={forecast.projectedEnd < 0 ? "rose" : "indigo"}
+              icon={<LineChart className="size-4" />}
+              sub="Net position at end of horizon"
             />
             <StatTile
               label="Runway"

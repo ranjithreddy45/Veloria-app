@@ -25,8 +25,9 @@ export default async function CommandCenterPage() {
   const data = await getCommandCenter();
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       <PageHeader
+        aura
         eyebrow="Finance · Command Center"
         title="Owner cockpit"
         description="A live, read-only read of the money — cash on hand, this month's profit, what's awaiting sign-off, and where the spend is going this year."

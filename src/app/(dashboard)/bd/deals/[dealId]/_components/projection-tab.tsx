@@ -404,7 +404,7 @@ export function ProjectionTab({
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <div>
-            <CardTitle className="text-[15px]">Owner Projection</CardTitle>
+            <CardTitle className="text-[13px] tracking-[-0.01em]">Owner Projection</CardTitle>
             <CardDescription>3-year indicative revenue projection.</CardDescription>
           </div>
           {rows.length > 0 && (
@@ -663,7 +663,7 @@ function Builder({
         >
           <ArrowLeft className="size-3.5" /> Back to versions
         </button>
-        <CardTitle className="text-[15px]">
+        <CardTitle className="text-[13px] tracking-[-0.01em]">
           {isDraftEdit ? `Edit Projection v${existing?.version}` : "New Projection"}
         </CardTitle>
         <CardDescription>
@@ -825,7 +825,7 @@ function OpenProjection({
         </button>
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <CardTitle className="text-[15px]">Projection v{row.version}</CardTitle>
+            <CardTitle className="text-[13px] tracking-[-0.01em]">Projection v{row.version}</CardTitle>
             <StatusPill
               label={row.modelType === "WITH_FOOD" ? "With Food" : "Hall-Only"}
               hue={row.modelType === "WITH_FOOD" ? "violet" : "cyan"}

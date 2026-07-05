@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Calculator, Loader2, Sparkles, Check } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -74,15 +74,19 @@ export function AutoIncentivePanel() {
   const totalSelected = rows ? rows.filter((r) => selected.has(r.userId)).reduce((s, r) => s + r.bonus, 0) : 0;
 
   return (
-    <Card className="border-primary/20">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Calculator className="size-4 text-primary" /> Auto-calculate incentives
-        </CardTitle>
-        <p className="text-[12.5px] text-muted-foreground">Set your rule, preview each rep&apos;s incentive from the month&apos;s sales, then create them as pending for review.</p>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+    <Card className="relative gap-0 overflow-hidden border-primary/20 bg-gradient-to-br from-primary/[0.06] via-card to-card py-0">
+      <div className="pointer-events-none absolute -right-16 -top-16 size-52 rounded-full bg-primary/10 blur-3xl" />
+      <CardContent className="relative space-y-4 px-5 py-5">
+        <div className="flex items-center gap-2.5">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+            <Calculator className="size-4" />
+          </div>
+          <div>
+            <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-foreground">Auto-calculate incentives</h2>
+            <p className="text-[12.5px] text-muted-foreground">Set your rule, preview each rep&apos;s incentive from the month&apos;s sales, then create them as pending for review.</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3 rounded-xl border border-border/60 bg-card/70 p-4 sm:grid-cols-3 lg:grid-cols-5">
           <div className="space-y-1.5">
             <Label className="text-[12px]">Month</Label>
             <Input type="month" value={period} onChange={(e) => setPeriod(e.target.value)} />

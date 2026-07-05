@@ -4,9 +4,24 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, FileText, IndianRupee, TrendingUp, CalendarDays, Search } from "lucide-react";
+import {
+  Plus,
+  FileText,
+  IndianRupee,
+  TrendingUp,
+  CalendarDays,
+  Search,
+  FilePen,
+  BadgeCheck,
+  Handshake,
+  PenLine,
+  CheckCircle2,
+  XCircle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { StatTile, type Accent } from "@/components/ui/stat-tile";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -73,6 +88,25 @@ const STATUS_HUE: Record<string, "slate" | "blue" | "indigo" | "emerald" | "ambe
   TERMINATED: "rose",
 };
 
+// StatTile accents + icons kept in step with the StatusPill hues above so the
+// same status reads the same colour everywhere on the page.
+const STATUS_ACCENT: Record<string, Accent> = {
+  DRAFT: "cyan",
+  APPROVED: "indigo",
+  NEGOTIATED: "amber",
+  SIGNED: "blue",
+  ACTIVE: "emerald",
+  TERMINATED: "rose",
+};
+const STATUS_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
+  DRAFT: FilePen,
+  APPROVED: BadgeCheck,
+  NEGOTIATED: Handshake,
+  SIGNED: PenLine,
+  ACTIVE: CheckCircle2,
+  TERMINATED: XCircle,
+};
+
 function inr(n: number): string {
   if (n >= 1_00_00_000) return `₹${(n / 1_00_00_000).toFixed(2)} Cr`;
   if (n >= 1_00_000) return `₹${(n / 1_00_000).toFixed(1)} L`;
@@ -116,21 +150,24 @@ export function ContractsDashboard({
 
   return (
     <div className="flex flex-col gap-5">
-      {/* KPI cards */}
+      {/* KPI tiles */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi icon={<IndianRupee className="size-4" />} label="Active contract value" value={inr(stats?.activeValue ?? 0)} />
-        <Kpi icon={<FileText className="size-4" />} label="Upcoming value" value={inr(stats?.upcomingValue ?? 0)} />
-        <Kpi
-          icon={<TrendingUp className="size-4" />}
+        <StatTile label="Active contract value" value={inr(stats?.activeValue ?? 0)} accent="emerald" icon={<IndianRupee className="size-4" />} />
+        <StatTile label="Upcoming value" value={inr(stats?.upcomingValue ?? 0)} accent="indigo" icon={<FileText className="size-4" />} />
+        <StatTile
           label="Terminated gain / loss"
           value={inr(stats?.terminatedGainLoss ?? 0)}
-          tone={(stats?.terminatedGainLoss ?? 0) < 0 ? "rose" : "emerald"}
+          accent={(stats?.terminatedGainLoss ?? 0) < 0 ? "rose" : "emerald"}
+          icon={<TrendingUp className="size-4" />}
         />
-        <Kpi icon={<CalendarDays className="size-4" />} label="Total contracts" value={String(contracts.length)} />
+        <StatTile label="Total contracts" value={contracts.length} accent="violet" icon={<CalendarDays className="size-4" />} />
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-[14px] font-semibold text-foreground">Contracts by status</h2>
+        <h2 className="text-[13px] font-semibold tracking-[-0.01em] text-foreground">
+          Contracts by status
+          <span className="ml-2 text-[11.5px] font-normal text-muted-foreground">click a tile to filter</span>
+        </h2>
         <div className="flex items-center gap-2">
           <div className="relative w-full sm:w-72">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -147,25 +184,36 @@ export function ContractsDashboard({
         </div>
       </div>
 
-      {/* Status board */}
-      <div className="flex flex-wrap gap-2">
-        <StatusChip label="All" count={contracts.length} active={filter === "ALL"} onClick={() => setFilter("ALL")} />
-        {ACQ_CONTRACT_LIFECYCLE.map((s) => (
-          <StatusChip
-            key={s}
-            label={ACQ_CONTRACT_LIFECYCLE_LABEL[s]}
-            count={stats?.byStatus[s] ?? 0}
-            active={filter === s}
-            onClick={() => setFilter(s)}
-          />
-        ))}
+      {/* Status tiles — click to filter, click again to clear */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        {ACQ_CONTRACT_LIFECYCLE.map((s) => {
+          const Icon = STATUS_ICON[s] ?? FileText;
+          const active = filter === s;
+          return (
+            <button
+              key={s}
+              type="button"
+              aria-pressed={active}
+              onClick={() => setFilter(active ? "ALL" : s)}
+              className="rounded-2xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <StatTile
+                label={ACQ_CONTRACT_LIFECYCLE_LABEL[s]}
+                value={stats?.byStatus[s] ?? 0}
+                accent={STATUS_ACCENT[s] ?? "indigo"}
+                icon={<Icon className="size-4" />}
+                className={cn("h-full", active && "ring-2 ring-primary/50")}
+              />
+            </button>
+          );
+        })}
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         {/* Contract list */}
-        <Card className="lg:col-span-2">
-          <CardHeader><CardTitle className="text-[15px]">Contracts</CardTitle></CardHeader>
-          <CardContent className="p-0">
+        <Card className="gap-0 overflow-hidden py-0 lg:col-span-2">
+          <CardContent className="px-0 py-0">
+            <h2 className="px-5 py-4 text-[13px] font-semibold tracking-[-0.01em] text-foreground">Contracts</h2>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[640px] border-collapse text-[13px]">
                 <thead>
@@ -208,9 +256,9 @@ export function ContractsDashboard({
 
         {/* Right column: signing calendar + activity */}
         <div className="flex flex-col gap-5">
-          <Card>
-            <CardHeader><CardTitle className="text-[15px]">Signing calendar</CardTitle></CardHeader>
-            <CardContent className="space-y-3 text-[13px]">
+          <Card className="gap-0 py-0">
+            <CardContent className="space-y-3 px-5 py-5 text-[13px]">
+              <h2 className="text-[13px] font-semibold tracking-[-0.01em] text-foreground">Signing calendar</h2>
               <MonthCalendar signings={stats?.upcomingSignings ?? []} />
               <div className="space-y-1.5 border-t border-border/50 pt-2">
                 {stats && stats.upcomingSignings.length > 0 ? (
@@ -226,9 +274,9 @@ export function ContractsDashboard({
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader><CardTitle className="text-[15px]">Activity (90 days)</CardTitle></CardHeader>
-            <CardContent className="space-y-1.5 text-[13px]">
+          <Card className="gap-0 py-0">
+            <CardContent className="space-y-1.5 px-5 py-5 text-[13px]">
+              <h2 className="pb-1.5 text-[13px] font-semibold tracking-[-0.01em] text-foreground">Activity (90 days)</h2>
               {stats && Object.keys(stats.activityByType).length > 0 ? (
                 Object.entries(stats.activityByType).map(([type, count]) => (
                   <div key={type} className="flex items-center justify-between">
@@ -285,7 +333,7 @@ function MonthCalendar({ signings }: { signings: { id: string; title: string; si
           return (
             <div
               key={i}
-              className={`relative rounded py-1 text-[11px] ${count > 0 ? "bg-violet-100 font-semibold text-violet-700" : isToday ? "bg-muted font-medium text-foreground" : "text-muted-foreground"}`}
+              className={`relative rounded py-1 text-[11px] ${count > 0 ? "bg-violet-100 font-semibold text-violet-700 dark:bg-violet-950/50 dark:text-violet-300" : isToday ? "bg-muted font-medium text-foreground" : "text-muted-foreground"}`}
               title={count > 0 ? `${count} signing${count > 1 ? "s" : ""}` : undefined}
             >
               {d}
@@ -295,31 +343,6 @@ function MonthCalendar({ signings }: { signings: { id: string; title: string; si
         })}
       </div>
     </div>
-  );
-}
-
-function Kpi({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: string; tone?: "emerald" | "rose" }) {
-  return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex items-center gap-2 text-[11.5px] text-muted-foreground">{icon}{label}</div>
-        <div className={`pt-1 text-[18px] font-semibold tabular-nums ${tone === "rose" ? "text-rose-600" : tone === "emerald" ? "text-emerald-600" : "text-foreground"}`}>
-          {value}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function StatusChip({ label, count, active, onClick }: { label: string; count: number; active: boolean; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[12.5px] font-medium ${active ? "border-foreground/15 bg-muted text-foreground" : "border-border bg-background text-muted-foreground hover:bg-muted/50"}`}
-    >
-      {label}
-      <span className="rounded-md bg-foreground/10 px-1 text-[11px] tabular-nums">{count}</span>
-    </button>
   );
 }
 

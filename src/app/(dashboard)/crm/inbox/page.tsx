@@ -11,7 +11,7 @@ import {
   type CommsChannel,
 } from "@/actions/communications.actions";
 import { PageHeader } from "@/components/layout/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { StatTile } from "@/components/ui/stat-tile";
 import { CommsTimeline } from "@/components/comms/comms-timeline";
 import { ChannelFilter } from "./_components/channel-filter";
@@ -64,16 +64,25 @@ export default async function CommsInboxPage({
     timelineResult.error === "Insufficient permissions";
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="space-y-6">
       <PageHeader
-        eyebrow="CRM"
+        aura
+        eyebrow={
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>Engagement · CRM</span>
+            <span className="h-3 w-px bg-border" />
+            <span className="text-foreground/80">
+              <span className="font-semibold tabular-nums">{stats.total}</span> touchpoint{stats.total === 1 ? "" : "s"} this month
+            </span>
+          </div>
+        }
         title="Communications Inbox"
         description="Every customer touchpoint — calls, emails, WhatsApp, SMS and notes — in one chronological feed."
       />
 
       {denied ? (
-        <Card>
-          <CardContent className="py-12 text-center text-sm text-muted-foreground">
+        <Card className="gap-0 py-0">
+          <CardContent className="px-5 py-12 text-center text-sm text-muted-foreground">
             You don&apos;t have permission to view communications.
           </CardContent>
         </Card>
@@ -124,13 +133,15 @@ export default async function CommsInboxPage({
             />
           </div>
 
-          <Card>
-            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <CardTitle className="text-base">Recent activity</CardTitle>
-              <ChannelFilter active={channel ?? ""} />
-            </CardHeader>
-            <CardContent>
-              <CommsTimeline items={items} showContact emptyHint="No communications match this filter." />
+          <Card className="gap-0 py-0">
+            <CardContent className="px-5 py-5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="text-[13px] font-semibold tracking-[-0.01em]">Recent activity</h2>
+                <ChannelFilter active={channel ?? ""} />
+              </div>
+              <div className="mt-4">
+                <CommsTimeline items={items} showContact emptyHint="No communications match this filter." />
+              </div>
             </CardContent>
           </Card>
         </>

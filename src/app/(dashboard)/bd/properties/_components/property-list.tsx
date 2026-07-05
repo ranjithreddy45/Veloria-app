@@ -1,16 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Building2 } from "lucide-react";
+import { Building2, UserCog } from "lucide-react";
 import { StatusPill } from "@/components/shared/status-pill";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 
 // ============================================================
 // Types — matches getAcqProperties() serialized shape
@@ -89,7 +81,8 @@ function formatType(type: string): string {
 }
 
 // ============================================================
-// PropertyList
+// PropertyList — card grid: cover photo (or soft gradient placeholder),
+// name + place, status pill, manager and onboarding progress.
 // ============================================================
 
 export function PropertyList({ properties }: PropertyListProps) {
@@ -97,7 +90,7 @@ export function PropertyList({ properties }: PropertyListProps) {
 
   if (properties.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border py-16 text-center">
+      <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border py-16 text-center">
         <Building2 className="size-6 text-muted-foreground" />
         <p className="text-[13px] font-medium text-foreground">No properties yet</p>
         <p className="max-w-sm text-[12px] text-muted-foreground">
@@ -108,83 +101,62 @@ export function PropertyList({ properties }: PropertyListProps) {
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border">
-      <Table>
-        <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            <TableHead className="text-[11.5px] uppercase tracking-[0.04em] text-muted-foreground">
-              Property
-            </TableHead>
-            <TableHead className="text-[11.5px] uppercase tracking-[0.04em] text-muted-foreground">
-              Type
-            </TableHead>
-            <TableHead className="text-[11.5px] uppercase tracking-[0.04em] text-muted-foreground">
-              Status
-            </TableHead>
-            <TableHead className="text-[11.5px] uppercase tracking-[0.04em] text-muted-foreground">
-              Manager
-            </TableHead>
-            <TableHead className="text-right text-[11.5px] uppercase tracking-[0.04em] text-muted-foreground">
-              Onboarding
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {properties.map((p) => {
-            const { done, total } = onboardingProgress(p.onboardingProject);
-            const place = [p.city, p.locality].filter(Boolean).join(" · ");
-            const managerName = p.propertyManager?.name ?? null;
-            return (
-              <TableRow
-                key={p.id}
-                onClick={() => router.push(`/bd/properties/${p.id}`)}
-                className="cursor-pointer"
-              >
-                <TableCell>
-                  <div className="flex items-center gap-2.5">
-                    {p.deal?.attachments?.[0]?.url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={p.deal.attachments[0].url}
-                        alt={p.propertyName}
-                        className="size-9 shrink-0 rounded-md border border-border/60 object-cover"
-                      />
-                    ) : (
-                      <span className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border/60 bg-muted">
-                        <Building2 className="size-4 text-muted-foreground" />
-                      </span>
-                    )}
-                    <div className="flex flex-col">
-                      <span className="text-[13px] font-medium text-foreground">
-                        {p.propertyName}
-                      </span>
-                      {place && (
-                        <span className="text-[12px] text-muted-foreground">{place}</span>
-                      )}
-                    </div>
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {properties.map((p) => {
+        const { done, total } = onboardingProgress(p.onboardingProject);
+        const place = [p.city, p.locality].filter(Boolean).join(" · ");
+        const managerName = p.propertyManager?.name ?? null;
+        const cover = p.deal?.attachments?.[0]?.url ?? null;
+        return (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => router.push(`/bd/properties/${p.id}`)}
+            className="group flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card text-left shadow-premium transition-[transform,box-shadow] duration-300 hover:-translate-y-1 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {/* Cover — deal photo when one exists, else a soft gradient block */}
+            {cover ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={cover}
+                alt={p.propertyName}
+                className="h-32 w-full shrink-0 border-b border-border/60 object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+              />
+            ) : (
+              <div className="flex h-32 w-full shrink-0 items-center justify-center border-b border-border/60 bg-gradient-to-br from-indigo-500/10 via-violet-500/10 to-fuchsia-500/10">
+                <Building2 className="size-7 text-muted-foreground/50" />
+              </div>
+            )}
+
+            <div className="flex flex-1 flex-col gap-2.5 p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="truncate text-[13px] font-semibold tracking-[-0.01em] text-foreground">
+                    {p.propertyName}
                   </div>
-                </TableCell>
-                <TableCell className="text-[12.5px] text-muted-foreground">
-                  {formatType(p.propertyType)}
-                </TableCell>
-                <TableCell>
+                  <div className="truncate text-[12px] text-muted-foreground">
+                    {formatType(p.propertyType)}
+                    {place ? ` · ${place}` : ""}
+                  </div>
+                </div>
+                <span className="shrink-0">
                   <PropertyStatusPill status={p.status} />
-                </TableCell>
-                <TableCell className="text-[12.5px]">
-                  {managerName ? (
-                    <span className="text-foreground">{managerName}</span>
-                  ) : (
-                    <span className="text-muted-foreground">Unassigned</span>
-                  )}
-                </TableCell>
-                <TableCell className="text-right text-[12.5px] tabular-nums text-muted-foreground">
+                </span>
+              </div>
+
+              <div className="mt-auto flex items-center justify-between gap-2 border-t border-border/50 pt-2.5 text-[11.5px] text-muted-foreground">
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <UserCog className="size-3.5 shrink-0" />
+                  <span className="truncate">{managerName ?? "Unassigned"}</span>
+                </span>
+                <span className="shrink-0 tabular-nums">
                   {done}/{total} tasks
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+                </span>
+              </div>
+            </div>
+          </button>
+        );
+      })}
     </div>
   );
 }

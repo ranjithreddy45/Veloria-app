@@ -129,7 +129,7 @@ export function BlackoutManager({ blackouts, venues }: BlackoutManagerProps) {
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
       {/* Existing blackouts */}
-      <div className="overflow-x-auto rounded-lg border border-border">
+      <div className="overflow-x-auto rounded-2xl border border-border/70 bg-card shadow-premium">
         <table className="w-full min-w-[480px] border-collapse text-[13px]">
           <thead>
             <tr className="border-b border-border bg-muted/40 text-left text-[11.5px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -193,9 +193,9 @@ export function BlackoutManager({ blackouts, venues }: BlackoutManagerProps) {
       {/* Block a date form */}
       <form
         onSubmit={handleCreate}
-        className="h-fit space-y-4 rounded-lg border border-border p-4 text-[13px]"
+        className="h-fit space-y-4 rounded-2xl border border-border/70 bg-card p-5 text-[13px] shadow-premium"
       >
-        <div className="text-[12px] font-medium uppercase tracking-wide text-muted-foreground">
+        <div className="text-[13px] font-semibold tracking-[-0.01em] text-foreground">
           Block a date
         </div>
 

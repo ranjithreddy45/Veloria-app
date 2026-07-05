@@ -24,6 +24,16 @@ export default async function DocumentsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        aura
+        eyebrow={
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>Workspace · Files</span>
+            <span className="h-3 w-px bg-border" />
+            <span className="text-foreground/80">
+              <span className="font-semibold tabular-nums">{documents.length}</span> document{documents.length === 1 ? "" : "s"}
+            </span>
+          </div>
+        }
         title="Documents"
         help={<PageHelp id="documents" />}
         description="Manage contracts, invoices, photos, and other files."

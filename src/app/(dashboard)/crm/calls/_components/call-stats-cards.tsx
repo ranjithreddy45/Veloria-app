@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatTile } from "@/components/ui/stat-tile";
 import { Phone, PhoneIncoming, PhoneOutgoing, Clock } from "lucide-react";
 
 interface CallStatsProps {
@@ -30,54 +30,36 @@ export function CallStatsCards({ analytics }: CallStatsProps) {
     analytics.callsByDirection?.find((d) => d.direction === "OUTBOUND")?.count ??
     0;
 
-  const stats = [
-    {
-      title: "Total Calls",
-      value: analytics.totalCalls.toLocaleString(),
-      icon: Phone,
-      color: "text-blue-600 dark:text-blue-400",
-      bg: "bg-blue-50 dark:bg-blue-950/30",
-    },
-    {
-      title: "Avg Duration",
-      value: formatDuration(analytics.avgDuration),
-      icon: Clock,
-      color: "text-violet-600 dark:text-violet-400",
-      bg: "bg-violet-50 dark:bg-violet-950/30",
-    },
-    {
-      title: "Inbound",
-      value: inbound.toLocaleString(),
-      icon: PhoneIncoming,
-      color: "text-emerald-600 dark:text-emerald-400",
-      bg: "bg-emerald-50 dark:bg-emerald-950/30",
-    },
-    {
-      title: "Outbound",
-      value: outbound.toLocaleString(),
-      icon: PhoneOutgoing,
-      color: "text-amber-600 dark:text-amber-400",
-      bg: "bg-amber-50 dark:bg-amber-950/30",
-    },
-  ];
-
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {stats.map((stat) => (
-        <Card key={stat.title} className="border-border/50">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              {stat.title}
-            </CardTitle>
-            <div className={`p-2 rounded-lg ${stat.bg}`}>
-              <stat.icon className={`h-4 w-4 ${stat.color}`} />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stat.value}</div>
-          </CardContent>
-        </Card>
-      ))}
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <StatTile
+        label="Total calls"
+        value={analytics.totalCalls}
+        accent="blue"
+        icon={<Phone className="size-4" />}
+        sub={`${analytics.callsToday} today`}
+      />
+      <StatTile
+        label="Avg duration"
+        value={formatDuration(analytics.avgDuration)}
+        accent="violet"
+        icon={<Clock className="size-4" />}
+        sub="per connected call"
+      />
+      <StatTile
+        label="Inbound"
+        value={inbound}
+        accent="emerald"
+        icon={<PhoneIncoming className="size-4" />}
+        sub="calls received"
+      />
+      <StatTile
+        label="Outbound"
+        value={outbound}
+        accent="amber"
+        icon={<PhoneOutgoing className="size-4" />}
+        sub="calls made"
+      />
     </div>
   );
 }

@@ -36,6 +36,16 @@ export default async function BlackoutsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        aura
+        eyebrow={
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>Bookings · Operations</span>
+            <span className="h-3 w-px bg-border" />
+            <span className="text-foreground/80">
+              <span className="font-semibold tabular-nums">{blackouts.length}</span> blocked date{blackouts.length === 1 ? "" : "s"}
+            </span>
+          </div>
+        }
         title="Blackout Dates"
         description="Block venue dates so they can't be booked."
       >
