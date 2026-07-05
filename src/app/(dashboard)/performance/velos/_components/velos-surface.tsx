@@ -150,16 +150,32 @@ export function VelosSurface({
             {leaderboard.map((r, i) => {
               const mostImproved = leaderboard.length > 1 && r.delta === Math.max(...leaderboard.map((x) => x.delta)) && r.delta > 0;
               const medal = i === 0 ? "text-[#C9A96E]" : i === 1 ? "text-slate-400" : i === 2 ? "text-amber-700" : null;
+              const isMe = r.userId === myId;
+              // Goal-gradient chase line: show ME the small remaining gap, not just totals.
+              const chase = isMe
+                ? i === 0
+                  ? leaderboard.length > 1
+                    ? { leading: true, text: `Leading by ${(r.points - leaderboard[1].points).toLocaleString("en-IN")} pts` }
+                    : null
+                  : { leading: false, text: `${(leaderboard[i - 1].points - r.points + 1).toLocaleString("en-IN")} pts to #${i}` }
+                : null;
               return (
-                <div key={r.userId} className={cn("flex items-center gap-3 px-4 py-2.5 transition-premium hover:bg-muted/30", r.userId === myId && "bg-primary/5")}>
-                  <span className="flex w-5 items-center justify-center text-[13px] font-semibold text-muted-foreground tabular-nums">
-                    {medal ? <Medal className={cn("size-4", medal)} /> : i + 1}
-                  </span>
-                  <Avatar size="sm"><AvatarImage src={r.image || undefined} /><AvatarFallback className="bg-primary/10 text-[10px] text-primary">{r.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}</AvatarFallback></Avatar>
-                  <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium">{r.name}{r.userId === myId && <span className="ml-1.5 text-[11px] text-muted-foreground">(you)</span>}</span>
-                  {mostImproved && <StatusPill label="Most improved" hue="emerald" size="xs" />}
-                  {r.delta !== 0 && <span className={cn("inline-flex items-center gap-0.5 text-[11.5px]", r.delta > 0 ? "text-emerald-600" : "text-muted-foreground")}>{r.delta > 0 && <ArrowUp className="size-3" />}{r.delta > 0 ? `+${r.delta}` : r.delta}</span>}
-                  <span className="w-12 text-right text-[14px] font-semibold tabular-nums">{r.points}</span>
+                <div key={r.userId} className={cn("px-4 py-2.5 transition-premium hover:bg-muted/30", isMe && "bg-amber-50/70 dark:bg-amber-400/10")}>
+                  <div className="flex items-center gap-3">
+                    <span className="flex w-5 items-center justify-center text-[13px] font-semibold text-muted-foreground tabular-nums">
+                      {medal ? <Medal className={cn("size-4", medal)} /> : i + 1}
+                    </span>
+                    <Avatar size="sm"><AvatarImage src={r.image || undefined} /><AvatarFallback className="bg-primary/10 text-[10px] text-primary">{r.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}</AvatarFallback></Avatar>
+                    <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium">{r.name}{isMe && <span className="ml-1.5 text-[11px] text-muted-foreground">(you)</span>}</span>
+                    {mostImproved && <StatusPill label="Most improved" hue="emerald" size="xs" />}
+                    {r.delta !== 0 && <span className={cn("inline-flex items-center gap-0.5 text-[11.5px]", r.delta > 0 ? "text-emerald-600" : "text-muted-foreground")}>{r.delta > 0 && <ArrowUp className="size-3" />}{r.delta > 0 ? `+${r.delta}` : r.delta}</span>}
+                    <span className="w-12 text-right text-[14px] font-semibold tabular-nums">{r.points}</span>
+                  </div>
+                  {chase && (
+                    <div className={cn("mt-0.5 pl-8 text-[11px] font-medium tabular-nums", chase.leading ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400")}>
+                      {chase.leading ? chase.text : <>▲ {chase.text}</>}
+                    </div>
+                  )}
                 </div>
               );
             })}

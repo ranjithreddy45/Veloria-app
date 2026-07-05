@@ -99,7 +99,13 @@ export async function getSalesAnalytics(params: SalesRangeParams): Promise<Resul
   const empIds = params.employeeIds && params.employeeIds.length ? params.employeeIds : null;
   const empSet = empIds ? new Set(empIds) : null;
 
-  const [leads, siteVisits, quotes, payLinks, payments, confirmed, lostBookings, lostLeads, velos] = await Promise.all([
+  // Goal-gradient "beat last month": when viewing the current month, also fetch
+  // last month's confirmed-booking revenue so the UI can show the remaining gap.
+  // resolveBdRange("month") anchored 1ms before this month's IST start resolves
+  // to the previous IST month window. Null for any other range.
+  const prevMonthRange = range.key === "month" ? resolveBdRange("month", null, null, new Date(range.start.getTime() - 1)) : null;
+
+  const [leads, siteVisits, quotes, payLinks, payments, confirmed, lostBookings, lostLeads, velos, lastMonthAgg] = await Promise.all([
     prisma.lead.findMany({ where: { createdAt: inRange, ...(empIds ? { assignedToId: { in: empIds } } : {}) }, select: { source: true, status: true, assignedToId: true, createdById: true } }),
     prisma.siteVisitBooking.findMany({ where: { status: "COMPLETED", completedAt: inRange, ...(empIds ? { assignedToId: { in: empIds } } : {}) }, select: { assignedToId: true } }),
     prisma.salesQuotation.findMany({ where: { status: "SENT", sentAt: inRange, ...(empIds ? { sentById: { in: empIds } } : {}) }, select: { sentById: true, createdById: true } }),
@@ -109,7 +115,12 @@ export async function getSalesAnalytics(params: SalesRangeParams): Promise<Resul
     prisma.booking.findMany({ where: { status: "CANCELLED", updatedAt: inRange, ...(empIds ? { createdById: { in: empIds } } : {}) }, select: { createdById: true, totalAmount: true } }),
     prisma.lead.findMany({ where: { status: "LOST", updatedAt: inRange, ...(empIds ? { assignedToId: { in: empIds } } : {}) }, select: { lostReason: true, estimatedValue: true } }),
     prisma.velosLedger.findMany({ where: { awardedAt: inRange, ...(empIds ? { userId: { in: empIds } } : {}) }, select: { userId: true, points: true } }),
+    prevMonthRange
+      ? prisma.booking.aggregate({ where: { status: "CONFIRMED", createdAt: { gte: prevMonthRange.start, lte: prevMonthRange.end }, ...(empIds ? { createdById: { in: empIds } } : {}) }, _sum: { totalAmount: true } })
+      : Promise.resolve(null),
   ]);
+
+  const lastMonthRevenue: number | null = lastMonthAgg ? num(lastMonthAgg._sum.totalAmount) : null;
 
   const rows = new Map<string, SalesEmployeeMetrics>();
   const ensure = (id: string | null | undefined): SalesEmployeeMetrics | null => {
@@ -235,6 +246,7 @@ export async function getSalesAnalytics(params: SalesRangeParams): Promise<Resul
       range: { key: range.key, label: range.label, from: range.fromDate, to: range.toDate },
       totals, employees, leaderboard, leadSources, funnel, lossReasons,
       conversion: { enquiryToBooking, winRate }, avgDaysEnquiryToBooking, avgUpsellPerBooking,
+      lastMonthRevenue,
     },
   };
 }

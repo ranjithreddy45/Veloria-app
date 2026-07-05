@@ -43,8 +43,16 @@ export function VelosChip() {
     if (prevPoints.current !== null && pts > prevPoints.current) {
       const gained = pts - prevPoints.current;
       celebrate({ y: 0.2 });
+      const chase =
+        data.ptsToNextRank != null && data.rank != null
+          ? `Only ${data.ptsToNextRank} pts to overtake #${data.rank - 1}!`
+          : data.leadOverNext != null
+          ? `You're #1 — leading by ${data.leadOverNext} pts`
+          : data.rank
+          ? `You're #${data.rank} this month`
+          : "Keep it going";
       toast.success(`+${gained} Velos!`, {
-        description: data.rank ? `You're #${data.rank} this month` : "Keep it going",
+        description: chase,
         icon: "🎉",
       });
     }
@@ -84,6 +92,17 @@ export function VelosChip() {
           {data.points} pts this month
           {data.rank ? ` · #${data.rank} of ${data.players}` : ""}
         </p>
+        {/* Goal-gradient: always show the small gap to chase (or the lead to defend). */}
+        {data.ptsToNextRank != null && data.rank != null && (
+          <p className="font-medium text-amber-600 dark:text-amber-400">
+            🔥 Only {data.ptsToNextRank} pts to overtake #{data.rank - 1}
+          </p>
+        )}
+        {data.leadOverNext != null && (
+          <p className="font-medium text-emerald-600 dark:text-emerald-400">
+            👑 You lead #2 by {data.leadOverNext} pts — defend it
+          </p>
+        )}
         <p className="text-muted-foreground">Tap to open your Velos hub</p>
       </TooltipContent>
     </Tooltip>

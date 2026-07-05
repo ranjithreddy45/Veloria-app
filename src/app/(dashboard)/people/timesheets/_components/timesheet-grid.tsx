@@ -96,6 +96,12 @@ export function TimesheetGrid({
     [rows]
   );
 
+  // Goal-gradient: days with hours logged this week (derived from local state).
+  const filledDays = React.useMemo(
+    () => rows.filter((r) => (parseFloat(r.hours) || 0) > 0).length,
+    [rows]
+  );
+
   async function loadWeek(iso: string) {
     setLoading(true);
     const data = await getMyTimesheet(iso);
@@ -296,15 +302,29 @@ export function TimesheetGrid({
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-[12px] text-muted-foreground">
-              {editable
-                ? "Draft — edit freely, then submit for approval."
-                : ts.status === "SUBMITTED"
-                  ? "Submitted — waiting on manager approval."
-                  : ts.status === "APPROVED"
-                    ? "Approved and locked."
-                    : ""}
-            </p>
+            {ts.status === "DRAFT" && filledDays > 0 ? (
+              <p
+                className={`text-[12px] ${
+                  filledDays >= 6
+                    ? "font-medium text-emerald-600"
+                    : "text-muted-foreground"
+                }`}
+              >
+                {filledDays >= 6
+                  ? "Almost done — submit your week"
+                  : `${filledDays} of 7 days filled — submit when ready`}
+              </p>
+            ) : (
+              <p className="text-[12px] text-muted-foreground">
+                {editable
+                  ? "Draft — edit freely, then submit for approval."
+                  : ts.status === "SUBMITTED"
+                    ? "Submitted — waiting on manager approval."
+                    : ts.status === "APPROVED"
+                      ? "Approved and locked."
+                      : ""}
+              </p>
+            )}
             <div className="flex items-center gap-2">
               <Button variant="outline" onClick={doSave} disabled={!editable || busy !== null || loading} className="gap-1.5">
                 {busy === "save" ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />} Save draft

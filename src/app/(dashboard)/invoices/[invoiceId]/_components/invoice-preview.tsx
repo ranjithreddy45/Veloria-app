@@ -101,6 +101,10 @@ function toNum(
   return Number(val.toString());
 }
 
+function inr(n: number): string {
+  return "₹" + Math.round(n).toLocaleString("en-IN");
+}
+
 // ============================================================
 // Invoice Preview Component
 // ============================================================
@@ -125,6 +129,16 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
   const isInterstate = igstRate > 0;
   // Proforma until paid in full; Tax Invoice only on 100% payment.
   const fullyPaid = toNum(invoice.balanceDue) <= 0 || invoice.status === "PAID";
+  // Goal-gradient collection progress (derived — no new data).
+  const totalNum = toNum(invoice.totalAmount);
+  const paidNum = toNum(invoice.paidAmount);
+  const balanceNum = Math.max(0, toNum(invoice.balanceDue));
+  const paidPct = fullyPaid
+    ? 100
+    : totalNum > 0
+      ? Math.min(99, Math.max(0, Math.round((paidNum / totalNum) * 100)))
+      : 0;
+  const almostThere = !fullyPaid && paidPct >= 80;
   const docTitle = fullyPaid ? "TAX INVOICE" : "PROFORMA INVOICE";
   // Drop the retired default T&C boilerplate from old invoices; keep custom terms.
   const customTerms =
@@ -382,6 +396,44 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
               >
                 {formatINR(invoice.balanceDue)}
               </span>
+            </div>
+
+            {/* Goal-gradient: collection progress (screen only, not printed) */}
+            <div className="pt-1 print:hidden">
+              <div className="flex items-center justify-between text-[11px] text-zinc-400">
+                <span>Collection progress</span>
+                <span className="tabular-nums">{paidPct}%</span>
+              </div>
+              <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    fullyPaid
+                      ? "bg-emerald-500"
+                      : "bg-gradient-to-r from-violet-500 to-emerald-500"
+                  }`}
+                  style={{ width: `${paidPct}%` }}
+                />
+              </div>
+              {fullyPaid ? (
+                <p className="mt-1.5 text-[12px] font-medium text-emerald-600">
+                  Fully paid 🎉
+                </p>
+              ) : almostThere ? (
+                <p className="mt-1.5 text-[12px] font-medium text-amber-600">
+                  Almost there —{" "}
+                  <span className="tabular-nums text-emerald-700">
+                    {inr(balanceNum)}
+                  </span>{" "}
+                  to go
+                </p>
+              ) : (
+                <p className="mt-1.5 text-[12px] text-zinc-500">
+                  <span className="font-semibold tabular-nums text-zinc-700">
+                    {inr(balanceNum)}
+                  </span>{" "}
+                  away from fully paid
+                </p>
+              )}
             </div>
           </div>
         </div>

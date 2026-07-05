@@ -185,6 +185,13 @@ export async function getVelosHeaderSummary() {
   const opsRoles = ["OPERATIONS", "EVENT_COORDINATOR", "STAFF"];
   const isOps = opsRoles.includes(u.role ?? "");
 
+  // Goal-gradient: the gap to the rank ahead (or, for #1, the lead over #2).
+  // Showing the small remaining distance is what makes people accelerate.
+  let ptsToNextRank: number | null = null;
+  let leadOverNext: number | null = null;
+  if (idx > 0) ptsToNextRank = Math.max(1, sorted[idx - 1].pts - sorted[idx].pts + 1);
+  else if (idx === 0 && sorted.length > 1) leadOverNext = sorted[0].pts - sorted[1].pts;
+
   return {
     period,
     points,
@@ -192,6 +199,8 @@ export async function getVelosHeaderSummary() {
     rank,
     players,
     pctToNext,
+    ptsToNextRank,
+    leadOverNext,
     tierKey: tier.key,
     identity: isOps ? tier.opsIdentity : tier.salesIdentity,
   };

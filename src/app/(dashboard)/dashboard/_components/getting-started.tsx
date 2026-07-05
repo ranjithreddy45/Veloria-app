@@ -57,8 +57,15 @@ export function GettingStarted({ steps, doneCount, total }: { steps: OnboardingS
             </div>
             <div>
               <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-foreground">Getting started</h2>
+              {/* Goal-gradient: as the gap shrinks, name the small remainder to pull it closed. */}
               <p className="text-[12.5px] text-muted-foreground">
-                {doneCount === total ? "You're all set — nicely done!" : `${doneCount} of ${total} done · a few steps to go`}
+                {doneCount === total
+                  ? "You're all set — nicely done!"
+                  : total - doneCount === 1
+                  ? <span className="font-medium text-amber-600 dark:text-amber-400">🔥 Just 1 step left — you're almost there!</span>
+                  : total - doneCount === 2
+                  ? `${doneCount} of ${total} done · only 2 to go`
+                  : `${doneCount} of ${total} done · a few steps to go`}
               </p>
             </div>
           </div>

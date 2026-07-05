@@ -189,15 +189,24 @@ export default async function BdDashboardPage({
                   <p className="text-[13px] text-muted-foreground">No points awarded yet in this period.</p>
                 ) : (
                   <ol className="space-y-1.5">
-                    {a.leaderboard.slice(0, 10).map((l, i) => (
-                      <li key={l.userId} className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-[13px] odd:bg-muted/30">
-                        <span className="flex items-center gap-2 truncate">
-                          <span className="w-6 text-center tabular-nums">{MEDAL[i] ?? i + 1}</span>
-                          <span className="truncate text-foreground">{l.name}</span>
-                        </span>
-                        <span className="font-semibold tabular-nums text-foreground">{l.taskScore.toLocaleString("en-IN")}</span>
-                      </li>
-                    ))}
+                    {a.leaderboard.slice(0, 10).map((l, i, arr) => {
+                      // Goal-gradient: surface the small remaining gap to the row above.
+                      const chaseGap = i > 0 ? arr[i - 1].taskScore - l.taskScore + 1 : null;
+                      return (
+                        <li key={l.userId} className="rounded-md px-2 py-1.5 text-[13px] odd:bg-muted/30">
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="flex items-center gap-2 truncate">
+                              <span className="w-6 text-center tabular-nums">{MEDAL[i] ?? i + 1}</span>
+                              <span className="truncate text-foreground">{l.name}</span>
+                            </span>
+                            <span className="font-semibold tabular-nums text-foreground">{l.taskScore.toLocaleString("en-IN")}</span>
+                          </div>
+                          {chaseGap !== null && (
+                            <div className="pl-8 text-[11px] tabular-nums text-muted-foreground">▲ {chaseGap.toLocaleString("en-IN")} pts to #{i}</div>
+                          )}
+                        </li>
+                      );
+                    })}
                   </ol>
                 )}
               </CardContent>

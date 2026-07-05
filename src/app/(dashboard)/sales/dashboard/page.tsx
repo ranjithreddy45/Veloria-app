@@ -29,6 +29,7 @@ interface Analytics {
   conversion: { enquiryToBooking: number; winRate: number };
   avgDaysEnquiryToBooking: number | null;
   avgUpsellPerBooking: number;
+  lastMonthRevenue: number | null;
 }
 
 const pct = (n: number) => `${Math.round((n || 0) * 100)}%`;
@@ -137,6 +138,19 @@ export default async function SalesDashboardPage({
                   <span>Avg enquiry→booking <b className="text-foreground">{a.avgDaysEnquiryToBooking ?? "—"} days</b></span>
                   <span>Avg upsell/booking <b className="text-foreground">{inr(a.avgUpsellPerBooking)}</b></span>
                 </div>
+                {/* Goal-gradient: small remaining distance to beat last month's booked revenue */}
+                {a.lastMonthRevenue != null && a.lastMonthRevenue > 0 && (
+                  t!.revenueBooked < a.lastMonthRevenue ? (
+                    <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-[12px] font-medium tabular-nums text-amber-700 ring-1 ring-inset ring-amber-200 dark:bg-amber-400/10 dark:text-amber-400 dark:ring-amber-400/25">
+                      <TrendingUp className="size-3.5" />
+                      {inr(a.lastMonthRevenue - t!.revenueBooked)} to beat last month
+                    </div>
+                  ) : (
+                    <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-[12px] font-medium tabular-nums text-emerald-700 ring-1 ring-inset ring-emerald-200 dark:bg-emerald-400/10 dark:text-emerald-400 dark:ring-emerald-400/25">
+                      🎉 Last month beaten by {inr(t!.revenueBooked - a.lastMonthRevenue)}
+                    </div>
+                  )
+                )}
               </CardContent>
             </Card>
           </div>
@@ -197,15 +211,24 @@ export default async function SalesDashboardPage({
                   <p className="text-[13px] text-muted-foreground">No points awarded yet in this period.</p>
                 ) : (
                   <ol className="space-y-1.5">
-                    {a.leaderboard.slice(0, 10).map((l, i) => (
-                      <li key={l.userId} className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-[13px] odd:bg-muted/30">
-                        <span className="flex items-center gap-2 truncate">
-                          <span className="w-6 text-center tabular-nums">{MEDAL[i] ?? i + 1}</span>
-                          <span className="truncate text-foreground">{l.name}</span>
-                        </span>
-                        <span className="font-semibold tabular-nums text-foreground">{l.salesScore.toLocaleString("en-IN")}</span>
-                      </li>
-                    ))}
+                    {a.leaderboard.slice(0, 10).map((l, i, arr) => {
+                      // Goal-gradient: surface the small remaining gap to the row above.
+                      const chaseGap = i > 0 ? arr[i - 1].salesScore - l.salesScore + 1 : null;
+                      return (
+                        <li key={l.userId} className="rounded-md px-2 py-1.5 text-[13px] odd:bg-muted/30">
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="flex items-center gap-2 truncate">
+                              <span className="w-6 text-center tabular-nums">{MEDAL[i] ?? i + 1}</span>
+                              <span className="truncate text-foreground">{l.name}</span>
+                            </span>
+                            <span className="font-semibold tabular-nums text-foreground">{l.salesScore.toLocaleString("en-IN")}</span>
+                          </div>
+                          {chaseGap !== null && (
+                            <div className="pl-8 text-[11px] tabular-nums text-muted-foreground">▲ {chaseGap.toLocaleString("en-IN")} pts to #{i}</div>
+                          )}
+                        </li>
+                      );
+                    })}
                   </ol>
                 )}
               </CardContent>

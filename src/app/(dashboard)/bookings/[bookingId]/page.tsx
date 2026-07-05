@@ -268,12 +268,39 @@ export default async function BookingDetailPage({
                 </div>
                 <div className="mt-3">
                   <div className="flex items-center justify-between text-[12px] text-muted-foreground">
-                    <span>{pct}% collected</span>
+                    <span className="tabular-nums">{pct}% collected</span>
                     {nextDue && pending > 0 && <span>Next due {format(nextDue, "d MMM yyyy")}</span>}
                   </div>
                   <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-muted">
-                    <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all",
+                        pending <= 0
+                          ? "bg-emerald-500"
+                          : "bg-gradient-to-r from-violet-500 to-emerald-500"
+                      )}
+                      style={{ width: `${pct}%` }}
+                    />
                   </div>
+                  {/* Goal-gradient framing: show the small remaining gap */}
+                  {pending <= 0 ? (
+                    <p className="mt-1.5 text-[12px] font-medium text-emerald-600">Fully paid 🎉</p>
+                  ) : pct >= 80 ? (
+                    <p className="mt-1.5 text-[12px] font-medium text-amber-600">
+                      Almost there —{" "}
+                      <span className="tabular-nums text-emerald-700">
+                        {"₹" + Math.round(pending).toLocaleString("en-IN")}
+                      </span>{" "}
+                      to go
+                    </p>
+                  ) : (
+                    <p className="mt-1.5 text-[12px] text-muted-foreground">
+                      <span className="font-semibold tabular-nums text-foreground">
+                        {"₹" + Math.round(pending).toLocaleString("en-IN")}
+                      </span>{" "}
+                      away from fully paid
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>

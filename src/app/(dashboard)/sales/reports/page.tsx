@@ -414,7 +414,32 @@ export default async function SalesReportsPage({
                     </Td>
                     <Td>{r.tier || "—"}</Td>
                     <Td className="text-muted-foreground">{r.status || "—"}</Td>
-                    <Td className="text-right tabular-nums">{Math.round(r.pctPaid || 0)}%</Td>
+                    <Td className="text-right">
+                      {(() => {
+                        const paidPct = Math.round(r.pctPaid || 0);
+                        const barPct = Math.min(100, Math.max(0, paidPct));
+                        const done = barPct >= 100;
+                        return (
+                          <span className="inline-flex items-center justify-end gap-1.5">
+                            <span className="h-1 w-10 shrink-0 overflow-hidden rounded-full bg-muted">
+                              <span
+                                className={`block h-full rounded-full ${
+                                  done
+                                    ? "bg-emerald-500"
+                                    : "bg-gradient-to-r from-violet-500 to-emerald-500"
+                                }`}
+                                style={{ width: `${barPct}%` }}
+                              />
+                            </span>
+                            <span
+                              className={`tabular-nums ${done ? "font-medium text-emerald-600" : ""}`}
+                            >
+                              {paidPct}%
+                            </span>
+                          </span>
+                        );
+                      })()}
+                    </Td>
                     <Td className="text-muted-foreground">{r.owner || "—"}</Td>
                     <Td className="text-muted-foreground">
                       {r.nextMilestone
