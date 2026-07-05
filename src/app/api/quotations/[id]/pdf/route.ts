@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { computeQuotation, type QuotationInput, type QuotationResult } from "@/lib/sales/quotation-calc";
 import { renderBookingTermsQuoteHtml } from "@/lib/legal/booking-terms";
 import { COMPANY_LEGAL_LINE, COMPANY_ADDRESS, COMPANY_GSTIN } from "@/lib/constants";
+import { SLOT_LABEL, plannerSlotToEnum } from "@/lib/sales/slot";
 
 export const runtime = "nodejs";
 
@@ -116,7 +117,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     <div class="actions"><button onclick="window.print()">Save as PDF / Print</button></div>
     <div class="header">
       <div class="brand"><img src="/logo.png" alt="Veloria Grand" style="height:44px;width:auto;display:block;margin-bottom:6px" onerror="this.style.display='none'"/>Veloria Grand<small>${esc(COMPANY_LEGAL_LINE)}</small><small>Premium Event Venues</small><small>${esc(COMPANY_ADDRESS)}</small>${COMPANY_GSTIN ? `<small>GSTIN: ${esc(COMPANY_GSTIN)}</small>` : ""}</div>
-      <div class="title">Event Quotation<small>${esc(q.quoteNumber)} · v${q.version}</small></div>
+      <div class="title">Event Quotation<small>${esc(q.quoteNumber)}</small></div>
     </div>
 
     <div class="details">
@@ -125,7 +126,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       ${detail("Phone", q.clientPhone || "—")}
       ${detail("Event Date", eventDate)}
       ${detail("Occasion", q.occasion || "—")}
-      ${detail("Time Slot", q.timeSlot || "—")}
+      ${detail("Time Slot", q.timeSlot ? SLOT_LABEL[plannerSlotToEnum(q.timeSlot)] : "—")}
       ${detail("Hall", q.venue?.name || "—")}
       ${detail("Guests", String(q.guestCount))}
     </div>
@@ -140,7 +141,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       <tbody>
         <tr><td colspan="3" class="r">Subtotal</td><td class="r">${inr(result.subtotal)}</td></tr>
         ${discountRow}
-        <tr><td colspan="3" class="r">Tax (5%)</td><td class="r">${inr(result.tax)}</td></tr>
+        <tr><td colspan="3" class="r">Tax (${result.taxRate != null ? +(result.taxRate * 100).toFixed(2) : 5}%)</td><td class="r">${inr(result.tax)}</td></tr>
         <tr class="grand"><td colspan="3" class="r">Grand Total</td><td class="r">${inr(result.grandTotal)}</td></tr>
       </tbody>
     </table>
@@ -164,8 +165,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       2. 60% — 15 days before the event.<br/>
       3. Balance (20%) — 2 hours before the event.
     </p>
-
-    ${q.notes ? `<h2>Remarks</h2><p class="terms">${esc(q.notes)}</p>` : ""}
 
     ${renderBookingTermsQuoteHtml()}
 

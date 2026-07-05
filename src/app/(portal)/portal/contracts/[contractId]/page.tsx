@@ -58,7 +58,7 @@ export default async function PortalContractDetailPage({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
               {contract.title}
             </h1>
             <StatusBadge
@@ -87,7 +87,7 @@ export default async function PortalContractDetailPage({
                 <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">
                   Sent Date
                 </p>
-                <p className="mt-1 text-sm font-medium text-zinc-900">
+                <p className="mt-1 text-sm font-medium text-foreground">
                   {contract.sentAt
                     ? new Date(contract.sentAt).toLocaleDateString("en-IN", {
                         month: "short",
@@ -104,7 +104,7 @@ export default async function PortalContractDetailPage({
                   </p>
                   <p
                     className={`mt-1 text-sm font-medium ${
-                      isExpired ? "text-red-600" : "text-zinc-900"
+                      isExpired ? "text-red-600" : "text-foreground"
                     }`}
                   >
                     {new Date(contract.expiresAt).toLocaleDateString(
@@ -119,7 +119,7 @@ export default async function PortalContractDetailPage({
                   <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">
                     Signer
                   </p>
-                  <p className="mt-1 text-sm font-medium text-zinc-900">
+                  <p className="mt-1 text-sm font-medium text-foreground">
                     {contract.signerName}
                   </p>
                 </div>
@@ -133,7 +133,7 @@ export default async function PortalContractDetailPage({
                 Parties
               </div>
               <div className="mt-2">
-                <p className="text-sm font-medium text-zinc-900">
+                <p className="text-sm font-medium text-foreground">
                   {contract.contact.firstName} {contract.contact.lastName}
                 </p>
                 {contract.contact.company && (
@@ -208,7 +208,7 @@ export default async function PortalContractDetailPage({
                     <p className="text-xs text-zinc-400 mb-1">
                       Signature
                     </p>
-                    <p className="text-xl italic text-zinc-900 font-serif">
+                    <p className="text-xl italic text-foreground font-serif">
                       {contract.signatureData}
                     </p>
                   </div>
@@ -220,7 +220,7 @@ export default async function PortalContractDetailPage({
           {/* Contract Summary */}
           <Card className="border-zinc-200/80 shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold text-zinc-900">
+              <CardTitle className="text-base font-semibold text-foreground">
                 Contract Summary
               </CardTitle>
             </CardHeader>
@@ -234,33 +234,25 @@ export default async function PortalContractDetailPage({
                     className="text-[10px]"
                   />
                 </div>
-                {contract.templateName && (
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-zinc-500">Template</span>
-                    <span className="font-medium text-zinc-900">
-                      {contract.templateName}
-                    </span>
-                  </div>
-                )}
                 {contract.booking && (
                   <>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-zinc-500">Event</span>
-                      <span className="font-medium text-zinc-900">
+                      <span className="font-medium text-foreground">
                         {contract.booking.eventName}
                       </span>
                     </div>
                     {contract.booking.venueName && (
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-zinc-500">Venue</span>
-                        <span className="font-medium text-zinc-900">
+                        <span className="font-medium text-foreground">
                           {contract.booking.venueName}
                         </span>
                       </div>
                     )}
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-zinc-500">Event Date</span>
-                      <span className="font-medium text-zinc-900">
+                      <span className="font-medium text-foreground">
                         {new Date(contract.booking.date).toLocaleDateString(
                           "en-IN",
                           {

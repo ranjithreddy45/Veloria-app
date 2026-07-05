@@ -67,7 +67,13 @@ export async function GET(
   const session = await auth();
   const role = (session?.user as { role?: string } | undefined)?.role;
   const isInternal = !!session?.user && acqHasAnyAccess(role);
-  const ownerShareable = !!c.esignStatus || c.status === "SIGNED" || c.status === "ACTIVE";
+  // Only genuinely shareable e-sign states may reach an unauthenticated owner —
+  // never a declined/voided/expired document (which would leak stale terms + PII).
+  const SHAREABLE_ESIGN = new Set(["SENT", "SIGNED", "COMPLETED"]);
+  const ownerShareable =
+    (c.esignStatus != null && SHAREABLE_ESIGN.has(c.esignStatus.toUpperCase())) ||
+    c.status === "SIGNED" ||
+    c.status === "ACTIVE";
   if (!isInternal && !ownerShareable) {
     return new Response("Not found", { status: 404 });
   }

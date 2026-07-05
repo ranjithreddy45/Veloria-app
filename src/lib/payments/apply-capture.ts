@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { maybeConfirmBookingOnPayment } from "@/lib/sales/confirm-booking";
+import { settleConfiguratorPayment } from "@/lib/public/settle-configurator";
 import { postPaymentReceived } from "@/lib/finance/receivables";
 import { reportSystemFailure } from "@/lib/ops-alert";
 import { allocateReceiptNumber } from "@/lib/finance/receipt-number";
@@ -164,6 +165,13 @@ export async function applyRazorpayCapture(opts: {
 
   // BookMyShow-style: confirm the held slot once the advance is covered.
   await maybeConfirmBookingOnPayment(payment.invoiceId);
+
+  // Self-serve configurator (C6): a paid advance must never be silently dropped.
+  // Mark the draft PAID and alert the team to reserve + confirm (re-checks the
+  // slot, so a paid-but-taken race becomes an urgent alert). Idempotent.
+  await settleConfiguratorPayment(payment.invoiceId).catch((e) =>
+    console.error("[SETTLE_CONFIGURATOR_HOOK_ERROR]", e)
+  );
 
   // One-tap quote-share: the slot block + booking creation must NOT depend on
   // the browser success handler running (the tab can close, or only Razorpay's

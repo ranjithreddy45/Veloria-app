@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { CheckCircle2, Clock, CalendarDays, MapPin, Users } from "lucide-react";
+import { CheckCircle2, Clock, CalendarDays, MapPin, Users, PhoneCall } from "lucide-react";
 import { getPublicHold } from "@/actions/public-hold.actions";
 import { getSocialProof } from "@/lib/public/social-proof";
 import { SocialProofStrip } from "@/components/public/social-proof-strip";
-import { PublicPay } from "@/app/pay/[token]/_components/public-pay";
-import { HoldCountdown, ReleaseLink } from "../_components/availability-calendar";
+import { HelpChip } from "@/components/public/help-chip";
+import { HoldPayPanel } from "./_components/hold-pay-panel";
 
 // ============================================================
 // PUBLIC (no auth) — hold confirmation + token Razorpay payment.
@@ -44,6 +44,7 @@ export default async function HoldConfirmationPage({
         >
           Check availability
         </a>
+        <HelpChip variant="banner" className="mt-5" />
       </div>
     );
   }
@@ -86,14 +87,20 @@ export default async function HoldConfirmationPage({
       </div>
 
       {paid ? (
-        <div className="flex flex-col items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center dark:border-emerald-900 dark:bg-emerald-950/30">
-          <CheckCircle2 className="size-10 text-emerald-600" />
-          <p className="text-lg font-semibold text-emerald-800 dark:text-emerald-300">
-            Token received — your date is secured
-          </p>
-          <p className="text-sm text-emerald-700 dark:text-emerald-400">
-            Thank you! Our team will reach out shortly to plan the details.
-          </p>
+        <div className="space-y-3">
+          <div className="flex flex-col items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center dark:border-emerald-900 dark:bg-emerald-950/30">
+            <CheckCircle2 className="size-10 text-emerald-600" />
+            <p className="text-lg font-semibold text-emerald-800 dark:text-emerald-300">
+              Token received — your date is secured
+            </p>
+            <p className="text-sm text-emerald-700 dark:text-emerald-400">
+              Payment of {inr(h.tokenAmount)} received · {dateLabel} · {h.slotLabel}
+            </p>
+            <p className="mt-1 flex items-center justify-center gap-1.5 text-[12.5px] font-medium text-emerald-800 dark:text-emerald-300">
+              <PhoneCall className="size-3.5" /> Your coordinator will call you within 24 hours.
+            </p>
+          </div>
+          <HelpChip variant="banner" />
         </div>
       ) : expired || released ? (
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 text-center dark:border-zinc-800 dark:bg-zinc-900">
@@ -109,48 +116,19 @@ export default async function HoldConfirmationPage({
           >
             Check availability
           </a>
+          <HelpChip variant="banner" className="mt-5" />
         </div>
       ) : (
-        <div className="space-y-4">
-          {/* Countdown */}
-          {h.expiresAt && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-center text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
-              <HoldCountdown expiresAt={h.expiresAt} />
-            </div>
-          )}
-
-          {/* Social proof — matched 5★ reviews + past-event photos */}
-          {socialProof && (
-            <SocialProofStrip variant="banner" data={socialProof} />
-          )}
-
-          {/* Pay token */}
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-            <p className="text-sm text-zinc-600 dark:text-zinc-300">
-              Pay a token of{" "}
-              <span className="font-semibold text-zinc-900 dark:text-zinc-100">{inr(h.tokenAmount)}</span>{" "}
-              to confirm and secure this date.
-            </p>
-            <div className="mt-4">
-              {h.invoiceId ? (
-                <PublicPay
-                  invoiceId={h.invoiceId}
-                  invoiceNumber="date hold"
-                  amount={h.tokenAmount}
-                  customerName={h.customerFirstName}
-                  customerEmail=""
-                />
-              ) : (
-                <p className="text-sm text-red-600">
-                  Payment isn&apos;t available for this hold. Please contact us.
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Release link */}
-          <ReleaseLink token={h.token} />
-        </div>
+        <HoldPayPanel
+          token={h.token}
+          invoiceId={h.invoiceId}
+          tokenAmount={h.tokenAmount}
+          customerFirstName={h.customerFirstName}
+          expiresAt={h.expiresAt}
+          socialProof={
+            socialProof ? <SocialProofStrip variant="banner" data={socialProof} /> : null
+          }
+        />
       )}
     </div>
   );

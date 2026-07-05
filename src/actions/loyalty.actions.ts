@@ -15,6 +15,7 @@ import type { LoyaltyTier } from "@prisma/client";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
 import { hasPermission } from "@/lib/permissions";
+import { getVerifiedContactIds } from "@/lib/portal-identity";
 
 // ============================================================
 // Tier Thresholds
@@ -682,28 +683,15 @@ export async function getPortalLoyalty(userId: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { email: true },
-    });
-
-    if (!user?.email) {
-      return { success: false as const, error: "User not found" };
-    }
-
-    // Find contact by email
-    const contact = await prisma.contact.findFirst({
-      where: { email: user.email },
-      select: { id: true, firstName: true, lastName: true },
-    });
-
-    if (!contact) {
+    // C9: verified-only, centralized contact resolution (M7 deletedAt handled).
+    const contactIds = await getVerifiedContactIds(userId);
+    if (contactIds.length === 0) {
       return { success: true as const, data: null };
     }
 
-    // Find loyalty account
-    const account = await prisma.loyaltyAccount.findUnique({
-      where: { contactId: contact.id },
+    // Find loyalty account for any of the client's contacts.
+    const account = await prisma.loyaltyAccount.findFirst({
+      where: { contactId: { in: contactIds } },
       include: {
         contact: {
           select: {

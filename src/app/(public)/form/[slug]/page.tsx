@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getWebformBySlug } from "@/actions/webform.actions";
 import { PublicForm } from "./_components/public-form";
 import type { WebformField } from "@/schemas/webform.schema";
+import { HelpChip } from "@/components/public/help-chip";
 
 // ============================================================
 // Public Webform Page (No Auth Required)
@@ -42,6 +43,7 @@ export default async function PublicFormPage({
         <p className="mt-2 text-sm text-zinc-500">
           This form does not exist or has been removed.
         </p>
+        <HelpChip className="mt-5" />
       </div>
     );
   }
@@ -57,6 +59,7 @@ export default async function PublicFormPage({
         <p className="mt-2 text-sm text-zinc-500">
           This form is no longer accepting submissions.
         </p>
+        <HelpChip className="mt-5" />
       </div>
     );
   }

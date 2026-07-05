@@ -1,8 +1,7 @@
 import Link from "next/link";
 import {
-  Search,
+  Building2,
   MapPin,
-  Star,
   ArrowRight,
   Users,
   ChevronRight,
@@ -18,7 +17,9 @@ import {
   PartyPopper,
 } from "lucide-react";
 import { getStorefrontVenues } from "@/actions/storefront.actions";
+import { HAS_PUBLIC_CONTACT } from "@/lib/constants";
 import { BrandLogo } from "@/components/layout/brand-logo";
+import { HelpChip } from "@/components/public/help-chip";
 import { VenueImage } from "../_components/venue-image";
 import { formatPrice } from "../_components/format";
 
@@ -28,11 +29,12 @@ const OCCASIONS = [
   { label: "Birthday", icon: Cake, type: "Birthday Party", bg: "bg-amber-100", fg: "text-amber-600" },
   { label: "Corporate", icon: Briefcase, type: "Corporate Event", bg: "bg-sky-100", fg: "text-sky-600" },
   { label: "Engagement", icon: CalendarHeart, type: "Engagement", bg: "bg-pink-100", fg: "text-pink-600" },
-  { label: "Sangeet", icon: PartyPopper, type: "Social Gathering", bg: "bg-emerald-100", fg: "text-emerald-600" },
+  { label: "Sangeet", icon: PartyPopper, type: "Sangeet", bg: "bg-emerald-100", fg: "text-emerald-600" },
 ];
 
+// Trust markers must be defensible — no fabricated ratings or event counts.
 const TRUST = [
-  { icon: ShieldCheck, label: "Verified venue", sub: "4.8★ · 500+ events" },
+  { icon: ShieldCheck, label: "Verified venue", sub: "In-house team" },
   { icon: Wallet, label: "Transparent pricing", sub: "No hidden charges" },
   { icon: UtensilsCrossed, label: "Your caterer", sub: "Outside food allowed" },
 ];
@@ -45,7 +47,7 @@ export default async function GuestHomePage() {
 
   return (
     <div className="bg-zinc-50">
-      {/* ---- Sticky top bar: location + search ---- */}
+      {/* ---- Sticky top bar: brand + browse ---- */}
       <header className="sticky top-0 z-30 bg-gradient-to-br from-violet-700 via-violet-600 to-fuchsia-600 px-4 pb-4 pt-[calc(var(--sat)+0.9rem)] text-white shadow-lg shadow-violet-900/20">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -60,20 +62,20 @@ export default async function GuestHomePage() {
             />
             <div className="text-[11px] leading-tight text-white/75">Bangalore · Premium venues</div>
           </div>
-          <span className="flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm">
-            <Star className="size-3 fill-amber-300 text-amber-300" /> 4.8
-          </span>
         </div>
 
-        {/* Search pill */}
+        {/* Browse pill — /app/venues has no search input, so don't imply one. */}
         <Link
           href="/app/venues"
-          className="mt-3.5 flex items-center gap-2.5 rounded-2xl bg-white px-4 py-3 shadow-sm"
+          className="mt-3.5 flex items-center justify-between gap-2.5 rounded-2xl bg-white px-4 py-3 shadow-sm"
         >
-          <Search className="size-4.5 text-violet-600" />
-          <span className="text-[13.5px] text-zinc-500">
-            Search halls, occasions…
+          <span className="flex items-center gap-2.5">
+            <Building2 className="size-4.5 text-violet-600" />
+            <span className="text-[13.5px] font-medium text-zinc-700">
+              Browse halls
+            </span>
           </span>
+          <ChevronRight className="size-4 text-zinc-400" />
         </Link>
       </header>
 
@@ -95,10 +97,10 @@ export default async function GuestHomePage() {
               Plan your dream event in minutes
             </h2>
             <p className="mt-0.5 text-[12.5px] text-white/85">
-              Free site visit · instant quote · best dates going fast
+              Free site visit · personalised quote · best dates going fast
             </p>
             <span className="mt-3 inline-flex items-center gap-1 rounded-full bg-white px-3.5 py-1.5 text-[12.5px] font-bold text-violet-700">
-              Check availability <ArrowRight className="size-3.5" />
+              Enquire now <ArrowRight className="size-3.5" />
             </span>
           </div>
         </Link>
@@ -165,9 +167,6 @@ export default async function GuestHomePage() {
                     priority={i === 0}
                     className="h-44 w-full"
                   />
-                  <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/95 px-2 py-0.5 text-[11px] font-bold text-zinc-800 shadow-sm">
-                    <Star className="size-3 fill-amber-400 text-amber-400" /> 4.8
-                  </span>
                   {i === 0 && (
                     <span className="absolute right-3 top-3 rounded-full bg-fuchsia-600 px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-white shadow-sm">
                       Popular
@@ -194,6 +193,9 @@ export default async function GuestHomePage() {
                     <div className="text-[10.5px] text-zinc-400">from</div>
                     <div className="text-[15px] font-extrabold text-violet-700">
                       {formatPrice(v.pricePerSlot)}
+                    </div>
+                    <div className="text-[9.5px] leading-tight text-zinc-400">
+                      / slot · rental
                     </div>
                   </div>
                 </div>
@@ -226,14 +228,18 @@ export default async function GuestHomePage() {
         </div>
       </section>
 
-      {/* ---- Call CTA ---- */}
+      {/* ---- Contact / Enquire CTA ---- */}
       <section className="px-4 pb-3 pt-5">
-        <a
-          href="tel:+919876543210"
-          className="flex items-center justify-center gap-2 rounded-2xl border-2 border-violet-200 bg-violet-50 px-5 py-3 text-[13.5px] font-bold text-violet-700"
-        >
-          📞 Talk to our events team
-        </a>
+        {HAS_PUBLIC_CONTACT ? (
+          <HelpChip variant="banner" />
+        ) : (
+          <Link
+            href="/app/book"
+            className="flex items-center justify-center gap-2 rounded-2xl border-2 border-violet-200 bg-violet-50 px-5 py-3 text-[13.5px] font-bold text-violet-700"
+          >
+            Talk to our events team <ArrowRight className="size-4" />
+          </Link>
+        )}
       </section>
     </div>
   );

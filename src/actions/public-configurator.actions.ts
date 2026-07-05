@@ -27,6 +27,7 @@ import {
 } from "@/lib/sales/quotation-calc";
 import { captureLeadFromExternal } from "@/lib/lead-capture";
 import { mintAdvanceInvoice } from "@/lib/public/mint-advance-invoice";
+import { publicConfiguratorSlotFree } from "@/actions/public-hold.actions";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -250,6 +251,26 @@ export async function priceAndCreateAdvanceLink(
 
     const row = await prisma.publicQuoteDraft.findUnique({ where: { token } });
     if (!row) return { success: false, error: "Quote not found." };
+
+    // Never take an advance for a date in the past.
+    if (row.eventDate) {
+      const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+      if (new Date(row.eventDate) < todayStart) {
+        return { success: false, error: "That event date has passed. Please pick an upcoming date." };
+      }
+    }
+
+    // C6: never take an advance for a date we can't deliver. If this draft has a
+    // venue + date + slot, refuse the pay link when that slot is already booked.
+    if (row.venueId && row.eventDate && row.timeSlot) {
+      const free = await publicConfiguratorSlotFree(row.venueId, row.eventDate, row.timeSlot);
+      if (!free) {
+        return {
+          success: false,
+          error: "That date & time has just been taken. Please pick another slot — your selections are saved, and our team can help on WhatsApp.",
+        };
+      }
+    }
 
     // If an advance link already exists, return it (idempotent re-submit).
     if (row.paymentLinkUrl && row.invoiceId && (row.status === "LINK_SENT" || row.status === "PAID")) {

@@ -27,7 +27,7 @@ import {
 } from "@/lib/constants";
 import { RazorpayCheckout } from "../_components/razorpay-checkout";
 import { UploadProof } from "../_components/upload-proof";
-import { DownloadPdfButton } from "@/app/(dashboard)/invoices/[invoiceId]/_components/download-pdf-button";
+import { PortalPdfButton } from "../_components/portal-pdf-button";
 import { formatINR } from "@/lib/utils";
 
 // ============================================================
@@ -80,7 +80,7 @@ export default async function PortalInvoiceDetailPage({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
               {invoice.invoiceNumber}
             </h1>
             <StatusBadge
@@ -98,10 +98,10 @@ export default async function PortalInvoiceDetailPage({
           )}
         </div>
         <div className="flex items-center gap-4">
-          <DownloadPdfButton invoiceId={invoiceId} />
+          <PortalPdfButton invoiceId={invoiceId} />
           <div className="text-right">
             <p className="text-sm text-zinc-400">Total Amount</p>
-            <p className="text-2xl font-bold text-zinc-900">
+            <p className="text-2xl font-bold text-foreground">
               {formatINRRound(invoice.totalAmount)}
             </p>
           </div>
@@ -119,7 +119,7 @@ export default async function PortalInvoiceDetailPage({
                 <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">
                   Issue Date
                 </p>
-                <p className="mt-1 text-sm font-medium text-zinc-900">
+                <p className="mt-1 text-sm font-medium text-foreground">
                   {new Date(invoice.issueDate).toLocaleDateString("en-IN", {
                     month: "short",
                     day: "numeric",
@@ -135,7 +135,7 @@ export default async function PortalInvoiceDetailPage({
                   className={`mt-1 text-sm font-medium ${
                     invoice.status === "OVERDUE"
                       ? "text-red-600"
-                      : "text-zinc-900"
+                      : "text-foreground"
                   }`}
                 >
                   {new Date(invoice.dueDate).toLocaleDateString("en-IN", {
@@ -150,7 +150,7 @@ export default async function PortalInvoiceDetailPage({
                   <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">
                     GSTIN
                   </p>
-                  <p className="mt-1 text-sm font-medium text-zinc-900">
+                  <p className="mt-1 text-sm font-medium text-foreground">
                     {invoice.gstin}
                   </p>
                 </div>
@@ -160,7 +160,7 @@ export default async function PortalInvoiceDetailPage({
                   <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">
                     Place of Supply
                   </p>
-                  <p className="mt-1 text-sm font-medium text-zinc-900">
+                  <p className="mt-1 text-sm font-medium text-foreground">
                     {invoice.placeOfSupply}
                   </p>
                 </div>
@@ -174,7 +174,7 @@ export default async function PortalInvoiceDetailPage({
                 Billed To
               </div>
               <div className="mt-2">
-                <p className="text-sm font-medium text-zinc-900">
+                <p className="text-sm font-medium text-foreground">
                   {invoice.contact.firstName} {invoice.contact.lastName}
                 </p>
                 {invoice.contact.company && (
@@ -244,7 +244,7 @@ export default async function PortalInvoiceDetailPage({
                         <td className="py-3 text-right text-sm text-zinc-700">
                           {formatINR(item.unitPrice)}
                         </td>
-                        <td className="py-3 text-right text-sm font-medium text-zinc-900">
+                        <td className="py-3 text-right text-sm font-medium text-foreground">
                           {formatINR(item.amount)}
                         </td>
                       </tr>
@@ -257,7 +257,7 @@ export default async function PortalInvoiceDetailPage({
               <div className="mt-4 border-t border-zinc-100 pt-4 space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-zinc-500">Subtotal</span>
-                  <span className="text-zinc-900">
+                  <span className="text-foreground">
                     {formatINR(invoice.subtotal)}
                   </span>
                 </div>
@@ -281,7 +281,7 @@ export default async function PortalInvoiceDetailPage({
                     <span className="text-zinc-500">
                       CGST ({invoice.cgstRate}%)
                     </span>
-                    <span className="text-zinc-900">
+                    <span className="text-foreground">
                       {formatINR(invoice.cgstAmount)}
                     </span>
                   </div>
@@ -292,7 +292,7 @@ export default async function PortalInvoiceDetailPage({
                     <span className="text-zinc-500">
                       SGST ({invoice.sgstRate}%)
                     </span>
-                    <span className="text-zinc-900">
+                    <span className="text-foreground">
                       {formatINR(invoice.sgstAmount)}
                     </span>
                   </div>
@@ -303,7 +303,7 @@ export default async function PortalInvoiceDetailPage({
                     <span className="text-zinc-500">
                       IGST ({invoice.igstRate}%)
                     </span>
-                    <span className="text-zinc-900">
+                    <span className="text-foreground">
                       {formatINR(invoice.igstAmount)}
                     </span>
                   </div>
@@ -312,10 +312,10 @@ export default async function PortalInvoiceDetailPage({
                 <div className="h-px bg-zinc-200" />
 
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-zinc-900">
+                  <span className="text-sm font-semibold text-foreground">
                     Total
                   </span>
-                  <span className="text-lg font-bold text-zinc-900">
+                  <span className="text-lg font-bold text-foreground">
                     {formatINR(invoice.totalAmount)}
                   </span>
                 </div>
@@ -373,7 +373,7 @@ export default async function PortalInvoiceDetailPage({
           {invoice.payments.length > 0 && (
             <Card className="border-zinc-200/80 shadow-sm">
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base font-semibold text-zinc-900">
+                <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
                   <CreditCard className="size-4 text-indigo-500" />
                   Payment History
                 </CardTitle>
@@ -404,7 +404,7 @@ export default async function PortalInvoiceDetailPage({
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium text-zinc-900">
+                          <p className="text-sm font-medium text-foreground">
                             {formatINR(payment.amount)}
                           </p>
                           <StatusBadge
@@ -452,7 +452,7 @@ export default async function PortalInvoiceDetailPage({
           {isPayable && (
             <Card className="border-indigo-200 bg-gradient-to-br from-white to-indigo-50/50 shadow-sm">
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base font-semibold text-zinc-900">
+                <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
                   <IndianRupee className="size-4 text-indigo-500" />
                   Make a Payment
                 </CardTitle>
@@ -505,7 +505,7 @@ export default async function PortalInvoiceDetailPage({
           {invoice.installments.length > 0 && (
             <Card className="border-zinc-200/80 shadow-sm">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold text-zinc-900">
+                <CardTitle className="text-base font-semibold text-foreground">
                   Payment Schedule
                 </CardTitle>
               </CardHeader>
@@ -539,11 +539,11 @@ export default async function PortalInvoiceDetailPage({
                             >
                               {idx + 1}
                             </div>
-                            <span className="text-sm font-medium text-zinc-900">
+                            <span className="text-sm font-medium text-foreground">
                               {inst.label}
                             </span>
                           </div>
-                          <span className="text-sm font-semibold text-zinc-900">
+                          <span className="text-sm font-semibold text-foreground">
                             {formatINRRound(inst.amount)}
                           </span>
                         </div>
@@ -595,7 +595,7 @@ export default async function PortalInvoiceDetailPage({
           {/* Quick Info */}
           <Card className="border-zinc-200/80 shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold text-zinc-900">
+              <CardTitle className="text-base font-semibold text-foreground">
                 Invoice Summary
               </CardTitle>
             </CardHeader>
@@ -603,19 +603,19 @@ export default async function PortalInvoiceDetailPage({
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-zinc-500">Invoice #</span>
-                  <span className="font-medium text-zinc-900">
+                  <span className="font-medium text-foreground">
                     {invoice.invoiceNumber}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-zinc-500">Line Items</span>
-                  <span className="font-medium text-zinc-900">
+                  <span className="font-medium text-foreground">
                     {invoice.lineItems.length}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-zinc-500">Payments</span>
-                  <span className="font-medium text-zinc-900">
+                  <span className="font-medium text-foreground">
                     {invoice.payments.filter((p) => p.status === "COMPLETED")
                       .length}
                   </span>
@@ -623,7 +623,7 @@ export default async function PortalInvoiceDetailPage({
                 {invoice.sacCode && (
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-zinc-500">SAC Code</span>
-                    <span className="font-medium text-zinc-900">
+                    <span className="font-medium text-foreground">
                       {invoice.sacCode}
                     </span>
                   </div>

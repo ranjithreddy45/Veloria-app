@@ -4,6 +4,7 @@ import { getPublicInvoiceForPayment } from "@/actions/payment.actions";
 import { getSocialProof } from "@/lib/public/social-proof";
 import { SocialProofStrip } from "@/components/public/social-proof-strip";
 import { COMPANY_LEGAL_LINE } from "@/lib/constants";
+import { HelpChip } from "@/components/public/help-chip";
 import { PublicPay } from "./_components/public-pay";
 import { PayAmountPicker } from "./_components/pay-amount-picker";
 
@@ -57,6 +58,7 @@ export default async function PayPage({
             <p className="mt-1.5 text-sm text-muted-foreground">
               The invoice could not be found. Please contact us for an updated link.
             </p>
+            <HelpChip variant="banner" className="mt-5" />
           </div>
         ) : (
           (() => {

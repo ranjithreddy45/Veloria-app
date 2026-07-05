@@ -9,6 +9,10 @@ import {
   CalendarCheck,
   FileText,
   CreditCard,
+  FileSignature,
+  Image as ImageIcon,
+  Gift,
+  FolderOpen,
   LogOut,
   Menu,
   X,
@@ -21,13 +25,19 @@ const portalLinks = [
   { href: "/portal/bookings", label: "Bookings", icon: CalendarCheck },
   { href: "/portal/invoices", label: "Invoices", icon: FileText },
   { href: "/portal/payments", label: "Payments", icon: CreditCard },
+  { href: "/portal/contracts", label: "Contracts", icon: FileSignature, badgeKey: "contracts" as const },
+  { href: "/portal/documents", label: "Documents", icon: FolderOpen },
+  { href: "/portal/gallery", label: "Gallery", icon: ImageIcon },
+  { href: "/portal/loyalty", label: "Rewards", icon: Gift },
 ];
 
 interface PortalNavProps {
   userName: string;
+  /** Count of contracts awaiting the client's signature (H2 badge). */
+  contractsAwaiting?: number;
 }
 
-export function PortalNav({ userName }: PortalNavProps) {
+export function PortalNav({ userName, contractsAwaiting = 0 }: PortalNavProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = React.useState(false);
 
@@ -48,6 +58,11 @@ export function PortalNav({ userName }: PortalNavProps) {
                 ? pathname === "/portal"
                 : pathname.startsWith(link.href);
 
+            const badge =
+              link.badgeKey === "contracts" && contractsAwaiting > 0
+                ? contractsAwaiting
+                : null;
+
             return (
               <Link
                 key={link.href}
@@ -61,6 +76,11 @@ export function PortalNav({ userName }: PortalNavProps) {
               >
                 <Icon className="size-4" />
                 {link.label}
+                {badge !== null && (
+                  <span className="ml-0.5 inline-flex min-w-4 items-center justify-center rounded-full bg-indigo-600 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                    {badge}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -104,6 +124,11 @@ export function PortalNav({ userName }: PortalNavProps) {
                   ? pathname === "/portal"
                   : pathname.startsWith(link.href);
 
+              const badge =
+                link.badgeKey === "contracts" && contractsAwaiting > 0
+                  ? contractsAwaiting
+                  : null;
+
               return (
                 <Link
                   key={link.href}
@@ -117,6 +142,11 @@ export function PortalNav({ userName }: PortalNavProps) {
                 >
                   <Icon className="size-5" />
                   {link.label}
+                  {badge !== null && (
+                    <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-indigo-600 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                      {badge}
+                    </span>
+                  )}
                 </Link>
               );
             })}

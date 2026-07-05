@@ -187,5 +187,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         data: { emailVerified: new Date() },
       });
     },
+    // C9: Google identities are inherently email-verified. linkAccount covers
+    // the first link, but ensure it on every Google sign-in (e.g. an account
+    // that predates this rule, or one whose emailVerified was cleared) so the
+    // portal's verified-only data gate always lets a real Google user through.
+    async signIn({ user, account }) {
+      if (account?.provider === "google" && user?.id) {
+        try {
+          await prisma.user.updateMany({
+            where: { id: user.id, emailVerified: null },
+            data: { emailVerified: new Date() },
+          });
+        } catch (err) {
+          console.error("[GOOGLE_EMAIL_VERIFY_ERROR]", err);
+        }
+      }
+    },
   },
 });

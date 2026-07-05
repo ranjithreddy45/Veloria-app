@@ -328,13 +328,11 @@ export async function confirmOneTapAndBlock(
     if (!tokenSchema.safeParse(token).success)
       return { success: false, error: "This link is not valid." };
 
-    // Rate-limit this mutating endpoint (parity with startOneTapAdvance): it
-    // creates a HOLD booking + mints a contact via finalizeOneTapBlock, so an
-    // unthrottled caller could spam slot-block attempts / contact creation.
-    const ip = await clientIp();
-    if (rateLimited(ip))
-      return { success: false, error: "Too many requests. Please try again in a little while." };
-
+    // C2: NEVER rate-limit this endpoint. It runs strictly AFTER the customer's
+    // money has been captured, and finalizeOneTapBlock is idempotent (safe to
+    // re-run). Blocking a payer here would take their money and refuse to secure
+    // the date — the exact failure this must avoid. The pre-payment limiter lives
+    // on startOneTapAdvance, which is enough to blunt slot-squatting / order-spam.
     const link = await prisma.quoteShareLink.findUnique({
       where: { token },
       select: { id: true, status: true, payInvoiceId: true },

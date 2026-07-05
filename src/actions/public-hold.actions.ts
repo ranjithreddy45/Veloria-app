@@ -32,7 +32,7 @@ import { captureLeadFromExternal, getSystemUserId } from "@/lib/lead-capture";
 // math + booking-number allocation as the internal engine — do NOT fork.
 import { generateBookingNumber } from "@/actions/booking.actions";
 import { utcDayRange } from "@/lib/sales/slot-util";
-import { SLOT_LABEL } from "@/lib/sales/slot";
+import { SLOT_LABEL, plannerSlotToEnum } from "@/lib/sales/slot";
 import { publicHoldSchema, type PublicHoldInput } from "@/schemas/public-hold.schema";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
@@ -329,6 +329,21 @@ async function publicSlotIsFree(
   if (blackouts.some((b) => new Date(b.date).getUTCDate() === utcDay)) return false;
 
   return true;
+}
+
+// Exported for the public configurator (C6): is a venue + date + planner-slot
+// still free? Used to refuse an advance pay-link for an already-booked date,
+// and to re-check at payment time. Never blocks on failure (human review).
+export async function publicConfiguratorSlotFree(
+  venueId: string,
+  date: Date,
+  plannerSlot: string | null | undefined
+): Promise<boolean> {
+  try {
+    return await publicSlotIsFree(venueId, date, plannerSlotToEnum(plannerSlot));
+  } catch {
+    return true;
+  }
 }
 
 // ============================================================

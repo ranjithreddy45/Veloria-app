@@ -31,6 +31,7 @@ import { PhaseProgressList } from "./_components/phase-progress-list";
 import { VendorReadinessCard } from "./_components/vendor-readiness-card";
 import {
   BOOKING_STATUS_COLORS,
+  BOOKING_STATUS_CLIENT_LABELS,
   INVOICE_STATUS_COLORS,
   TIME_SLOT_LABELS,
 } from "@/lib/constants";
@@ -50,9 +51,9 @@ function daysUntil(date: Date | string): number {
 
 // Booking progress steps
 const PROGRESS_STEPS = [
-  { key: "HOLD", label: "Booked" },
+  { key: "HOLD", label: "Reserved" },
   { key: "CONFIRMED", label: "Confirmed" },
-  { key: "IN_PROGRESS", label: "In Progress" },
+  { key: "IN_PROGRESS", label: "In progress" },
   { key: "COMPLETED", label: "Completed" },
 ] as const;
 
@@ -104,12 +105,13 @@ export default async function PortalBookingDetailPage({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
               {booking.eventName}
             </h1>
             <StatusBadge
               status={booking.status}
               colorMap={BOOKING_STATUS_COLORS}
+              label={BOOKING_STATUS_CLIENT_LABELS[booking.status]}
             />
           </div>
           <p className="mt-1 text-sm text-zinc-500">
@@ -184,7 +186,7 @@ export default async function PortalBookingDetailPage({
           {/* Event Details */}
           <Card className="border-zinc-200/80 shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base font-semibold text-zinc-900">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
                 <CalendarCheck className="size-4 text-indigo-500" />
                 Event Details
               </CardTitle>
@@ -195,7 +197,7 @@ export default async function PortalBookingDetailPage({
                   <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">
                     Date
                   </p>
-                  <p className="text-sm font-medium text-zinc-900">
+                  <p className="text-sm font-medium text-foreground">
                     {eventDate.toLocaleDateString("en-IN", {
                       weekday: "long",
                       day: "numeric",
@@ -208,7 +210,7 @@ export default async function PortalBookingDetailPage({
                   <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">
                     Time Slot
                   </p>
-                  <p className="text-sm font-medium text-zinc-900">
+                  <p className="text-sm font-medium text-foreground">
                     {TIME_SLOT_LABELS[booking.timeSlot] || booking.timeSlot}
                   </p>
                 </div>
@@ -216,7 +218,7 @@ export default async function PortalBookingDetailPage({
                   <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">
                     Guest Count
                   </p>
-                  <p className="text-sm font-medium text-zinc-900">
+                  <p className="text-sm font-medium text-foreground">
                     {booking.guestCount} guests
                   </p>
                 </div>
@@ -224,7 +226,7 @@ export default async function PortalBookingDetailPage({
                   <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">
                     Total Amount
                   </p>
-                  <p className="text-sm font-bold text-zinc-900">
+                  <p className="text-sm font-bold text-foreground">
                     {formatINR(booking.totalAmount)}
                   </p>
                 </div>
@@ -249,7 +251,7 @@ export default async function PortalBookingDetailPage({
           {/* Venue Info */}
           <Card className="border-zinc-200/80 shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base font-semibold text-zinc-900">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
                 <MapPin className="size-4 text-indigo-500" />
                 Venue
               </CardTitle>
@@ -257,7 +259,7 @@ export default async function PortalBookingDetailPage({
             <CardContent>
               <div className="space-y-3">
                 <div>
-                  <h3 className="text-sm font-semibold text-zinc-900">
+                  <h3 className="text-sm font-semibold text-foreground">
                     {booking.venue.name}
                   </h3>
                   {booking.venue.description && (
@@ -308,7 +310,7 @@ export default async function PortalBookingDetailPage({
           {booking.invoices.length > 0 && (
             <Card className="border-zinc-200/80 shadow-sm">
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base font-semibold text-zinc-900">
+                <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
                   <FileText className="size-4 text-indigo-500" />
                   Invoices
                 </CardTitle>
@@ -326,7 +328,7 @@ export default async function PortalBookingDetailPage({
                           <FileText className="size-5 text-zinc-500" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-zinc-900">
+                          <p className="text-sm font-medium text-foreground">
                             {inv.invoiceNumber}
                           </p>
                           <p className="text-xs text-zinc-500">
@@ -339,7 +341,7 @@ export default async function PortalBookingDetailPage({
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-semibold text-zinc-900">
+                          <p className="text-sm font-semibold text-foreground">
                             {formatINR(inv.totalAmount)}
                           </p>
                           {inv.balanceDue > 0 && (
@@ -368,7 +370,7 @@ export default async function PortalBookingDetailPage({
           {booking.coordinator && (
             <Card className="border-zinc-200/80 shadow-sm">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold text-zinc-900">
+                <CardTitle className="text-base font-semibold text-foreground">
                   Your Coordinator
                 </CardTitle>
               </CardHeader>
@@ -385,7 +387,7 @@ export default async function PortalBookingDetailPage({
                         : "?"}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-zinc-900">
+                      <p className="text-sm font-medium text-foreground">
                         {booking.coordinator.name || "Coordinator"}
                       </p>
                       <p className="text-xs text-zinc-500">Event Coordinator</p>
@@ -419,7 +421,7 @@ export default async function PortalBookingDetailPage({
           {/* Payment Summary */}
           <Card className="border-zinc-200/80 shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base font-semibold text-zinc-900">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
                 <IndianRupee className="size-4 text-indigo-500" />
                 Payment Summary
               </CardTitle>
@@ -428,7 +430,7 @@ export default async function PortalBookingDetailPage({
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-zinc-500">Total Amount</span>
-                  <span className="text-sm font-semibold text-zinc-900">
+                  <span className="text-sm font-semibold text-foreground">
                     {formatINR(booking.totalAmount)}
                   </span>
                 </div>
@@ -508,7 +510,7 @@ export default async function PortalBookingDetailPage({
           {/* Quick Info */}
           <Card className="border-zinc-200/80 shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold text-zinc-900">
+              <CardTitle className="text-base font-semibold text-foreground">
                 Quick Info
               </CardTitle>
             </CardHeader>
@@ -516,13 +518,13 @@ export default async function PortalBookingDetailPage({
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-zinc-500">Booking #</span>
-                  <span className="font-medium text-zinc-900">
+                  <span className="font-medium text-foreground">
                     {booking.bookingNumber}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-zinc-500">Created</span>
-                  <span className="font-medium text-zinc-900">
+                  <span className="font-medium text-foreground">
                     {new Date(booking.createdAt).toLocaleDateString("en-IN", {
                       month: "short",
                       day: "numeric",
@@ -532,13 +534,13 @@ export default async function PortalBookingDetailPage({
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-zinc-500">Event Type</span>
-                  <span className="font-medium text-zinc-900">
+                  <span className="font-medium text-foreground">
                     {booking.eventType}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-zinc-500">Invoices</span>
-                  <span className="font-medium text-zinc-900">
+                  <span className="font-medium text-foreground">
                     {booking.invoices.length}
                   </span>
                 </div>

@@ -156,7 +156,15 @@ export default auth((req) => {
 
   // Role-based access control for portal routes
   if (isPortalRoute) {
-    if (!role || !(PORTAL_ROLES as readonly string[]).includes(role)) {
+    // H4: a logged-OUT visitor should be sent to sign in (and returned here
+    // afterwards), not to the staff-style /not-authorized page.
+    if (!role) {
+      const signInUrl = new URL("/sign-in", nextUrl);
+      signInUrl.searchParams.set("callbackUrl", pathname + nextUrl.search);
+      return NextResponse.redirect(signInUrl);
+    }
+    // Logged in but with a non-portal role → genuine authorization failure.
+    if (!(PORTAL_ROLES as readonly string[]).includes(role)) {
       return NextResponse.redirect(new URL("/not-authorized", nextUrl));
     }
   }

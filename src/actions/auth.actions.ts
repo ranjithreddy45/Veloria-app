@@ -48,7 +48,12 @@ export async function signUpAction(formData: FormData) {
     // Hash password
     const hashedPassword = await bcryptjs.hash(password, 12);
 
-    // Create user with CLIENT role
+    // Create user with CLIENT role.
+    // C9 (account takeover): emailVerified is intentionally left null. Anyone
+    // can register a customer's email (it's printed on every invoice), so an
+    // unverified credential signup must NOT resolve to that customer's portal
+    // data. The portal data gate keys off emailVerified; staff onboard a real
+    // client via a portal invite token (generatePortalInvite).
     await prisma.user.create({
       data: {
         name,

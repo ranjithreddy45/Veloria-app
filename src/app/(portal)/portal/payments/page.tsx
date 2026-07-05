@@ -231,7 +231,7 @@ export default async function PortalPaymentsPage() {
                           {payment.status === "COMPLETED" &&
                             payment.invoiceId && (
                               <a
-                                href={`/invoices/${payment.invoiceId}/pdf?auto=1`}
+                                href={`/portal/invoices/${payment.invoiceId}/pdf?auto=1`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-700 transition-colors"

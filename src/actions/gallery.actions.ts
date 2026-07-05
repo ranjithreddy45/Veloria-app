@@ -12,6 +12,7 @@ import {
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
 import { hasPermission } from "@/lib/permissions";
+import { getVerifiedContactIds } from "@/lib/portal-identity";
 
 // ============================================================
 // Get Gallery Items (Paginated + Filtered)
@@ -455,11 +456,8 @@ export async function getPortalGallery(userId: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
-    // Resolve the client's contact ids via their email (User id != Contact id).
-    const u = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
-    const contactIds = u?.email
-      ? (await prisma.contact.findMany({ where: { email: u.email }, select: { id: true } })).map((c) => c.id)
-      : [];
+    // C9: verified-only, centralized contact resolution (M7 deletedAt handled).
+    const contactIds = await getVerifiedContactIds(userId);
     if (contactIds.length === 0) {
       return { success: true as const, data: { items: [], bookings: [] } };
     }

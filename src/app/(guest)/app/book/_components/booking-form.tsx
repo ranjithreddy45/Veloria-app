@@ -3,13 +3,17 @@
 import * as React from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { CheckCircle2, Loader2, Phone, Sparkles } from "lucide-react";
+import { CheckCircle2, Clock, Loader2, Sparkles } from "lucide-react";
 import { submitBookingInquiry } from "@/actions/storefront.actions";
+import { HelpChip } from "@/components/public/help-chip";
 
+// Values here are sent verbatim as the enquiry's eventType, so each label must
+// carry through as picked (no "Sangeet" → "Social Gathering" style remaps).
 const OCCASIONS = [
   "Wedding",
   "Reception",
   "Engagement",
+  "Sangeet",
   "Birthday Party",
   "Corporate Event",
   "Social Gathering",
@@ -82,15 +86,20 @@ export function BookingForm({ venues }: { venues: VenueOption[] }) {
           reach out shortly to confirm availability and share a personalised
           quote.
         </p>
-        <a
-          href="tel:+919876543210"
-          className="sheen-sweep relative mt-6 inline-flex w-full max-w-xs items-center justify-center gap-2 overflow-hidden rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-5 py-3 text-[14px] font-bold text-white shadow-md shadow-violet-600/25"
-        >
-          <Phone className="size-4" /> Call us now
-        </a>
+        <p className="mt-3 inline-flex max-w-xs items-center gap-1.5 rounded-full bg-emerald-50 px-3.5 py-1.5 text-[12.5px] font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+          <Clock className="size-3.5" /> Our team will call you within 2 hours
+          (10am–8pm).
+        </p>
+        <HelpChip
+          variant="banner"
+          className="mt-6 w-full max-w-xs"
+          message={`Hi, I just submitted an enquiry${
+            form.name ? ` (${form.name})` : ""
+          } and would like to talk to the events team.`}
+        />
         <Link
           href="/app"
-          className="mt-3 text-[13px] font-bold text-violet-600"
+          className="mt-4 text-[13px] font-bold text-violet-600"
         >
           Back to home
         </Link>
@@ -106,11 +115,11 @@ export function BookingForm({ venues }: { venues: VenueOption[] }) {
   return (
     <div className="bg-aura bg-grid-faint min-h-screen bg-zinc-50 px-5 pt-[calc(var(--sat)+1.25rem)]">
       <h1 className="large-title text-ink-gradient text-[26px]">
-        Check availability
+        Request a callback
       </h1>
       <p className="mt-1 text-[13px] text-zinc-500">
-        Tell us about your event — we&apos;ll confirm and send a quote. No
-        payment now.
+        Tell us about your event — our team will confirm availability and send a
+        personalised quote. No payment now.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-5 space-y-4">

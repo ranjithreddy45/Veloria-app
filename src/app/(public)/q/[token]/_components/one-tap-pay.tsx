@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { CalendarCheck, Loader2, CheckCircle2, AlertCircle, Lock, ShieldCheck } from "lucide-react";
+import { CalendarCheck, Loader2, CheckCircle2, AlertCircle, Lock, ShieldCheck, PhoneCall } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { HelpChip } from "@/components/public/help-chip";
 import {
   createPublicRazorpayOrder,
   verifyPublicRazorpayPayment,
@@ -66,6 +67,8 @@ export function OneTapPay({
   slotBusy = false,
   alreadySecured = false,
   tierQuotationId,
+  eventDateLabel,
+  slotLabel,
 }: {
   token: string;
   /** Server-computed 20% booking-advance amount (paise-exact, INR). */
@@ -81,12 +84,19 @@ export function OneTapPay({
    * + slot block invoice the chosen snapshot. Omitted for single-tier links.
    */
   tierQuotationId?: string;
+  /** Optional event facts echoed on the success/slot-taken cards. */
+  eventDateLabel?: string | null;
+  slotLabel?: string | null;
 }) {
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState<"idle" | "securing" | "success" | "error">(
+  // "slotTaken": money captured but the slot was grabbed first (pay-then-lose
+  // race) — a distinct amber state, NOT the green "secured" card.
+  const [status, setStatus] = useState<"idle" | "securing" | "success" | "slotTaken" | "error">(
     alreadySecured ? "success" : "idle",
   );
   const [error, setError] = useState("");
+  // Amount actually captured (server-clamped) — echoed on the success card.
+  const [paidAmount, setPaidAmount] = useState<number | null>(null);
 
   const pay = useCallback(async () => {
     setLoading(true);
@@ -118,6 +128,8 @@ export function OneTapPay({
       const orderRes = await createPublicRazorpayOrder(invoiceId, amount);
       if (!orderRes.success) throw new Error(orderRes.error || "Couldn't start the payment.");
       const { orderId, amount: paise, currency, keyId } = orderRes.data;
+      // Server-clamped amount actually being charged (paise → INR) for the receipt line.
+      const chargedInr = Math.round(paise / 100);
 
       const options = {
         key: keyId,
@@ -139,21 +151,38 @@ export function OneTapPay({
             });
             if (!v.success) throw new Error(v.error || "Payment could not be confirmed.");
 
+            setPaidAmount(chargedInr);
+
             // 4. Block the slot + auto-confirm (Serializable; idempotent).
             const blockRes = await confirmOneTapAndBlock(token);
             if (!blockRes.success) {
-              // Payment captured but the slot was just taken — graceful message.
-              setStatus("error");
+              // The confirm itself errored (not the race) — money is captured,
+              // so treat this as "received, we'll sort it out", never a dead-end.
+              setStatus("slotTaken");
               setError(
                 blockRes.error ||
-                  "Payment received, but the slot was just taken. Our team will contact you right away.",
+                  "Payment received — we'll confirm your date shortly.",
               );
+              setLoading(false);
+              return;
+            }
+            // C1: confirm can succeed with secured=false / slotTaken=true — the
+            // pay-then-lose race. Money is captured but the slot was grabbed
+            // first. Show the distinct amber "received but slot taken" state,
+            // NOT the green secured card.
+            if (blockRes.data.slotTaken || blockRes.data.secured === false) {
+              setStatus("slotTaken");
+              setLoading(false);
               return;
             }
             setStatus("success");
+            setLoading(false);
           } catch (e) {
+            // C3: capture may already have gone through here — never a dead-end,
+            // and always release the button so the customer can retry.
             setStatus("error");
             setError(e instanceof Error ? e.message : "Payment could not be confirmed.");
+            setLoading(false);
           }
         },
         modal: { ondismiss: () => setLoading(false) },
@@ -172,17 +201,53 @@ export function OneTapPay({
     }
   }, [token, customerName, tierQuotationId]);
 
+  const eventFacts = [eventDateLabel, slotLabel].filter(Boolean).join(" · ");
+
   if (status === "success") {
     return (
-      <div className="animate-rise-in flex flex-col items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center dark:border-emerald-900 dark:bg-emerald-950/40">
-        <CheckCircle2 className="size-10 text-emerald-600 dark:text-emerald-400" />
-        <p className="text-lg font-semibold text-emerald-800 dark:text-emerald-300">
-          Your date is secured
-        </p>
-        <p className="text-sm text-emerald-700 dark:text-emerald-400">
-          Thank you! Your booking advance is received and the date is now blocked for you. Our team
-          will reach out to plan the details.
-        </p>
+      <div className="animate-rise-in space-y-3">
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center dark:border-emerald-900 dark:bg-emerald-950/40">
+          <CheckCircle2 className="size-10 text-emerald-600 dark:text-emerald-400" />
+          <p className="text-lg font-semibold text-emerald-800 dark:text-emerald-300">
+            Your date is secured
+          </p>
+          {eventFacts && (
+            <p className="text-[12.5px] font-medium text-emerald-700 dark:text-emerald-400">
+              {eventFacts}
+            </p>
+          )}
+          <p className="text-sm text-emerald-700 dark:text-emerald-400">
+            {paidAmount != null
+              ? `Payment of ${inr(paidAmount)} received — your date is now blocked for you.`
+              : "Your booking advance is received and the date is now blocked for you."}
+          </p>
+          <p className="mt-1 flex items-center justify-center gap-1.5 text-[12.5px] font-medium text-emerald-800 dark:text-emerald-300">
+            <PhoneCall className="size-3.5" /> Your coordinator will call you within 24 hours.
+          </p>
+        </div>
+        <HelpChip variant="banner" />
+      </div>
+    );
+  }
+
+  // C1: distinct amber state — money captured, but the slot was just taken.
+  if (status === "slotTaken") {
+    return (
+      <div className="animate-rise-in space-y-3">
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center dark:border-amber-900 dark:bg-amber-950/40">
+          <AlertCircle className="size-10 text-amber-600 dark:text-amber-400" />
+          <p className="text-lg font-semibold text-amber-800 dark:text-amber-300">
+            Payment received
+          </p>
+          <p className="text-sm text-amber-700 dark:text-amber-400">
+            {paidAmount != null ? `Your payment of ${inr(paidAmount)} came through` : "Your payment came through"}
+            {" "}— but this slot was just taken. Our team will call you to sort it out or refund you in full.
+          </p>
+          {error && (
+            <p className="text-[12px] text-amber-600/80 dark:text-amber-400/80">{error}</p>
+          )}
+        </div>
+        <HelpChip variant="banner" />
       </div>
     );
   }
@@ -215,9 +280,12 @@ export function OneTapPay({
       )}
 
       {status === "error" && (
-        <p className="flex items-center justify-center gap-1.5 text-center text-sm text-destructive">
-          <AlertCircle className="size-4 shrink-0" /> {error}
-        </p>
+        <div className="space-y-2">
+          <p className="flex items-center justify-center gap-1.5 text-center text-sm text-destructive">
+            <AlertCircle className="size-4 shrink-0" /> {error}
+          </p>
+          <HelpChip />
+        </div>
       )}
 
       <div className="flex items-center justify-center gap-2 pt-1">

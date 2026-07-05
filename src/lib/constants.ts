@@ -25,11 +25,20 @@ export const COMPANY_GSTIN =
 export const LEGACY_INVOICE_TERMS =
   "1. Payment is due within 30 days of invoice date.\n2. Late payments may attract interest at 18% per annum.\n3. All disputes are subject to local jurisdiction.";
 
-export const COMPANY_PHONE =
-  process.env.NEXT_PUBLIC_COMPANY_PHONE || "+91 80 1234 5678";
+// Public contact — NO fake fallback. A placeholder phone connects customers to
+// a stranger, so if unset we render no phone at all (client surfaces hide it).
+// Set NEXT_PUBLIC_COMPANY_PHONE (display) + NEXT_PUBLIC_COMPANY_WHATSAPP (E.164
+// digits, no "+", for wa.me links) in the environment.
+export const COMPANY_PHONE = process.env.NEXT_PUBLIC_COMPANY_PHONE || "";
+
+// wa.me expects digits only (country code + number, no "+"/spaces).
+export const COMPANY_WHATSAPP = (process.env.NEXT_PUBLIC_COMPANY_WHATSAPP || "").replace(/[^\d]/g, "");
 
 export const COMPANY_EMAIL =
   process.env.NEXT_PUBLIC_COMPANY_EMAIL || "info@veloriagrand.com";
+
+/** True when at least one real customer-reachable channel is configured. */
+export const HAS_PUBLIC_CONTACT = !!(COMPANY_PHONE || COMPANY_WHATSAPP);
 
 // ============================================================
 // Event Types
@@ -123,6 +132,23 @@ export const BOOKING_STATUS_COLORS: Record<string, string> = {
   COMPLETED: "bg-zinc-50 text-zinc-600 border-zinc-200/60 dark:bg-zinc-800/30 dark:text-zinc-400 dark:border-zinc-700/40",
   CANCELLED: "bg-red-50 text-red-700 border-red-200/60 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800/40",
 } as const;
+
+// Client-facing booking status labels (M1). The portal never shows raw internal
+// lifecycle words like HOLD/TENTATIVE/IN_PROGRESS — customers see friendly ones.
+// Mirrors the booking-detail stepper's mapping.
+export const BOOKING_STATUS_CLIENT_LABELS: Record<string, string> = {
+  HOLD: "Reserved",
+  TENTATIVE: "Reserved",
+  CONFIRMED: "Confirmed",
+  IN_PROGRESS: "In progress",
+  COMPLETED: "Completed",
+  CANCELLED: "Cancelled",
+} as const;
+
+/** Friendly client-facing label for a booking status (falls back to the raw). */
+export function bookingStatusClientLabel(status: string): string {
+  return BOOKING_STATUS_CLIENT_LABELS[status] ?? status;
+}
 
 // ============================================================
 // Lead Status Colors

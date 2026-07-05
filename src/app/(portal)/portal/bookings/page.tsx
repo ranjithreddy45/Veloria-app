@@ -16,6 +16,7 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { PageHeader } from "@/components/layout/page-header";
 import {
   BOOKING_STATUS_COLORS,
+  BOOKING_STATUS_CLIENT_LABELS,
   TIME_SLOT_LABELS,
 } from "@/lib/constants";
 import { formatINR } from "@/lib/utils";
@@ -149,6 +150,7 @@ function BookingCard({ booking, isPast }: BookingCardProps) {
             <StatusBadge
               status={booking.status}
               colorMap={BOOKING_STATUS_COLORS}
+              label={BOOKING_STATUS_CLIENT_LABELS[booking.status]}
               className="text-[10px]"
             />
           </div>

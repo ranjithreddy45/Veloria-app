@@ -6,6 +6,7 @@ import { COMPANY_LEGAL_LINE } from "@/lib/constants";
 // wiring confirms the exports (see sharedEditsNeeded / assumptions).
 import { getPublicQuoteForPay, getPublicSlotScarcity } from "@/actions/quote-onetap.actions";
 import { getSocialProof } from "@/lib/public/social-proof";
+import { HelpChip } from "@/components/public/help-chip";
 import { PublicQuoteView } from "./_components/public-quote-view";
 import { QuoteRadarBeacon } from "./_components/quote-radar-beacon";
 
@@ -40,6 +41,7 @@ function InvalidCard() {
       <p className="mt-1.5 text-sm text-zinc-500">
         The link may have expired or been replaced. Please contact us for an updated quote.
       </p>
+      <HelpChip variant="banner" className="mt-5" />
     </div>
   );
 }

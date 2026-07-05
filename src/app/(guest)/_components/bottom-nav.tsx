@@ -2,12 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Building2, CalendarCheck, LogIn } from "lucide-react";
+import { Home, Building2, CalendarCheck, MessageCircle } from "lucide-react";
+import { COMPANY_WHATSAPP, HAS_PUBLIC_CONTACT } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
-// Public storefront tabs only. The old "Bookings"/"Account" tabs pointed at
-// /portal/* which is auth-gated — a guest tapping them got ejected to
-// /not-authorized. These destinations are all public.
+// Public storefront tabs only. The old "Bookings"/"Account"/"Sign in" tabs
+// pointed at auth-gated staff/portal routes — a guest tapping them got ejected
+// to /not-authorized. The 4th tab is now "Contact": a WhatsApp deep-link when a
+// public channel is configured, otherwise the (public) enquiry form.
+const contactHref =
+  HAS_PUBLIC_CONTACT && COMPANY_WHATSAPP
+    ? `https://wa.me/${COMPANY_WHATSAPP}`
+    : "/app/book";
+
 const TABS = [
   { href: "/app", label: "Home", icon: Home, match: (p: string) => p === "/app" },
   {
@@ -23,10 +30,10 @@ const TABS = [
     match: (p: string) => p.startsWith("/app/book"),
   },
   {
-    href: "/sign-in",
-    label: "Sign in",
-    icon: LogIn,
-    match: (p: string) => p.startsWith("/sign-in"),
+    href: contactHref,
+    label: "Contact",
+    icon: MessageCircle,
+    match: () => false,
   },
 ] as const;
 
@@ -42,18 +49,13 @@ export function BottomNav() {
         {TABS.map((tab) => {
           const active = tab.match(pathname);
           const Icon = tab.icon;
-          return (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              className="flex flex-1 flex-col items-center gap-1 py-2"
-            >
+          const external = tab.href.startsWith("http");
+          const inner = (
+            <>
               <span
                 className={cn(
                   "flex h-8 w-12 items-center justify-center rounded-full transition-colors",
-                  active
-                    ? "bg-violet-100 text-violet-700"
-                    : "text-zinc-400"
+                  active ? "bg-violet-100 text-violet-700" : "text-zinc-400"
                 )}
               >
                 <Icon
@@ -71,6 +73,23 @@ export function BottomNav() {
               >
                 {tab.label}
               </span>
+            </>
+          );
+          const cls = "flex flex-1 flex-col items-center gap-1 py-2";
+
+          return external ? (
+            <a
+              key={tab.href}
+              href={tab.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cls}
+            >
+              {inner}
+            </a>
+          ) : (
+            <Link key={tab.href} href={tab.href} className={cls}>
+              {inner}
             </Link>
           );
         })}

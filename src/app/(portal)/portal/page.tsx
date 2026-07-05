@@ -20,11 +20,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { ShieldAlert } from "lucide-react";
 import { auth } from "@/../auth";
 import { getPortalDashboard } from "@/actions/portal.actions";
+import { resolvePortalContactIds } from "@/lib/portal-identity";
 import { StatusBadge } from "@/components/shared/status-badge";
 import {
   BOOKING_STATUS_COLORS,
+  BOOKING_STATUS_CLIENT_LABELS,
   TIME_SLOT_LABELS,
 } from "@/lib/constants";
 import { formatINR } from "@/lib/utils";
@@ -51,7 +54,10 @@ export default async function PortalPage() {
   const session = await auth();
   if (!session?.user) redirect("/sign-in");
 
-  const data = await getPortalDashboard(session.user.id);
+  const [data, identity] = await Promise.all([
+    getPortalDashboard(session.user.id),
+    resolvePortalContactIds(session.user.id),
+  ]);
 
   const days = data.nextEvent ? daysUntil(new Date(data.nextEvent.date)) : null;
 
@@ -129,6 +135,22 @@ export default async function PortalPage() {
         </div>
       </div>
 
+      {/* C9: unverified account — never silently show empty/foreign data. */}
+      {!identity.verified && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-900/50 dark:bg-amber-950/30">
+          <ShieldAlert className="mt-0.5 size-5 flex-shrink-0 text-amber-600" />
+          <div>
+            <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+              Your account needs to be verified
+            </h3>
+            <p className="mt-1 text-sm text-amber-700 dark:text-amber-300/80">
+              Please contact us to activate your portal. Until then, your
+              bookings, invoices, and documents won&apos;t appear here.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Summary Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {summaryCards.map((card) => {
@@ -142,7 +164,7 @@ export default async function PortalPage() {
                       <p className="text-sm font-medium text-zinc-500">
                         {card.title}
                       </p>
-                      <p className="text-2xl font-bold tracking-tight text-zinc-900">
+                      <p className="text-2xl font-bold tracking-tight text-foreground">
                         {card.value}
                       </p>
                       <p className="text-xs text-zinc-400">{card.description}</p>
@@ -166,7 +188,7 @@ export default async function PortalPage() {
           <div className="border-l-4 border-indigo-500">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-semibold text-zinc-900">
+                <CardTitle className="text-base font-semibold text-foreground">
                   Next Event
                 </CardTitle>
                 <Link
@@ -182,7 +204,7 @@ export default async function PortalPage() {
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-3">
                   <div>
-                    <h3 className="text-lg font-semibold text-zinc-900">
+                    <h3 className="text-lg font-semibold text-foreground">
                       {data.nextEvent.eventName}
                     </h3>
                     <p className="text-sm text-zinc-500">
@@ -217,6 +239,7 @@ export default async function PortalPage() {
                   <StatusBadge
                     status={data.nextEvent.status}
                     colorMap={BOOKING_STATUS_COLORS}
+                    label={BOOKING_STATUS_CLIENT_LABELS[data.nextEvent.status]}
                   />
                 </div>
               </div>
@@ -228,7 +251,7 @@ export default async function PortalPage() {
       {/* Recent Bookings */}
       <Card className="border-zinc-200/80 shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-base font-semibold text-zinc-900">
+          <CardTitle className="text-base font-semibold text-foreground">
             Your Bookings
           </CardTitle>
           <Link
@@ -263,7 +286,7 @@ export default async function PortalPage() {
                       <CalendarCheck className="size-5 text-indigo-600" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-zinc-900 truncate">
+                      <p className="text-sm font-medium text-foreground truncate">
                         {booking.eventName}
                       </p>
                       <div className="mt-0.5 flex items-center gap-2 text-xs text-zinc-500">
@@ -282,6 +305,7 @@ export default async function PortalPage() {
                     <StatusBadge
                       status={booking.status}
                       colorMap={BOOKING_STATUS_COLORS}
+                      label={BOOKING_STATUS_CLIENT_LABELS[booking.status]}
                     />
                   </div>
                 </Link>
@@ -330,7 +354,7 @@ export default async function PortalPage() {
                     <Icon className={`size-6 ${action.color}`} />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-zinc-900">
+                    <p className="text-sm font-semibold text-foreground">
                       {action.title}
                     </p>
                     <p className="text-xs text-zinc-500">

@@ -4,6 +4,7 @@ import { auth } from "@/../auth";
 import { Gem } from "lucide-react";
 import { PortalNav } from "./portal-nav";
 import { BrandLogo } from "@/components/layout/brand-logo";
+import { getPortalContracts } from "@/actions/contract.actions";
 
 export default async function PortalLayout({
   children,
@@ -15,6 +16,12 @@ export default async function PortalLayout({
   if (!session?.user) {
     redirect("/sign-in");
   }
+
+  // H2: contracts awaiting the client's signature drive the nav badge.
+  const contracts = await getPortalContracts(session.user.id);
+  const contractsAwaiting = contracts.filter(
+    (c) => c.status === "SENT" || c.status === "VIEWED"
+  ).length;
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
@@ -42,7 +49,10 @@ export default async function PortalLayout({
           </Link>
 
           {/* Navigation + logout */}
-          <PortalNav userName={session.user.name || "Guest"} />
+          <PortalNav
+            userName={session.user.name || "Guest"}
+            contractsAwaiting={contractsAwaiting}
+          />
         </div>
       </header>
 

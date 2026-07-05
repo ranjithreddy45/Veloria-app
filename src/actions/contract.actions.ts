@@ -17,6 +17,7 @@ import { notify } from "@/lib/notify";
 import { sendEmail } from "@/lib/email";
 import { contractSentEmail } from "@/lib/email-templates/contract-sent";
 import { requestSignature } from "@/lib/esign";
+import { getVerifiedContactIds } from "@/lib/portal-identity";
 import { format } from "date-fns";
 
 // ============================================================
@@ -1034,19 +1035,8 @@ export async function getPortalContracts(userId: string) {
     return [];
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { email: true },
-  });
-
-  if (!user?.email) return [];
-
-  const contacts = await prisma.contact.findMany({
-    where: { email: user.email },
-    select: { id: true },
-  });
-
-  const contactIds = contacts.map((c) => c.id);
+  // C9: verified-only, centralized contact resolution (M7 deletedAt handled).
+  const contactIds = await getVerifiedContactIds(userId);
   if (contactIds.length === 0) return [];
 
   const contracts = await prisma.contract.findMany({
@@ -1091,19 +1081,8 @@ export async function getPortalContract(
     return null;
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { email: true },
-  });
-
-  if (!user?.email) return null;
-
-  const contacts = await prisma.contact.findMany({
-    where: { email: user.email },
-    select: { id: true },
-  });
-
-  const contactIds = contacts.map((c) => c.id);
+  // C9: verified-only, centralized contact resolution (M7 deletedAt handled).
+  const contactIds = await getVerifiedContactIds(userId);
   if (contactIds.length === 0) return null;
 
   const contract = await prisma.contract.findFirst({
@@ -1129,9 +1108,6 @@ export async function getPortalContract(
           date: true,
           venue: { select: { name: true } },
         },
-      },
-      template: {
-        select: { name: true },
       },
     },
   });
@@ -1166,10 +1142,10 @@ export async function getPortalContract(
     signedAt: contract.signedAt,
     expiresAt: contract.expiresAt,
     signerName: contract.signerName,
-    signerEmail: contract.signerEmail,
+    // M2: signerEmail, notes, and template name are internal — never surfaced
+    // to the client portal.
     signatureData: contract.signatureData,
     signedViaEsign: contract.signedViaEsign,
-    notes: contract.notes,
     createdAt: contract.createdAt,
     contact: contract.contact,
     booking: contract.booking
@@ -1180,7 +1156,6 @@ export async function getPortalContract(
           venueName: contract.booking.venue?.name ?? null,
         }
       : null,
-    templateName: contract.template?.name ?? null,
   });
 }
 
@@ -1199,21 +1174,9 @@ export async function portalSignContract(
       return { success: false as const, error: "Unauthorized" };
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { email: true },
-    });
-
-    if (!user?.email) {
-      return { success: false as const, error: "Unauthorized" };
-    }
-
-    const contacts = await prisma.contact.findMany({
-      where: { email: user.email },
-      select: { id: true },
-    });
-
-    const contactIds = contacts.map((c) => c.id);
+    // C9: only a VERIFIED portal identity may sign — otherwise a stranger who
+    // registered the customer's email could sign their contract.
+    const contactIds = await getVerifiedContactIds(userId);
     if (contactIds.length === 0) {
       return { success: false as const, error: "Unauthorized" };
     }

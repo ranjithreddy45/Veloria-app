@@ -23,11 +23,13 @@ function TierCard({
   view,
   isOnly,
   slotBusy,
+  eventDateLabel,
 }: {
   tier: PublicQuoteTier;
   view: PublicQuoteView;
   isOnly: boolean;
   slotBusy: boolean;
+  eventDateLabel: string | null;
 }) {
   const secured = view.paid || view.blocked || tier.isSelected;
   return (
@@ -116,6 +118,8 @@ function TierCard({
             slotBusy={!secured && slotBusy}
             alreadySecured={secured}
             tierQuotationId={view.tiers.length > 1 ? tier.quotationId : undefined}
+            eventDateLabel={eventDateLabel}
+            slotLabel={view.slotLabel}
           />
         </div>
       </div>
@@ -227,6 +231,7 @@ export function PublicQuoteView({
             view={view}
             isOnly={!isMultiTier}
             slotBusy={scarcity ? !scarcity.selectedSlotFree : false}
+            eventDateLabel={eventDateLabel}
           />
         ))}
       </div>

@@ -4,11 +4,11 @@ import {
   ArrowLeft,
   Users,
   Check,
-  Star,
   MapPin,
-  ParkingCircle,
 } from "lucide-react";
 import { getStorefrontVenue } from "@/actions/storefront.actions";
+import { COMPANY_ADDRESS } from "@/lib/constants";
+import { HelpChip } from "@/components/public/help-chip";
 import { VenueImage } from "../../../_components/venue-image";
 import { formatPrice } from "../../../_components/format";
 
@@ -23,6 +23,11 @@ export default async function VenueDetailPage({
   const venue = await getStorefrontVenue(venueId);
   if (!venue) notFound();
 
+  // No per-venue address field on the storefront record, so fall back to the
+  // company address. Both drive a Google Maps link.
+  const mapAddress = COMPANY_ADDRESS;
+  const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapAddress)}`;
+
   return (
     <div className="bg-zinc-50">
       {/* Hero image */}
@@ -30,6 +35,7 @@ export default async function VenueDetailPage({
         <VenueImage
           seed={venue.id}
           alt={venue.name}
+          name={venue.name}
           priority
           className="h-72 w-full"
         />
@@ -40,9 +46,6 @@ export default async function VenueDetailPage({
         >
           <ArrowLeft className="size-5" />
         </Link>
-        <span className="absolute right-4 top-[calc(var(--sat)+0.75rem)] inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-[12px] font-bold text-zinc-800 shadow-sm">
-          <Star className="size-3.5 fill-amber-400 text-amber-400" /> 4.8
-        </span>
       </div>
 
       {/* Title card overlapping the hero */}
@@ -58,6 +61,9 @@ export default async function VenueDetailPage({
             <div className="text-[17px] font-extrabold text-violet-700">
               {formatPrice(venue.pricePerSlot)}
             </div>
+            <div className="text-[9.5px] leading-tight text-violet-400">
+              / slot · venue rental
+            </div>
           </div>
         </div>
 
@@ -65,13 +71,21 @@ export default async function VenueDetailPage({
           <span className="inline-flex items-center gap-1.5">
             <Users className="size-4 text-violet-500" /> Up to {venue.capacity} guests
           </span>
-          <span className="inline-flex items-center gap-1.5">
-            <MapPin className="size-4 text-violet-500" /> Bangalore
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <ParkingCircle className="size-4 text-violet-500" /> Valet parking
-          </span>
+          <a
+            href={mapsHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={mapAddress}
+            className="inline-flex items-center gap-1.5 text-violet-600 underline-offset-2 hover:underline"
+          >
+            <MapPin className="size-4 text-violet-500" /> View on map
+          </a>
         </div>
+
+        {/* Full address line */}
+        <p className="mt-1.5 text-[12px] leading-relaxed text-zinc-400">
+          {mapAddress}
+        </p>
 
         {venue.description && (
           <p className="mt-4 text-[13.5px] leading-relaxed text-zinc-600">
@@ -110,6 +124,13 @@ export default async function VenueDetailPage({
             pricing depends on date, guests, and add-ons.
           </p>
         </div>
+
+        {/* Reach us directly (self-hides when no public contact is configured) */}
+        <HelpChip
+          variant="banner"
+          className="mt-4"
+          message={`Hi, I'd like to enquire about ${venue.name}.`}
+        />
       </div>
 
       {/* Sticky book bar — sits clear above the ~68px bottom nav (+ safe area) */}

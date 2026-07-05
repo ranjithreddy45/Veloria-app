@@ -7,26 +7,17 @@ import { revalidatePath } from "next/cache";
 import { notify } from "@/lib/notify";
 import { hasPermission } from "@/lib/permissions";
 import { isSafeReceiptDataUrl } from "@/lib/sales/receipt";
+import { getVerifiedContactIds } from "@/lib/portal-identity";
+import { createPortalInvite, acceptPortalInvite } from "@/lib/portal-invite";
 import type { PaymentMethod } from "@prisma/client";
 
 // ============================================================
-// Helper: Get contact IDs linked to this user's email
+// Helper: Get contact IDs linked to this user's VERIFIED identity.
+// Delegates to the single guarded resolver (C9): unverified users get [].
 // ============================================================
 
 async function getClientContactIds(userId: string): Promise<string[]> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { email: true },
-  });
-
-  if (!user?.email) return [];
-
-  const contacts = await prisma.contact.findMany({
-    where: { email: user.email, deletedAt: null },
-    select: { id: true },
-  });
-
-  return contacts.map((c) => c.id);
+  return getVerifiedContactIds(userId);
 }
 
 // ============================================================
@@ -202,17 +193,6 @@ export async function getPortalBooking(userId: string, bookingId: string) {
           phone: true,
         },
       },
-      tasks: {
-        where: { parentId: null },
-        select: {
-          id: true,
-          title: true,
-          status: true,
-          priority: true,
-          dueDate: true,
-        },
-        orderBy: { order: "asc" },
-      },
       invoices: {
         select: {
           id: true,
@@ -254,13 +234,6 @@ export async function getPortalBooking(userId: string, bookingId: string) {
       amenities: booking.venue.amenities,
     },
     contact: booking.contact,
-    tasks: booking.tasks.map((t) => ({
-      id: t.id,
-      title: t.title,
-      status: t.status,
-      priority: t.priority,
-      dueDate: t.dueDate,
-    })),
     invoices: booking.invoices.map((inv) => ({
       id: inv.id,
       invoiceNumber: inv.invoiceNumber,
@@ -463,8 +436,6 @@ export async function getPortalPayments(userId: string) {
     method: p.method,
     transactionId: p.transactionId,
     receiptNumber: p.receiptNumber,
-    razorpayOrderId: p.razorpayOrderId,
-    notes: p.notes,
     paidAt: p.paidAt,
     createdAt: p.createdAt,
     invoiceId: p.invoiceId,
@@ -643,4 +614,273 @@ export async function submitPaymentProof(
   revalidatePath("/portal/invoices");
   revalidatePath(`/portal/invoices/${data.invoiceId}`);
   return { success: true as const, data: { id: payment.id } };
+}
+
+// ============================================================
+// H1 — Portal-scoped invoice PDF data.
+// The internal /invoices/{id}/pdf route is gated to staff (CLIENT gets
+// /not-authorized). This returns the same branded invoice data, but ONLY when
+// the invoice belongs to the caller's verified contact — so the portal PDF page
+// can render without ever touching the internal, staff-permissioned action.
+// ============================================================
+
+export async function getPortalInvoiceForPdf(userId: string, invoiceId: string) {
+  const session = await auth();
+  if (!session?.user || session.user.id !== userId) return null;
+
+  const contactIds = await getClientContactIds(userId);
+  if (contactIds.length === 0) return null;
+
+  const invoice = await prisma.invoice.findFirst({
+    where: { id: invoiceId, contactId: { in: contactIds } },
+    include: {
+      contact: {
+        select: {
+          firstName: true,
+          lastName: true,
+          email: true,
+          phone: true,
+          company: true,
+          address: true,
+          city: true,
+          state: true,
+          pincode: true,
+        },
+      },
+      booking: {
+        select: {
+          eventName: true,
+          eventType: true,
+          bookingNumber: true,
+          date: true,
+          venue: { select: { name: true } },
+        },
+      },
+      lineItems: { orderBy: { order: "asc" } },
+    },
+  });
+
+  if (!invoice) return null;
+
+  return serialize({
+    invoiceNumber: invoice.invoiceNumber,
+    status: invoice.status,
+    issueDate: invoice.issueDate,
+    dueDate: invoice.dueDate,
+    subtotal: Number(invoice.subtotal),
+    discountPercent: invoice.discountPercent ? Number(invoice.discountPercent) : 0,
+    discountAmount: invoice.discountAmount ? Number(invoice.discountAmount) : 0,
+    cgstRate: Number(invoice.cgstRate),
+    sgstRate: Number(invoice.sgstRate),
+    igstRate: Number(invoice.igstRate),
+    cgstAmount: Number(invoice.cgstAmount),
+    sgstAmount: Number(invoice.sgstAmount),
+    igstAmount: Number(invoice.igstAmount),
+    totalAmount: Number(invoice.totalAmount),
+    paidAmount: Number(invoice.paidAmount),
+    balanceDue: Number(invoice.balanceDue),
+    notes: invoice.notes,
+    terms: invoice.terms,
+    gstin: invoice.gstin,
+    placeOfSupply: invoice.placeOfSupply,
+    sacCode: invoice.sacCode,
+    contact: invoice.contact,
+    booking: invoice.booking
+      ? {
+          eventName: invoice.booking.eventName,
+          eventType: invoice.booking.eventType,
+          bookingNumber: invoice.booking.bookingNumber,
+          date: invoice.booking.date,
+          venue: invoice.booking.venue ? { name: invoice.booking.venue.name } : null,
+        }
+      : null,
+    lineItems: invoice.lineItems.map((li) => ({
+      id: li.id,
+      description: li.description,
+      quantity: Number(li.quantity),
+      unitPrice: Number(li.unitPrice),
+      amount: Number(li.amount),
+    })),
+  });
+}
+
+// ============================================================
+// H3 — Documents hub: the client's downloadable items in one place.
+// Reuses the same verified-contact scope as everything else.
+// ============================================================
+
+export async function getPortalDocuments(userId: string) {
+  const session = await auth();
+  if (!session?.user || session.user.id !== userId) {
+    return { verified: false as const, invoices: [], contracts: [] };
+  }
+
+  const contactIds = await getClientContactIds(userId);
+  if (contactIds.length === 0) {
+    // Distinguish "unverified" from "verified but empty" so the page can show
+    // the right message.
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { emailVerified: true },
+    });
+    return {
+      verified: !!user?.emailVerified,
+      invoices: [],
+      contracts: [],
+    };
+  }
+
+  const [invoices, contracts] = await Promise.all([
+    prisma.invoice.findMany({
+      where: { contactId: { in: contactIds }, status: { not: "DRAFT" } },
+      orderBy: { issueDate: "desc" },
+      select: {
+        id: true,
+        invoiceNumber: true,
+        status: true,
+        issueDate: true,
+        totalAmount: true,
+        balanceDue: true,
+        booking: { select: { eventName: true } },
+      },
+    }),
+    prisma.contract.findMany({
+      where: { contactId: { in: contactIds }, status: { notIn: ["DRAFT"] } },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        signedAt: true,
+        sentAt: true,
+        booking: { select: { eventName: true } },
+      },
+    }),
+  ]);
+
+  return serialize({
+    verified: true as const,
+    invoices: invoices.map((inv) => ({
+      id: inv.id,
+      invoiceNumber: inv.invoiceNumber,
+      status: inv.status,
+      issueDate: inv.issueDate,
+      totalAmount: Number(inv.totalAmount),
+      balanceDue: Number(inv.balanceDue),
+      eventName: inv.booking?.eventName ?? null,
+    })),
+    contracts: contracts.map((c) => ({
+      id: c.id,
+      title: c.title,
+      status: c.status,
+      signedAt: c.signedAt,
+      sentAt: c.sentAt,
+      eventName: c.booking?.eventName ?? null,
+    })),
+  });
+}
+
+// ============================================================
+// C9 — Staff: generate a portal invite link for a contact.
+// Gives staff a way to onboard a client (mark their portal identity verified)
+// even though transactional email/OTP is not configured. Guarded by the same
+// permission that lets staff manage contacts.
+// ============================================================
+
+export async function generatePortalInvite(contactId: string) {
+  const session = await auth();
+  if (!session?.user) {
+    return { success: false as const, error: "Unauthorized" };
+  }
+  if (!hasPermission(session.user.role, "contacts:update")) {
+    return { success: false as const, error: "Insufficient permissions" };
+  }
+
+  const contact = await prisma.contact.findFirst({
+    where: { id: contactId, deletedAt: null },
+    select: { id: true, email: true, firstName: true, lastName: true },
+  });
+  if (!contact) {
+    return { success: false as const, error: "Contact not found" };
+  }
+  if (!contact.email) {
+    return {
+      success: false as const,
+      error: "This contact has no email on file — add one before inviting.",
+    };
+  }
+
+  const token = await createPortalInvite(contact.id);
+  const base = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const url = `${base}/portal/activate?contactId=${contact.id}&token=${token}`;
+
+  return {
+    success: true as const,
+    data: {
+      url,
+      contactEmail: contact.email,
+      contactName: `${contact.firstName} ${contact.lastName}`.trim(),
+    },
+  };
+}
+
+// ============================================================
+// C9 — Client: accept a portal invite (marks the signed-in user verified and
+// links them to the invited contact). Requires the client to be signed in as a
+// user whose email matches the invited contact — so a leaked link can't verify
+// a stranger's account against someone else's contact.
+// ============================================================
+
+export async function acceptPortalInviteAction(params: {
+  contactId: string;
+  token: string;
+}) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { success: false as const, error: "Please sign in to activate your portal." };
+  }
+
+  const [user, contact] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { email: true, emailVerified: true },
+    }),
+    prisma.contact.findFirst({
+      where: { id: params.contactId, deletedAt: null },
+      select: { email: true },
+    }),
+  ]);
+
+  if (!user?.email) {
+    return { success: false as const, error: "Your account is missing an email." };
+  }
+  if (user.emailVerified) {
+    // Already verified — nothing to do, treat as success (idempotent UX).
+    return { success: true as const };
+  }
+  if (!contact) {
+    return { success: false as const, error: "This invite link is invalid." };
+  }
+  // The signed-in user's email must match the invited contact's email. This is
+  // the binding that prevents a leaked link from verifying a foreign account.
+  if (contact.email?.toLowerCase() !== user.email.toLowerCase()) {
+    return {
+      success: false as const,
+      error:
+        "This invite was issued for a different email. Please sign in with the email we invoiced you at.",
+    };
+  }
+
+  const result = await acceptPortalInvite({
+    userId: session.user.id,
+    contactId: params.contactId,
+    token: params.token,
+  });
+
+  if (!result.success) {
+    return { success: false as const, error: result.error };
+  }
+
+  revalidatePath("/portal");
+  return { success: true as const };
 }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Users, Star, ChevronRight } from "lucide-react";
+import { Users, ChevronRight } from "lucide-react";
 import { getStorefrontVenues } from "@/actions/storefront.actions";
 import { VenueImage } from "../../_components/venue-image";
 import { formatPrice } from "../../_components/format";
@@ -36,9 +36,6 @@ export default async function VenuesPage() {
                   priority={i === 0}
                   className="h-40 w-full"
                 />
-                <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/95 px-2 py-0.5 text-[11px] font-bold text-zinc-800 shadow-sm">
-                  <Star className="size-3 fill-amber-400 text-amber-400" /> 4.8
-                </span>
                 <h2 className="absolute bottom-3 left-3 text-[17px] font-extrabold text-white drop-shadow">
                   {v.name}
                 </h2>
@@ -59,6 +56,9 @@ export default async function VenuesPage() {
                     <div className="text-[10.5px] text-zinc-400">from</div>
                     <div className="text-[15px] font-extrabold text-violet-700">
                       {formatPrice(v.pricePerSlot)}
+                    </div>
+                    <div className="text-[9.5px] leading-tight text-zinc-400">
+                      / slot · rental
                     </div>
                   </div>
                   <ChevronRight className="size-5 text-zinc-300" />

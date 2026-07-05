@@ -1,10 +1,10 @@
-import { notFound } from "next/navigation";
 import {
   CalendarCheck,
   Clock,
   MapPin,
   CheckCircle2,
   XCircle,
+  AlertTriangle,
 } from "lucide-react";
 import {
   Card,
@@ -43,7 +43,19 @@ export default async function RsvpPage({
   });
 
   if (!invitation) {
-    notFound();
+    return (
+      <div className="mx-auto max-w-lg rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400">
+          <AlertTriangle className="size-6" />
+        </div>
+        <p className="mt-4 text-base font-semibold text-zinc-900 dark:text-zinc-100">
+          This invitation link isn&apos;t valid
+        </p>
+        <p className="mt-1.5 text-sm text-zinc-500">
+          Please check with the couple for an updated invitation.
+        </p>
+      </div>
+    );
   }
 
   const { guest, booking } = invitation;
@@ -51,17 +63,22 @@ export default async function RsvpPage({
   const hasResponded = !!invitation.rsvpRespondedAt;
   const isAccepted = invitation.invitationStatus === "RSVP_ACCEPTED";
 
+  // booking.date is a @db.Date (UTC midnight) → format in UTC so the calendar
+  // day never shifts on a UTC server. booking.startTime is a full DateTime
+  // stored as an IST wall-clock instant → format in Asia/Kolkata.
   const formattedDate = eventDate.toLocaleDateString("en-IN", {
     weekday: "long",
     year: "numeric",
     month: "long",
     day: "numeric",
+    timeZone: "UTC",
   });
 
   const formattedTime = booking.startTime
     ? new Date(booking.startTime).toLocaleTimeString("en-IN", {
         hour: "2-digit",
         minute: "2-digit",
+        timeZone: "Asia/Kolkata",
       })
     : null;
 

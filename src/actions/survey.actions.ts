@@ -334,11 +334,30 @@ export async function submitSurveyResponse(data: SurveyResponseInput) {
       return { success: false as const, error: "This survey is no longer active" };
     }
 
+    // M5 anti-poisoning: never attribute a response to an arbitrary
+    // booking/contact. Only attribute when the booking really belongs to the
+    // given contact; otherwise drop attribution to anonymous so a caller can't
+    // poison another customer's NPS/feedback. (Mirrors the public API route.)
+    let attribBookingId: string | null = null;
+    let attribContactId: string | null = responseData.contactId || null;
+    if (responseData.bookingId) {
+      const b = await prisma.booking.findUnique({
+        where: { id: responseData.bookingId },
+        select: { id: true, contactId: true },
+      });
+      if (b && (!responseData.contactId || b.contactId === responseData.contactId)) {
+        attribBookingId = b.id;
+        attribContactId = b.contactId;
+      } else {
+        attribContactId = null; // inconsistent — drop attribution entirely
+      }
+    }
+
     const response = await prisma.surveyResponse.create({
       data: {
         surveyId: responseData.surveyId,
-        bookingId: responseData.bookingId || null,
-        contactId: responseData.contactId || null,
+        bookingId: attribBookingId,
+        contactId: attribContactId,
         overallRating: responseData.overallRating ?? null,
         npsScore: responseData.npsScore ?? null,
         answers: {
@@ -672,7 +691,25 @@ export async function getPublicSurvey(surveyId: string) {
       return { success: false as const, error: "Survey not found or inactive" };
     }
 
-    return { success: true as const, data: serialize(survey) };
+    // M5: return ONLY the fields the public feedback form renders. Never
+    // serialize the whole record (internal flags, timestamps, and — if the
+    // include ever grows — other customers' responses).
+    return {
+      success: true as const,
+      data: serialize({
+        id: survey.id,
+        title: survey.title,
+        description: survey.description,
+        questions: survey.questions.map((q) => ({
+          id: q.id,
+          question: q.question,
+          type: q.type,
+          options: q.options,
+          isRequired: q.isRequired,
+          order: q.order,
+        })),
+      }),
+    };
   } catch (error) {
     console.error("[GET_PUBLIC_SURVEY_ERROR]", error);
     return { success: false as const, error: "Failed to fetch survey" };
