@@ -11,12 +11,11 @@
 // ============================================================
 
 import { useMemo, useState, useCallback } from "react";
-import { Loader2, ArrowRight, ArrowLeft, AlertCircle, Plus, Minus } from "lucide-react";
+import { Loader2, ArrowRight, ArrowLeft, AlertCircle, Plus, Minus, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   computeQuotation,
   validateQuotationInput,
@@ -24,6 +23,12 @@ import {
   type FoodMode,
 } from "@/lib/sales/quotation-calc";
 import type { PublicConfiguratorCatalog } from "@/lib/public/configurator-catalog";
+import {
+  buildCuratedPackages,
+  inferPackageKey,
+  type CuratedPackage,
+  type CuratedPackageKey,
+} from "@/lib/public/curated-packages";
 import type { StorefrontVenue } from "@/actions/storefront.actions";
 import {
   createPublicQuoteDraft,
@@ -57,8 +62,10 @@ export function Configurator({ catalog, venues, initialVenueId, resume }: Props)
 
   const [foodMode, setFoodMode] = useState<FoodMode>(r?.foodMode ?? "WITH_FOOD");
   const [guestCount, setGuestCount] = useState<number>(r?.guestCount ?? 100);
-  const [hallRate, setHallRate] = useState<number>(r?.hallRate ?? 0);
-  const [hallHours, setHallHours] = useState<number>(r?.hallHours ?? catalog.minHallHours);
+  // Hall-only pricing is not part of the self-serve package flow (kept in the
+  // input shape for engine compatibility, but customers never set these).
+  const [hallRate] = useState<number>(r?.hallRate ?? 0);
+  const [hallHours] = useState<number>(r?.hallHours ?? catalog.minHallHours);
   const [foodPackageId, setFoodPackageId] = useState(r?.foodPackageId ?? "");
   const [decorId, setDecorId] = useState(r?.decorId ?? "");
   const [activityIds, setActivityIds] = useState<string[]>(r?.activityIds ?? []);
@@ -68,8 +75,30 @@ export function Configurator({ catalog, venues, initialVenueId, resume }: Props)
   const [photographyCustomAmount, setPhotographyCustomAmount] = useState<number>(
     r?.photographyCustomAmount ?? 0
   );
-  const [drinksPerPerson, setDrinksPerPerson] = useState<number>(r?.drinksPerPerson ?? 0);
+  const [drinksPerPerson] = useState<number>(r?.drinksPerPerson ?? 0);
   const [rooms, setRooms] = useState<number>(r?.rooms ?? 0);
+
+  // Curated packages (Silver/Gold/Platinum) derived from the catalog. The
+  // customer chooses one instead of assembling the internal rate card by hand.
+  const packages = useMemo(() => buildCuratedPackages(catalog), [catalog]);
+  const [selectedPackage, setSelectedPackage] = useState<CuratedPackageKey | null>(
+    () => inferPackageKey(packages, r?.foodPackageId)
+  );
+
+  // Applying a package presets the underlying quotation fields; the same pricing
+  // engine then produces the live total. Always WITH_FOOD (self-serve packages
+  // are food-inclusive; hall-only stays a talk-to-the-team path).
+  const applyPackage = useCallback((pkg: CuratedPackage) => {
+    setSelectedPackage(pkg.key);
+    setFoodMode("WITH_FOOD");
+    setFoodPackageId(pkg.preset.foodPackageId ?? "");
+    setDecorId(pkg.preset.decorId ?? "");
+    setActivityIds(pkg.preset.activityIds);
+    setPhotographyId(pkg.preset.photographyId ?? "");
+    setPhotographyCustomAmount(0);
+    setCakeId(pkg.preset.cakeId ?? "");
+    setCakeKg(pkg.preset.cakeKg ?? 0);
+  }, []);
 
   const [name, setName] = useState(resume?.customerName ?? "");
   const [phone, setPhone] = useState(resume?.customerPhone ?? "");
@@ -117,15 +146,6 @@ export function Configurator({ catalog, venues, initialVenueId, resume }: Props)
   const result = useMemo(() => computeQuotation(input), [input]);
   const validationErrors = useMemo(() => validateQuotationInput(input), [input]);
 
-  const customPhoto =
-    catalog.photography.find((p) => p.id === photographyId)?.amount === null;
-
-  const toggleActivity = useCallback((id: string) => {
-    setActivityIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  }, []);
-
   const meta = useMemo(
     () => ({
       occasion: occasion || undefined,
@@ -159,13 +179,17 @@ export function Configurator({ catalog, venues, initialVenueId, resume }: Props)
 
   const goToStep3 = useCallback(async () => {
     setError(null);
+    if (!selectedPackage) {
+      setError("Please choose a package to continue.");
+      return;
+    }
     if (validationErrors.length) {
       setError(validationErrors.join(" "));
       return;
     }
     await persist();
     setStep(3);
-  }, [persist, validationErrors]);
+  }, [persist, validationErrors, selectedPackage]);
 
   const proceed = useCallback(async () => {
     setError(null);
@@ -325,239 +349,128 @@ export function Configurator({ catalog, venues, initialVenueId, resume }: Props)
           </Card>
         )}
 
-        {/* STEP 2 — Package */}
+        {/* STEP 2 — Choose a package */}
         {step === 2 && (
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Build your package</CardTitle>
+              <CardTitle className="text-base">Choose your package</CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
-              {/* Food vs hall-only */}
-              <div className="space-y-1.5">
-                <Label>Catering</Label>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant={foodMode === "WITH_FOOD" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setFoodMode("WITH_FOOD")}
-                  >
-                    With food
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={foodMode === "HALL_ONLY" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setFoodMode("HALL_ONLY")}
-                  >
-                    Hall only
-                  </Button>
-                </div>
+              {/* Guests — also set in step 1; handy to tweak while comparing. */}
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-muted/30 px-4 py-3">
+                <Label htmlFor="guests2" className="text-sm">Guests</Label>
+                <Input
+                  id="guests2"
+                  type="number"
+                  min={1}
+                  className="h-9 w-24 text-center"
+                  value={guestCount || ""}
+                  onChange={(e) => setGuestCount(Math.max(0, Number(e.target.value)))}
+                />
               </div>
 
-              {foodMode === "WITH_FOOD" ? (
-                <div className="space-y-1.5">
-                  <Label htmlFor="food">Food package (per plate × {guestCount})</Label>
-                  <select
-                    id="food"
-                    className={selectClass}
-                    value={foodPackageId}
-                    onChange={(e) => setFoodPackageId(e.target.value)}
-                  >
-                    <option value="">No food package</option>
-                    {catalog.food.map((f) => (
-                      <option key={f.id} value={f.id}>
-                        {f.label} — ₹{f.perPlate}/plate
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="hallRate">Hall rate (per hour)</Label>
-                    <select
-                      id="hallRate"
-                      className={selectClass}
-                      value={hallRate || ""}
-                      onChange={(e) => setHallRate(Number(e.target.value))}
+              {/* Curated packages — each presets the price; no internal rate card. */}
+              <div className="space-y-3">
+                {packages.map((pkg) => {
+                  const active = selectedPackage === pkg.key;
+                  const food = catalog.food.find((f) => f.id === pkg.preset.foodPackageId);
+                  return (
+                    <button
+                      key={pkg.key}
+                      type="button"
+                      onClick={() => applyPackage(pkg)}
+                      aria-pressed={active}
+                      className={`w-full rounded-2xl border p-4 text-left transition ${
+                        active
+                          ? "border-primary bg-primary/[0.03] ring-2 ring-primary/30"
+                          : "border-border hover:border-primary/50"
+                      }`}
                     >
-                      <option value="">Select a rate</option>
-                      {catalog.hallRates.map((rate) => (
-                        <option key={rate} value={rate}>
-                          ₹{rate.toLocaleString("en-IN")}/hr
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="hallHours">Hours (min {catalog.minHallHours})</Label>
-                    <Input
-                      id="hallHours"
-                      type="number"
-                      min={catalog.minHallHours}
-                      value={hallHours || ""}
-                      onChange={(e) => setHallHours(Number(e.target.value))}
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-1.5">
-                <Label htmlFor="decor">Decor</Label>
-                <select
-                  id="decor"
-                  className={selectClass}
-                  value={decorId}
-                  onChange={(e) => setDecorId(e.target.value)}
-                >
-                  <option value="">No decor</option>
-                  {catalog.decor.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.label} — ₹{d.amount.toLocaleString("en-IN")}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label>Add-on activities</Label>
-                {/* Social proof, not pre-ticking — pre-selected paid add-ons are a
-                    flagged dark pattern (India CCPA 2023); a norm hint is the
-                    ethical nudge that works nearly as well. */}
-                {catalog.activity.length > 0 && (
-                  <p className="text-[12px] text-muted-foreground">
-                    ✨ Most celebrations here add at least one of these
-                  </p>
-                )}
-                <div className="flex flex-wrap gap-3">
-                  {catalog.activity.map((a) => (
-                    <label
-                      key={a.id}
-                      className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm"
-                    >
-                      <Checkbox
-                        checked={activityIds.includes(a.id)}
-                        onCheckedChange={() => toggleActivity(a.id)}
-                      />
-                      <span>
-                        {a.label}{" "}
-                        <span className="text-muted-foreground">
-                          (₹{a.amount.toLocaleString("en-IN")})
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-foreground">
+                              {pkg.name}
+                            </span>
+                            {pkg.badge && (
+                              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-amber-700 dark:bg-amber-950 dark:text-amber-400">
+                                {pkg.badge}
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-0.5 text-[12.5px] text-muted-foreground">
+                            {pkg.tagline}
+                          </p>
+                        </div>
+                        <span
+                          className={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border ${
+                            active
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-muted-foreground/40"
+                          }`}
+                        >
+                          {active && <Check className="size-3.5" />}
                         </span>
-                      </span>
-                    </label>
-                  ))}
-                </div>
+                      </div>
+                      <ul className="mt-3 grid gap-1.5">
+                        {pkg.highlights.map((h, i) => (
+                          <li
+                            key={i}
+                            className="flex items-center gap-2 text-[12.5px] text-foreground"
+                          >
+                            <Check className="size-3.5 shrink-0 text-emerald-600" /> {h}
+                          </li>
+                        ))}
+                      </ul>
+                      {food && (
+                        <p className="mt-3 text-[12px] text-muted-foreground">
+                          Catering ₹{food.perPlate}/plate × {guestCount || 0} guests
+                        </p>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="cake">Cake</Label>
-                  <select
-                    id="cake"
-                    className={selectClass}
-                    value={cakeId}
-                    onChange={(e) => setCakeId(e.target.value)}
+              {/* Optional add-on: hotel rooms (a legit customer-facing extra). */}
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label htmlFor="rooms" className="text-sm">Hotel rooms (optional)</Label>
+                  <p className="text-[12px] text-muted-foreground">For guests staying over.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setRooms((n) => Math.max(0, n - 1))}
                   >
-                    <option value="">No cake</option>
-                    {catalog.cake.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.label} — ₹{c.ratePerKg}/kg
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {cakeId && (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="cakeKg">Cake weight (kg)</Label>
-                    <Input
-                      id="cakeKg"
-                      type="number"
-                      min={0}
-                      step="0.5"
-                      value={cakeKg || ""}
-                      onChange={(e) => setCakeKg(Math.max(0, Number(e.target.value)))}
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="photo">Photography</Label>
-                  <select
-                    id="photo"
-                    className={selectClass}
-                    value={photographyId}
-                    onChange={(e) => setPhotographyId(e.target.value)}
-                  >
-                    <option value="">None</option>
-                    {catalog.photography.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.label}
-                        {p.amount != null ? ` — ₹${p.amount.toLocaleString("en-IN")}` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {customPhoto && (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="photoAmt">Photography amount</Label>
-                    <Input
-                      id="photoAmt"
-                      type="number"
-                      min={0}
-                      value={photographyCustomAmount || ""}
-                      onChange={(e) =>
-                        setPhotographyCustomAmount(Math.max(0, Number(e.target.value)))
-                      }
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="drinks">Drinks (per person)</Label>
+                    <Minus className="size-4" />
+                  </Button>
                   <Input
-                    id="drinks"
+                    id="rooms"
                     type="number"
                     min={0}
-                    value={drinksPerPerson || ""}
-                    onChange={(e) => setDrinksPerPerson(Math.max(0, Number(e.target.value)))}
+                    className="h-9 w-16 text-center"
+                    value={rooms || 0}
+                    onChange={(e) => setRooms(Math.max(0, Number(e.target.value)))}
                   />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="rooms">Hotel rooms</Label>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setRooms((n) => Math.max(0, n - 1))}
-                    >
-                      <Minus className="size-4" />
-                    </Button>
-                    <Input
-                      id="rooms"
-                      type="number"
-                      min={0}
-                      className="text-center"
-                      value={rooms || 0}
-                      onChange={(e) => setRooms(Math.max(0, Number(e.target.value)))}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setRooms((n) => n + 1)}
-                    >
-                      <Plus className="size-4" />
-                    </Button>
-                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setRooms((n) => n + 1)}
+                  >
+                    <Plus className="size-4" />
+                  </Button>
                 </div>
               </div>
+
+              {/* Bespoke path — hall-only / custom menu stays a human conversation. */}
+              <p className="rounded-xl bg-muted/40 px-3.5 py-2.5 text-[12px] text-muted-foreground">
+                Want something bespoke — hall-only, a custom menu, or a different theme? Pick a
+                package to hold your date, and our team will tailor every detail with you after.
+              </p>
 
               <div className="flex justify-between">
                 <Button variant="outline" onClick={() => setStep(1)}>
