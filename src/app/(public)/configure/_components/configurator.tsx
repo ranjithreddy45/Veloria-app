@@ -422,6 +422,14 @@ export function Configurator({ catalog, venues, initialVenueId, resume }: Props)
 
               <div className="space-y-1.5">
                 <Label>Add-on activities</Label>
+                {/* Social proof, not pre-ticking — pre-selected paid add-ons are a
+                    flagged dark pattern (India CCPA 2023); a norm hint is the
+                    ethical nudge that works nearly as well. */}
+                {catalog.activity.length > 0 && (
+                  <p className="text-[12px] text-muted-foreground">
+                    ✨ Most celebrations here add at least one of these
+                  </p>
+                )}
                 <div className="flex flex-wrap gap-3">
                   {catalog.activity.map((a) => (
                     <label

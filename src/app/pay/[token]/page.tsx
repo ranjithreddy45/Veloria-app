@@ -5,6 +5,7 @@ import { getSocialProof } from "@/lib/public/social-proof";
 import { SocialProofStrip } from "@/components/public/social-proof-strip";
 import { COMPANY_LEGAL_LINE } from "@/lib/constants";
 import { PublicPay } from "./_components/public-pay";
+import { PayAmountPicker } from "./_components/pay-amount-picker";
 
 export const metadata: Metadata = { title: "Pay invoice — Veloria Grand" };
 
@@ -121,23 +122,40 @@ export default async function PayPage({
                     </div>
                   ) : (
                     <div className="mt-6 space-y-3">
-                      {amt && payAmount < i.balanceDue && (
-                        <p className="rounded-xl bg-primary/5 px-3.5 py-2.5 text-[13px] text-foreground">
-                          Amount to pay now: <span className="font-semibold">{inr(payAmount)}</span>
-                          <span className="text-muted-foreground">
-                            {" "}
-                            (part payment — balance {inr(i.balanceDue - payAmount)} remains)
-                          </span>
-                        </p>
+                      {amt ? (
+                        <>
+                          {/* Link pinned an explicit amount — keep it authoritative. */}
+                          {payAmount < i.balanceDue && (
+                            <p className="rounded-xl bg-primary/5 px-3.5 py-2.5 text-[13px] text-foreground">
+                              Amount to pay now: <span className="font-semibold">{inr(payAmount)}</span>
+                              <span className="text-muted-foreground">
+                                {" "}
+                                (part payment — balance {inr(i.balanceDue - payAmount)} remains)
+                              </span>
+                            </p>
+                          )}
+                          <PublicPay
+                            invoiceId={i.id}
+                            invoiceNumber={i.invoiceNumber}
+                            amount={payAmount}
+                            customerName={i.customerName}
+                            customerEmail={i.customerEmail}
+                            customerPhone={i.customerPhone}
+                          />
+                        </>
+                      ) : (
+                        /* No pinned amount — default to the due installment
+                           (20/60/20 plan), full balance one tap away. */
+                        <PayAmountPicker
+                          invoiceId={i.id}
+                          invoiceNumber={i.invoiceNumber}
+                          nextDue={i.nextDue}
+                          balanceDue={i.balanceDue}
+                          customerName={i.customerName}
+                          customerEmail={i.customerEmail}
+                          customerPhone={i.customerPhone}
+                        />
                       )}
-                      <PublicPay
-                        invoiceId={i.id}
-                        invoiceNumber={i.invoiceNumber}
-                        amount={payAmount}
-                        customerName={i.customerName}
-                        customerEmail={i.customerEmail}
-                        customerPhone={i.customerPhone}
-                      />
                     </div>
                   )}
                 </div>

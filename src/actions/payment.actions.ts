@@ -612,9 +612,19 @@ export async function getPublicInvoiceForPayment(invoiceId: string) {
         paidAmount: true,
         contact: { select: { firstName: true, lastName: true, email: true, phone: true } },
         booking: { select: { eventName: true, date: true, eventType: true, venueId: true } },
+        installments: { select: { label: true, amount: true, status: true, dueDate: true }, orderBy: { dueDate: "asc" } },
       },
     });
     if (!invoice) return { success: false as const, error: "Invoice not found" };
+    // Status-quo default: the earliest unpaid installment (per the 20/60/20
+    // plan) becomes the pre-selected amount on the pay page; the full balance
+    // stays one tap away. Clamped to the remaining balance.
+    const balance = Number(invoice.balanceDue);
+    const nextInst = invoice.installments.find((x) => x.status !== "COMPLETED" && Number(x.amount) > 0);
+    const nextDue =
+      nextInst && balance > 0
+        ? { label: nextInst.label, amount: Math.min(Math.round(Number(nextInst.amount)), Math.round(balance)) }
+        : null;
     return {
       success: true as const,
       data: {
@@ -624,6 +634,7 @@ export async function getPublicInvoiceForPayment(invoiceId: string) {
         total: Number(invoice.totalAmount),
         balanceDue: Number(invoice.balanceDue),
         paid: Number(invoice.paidAmount),
+        nextDue,
         customerName: `${invoice.contact.firstName} ${invoice.contact.lastName ?? ""}`.trim(),
         customerEmail: invoice.contact.email ?? "",
         customerPhone: invoice.contact.phone ?? "",
