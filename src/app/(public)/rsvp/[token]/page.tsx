@@ -12,12 +12,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { RsvpForm } from "./_components/rsvp-form";
 
 // ============================================================
 // Public RSVP Page (No Auth Required)
 // ============================================================
+
+export const metadata: Metadata = {
+  title: "RSVP — Veloria Grand",
+  robots: { index: false, follow: false }, // tokenized invite; keep out of search
+};
 
 export default async function RsvpPage({
   params,

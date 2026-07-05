@@ -88,4 +88,7 @@ export interface PublicQuoteView {
   /** For event-type/venue-matched social proof. */
   eventType: string | null;
   venueId: string | null;
+  /** Public-safe event facts so the client can confirm the quote is theirs. */
+  guestCount: number | null;
+  venueName: string | null;
 }

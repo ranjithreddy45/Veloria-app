@@ -145,6 +145,7 @@ export async function getPublicQuoteForPay(token: string): Promise<Result<Public
     // never recomputed). One read covers all three.
     let advanceAmount: number | null = null;
     let blocked = false;
+    let guestCount: number | null = null;
     let result: QuotationResult | null = null;
     if (link.primaryQuotationId) {
       const q = await prisma.salesQuotation.findUnique({
@@ -156,7 +157,19 @@ export async function getPublicQuoteForPay(token: string): Promise<Result<Public
         advanceAmount = result?.paymentSchedule?.[0]?.amount ?? null;
         // "blocked" = the quotation already has a HOLD/CONFIRMED booking.
         blocked = !!q.bookingId;
+        guestCount = q.guestCount ?? null;
       }
+    }
+
+    // Public-safe venue name (never the internal id) so the client can confirm
+    // the quote is for the right hall. Best-effort — a lookup miss just omits it.
+    let venueName: string | null = null;
+    if (link.venueId) {
+      const v = await prisma.venue.findUnique({
+        where: { id: link.venueId },
+        select: { name: true },
+      });
+      venueName = v?.name ?? null;
     }
     // Prefer the actual first installment amount when an invoice already exists.
     if (link.payInvoiceId && link.payInvoiceId !== "__pending__") {
@@ -209,6 +222,8 @@ export async function getPublicQuoteForPay(token: string): Promise<Result<Public
         blocked,
         eventType: link.occasion,
         venueId: link.venueId,
+        guestCount,
+        venueName,
       },
     };
   } catch (e) {

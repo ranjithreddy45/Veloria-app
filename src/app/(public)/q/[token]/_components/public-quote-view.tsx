@@ -1,4 +1,4 @@
-import { CalendarDays, Clock, Sparkles, Check, Star } from "lucide-react";
+import { CalendarDays, Clock, Sparkles, Check, Star, Users, MapPin } from "lucide-react";
 import { SocialProofStrip } from "@/components/public/social-proof-strip";
 import type { SocialProofData } from "@/lib/public/social-proof-types";
 import { OneTapPay } from "./one-tap-pay";
@@ -190,8 +190,13 @@ export function PublicQuoteView({
       </header>
 
       {/* Event facts */}
-      {(eventDateLabel || view.slotLabel) && (
+      {(eventDateLabel || view.slotLabel || view.venueName || view.guestCount) && (
         <div className="flex flex-wrap items-center justify-center gap-2 text-[12.5px]">
+          {view.venueName && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 py-1.5 font-medium text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
+              <MapPin className="size-3.5 text-violet-600" /> {view.venueName}
+            </span>
+          )}
           {eventDateLabel && (
             <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 py-1.5 font-medium text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
               <CalendarDays className="size-3.5 text-violet-600" /> {eventDateLabel}
@@ -202,6 +207,11 @@ export function PublicQuoteView({
               <Clock className="size-3.5 text-violet-600" /> {view.slotLabel}
             </span>
           )}
+          {view.guestCount ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 py-1.5 font-medium text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
+              <Users className="size-3.5 text-violet-600" /> {view.guestCount} guests
+            </span>
+          ) : null}
         </div>
       )}
 

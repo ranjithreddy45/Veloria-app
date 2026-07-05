@@ -8,7 +8,10 @@ import { HelpChip } from "@/components/public/help-chip";
 import { PublicPay } from "./_components/public-pay";
 import { PayAmountPicker } from "./_components/pay-amount-picker";
 
-export const metadata: Metadata = { title: "Pay invoice — Veloria Grand" };
+export const metadata: Metadata = {
+  title: "Pay invoice — Veloria Grand",
+  robots: { index: false, follow: false }, // tokenized invoice page; keep out of search
+};
 
 const inr = (n: number) =>
   new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n);
