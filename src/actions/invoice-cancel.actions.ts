@@ -21,7 +21,7 @@ import type { UserRole } from "@prisma/client";
 import { serialize, formatINR } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
 import { notifyAwait } from "@/lib/notify";
-import { reverseReceivableEntry } from "@/lib/finance/receivables";
+import { reverseReceivableEntry, reversePaymentEntry } from "@/lib/finance/receivables";
 import { allocatePaidAmountToInstallments } from "@/lib/payments/apply-capture";
 
 // ---- Money helpers (paise-exact; never persist a micro-balance) ----
@@ -448,11 +448,13 @@ export async function approvePaymentCancellation(paymentId: string) {
       return { success: false as const, error: "Payment was just cancelled by someone else" };
     }
 
-    // Only the winner reverses the cash-receipt GL entry. reverseReceivableEntry
-    // is idempotent (no-ops when nothing was posted, and treats a concurrent
-    // reversal as a no-op); a genuine DB failure leaves the payment cancelled
-    // operationally while the GL entry can be re-reversed by finance/reconcile.
-    const rev = await reverseReceivableEntry(
+    // Only the winner reverses the cash-receipt GL entry. reversePaymentEntry
+    // debits the account that currently holds the cash (AR if the invoice's
+    // revenue is recognised, else Customer Advances) so an advance that was
+    // reclassified at invoice-issue is reversed correctly; it is idempotent and
+    // no-ops when nothing was posted. A genuine DB failure leaves the payment
+    // cancelled operationally while the GL entry can be re-reversed by reconcile.
+    const rev = await reversePaymentEntry(
       paymentId,
       `Payment ${payment.receiptNumber ?? paymentId} cancelled`,
       session.user.id,

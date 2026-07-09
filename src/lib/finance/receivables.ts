@@ -186,6 +186,83 @@ export async function reverseReceivableEntry(
 }
 
 /**
+ * Reverse the cash-receipt GL entry for a CANCELLED payment.
+ *
+ * Unlike a blind swap of the original entry's lines, the offsetting DEBIT
+ * targets the account that CURRENTLY holds the cash — mirroring
+ * postPaymentReceived's own credit-account choice, but evaluated at *cancel*
+ * time:
+ *   - invoice revenue recognised  → Dr Accounts Receivable / Cr Bank
+ *   - revenue not yet recognised  → Dr Customer Advances   / Cr Bank
+ *
+ * This is what makes the advance-paid-BEFORE-invoice case correct: when the
+ * invoice was later issued, postInvoiceIssued RECLASSIFIED that advance out of
+ * Customer Advances into AR. A naive swap would re-debit the (already-cleared)
+ * Customer Advances, leaving AR understated and the advance liability negative.
+ * By choosing the debit account from the current revenue-posted state, the
+ * reversal debits AR in that case, restoring the full receivable exactly.
+ *
+ * Called only by the winner of the payment-cancel status-guarded flip, so there
+ * is a single caller and the whole thing runs in one transaction. Marks the
+ * original receipt REVERSED so a retry is an idempotent no-op.
+ */
+export async function reversePaymentEntry(
+  paymentId: string,
+  reason: string,
+  byId?: string,
+): Promise<ReversalOutcome> {
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const accountCount = await tx.finAccount.count();
+      if (accountCount === 0) return { ok: true, reversed: false }; // Finance not in use
+
+      // Only the ORIGINAL receipt (never a reversal — reversalOfId:null).
+      const orig = await tx.finJournalEntry.findFirst({
+        where: { sourceModule: "RECEIVABLE", sourceRefId: paymentId, status: "POSTED", reversalOfId: null },
+        include: { lines: true },
+      });
+      if (!orig) return { ok: true, reversed: false }; // never posted, or already reversed → GL consistent
+
+      const pay = await tx.payment.findUnique({
+        where: { id: paymentId },
+        select: { amount: true, invoiceId: true },
+      });
+      if (!pay) return { ok: false, error: "Payment not found for GL reversal." };
+      const amount = Number(pay.amount);
+      if (amount <= 0) return { ok: true, reversed: false };
+
+      // Which account holds this cash NOW? (Same rule postPaymentReceived used to
+      // pick the credit account, re-evaluated at cancel time.)
+      const revenuePosted = pay.invoiceId
+        ? await alreadyPosted(tx, "RECEIVABLE", pay.invoiceId)
+        : false;
+      const debitCode = revenuePosted ? FIN_ACCOUNT_CODES.debtors : FIN_ACCOUNT_CODES.customerAdvances;
+
+      // Credit back the SAME bank/cash account the original receipt debited.
+      const origBankLine = orig.lines.find((l) => Number(l.debit) > 0);
+      const bankId = origBankLine?.accountId ?? (await accountId(tx, FIN_ACCOUNT_CODES.bank));
+      const debitId = await accountId(tx, debitCode);
+      if (!bankId || !debitId) return { ok: false, error: "GL accounts missing for payment reversal." };
+
+      const lines: JournalLineInput[] = [
+        { accountId: debitId, debit: amount, narration: `Reversal — ${reason}` },
+        { accountId: bankId, credit: amount, narration: `Reversal — ${reason}` },
+      ];
+      const rev = await postWithinTx(tx, {
+        date: new Date(),
+        narration: `Reversal of payment receipt — ${reason}`,
+        sourceModule: "RECEIVABLE", sourceRefId: paymentId, createdById: byId ?? null, lines,
+      });
+      await tx.finJournalEntry.update({ where: { id: orig.id }, data: { status: "REVERSED", reversedById: rev.id } });
+      await tx.finJournalEntry.update({ where: { id: rev.id }, data: { reversalOfId: orig.id } });
+      return { ok: true, reversed: true };
+    });
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "GL reversal failed" };
+  }
+}
+
+/**
  * Post cash collection for a completed payment:
  *   Dr Bank (amount)
  *     Cr Accounts Receivable (amount)
