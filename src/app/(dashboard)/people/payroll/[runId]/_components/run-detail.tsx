@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Calculator, Lock, CheckCircle2, Loader2, Download, IndianRupee } from "lucide-react";
+import { Calculator, Lock, CheckCircle2, Loader2, Download, IndianRupee, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatTile } from "@/components/ui/stat-tile";
 import { StatusPill, type Hue } from "@/components/shared/status-pill";
@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { PageHeader } from "@/components/layout/page-header";
 import {
-  computePayrollRun, lockPayrollRun, markPayrollPaid,
+  computePayrollRun, lockPayrollRun, markPayrollPaid, postHrPayrollToGL,
 } from "@/actions/hr-payroll-run.actions";
 
 export interface PayslipRow {
@@ -43,6 +43,8 @@ export interface RunView {
   totalDeductions: number;
   totalNet: number;
   lockedAt: string | null;
+  posted: boolean;
+  glEntryNo: string | null;
   payslips: PayslipRow[];
 }
 
@@ -51,11 +53,12 @@ const STATUS_HUE: Record<string, Hue> = { DRAFT: "amber", LOCKED: "indigo", PAID
 
 export function RunDetail({ run }: { run: RunView }) {
   const router = useRouter();
-  const [busy, setBusy] = React.useState<null | "compute" | "lock" | "paid">(null);
+  const [busy, setBusy] = React.useState<null | "compute" | "lock" | "paid" | "gl">(null);
 
   const isDraft = run.status === "DRAFT";
   const isLocked = run.status === "LOCKED";
   const hasPayslips = run.payslips.length > 0;
+  const canPostGl = !isDraft && !run.posted && hasPayslips;
 
   async function onCompute() {
     setBusy("compute");
@@ -82,6 +85,15 @@ export function RunDetail({ run }: { run: RunView }) {
     setBusy(null);
     if (!res.success) { toast.error(res.error); return; }
     toast.success("Payroll run marked paid.");
+    router.refresh();
+  }
+
+  async function onPostGl() {
+    setBusy("gl");
+    const res = await postHrPayrollToGL(run.id);
+    setBusy(null);
+    if (!res.success) { toast.error(res.error); return; }
+    toast.success(`Posted to accounts — journal ${res.data.entryNo}.`);
     router.refresh();
   }
 
@@ -122,6 +134,21 @@ export function RunDetail({ run }: { run: RunView }) {
             disabled={busy !== null}
             onConfirm={onPaid}
           />
+        )}
+        {canPostGl && (
+          <ConfirmButton
+            label="Post to accounts"
+            icon={<BookOpen className="size-4" />}
+            title="Post this payroll to the General Ledger?"
+            description="Books a balanced salary journal (Dr Salaries; Cr Net pay + PF/ESI/PT/TDS) in Finance. Use HR payroll as your single source — don’t also post the separate Finance payroll for this month. To reverse, use Finance."
+            action="Post to accounts"
+            busy={busy === "gl"}
+            disabled={busy !== null}
+            onConfirm={onPostGl}
+          />
+        )}
+        {run.posted && (
+          <StatusPill label={run.glEntryNo ? `Posted · ${run.glEntryNo}` : "Posted to GL"} hue="emerald" />
         )}
       </PageHeader>
 

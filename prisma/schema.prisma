@@ -8181,6 +8181,10 @@ model HrPayrollRun {
   createdById     String?
   createdAt       DateTime    @default(now())
   lockedAt        DateTime?
+  // GL bridge: set once this run's salary journal is posted to the Finance
+  // ledger (idempotency + display). Null = not yet posted to accounts.
+  journalEntryId  String?
+  glPostedAt      DateTime?
   payslips        HrPayslip[]
 
   @@unique([entityId, fy, month])

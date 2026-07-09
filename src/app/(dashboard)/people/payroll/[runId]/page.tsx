@@ -29,6 +29,8 @@ export default async function PayrollRunPage({ params }: { params: Promise<{ run
     totalDeductions: Number(run.totalDeductions),
     totalNet: Number(run.totalNet),
     lockedAt: run.lockedAt ? run.lockedAt.toISOString() : null,
+    posted: !!run.journalEntryId,
+    glEntryNo: run.glEntryNo,
     payslips: run.payslips.map((p) => ({
       id: p.id,
       employeeId: p.employeeId,

@@ -275,6 +275,14 @@ export async function postPayrollRun(runId: string): Promise<Result<{ entryNo: s
         select: { id: true },
       });
       if (existing) throw new Error("This payroll run has already been posted.");
+      // Also block if ANY payroll journal is already posted for this month —
+      // e.g. the HR-payroll GL bridge posted it — so salaries can't double-count
+      // across the two payroll systems.
+      const monthClash = await tx.finJournalEntry.findFirst({
+        where: { sourceModule: "PAYROLL", date, status: "POSTED" },
+        select: { entryNo: true },
+      });
+      if (monthClash) throw new Error(`A payroll journal (${monthClash.entryNo}) is already posted for this month. Reverse it before posting again.`);
 
       const entry = await postWithinTx(tx, {
         date,

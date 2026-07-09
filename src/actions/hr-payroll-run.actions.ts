@@ -7,6 +7,8 @@ import { Prisma } from "@prisma/client";
 import { hasPermission } from "@/lib/permissions";
 import { computePayslip, type StructureLine } from "@/lib/hr/payroll-calc";
 import { sendEmail } from "@/lib/email";
+import { postWithinTx, fyForDate } from "@/lib/finance/ledger";
+import { FIN_ACCOUNT_CODES } from "@/lib/finance/coa-seed";
 
 const inr = (n: number) =>
   new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n);
@@ -93,12 +95,21 @@ export async function listPayrollRuns() {
 export async function getPayrollRun(runId: string) {
   const u = await requireUser();
   if (!can(u?.role, "hr:payroll")) return null;
-  return prisma.hrPayrollRun.findUnique({
+  const run = await prisma.hrPayrollRun.findUnique({
     where: { id: runId },
-    include: {
-      payslips: { orderBy: { nameSnap: "asc" } },
-    },
+    include: { payslips: { orderBy: { nameSnap: "asc" } } },
   });
+  if (!run) return null;
+  // Resolve the GL entry number for display when this run has been posted.
+  let glEntryNo: string | null = null;
+  if (run.journalEntryId) {
+    const je = await prisma.finJournalEntry.findUnique({
+      where: { id: run.journalEntryId },
+      select: { entryNo: true },
+    });
+    glEntryNo = je?.entryNo ?? null;
+  }
+  return { ...run, glEntryNo };
 }
 
 // ============================================================
@@ -284,4 +295,111 @@ export async function markPayrollPaid(runId: string): Promise<Result<{ id: strin
   revalidatePath("/people/payroll");
   revalidatePath(`/people/payroll/${runId}`);
   return { success: true, data: { id: runId } };
+}
+
+/**
+ * Post a locked HR payroll run's salary journal to the Finance General Ledger —
+ * the bridge that makes HR payroll the single source of truth (no double entry).
+ *
+ * Double-entry (rupees; the ledger enforces Σdebits = Σcredits in paise):
+ *   Dr  Salaries & Wages (5100)      = total gross
+ *   Cr  Salaries Payable (2230)      = gross − (PF+ESI+PT+TDS)   [≈ net pay]
+ *   Cr  PF / ESI / PT / TDS Payable  = respective withholdings
+ * Net payable is derived as (gross − statutory) so the entry ALWAYS balances by
+ * construction, even if a structure ever carries a non-statutory deduction.
+ *
+ * Idempotent + safe: refuses a DRAFT run, short-circuits if already posted, and
+ * inside one transaction re-checks the run + guards against ANY existing PAYROLL
+ * journal for the same posting date (catches a re-post AND a clash with the
+ * separate Finance payroll, preventing double-counted salaries). To re-post,
+ * reverse the journal in Finance first.
+ */
+export async function postHrPayrollToGL(runId: string): Promise<Result<{ entryNo: string }>> {
+  const u = await requireUser();
+  if (!can(u?.role, "hr:payroll")) return { success: false, error: "Not authorized." };
+
+  const run = await prisma.hrPayrollRun.findUnique({
+    where: { id: runId },
+    select: {
+      status: true, fy: true, month: true, label: true, journalEntryId: true,
+      totalGross: true, totalNet: true,
+      payslips: { select: { pf: true, esi: true, pt: true, tds: true } },
+    },
+  });
+  if (!run) return { success: false, error: "Payroll run not found." };
+  if (run.status === "DRAFT") return { success: false, error: "Lock the run before posting it to accounts." };
+  if (run.journalEntryId) return { success: false, error: "This run is already posted to the ledger." };
+  if (run.payslips.length === 0) return { success: false, error: "Run has no payslips to post." };
+
+  const sum = run.payslips.reduce(
+    (a, p) => {
+      a.pf += Number(p.pf); a.esi += Number(p.esi); a.pt += Number(p.pt); a.tds += Number(p.tds);
+      return a;
+    },
+    { pf: 0, esi: 0, pt: 0, tds: 0 },
+  );
+  const totalGross = Number(run.totalGross);
+  const statutory = sum.pf + sum.esi + sum.pt + sum.tds;
+  const netPayable = Math.round((totalGross - statutory) * 100) / 100; // ≈ totalNet
+  if (totalGross <= 0) return { success: false, error: "Run has a zero gross — nothing to post." };
+
+  // Posting date = 1st of the run's calendar month; the ledger derives fy/period.
+  const date = new Date(Date.UTC(calendarYearFor(run.fy, run.month), run.month - 1, 1));
+  if (fyForDate(date) !== run.fy) {
+    return { success: false, error: `Run ${run.fy} / month ${run.month} can't be mapped to a posting date.` };
+  }
+
+  const codes = {
+    salaries: FIN_ACCOUNT_CODES.salaries, // 5100
+    salariesPayable: "2230", pfPayable: "2200", esiPayable: "2210", ptPayable: "2220", tdsPayable: "2110",
+  };
+  const accounts = await prisma.finAccount.findMany({ where: { code: { in: Object.values(codes) } }, select: { id: true, code: true } });
+  const idByCode = new Map(accounts.map((a) => [a.code, a.id]));
+  const need = (code: string, label: string) => {
+    const id = idByCode.get(code);
+    if (!id) throw new Error(`${label} account (${code}) is missing — seed the chart of accounts in Finance first.`);
+    return id;
+  };
+
+  try {
+    const lines: { accountId: string; debit?: number; credit?: number; narration?: string }[] = [
+      { accountId: need(codes.salaries, "Salaries & Wages"), debit: totalGross, narration: "Gross salaries" },
+      { accountId: need(codes.salariesPayable, "Salaries Payable"), credit: netPayable, narration: "Net pay" },
+    ];
+    if (sum.pf > 0) lines.push({ accountId: need(codes.pfPayable, "PF Payable"), credit: sum.pf, narration: "PF" });
+    if (sum.esi > 0) lines.push({ accountId: need(codes.esiPayable, "ESI Payable"), credit: sum.esi, narration: "ESI" });
+    if (sum.pt > 0) lines.push({ accountId: need(codes.ptPayable, "PT Payable"), credit: sum.pt, narration: "Professional tax" });
+    if (sum.tds > 0) lines.push({ accountId: need(codes.tdsPayable, "TDS Payable"), credit: sum.tds, narration: "TDS" });
+
+    const entryNo = await prisma.$transaction(async (tx) => {
+      const fresh = await tx.hrPayrollRun.findUnique({ where: { id: runId }, select: { status: true, journalEntryId: true } });
+      if (!fresh || fresh.status === "DRAFT") throw new Error("Lock the run before posting it to accounts.");
+      if (fresh.journalEntryId) throw new Error("This run is already posted to the ledger.");
+      // Guard against ANY payroll journal already posted for this month (a
+      // re-post, or the separate Finance payroll) → would double-count salaries.
+      const clash = await tx.finJournalEntry.findFirst({
+        where: { sourceModule: "PAYROLL", date, status: "POSTED" },
+        select: { entryNo: true },
+      });
+      if (clash) throw new Error(`A payroll journal (${clash.entryNo}) is already posted for ${run.label}. Reverse it in Finance before re-posting.`);
+
+      const entry = await postWithinTx(tx, {
+        date,
+        narration: `HR Payroll ${run.label}`,
+        sourceModule: "PAYROLL",
+        sourceRefId: runId,
+        createdById: u!.id,
+        lines,
+      });
+      await tx.hrPayrollRun.update({ where: { id: runId }, data: { journalEntryId: entry.id, glPostedAt: new Date() } });
+      return entry.entryNo;
+    });
+
+    revalidatePath("/people/payroll");
+    revalidatePath(`/people/payroll/${runId}`);
+    revalidatePath("/finance");
+    return { success: true, data: { entryNo } };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : "Could not post the payroll run to accounts." };
+  }
 }
