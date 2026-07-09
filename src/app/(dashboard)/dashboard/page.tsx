@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { auth } from "@/../auth";
-import { CalendarDays, IndianRupee, ListChecks, Trophy } from "lucide-react";
+import { CalendarDays, IndianRupee, ListChecks, Trophy, UserPlus, CalendarPlus } from "lucide-react";
+import { prisma } from "@/lib/prisma";
+import { StatTile } from "@/components/ui/stat-tile";
 import { getDashboardStats } from "@/actions/dashboard.actions";
 import { getVelosHeaderSummary } from "@/actions/velos.actions";
 import { getOnboardingProgress } from "@/actions/onboarding.actions";
@@ -37,12 +39,28 @@ function getGreeting(): string {
 // ============================================================
 
 export default async function DashboardPage() {
-  const [session, stats, velos, onboarding] = await Promise.all([
-    auth(),
-    getDashboardStats(),
-    getVelosHeaderSummary(),
-    getOnboardingProgress(),
-  ]);
+  // Leads created — all-time pipeline volume + this-month intake.
+  // Matches the app-wide convention of excluding soft-deleted leads.
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+
+  const [session, stats, velos, onboarding, leadsAllTime, leadsThisMonth] =
+    await Promise.all([
+      auth(),
+      getDashboardStats(),
+      getVelosHeaderSummary(),
+      getOnboardingProgress(),
+      prisma.lead.count({ where: { deletedAt: null } }),
+      prisma.lead.count({
+        where: { deletedAt: null, createdAt: { gte: monthStart } },
+      }),
+    ]);
+
+  const monthLabel = new Date().toLocaleDateString("en-US", {
+    month: "long",
+    timeZone: "Asia/Kolkata",
+  });
 
   const fullName = session?.user?.name || "there";
   const userName = fullName.split(" ")[0];
@@ -140,6 +158,26 @@ export default async function DashboardPage() {
         tasks={stats.tasks}
         revenueHistory={stats.monthlyRevenue.map((m) => m.revenue)}
       />
+
+      {/* ============================================================
+          Leads created — all-time pipeline volume + this-month intake
+          ============================================================ */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 animate-rise-in animate-stagger-2">
+        <StatTile
+          label="Leads created"
+          value={leadsAllTime}
+          accent="teal"
+          icon={<UserPlus className="size-4" />}
+          sub="All-time leads in the pipeline"
+        />
+        <StatTile
+          label="Leads created this month"
+          value={leadsThisMonth}
+          accent="violet"
+          icon={<CalendarPlus className="size-4" />}
+          sub={`New leads in ${monthLabel}`}
+        />
+      </div>
 
       <div className="divider-fade" aria-hidden />
 

@@ -799,6 +799,11 @@ model Task {
   @@index([assigneeId])
   @@index([bookingId])
   @@index([dueDate])
+  leadId    String?
+  inquiryId String?
+  taskType  String? // FOLLOW_UP | CALL | MEETING | SHOW_AROUND | TASK
+  metadata  Json? // show-around invitees {ownerInvited, inviteeIds[], location}, etc.
+  @@index([leadId])
 }
 
 model ChecklistItem {
@@ -2531,6 +2536,7 @@ model WidgetInquiry {
 
   @@index([isProcessed])
   @@index([createdAt])
+  enquiryStatus String? // INTERESTED | DROPPED | NO_RESPONSE
 }
 
 // 10.5 Photo/Video Gallery
@@ -8266,4 +8272,24 @@ model HrFnfSettlement {
 
   @@index([employeeId])
   @@index([status])
+}
+
+// ============================================================
+// Sales CRM notes + call logs — editable, multiple per lead/enquiry.
+// Plain refs (leadId/inquiryId) per the project pattern; kind NOTE|CALL.
+// ============================================================
+model CrmNote {
+  id          String    @id @default(cuid())
+  kind        String    @default("NOTE") // NOTE | CALL
+  body        String    @db.Text
+  callOutcome String? // CALL kind: CONNECTED | NO_ANSWER | BUSY | FOLLOW_UP
+  leadId      String?
+  inquiryId   String?
+  authorId    String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  editedAt    DateTime?
+
+  @@index([leadId])
+  @@index([inquiryId])
 }

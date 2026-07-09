@@ -53,6 +53,9 @@ import {
   markInquiryProcessed,
   deleteInquiry,
 } from "@/actions/widget.actions";
+import { setEnquiryStatus, ENQUIRY_STATUSES, ENQUIRY_STATUS_LABEL, type EnquiryStatus } from "@/actions/enquiry.actions";
+import { CrmNotesPanel } from "@/components/crm/crm-notes-panel";
+import { ScheduleTaskDialog } from "@/components/crm/schedule-task-dialog";
 import { cn } from "@/lib/utils";
 
 // ============================================================
@@ -71,7 +74,46 @@ interface InquiryData {
   message: string;
   source: string;
   isProcessed: boolean;
+  enquiryStatus?: string | null;
   createdAt: Date | string;
+}
+
+// Enquiry outcome: Interested / Dropped / No response.
+function EnquiryStatusControl({ inquiry }: { inquiry: InquiryData }) {
+  const router = useRouter();
+  const [saving, setSaving] = React.useState<string | null>(null);
+  const current = inquiry.enquiryStatus as EnquiryStatus | null | undefined;
+  async function set(status: EnquiryStatus) {
+    setSaving(status);
+    try {
+      const res = await setEnquiryStatus(inquiry.id, current === status ? null : status);
+      if (!res.success) { toast.error(res.error); return; }
+      toast.success(current === status ? "Status cleared" : `Marked ${ENQUIRY_STATUS_LABEL[status]}`);
+      router.refresh();
+    } finally { setSaving(null); }
+  }
+  const tone: Record<EnquiryStatus, string> = {
+    INTERESTED: "border-emerald-300 bg-emerald-50 text-emerald-700",
+    DROPPED: "border-rose-300 bg-rose-50 text-rose-700",
+    NO_RESPONSE: "border-amber-300 bg-amber-50 text-amber-700",
+  };
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-sm font-medium text-zinc-700">Status:</span>
+      {ENQUIRY_STATUSES.map((s) => (
+        <Button
+          key={s}
+          size="sm"
+          variant="outline"
+          disabled={saving !== null}
+          onClick={() => set(s)}
+          className={cn("h-7", current === s && tone[s])}
+        >
+          {ENQUIRY_STATUS_LABEL[s]}
+        </Button>
+      ))}
+    </div>
+  );
 }
 
 // ============================================================
@@ -80,7 +122,7 @@ interface InquiryData {
 
 function InquiryDetailDialog({ inquiry }: { inquiry: InquiryData }) {
   return (
-    <DialogContent className="max-w-lg">
+    <DialogContent className="max-h-[88vh] max-w-lg overflow-y-auto">
       <DialogHeader>
         <DialogTitle>Inquiry from {inquiry.name}</DialogTitle>
         <DialogDescription>
@@ -124,6 +166,15 @@ function InquiryDetailDialog({ inquiry }: { inquiry: InquiryData }) {
             {inquiry.message}
           </p>
         </div>
+
+        {/* Enquiry outcome + follow-up scheduling */}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
+          <EnquiryStatusControl inquiry={inquiry} />
+          <ScheduleTaskDialog inquiryId={inquiry.id} />
+        </div>
+
+        {/* Editable notes + call log */}
+        <CrmNotesPanel inquiryId={inquiry.id} />
       </div>
     </DialogContent>
   );

@@ -44,6 +44,8 @@ import { LeadInlineFields } from "./_components/lead-inline-fields";
 import { AIScoreCard } from "./_components/ai-score-card";
 import { AIEmailComposer } from "@/components/ai/ai-email-composer";
 import { SmartSuggestions } from "@/components/ai/smart-suggestions";
+import { CrmNotesPanel } from "@/components/crm/crm-notes-panel";
+import { ScheduleTaskDialog } from "@/components/crm/schedule-task-dialog";
 
 export const metadata: Metadata = { title: "Lead Details" };
 
@@ -132,6 +134,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
             contactEmail={lead.contact.email}
           />
           <MacroButton entityType="LEAD" entityId={lead.id} />
+          <ScheduleTaskDialog leadId={lead.id} />
           <LeadQuickActions
             leadId={lead.id}
             leadTitle={lead.title}
@@ -318,6 +321,9 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
               </div>
             </CardContent>
           </Card>
+
+          {/* Notes & call log — editable, multiple entries per user */}
+          <CrmNotesPanel leadId={lead.id} />
 
           {/* Quotations raised from this lead */}
           <Card>

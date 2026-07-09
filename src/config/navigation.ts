@@ -104,6 +104,12 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["leads:read"],
       },
       {
+        title: "My Calendar",
+        href: "/calendar",
+        icon: "Calendar",
+        permissions: ["leads:read"],
+      },
+      {
         title: "Enquiry",
         href: "/contacts",
         icon: "Contact",
