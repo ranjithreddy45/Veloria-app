@@ -93,6 +93,10 @@ export async function getJobOpenings() {
     targetDate: o.targetDate ? o.targetDate.toISOString() : null,
     hiringManager: o.hiringManagerId ? names.get(o.hiringManagerId) ?? null : null,
     assignedRecruiter: o.assignedRecruiterId ? names.get(o.assignedRecruiterId) ?? null : null,
+    // IDs + description so the edit form can prefill without a second fetch.
+    hiringManagerId: o.hiringManagerId,
+    assignedRecruiterId: o.assignedRecruiterId,
+    description: o.description,
     applications: o._count.applications,
     createdAt: o.createdAt.toISOString(),
   }));
@@ -167,6 +171,30 @@ export async function createJobOpening(input: {
   });
   revalidatePath("/recruitment/jobs");
   return { success: true, data: { id: o.id } };
+}
+
+export async function updateJobOpening(id: string, input: {
+  postingTitle: string; department?: string; city?: string; numberOfPositions?: number;
+  targetDate?: string; hiringManagerId?: string; assignedRecruiterId?: string; description?: string;
+}): Promise<Result<{ ok: true }>> {
+  const u = await requireUser();
+  if (!canWrite(u?.role)) return { success: false, error: "Not authorized." };
+  if (!input.postingTitle?.trim()) return { success: false, error: "Posting title is required." };
+  const exists = await prisma.recJobOpening.findUnique({ where: { id }, select: { id: true } });
+  if (!exists) return { success: false, error: "Job opening not found." };
+  await prisma.recJobOpening.update({
+    where: { id },
+    data: {
+      postingTitle: input.postingTitle.trim(), department: input.department?.trim() || null, city: input.city?.trim() || null,
+      numberOfPositions: input.numberOfPositions && input.numberOfPositions > 0 ? input.numberOfPositions : 1,
+      targetDate: input.targetDate ? new Date(input.targetDate) : null,
+      hiringManagerId: input.hiringManagerId || null, assignedRecruiterId: input.assignedRecruiterId || null,
+      description: input.description?.trim() || null,
+    },
+  });
+  revalidatePath("/recruitment/jobs");
+  revalidatePath(`/recruitment/jobs/${id}`);
+  return { success: true, data: { ok: true } };
 }
 
 export async function setJobStatus(id: string, status: string): Promise<Result<{ ok: true }>> {

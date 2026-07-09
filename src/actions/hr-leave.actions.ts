@@ -209,6 +209,12 @@ export async function applyLeave(input: ApplyLeaveInput): Promise<Result<{ id: s
   const startPart = (type.allowHalfDay ? input.startPart : "FULL") ?? "FULL";
   const endPart = (type.allowHalfDay ? input.endPart : "FULL") ?? "FULL";
 
+  // 25th-cutoff punctuality flag: on time if applied on/before the 25th of the
+  // month, late after. Compute the day-of-month in IST (fixed +5:30), not UTC,
+  // so an application late on the 25th IST doesn't roll into the 26th in UTC.
+  const istNow = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+  const appliedOnTime = istNow.getUTCDate() <= 25;
+
   const year = start.getUTCFullYear();
   const endYear = end.getUTCFullYear();
   // Load holidays for every calendar year the range touches so a span crossing a
@@ -259,6 +265,7 @@ export async function applyLeave(input: ApplyLeaveInput): Promise<Result<{ id: s
           endPart: endPart as Prisma.LeaveRequestCreateInput["endPart"],
           days,
           reason: input.reason?.trim() || null,
+          appliedOnTime,
           status: type.requiresApproval ? "PENDING" : "APPROVED",
           approverId: emp.reportingManagerId,
           decidedAt: type.requiresApproval ? null : new Date(),

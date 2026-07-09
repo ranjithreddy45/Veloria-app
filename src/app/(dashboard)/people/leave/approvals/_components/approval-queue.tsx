@@ -12,8 +12,19 @@ import { toast } from "sonner";
 
 interface Row {
   id: string; startDate: string; endDate: string; days: number; reason: string | null;
+  appliedOnTime: boolean | null;
   leaveType: { name: string; code: string; color: string };
   employee: { id: string; firstName: string; lastName: string; empCode: string };
+}
+
+// 25th-cutoff punctuality badge: green "On time", red "Late", nothing for legacy (null).
+function PunctualityBadge({ onTime }: { onTime: boolean | null }) {
+  if (onTime == null) return null;
+  return onTime ? (
+    <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">On time</span>
+  ) : (
+    <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-medium text-red-700 dark:bg-red-950/50 dark:text-red-300">Late</span>
+  );
 }
 
 export function ApprovalQueue({ rows }: { rows: Row[] }) {
@@ -58,6 +69,7 @@ function Card({ row }: { row: Row }) {
             <StatusPill label={row.leaveType.code} hue={row.leaveType.color as never} size="xs" />
             <span>{formatDate(row.startDate)}{row.endDate !== row.startDate ? ` → ${formatDate(row.endDate)}` : ""}</span>
             <span className="font-medium tabular-nums">· {row.days} day{row.days === 1 ? "" : "s"}</span>
+            <PunctualityBadge onTime={row.appliedOnTime} />
           </div>
           {row.reason && <p className="mt-1 text-[12.5px] text-muted-foreground">“{row.reason}”</p>}
         </div>

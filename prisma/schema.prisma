@@ -5187,6 +5187,9 @@ model LeaveRequest {
   decidedAt    DateTime?
   decisionNote String?
   escalatedAt  DateTime? // set when auto-escalated past a stale approver
+  // HRMS flowchart cutoff rule: applications on/before the 25th are "on time"
+  // (green); after the 25th are auto-flagged late (red).
+  appliedOnTime Boolean? // null = legacy/unknown
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @default(now()) @updatedAt
 
@@ -5271,6 +5274,12 @@ model AttendanceRecord {
   selfieUrl     String?
   isRegularized Boolean          @default(false)
   note          String?
+  // Geo-tagging flow (HRMS flowchart): OFFICE/FIELD punches are geo-verified
+  // (within site radius); CLIENT visits need no geo-tag.
+  visitType        String?  // OFFICE | FIELD | CLIENT
+  locationVerified Boolean? // true = GPS matched a site within radius
+  flagged          Boolean  @default(false) // needs manager/HR review
+  flagReason       String?
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @default(now()) @updatedAt
 
@@ -8199,6 +8208,33 @@ model HrPayslip {
   createdAt       DateTime     @default(now())
 
   @@unique([runId, employeeId])
+  @@index([employeeId])
+}
+
+// Monthly attendance sheet — the "attendance report → salary sheet" bridge.
+// Auto-computed from AttendanceRecords + approved leaves, HR-editable from the
+// backend, then FINALised so payroll reads LOP days from the truthful sheet.
+model MonthlyAttendanceSheet {
+  id          String   @id @default(cuid())
+  entityId    String   @default("BILLION")
+  fy          String // "2026-27"
+  month       Int // calendar 1..12
+  employeeId  String
+  empCodeSnap String
+  nameSnap    String
+  workingDays Int      @default(0) // calendar working days in the month
+  presentDays Decimal  @default(0) @db.Decimal(6, 2)
+  leaveDays   Decimal  @default(0) @db.Decimal(6, 2) // approved (paid) leave
+  lopDays     Decimal  @default(0) @db.Decimal(6, 2) // loss-of-pay → payroll
+  status      String   @default("DRAFT") // DRAFT | FINAL
+  edited      Boolean  @default(false) // HR corrected from the auto figures
+  note        String?
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([entityId, fy, month, employeeId])
+  @@index([fy, month])
   @@index([employeeId])
 }
 

@@ -120,6 +120,14 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
   });
   const structByEmp = new Map(structures.map((s) => [s.employeeId, s]));
 
+  // Attendance → salary bridge: pull loss-of-pay days from the FINALised
+  // monthly attendance sheet for this period. No FINAL sheet → LOP 0 (full pay).
+  const sheets = await prisma.monthlyAttendanceSheet.findMany({
+    where: { fy: run.fy, month: run.month, status: "FINAL", employeeId: { in: employees.map((e) => e.id) } },
+    select: { employeeId: true, lopDays: true },
+  });
+  const lopByEmp = new Map(sheets.map((s) => [s.employeeId, Number(s.lopDays)]));
+
   let headcount = 0;
   let skipped = 0;
   let totalGross = 0;
@@ -134,7 +142,7 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
         continue;
       }
       const lines = (struct.lines as unknown as StructureLine[]) ?? [];
-      const c = computePayslip({ lines, lopDays: 0, monthDays });
+      const c = computePayslip({ lines, lopDays: lopByEmp.get(emp.id) ?? 0, monthDays });
 
       headcount++;
       totalGross += c.gross;

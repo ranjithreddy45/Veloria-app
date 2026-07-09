@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { MapPin, LogIn, LogOut, Loader2, Clock, CalendarPlus } from "lucide-react";
+import { MapPin, LogIn, LogOut, Loader2, Clock, CalendarPlus, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,13 +18,16 @@ import {
 import { StatusPill } from "@/components/shared/status-pill";
 import { formatDate } from "@/lib/utils";
 import { ATTENDANCE_STATUS_LABELS, ATTENDANCE_STATUS_HUE } from "@/lib/hr/constants";
-import { checkIn, checkOut, requestRegularization } from "@/actions/hr-attendance.actions";
+import { checkIn, checkOut, requestRegularization, markAttendanceManually } from "@/actions/hr-attendance.actions";
 
 interface Rec {
   id: string; date: string; checkInAt: string | null; checkOutAt: string | null;
   status: string; workedMinutes: number; isRegularized: boolean;
 }
 interface Stats { presentDays: number; halfDays: number; totalHours: number }
+interface EmployeeOption { id: string; firstName: string; lastName: string; empCode: string }
+type VisitType = "OFFICE" | "FIELD" | "CLIENT";
+const VISIT_TYPE_LABELS: Record<VisitType, string> = { OFFICE: "Office visit", FIELD: "Field visit", CLIENT: "Client visit" };
 
 function fmtTime(iso: string | null) {
   if (!iso) return "—";
@@ -36,7 +39,12 @@ function fmtDur(min: number) {
   return `${h}h ${m}m`;
 }
 
-export function AttendanceHome({ today, records, stats }: { today: Rec | null; records: Rec[]; stats: Stats }) {
+export function AttendanceHome({
+  today, records, stats, canMarkManually = false, employees = [],
+}: {
+  today: Rec | null; records: Rec[]; stats: Stats;
+  canMarkManually?: boolean; employees?: EmployeeOption[];
+}) {
   return (
     <div className="space-y-5">
       <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
@@ -51,7 +59,10 @@ export function AttendanceHome({ today, records, stats }: { today: Rec | null; r
       <div className="rounded-xl border bg-card">
         <div className="flex items-center justify-between border-b px-4 py-3">
           <span className="text-[13px] font-semibold">This month</span>
-          <RegularizeDialog />
+          <div className="flex items-center gap-2">
+            {canMarkManually && <MarkManuallyDialog employees={employees} />}
+            <RegularizeDialog />
+          </div>
         </div>
         {records.length === 0 ? (
           <div className="p-10 text-center text-sm text-muted-foreground">No attendance recorded this month yet.</div>
@@ -102,9 +113,11 @@ function CheckInCard({ today }: { today: Rec | null }) {
   const router = useRouter();
   const [busy, setBusy] = React.useState(false);
   const [msg, setMsg] = React.useState<string | null>(null);
+  const [visitType, setVisitType] = React.useState<VisitType>("OFFICE");
 
   const checkedIn = !!today?.checkInAt;
   const checkedOut = !!today?.checkOutAt;
+  const needsGps = visitType !== "CLIENT";
 
   function getPosition(): Promise<{ lat?: number; lng?: number }> {
     return new Promise((resolve) => {
@@ -119,11 +132,22 @@ function CheckInCard({ today }: { today: Rec | null }) {
 
   async function doCheckIn() {
     setBusy(true); setMsg(null);
-    const pos = await getPosition();
-    const res = await checkIn(pos);
+    // Client visits need no geo-tag; Office/Field capture GPS for verification.
+    const pos = needsGps ? await getPosition() : {};
+    const res = await checkIn({ ...pos, visitType });
     setBusy(false);
-    if (res.success) { setMsg(`Checked in${res.data.siteName ? ` at ${res.data.siteName}` : res.data.status === "WFH" ? " (work from home)" : ""}.`); router.refresh(); }
-    else setMsg(res.error);
+    if (res.success) {
+      const d = res.data;
+      const detail = d.visitType === "CLIENT"
+        ? " (client visit)"
+        : d.flagged
+          ? " — location not verified, flagged for review"
+          : d.locationVerified
+            ? ` — location match verified${d.siteName ? ` at ${d.siteName}` : ""}`
+            : "";
+      setMsg(`Checked in${detail}.`);
+      router.refresh();
+    } else setMsg(res.error);
   }
   async function doCheckOut() {
     setBusy(true); setMsg(null);
@@ -153,6 +177,19 @@ function CheckInCard({ today }: { today: Rec | null }) {
           </div>
         )}
       </div>
+      {!checkedIn && (
+        <div className="mt-4 space-y-1.5">
+          <Label className="text-[11.5px] text-muted-foreground">Visit type</Label>
+          <Select value={visitType} onValueChange={(v) => setVisitType(v as VisitType)}>
+            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {(Object.keys(VISIT_TYPE_LABELS) as VisitType[]).map((t) => (
+                <SelectItem key={t} value={t}>{VISIT_TYPE_LABELS[t]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       <div className="mt-4">
         {!checkedIn ? (
           <Button onClick={doCheckIn} disabled={busy} className="w-full gap-1.5">
@@ -168,9 +205,15 @@ function CheckInCard({ today }: { today: Rec | null }) {
           </div>
         )}
       </div>
-      <p className="mt-2 flex items-center gap-1 text-[11.5px] text-muted-foreground">
-        <MapPin className="size-3" /> Location is captured to verify on-site attendance.
-      </p>
+      {needsGps ? (
+        <p className="mt-2 flex items-center gap-1 text-[11.5px] text-muted-foreground">
+          <MapPin className="size-3" /> Location is captured to verify on-site attendance.
+        </p>
+      ) : (
+        <p className="mt-2 flex items-center gap-1 text-[11.5px] text-muted-foreground">
+          <MapPin className="size-3" /> Client visit — no location tag required.
+        </p>
+      )}
       {msg && <p className="mt-1.5 text-[12.5px] text-muted-foreground">{msg}</p>}
     </div>
   );
@@ -234,6 +277,77 @@ function RegularizeDialog() {
           <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
           <Button onClick={submit} disabled={saving} className="gap-1.5">
             {saving && <Loader2 className="size-4 animate-spin" />} Submit
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// HR-only: enter/override a day's attendance from the backend.
+const MANUAL_STATUS_OPTIONS = ["PRESENT", "ABSENT", "HALF_DAY", "WFH", "ON_LEAVE", "HOLIDAY"];
+
+function MarkManuallyDialog({ employees }: { employees: EmployeeOption[] }) {
+  const router = useRouter();
+  const [open, setOpen] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [employeeId, setEmployeeId] = React.useState("");
+  const [date, setDate] = React.useState("");
+  const [status, setStatus] = React.useState("PRESENT");
+  const [note, setNote] = React.useState("");
+
+  async function submit() {
+    setError(null);
+    if (!employeeId) { setError("Pick an employee."); return; }
+    if (!date) { setError("Pick the date."); return; }
+    setSaving(true);
+    const res = await markAttendanceManually({ employeeId, date, status, note: note || undefined });
+    setSaving(false);
+    if (!res.success) { setError(res.error); return; }
+    setOpen(false); setEmployeeId(""); setDate(""); setStatus("PRESENT"); setNote("");
+    router.refresh();
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1.5"><UserCog className="size-3.5" /> Mark manually</Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Mark attendance manually</DialogTitle>
+          <DialogDescription>HR entry — set or override a day's attendance. Clears any auto-flag on that day.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 py-2">
+          <div className="space-y-1.5"><Label className="text-[12.5px]">Employee</Label>
+            <Select value={employeeId} onValueChange={setEmployeeId}>
+              <SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger>
+              <SelectContent>
+                {employees.map((e) => (
+                  <SelectItem key={e.id} value={e.id}>{e.firstName} {e.lastName} ({e.empCode})</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5"><Label className="text-[12.5px]">Date</Label>
+            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
+          <div className="space-y-1.5"><Label className="text-[12.5px]">Status</Label>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {MANUAL_STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{ATTENDANCE_STATUS_LABELS[s]}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5"><Label className="text-[12.5px]">Note (optional)</Label>
+            <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Manual entry reason…" /></div>
+        </div>
+        {error && <p className="text-sm text-red-600">{error}</p>}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
+          <Button onClick={submit} disabled={saving} className="gap-1.5">
+            {saving && <Loader2 className="size-4 animate-spin" />} Save
           </Button>
         </DialogFooter>
       </DialogContent>

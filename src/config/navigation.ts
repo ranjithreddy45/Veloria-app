@@ -447,6 +447,7 @@ export const sidebarNavigation: NavItem[] = [
     permissions: ["hr:payroll", "hr:read"],
     children: [
       { title: "My Payslips", href: "/people/my/payslips", icon: "FileText", permissions: ["hr:read"] },
+      { title: "Attendance Sheet", href: "/people/payroll/attendance-sheet", icon: "ClipboardList", permissions: ["hr:payroll"] },
       { title: "Payroll Runs", href: "/people/payroll", icon: "CreditCard", permissions: ["hr:payroll"] },
       { title: "Statutory Registers", href: "/people/payroll/registers", icon: "ClipboardList", permissions: ["hr:payroll"] },
       { title: "Full & Final", href: "/people/payroll/fnf", icon: "FileInput", permissions: ["hr:payroll"] },

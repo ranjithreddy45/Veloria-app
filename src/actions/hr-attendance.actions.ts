@@ -4,10 +4,11 @@ import { auth } from "@/../auth";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { Prisma } from "@prisma/client";
-import { hasPermission } from "@/lib/permissions";
+import { Prisma, type UserRole } from "@prisma/client";
+import { hasPermission, ROLE_PERMISSIONS } from "@/lib/permissions";
 import { withinRadius, ipAllowed, clientIpFromHeaders } from "@/lib/hr/geo";
 import { FULL_DAY_MINUTES, HALF_DAY_MINUTES } from "@/lib/hr/constants";
+import { sendEmail } from "@/lib/email";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -28,6 +29,74 @@ async function myEmployee(userId: string) {
 function todayUtcMidnight(): Date {
   const n = new Date();
   return new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate()));
+}
+
+/** Format an instant as IST (fixed +5:30) clock time, e.g. "3:42 PM". */
+function istTime(d: Date): string {
+  return d.toLocaleTimeString("en-IN", {
+    hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata",
+  });
+}
+
+/** Roles that carry the hr:admin permission — used to resolve HR cc recipients. */
+const HR_ADMIN_ROLES = Object.keys(ROLE_PERMISSIONS).filter((r) =>
+  (ROLE_PERMISSIONS[r] ?? []).includes("hr:admin")
+);
+
+/**
+ * Best-effort punch notification: email the employee's reporting manager,
+ * cc all resolvable HR admins. Never throws — callers must not await-fail on it.
+ */
+async function notifyPunch(args: {
+  employeeName: string; reportingManagerId: string | null;
+  visitType: "OFFICE" | "FIELD" | "CLIENT"; locationVerified: boolean | null;
+  flagged: boolean; flagReason: string | null; siteName: string | null; at: Date;
+}): Promise<void> {
+  try {
+    if (!args.reportingManagerId) return; // no manager → nothing to notify
+    const [manager, hrEmployees] = await Promise.all([
+      prisma.employee.findUnique({
+        where: { id: args.reportingManagerId },
+        select: { workEmail: true },
+      }),
+      prisma.employee.findMany({
+        where: { deletedAt: null, workEmail: { not: null }, user: { role: { in: HR_ADMIN_ROLES as UserRole[] } } },
+        select: { workEmail: true },
+      }),
+    ]);
+    const to = manager?.workEmail?.trim();
+    if (!to) return; // manager has no work email → skip (best-effort)
+
+    const cc = hrEmployees
+      .map((e) => e.workEmail?.trim())
+      .filter((e): e is string => !!e && e !== to);
+
+    const statusLine = args.flagged
+      ? `⚠️ Flagged — ${args.flagReason ?? "needs review"}`
+      : args.visitType === "CLIENT"
+        ? "Client visit (no geo-tag required)"
+        : args.locationVerified
+          ? `✓ Location match verified${args.siteName ? ` — ${args.siteName}` : ""}`
+          : "Not location-verified";
+
+    const html = `
+      <div style="font-family:system-ui,sans-serif;font-size:14px;color:#111;line-height:1.5">
+        <p><strong>${args.employeeName}</strong> punched in.</p>
+        <table style="border-collapse:collapse;font-size:13px">
+          <tr><td style="padding:2px 12px 2px 0;color:#666">Time (IST)</td><td>${istTime(args.at)}</td></tr>
+          <tr><td style="padding:2px 12px 2px 0;color:#666">Visit type</td><td>${args.visitType}</td></tr>
+          <tr><td style="padding:2px 12px 2px 0;color:#666">Status</td><td>${statusLine}</td></tr>
+        </table>
+      </div>`;
+
+    await sendEmail({
+      to: cc.length ? `${to}, ${cc.join(", ")}` : to,
+      subject: `Attendance • ${args.employeeName} punched in (${args.visitType})`,
+      html,
+    });
+  } catch (err) {
+    console.error("[ATTENDANCE_NOTIFY_ERROR]", err);
+  }
 }
 
 // ============================================================
@@ -69,11 +138,16 @@ export async function upsertAttendanceSite(input: SiteInput): Promise<Result<{ i
 // ============================================================
 // Check-in / Check-out
 // ============================================================
-export async function checkIn(input: { lat?: number; lng?: number; selfieUrl?: string }): Promise<Result<{ status: string; siteName: string | null }>> {
+export async function checkIn(input: {
+  lat?: number; lng?: number; selfieUrl?: string;
+  visitType?: "OFFICE" | "FIELD" | "CLIENT";
+}): Promise<Result<{ status: string; siteName: string | null; visitType: string; locationVerified: boolean | null; flagged: boolean }>> {
   const u = await requireUser();
   if (!u?.id) return { success: false, error: "Not signed in." };
   const emp = await myEmployee(u.id);
   if (!emp) return { success: false, error: "Your account isn't linked to an employee record yet." };
+
+  const visitType: "OFFICE" | "FIELD" | "CLIENT" = input.visitType ?? "OFFICE";
 
   const date = todayUtcMidnight();
   const existing = await prisma.attendanceRecord.findUnique({
@@ -85,33 +159,41 @@ export async function checkIn(input: { lat?: number; lng?: number; selfieUrl?: s
   const h = await headers();
   const ip = clientIpFromHeaders(h.get("x-forwarded-for"), h.get("x-real-ip"));
 
-  // Match against active geo sites.
-  const sites = await prisma.attendanceSite.findMany({ where: { isActive: true } });
-  const geoSites = sites.filter((s) => s.lat != null && s.lng != null);
+  let matchedSite: { id: string; name: string } | null = null;
+  let locationVerified: boolean | null = null;
+  let flagged = false;
+  let flagReason: string | null = null;
+  const status: "PRESENT" = "PRESENT";
 
-  let matchedSite: (typeof sites)[number] | null = null;
-  let status: "PRESENT" | "WFH" = "PRESENT";
-
-  if (geoSites.length > 0) {
-    if (input.lat != null && input.lng != null) {
-      matchedSite = geoSites.find((s) => withinRadius(input.lat!, input.lng!, s.lat!, s.lng!, s.radiusMeters)) ?? null;
-    }
-    if (matchedSite) {
-      // IP restriction (if any) must also pass.
-      if (!ipAllowed(ip, matchedSite.allowedIps))
-        return { success: false, error: "Check-in blocked: your network isn't allowed for this site." };
-      status = "PRESENT";
-    } else {
-      // Not at any site — only allowed if some site permits WFH.
-      const anyWfh = sites.some((s) => s.allowWfh);
-      if (!anyWfh) return { success: false, error: "You're outside all allowed check-in locations." };
-      status = "WFH";
-    }
+  if (visitType === "CLIENT") {
+    // Client visit — no geo-tag required. Leave location unverified (not flagged).
+    locationVerified = null;
   } else {
-    // No geo sites configured → unrestricted; treat in-office if IP allowed by any site, else WFH.
-    const ipSite = sites.find((s) => s.allowedIps && ipAllowed(ip, s.allowedIps));
-    if (ipSite) { matchedSite = ipSite; status = "PRESENT"; }
-    else status = sites.length === 0 ? "PRESENT" : "WFH";
+    // OFFICE / FIELD — geo-verify against active sites within their radius.
+    const sites = await prisma.attendanceSite.findMany({ where: { isActive: true } });
+    const geoSites = sites.filter((s) => s.lat != null && s.lng != null);
+
+    if (geoSites.length === 0) {
+      // Nothing configured to verify against — record but leave unverified, not flagged.
+      locationVerified = null;
+    } else {
+      const hit =
+        input.lat != null && input.lng != null
+          ? geoSites.find((s) => withinRadius(input.lat!, input.lng!, s.lat!, s.lng!, s.radiusMeters)) ?? null
+          : null;
+      if (hit) {
+        // IP restriction (if any) must also pass for a verified on-site punch.
+        if (!ipAllowed(ip, hit.allowedIps))
+          return { success: false, error: "Check-in blocked: your network isn't allowed for this site." };
+        matchedSite = { id: hit.id, name: hit.name };
+        locationVerified = true;
+      } else {
+        // Missing coords or outside every site radius — record but auto-flag for review.
+        locationVerified = false;
+        flagged = true;
+        flagReason = "Location not verified within site radius";
+      }
+    }
   }
 
   const now = new Date();
@@ -121,14 +203,27 @@ export async function checkIn(input: { lat?: number; lng?: number; selfieUrl?: s
       employeeId: emp.id, date, checkInAt: now,
       checkInLat: input.lat ?? null, checkInLng: input.lng ?? null, checkInIp: ip,
       siteId: matchedSite?.id ?? null, source: "WEB", status, selfieUrl: input.selfieUrl || null,
+      visitType, locationVerified, flagged, flagReason,
     },
-    update: { checkInAt: now, checkInLat: input.lat ?? null, checkInLng: input.lng ?? null, checkInIp: ip, siteId: matchedSite?.id ?? null, status },
+    update: {
+      checkInAt: now, checkInLat: input.lat ?? null, checkInLng: input.lng ?? null, checkInIp: ip,
+      siteId: matchedSite?.id ?? null, status, visitType, locationVerified, flagged, flagReason,
+    },
   });
   await prisma.activityLog.create({
-    data: { action: "ATTENDANCE_CHECK_IN", entityType: "ATTENDANCE", entityId: rec.id, userId: u.id, changes: { status } },
+    data: { action: "ATTENDANCE_CHECK_IN", entityType: "ATTENDANCE", entityId: rec.id, userId: u.id, changes: { status, visitType, locationVerified, flagged } },
   });
+
+  // Best-effort notification — must not block or fail the check-in.
+  await notifyPunch({
+    employeeName: `${emp.firstName} ${emp.lastName}`.trim(),
+    reportingManagerId: emp.reportingManagerId,
+    visitType, locationVerified, flagged, flagReason,
+    siteName: matchedSite?.name ?? null, at: now,
+  });
+
   revalidatePath("/people/attendance");
-  return { success: true, data: { status, siteName: matchedSite?.name ?? null } };
+  return { success: true, data: { status, siteName: matchedSite?.name ?? null, visitType, locationVerified, flagged } };
 }
 
 export async function checkOut(): Promise<Result<{ workedMinutes: number; status: string }>> {
@@ -284,4 +379,70 @@ export async function decideRegularization(id: string, decision: "APPROVED" | "R
   });
   revalidatePath("/people/attendance/regularizations");
   return { success: true, data: { id } };
+}
+
+// ============================================================
+// HR backend — manual attendance entry & employee picker
+// ============================================================
+const MANUAL_STATUSES = ["PRESENT", "ABSENT", "HALF_DAY", "WFH", "ON_LEAVE", "HOLIDAY"] as const;
+type ManualStatus = (typeof MANUAL_STATUSES)[number];
+
+/** Employees an HR user can pick when entering attendance manually. */
+export async function getAttendanceEmployees() {
+  const u = await requireUser();
+  if (!can(u?.role, "hr:write") && !can(u?.role, "hr:admin")) return [];
+  return prisma.employee.findMany({
+    where: { deletedAt: null },
+    select: { id: true, firstName: true, lastName: true, empCode: true },
+    orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
+  });
+}
+
+/**
+ * HR manually marks/enters a day's attendance from the backend (flowchart:
+ * "marked/entered manually by HR"). Idempotent on @@unique([employeeId, date]);
+ * records the entry as MANUAL and clears any auto-flag on that day.
+ */
+export async function markAttendanceManually(input: {
+  employeeId: string; date: string; status: string; note?: string;
+}): Promise<Result<{ id: string }>> {
+  const u = await requireUser();
+  if (!can(u?.role, "hr:write") && !can(u?.role, "hr:admin"))
+    return { success: false, error: "Not authorized." };
+
+  if (!input.employeeId) return { success: false, error: "Pick an employee." };
+  if (!MANUAL_STATUSES.includes(input.status as ManualStatus))
+    return { success: false, error: "Invalid status." };
+
+  const date = new Date(input.date + "T00:00:00.000Z");
+  if (isNaN(date.getTime())) return { success: false, error: "Invalid date." };
+
+  const emp = await prisma.employee.findFirst({
+    where: { id: input.employeeId, deletedAt: null },
+    select: { id: true },
+  });
+  if (!emp) return { success: false, error: "Employee not found." };
+
+  const status = input.status as ManualStatus;
+  const workedMinutes =
+    status === "PRESENT" || status === "WFH" ? FULL_DAY_MINUTES
+      : status === "HALF_DAY" ? HALF_DAY_MINUTES
+        : 0;
+  const note = input.note?.trim() || null;
+
+  const rec = await prisma.attendanceRecord.upsert({
+    where: { employeeId_date: { employeeId: emp.id, date } },
+    create: {
+      employeeId: emp.id, date, status, workedMinutes,
+      source: "MANUAL", note, flagged: false, flagReason: null,
+    },
+    update: {
+      status, workedMinutes, source: "MANUAL", note, flagged: false, flagReason: null,
+    },
+  });
+  await prisma.activityLog.create({
+    data: { action: "ATTENDANCE_MANUAL_MARK", entityType: "ATTENDANCE", entityId: rec.id, userId: u!.id, changes: { status, note } },
+  });
+  revalidatePath("/people/attendance");
+  return { success: true, data: { id: rec.id } };
 }

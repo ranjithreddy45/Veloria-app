@@ -27,8 +27,19 @@ interface Balance {
 }
 interface RequestRow {
   id: string; startDate: string; endDate: string; days: number; status: string; reason: string | null;
+  appliedOnTime: boolean | null;
   leaveType: { name: string; code: string; color: string };
   approver: { firstName: string; lastName: string } | null;
+}
+
+// 25th-cutoff punctuality badge: green "On time", red "Late", nothing for legacy (null).
+function PunctualityBadge({ onTime }: { onTime: boolean | null }) {
+  if (onTime == null) return null;
+  return onTime ? (
+    <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">On time</span>
+  ) : (
+    <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-medium text-red-700 dark:bg-red-950/50 dark:text-red-300">Late</span>
+  );
 }
 interface HolidayItem { id: string; name: string; date: string }
 
@@ -148,7 +159,12 @@ export function LeaveHome({
                   <TableCell className="text-[13px] text-muted-foreground">
                     {r.approver ? `${r.approver.firstName} ${r.approver.lastName}` : "HR"}
                   </TableCell>
-                  <TableCell><StatusPill label={LEAVE_STATUS_LABELS[r.status]} hue={LEAVE_STATUS_HUE[r.status] as never} size="xs" /></TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1.5">
+                      <StatusPill label={LEAVE_STATUS_LABELS[r.status]} hue={LEAVE_STATUS_HUE[r.status] as never} size="xs" />
+                      <PunctualityBadge onTime={r.appliedOnTime} />
+                    </div>
+                  </TableCell>
                   <TableCell>
                     {(r.status === "PENDING" || r.status === "APPROVED") && <CancelButton id={r.id} />}
                   </TableCell>

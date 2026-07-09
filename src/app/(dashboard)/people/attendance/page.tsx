@@ -7,7 +7,7 @@ import { hasPermission } from "@/lib/permissions";
 import { FEATURES } from "@/config/features";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
-import { getMyAttendance } from "@/actions/hr-attendance.actions";
+import { getMyAttendance, getAttendanceEmployees } from "@/actions/hr-attendance.actions";
 import { AttendanceHome } from "./_components/attendance-home";
 
 export const metadata: Metadata = { title: "Attendance" };
@@ -18,8 +18,12 @@ export default async function AttendancePage() {
   const role = session?.user?.role ?? "";
   const canApprove = hasPermission(role, "hr:approve");
   const canAdmin = hasPermission(role, "hr:admin");
+  const canMarkManually = hasPermission(role, "hr:write") || canAdmin;
 
-  const data = await getMyAttendance();
+  const [data, employees] = await Promise.all([
+    getMyAttendance(),
+    canMarkManually ? getAttendanceEmployees() : Promise.resolve([]),
+  ]);
 
   return (
     <div className="space-y-5">
@@ -50,7 +54,7 @@ export default async function AttendancePage() {
           {canApprove && " You can still review regularizations."}
         </div>
       ) : (
-        <AttendanceHome today={data.today as never} records={data.records as never} stats={data.stats} />
+        <AttendanceHome today={data.today as never} records={data.records as never} stats={data.stats} canMarkManually={canMarkManually} employees={employees} />
       )}
     </div>
   );

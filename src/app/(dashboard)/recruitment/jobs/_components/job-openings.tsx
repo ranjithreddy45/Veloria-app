@@ -3,10 +3,11 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Briefcase, Plus, CheckCircle2, Layers, Sparkles } from "lucide-react";
+import { Briefcase, Plus, CheckCircle2, Layers, Sparkles, Pencil } from "lucide-react";
 
 import {
   createJobOpening,
+  updateJobOpening,
   setJobStatus,
 } from "@/actions/recruit.actions";
 import { REC_JOB_STATUSES } from "@/lib/recruit/constants";
@@ -58,6 +59,9 @@ type Opening = {
   targetDate: string | null;
   hiringManager: string | null;
   assignedRecruiter: string | null;
+  hiringManagerId: string | null;
+  assignedRecruiterId: string | null;
+  description: string | null;
   applications: number;
   createdAt: string;
 };
@@ -105,6 +109,7 @@ export function JobOpenings({
   const router = useRouter();
   const [filtered, setFiltered] = React.useState<Opening[]>(openings);
   const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [editing, setEditing] = React.useState<Opening | null>(null);
   const [savingId, setSavingId] = React.useState<string | null>(null);
 
   // Keep the filtered view in sync when the underlying data refreshes.
@@ -195,6 +200,18 @@ export function JobOpenings({
         </div>
       )}
 
+      {/* Edit opening — controlled, no trigger; opened from a row action. */}
+      {canWrite && (
+        <NewOpeningDialog
+          open={editing !== null}
+          onOpenChange={(v) => {
+            if (!v) setEditing(null);
+          }}
+          options={options}
+          opening={editing}
+        />
+      )}
+
       {/* Filter rail + table */}
       <div className="flex items-start gap-4">
         <FacetFilterRail
@@ -236,6 +253,7 @@ export function JobOpenings({
                       <TableHead>Hiring Manager</TableHead>
                       <TableHead className="text-right"># Positions</TableHead>
                       <TableHead className="text-right">Applications</TableHead>
+                      {canWrite && <TableHead className="text-right">Actions</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -294,6 +312,18 @@ export function JobOpenings({
                         <TableCell className="text-right tabular-nums">
                           {o.applications}
                         </TableCell>
+                        {canWrite && (
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-muted-foreground hover:text-foreground"
+                              onClick={() => setEditing(o)}
+                            >
+                              <Pencil className="size-3.5" /> Edit
+                            </Button>
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>
@@ -315,13 +345,16 @@ function NewOpeningDialog({
   onOpenChange,
   options,
   trigger,
+  opening,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   options: Options;
-  trigger: React.ReactNode;
+  trigger?: React.ReactNode;
+  opening?: Opening | null;
 }) {
   const router = useRouter();
+  const isEdit = !!opening;
   const [submitting, setSubmitting] = React.useState(false);
 
   const [postingTitle, setPostingTitle] = React.useState("");
@@ -344,6 +377,24 @@ function NewOpeningDialog({
     setDescription("");
   }
 
+  // Prefill (edit) or clear (create) the form whenever the dialog opens.
+  React.useEffect(() => {
+    if (!open) return;
+    if (opening) {
+      setPostingTitle(opening.postingTitle);
+      setDepartment(opening.department ?? "");
+      setCity(opening.city ?? "");
+      setNumberOfPositions(String(opening.numberOfPositions));
+      // <input type="date"> wants YYYY-MM-DD.
+      setTargetDate(opening.targetDate ? opening.targetDate.slice(0, 10) : "");
+      setHiringManagerId(opening.hiringManagerId ?? "");
+      setAssignedRecruiterId(opening.assignedRecruiterId ?? "");
+      setDescription(opening.description ?? "");
+    } else {
+      reset();
+    }
+  }, [open, opening]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!postingTitle.trim()) {
@@ -351,8 +402,7 @@ function NewOpeningDialog({
       return;
     }
     const positions = Number.parseInt(numberOfPositions, 10);
-    setSubmitting(true);
-    const res = await createJobOpening({
+    const payload = {
       postingTitle: postingTitle.trim(),
       department: department.trim() || undefined,
       city: city.trim() || undefined,
@@ -361,10 +411,14 @@ function NewOpeningDialog({
       hiringManagerId: hiringManagerId || undefined,
       assignedRecruiterId: assignedRecruiterId || undefined,
       description: description.trim() || undefined,
-    });
+    };
+    setSubmitting(true);
+    const res = opening
+      ? await updateJobOpening(opening.id, payload)
+      : await createJobOpening(payload);
     setSubmitting(false);
     if (res.success) {
-      toast.success("Job opening created.");
+      toast.success(isEdit ? "Job opening updated." : "Job opening created.");
       reset();
       onOpenChange(false);
       router.refresh();
@@ -375,17 +429,19 @@ function NewOpeningDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
-        <form onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle>New job opening</DialogTitle>
+      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
+      <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden sm:max-w-lg">
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          <DialogHeader className="shrink-0">
+            <DialogTitle>{isEdit ? "Edit job opening" : "New job opening"}</DialogTitle>
             <DialogDescription>
-              Add a role you're hiring for. Only the posting title is required.
+              {isEdit
+                ? "Update the details for this role. Only the posting title is required."
+                : "Add a role you're hiring for. Only the posting title is required."}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-4 py-4">
+          <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto py-4">
             <div className="grid gap-1.5">
               <Label htmlFor="postingTitle">Posting title</Label>
               <Input
@@ -485,7 +541,7 @@ function NewOpeningDialog({
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="shrink-0">
             <Button
               type="button"
               variant="outline"
@@ -495,7 +551,13 @@ function NewOpeningDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={submitting}>
-              {submitting ? "Creating…" : "Create opening"}
+              {submitting
+                ? isEdit
+                  ? "Saving…"
+                  : "Creating…"
+                : isEdit
+                  ? "Save changes"
+                  : "Create opening"}
             </Button>
           </DialogFooter>
         </form>
