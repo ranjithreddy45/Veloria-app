@@ -6,8 +6,9 @@ import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
 import { FEATURES } from "@/config/features";
 import { PageHeader } from "@/components/layout/page-header";
-import { getCustomFieldDefs } from "@/actions/hr-config.actions";
+import { getCustomFieldDefs, listOrgConfig } from "@/actions/hr-config.actions";
 import { CustomFieldsAdmin, type FieldDef } from "./_components/custom-fields-admin";
+import { OrgConfigAdmin, type OrgConfigData } from "./_components/org-config-admin";
 
 export const metadata: Metadata = { title: "People Settings" };
 
@@ -17,6 +18,7 @@ export default async function PeopleSettingsPage() {
   if (!hasPermission(session?.user?.role ?? "", "hr:admin")) redirect("/people");
 
   const defs = (await getCustomFieldDefs(false)) as unknown as FieldDef[];
+  const orgConfig = (await listOrgConfig()) as unknown as OrgConfigData;
 
   return (
     <div className="space-y-5">
@@ -27,6 +29,7 @@ export default async function PeopleSettingsPage() {
         title="People settings"
         description="Configure the People platform. Custom fields apply to every employee profile — add as many as you like."
       />
+      <OrgConfigAdmin data={orgConfig} />
       <CustomFieldsAdmin defs={defs} />
     </div>
   );

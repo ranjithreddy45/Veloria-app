@@ -135,19 +135,32 @@ export async function acknowledgeDocument(documentId: string): Promise<Result<{ 
   return { success: true, data: { id: documentId } };
 }
 
-// Acknowledgement coverage for a document (HR view).
+// Acknowledgement coverage for a document (HR view) — who has and hasn't acked.
 export async function getAckCoverage(documentId: string) {
   const u = await requireUser();
   if (!can(u?.role, "hr:read")) return null;
-  const [acks, totalActive] = await Promise.all([
+  const [acks, activeEmployees] = await Promise.all([
     prisma.documentAcknowledgement.findMany({
       where: { documentId },
-      include: { employee: { select: { firstName: true, lastName: true, empCode: true } } },
+      include: { employee: { select: { id: true, firstName: true, lastName: true, empCode: true } } },
       orderBy: { acknowledgedAt: "desc" },
     }),
-    prisma.employee.count({ where: { deletedAt: null, status: { in: ["ACTIVE", "ON_LEAVE"] } } }),
+    prisma.employee.findMany({
+      where: { deletedAt: null, status: { in: ["ACTIVE", "ON_LEAVE"] } },
+      select: { id: true, firstName: true, lastName: true, empCode: true },
+      orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
+    }),
   ]);
-  return { acks, totalActive };
+  const ackedIds = new Set(acks.map((a) => a.employeeId));
+  const acked = acks.map((a) => ({
+    id: a.employee.id,
+    firstName: a.employee.firstName,
+    lastName: a.employee.lastName,
+    empCode: a.employee.empCode,
+    acknowledgedAt: a.acknowledgedAt,
+  }));
+  const pending = activeEmployees.filter((e) => !ackedIds.has(e.id));
+  return { acked, pending, totalActive: activeEmployees.length };
 }
 
 export async function getExpiringDocuments(days = 30) {
@@ -157,7 +170,10 @@ export async function getExpiringDocuments(days = 30) {
   const until = new Date(now.getTime() + days * 86400000);
   return prisma.hrDocument.findMany({
     where: { isActive: true, expiryDate: { not: null, lte: until } },
-    include: { employee: { select: { id: true, firstName: true, lastName: true } } },
+    include: {
+      category: { select: { name: true } },
+      employee: { select: { id: true, firstName: true, lastName: true } },
+    },
     orderBy: { expiryDate: "asc" },
   });
 }

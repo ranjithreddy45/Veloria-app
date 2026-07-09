@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Loader2 } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { Pencil, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,8 +13,14 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { updateEmployee } from "@/actions/hr-employee.actions";
-import { EMPLOYMENT_TYPE_LABELS, EMPLOYEE_STATUS_LABELS } from "@/lib/hr/constants";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { updateEmployee, archiveEmployee } from "@/actions/hr-employee.actions";
+import { EMPLOYMENT_TYPE_LABELS, EMPLOYEE_STATUS_LABELS, GENDER_OPTIONS } from "@/lib/hr/constants";
+import { hasPermission } from "@/lib/permissions";
 
 type Lookup = { id: string; name: string; shortCode?: string | null };
 type ManagerLookup = { id: string; firstName: string; lastName: string; empCode: string };
@@ -21,6 +28,12 @@ type ManagerLookup = { id: string; firstName: string; lastName: string; empCode:
 interface Props {
   employee: {
     id: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    gender?: string | null;
+    dob?: Date | string | null;
+    dateOfJoining?: Date | string | null;
+    photoUrl?: string | null;
     workEmail: string | null;
     personalEmail: string | null;
     phone: string | null;
@@ -38,16 +51,37 @@ interface Props {
   departments: Lookup[];
   designations: Lookup[];
   managers: ManagerLookup[];
+  /** Explicitly grant/deny archive; when omitted, falls back to the viewer's hr:admin permission. */
+  canArchive?: boolean;
 }
 
 const NONE = "__none__";
 
-export function EmployeeEditDialog({ employee, entities, verticals, departments, designations, managers }: Props) {
+function toDateInput(v: Date | string | null | undefined): string {
+  if (!v) return "";
+  const d = typeof v === "string" ? new Date(v) : v;
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toISOString().slice(0, 10);
+}
+
+export function EmployeeEditDialog({ employee, entities, verticals, departments, designations, managers, canArchive }: Props) {
   const router = useRouter();
+  const { data: session } = useSession();
+  const viewerRole = (session?.user as { role?: string } | undefined)?.role;
+  const mayArchive = canArchive ?? (viewerRole ? hasPermission(viewerRole, "hr:admin") : false);
+
   const [open, setOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [archiving, setArchiving] = React.useState(false);
+  const [archiveError, setArchiveError] = React.useState<string | null>(null);
 
+  const [firstName, setFirstName] = React.useState(employee.firstName ?? "");
+  const [lastName, setLastName] = React.useState(employee.lastName ?? "");
+  const [gender, setGender] = React.useState(employee.gender ?? NONE);
+  const [dob, setDob] = React.useState(toDateInput(employee.dob));
+  const [dateOfJoining, setDateOfJoining] = React.useState(toDateInput(employee.dateOfJoining));
+  const [photoUrl, setPhotoUrl] = React.useState(employee.photoUrl ?? "");
   const [workEmail, setWorkEmail] = React.useState(employee.workEmail ?? "");
   const [personalEmail, setPersonalEmail] = React.useState(employee.personalEmail ?? "");
   const [phone, setPhone] = React.useState(employee.phone ?? "");
@@ -64,6 +98,9 @@ export function EmployeeEditDialog({ employee, entities, verticals, departments,
     setError(null);
     setSaving(true);
     const res = await updateEmployee(employee.id, {
+      firstName, lastName,
+      gender: gender === NONE ? "" : gender,
+      dob, dateOfJoining, photoUrl,
       workEmail, personalEmail, phone, workLocation,
       employmentType, status, legalEntityId,
       businessVerticalId: businessVerticalId === NONE ? "" : businessVerticalId,
@@ -77,6 +114,17 @@ export function EmployeeEditDialog({ employee, entities, verticals, departments,
     router.refresh();
   }
 
+  async function handleArchive() {
+    setArchiveError(null);
+    setArchiving(true);
+    const res = await archiveEmployee(employee.id);
+    setArchiving(false);
+    if (!res.success) { setArchiveError(res.error); return; }
+    setOpen(false);
+    router.push("/people");
+    router.refresh();
+  }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -86,6 +134,16 @@ export function EmployeeEditDialog({ employee, entities, verticals, departments,
         <DialogHeader><DialogTitle>Edit employee</DialogTitle></DialogHeader>
 
         <div className="grid gap-4 py-2 sm:grid-cols-2">
+          <F label="First name"><Input value={firstName} onChange={(e) => setFirstName(e.target.value)} /></F>
+          <F label="Last name"><Input value={lastName} onChange={(e) => setLastName(e.target.value)} /></F>
+          <F label="Gender">
+            <P value={gender} onChange={setGender} allowNone
+              options={GENDER_OPTIONS.map((g) => ({ value: g, label: g }))} />
+          </F>
+          <F label="Date of birth"><Input type="date" value={dob} onChange={(e) => setDob(e.target.value)} /></F>
+          <F label="Date of joining"><Input type="date" value={dateOfJoining} onChange={(e) => setDateOfJoining(e.target.value)} /></F>
+          <F label="Photo URL"><Input value={photoUrl} onChange={(e) => setPhotoUrl(e.target.value)} placeholder="https://…" /></F>
+
           <F label="Work email"><Input value={workEmail} onChange={(e) => setWorkEmail(e.target.value)} /></F>
           <F label="Personal email"><Input value={personalEmail} onChange={(e) => setPersonalEmail(e.target.value)} /></F>
           <F label="Phone"><Input value={phone} onChange={(e) => setPhone(e.target.value)} /></F>
@@ -129,6 +187,46 @@ export function EmployeeEditDialog({ employee, entities, verticals, departments,
             {saving && <Loader2 className="size-4 animate-spin" />} Save changes
           </Button>
         </DialogFooter>
+
+        {mayArchive && (
+          <div className="mt-2 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900/50 dark:bg-red-950/30">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium text-red-700 dark:text-red-400">Archive employee</p>
+                <p className="text-[12.5px] text-red-600/80 dark:text-red-400/70">
+                  Marks the record as exited and removes them from the directory. This can’t be undone here.
+                </p>
+              </div>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm" className="gap-1.5 shrink-0">
+                    <Trash2 className="size-3.5" /> Archive
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Archive this employee?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This soft-deletes the employee, sets their status to Exited, and re-routes any pending
+                      approvals assigned to them to the HR queue. They will no longer appear in the directory.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  {archiveError && <p className="text-sm text-red-600">{archiveError}</p>}
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={archiving}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={(e) => { e.preventDefault(); handleArchive(); }}
+                      disabled={archiving}
+                      className="gap-1.5 bg-red-600 text-white hover:bg-red-700 focus:ring-red-600"
+                    >
+                      {archiving && <Loader2 className="size-4 animate-spin" />} Archive employee
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

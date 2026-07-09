@@ -4,6 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import {
   FileText, Plus, Check, ExternalLink, Loader2, FileSignature, Sparkles, Copy, CheckCheck,
+  CalendarClock, Users, Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusPill } from "@/components/shared/status-pill";
 import { formatDate } from "@/lib/utils";
 import {
-  createDocument, acknowledgeDocument, upsertDocumentTemplate, renderTemplate,
+  createDocument, acknowledgeDocument, upsertDocumentTemplate, renderTemplate, getAckCoverage,
 } from "@/actions/hr-documents.actions";
 
 interface Category { id: string; name: string; scope: string }
@@ -30,17 +31,31 @@ interface OrgDoc {
   acknowledgements?: { acknowledgedAt: string }[];
   _count: { acknowledgements: number };
 }
+interface ExpiringDoc {
+  id: string; title: string; expiryDate: string; category: { name: string } | null;
+  employee: { id: string; firstName: string; lastName: string } | null;
+}
+
+/** Whole days between now and an expiry date (negative = already expired). */
+function daysUntil(iso: string): number {
+  const start = new Date(); start.setHours(0, 0, 0, 0);
+  const end = new Date(iso); end.setHours(0, 0, 0, 0);
+  return Math.round((end.getTime() - start.getTime()) / 86400000);
+}
 
 export function DocumentsHome({
-  docs, categories, employees, templates, canWrite, canAdmin, totalActive,
+  docs, categories, employees, templates, expiring, canWrite, canAdmin, totalActive,
 }: {
   docs: OrgDoc[]; categories: Category[]; employees: EmpLite[]; templates: Template[];
-  canWrite: boolean; canAdmin: boolean; totalActive: number;
+  expiring: ExpiringDoc[]; canWrite: boolean; canAdmin: boolean; totalActive: number;
 }) {
   return (
     <Tabs defaultValue="org">
       <TabsList>
         <TabsTrigger value="org">Org documents</TabsTrigger>
+        <TabsTrigger value="expiring">
+          Expiring soon{expiring.length > 0 ? ` (${expiring.length})` : ""}
+        </TabsTrigger>
         <TabsTrigger value="templates">Templates</TabsTrigger>
       </TabsList>
 
@@ -59,6 +74,10 @@ export function DocumentsHome({
             {docs.map((d) => <OrgDocCard key={d.id} doc={d} canRead={canWrite} totalActive={totalActive} />)}
           </div>
         )}
+      </TabsContent>
+
+      <TabsContent value="expiring" className="space-y-3">
+        <ExpiringSection expiring={expiring} />
       </TabsContent>
 
       <TabsContent value="templates" className="space-y-3">
@@ -118,6 +137,9 @@ function OrgDocCard({ doc, canRead, totalActive }: { doc: OrgDoc; canRead: boole
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {canRead && doc.requiresAck && (
+            <AckCoverageDialog documentId={doc.id} title={doc.title} totalActive={totalActive} ackedCount={doc._count.acknowledgements} />
+          )}
           {doc.fileUrl && (
             <Button variant="ghost" size="sm" asChild className="gap-1.5">
               <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer"><ExternalLink className="size-3.5" /> Open</a>
@@ -135,6 +157,145 @@ function OrgDocCard({ doc, canRead, totalActive }: { doc: OrgDoc; canRead: boole
         </div>
       </div>
     </div>
+  );
+}
+
+// ============================================================
+// Expiring soon — surfaces the previously-dead expiry reminders
+// ============================================================
+function ExpiringSection({ expiring }: { expiring: ExpiringDoc[] }) {
+  if (expiring.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed p-12 text-center text-sm text-muted-foreground">
+        <CalendarClock className="mx-auto mb-2 size-6 text-muted-foreground/60" />
+        Nothing expiring in the next 30 days. Documents with an expiry date will surface here as the date nears.
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-2.5">
+      <div className="flex items-center gap-2 text-[12.5px] text-muted-foreground">
+        <CalendarClock className="size-4" />
+        {expiring.length} document{expiring.length === 1 ? "" : "s"} expiring within 30 days (or already expired).
+      </div>
+      {expiring.map((d) => {
+        const left = daysUntil(d.expiryDate);
+        const expired = left < 0;
+        const badge = expired
+          ? { label: `Expired ${Math.abs(left)}d ago`, hue: "red" as const }
+          : left <= 14
+            ? { label: left === 0 ? "Expires today" : `${left}d left`, hue: "amber" as const }
+            : { label: `${left}d left`, hue: "slate" as const };
+        return (
+          <div key={d.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4">
+            <div className="flex items-start gap-3">
+              <Clock className={`mt-0.5 size-4 ${expired ? "text-red-500" : left <= 14 ? "text-amber-500" : "text-muted-foreground"}`} />
+              <div>
+                <div className="font-medium">{d.title}</div>
+                <div className="mt-0.5 text-[12px] text-muted-foreground">
+                  {d.category?.name ?? "Uncategorised"}
+                  {d.employee ? ` · ${d.employee.firstName} ${d.employee.lastName}` : ""}
+                  {` · expires ${formatDate(d.expiryDate)}`}
+                </div>
+              </div>
+            </div>
+            <StatusPill label={badge.label} hue={badge.hue} size="sm" />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ============================================================
+// Acknowledgement coverage — who has / hasn't acknowledged
+// ============================================================
+type AckCoverage = {
+  acked: { id: string; firstName: string; lastName: string; empCode: string; acknowledgedAt: string }[];
+  pending: { id: string; firstName: string; lastName: string; empCode: string }[];
+  totalActive: number;
+};
+
+function AckCoverageDialog({
+  documentId, title, totalActive, ackedCount,
+}: {
+  documentId: string; title: string; totalActive: number; ackedCount: number;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const [busy, setBusy] = React.useState(false);
+  const [data, setData] = React.useState<AckCoverage | null>(null);
+
+  async function load() {
+    setBusy(true);
+    const res = (await getAckCoverage(documentId)) as AckCoverage | null;
+    setData(res);
+    setBusy(false);
+  }
+
+  function onOpenChange(next: boolean) {
+    setOpen(next);
+    if (next && !data) void load();
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1.5">
+          <Users className="size-3.5" /> {ackedCount}/{totalActive}
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Acknowledgements</DialogTitle>
+          <DialogDescription>{title}</DialogDescription>
+        </DialogHeader>
+        {busy || !data ? (
+          <div className="flex justify-center py-8"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
+        ) : (
+          <div className="space-y-4 py-1">
+            <div className="flex items-center gap-2 text-[13px]">
+              <StatusPill label={`${data.acked.length}/${data.totalActive} acknowledged`} hue="emerald" size="sm" />
+              {data.pending.length > 0 && <StatusPill label={`${data.pending.length} pending`} hue="amber" size="sm" />}
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-1.5 text-[12px] font-medium text-emerald-600">
+                <CheckCheck className="size-3.5" /> Acknowledged
+              </div>
+              {data.acked.length === 0 ? (
+                <p className="text-[12.5px] text-muted-foreground">Nobody has acknowledged this yet.</p>
+              ) : (
+                <ul className="max-h-40 space-y-1 overflow-y-auto">
+                  {data.acked.map((e) => (
+                    <li key={e.id} className="flex items-center justify-between rounded-md bg-muted/40 px-2.5 py-1.5 text-[12.5px]">
+                      <span>{e.firstName} {e.lastName} <span className="text-muted-foreground">· {e.empCode}</span></span>
+                      <span className="text-[11px] text-muted-foreground">{formatDate(e.acknowledgedAt)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-1.5 text-[12px] font-medium text-amber-600">
+                <Clock className="size-3.5" /> Pending
+              </div>
+              {data.pending.length === 0 ? (
+                <p className="text-[12.5px] text-muted-foreground">Everyone has acknowledged. 🎉</p>
+              ) : (
+                <ul className="max-h-40 space-y-1 overflow-y-auto">
+                  {data.pending.map((e) => (
+                    <li key={e.id} className="rounded-md bg-muted/40 px-2.5 py-1.5 text-[12.5px]">
+                      {e.firstName} {e.lastName} <span className="text-muted-foreground">· {e.empCode}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 

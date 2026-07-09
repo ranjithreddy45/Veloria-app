@@ -25,6 +25,7 @@ import { EmployeeEditDialog } from "./_components/employee-edit-dialog";
 import { StatutoryPanel } from "./_components/statutory-panel";
 import { CompensationPanel } from "./_components/compensation-panel";
 import { CustomFieldsCard, RequestEditButton, type ActiveFieldDef } from "./_components/profile-extras";
+import { ProfileDetailsPanel } from "./_components/profile-details-panel";
 
 export const metadata: Metadata = { title: "Employee" };
 
@@ -96,6 +97,12 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
             <EmployeeEditDialog
               employee={{
                 id: emp.id,
+                firstName: emp.firstName,
+                lastName: emp.lastName,
+                gender: emp.gender,
+                dob: emp.dob ? emp.dob.toISOString() : null,
+                dateOfJoining: emp.dateOfJoining ? emp.dateOfJoining.toISOString() : null,
+                photoUrl: emp.photoUrl,
                 workEmail: emp.workEmail,
                 personalEmail: emp.personalEmail,
                 phone: emp.phone,
@@ -121,6 +128,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
       <Tabs defaultValue="overview">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="team">Team</TabsTrigger>
           {showDocs && <TabsTrigger value="documents">Documents</TabsTrigger>}
           {canPayroll && <TabsTrigger value="compensation">Compensation</TabsTrigger>}
@@ -170,6 +178,27 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
           {emp.notes && (
             <InfoCard title="Notes"><p className="text-[13px] text-muted-foreground">{emp.notes}</p></InfoCard>
           )}
+        </TabsContent>
+
+        {/* Details — emergency contacts, education, work history */}
+        <TabsContent value="details">
+          <ProfileDetailsPanel
+            employeeId={emp.id}
+            emergencyContacts={emp.emergencyContacts.map((c) => ({
+              id: c.id, name: c.name, relation: c.relation, phone: c.phone,
+            }))}
+            education={emp.education.map((e) => ({
+              id: e.id, institution: e.institution, degree: e.degree, year: e.year,
+            }))}
+            workHistory={emp.workHistory.map((w) => ({
+              id: w.id,
+              company: w.company,
+              title: w.title,
+              fromDate: w.fromDate ? w.fromDate.toISOString() : null,
+              toDate: w.toDate ? w.toDate.toISOString() : null,
+            }))}
+            canWrite={canWrite}
+          />
         </TabsContent>
 
         {/* Team */}

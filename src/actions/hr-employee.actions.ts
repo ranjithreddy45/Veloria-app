@@ -268,6 +268,7 @@ export interface CreateEmployeeInput {
   phone?: string;
   gender?: string;
   dob?: string; // ISO date
+  photoUrl?: string;
   legalEntityId: string;
   businessVerticalId?: string;
   departmentId?: string;
@@ -406,6 +407,7 @@ export async function updateEmployee(id: string, input: UpdateEmployeeInput): Pr
   if (input.phone !== undefined) data.phone = input.phone?.trim() || null;
   if (input.gender !== undefined) data.gender = input.gender || null;
   if (input.dob !== undefined) data.dob = input.dob ? new Date(input.dob) : null;
+  if (input.photoUrl !== undefined) data.photoUrl = input.photoUrl?.trim() || null;
   if (input.workLocation !== undefined) data.workLocation = input.workLocation?.trim() || null;
   if (input.dateOfJoining !== undefined) data.dateOfJoining = input.dateOfJoining ? new Date(input.dateOfJoining) : null;
   if (input.employmentType !== undefined) data.employmentType = input.employmentType as Prisma.EmployeeUpdateInput["employmentType"];
