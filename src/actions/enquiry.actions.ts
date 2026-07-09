@@ -8,16 +8,11 @@ import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
+// NOTE: a "use server" file may ONLY export async functions. The status
+// constants + type therefore live in a plain module and are imported here.
+import { ENQUIRY_STATUSES, type EnquiryStatus } from "@/lib/enquiry-status";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
-
-export const ENQUIRY_STATUSES = ["INTERESTED", "DROPPED", "NO_RESPONSE"] as const;
-export type EnquiryStatus = (typeof ENQUIRY_STATUSES)[number];
-export const ENQUIRY_STATUS_LABEL: Record<EnquiryStatus, string> = {
-  INTERESTED: "Interested",
-  DROPPED: "Dropped",
-  NO_RESPONSE: "No response",
-};
 
 export async function setEnquiryStatus(inquiryId: string, status: EnquiryStatus | null): Promise<Result<{ id: string }>> {
   const s = await auth();

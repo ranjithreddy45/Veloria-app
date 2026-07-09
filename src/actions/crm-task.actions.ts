@@ -68,7 +68,9 @@ export async function scheduleCrmTask(input: {
   }
   // Show-around: notify the tagged internal team members (owner invite handled by UI/email).
   if (input.taskType === "SHOW_AROUND" && input.metadata?.inviteeIds?.length) {
-    for (const uid of input.metadata.inviteeIds) {
+    // Dedupe + cap to bound the number of notification writes per request.
+    const invitees = [...new Set(input.metadata.inviteeIds.filter((x) => typeof x === "string" && x))].slice(0, 50);
+    for (const uid of invitees) {
       if (uid === u.id) continue;
       notify({ userId: uid, type: "TASK_ASSIGNED", title: `Show-around invite: ${title}`, message: `You're tagged for a venue tour on ${whenStr}${input.metadata.location ? ` at ${input.metadata.location}` : ""}.`, actionUrl: "/calendar" });
     }
@@ -136,6 +138,9 @@ export async function getCrmScheduleOptions(): Promise<Result<CrmScheduleOptions
 export async function updateCrmTaskStatus(id: string, status: "TODO" | "IN_PROGRESS" | "DONE"): Promise<Result<{ id: string }>> {
   const u = await requireUser();
   if (!u) return { success: false, error: "Unauthorized" };
+  // Server actions receive untrusted input — whitelist the status before it hits Prisma.
+  if (status !== "TODO" && status !== "IN_PROGRESS" && status !== "DONE") return { success: false, error: "Invalid status." };
+  if (!id || typeof id !== "string") return { success: false, error: "Invalid task." };
   const t = await prisma.task.findUnique({ where: { id }, select: { assigneeId: true, creatorId: true, leadId: true } });
   if (!t) return { success: false, error: "Task not found." };
   const isAdmin = u.role === "ADMIN" || u.role === "SUPER_ADMIN";

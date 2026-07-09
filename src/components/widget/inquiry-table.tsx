@@ -53,7 +53,8 @@ import {
   markInquiryProcessed,
   deleteInquiry,
 } from "@/actions/widget.actions";
-import { setEnquiryStatus, ENQUIRY_STATUSES, ENQUIRY_STATUS_LABEL, type EnquiryStatus } from "@/actions/enquiry.actions";
+import { setEnquiryStatus } from "@/actions/enquiry.actions";
+import { ENQUIRY_STATUSES, ENQUIRY_STATUS_LABEL, type EnquiryStatus } from "@/lib/enquiry-status";
 import { CrmNotesPanel } from "@/components/crm/crm-notes-panel";
 import { ScheduleTaskDialog } from "@/components/crm/schedule-task-dialog";
 import { cn } from "@/lib/utils";

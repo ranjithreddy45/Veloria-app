@@ -152,7 +152,13 @@ describe("Sales quotation → booking → payment → confirm → ops (E2E)", ()
   });
 
   it("blocks the slot (creates a HOLD booking)", async () => {
+    // Proforma-first: blocking a slot BEFORE the 20% advance is received is a
+    // Super-Admin override (see the advance gate in quotation-booking.actions).
+    // The normal HOLD → CONFIRMED transition is driven by the advance payment
+    // in the final subtest, so we override here to create the pending HOLD.
+    setActor(adminId, "SUPER_ADMIN");
     const res = await blockSlotFromQuotation(quotationId, { venueId, dateISO: "2026-09-01", timeSlot: "EVENING" });
+    setActor(adminId, "ADMIN");
     expect(res.success).toBe(true);
     if (!res.success) return;
     bookingId = res.data.bookingId;
@@ -177,8 +183,11 @@ describe("Sales quotation → booking → payment → confirm → ops (E2E)", ()
     await submitSalesQuotation(q2.data.id);
     setActor(approverId, "ADMIN");
     await approveSalesQuotation(q2.data.id);
-    setActor(adminId, "ADMIN");
+    // Super-Admin override so we clear the advance gate and actually exercise
+    // the FULL_DAY-vs-EVENING availability conflict (not the advance gate).
+    setActor(adminId, "SUPER_ADMIN");
     const res = await blockSlotFromQuotation(q2.data.id, { venueId, dateISO: "2026-09-01", timeSlot: "FULL_DAY" });
+    setActor(adminId, "ADMIN");
     expect(res.success).toBe(false); // FULL_DAY conflicts with the existing EVENING booking
     await prisma.salesQuotationTransition.deleteMany({ where: { quotationId: q2.data.id } });
     await prisma.salesQuotation.delete({ where: { id: q2.data.id } });
