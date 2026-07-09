@@ -70,14 +70,21 @@ async function validCategoryKeys(): Promise<Set<string>> {
 }
 
 // Normalise the venue scope for persistence. When allVenues is true, the
-// specific venueIds are cleared (allVenues overrides). Otherwise dedupe + trim.
-function normaliseVenueScope(input: VendorCatalogInput): { allVenues: boolean; venueIds: string[] } {
+// specific venueIds are cleared (allVenues overrides). Otherwise dedupe + trim
+// AND filter to ids that reference real Venue rows (never persist junk ids).
+async function resolveVenueScope(input: VendorCatalogInput): Promise<{ allVenues: boolean; venueIds: string[] }> {
   const allVenues = input.allVenues === true;
   if (allVenues) return { allVenues: true, venueIds: [] };
-  const venueIds = Array.from(
+  const requested = Array.from(
     new Set((input.venueIds ?? []).map((v) => v?.trim()).filter((v): v is string => !!v))
   );
-  return { allVenues: false, venueIds };
+  if (requested.length === 0) return { allVenues: false, venueIds: [] };
+  const valid = await prisma.venue.findMany({
+    where: { id: { in: requested } },
+    select: { id: true },
+  });
+  const validSet = new Set(valid.map((r) => r.id));
+  return { allVenues: false, venueIds: requested.filter((id) => validSet.has(id)) };
 }
 
 function normaliseVendorType(input: VendorCatalogInput): string {
@@ -206,7 +213,7 @@ export async function createCatalogVendor(input: VendorCatalogInput): Promise<Re
     const validKeys = await validCategoryKeys();
     const cats = input.categories.map((c) => c?.trim()).filter((c): c is string => !!c && validKeys.has(c));
     if (cats.length < 1) return { success: false, error: "Validation failed", fields: { categories: "Select at least one valid category" } };
-    const { allVenues, venueIds } = normaliseVenueScope(input);
+    const { allVenues, venueIds } = await resolveVenueScope(input);
     const v = await prisma.vendor.create({
       data: {
         name: input.name.trim(),
@@ -245,7 +252,10 @@ export async function updateCatalogVendor(
     const fields = validateVendorFields(input);
     if (Object.keys(fields).length) return { success: false, error: "Validation failed", fields };
 
-    const existing = await prisma.vendor.findUnique({ where: { id }, select: { id: true } });
+    const existing = await prisma.vendor.findUnique({
+      where: { id },
+      select: { id: true, categories: true },
+    });
     if (!existing) return { success: false, error: "Vendor not found" };
 
     const dupe = await prisma.vendor.findFirst({
@@ -254,29 +264,40 @@ export async function updateCatalogVendor(
     });
     if (dupe) return { success: false, error: "Validation failed", fields: { name: "A vendor with this name already exists" } };
 
+    // R3 (fix): on UPDATE the allowed set is the ACTIVE valid keys PLUS the keys
+    // the vendor already has — so a category that was later deactivated is
+    // preserved (not silently stripped, which would orphan its packages).
+    // Only brand-new keys must be in the active set.
     const validKeys = await validCategoryKeys();
+    for (const k of existing.categories) validKeys.add(k);
     const cats = input.categories.map((c) => c?.trim()).filter((c): c is string => !!c && validKeys.has(c));
     if (cats.length < 1) return { success: false, error: "Validation failed", fields: { categories: "Select at least one valid category" } };
-    const { allVenues, venueIds } = normaliseVenueScope(input);
-    await prisma.vendor.update({
-      where: { id },
-      data: {
-        name: input.name.trim(),
-        category: LEGACY_CATEGORY[cats[0]] ?? "OTHER",
-        categories: cats,
-        vendorType: normaliseVendorType(input),
-        venueIds,
-        allVenues,
-        company: input.contactPerson?.trim() || null,
-        phone: input.phone?.trim() || null,
-        email: input.email?.trim() || null,
-        city: input.city?.trim() || "Bengaluru",
-        empanelmentStatus: input.empanelmentStatus || "empanelled",
-        keyPersonnel: (input.keyPersonnel ?? []) as unknown as Prisma.InputJsonValue,
-        licences: (input.licences ?? []) as unknown as Prisma.InputJsonValue,
-        notes: input.notes?.trim() || null,
-      },
-    });
+
+    // MERGE semantics: only overwrite a column when the input actually provides
+    // a value. Fields the edit form omits (undefined) are left untouched so we
+    // never clobber existing keyPersonnel/licences/notes/contact/etc. with null.
+    const data: Prisma.VendorUpdateInput = {
+      name: input.name.trim(),
+      category: LEGACY_CATEGORY[cats[0]] ?? "OTHER",
+      categories: cats,
+    };
+    if (input.vendorType !== undefined) data.vendorType = normaliseVendorType(input);
+    if (input.contactPerson !== undefined) data.company = input.contactPerson?.trim() || null;
+    if (input.phone !== undefined) data.phone = input.phone?.trim() || null;
+    if (input.email !== undefined) data.email = input.email?.trim() || null;
+    if (input.city !== undefined) data.city = input.city?.trim() || "Bengaluru";
+    if (input.empanelmentStatus !== undefined) data.empanelmentStatus = input.empanelmentStatus || "empanelled";
+    if (input.keyPersonnel !== undefined) data.keyPersonnel = input.keyPersonnel as unknown as Prisma.InputJsonValue;
+    if (input.licences !== undefined) data.licences = input.licences as unknown as Prisma.InputJsonValue;
+    if (input.notes !== undefined) data.notes = input.notes?.trim() || null;
+    // Venue scope is a paired concept (allVenues overrides venueIds); only touch
+    // it when the input actually carries venue intent — otherwise preserve.
+    if (input.allVenues !== undefined || input.venueIds !== undefined) {
+      const { allVenues, venueIds } = await resolveVenueScope(input);
+      data.allVenues = allVenues;
+      data.venueIds = venueIds;
+    }
+    await prisma.vendor.update({ where: { id }, data });
 
     // R3 — flag packages whose category is no longer one of the vendor's categories
     const affected = await prisma.vendorPackage.findMany({
@@ -432,10 +453,14 @@ export async function createPackage(input: VendorPackageInput): Promise<Result<{
       if (e) return { success: false, error: "Validation failed", fields: { items: e } };
     }
 
-    // R5/R13 — only allow ACTIVE if it qualifies; else fall back to DRAFT
+    // R5/R13 — only allow ACTIVE if it qualifies; else fall back to DRAFT.
+    // (fix) An ACTIVE package's category must also be in the active dynamic set —
+    // a retired category can only host DRAFT packages, never live ones.
     let status: "DRAFT" | "ACTIVE" | "ARCHIVED" = "DRAFT";
     if (input.status === "ACTIVE") {
       const unmet = activationUnmet(input);
+      const activeKeys = await validCategoryKeys();
+      if (!activeKeys.has(input.category)) unmet.push("category is retired — reactivate it or pick a current category");
       if (unmet.length) return { success: false, error: "CANNOT_ACTIVATE", unmet };
       status = "ACTIVE";
     }
@@ -490,6 +515,10 @@ export async function updatePackage(id: string, input: VendorPackageInput): Prom
     let status: "DRAFT" | "ACTIVE" | "ARCHIVED" = "DRAFT";
     if (input.status === "ACTIVE") {
       const unmet = activationUnmet(input);
+      // (fix) mirror createPackage — an ACTIVE package's category must be in the
+      // active dynamic set, not merely one of the vendor's (possibly retired) keys.
+      const activeKeys = await validCategoryKeys();
+      if (!activeKeys.has(input.category)) unmet.push("category is retired — reactivate it or pick a current category");
       if (unmet.length) return { success: false, error: "CANNOT_ACTIVATE", unmet };
       status = "ACTIVE";
     } else if (input.status === "ARCHIVED") {
@@ -587,9 +616,17 @@ export async function addPackageImage(packageId: string, url: string): Promise<R
   if (!u) return { success: false, error: "Unauthorized" };
   try {
     const trimmed = url?.trim() ?? "";
-    // Accept http(s) URLs OR base64 image data-URLs (app image-upload convention).
-    if (!trimmed || !(/^https?:\/\//i.test(trimmed) || /^data:image\/[a-z0-9.+-]+;base64,/i.test(trimmed)))
-      return { success: false, error: "Enter a valid image URL or upload an image" };
+    // (fix) Only accept https URLs OR base64 image data-URLs. Blocks
+    // javascript:, data:text/html, etc. (stored-XSS hardening) — plain http is
+    // rejected too.
+    const isDataImage = /^data:image\/[a-z0-9.+-]+;base64,/i.test(trimmed);
+    const isHttps = /^https:\/\//i.test(trimmed);
+    if (!trimmed || !(isHttps || isDataImage))
+      return { success: false, error: "Enter a valid https image URL or upload an image" };
+    // (fix) Server-side size cap: the client 1.5MB guard is bypassable and a huge
+    // base64 data-URL bloats the @db.Text column. Cap data URLs at ~1.6MB.
+    if (isDataImage && trimmed.length > 2_200_000)
+      return { success: false, error: "Image is too large — please upload an image under 1.5MB" };
     const pkg = await prisma.vendorPackage.findUnique({ where: { id: packageId }, select: { id: true } });
     if (!pkg) return { success: false, error: "Package not found" };
     const count = await prisma.vendorPackageImage.count({ where: { packageId } });

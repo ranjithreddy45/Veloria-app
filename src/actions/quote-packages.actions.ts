@@ -67,18 +67,33 @@ export async function getQuotePackageOptions(): Promise<QuotePackageOption[]> {
 }
 
 /**
- * DB-authoritative re-validation of a quote's package lines. Called from the
- * create/update persist path so the min-pax + max-discount caps are enforced
- * server-side (the UI enforces them too, but a crafted request must not win).
- * Returns human-readable error strings (empty = OK). Unknown/archived package
- * ids are rejected. The discount cap compares the ACTUAL rupee discount applied
- * (via the shared engine) against the package's cap, whatever the cap's unit.
+ * DB-authoritative re-validation + sanitisation of a quote's package lines.
+ * Called from the create/update persist path AND at approval-freeze time so the
+ * unit price, min-pax and max-discount caps are enforced server-side — the UI
+ * enforces them too, but a crafted request must never win.
+ *
+ * Returns `{ errors, lines }`:
+ *  - `errors` = human-readable strings (empty = OK); the caller MUST reject if
+ *    non-empty.
+ *  - `lines`  = the SAME lines with the unit price, min-pax, name and category
+ *    OVERWRITTEN from the live catalog, so the stored/frozen figures never trust
+ *    a client-supplied unitPrice (which previously let a rep fabricate the price
+ *    basis and defeat the discount cap). Unknown/archived packages are dropped
+ *    from `lines` and reported in `errors`.
+ *
+ * Gated on quotes:read — it is a "use server" export, hence a callable endpoint.
  */
 export async function validatePackageLinesAgainstCatalog(
   lines: PackageLine[] | undefined | null
-): Promise<string[]> {
+): Promise<{ errors: string[]; lines: PackageLine[] }> {
   const list = (lines ?? []).filter((p) => p && p.vendorPackageId);
-  if (list.length === 0) return [];
+  if (list.length === 0) return { errors: [], lines: [] }; // nothing to price → no gate needed
+
+  const session = await auth();
+  const role = (session?.user as { role?: string } | undefined)?.role;
+  if (!role || !hasPermission(role, "quotes:read")) {
+    return { errors: ["You don't have permission to price packages."], lines: [] };
+  }
 
   const ids = Array.from(new Set(list.map((p) => p.vendorPackageId)));
   const pkgs = await prisma.vendorPackage.findMany({
@@ -86,6 +101,7 @@ export async function validatePackageLinesAgainstCatalog(
     select: {
       id: true,
       name: true,
+      category: true,
       status: true,
       price: true,
       customerPrice: true,
@@ -97,12 +113,13 @@ export async function validatePackageLinesAgainstCatalog(
   const byId = new Map(pkgs.map((p) => [p.id, p]));
 
   const errs: string[] = [];
+  const corrected: PackageLine[] = [];
   for (const p of list) {
     const label = p.name?.trim() || "package";
     const pkg = byId.get(p.vendorPackageId);
     if (!pkg || pkg.status !== "ACTIVE") {
       errs.push(`Package "${label}" is no longer available.`);
-      continue;
+      continue; // drop it from the sanitised lines
     }
     const qty = Math.floor(p.qty ?? 0);
     if (qty < 1) {
@@ -113,9 +130,12 @@ export async function validatePackageLinesAgainstCatalog(
     if (pkg.minPax != null && qty < pkg.minPax) {
       errs.push(`Package "${pkg.name}" requires a minimum of ${pkg.minPax} pax/units.`);
     }
-    // Max-discount cap. Compute the rupee discount the engine would apply, then
-    // compare against the package's cap expressed in its own unit.
+    // AUTHORITATIVE unit price — always the catalog customerPrice, never the
+    // client's value. This makes the price basis un-forgeable and closes the
+    // "lower the unitPrice to dodge the cap" bypass.
     const unitPrice = num(pkg.customerPrice ?? pkg.price);
+    // Max-discount cap. Compute the rupee discount the engine would apply on the
+    // AUTHORITATIVE price, then compare against the package's cap.
     const { gross, lineDiscount } = computePackageLine({ ...p, unitPrice, qty });
     if (pkg.maxDiscountValue != null && pkg.maxDiscountType) {
       const capVal = num(pkg.maxDiscountValue);
@@ -130,6 +150,16 @@ export async function validatePackageLinesAgainstCatalog(
       // No cap configured → no discount permitted on this package.
       errs.push(`Package "${pkg.name}" does not allow a discount.`);
     }
+    // Persist the sanitised line: DB unit price / min-pax / name / category,
+    // client's qty + discount (already validated above).
+    corrected.push({
+      ...p,
+      unitPrice,
+      qty,
+      minPax: pkg.minPax ?? undefined,
+      name: pkg.name,
+      category: pkg.category,
+    });
   }
-  return errs;
+  return { errors: errs, lines: corrected };
 }

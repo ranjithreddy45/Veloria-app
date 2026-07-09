@@ -252,18 +252,21 @@ export async function createSalesQuotation(
   const errs = validateQuotationInput(input);
   if (errs.length) return { success: false, error: errs.join(" ") };
   // DB-authoritative min-pax + max-discount cap check on vendor-package lines.
-  const pkgErrs = await validatePackageLinesAgainstCatalog(input.packageLines);
+  // The returned `lines` carry the catalog unit price / min-pax (never the
+  // client's), so the stored snapshot and headline totals can't be forged.
+  const { errors: pkgErrs, lines: safeLines } = await validatePackageLinesAgainstCatalog(input.packageLines);
   if (pkgErrs.length) return { success: false, error: pkgErrs.join(" ") };
+  const safeInput: QuotationInput = input.packageLines ? { ...input, packageLines: safeLines } : input;
 
   const row = await createQuotationRow((quoteNumber) => ({
     quoteNumber,
     status: "DRAFT",
-    inputsJson: input as unknown as Prisma.InputJsonValue,
+    inputsJson: safeInput as unknown as Prisma.InputJsonValue,
     leadId: meta.leadId || null,
     contactId: meta.contactId || null,
     venueId: meta.venueId || null,
     createdById: user.id,
-    ...headline(input, meta),
+    ...headline(safeInput, meta),
   }));
   await prisma.salesQuotationTransition.create({
     data: { quotationId: row.id, fromStatus: null, toStatus: "DRAFT", actorId: user.id, note: `${row.quoteNumber} created` },
@@ -290,18 +293,19 @@ export async function updateSalesQuotation(
 
   const errs = validateQuotationInput(input);
   if (errs.length) return { success: false, error: errs.join(" ") };
-  const pkgErrs = await validatePackageLinesAgainstCatalog(input.packageLines);
+  const { errors: pkgErrs, lines: safeLines } = await validatePackageLinesAgainstCatalog(input.packageLines);
   if (pkgErrs.length) return { success: false, error: pkgErrs.join(" ") };
+  const safeInput: QuotationInput = input.packageLines ? { ...input, packageLines: safeLines } : input;
 
   await prisma.salesQuotation.update({
     where: { id },
     data: {
-      inputsJson: input as unknown as Prisma.InputJsonValue,
+      inputsJson: safeInput as unknown as Prisma.InputJsonValue,
       // `undefined` = key omitted (keep current); explicit null = clear it.
       leadId: meta.leadId !== undefined ? meta.leadId || null : row.leadId,
       contactId: meta.contactId !== undefined ? meta.contactId || null : row.contactId,
       venueId: meta.venueId !== undefined ? meta.venueId || null : row.venueId,
-      ...headline(input, {
+      ...headline(safeInput, {
         clientName: meta.clientName ?? row.clientName ?? undefined,
         clientPhone: meta.clientPhone ?? row.clientPhone ?? undefined,
         clientEmail: meta.clientEmail ?? row.clientEmail ?? undefined,
@@ -385,7 +389,14 @@ export async function approveSalesQuotation(id: string): Promise<Result<{ status
 
   // Freeze the snapshot: recompute the full result server-side from stored inputs.
   const input = row.inputsJson as unknown as QuotationInput;
-  const out = computeQuotation(input);
+  // Re-check vendor-package lines against the LIVE catalog at freeze time — a
+  // package archived, re-priced or re-capped since the draft was created must
+  // not be frozen in unchecked. Block on errors; freeze with the authoritative
+  // (re-priced) lines so the stored input and frozen output agree.
+  const { errors: pkgErrs, lines: safeLines } = await validatePackageLinesAgainstCatalog(input.packageLines);
+  if (pkgErrs.length) return { success: false, error: pkgErrs.join(" ") };
+  const frozenInput: QuotationInput = input.packageLines ? { ...input, packageLines: safeLines } : input;
+  const out = computeQuotation(frozenInput);
 
   const guarded = await prisma.$transaction(async (tx) => {
     const { count } = await tx.salesQuotation.updateMany({
@@ -394,6 +405,7 @@ export async function approveSalesQuotation(id: string): Promise<Result<{ status
         status: "APPROVED",
         approvedById: user.id,
         approvedAt: new Date(),
+        inputsJson: frozenInput as unknown as Prisma.InputJsonValue,
         outputsJson: out as unknown as Prisma.InputJsonValue,
         pdfUrl: `/api/quotations/${id}/pdf`,
       },

@@ -51,10 +51,15 @@ export default async function InvoiceDetailPage({
   const role = (session?.user?.role as string) ?? "";
   const canRequestCancel = hasPermission(role, "invoices:update");
   const isCancelManager = hasPermission(role, "invoices:cancel");
-  const isCancellable =
+  // Cancellation is blocked server-side once any money is collected — the
+  // payments must be cancelled first. Reflect that in the UI instead of
+  // offering a button the server will always reject.
+  const hasCollectedMoney = Number(invoice.paidAmount) > 0;
+  const cancellableStatus =
     invoice.status !== "DRAFT" &&
     invoice.status !== "CANCELLED" &&
     !invoice.cancelPending;
+  const isCancellable = cancellableStatus && !hasCollectedMoney;
 
   // Resolve the requester's name for the pending-cancellation banner.
   let requestedByName: string | null = null;
@@ -123,8 +128,18 @@ export default async function InvoiceDetailPage({
                 eventDate={invoice.booking?.date ?? null}
               />
             )}
-          {isCancellable && canRequestCancel && (
+          {canRequestCancel && isCancellable && (
             <CancelInvoiceDialog invoiceId={invoice.id} isManager={isCancelManager} />
+          )}
+          {canRequestCancel && cancellableStatus && hasCollectedMoney && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled
+              title="Cancel the payments on this invoice first."
+            >
+              Cancel
+            </Button>
           )}
         </div>
       </PageHeader>

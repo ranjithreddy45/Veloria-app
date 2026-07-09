@@ -378,6 +378,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   "vendors:update",
   "vendors:delete",
   "vendors:assign",
+  "vendor-categories:manage",
   "operations:read",
   "operations:create",
   "operations:update",

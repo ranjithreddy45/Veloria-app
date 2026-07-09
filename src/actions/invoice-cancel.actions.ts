@@ -92,7 +92,7 @@ export async function requestInvoiceCancellation(invoiceId: string, reason: stri
 
     const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
-      select: { id: true, status: true, cancelPending: true, invoiceNumber: true, createdById: true },
+      select: { id: true, status: true, paidAmount: true, cancelPending: true, invoiceNumber: true, createdById: true },
     });
     if (!invoice) return { success: false as const, error: "Invoice not found" };
     if (invoice.status === "CANCELLED") {
@@ -100,6 +100,16 @@ export async function requestInvoiceCancellation(invoiceId: string, reason: stri
     }
     if (invoice.cancelPending) {
       return { success: false as const, error: "A cancellation request is already pending for this invoice" };
+    }
+    // Enforce the collected-money block UP FRONT — before flagging cancelPending
+    // or (for a manager) auto-approving. Otherwise a manager's request would set
+    // cancelPending=true and then the approve step would reject on paidAmount>0,
+    // stranding the invoice in a stuck pending state.
+    if (toPaise(Number(invoice.paidAmount)) > 0) {
+      return {
+        success: false as const,
+        error: `This invoice has ${formatINR(Number(invoice.paidAmount))} collected — cancel or refund its payments before requesting cancellation.`,
+      };
     }
 
     await prisma.invoice.update({
@@ -173,18 +183,10 @@ export async function approveInvoiceCancellation(invoiceId: string) {
       };
     }
 
-    // Reverse the revenue-recognition GL entry FIRST (fail-safe): if the ledger
-    // is live but the entry can't be found/reversed, refuse rather than leave
-    // revenue/AR unreversed. No-op when Finance isn't set up.
-    const rev = await reverseReceivableEntry(
-      invoiceId,
-      `Invoice ${invoice.invoiceNumber} cancelled`,
-      session.user.id,
-    );
-    if (!rev.ok) return { success: false as const, error: rev.error };
-
-    // Atomically mark cancelled + void any open installments. Guarded on the
-    // status so a concurrent approve can't double-apply.
+    // Winner-gated flip FIRST: mark cancelled + void open installments in a
+    // status-guarded transaction so that under concurrency only ONE approver
+    // proceeds to touch the ledger. (Reversing before the flip would let two
+    // concurrent approvers each reverse the GL entry — a double reversal.)
     const updated = await prisma.$transaction(async (tx) => {
       const flip = await tx.invoice.updateMany({
         where: { id: invoiceId, status: { not: "CANCELLED" } },
@@ -205,6 +207,19 @@ export async function approveInvoiceCancellation(invoiceId: string) {
       return true;
     });
     if (!updated) return { success: false as const, error: "Invoice was just cancelled by someone else" };
+
+    // Only the winner reverses the revenue-recognition GL entry. reverseReceivableEntry
+    // is idempotent and no-ops when nothing was posted; a genuine DB failure here
+    // leaves the invoice cancelled operationally while the GL entry can be safely
+    // re-reversed by finance/reconcile — log it loudly rather than blocking.
+    const rev = await reverseReceivableEntry(
+      invoiceId,
+      `Invoice ${invoice.invoiceNumber} cancelled`,
+      session.user.id,
+    );
+    if (!rev.ok) {
+      console.error("[APPROVE_INVOICE_CANCELLATION_GL]", invoiceId, rev.error);
+    }
 
     await logActivity({
       userId: session.user.id as string,
@@ -384,20 +399,10 @@ export async function approvePaymentCancellation(paymentId: string) {
       return { success: false as const, error: "Only a completed payment can be cancelled" };
     }
 
-    // Reverse the cash-receipt GL entry FIRST (fail-safe). No-op if Finance
-    // isn't set up; refuses if the ledger is live but the entry is missing.
-    const rev = await reverseReceivableEntry(
-      paymentId,
-      `Payment ${payment.receiptNumber ?? paymentId} cancelled`,
-      session.user.id,
-    );
-    if (!rev.ok) return { success: false as const, error: rev.error };
-
-    const amountPaise = toPaise(Number(payment.amount));
-
-    // Atomically: flip the payment CANCELLED (status-guarded so a concurrent
-    // approve can't double-decrement), remove its amount from the invoice, and
-    // recompute balance/status/installments EXACTLY reversing recordPayment.
+    // Winner-gated flip FIRST: flip the payment CANCELLED (status-guarded so a
+    // concurrent approve can't double-decrement AND so only ONE approver goes on
+    // to reverse the ledger), remove its amount from the invoice, and recompute
+    // balance/status/installments EXACTLY reversing recordPayment.
     const result = await prisma.$transaction(async (tx) => {
       const flip = await tx.payment.updateMany({
         where: { id: paymentId, status: "COMPLETED" },
@@ -441,6 +446,19 @@ export async function approvePaymentCancellation(paymentId: string) {
 
     if (!result.done) {
       return { success: false as const, error: "Payment was just cancelled by someone else" };
+    }
+
+    // Only the winner reverses the cash-receipt GL entry. reverseReceivableEntry
+    // is idempotent (no-ops when nothing was posted, and treats a concurrent
+    // reversal as a no-op); a genuine DB failure leaves the payment cancelled
+    // operationally while the GL entry can be re-reversed by finance/reconcile.
+    const rev = await reverseReceivableEntry(
+      paymentId,
+      `Payment ${payment.receiptNumber ?? paymentId} cancelled`,
+      session.user.id,
+    );
+    if (!rev.ok) {
+      console.error("[APPROVE_PAYMENT_CANCELLATION_GL]", paymentId, rev.error);
     }
 
     await logActivity({

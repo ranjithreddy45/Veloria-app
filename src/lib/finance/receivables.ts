@@ -151,28 +151,35 @@ export async function reverseReceivableEntry(
     const accountCount = await prisma.finAccount.count();
     if (accountCount === 0) return { ok: true, reversed: false }; // Finance not set up — nothing was posted
 
+    // Match ONLY the original forward entry — never a reversal entry. A reversal
+    // shares this sourceModule+sourceRefId (reverseJournalEntry copies them onto
+    // it) but has reversalOfId set; without the `reversalOfId: null` filter a
+    // retry would find the reversal (also POSTED) and reverse IT, re-posting the
+    // original balances.
     const posted = await prisma.finJournalEntry.findFirst({
-      where: { sourceModule: "RECEIVABLE", sourceRefId, status: "POSTED" },
+      where: { sourceModule: "RECEIVABLE", sourceRefId, status: "POSTED", reversalOfId: null },
       select: { id: true },
     });
     if (posted) {
-      await reverseJournalEntry(posted.id, reason, byId);
+      try {
+        await reverseJournalEntry(posted.id, reason, byId);
+      } catch (e) {
+        // Lost a concurrency race — a parallel approver already reversed this
+        // entry. The GL is already consistent, so treat it as an idempotent
+        // no-op rather than a spurious failure.
+        const msg = e instanceof Error ? e.message : "";
+        if (/already reversed|Only a posted entry/i.test(msg)) return { ok: true, reversed: false };
+        throw e;
+      }
       return { ok: true, reversed: true };
     }
 
-    // Already reversed on a prior (perhaps partially-failed) attempt → no-op.
-    const already = await prisma.finJournalEntry.findFirst({
-      where: { sourceModule: "RECEIVABLE", sourceRefId, status: "REVERSED" },
-      select: { id: true },
-    });
-    if (already) return { ok: true, reversed: false };
-
-    // Ledger is live but this document was never posted (forward post failed).
-    return {
-      ok: false,
-      error:
-        "No general-ledger entry was found to reverse for this document. Resolve the finance posting first, then retry the cancellation.",
-    };
+    // No un-reversed forward entry remains: either it was already reversed on a
+    // prior attempt, or this document was never posted (e.g. a draft/unsent
+    // invoice with no revenue entry, or a payment recorded before Finance was
+    // seeded). In every case there is nothing to reverse and the GL is already
+    // consistent, so allow the cancellation to proceed.
+    return { ok: true, reversed: false };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "GL reversal failed" };
   }

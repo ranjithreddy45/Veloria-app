@@ -660,6 +660,9 @@ export async function getSettlementReport(range: DateRange = "12m") {
         eventName: true,
         status: true,
         invoices: {
+          // Cancelled invoices keep their totalAmount (only balanceDue is zeroed
+          // on cancel), so counting them would inflate invoiced/outstanding.
+          where: { status: { not: "CANCELLED" } },
           select: {
             totalAmount: true,
             payments: {
@@ -801,6 +804,8 @@ export async function getRevenueBreakdownReport(range: DateRange = "12m") {
       where: {
         invoice: {
           issueDate: { gte: start, lte: end },
+          // Don't count line items from cancelled invoices as revenue.
+          status: { not: "CANCELLED" },
         },
       },
       select: {
@@ -916,7 +921,9 @@ export async function getClientLedger(contactId: string) {
         select: { firstName: true, lastName: true, email: true },
       }),
       prisma.invoice.findMany({
-        where: { contactId },
+        // Exclude cancelled invoices so they don't inflate the ledger's
+        // totalInvoiced / outstanding balance (cancel keeps totalAmount intact).
+        where: { contactId, status: { not: "CANCELLED" } },
         select: {
           id: true,
           invoiceNumber: true,

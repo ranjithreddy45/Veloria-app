@@ -134,6 +134,7 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
 
   // ---- Vendor-package line items (repeatable, multiple-per-category) ----
   const [pkgOptions, setPkgOptions] = useState<QuotePackageOption[]>([]);
+  const [pkgLoaded, setPkgLoaded] = useState(false);
   const [packageLines, setPackageLines] = useState<PackageLine[]>(
     (initial?.input.packageLines ?? []).map((p) => ({ ...p, id: p.id ?? rowId() }))
   );
@@ -141,7 +142,8 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
     let active = true;
     getQuotePackageOptions()
       .then((opts) => { if (active) setPkgOptions(opts); })
-      .catch(() => { if (active) setPkgOptions([]); });
+      .catch(() => { if (active) setPkgOptions([]); })
+      .finally(() => { if (active) setPkgLoaded(true); });
     return () => { active = false; };
   }, []);
 
@@ -216,8 +218,10 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
       rooms: rooms ? num(rooms) : undefined,
       roomCharge: roomCharge ? num(roomCharge) : undefined,
       // Only completed package lines (a picked package) reach the engine/persist.
+      // A line whose package is inactive/deleted (not in the loaded options) is
+      // treated as unavailable and excluded from the total until re-selected.
       packageLines: packageLines
-        .filter((p) => p.vendorPackageId)
+        .filter((p) => p.vendorPackageId && (!pkgLoaded || optById.has(p.vendorPackageId)))
         .map((p) => ({
           id: p.id,
           vendorPackageId: p.vendorPackageId,
@@ -233,7 +237,7 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
     }),
     [
       guestCount, foodMode, hallRate, hallHours, foodPackageId, foodOverride, decorId, activityIds, cakeId, cakeKg,
-      photographyId, photoCustom, drinksPerPerson, rooms, roomCharge, packageLines, discountPct,
+      photographyId, photoCustom, drinksPerPerson, rooms, roomCharge, packageLines, discountPct, pkgLoaded, optById,
     ]
   );
 
@@ -559,8 +563,14 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
                 const capRupees = maxDiscountRupees(opt, gross);
                 const discountAllowed = opt ? opt.maxDiscountValue != null && !!opt.maxDiscountType : false;
                 const overCap = lineDiscount - capRupees > 1;
+                // Package was picked but is no longer among the active options
+                // (inactive/deleted). Flag the row and drop it from the total.
+                const isUnavailable = pkgLoaded && !!line.vendorPackageId && !opt;
                 return (
-                  <div key={line.id} className="rounded-lg border p-3 space-y-3">
+                  <div
+                    key={line.id}
+                    className={`rounded-lg border p-3 space-y-3 ${isUnavailable ? "border-destructive" : ""}`}
+                  >
                     <div className="flex items-start gap-2">
                       <div className="flex-1 space-y-1.5">
                         <Label>Package</Label>
@@ -596,6 +606,13 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
+
+                    {isUnavailable && (
+                      <p className="text-xs text-destructive">
+                        This package is no longer available — please re-select. It
+                        won&apos;t be counted in the total until you do.
+                      </p>
+                    )}
 
                     {opt && (
                       <>
@@ -676,9 +693,15 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle className="text-base">Remarks</CardTitle></CardHeader>
-          <CardContent>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any special notes for this quotation..." rows={3} />
+          <CardHeader>
+            <CardTitle className="text-base">Notes &amp; details (shown to the customer)</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-xs text-muted-foreground">
+              These notes appear on the quote the customer sees online. Don&apos;t
+              include internal-only remarks here.
+            </p>
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notes for the customer (e.g. inclusions, terms, special arrangements)..." rows={3} />
           </CardContent>
         </Card>
       </div>
