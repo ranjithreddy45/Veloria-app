@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Wallet, Pencil, Loader2, History } from "lucide-react";
+import { Wallet, Pencil, Loader2, History, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { StatusPill } from "@/components/shared/status-pill";
 import { formatINR, formatDate } from "@/lib/utils";
-import { saveSalaryStructure, type SalaryStructureRow } from "@/actions/hr-compensation.actions";
+import { saveSalaryStructure, applyIncrement, type SalaryStructureRow } from "@/actions/hr-compensation.actions";
 
 export function CompensationPanel({
   employeeId, current, history, canWrite,
@@ -29,7 +29,12 @@ export function CompensationPanel({
             <Wallet className="size-4 text-emerald-600" />
             <h3 className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">Current compensation</h3>
           </div>
-          {canWrite && <ReviseDialog employeeId={employeeId} current={current} />}
+          {canWrite && (
+            <div className="flex items-center gap-2">
+              {current && <IncrementDialog employeeId={employeeId} current={current} />}
+              <ReviseDialog employeeId={employeeId} current={current} />
+            </div>
+          )}
         </div>
 
         {current ? (
@@ -187,6 +192,134 @@ function ReviseDialog({ employeeId, current }: { employeeId: string; current: Sa
           <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
           <Button onClick={save} disabled={saving} className="gap-1.5">
             {saving && <Loader2 className="size-4 animate-spin" />} Save revision
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function IncrementDialog({ employeeId, current }: { employeeId: string; current: SalaryStructureRow }) {
+  const router = useRouter();
+  const [open, setOpen] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const [mode, setMode] = React.useState<"PCT" | "AMOUNT">("PCT");
+  const [pct, setPct] = React.useState("10");
+  const [newAmount, setNewAmount] = React.useState(String(current.annualCtc));
+  const [effectiveFrom, setEffectiveFrom] = React.useState(todayIso());
+  const [note, setNote] = React.useState("");
+
+  // Live preview of the resulting new annual CTC (mirrors the server math).
+  const pctNum = Number(pct);
+  const amtNum = Number(newAmount);
+  const previewCtc =
+    mode === "PCT"
+      ? Number.isFinite(pctNum)
+        ? Math.round(current.annualCtc * (1 + pctNum / 100))
+        : 0
+      : Number.isFinite(amtNum) && amtNum > 0
+        ? Math.round(amtNum)
+        : 0;
+  const delta = previewCtc - current.annualCtc;
+
+  async function save() {
+    setError(null);
+    setSaving(true);
+    const res = await applyIncrement(employeeId, {
+      mode,
+      pct: mode === "PCT" ? Number(pct) || 0 : undefined,
+      newAnnualCtc: mode === "AMOUNT" ? Number(newAmount) || 0 : undefined,
+      effectiveFrom,
+      note: note.trim(),
+    });
+    setSaving(false);
+    if (!res.success) { setError(res.error); return; }
+    setNote("");
+    setOpen(false);
+    router.refresh();
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1.5">
+          <TrendingUp className="size-3.5 text-emerald-600" /> Apply increment
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Apply increment</DialogTitle>
+          <DialogDescription>
+            Raise the current CTC ({formatINR(current.annualCtc)}/yr) by a percentage or set a new amount. This writes a new salary revision — reference the appraisal or increment reason in the note.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid gap-3 py-2 sm:grid-cols-2">
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label className="text-[12.5px]">Method</Label>
+            <div className="flex rounded-md border p-0.5">
+              <button
+                type="button"
+                onClick={() => setMode("PCT")}
+                className={`flex-1 rounded px-3 py-1.5 text-[12.5px] font-medium transition ${mode === "PCT" ? "bg-emerald-600 text-white" : "text-muted-foreground hover:bg-muted"}`}
+              >
+                % raise
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("AMOUNT")}
+                className={`flex-1 rounded px-3 py-1.5 text-[12.5px] font-medium transition ${mode === "AMOUNT" ? "bg-emerald-600 text-white" : "text-muted-foreground hover:bg-muted"}`}
+              >
+                New amount
+              </button>
+            </div>
+          </div>
+
+          {mode === "PCT" ? (
+            <div className="space-y-1.5">
+              <Label className="text-[12.5px]">Increment (%)</Label>
+              <Input type="number" inputMode="decimal" value={pct} onChange={(e) => setPct(e.target.value)} placeholder="10" />
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <Label className="text-[12.5px]">New annual CTC (₹)</Label>
+              <Input type="number" inputMode="numeric" value={newAmount} onChange={(e) => setNewAmount(e.target.value)} placeholder="1320000" />
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <Label className="text-[12.5px]">Effective from</Label>
+            <Input type="date" value={effectiveFrom} onChange={(e) => setEffectiveFrom(e.target.value)} />
+          </div>
+
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label className="text-[12.5px]">New annual CTC</Label>
+            <div className="flex h-9 items-center justify-between rounded-md border bg-muted/40 px-3 text-[13px] font-medium tabular-nums">
+              <span>{previewCtc > 0 ? formatINR(previewCtc) : "—"}</span>
+              {previewCtc > 0 && delta !== 0 && (
+                <span className={delta > 0 ? "text-emerald-600" : "text-red-600"}>
+                  {delta > 0 ? "+" : ""}{formatINR(delta)}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label className="text-[12.5px]">Reason / note</Label>
+            <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Increment: 10% — FY25 appraisal" />
+            <p className="text-[11.5px] text-muted-foreground">
+              Reference the appraisal outcome or KRA payout that drove this raise. Basic % ({current.basicPct}%) carries over from the current structure.
+            </p>
+          </div>
+        </div>
+
+        {error && <p className="text-sm text-red-600">{error}</p>}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
+          <Button onClick={save} disabled={saving || previewCtc <= 0} className="gap-1.5">
+            {saving && <Loader2 className="size-4 animate-spin" />} Apply increment
           </Button>
         </DialogFooter>
       </DialogContent>

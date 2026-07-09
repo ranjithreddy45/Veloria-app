@@ -211,3 +211,105 @@ export async function saveSalaryStructure(
     return { success: false, error: "Could not save the salary structure." };
   }
 }
+
+// ============================================================
+// Apply an increment: performance -> pay. Reads the employee's CURRENT
+// structure, computes the new annual CTC (either a % raise or an explicit new
+// amount), and reuses saveSalaryStructure so a fresh isCurrent revision is
+// written with a reason note (e.g. an appraisal outcome). This is the loop that
+// makes appraisal ratings / KRA payouts actually move compensation.
+// ============================================================
+
+/** Lightweight context for the "Apply increment" UI: the current CTC to raise from. */
+export interface IncrementContext {
+  hasCurrent: boolean;
+  annualCtc: number | null;
+  monthlyCtc: number | null;
+  basicPct: number | null;
+  effectiveFrom: string | null; // ISO date
+}
+
+export async function getIncrementContext(employeeId: string): Promise<IncrementContext> {
+  const u = await requireUser();
+  if (!can(u?.role, "hr:payroll")) {
+    return { hasCurrent: false, annualCtc: null, monthlyCtc: null, basicPct: null, effectiveFrom: null };
+  }
+  const cur = await prisma.hrSalaryStructure.findFirst({
+    where: { employeeId, isCurrent: true },
+    orderBy: [{ effectiveFrom: "desc" }, { createdAt: "desc" }],
+    select: { annualCtc: true, monthlyCtc: true, basicPct: true, effectiveFrom: true },
+  });
+  if (!cur) return { hasCurrent: false, annualCtc: null, monthlyCtc: null, basicPct: null, effectiveFrom: null };
+  return {
+    hasCurrent: true,
+    annualCtc: Number(cur.annualCtc),
+    monthlyCtc: Number(cur.monthlyCtc),
+    basicPct: cur.basicPct,
+    effectiveFrom: cur.effectiveFrom.toISOString(),
+  };
+}
+
+export interface ApplyIncrementInput {
+  mode: "PCT" | "AMOUNT";
+  pct?: number;           // required when mode === "PCT" (e.g. 10 for +10%)
+  newAnnualCtc?: number;  // required when mode === "AMOUNT"
+  effectiveFrom: string;  // yyyy-mm-dd
+  note: string;           // reason — free-text, may reference an appraisal outcome
+  basicPct?: number;      // optional override; defaults to the current structure's basic %
+}
+
+export async function applyIncrement(
+  employeeId: string,
+  input: ApplyIncrementInput,
+): Promise<Result<{ newAnnualCtc: number }>> {
+  const u = await requireUser();
+  if (!can(u?.role, "hr:payroll")) return { success: false, error: "Not authorized." };
+
+  // Must have a current structure to increment from.
+  const cur = await prisma.hrSalaryStructure.findFirst({
+    where: { employeeId, isCurrent: true },
+    orderBy: [{ effectiveFrom: "desc" }, { createdAt: "desc" }],
+    select: { annualCtc: true, basicPct: true },
+  });
+  if (!cur) {
+    return { success: false, error: "No current salary structure to increment. Set a base salary first." };
+  }
+  const currentCtc = Number(cur.annualCtc);
+
+  // Compute the new annual CTC from the chosen mode.
+  let newAnnualCtc: number;
+  if (input.mode === "PCT") {
+    const pct = Number(input.pct);
+    if (!Number.isFinite(pct) || pct < -50 || pct > 200) {
+      return { success: false, error: "Increment % must be between -50 and 200." };
+    }
+    newAnnualCtc = Math.round(currentCtc * (1 + pct / 100));
+  } else {
+    const amt = Number(input.newAnnualCtc);
+    if (!Number.isFinite(amt) || amt <= 0) {
+      return { success: false, error: "Enter a valid new annual CTC." };
+    }
+    newAnnualCtc = Math.round(amt);
+  }
+  if (!Number.isFinite(newAnnualCtc) || newAnnualCtc <= 0) {
+    return { success: false, error: "Resulting CTC is not valid." };
+  }
+
+  const note = input.note?.trim();
+  if (!note) return { success: false, error: "A reason note is required for an increment." };
+
+  const basicPct = input.basicPct != null && Number.isFinite(Number(input.basicPct))
+    ? Number(input.basicPct)
+    : cur.basicPct;
+
+  // Reuse the single revision-writing path (validation, component resolution,
+  // supersede-then-insert transaction, revalidate all live here).
+  const res = await saveSalaryStructure(employeeId, {
+    annualCtc: newAnnualCtc,
+    basicPct,
+    effectiveFrom: input.effectiveFrom,
+    note,
+  });
+  if (!res.success) return { success: false, error: res.error };
+  return { success: true, data: { newAnnualCtc } };
+}

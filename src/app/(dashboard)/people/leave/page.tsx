@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CalendarDays, CalendarCheck2 } from "lucide-react";
+import { CalendarDays, CalendarCheck2, CalendarClock } from "lucide-react";
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
 import { FEATURES } from "@/config/features";
@@ -49,6 +49,11 @@ export default async function LeavePage() {
           {canApprove && (
             <Button variant="outline" asChild className="gap-1.5">
               <Link href="/people/leave/approvals"><CalendarCheck2 className="size-4" /> Approvals</Link>
+            </Button>
+          )}
+          {canAdmin && (
+            <Button variant="outline" asChild className="gap-1.5">
+              <Link href="/people/leave/holidays"><CalendarClock className="size-4" /> Holidays</Link>
             </Button>
           )}
         </div>

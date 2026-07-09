@@ -424,7 +424,10 @@ export const sidebarNavigation: NavItem[] = [
     permissions: ["hr:read"],
     children: [
       { title: "Attendance", href: "/people/attendance", icon: "Clock", permissions: ["hr:read"] },
+      { title: "Muster", href: "/people/attendance/muster", icon: "ClipboardList", permissions: ["hr:read"] },
       { title: "Leave", href: "/people/leave", icon: "CalendarCheck", permissions: ["hr:read"] },
+      { title: "Comp-off", href: "/people/leave/comp-off", icon: "CalendarClock", permissions: ["hr:read"] },
+      { title: "Holidays", href: "/people/leave/holidays", icon: "CalendarHeart", permissions: ["hr:admin"] },
       { title: "Shifts", href: "/people/shifts", icon: "CalendarClock", permissions: ["hr:read"] },
       { title: "Timesheets", href: "/people/timesheets", icon: "Clock", permissions: ["hr:read"] },
     ],

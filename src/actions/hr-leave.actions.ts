@@ -70,6 +70,74 @@ export async function getHolidays(year = currentYear()) {
   return prisma.holiday.findMany({ where: { year }, orderBy: { date: "asc" } });
 }
 
+// ============================================================
+// Holiday management (admin CRUD). Replaces the one-shot 2026 seed so
+// 2027+ holidays can be added and typos fixed without a code change.
+// Dates are stored at UTC midnight to match seedLeaveSetup exactly
+// (new Date(yyyy-mm-dd + "T00:00:00.000Z")); @db.Date is compared by that
+// same instant, so any drift here would shift the calendar a day.
+// ============================================================
+export async function getHolidaysAdmin(year = currentYear()) {
+  const u = await requireUser();
+  if (!can(u?.role, "hr:admin")) return [];
+  return prisma.holiday.findMany({ where: { year }, orderBy: { date: "asc" } });
+}
+
+export interface UpsertHolidayInput {
+  id?: string;
+  date: string; // yyyy-mm-dd
+  name: string;
+  year?: number; // derived from the date when omitted
+}
+
+export async function upsertHoliday(input: UpsertHolidayInput): Promise<Result<{ id: string }>> {
+  const u = await requireUser();
+  if (!can(u?.role, "hr:admin")) return { success: false, error: "Not authorized." };
+
+  const name = input.name?.trim();
+  if (!name) return { success: false, error: "Holiday name is required." };
+
+  // UTC-midnight instant, identical to how seedLeaveSetup writes holiday dates.
+  const date = new Date(input.date + "T00:00:00.000Z");
+  if (isNaN(date.getTime())) return { success: false, error: "Invalid date." };
+  const year = input.year ?? date.getUTCFullYear();
+
+  // Block a duplicate date (any other holiday already sits on that calendar day).
+  const clash = await prisma.holiday.findFirst({
+    where: { date, ...(input.id ? { id: { not: input.id } } : {}) },
+    select: { id: true },
+  });
+  if (clash) return { success: false, error: "A holiday already exists on that date." };
+
+  try {
+    let id = input.id;
+    if (id) {
+      const existing = await prisma.holiday.findUnique({ where: { id } });
+      if (!existing) return { success: false, error: "Holiday not found." };
+      await prisma.holiday.update({ where: { id }, data: { date, name, year } });
+    } else {
+      const created = await prisma.holiday.create({ data: { date, name, year } });
+      id = created.id;
+    }
+    revalidatePath("/people/leave");
+    revalidatePath("/people/leave/holidays");
+    return { success: true, data: { id } };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : "Could not save holiday." };
+  }
+}
+
+export async function deleteHoliday(id: string): Promise<Result<{ id: string }>> {
+  const u = await requireUser();
+  if (!can(u?.role, "hr:admin")) return { success: false, error: "Not authorized." };
+  const existing = await prisma.holiday.findUnique({ where: { id } });
+  if (!existing) return { success: false, error: "Holiday not found." };
+  await prisma.holiday.delete({ where: { id } });
+  revalidatePath("/people/leave");
+  revalidatePath("/people/leave/holidays");
+  return { success: true, data: { id } };
+}
+
 async function holidayKeySet(year: number): Promise<Set<string>> {
   const hols = await prisma.holiday.findMany({ where: { year }, select: { date: true } });
   return new Set(hols.map((h) => dateKey(h.date)));
