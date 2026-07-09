@@ -14,7 +14,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
-import { postWithinTx, type JournalLineInput } from "./ledger";
+import { postWithinTx, reverseJournalEntry, type JournalLineInput } from "./ledger";
 import { FIN_ACCOUNT_CODES } from "./coa-seed";
 
 export type BridgeResult =
@@ -118,6 +118,63 @@ export async function postInvoiceIssued(invoiceId: string, byId?: string): Promi
     });
   } catch (e) {
     return { posted: false, reason: e instanceof Error ? e.message : "post-failed" };
+  }
+}
+
+export type ReversalOutcome =
+  | { ok: true; reversed: boolean }
+  | { ok: false; error: string };
+
+/**
+ * Reverse the RECEIVABLE journal entry posted for a source document (an invoice
+ * id when cancelling an invoice, a payment id when cancelling a payment), so the
+ * ledger stays balanced after a cancellation.
+ *
+ * Fail-safe semantics (see Vendor module spec §6a):
+ *  - Finance not in use (no Chart of Accounts) → nothing was ever posted, so the
+ *    cancellation is safe to proceed: {ok:true, reversed:false}.
+ *  - A live POSTED entry exists → reverse it (swapped balanced entry) and return
+ *    {ok:true, reversed:true}. reverseJournalEntry's own reversedById guard makes
+ *    concurrent callers safe (the loser sees the already-reversed state below).
+ *  - Only a REVERSED entry exists → a prior attempt already reversed it → treat
+ *    as an idempotent no-op: {ok:true, reversed:false}.
+ *  - The ledger IS in use but no entry (posted or reversed) exists for this
+ *    document → the forward post never happened; REFUSE ({ok:false}) rather than
+ *    silently cancelling and leaving revenue/AR/cash unreversed in the GL.
+ */
+export async function reverseReceivableEntry(
+  sourceRefId: string,
+  reason: string,
+  byId?: string,
+): Promise<ReversalOutcome> {
+  try {
+    const accountCount = await prisma.finAccount.count();
+    if (accountCount === 0) return { ok: true, reversed: false }; // Finance not set up — nothing was posted
+
+    const posted = await prisma.finJournalEntry.findFirst({
+      where: { sourceModule: "RECEIVABLE", sourceRefId, status: "POSTED" },
+      select: { id: true },
+    });
+    if (posted) {
+      await reverseJournalEntry(posted.id, reason, byId);
+      return { ok: true, reversed: true };
+    }
+
+    // Already reversed on a prior (perhaps partially-failed) attempt → no-op.
+    const already = await prisma.finJournalEntry.findFirst({
+      where: { sourceModule: "RECEIVABLE", sourceRefId, status: "REVERSED" },
+      select: { id: true },
+    });
+    if (already) return { ok: true, reversed: false };
+
+    // Ledger is live but this document was never posted (forward post failed).
+    return {
+      ok: false,
+      error:
+        "No general-ledger entry was found to reverse for this document. Resolve the finance posting first, then retry the cancellation.",
+    };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "GL reversal failed" };
   }
 }
 

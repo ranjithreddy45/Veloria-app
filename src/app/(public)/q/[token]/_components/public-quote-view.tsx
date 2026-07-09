@@ -246,6 +246,16 @@ export function PublicQuoteView({
         ))}
       </div>
 
+      {/* Notes / details from the rep */}
+      {view.notes && view.notes.trim() && (
+        <div className="mx-auto max-w-md rounded-2xl border border-zinc-200 bg-white p-4 text-[13px] shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <p className="text-[11.5px] font-semibold uppercase tracking-wide text-zinc-400">
+            Notes &amp; details
+          </p>
+          <p className="mt-1.5 whitespace-pre-wrap text-zinc-600 dark:text-zinc-300">{view.notes}</p>
+        </div>
+      )}
+
       {/* Social proof */}
       {view.showSocialProof && socialProof && (
         <SocialProofStrip data={socialProof} variant="banner" heading="Why couples & companies pick us" />

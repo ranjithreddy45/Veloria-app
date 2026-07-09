@@ -7,20 +7,21 @@ import { PlusIcon, Trash2Icon, Loader2Icon } from "lucide-react";
 import { toast } from "sonner";
 
 import {
-  VENDOR_CATEGORIES,
   VENDOR_EMPANELMENT_STATUSES,
-  VENDOR_MODULE_CATEGORY_LABELS,
+  VENDOR_TYPE_OPTIONS,
 } from "@/lib/constants";
 import {
   createCatalogVendor,
   updateCatalogVendor,
   type VendorCatalogInput,
 } from "@/actions/vendor-catalog.actions";
+import type { CategoryOption, VenueOption } from "./vendor-module";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
@@ -50,6 +51,9 @@ type ExistingVendor = {
   email: string | null;
   phone: string | null;
   empanelmentStatus: string | null;
+  vendorType?: string | null;
+  venueIds?: string[];
+  allVenues?: boolean;
   // optional — only present if vendor-catalog action returns them
   contactPerson?: string | null;
   keyPersonnel?: { name: string; role?: string }[];
@@ -59,6 +63,8 @@ type ExistingVendor = {
 
 interface VendorFormDialogProps {
   vendor?: ExistingVendor;
+  categories: CategoryOption[];
+  venues: VenueOption[];
   trigger: React.ReactNode;
 }
 
@@ -99,7 +105,7 @@ function emptyLicence(): LicenceRow {
 // VendorFormDialog
 // ============================================================
 
-export function VendorFormDialog({ vendor, trigger }: VendorFormDialogProps) {
+export function VendorFormDialog({ vendor, categories, venues, trigger }: VendorFormDialogProps) {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [pending, startTransition] = useTransition();
@@ -108,6 +114,15 @@ export function VendorFormDialog({ vendor, trigger }: VendorFormDialogProps) {
   const [name, setName] = React.useState(vendor?.name ?? "");
   const [selectedCategories, setSelectedCategories] = React.useState<string[]>(
     vendor?.categories ?? []
+  );
+  const [vendorType, setVendorType] = React.useState<string>(
+    vendor?.vendorType ?? "EXTERNAL"
+  );
+  const [allVenues, setAllVenues] = React.useState<boolean>(
+    vendor?.allVenues ?? false
+  );
+  const [venueIds, setVenueIds] = React.useState<string[]>(
+    vendor?.venueIds ?? []
   );
   const [contactPerson, setContactPerson] = React.useState(
     vendor?.contactPerson ?? ""
@@ -139,6 +154,9 @@ export function VendorFormDialog({ vendor, trigger }: VendorFormDialogProps) {
     if (val) {
       setName(vendor?.name ?? "");
       setSelectedCategories(vendor?.categories ?? []);
+      setVendorType(vendor?.vendorType ?? "EXTERNAL");
+      setAllVenues(vendor?.allVenues ?? false);
+      setVenueIds(vendor?.venueIds ?? []);
       setContactPerson(vendor?.contactPerson ?? "");
       setPhone(vendor?.phone ?? "");
       setEmail(vendor?.email ?? "");
@@ -172,6 +190,12 @@ export function VendorFormDialog({ vendor, trigger }: VendorFormDialogProps) {
       });
     }
   };
+
+  // ── Venue scope helpers ──
+  const toggleVenue = (id: string) =>
+    setVenueIds((prev) =>
+      prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
+    );
 
   // ── Key personnel helpers ──
   const addKeyPerson = () => setKeyPersonnel((p) => [...p, emptyKeyPerson()]);
@@ -214,6 +238,9 @@ export function VendorFormDialog({ vendor, trigger }: VendorFormDialogProps) {
     const input: VendorCatalogInput = {
       name: name.trim(),
       categories: selectedCategories,
+      vendorType,
+      allVenues,
+      venueIds: allVenues ? [] : venueIds,
       contactPerson: contactPerson.trim() || null,
       phone: phone.trim() || null,
       email: email.trim() || null,
@@ -310,7 +337,7 @@ export function VendorFormDialog({ vendor, trigger }: VendorFormDialogProps) {
               Categories <span className="text-destructive">*</span>
             </Label>
             <div className="flex flex-wrap gap-2">
-              {VENDOR_CATEGORIES.map((c) => {
+              {categories.map((c) => {
                 const active = selectedCategories.includes(c.key);
                 return (
                   <button
@@ -331,6 +358,85 @@ export function VendorFormDialog({ vendor, trigger }: VendorFormDialogProps) {
             </div>
             {fieldErrors.categories && (
               <p className="text-[12px] text-destructive">{fieldErrors.categories}</p>
+            )}
+          </div>
+
+          {/* ── Vendor type ── */}
+          <div className="space-y-1.5">
+            <Label htmlFor="vf-type" className="text-[13px] font-medium">
+              Vendor type
+            </Label>
+            <Select value={vendorType} onValueChange={setVendorType}>
+              <SelectTrigger id="vf-type" className="h-9 text-[13px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {VENDOR_TYPE_OPTIONS.map((t) => (
+                  <SelectItem key={t.key} value={t.key} className="text-[13px]">
+                    {t.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {fieldErrors.vendorType && (
+              <p className="text-[12px] text-destructive">{fieldErrors.vendorType}</p>
+            )}
+          </div>
+
+          {/* ── Venue scope ── */}
+          <div className="space-y-2">
+            <Label className="text-[13px] font-medium">Assigned venues</Label>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setAllVenues(true)}
+                className={cn(
+                  "rounded-full border px-3 py-1 text-[12px] font-medium transition-colors",
+                  allVenues
+                    ? "border-violet-400 bg-violet-100 text-violet-700 dark:border-violet-600 dark:bg-violet-950/60 dark:text-violet-300"
+                    : "border-border bg-muted/50 text-muted-foreground hover:border-violet-300"
+                )}
+              >
+                All venues
+              </button>
+              <button
+                type="button"
+                onClick={() => setAllVenues(false)}
+                className={cn(
+                  "rounded-full border px-3 py-1 text-[12px] font-medium transition-colors",
+                  !allVenues
+                    ? "border-violet-400 bg-violet-100 text-violet-700 dark:border-violet-600 dark:bg-violet-950/60 dark:text-violet-300"
+                    : "border-border bg-muted/50 text-muted-foreground hover:border-violet-300"
+                )}
+              >
+                Specific venues
+              </button>
+            </div>
+
+            {!allVenues && (
+              <div className="max-h-40 space-y-1.5 overflow-y-auto rounded-lg border border-border/70 bg-muted/20 p-2.5">
+                {venues.length === 0 ? (
+                  <p className="text-[12px] text-muted-foreground/70">No active venues found.</p>
+                ) : (
+                  venues.map((v) => (
+                    <label
+                      key={v.id}
+                      className="flex cursor-pointer items-center gap-2 text-[12px]"
+                    >
+                      <Checkbox
+                        checked={venueIds.includes(v.id)}
+                        onCheckedChange={() => toggleVenue(v.id)}
+                      />
+                      <span className="text-foreground">{v.name}</span>
+                    </label>
+                  ))
+                )}
+              </div>
+            )}
+            {!allVenues && venueIds.length === 0 && (
+              <p className="text-[11px] text-muted-foreground/70">
+                Select at least one venue, or switch to "All venues".
+              </p>
             )}
           </div>
 

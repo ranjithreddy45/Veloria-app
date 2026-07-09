@@ -91,4 +91,6 @@ export interface PublicQuoteView {
   /** Public-safe event facts so the client can confirm the quote is theirs. */
   guestCount: number | null;
   venueName: string | null;
+  /** Rep's customer-facing notes/details for this quote (optional). */
+  notes?: string | null;
 }

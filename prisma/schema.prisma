@@ -144,6 +144,7 @@ enum PaymentStatus {
   COMPLETED
   FAILED
   REFUNDED
+  CANCELLED
 }
 
 enum PaymentMethod {
@@ -854,6 +855,17 @@ model Invoice {
   gstin           String?
   placeOfSupply   String?
   sacCode         String?       @default("996332")
+
+  // Cancellation maker-checker (Vendor module spec §6a). A maker requests
+  // cancellation (cancelPending=true); a manager/super-admin approves → status
+  // CANCELLED + GL reversal, or rejects → cancelPending cleared.
+  cancelPending       Boolean   @default(false)
+  cancelReason        String?   @db.Text
+  cancelRequestedById String?
+  cancelRequestedAt   DateTime?
+  cancelledById       String?
+  cancelledAt         DateTime?
+
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -919,6 +931,16 @@ model Payment {
   receiptUrl        String?       @db.Text
   receiptUploadedAt DateTime?
   paidAt            DateTime?
+
+  // Cancellation maker-checker (Vendor module spec §6a). Approving a cancel
+  // reverses the payment's GL entry and restores the invoice balance.
+  cancelPending       Boolean   @default(false)
+  cancelReason        String?   @db.Text
+  cancelRequestedById String?
+  cancelRequestedAt   DateTime?
+  cancelledById       String?
+  cancelledAt         DateTime?
+
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
@@ -1253,6 +1275,11 @@ model Vendor {
   notes             String?  @db.Text
   isArchived        Boolean  @default(false)
 
+  // Vendor classification + hall/venue scope (Vendor module spec).
+  vendorType String?  @default("EXTERNAL") // EXTERNAL | PROPERTY_OWNER | BILLION_EVENTS
+  venueIds   String[] @default([]) // specific halls/venues this vendor is assigned to
+  allVenues  Boolean  @default(false) // true ⇒ applies to ALL halls/venues (overrides venueIds)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1304,11 +1331,19 @@ model VendorPackage {
   name         String
   category     String // stable category key; must be one of vendor.categories (R3, enforced in action)
   status       VendorPackageStatus    @default(DRAFT)
-  price        Decimal                @db.Decimal(12, 2)
+  price        Decimal                @db.Decimal(12, 2) // legacy single price = customer price (kept in sync with customerPrice)
   priceUnit    VendorPackagePriceUnit @default(PER_PLATE)
   currency     String                 @default("INR")
   description  String?                @db.Text
   coverImageId String? // id of a VendorPackageImage in `images` (R7) — plain ref, validated in action
+
+  // Package pricing detail (Vendor module spec).
+  vendorPrice      Decimal? @db.Decimal(12, 2) // cost paid to the vendor (internal)
+  customerPrice    Decimal? @db.Decimal(12, 2) // price shown to customer; falls back to `price`
+  minPax           Int? // minimum pax / units allowed on a quote line
+  maxDiscountType  String? // PERCENT | AMOUNT — cap on sales-exec discount for this package
+  maxDiscountValue Decimal? @db.Decimal(12, 2)
+
   createdAt    DateTime               @default(now())
   updatedAt    DateTime               @updatedAt
 
@@ -1318,6 +1353,22 @@ model VendorPackage {
   @@index([vendorId])
   @@index([status])
   @@index([category])
+}
+
+// Super-admin-managed vendor categories. Seeded from the hardcoded
+// VENDOR_CATEGORIES constant; admins can add more. The stable `key` is what
+// gets stored on Vendor.categories[] / VendorPackage.category.
+model VendorCategoryDef {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  label       String
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
 }
 
 model VendorPackageSection {

@@ -30,9 +30,12 @@ describe("R1 — vendor needs ≥ 1 category", () => {
     const f = validateVendorFields({ name: "Spice Route", categories: [] });
     expect(f.categories).toBeTruthy();
   });
-  it("rejects unknown category keys (filtered out → zero)", () => {
+  // Category MEMBERSHIP (is the key one of the dynamic/seeded categories?) is now
+  // enforced in the action against the DB-backed category set — like R3 — because
+  // categories are super-admin-managed at runtime. The pure rule only checks ≥1.
+  it("accepts any non-empty key at the pure layer (membership enforced in the action)", () => {
     const f = validateVendorFields({ name: "Spice Route", categories: ["not_a_real_key"] });
-    expect(f.categories).toBeTruthy();
+    expect(f.categories).toBeUndefined();
   });
   it("accepts a valid category", () => {
     const f = validateVendorFields({ name: "Spice Route", categories: ["catering"] });

@@ -109,6 +109,24 @@ export const VENDOR_PACKAGE_PRICE_UNIT_LABELS: Record<string, string> =
 export const VENDOR_EMPANELMENT_STATUSES = ["empanelled", "probation", "suspended"] as const;
 export type VendorEmpanelmentStatus = (typeof VENDOR_EMPANELMENT_STATUSES)[number];
 
+// Vendor type (who the vendor is) — External partner vs property owner vs the
+// in-house Billion Events entity. Stored on Vendor.vendorType.
+export const VENDOR_TYPE_OPTIONS = [
+  { key: "EXTERNAL", label: "External vendor" },
+  { key: "PROPERTY_OWNER", label: "Property owner" },
+  { key: "BILLION_EVENTS", label: "Billion Events" },
+] as const;
+
+export const VENDOR_TYPE_LABELS: Record<string, string> = Object.fromEntries(
+  VENDOR_TYPE_OPTIONS.map((t) => [t.key, t.label])
+);
+
+// Max-discount cap types for a vendor package.
+export const VENDOR_MAX_DISCOUNT_TYPES = [
+  { key: "PERCENT", label: "Percentage (%)" },
+  { key: "AMOUNT", label: "Amount (₹)" },
+] as const;
+
 // ============================================================
 // Time Slot Labels
 // ============================================================

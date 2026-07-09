@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import {
@@ -16,7 +17,7 @@ import { toast } from "sonner";
 
 import {
   VENDOR_MODULE_CATEGORY_LABELS,
-  VENDOR_EMPANELMENT_STATUSES,
+  VENDOR_TYPE_LABELS,
 } from "@/lib/constants";
 import { archiveVendor, restoreVendor } from "@/actions/vendor-catalog.actions";
 import { cn } from "@/lib/utils";
@@ -37,7 +38,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { VendorFormDialog } from "./vendor-form-dialog";
-import type { VendorRow } from "./vendor-module";
+import type { VendorRow, CategoryOption, VenueOption } from "./vendor-module";
 
 // ============================================================
 // Empanelment badge color map
@@ -74,9 +75,11 @@ const CATEGORY_HUE: Record<string, string> = {
 
 interface VendorCardProps {
   vendor: VendorRow;
+  categories: CategoryOption[];
+  venues: VenueOption[];
 }
 
-function VendorCard({ vendor }: VendorCardProps) {
+function VendorCard({ vendor, categories, venues }: VendorCardProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -105,6 +108,15 @@ function VendorCard({ vendor }: VendorCardProps) {
   };
 
   const empanelStatus = vendor.empanelmentStatus ?? "empanelled";
+  const catLabel = (key: string) =>
+    categories.find((c) => c.key === key)?.label ??
+    VENDOR_MODULE_CATEGORY_LABELS[key] ??
+    key;
+  const venueScopeLabel = vendor.allVenues
+    ? "All venues"
+    : vendor.venueIds.length > 0
+      ? `${vendor.venueIds.length} venue${vendor.venueIds.length === 1 ? "" : "s"}`
+      : "No venues";
 
   return (
     <div
@@ -116,9 +128,12 @@ function VendorCard({ vendor }: VendorCardProps) {
       {/* ── Header: name + empanelment badge ── */}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate text-[14px] font-semibold tracking-[-0.01em] text-foreground">
+          <Link
+            href={`/vendors/${vendor.id}`}
+            className="block truncate text-[14px] font-semibold tracking-[-0.01em] text-foreground hover:underline"
+          >
             {vendor.name}
-          </p>
+          </Link>
           {vendor.city && (
             <p className="mt-0.5 flex items-center gap-1 text-[12px] text-muted-foreground">
               <MapPinIcon className="size-3 shrink-0" />
@@ -150,11 +165,21 @@ function VendorCard({ vendor }: VendorCardProps) {
                 CATEGORY_HUE[cat] ?? "bg-muted text-muted-foreground border-border"
               )}
             >
-              {VENDOR_MODULE_CATEGORY_LABELS[cat] ?? cat}
+              {catLabel(cat)}
             </span>
           ))}
         </div>
       )}
+
+      {/* ── Vendor type + venue scope ── */}
+      <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+        <span className="rounded-full border border-border bg-muted/50 px-2 py-0.5 font-medium">
+          {VENDOR_TYPE_LABELS[vendor.vendorType ?? "EXTERNAL"] ?? "External vendor"}
+        </span>
+        <span className="rounded-full border border-border bg-muted/50 px-2 py-0.5">
+          {venueScopeLabel}
+        </span>
+      </div>
 
       {/* ── Contact details ── */}
       <div className="flex flex-col gap-1">
@@ -203,6 +228,8 @@ function VendorCard({ vendor }: VendorCardProps) {
       <div className="flex items-center gap-2">
         <VendorFormDialog
           vendor={vendor}
+          categories={categories}
+          venues={venues}
           trigger={
             <Button
               variant="outline"
@@ -266,9 +293,11 @@ interface VendorsPanelProps {
   vendors: VendorRow[];
   search: string;
   category: string;
+  categories: CategoryOption[];
+  venues: VenueOption[];
 }
 
-export function VendorsPanel({ vendors, search, category }: VendorsPanelProps) {
+export function VendorsPanel({ vendors, search, category, categories, venues }: VendorsPanelProps) {
   const [showArchived, setShowArchived] = React.useState(false);
 
   // Client-side filter (no round-trip needed for the initial 100-row page)
@@ -335,7 +364,7 @@ export function VendorsPanel({ vendors, search, category }: VendorsPanelProps) {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((v) => (
-            <VendorCard key={v.id} vendor={v} />
+            <VendorCard key={v.id} vendor={v} categories={categories} venues={venues} />
           ))}
         </div>
       )}

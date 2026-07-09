@@ -4,16 +4,10 @@ import * as React from "react";
 import Link from "next/link";
 import { type ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
-import { EyeIcon, MoreHorizontalIcon, DownloadIcon } from "lucide-react";
+import { DownloadIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   DataTable,
   DataTableColumnHeader,
@@ -28,6 +22,7 @@ import { ReceiptIcon } from "lucide-react";
 import { formatINR } from "@/lib/utils";
 import { exportPayments } from "@/actions/export.actions";
 import { toCSV, downloadCSV } from "@/lib/csv-export";
+import { PaymentRowActions } from "./payment-row-actions";
 
 // ============================================================
 // Types
@@ -38,6 +33,7 @@ type PaymentRow = {
   amount: number | string | { toString(): string };
   status: string;
   method: string;
+  cancelPending?: boolean;
   transactionId?: string | null;
   receiptNumber?: string | null;
   paidAt?: Date | string | null;
@@ -65,6 +61,7 @@ const STATUS_HUE: Record<string, Hue> = {
   PROCESSING: "blue",
   FAILED: "red",
   REFUNDED: "violet",
+  CANCELLED: "neutral",
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -73,6 +70,7 @@ const STATUS_LABEL: Record<string, string> = {
   PROCESSING: "Processing",
   FAILED: "Failed",
   REFUNDED: "Refunded",
+  CANCELLED: "Cancelled",
 };
 
 const METHOD_HUE: Record<string, Hue> = {
@@ -95,7 +93,11 @@ const METHOD_LABEL: Record<string, string> = {
 // Columns
 // ============================================================
 
-const columns: ColumnDef<PaymentRow, unknown>[] = [
+function makeColumns(perms: {
+  canCancel: boolean;
+  isManager: boolean;
+}): ColumnDef<PaymentRow, unknown>[] {
+  return [
   {
     accessorKey: "receiptNumber",
     header: ({ column }) => (
@@ -168,11 +170,16 @@ const columns: ColumnDef<PaymentRow, unknown>[] = [
     cell: ({ row }) => {
       const status = row.original.status;
       return (
-        <StatusPill
-          label={STATUS_LABEL[status] ?? status}
-          hue={STATUS_HUE[status] ?? "neutral"}
-          size="xs"
-        />
+        <div className="flex items-center gap-1.5">
+          <StatusPill
+            label={STATUS_LABEL[status] ?? status}
+            hue={STATUS_HUE[status] ?? "neutral"}
+            size="xs"
+          />
+          {row.original.cancelPending && status !== "CANCELLED" && (
+            <StatusPill label="Cancel pending" hue="amber" size="xs" noDot />
+          )}
+        </div>
       );
     },
   },
@@ -198,25 +205,18 @@ const columns: ColumnDef<PaymentRow, unknown>[] = [
   {
     id: "actions",
     cell: ({ row }) => (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon-xs">
-            <MoreHorizontalIcon className="size-4" />
-            <span className="sr-only">Open menu</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem asChild>
-            <Link href={`/invoices/${row.original.invoice.id}`}>
-              <EyeIcon className="mr-2 size-4" />
-              View Invoice
-            </Link>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <PaymentRowActions
+        paymentId={row.original.id}
+        invoiceId={row.original.invoice.id}
+        status={row.original.status}
+        cancelPending={!!row.original.cancelPending}
+        canCancel={perms.canCancel}
+        isManager={perms.isManager}
+      />
     ),
   },
-];
+  ];
+}
 
 // ============================================================
 // PaymentsTable Component
@@ -224,6 +224,8 @@ const columns: ColumnDef<PaymentRow, unknown>[] = [
 
 interface PaymentsTableProps {
   data: PaymentRow[];
+  canCancel?: boolean;
+  isManager?: boolean;
 }
 
 function ExportButton() {
@@ -274,8 +276,12 @@ const PAYMENT_FACETS: FacetDef<PaymentRow>[] = [
   },
 ];
 
-export function PaymentsTable({ data }: PaymentsTableProps) {
+export function PaymentsTable({ data, canCancel = false, isManager = false }: PaymentsTableProps) {
   const [faceted, setFaceted] = React.useState<PaymentRow[]>(data);
+  const columns = React.useMemo(
+    () => makeColumns({ canCancel, isManager }),
+    [canCancel, isManager],
+  );
 
   React.useEffect(() => setFaceted(data), [data]);
 

@@ -16,12 +16,10 @@ import {
 import { toast } from "sonner";
 
 import {
-  VENDOR_CATEGORIES,
   VENDOR_PACKAGE_PRICE_UNITS,
-  VENDOR_PACKAGE_PRICE_UNIT_LABELS,
-  VENDOR_MODULE_CATEGORY_LABELS,
+  VENDOR_MAX_DISCOUNT_TYPES,
 } from "@/lib/constants";
-import { formatINR, cn } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import {
   createPackage,
   updatePackage,
@@ -29,6 +27,7 @@ import {
   setPackageCover,
   deletePackageImage,
 } from "@/actions/vendor-catalog.actions";
+import type { CategoryOption } from "@/app/(dashboard)/vendors/_components/vendor-module";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -83,6 +82,11 @@ interface FullPackage {
   priceUnit: string;
   currency: string;
   description: string | null;
+  vendorPrice: number | null;
+  customerPrice: number | null;
+  minPax: number | null;
+  maxDiscountType: string | null;
+  maxDiscountValue: number | null;
   coverImageId: string | null;
   vendor: { id: string; name: string; categories: string[] };
   sections: {
@@ -104,7 +108,9 @@ interface FullPackage {
 
 interface PackageBuilderProps {
   vendors: { id: string; name: string; categories: string[] }[];
+  categories: CategoryOption[];
   initial?: FullPackage;
+  defaultVendorId?: string;
 }
 
 // ============================================================
@@ -383,19 +389,42 @@ function SectionEditor({ section, index, onChange, onRemove }: SectionEditorProp
 // PackageBuilder — main component
 // ============================================================
 
-export function PackageBuilder({ vendors, initial }: PackageBuilderProps) {
+export function PackageBuilder({ vendors, categories, initial, defaultVendorId }: PackageBuilderProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   const pkgId = initial?.id;
 
   // ── Form state ──
-  const [vendorId, setVendorId] = React.useState(initial?.vendorId ?? "");
+  const prefillVendorId = initial?.vendorId ?? defaultVendorId ?? "";
+  const [vendorId, setVendorId] = React.useState(prefillVendorId);
   const [name, setName] = React.useState(initial?.name ?? "");
-  const [category, setCategory] = React.useState(initial?.category ?? "");
+  const [category, setCategory] = React.useState(
+    initial?.category ??
+      (defaultVendorId
+        ? (vendors.find((v) => v.id === defaultVendorId)?.categories[0] ?? "")
+        : "")
+  );
   const [status, setStatus] = React.useState(initial?.status ?? "DRAFT");
+  // Customer price (mirrors legacy `price`). customerPrice falls back to price.
   const [price, setPrice] = React.useState<string>(
-    initial?.price !== undefined ? String(initial.price) : ""
+    initial?.customerPrice != null
+      ? String(initial.customerPrice)
+      : initial?.price !== undefined
+        ? String(initial.price)
+        : ""
+  );
+  const [vendorPrice, setVendorPrice] = React.useState<string>(
+    initial?.vendorPrice != null ? String(initial.vendorPrice) : ""
+  );
+  const [minPax, setMinPax] = React.useState<string>(
+    initial?.minPax != null ? String(initial.minPax) : ""
+  );
+  const [maxDiscountType, setMaxDiscountType] = React.useState<string>(
+    initial?.maxDiscountType ?? "NONE"
+  );
+  const [maxDiscountValue, setMaxDiscountValue] = React.useState<string>(
+    initial?.maxDiscountValue != null ? String(initial.maxDiscountValue) : ""
   );
   const [priceUnit, setPriceUnit] = React.useState(
     initial?.priceUnit ?? "PER_PLATE"
@@ -427,10 +456,8 @@ export function PackageBuilder({ vendors, initial }: PackageBuilderProps) {
   const selectedVendor = vendors.find((v) => v.id === vendorId) ?? null;
   const allowedCategories =
     selectedVendor?.categories && selectedVendor.categories.length > 0
-      ? VENDOR_CATEGORIES.filter((c) =>
-          selectedVendor.categories.includes(c.key)
-        )
-      : VENDOR_CATEGORIES;
+      ? categories.filter((c) => selectedVendor.categories.includes(c.key))
+      : categories;
 
   // When vendor changes, reset category to first allowed
   const handleVendorChange = (vid: string) => {
@@ -494,6 +521,49 @@ export function PackageBuilder({ vendors, initial }: PackageBuilderProps) {
     });
   };
 
+  // Multiple local files → base64 data-URLs → addPackageImage (app convention).
+  const MAX_IMAGE_BYTES = 1.5 * 1024 * 1024; // ~1.5MB guard to keep DB rows sane
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const readFileAsDataUrl = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+
+  const handleFilesSelected = (fileList: FileList | null) => {
+    if (!pkgId || !fileList || fileList.length === 0) return;
+    const files = Array.from(fileList);
+    startImgTransition(async () => {
+      let added = 0;
+      for (const file of files) {
+        if (!file.type.startsWith("image/")) {
+          toast.error(`"${file.name}" is not an image`);
+          continue;
+        }
+        if (file.size > MAX_IMAGE_BYTES) {
+          toast.error(`"${file.name}" is too large (max 1.5MB)`);
+          continue;
+        }
+        try {
+          const dataUrl = await readFileAsDataUrl(file);
+          const res = await addPackageImage(pkgId, dataUrl);
+          if (res.success) added++;
+          else toast.error(res.error);
+        } catch {
+          toast.error(`Failed to read "${file.name}"`);
+        }
+      }
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      if (added > 0) {
+        toast.success(`${added} image${added === 1 ? "" : "s"} uploaded`);
+        router.refresh();
+      }
+    });
+  };
+
   const handleSetCover = (imgId: string) => {
     if (!pkgId) return;
     startImgTransition(async () => {
@@ -529,12 +599,18 @@ export function PackageBuilder({ vendors, initial }: PackageBuilderProps) {
     setFieldErrors({});
     setUnmetList([]);
 
+    const discountActive = maxDiscountType !== "NONE";
     const input = {
       vendorId,
       name,
       category,
       status,
-      price: priceNum,
+      price: priceNum, // legacy mirror
+      customerPrice: priceNum,
+      vendorPrice: vendorPrice.trim() !== "" ? Number(vendorPrice) : null,
+      minPax: minPax.trim() !== "" ? Number(minPax) : null,
+      maxDiscountType: discountActive ? maxDiscountType : null,
+      maxDiscountValue: discountActive && maxDiscountValue.trim() !== "" ? Number(maxDiscountValue) : null,
       priceUnit,
       currency: "INR",
       description: description || null,
@@ -698,7 +774,7 @@ export function PackageBuilder({ vendors, initial }: PackageBuilderProps) {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="price" className="text-[13px]">
-                Price (₹) <span className="text-destructive">*</span>
+                Customer price (₹) <span className="text-destructive">*</span>
               </Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-muted-foreground">
@@ -741,6 +817,110 @@ export function PackageBuilder({ vendors, initial }: PackageBuilderProps) {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+
+          {/* Vendor price + Min pax row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="vendor-price" className="text-[13px]">
+                Vendor price (₹)
+              </Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-muted-foreground">
+                  ₹
+                </span>
+                <Input
+                  id="vendor-price"
+                  type="number"
+                  min={0}
+                  value={vendorPrice}
+                  onChange={(e) => {
+                    setVendorPrice(e.target.value);
+                    setFieldErrors((prev) => ({ ...prev, vendorPrice: "" }));
+                  }}
+                  placeholder="Internal cost"
+                  className={cn(
+                    "h-9 pl-7 text-[13px] tabular-nums",
+                    fieldErrors.vendorPrice && "border-destructive"
+                  )}
+                />
+              </div>
+              {fieldErrors.vendorPrice && (
+                <p className="text-[12px] text-destructive">{fieldErrors.vendorPrice}</p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="min-pax" className="text-[13px]">
+                Minimum pax / units
+              </Label>
+              <Input
+                id="min-pax"
+                type="number"
+                min={0}
+                value={minPax}
+                onChange={(e) => {
+                  setMinPax(e.target.value);
+                  setFieldErrors((prev) => ({ ...prev, minPax: "" }));
+                }}
+                placeholder="e.g. 100"
+                className={cn(
+                  "h-9 text-[13px] tabular-nums",
+                  fieldErrors.minPax && "border-destructive"
+                )}
+              />
+              {fieldErrors.minPax && (
+                <p className="text-[12px] text-destructive">{fieldErrors.minPax}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Max discount row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="discount-type" className="text-[13px]">
+                Max discount
+              </Label>
+              <Select value={maxDiscountType} onValueChange={setMaxDiscountType}>
+                <SelectTrigger id="discount-type" className="h-9 text-[13px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NONE">No cap</SelectItem>
+                  {VENDOR_MAX_DISCOUNT_TYPES.map((d) => (
+                    <SelectItem key={d.key} value={d.key}>
+                      {d.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="discount-value" className="text-[13px]">
+                Discount value
+              </Label>
+              <Input
+                id="discount-value"
+                type="number"
+                min={0}
+                max={maxDiscountType === "PERCENT" ? 100 : undefined}
+                value={maxDiscountValue}
+                disabled={maxDiscountType === "NONE"}
+                onChange={(e) => {
+                  setMaxDiscountValue(e.target.value);
+                  setFieldErrors((prev) => ({ ...prev, maxDiscount: "" }));
+                }}
+                placeholder={maxDiscountType === "PERCENT" ? "0–100" : "₹ amount"}
+                className={cn(
+                  "h-9 text-[13px] tabular-nums",
+                  fieldErrors.maxDiscount && "border-destructive"
+                )}
+              />
+              {fieldErrors.maxDiscount && (
+                <p className="text-[12px] text-destructive">{fieldErrors.maxDiscount}</p>
+              )}
             </div>
           </div>
 
@@ -810,7 +990,33 @@ export function PackageBuilder({ vendors, initial }: PackageBuilderProps) {
 
           {pkgId ? (
             <>
-              {/* Add by URL */}
+              {/* Upload local files (multiple) */}
+              <div className="space-y-1.5">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => handleFilesSelected(e.target.files)}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 w-full gap-1.5 text-[12px]"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={imgPending}
+                >
+                  <ImageIcon className="size-3.5" />
+                  Upload images
+                </Button>
+                <p className="text-[11px] text-muted-foreground/70">
+                  Up to 1.5MB each. You can select several at once.
+                </p>
+              </div>
+
+              {/* Or add by URL */}
               <div className="flex gap-2">
                 <Input
                   value={imgUrl}

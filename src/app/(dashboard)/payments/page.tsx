@@ -4,6 +4,8 @@ import {
   CalendarIcon,
 } from "lucide-react";
 import { getPayments } from "@/actions/payment.actions";
+import { auth } from "@/../auth";
+import { hasPermission } from "@/lib/permissions";
 import { PageHeader } from "@/components/layout/page-header";
 import { PageHelp } from "@/lib/page-help";
 import { StatTile } from "@/components/ui/stat-tile";
@@ -20,6 +22,11 @@ export default async function PaymentsPage() {
   const payments = paymentsResult.success
     ? paymentsResult.data?.data ?? []
     : [];
+
+  const session = await auth();
+  const role = (session?.user?.role as string) ?? "";
+  const canCancel = hasPermission(role, "payments:update");
+  const isManager = hasPermission(role, "payments:cancel");
 
   // ---- Derive headline metrics from existing fields (amount/status/paidAt) ----
   const toNumber = (v: unknown): number => {
@@ -81,7 +88,7 @@ export default async function PaymentsPage() {
         />
       </div>
 
-      <PaymentsTable data={payments} />
+      <PaymentsTable data={payments} canCancel={canCancel} isManager={isManager} />
     </div>
   );
 }

@@ -41,11 +41,13 @@ export type Permission =
   | "invoices:update"
   | "invoices:delete"
   | "invoices:send"
+  | "invoices:cancel" // manager/super-admin: approve invoice cancellation
   // Payments
   | "payments:read"
   | "payments:create"
   | "payments:update"
   | "payments:refund"
+  | "payments:cancel" // manager/super-admin: approve payment cancellation
   // Finance module (double-entry GL)
   | "finance:read"
   // Settings
@@ -88,6 +90,7 @@ export type Permission =
   | "vendors:update"
   | "vendors:delete"
   | "vendors:assign"
+  | "vendor-categories:manage" // super-admin: add/edit vendor categories
   // Operations
   | "operations:read"
   | "operations:create"
@@ -336,10 +339,12 @@ export const ALL_PERMISSIONS: Permission[] = [
   "invoices:update",
   "invoices:delete",
   "invoices:send",
+  "invoices:cancel",
   "payments:read",
   "payments:create",
   "payments:update",
   "payments:refund",
+  "payments:cancel",
   "finance:read",
   "settings:read",
   "settings:update",
@@ -587,11 +592,14 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "invoices:update",
     "invoices:delete",
     "invoices:send",
+    "invoices:cancel",
     "payments:read",
     "payments:create",
     "payments:update",
     "payments:refund",
+    "payments:cancel",
     "finance:read",
+    "vendor-categories:manage",
     "pricing:read",
     "pricing:manage",
     "quotes:read",
@@ -994,10 +1002,12 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "invoices:update",
     "invoices:delete",
     "invoices:send",
+    "invoices:cancel",
     "payments:read",
     "payments:create",
     "payments:update",
     "payments:refund",
+    "payments:cancel",
     "finance:read",
     "pricing:read",
     "quotes:read",

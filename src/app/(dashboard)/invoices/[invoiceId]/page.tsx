@@ -8,6 +8,9 @@ import {
   PrinterIcon,
 } from "lucide-react";
 import { getInvoice, sendInvoice } from "@/actions/invoice.actions";
+import { auth } from "@/../auth";
+import { prisma } from "@/lib/prisma";
+import { hasPermission } from "@/lib/permissions";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +21,10 @@ import { PendingProofs } from "./_components/pending-proofs";
 import { InstallmentPlanDialog } from "./_components/installment-plan-dialog";
 import { PaymentLinkDialog } from "./_components/payment-link-dialog";
 import { DownloadPdfButton } from "./_components/download-pdf-button";
+import {
+  CancelInvoiceDialog,
+  InvoiceCancellationBanner,
+} from "./_components/cancel-invoice-dialog";
 
 export const metadata = {
   title: "Invoice Details",
@@ -39,6 +46,25 @@ export default async function InvoiceDetailPage({
 
   const invoice = result.data;
   const statusColors = INVOICE_STATUS_COLORS[invoice.status] || "";
+
+  const session = await auth();
+  const role = (session?.user?.role as string) ?? "";
+  const canRequestCancel = hasPermission(role, "invoices:update");
+  const isCancelManager = hasPermission(role, "invoices:cancel");
+  const isCancellable =
+    invoice.status !== "DRAFT" &&
+    invoice.status !== "CANCELLED" &&
+    !invoice.cancelPending;
+
+  // Resolve the requester's name for the pending-cancellation banner.
+  let requestedByName: string | null = null;
+  if (invoice.cancelPending && invoice.cancelRequestedById) {
+    const requester = await prisma.user.findUnique({
+      where: { id: invoice.cancelRequestedById },
+      select: { name: true, email: true },
+    });
+    requestedByName = requester?.name || requester?.email || null;
+  }
 
   return (
     <div className="space-y-6">
@@ -97,8 +123,20 @@ export default async function InvoiceDetailPage({
                 eventDate={invoice.booking?.date ?? null}
               />
             )}
+          {isCancellable && canRequestCancel && (
+            <CancelInvoiceDialog invoiceId={invoice.id} isManager={isCancelManager} />
+          )}
         </div>
       </PageHeader>
+
+      {invoice.cancelPending && (
+        <InvoiceCancellationBanner
+          invoiceId={invoice.id}
+          isManager={isCancelManager}
+          reason={invoice.cancelReason ?? null}
+          requestedByName={requestedByName}
+        />
+      )}
 
       <PendingProofs payments={invoice.payments as never} />
 

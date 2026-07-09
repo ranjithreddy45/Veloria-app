@@ -147,10 +147,11 @@ export async function getPublicQuoteForPay(token: string): Promise<Result<Public
     let blocked = false;
     let guestCount: number | null = null;
     let result: QuotationResult | null = null;
+    let notes: string | null = null;
     if (link.primaryQuotationId) {
       const q = await prisma.salesQuotation.findUnique({
         where: { id: link.primaryQuotationId },
-        select: { guestCount: true, inputsJson: true, outputsJson: true, bookingId: true },
+        select: { guestCount: true, inputsJson: true, outputsJson: true, bookingId: true, notes: true },
       });
       if (q) {
         result = resolveQuotationResult(q as PrimaryQuotationForView);
@@ -158,6 +159,8 @@ export async function getPublicQuoteForPay(token: string): Promise<Result<Public
         // "blocked" = the quotation already has a HOLD/CONFIRMED booking.
         blocked = !!q.bookingId;
         guestCount = q.guestCount ?? null;
+        // Rep's customer-facing notes/details — surfaced on the public quote.
+        notes = q.notes?.trim() || null;
       }
     }
 
@@ -224,6 +227,7 @@ export async function getPublicQuoteForPay(token: string): Promise<Result<Public
         venueId: link.venueId,
         guestCount,
         venueName,
+        notes,
       },
     };
   } catch (e) {

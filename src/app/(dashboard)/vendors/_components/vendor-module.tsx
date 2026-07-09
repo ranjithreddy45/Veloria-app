@@ -2,9 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, TagsIcon } from "lucide-react";
 
-import { VENDOR_CATEGORIES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,10 +17,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VendorsPanel } from "./vendors-panel";
 import { VendorFormDialog } from "./vendor-form-dialog";
 import { PackagesPanel } from "./packages-panel";
+import { CategoryAdminDialog } from "./category-admin-dialog";
 
 // ============================================================
 // Types
 // ============================================================
+
+export type CategoryOption = { key: string; label: string };
+export type VenueOption = { id: string; name: string; capacity?: number | null };
 
 export type VendorRow = {
   id: string;
@@ -35,6 +38,9 @@ export type VendorRow = {
   qualityScore: number | null;
   isArchived: boolean;
   packageCount: number;
+  vendorType: string | null;
+  venueIds: string[];
+  allVenues: boolean;
 };
 
 export type PackageCardData = {
@@ -57,6 +63,9 @@ interface VendorModuleProps {
   vendorTotal: number;
   packages: PackageCardData[];
   packageTotal: number;
+  categories: CategoryOption[];
+  venues: VenueOption[];
+  canManageCategories: boolean;
 }
 
 // ============================================================
@@ -68,6 +77,9 @@ export function VendorModule({
   vendorTotal,
   packages,
   packageTotal,
+  categories,
+  venues,
+  canManageCategories,
 }: VendorModuleProps) {
   const [activeTab, setActiveTab] = React.useState("vendors");
   const [search, setSearch] = React.useState("");
@@ -114,7 +126,7 @@ export function VendorModule({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All categories</SelectItem>
-              {VENDOR_CATEGORIES.map((c) => (
+              {categories.map((c) => (
                 <SelectItem key={c.key} value={c.key}>
                   {c.label}
                 </SelectItem>
@@ -122,8 +134,21 @@ export function VendorModule({
             </SelectContent>
           </Select>
 
+          {canManageCategories && (
+            <CategoryAdminDialog
+              trigger={
+                <Button variant="outline" size="sm" className="h-9 gap-1.5 text-[13px]">
+                  <TagsIcon className="size-3.5" />
+                  Categories
+                </Button>
+              }
+            />
+          )}
+
           {activeTab === "vendors" ? (
             <VendorFormDialog
+              categories={categories}
+              venues={venues}
               trigger={
                 <Button size="sm" className="h-9 gap-1.5 text-[13px]">
                   <PlusIcon className="size-3.5" strokeWidth={2.5} />
@@ -148,6 +173,8 @@ export function VendorModule({
           vendors={vendors}
           search={search}
           category={category}
+          categories={categories}
+          venues={venues}
         />
       </TabsContent>
 

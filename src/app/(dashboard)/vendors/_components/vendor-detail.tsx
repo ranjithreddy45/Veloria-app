@@ -32,13 +32,32 @@ import { Separator } from "@/components/ui/separator";
 import {
   VENDOR_STATUS_COLORS,
   VENDOR_CATEGORY_LABELS,
+  VENDOR_MODULE_CATEGORY_LABELS,
   VENDOR_ASSIGNMENT_STATUS_COLORS,
   BOOKING_STATUS_COLORS,
 } from "@/lib/constants";
 import { formatINR } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { VendorRating } from "./vendor-rating";
 import { BidList } from "./bid-list";
 import { AssignVendorDialog } from "./assign-vendor-dialog";
+
+// Package status colors (mirrors the package detail page)
+const PACKAGE_STATUS_COLORS: Record<string, string> = {
+  DRAFT: "bg-zinc-50 text-zinc-600 border-zinc-200/60 dark:bg-zinc-800/30 dark:text-zinc-400 dark:border-zinc-700/40",
+  ACTIVE: "bg-emerald-50 text-emerald-700 border-emerald-200/60 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/40",
+  ARCHIVED: "bg-slate-50 text-slate-600 border-slate-200/60 dark:bg-slate-800/30 dark:text-slate-400 dark:border-slate-700/40",
+};
+
+interface VendorPackageRow {
+  id: string;
+  name: string;
+  category: string;
+  status: string;
+  price: number;
+  customerPrice: number | null;
+  priceUnit: string;
+}
 
 // ============================================================
 // Vendor Detail Types
@@ -102,17 +121,21 @@ interface AvailableBooking {
 interface VendorDetailProps {
   vendor: VendorDetailData;
   availableBookings: AvailableBooking[];
+  packages?: VendorPackageRow[];
 }
 
 // ============================================================
 // VendorDetail Component
 // ============================================================
 
-export function VendorDetail({ vendor, availableBookings }: VendorDetailProps) {
+export function VendorDetail({ vendor, availableBookings, packages = [] }: VendorDetailProps) {
   return (
     <Tabs defaultValue="overview">
       <TabsList>
         <TabsTrigger value="overview">Overview</TabsTrigger>
+        <TabsTrigger value="packages">
+          Packages ({packages.length})
+        </TabsTrigger>
         <TabsTrigger value="bookings">
           Bookings ({vendor.bookingVendors.length})
         </TabsTrigger>
@@ -120,6 +143,61 @@ export function VendorDetail({ vendor, availableBookings }: VendorDetailProps) {
           Bids ({vendor.bids.length})
         </TabsTrigger>
       </TabsList>
+
+      {/* Packages Tab */}
+      <TabsContent value="packages" className="mt-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base">Packages</CardTitle>
+            <Button asChild size="sm">
+              <Link href={`/vendors/packages/new?vendorId=${vendor.id}`}>
+                Add new package
+              </Link>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {packages.length === 0 ? (
+              <p className="text-muted-foreground py-8 text-center text-sm">
+                No packages yet.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {packages.map((pkg) => (
+                  <div
+                    key={pkg.id}
+                    className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="min-w-0">
+                      <Link
+                        href={`/vendors/packages/${pkg.id}`}
+                        className="font-medium hover:underline"
+                      >
+                        {pkg.name}
+                      </Link>
+                      <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-2 text-xs">
+                        <span>
+                          {VENDOR_MODULE_CATEGORY_LABELS[pkg.category] ?? pkg.category}
+                        </span>
+                        <span>·</span>
+                        <span>{formatINR(pkg.customerPrice ?? pkg.price)}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status={pkg.status} colorMap={PACKAGE_STATUS_COLORS} />
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/vendors/packages/${pkg.id}`}>View</Link>
+                      </Button>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/vendors/packages/${pkg.id}/edit`}>Edit</Link>
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </TabsContent>
 
       {/* Overview Tab */}
       <TabsContent value="overview" className="mt-6 space-y-6">

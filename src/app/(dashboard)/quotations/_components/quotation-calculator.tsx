@@ -3,15 +3,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, Save, Send } from "lucide-react";
+import { Loader2, Plus, Save, Send, Trash2 } from "lucide-react";
 import { getDateDemand, type DateDemandResult } from "@/actions/date-demand.actions";
 import { DateDemandBanner } from "./date-demand-banner";
 
 import {
   computeQuotation,
+  computePackageLine,
   QUOTE_CATALOG,
   DEFAULT_ROOM_CHARGE,
   type QuotationInput,
+  type PackageLine,
+  type PackageDiscountType,
+  type QuotePackageOption,
 } from "@/lib/sales/quotation-calc";
 import {
   createSalesQuotation,
@@ -19,6 +23,7 @@ import {
   submitSalesQuotation,
   type QuotationMeta,
 } from "@/actions/sales-quotation.actions";
+import { getQuotePackageOptions } from "@/actions/quote-packages.actions";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,13 +34,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 
 const inr = (n: number) => "₹" + Math.round(n).toLocaleString("en-IN");
 const NONE = "__none__";
+
+let _rowSeq = 0;
+function rowId(): string {
+  _rowSeq += 1;
+  return `pl_${Date.now().toString(36)}_${_rowSeq}`;
+}
 
 interface LeadOpt {
   id: string;
@@ -119,6 +132,66 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
     initial?.input.discountPct ? String(initial.input.discountPct) : ""
   );
 
+  // ---- Vendor-package line items (repeatable, multiple-per-category) ----
+  const [pkgOptions, setPkgOptions] = useState<QuotePackageOption[]>([]);
+  const [packageLines, setPackageLines] = useState<PackageLine[]>(
+    (initial?.input.packageLines ?? []).map((p) => ({ ...p, id: p.id ?? rowId() }))
+  );
+  useEffect(() => {
+    let active = true;
+    getQuotePackageOptions()
+      .then((opts) => { if (active) setPkgOptions(opts); })
+      .catch(() => { if (active) setPkgOptions([]); });
+    return () => { active = false; };
+  }, []);
+
+  // Packages grouped by category for the grouped Select.
+  const pkgByCategory = useMemo(() => {
+    const map = new Map<string, QuotePackageOption[]>();
+    for (const o of pkgOptions) {
+      const arr = map.get(o.category) ?? [];
+      arr.push(o);
+      map.set(o.category, arr);
+    }
+    return Array.from(map.entries());
+  }, [pkgOptions]);
+  const optById = useMemo(() => new Map(pkgOptions.map((o) => [o.id, o])), [pkgOptions]);
+
+  function addPackageLine() {
+    setPackageLines((prev) => [
+      ...prev,
+      { id: rowId(), vendorPackageId: "", name: "", category: "", unitPrice: 0, qty: 1 },
+    ]);
+  }
+  function removePackageLine(id: string) {
+    setPackageLines((prev) => prev.filter((p) => p.id !== id));
+  }
+  function patchPackageLine(id: string, patch: Partial<PackageLine>) {
+    setPackageLines((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+  }
+  function pickPackage(id: string, vendorPackageId: string) {
+    const opt = optById.get(vendorPackageId);
+    if (!opt) return;
+    patchPackageLine(id, {
+      vendorPackageId: opt.id,
+      name: opt.name,
+      category: opt.category,
+      unitPrice: opt.customerPrice,
+      minPax: opt.minPax ?? undefined,
+      qty: opt.minPax && opt.minPax > 0 ? opt.minPax : 1,
+      // Reset any prior discount — caps are per-package.
+      discountType: undefined,
+      discountValue: undefined,
+    });
+  }
+  // Rupee cap on the discount for a line, per the package's maxDiscount* config.
+  function maxDiscountRupees(opt: QuotePackageOption | undefined, gross: number): number {
+    if (!opt || opt.maxDiscountValue == null || !opt.maxDiscountType) return 0;
+    return opt.maxDiscountType === "PERCENT"
+      ? gross * (Math.min(100, opt.maxDiscountValue) / 100)
+      : opt.maxDiscountValue;
+  }
+
   const num = (s: string) => {
     const n = parseFloat(s);
     return Number.isFinite(n) ? n : 0;
@@ -142,11 +215,25 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
       drinksPerPerson: drinksPerPerson ? num(drinksPerPerson) : undefined,
       rooms: rooms ? num(rooms) : undefined,
       roomCharge: roomCharge ? num(roomCharge) : undefined,
+      // Only completed package lines (a picked package) reach the engine/persist.
+      packageLines: packageLines
+        .filter((p) => p.vendorPackageId)
+        .map((p) => ({
+          id: p.id,
+          vendorPackageId: p.vendorPackageId,
+          name: p.name,
+          category: p.category,
+          unitPrice: p.unitPrice,
+          qty: Math.max(0, Math.floor(p.qty || 0)),
+          minPax: p.minPax,
+          discountType: p.discountType,
+          discountValue: p.discountValue,
+        })),
       discountPct: discountPct ? num(discountPct) : undefined,
     }),
     [
       guestCount, foodMode, hallRate, hallHours, foodPackageId, foodOverride, decorId, activityIds, cakeId, cakeKg,
-      photographyId, photoCustom, drinksPerPerson, rooms, roomCharge, discountPct,
+      photographyId, photoCustom, drinksPerPerson, rooms, roomCharge, packageLines, discountPct,
     ]
   );
 
@@ -445,6 +532,146 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
               <Label>Discount %</Label>
               <Input type="number" min={0} max={100} value={discountPct} onChange={(e) => setDiscountPct(e.target.value)} placeholder="0" />
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Vendor packages — repeatable line items, multiple per category */}
+        <Card>
+          <CardHeader className="flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-base">Vendor Packages</CardTitle>
+            <Button type="button" variant="outline" size="sm" onClick={addPackageLine}>
+              <Plus className="h-4 w-4" /> Add package
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {packageLines.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Add vendor packages (catering, decor, photography…) as separate priced lines.
+                You can add several — including more than one from the same category.
+              </p>
+            ) : (
+              packageLines.map((line) => {
+                const opt = optById.get(line.vendorPackageId);
+                const qty = Math.max(0, Math.floor(line.qty || 0));
+                const { gross, lineDiscount, amount } = computePackageLine(line);
+                const minPax = opt?.minPax ?? line.minPax ?? null;
+                const belowMin = minPax != null && qty < minPax;
+                const capRupees = maxDiscountRupees(opt, gross);
+                const discountAllowed = opt ? opt.maxDiscountValue != null && !!opt.maxDiscountType : false;
+                const overCap = lineDiscount - capRupees > 1;
+                return (
+                  <div key={line.id} className="rounded-lg border p-3 space-y-3">
+                    <div className="flex items-start gap-2">
+                      <div className="flex-1 space-y-1.5">
+                        <Label>Package</Label>
+                        <Select
+                          value={line.vendorPackageId || NONE}
+                          onValueChange={(v) => v !== NONE && pickPackage(line.id!, v)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder={pkgOptions.length ? "Choose a package" : "No active packages"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {pkgByCategory.map(([cat, opts]) => (
+                              <SelectGroup key={cat}>
+                                <SelectLabel>{cat}</SelectLabel>
+                                {opts.map((o) => (
+                                  <SelectItem key={o.id} value={o.id}>
+                                    {o.name} — {inr(o.customerPrice)} · {o.vendorName}
+                                  </SelectItem>
+                                ))}
+                              </SelectGroup>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="mt-6 text-destructive hover:text-destructive"
+                        onClick={() => removePackageLine(line.id!)}
+                        aria-label="Remove package line"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    {opt && (
+                      <>
+                        <div className="grid gap-3 sm:grid-cols-3">
+                          <div className="space-y-1.5">
+                            <Label>Unit price</Label>
+                            <Input value={inr(line.unitPrice)} readOnly disabled />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label>Qty / units *</Label>
+                            <Input
+                              type="number"
+                              min={minPax ?? 1}
+                              value={String(line.qty ?? "")}
+                              onChange={(e) => patchPackageLine(line.id!, { qty: num(e.target.value) })}
+                              className={belowMin ? "border-destructive" : ""}
+                            />
+                            <p className={`text-xs ${belowMin ? "text-destructive" : "text-muted-foreground"}`}>
+                              {minPax != null ? `Min ${minPax} pax/units` : "No minimum"}
+                              {opt.priceUnit ? ` · ${opt.priceUnit.replace(/_/g, " ").toLowerCase()}` : ""}
+                            </p>
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label>Line total</Label>
+                            <Input value={inr(amount)} readOnly disabled />
+                          </div>
+                        </div>
+
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div className="space-y-1.5">
+                            <Label>Discount type</Label>
+                            <Select
+                              value={line.discountType ?? NONE}
+                              onValueChange={(v) =>
+                                patchPackageLine(line.id!, {
+                                  discountType: v === NONE ? undefined : (v as PackageDiscountType),
+                                  discountValue: v === NONE ? undefined : line.discountValue,
+                                })
+                              }
+                              disabled={!discountAllowed}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder={discountAllowed ? "No discount" : "Not allowed"} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value={NONE}>No discount</SelectItem>
+                                <SelectItem value="PERCENT">Percentage (%)</SelectItem>
+                                <SelectItem value="AMOUNT">Amount (₹)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label>Discount value</Label>
+                            <Input
+                              type="number"
+                              min={0}
+                              value={line.discountValue != null ? String(line.discountValue) : ""}
+                              onChange={(e) => patchPackageLine(line.id!, { discountValue: num(e.target.value) })}
+                              disabled={!discountAllowed || !line.discountType}
+                              placeholder="0"
+                              className={overCap ? "border-destructive" : ""}
+                            />
+                            <p className={`text-xs ${overCap ? "text-destructive" : "text-muted-foreground"}`}>
+                              {discountAllowed
+                                ? `Cap: ${opt.maxDiscountType === "PERCENT" ? `${opt.maxDiscountValue}%` : inr(opt.maxDiscountValue ?? 0)}`
+                                : "This package doesn't allow a discount"}
+                              {lineDiscount > 0 ? ` · − ${inr(lineDiscount)}` : ""}
+                            </p>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })
+            )}
           </CardContent>
         </Card>
 

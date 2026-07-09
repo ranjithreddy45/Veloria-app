@@ -19,14 +19,17 @@ import type { Prisma } from "@prisma/client";
 import {
   CATEGORY_KEYS,
   PRICE_UNITS,
+  VENDOR_TYPES,
   LEGACY_CATEGORY,
   validateItem,
   activationUnmet,
   validateVendorFields,
+  validatePackagePricing,
   type VendorCatalogInput,
   type VendorPackageInput,
   type PackageSectionInput,
 } from "@/lib/vendor/rules";
+import { VENDOR_CATEGORIES } from "@/lib/constants";
 
 // Re-export the input types so existing UI imports from this module keep working.
 export type {
@@ -52,6 +55,50 @@ async function requirePerm(
 
 // Rule logic (validateItem / activationUnmet / validateVendorFields) lives in
 // @/lib/vendor/rules so it can be unit-tested in isolation — see rules.test.ts.
+
+// Categories are dynamic: the hardcoded seed PLUS active VendorCategoryDef rows.
+// This merged set is the source of truth for "is this a valid category key?"
+// on the DB-dependent create/update paths.
+async function validCategoryKeys(): Promise<Set<string>> {
+  const defs = await prisma.vendorCategoryDef.findMany({
+    where: { isActive: true },
+    select: { key: true },
+  });
+  const set = new Set<string>(VENDOR_CATEGORIES.map((c) => c.key));
+  for (const d of defs) set.add(d.key);
+  return set;
+}
+
+// Normalise the venue scope for persistence. When allVenues is true, the
+// specific venueIds are cleared (allVenues overrides). Otherwise dedupe + trim.
+function normaliseVenueScope(input: VendorCatalogInput): { allVenues: boolean; venueIds: string[] } {
+  const allVenues = input.allVenues === true;
+  if (allVenues) return { allVenues: true, venueIds: [] };
+  const venueIds = Array.from(
+    new Set((input.venueIds ?? []).map((v) => v?.trim()).filter((v): v is string => !!v))
+  );
+  return { allVenues: false, venueIds };
+}
+
+function normaliseVendorType(input: VendorCatalogInput): string {
+  const t = input.vendorType?.trim();
+  return t && VENDOR_TYPES.includes(t) ? t : "EXTERNAL";
+}
+
+// Build the pricing columns for a package. `price` is the legacy customer-price
+// mirror, kept in sync with customerPrice (customerPrice defaults from price).
+function packagePricingData(input: VendorPackageInput) {
+  const customer = input.customerPrice != null ? Number(input.customerPrice) : Number(input.price);
+  const hasDiscount = !!input.maxDiscountType && input.maxDiscountType !== "";
+  return {
+    price: customer, // legacy readers stay correct (price = customerPrice)
+    customerPrice: customer,
+    vendorPrice: input.vendorPrice != null ? Number(input.vendorPrice) : null,
+    minPax: input.minPax != null ? Math.trunc(Number(input.minPax)) : null,
+    maxDiscountType: hasDiscount ? input.maxDiscountType : null,
+    maxDiscountValue: hasDiscount ? Number(input.maxDiscountValue ?? 0) : null,
+  };
+}
 
 // Normalise the graph for persistence (trim, drop empty options for fixed, order)
 function buildSectionsCreate(sections: PackageSectionInput[]) {
@@ -91,7 +138,8 @@ export async function listCatalogVendors(params?: {
     const where: Prisma.VendorWhereInput = {};
     if (!params?.includeArchived) where.isArchived = false;
     if (params?.search) where.name = { contains: params.search, mode: "insensitive" };
-    if (params?.category && CATEGORY_KEYS.has(params.category)) where.categories = { has: params.category };
+    // Category filter accepts any key (dynamic categories included).
+    if (params?.category) where.categories = { has: params.category };
     if (params?.status) where.empanelmentStatus = params.status;
 
     const [rows, total] = await Promise.all([
@@ -100,7 +148,8 @@ export async function listCatalogVendors(params?: {
         select: {
           id: true, name: true, categories: true, category: true, city: true,
           email: true, phone: true, empanelmentStatus: true, qualityScore: true,
-          isArchived: true, _count: { select: { packages: true } },
+          isArchived: true, vendorType: true, venueIds: true, allVenues: true,
+          _count: { select: { packages: true } },
         },
         orderBy: { name: "asc" },
         skip: (page - 1) * pageSize,
@@ -124,7 +173,10 @@ export async function getCatalogVendor(id: string): Promise<Result<unknown>> {
       where: { id },
       include: {
         packages: {
-          select: { id: true, name: true, status: true, category: true, price: true, priceUnit: true },
+          select: {
+            id: true, name: true, status: true, category: true,
+            price: true, customerPrice: true, priceUnit: true,
+          },
           orderBy: { updatedAt: "desc" },
         },
       },
@@ -151,12 +203,18 @@ export async function createCatalogVendor(input: VendorCatalogInput): Promise<Re
     });
     if (dupe) return { success: false, error: "Validation failed", fields: { name: "A vendor with this name already exists" } };
 
-    const cats = input.categories.filter((c) => CATEGORY_KEYS.has(c));
+    const validKeys = await validCategoryKeys();
+    const cats = input.categories.map((c) => c?.trim()).filter((c): c is string => !!c && validKeys.has(c));
+    if (cats.length < 1) return { success: false, error: "Validation failed", fields: { categories: "Select at least one valid category" } };
+    const { allVenues, venueIds } = normaliseVenueScope(input);
     const v = await prisma.vendor.create({
       data: {
         name: input.name.trim(),
         category: LEGACY_CATEGORY[cats[0]] ?? "OTHER",
         categories: cats,
+        vendorType: normaliseVendorType(input),
+        venueIds,
+        allVenues,
         company: input.contactPerson?.trim() || null,
         phone: input.phone?.trim() || null,
         email: input.email?.trim() || null,
@@ -196,13 +254,19 @@ export async function updateCatalogVendor(
     });
     if (dupe) return { success: false, error: "Validation failed", fields: { name: "A vendor with this name already exists" } };
 
-    const cats = input.categories.filter((c) => CATEGORY_KEYS.has(c));
+    const validKeys = await validCategoryKeys();
+    const cats = input.categories.map((c) => c?.trim()).filter((c): c is string => !!c && validKeys.has(c));
+    if (cats.length < 1) return { success: false, error: "Validation failed", fields: { categories: "Select at least one valid category" } };
+    const { allVenues, venueIds } = normaliseVenueScope(input);
     await prisma.vendor.update({
       where: { id },
       data: {
         name: input.name.trim(),
         category: LEGACY_CATEGORY[cats[0]] ?? "OTHER",
         categories: cats,
+        vendorType: normaliseVendorType(input),
+        venueIds,
+        allVenues,
         company: input.contactPerson?.trim() || null,
         phone: input.phone?.trim() || null,
         email: input.email?.trim() || null,
@@ -283,7 +347,7 @@ export async function listPackages(params?: {
         { vendor: { name: { contains: params.search, mode: "insensitive" } } },
       ];
     }
-    if (params?.category && CATEGORY_KEYS.has(params.category)) where.category = params.category;
+    if (params?.category) where.category = params.category;
     if (params?.vendorId) where.vendorId = params.vendorId;
     if (params?.status) where.status = params.status as "DRAFT" | "ACTIVE" | "ARCHIVED";
 
@@ -350,6 +414,7 @@ export async function createPackage(input: VendorPackageInput): Promise<Result<{
     if (!input.name?.trim()) fields.name = "Package name is required";
     if (!(Number(input.price) >= 0)) fields.price = "Price must be ≥ 0"; // R6
     if (!PRICE_UNITS.includes(input.priceUnit)) fields.priceUnit = "Select a price unit";
+    Object.assign(fields, validatePackagePricing(input)); // R6 extras
     if (Object.keys(fields).length) return { success: false, error: "Validation failed", fields };
 
     const vendor = await prisma.vendor.findUnique({
@@ -381,7 +446,7 @@ export async function createPackage(input: VendorPackageInput): Promise<Result<{
         name: input.name.trim(),
         category: input.category,
         status,
-        price: input.price,
+        ...packagePricingData(input),
         priceUnit: input.priceUnit as "PER_PLATE" | "PER_EVENT" | "PER_PIECE" | "PER_HOUR" | "PER_DAY",
         currency: input.currency || "INR",
         description: input.description?.trim() || null,
@@ -409,6 +474,7 @@ export async function updatePackage(id: string, input: VendorPackageInput): Prom
     if (!input.name?.trim()) fields.name = "Package name is required";
     if (!(Number(input.price) >= 0)) fields.price = "Price must be ≥ 0";
     if (!PRICE_UNITS.includes(input.priceUnit)) fields.priceUnit = "Select a price unit";
+    Object.assign(fields, validatePackagePricing(input)); // R6 extras
     if (Object.keys(fields).length) return { success: false, error: "Validation failed", fields };
 
     const vendor = await prisma.vendor.findUnique({ where: { id: input.vendorId }, select: { categories: true } });
@@ -440,7 +506,7 @@ export async function updatePackage(id: string, input: VendorPackageInput): Prom
           name: input.name.trim(),
           category: input.category,
           status,
-          price: input.price,
+          ...packagePricingData(input),
           priceUnit: input.priceUnit as "PER_PLATE" | "PER_EVENT" | "PER_PIECE" | "PER_HOUR" | "PER_DAY",
           currency: input.currency || "INR",
           description: input.description?.trim() || null,
@@ -520,13 +586,15 @@ export async function addPackageImage(packageId: string, url: string): Promise<R
   const u = await requirePerm("vendors:update");
   if (!u) return { success: false, error: "Unauthorized" };
   try {
-    if (!url?.trim() || !/^https?:\/\//i.test(url.trim()))
-      return { success: false, error: "Enter a valid image URL (http/https)" };
+    const trimmed = url?.trim() ?? "";
+    // Accept http(s) URLs OR base64 image data-URLs (app image-upload convention).
+    if (!trimmed || !(/^https?:\/\//i.test(trimmed) || /^data:image\/[a-z0-9.+-]+;base64,/i.test(trimmed)))
+      return { success: false, error: "Enter a valid image URL or upload an image" };
     const pkg = await prisma.vendorPackage.findUnique({ where: { id: packageId }, select: { id: true } });
     if (!pkg) return { success: false, error: "Package not found" };
     const count = await prisma.vendorPackageImage.count({ where: { packageId } });
     const img = await prisma.vendorPackageImage.create({
-      data: { packageId, url: url.trim(), sortOrder: count },
+      data: { packageId, url: trimmed, sortOrder: count },
       select: { id: true },
     });
     // R8 — first image (no cover) becomes the cover automatically.

@@ -33,6 +33,66 @@ export interface CakeOption {
   ratePerKg: number;
 }
 
+// ---- Vendor-package line items (Vendor Module spec, parts 4–5) ----
+// A quote can carry any number of vendor-package lines (repeatable, multiple
+// per category). Each line pins the customer-facing unit price + qty and an
+// OPTIONAL per-line discount (percentage OR flat amount). The package's own
+// caps (minPax, maxDiscountValue/Type) are enforced in the UI and re-checked
+// server-side against the DB — they are NOT trusted from this shape.
+export type PackageDiscountType = "PERCENT" | "AMOUNT";
+
+export interface PackageLine {
+  /** Client-side row id (stable key for the repeatable list); optional. */
+  id?: string;
+  vendorPackageId: string;
+  name: string;
+  category: string;
+  /** Customer-facing unit price (VendorPackage.customerPrice ?? price). */
+  unitPrice: number;
+  /** pax / units for this line. */
+  qty: number;
+  /** The package's minimum pax (copied in for UI + validation). */
+  minPax?: number;
+  /** Per-line discount kind + value (capped by the package's maxDiscount*). */
+  discountType?: PackageDiscountType;
+  discountValue?: number;
+}
+
+/** Customer-facing DTO for a selectable vendor package (see getQuotePackageOptions). */
+export interface QuotePackageOption {
+  id: string;
+  name: string;
+  category: string;
+  vendorName: string;
+  /** customerPrice ?? price, as a plain number. */
+  customerPrice: number;
+  minPax: number | null;
+  maxDiscountType: string | null;
+  maxDiscountValue: number | null;
+  priceUnit: string;
+}
+
+/**
+ * Net amount for one vendor-package line: gross = unitPrice × qty, then a
+ * per-line discount (PERCENT of gross, or a flat AMOUNT capped at the gross).
+ * Returns both the net line amount and the discount that was applied.
+ */
+export function computePackageLine(line: PackageLine): { gross: number; lineDiscount: number; amount: number } {
+  const qty = Math.max(0, Math.floor(line.qty || 0));
+  const unit = Number.isFinite(line.unitPrice) && line.unitPrice > 0 ? line.unitPrice : 0;
+  const gross = r2(unit * qty);
+  let lineDiscount = 0;
+  const val = line.discountValue ?? 0;
+  if (val > 0) {
+    if (line.discountType === "AMOUNT") {
+      lineDiscount = Math.min(r2(val), gross);
+    } else if (line.discountType === "PERCENT") {
+      lineDiscount = r2(gross * (Math.min(100, val) / 100));
+    }
+  }
+  return { gross, lineDiscount, amount: gross - lineDiscount };
+}
+
 export interface QuoteCatalog {
   timeSlots: string[];
   // "Without food" mode: hall charged per hour at one of these rates.
@@ -113,6 +173,10 @@ export interface QuotationInput {
   roomCharge?: number;
   // Free-form extra lines (anything not in the catalog).
   customLines?: { label: string; amount: number }[];
+  // Vendor-package line items (repeatable, multiple per category allowed).
+  // Each nets its own per-line discount; the net amounts add into the subtotal
+  // BEFORE the global discountPct + tax. Empty/undefined = byte-identical today.
+  packageLines?: PackageLine[];
   // 0..100 — applied to the subtotal before tax.
   discountPct?: number;
 }
@@ -135,10 +199,14 @@ export interface PaymentInstallment {
 
 export interface QuotationResult {
   lines: QuoteLine[];
-  subtotal: number; // sum of all lines, before discount
+  subtotal: number; // sum of all lines (package lines already net of per-line discount), before global discount
   discountPct: number;
   discountAmount: number;
-  taxableAmount: number; // subtotal − discount
+  // Sum of the per-line vendor-package discounts folded into the line amounts
+  // above (0 when there are no package lines). Informational — the subtotal is
+  // already net of these; the global discount is separate (discountAmount).
+  lineDiscountsTotal: number;
+  taxableAmount: number; // subtotal − global discount
   taxRate: number;
   tax: number;
   grandTotal: number;
@@ -156,7 +224,7 @@ function findById<T extends { id: string }>(arr: T[], id?: string): T | undefine
  * The planner's 3-stage payment terms, computed on the grand total:
  *  1. 20% to block the slot (on the booking day)
  *  2. 60% — 15 days before the event
- *  3. Balance (20%) — 2 hours before the event
+ *  3. Balance (20%) — 1 day before the event
  * The final installment is computed as the remainder so the three
  * always sum to exactly the grand total (no rounding drift).
  */
@@ -167,7 +235,7 @@ export function buildPaymentSchedule(grandTotal: number): PaymentInstallment[] {
   return [
     { label: "Booking advance", pct: 20, amount: block, dueHint: "On the day of booking — blocks the slot" },
     { label: "Part payment", pct: 60, amount: mid, dueHint: "15 days before the event" },
-    { label: "Final balance", pct: 20, amount: balance, dueHint: "2 hours before the event" },
+    { label: "Final balance", pct: 20, amount: balance, dueHint: "1 day before the event" },
   ];
 }
 
@@ -284,6 +352,32 @@ export function computeQuotation(
     }
   }
 
+  // Vendor-package lines (repeatable, multiple-per-category). Each nets its own
+  // per-line discount; the NET amount flows into the subtotal like any other
+  // line, before the global discount + tax. Empty/undefined = no-op (identical).
+  let lineDiscountsTotal = 0;
+  for (const p of input.packageLines ?? []) {
+    if (!p || !p.vendorPackageId) continue;
+    const qty = Math.max(0, Math.floor(p.qty || 0));
+    if (qty <= 0) continue;
+    const { lineDiscount, amount } = computePackageLine(p);
+    lineDiscountsTotal += lineDiscount;
+    const label = p.name?.trim() || "Vendor package";
+    const cat = p.category?.trim();
+    const discNote =
+      lineDiscount > 0
+        ? p.discountType === "PERCENT"
+          ? ` − ${Math.min(100, p.discountValue ?? 0)}%`
+          : ` − ₹${r2(lineDiscount)}`
+        : "";
+    lines.push({
+      sl: ++sl,
+      particulars: cat ? `${cat}: ${label}` : label,
+      plan: `₹${r2(p.unitPrice > 0 ? p.unitPrice : 0)} × ${qty}${discNote}`,
+      amount,
+    });
+  }
+
   const subtotal = lines.reduce((s, l) => s + l.amount, 0);
   const discountPct = Math.min(100, Math.max(0, input.discountPct ?? 0));
   const discountAmount = r2(subtotal * (discountPct / 100));
@@ -296,6 +390,7 @@ export function computeQuotation(
     subtotal,
     discountPct,
     discountAmount,
+    lineDiscountsTotal,
     taxableAmount,
     taxRate: QUOTE_TAX_RATE,
     tax,
@@ -321,7 +416,8 @@ export function validateQuotationInput(i: Partial<QuotationInput>): string[] {
     i.photographyId ||
     (i.drinksPerPerson ?? 0) > 0 ||
     (i.rooms ?? 0) > 0 ||
-    (i.customLines && i.customLines.length);
+    (i.customLines && i.customLines.length) ||
+    (i.packageLines && i.packageLines.length);
   if (!hasAnyLine) errs.push("Add at least one line item to the quotation.");
   if (hallOnly && i.hallHours != null && i.hallHours < MIN_HALL_HOURS) {
     errs.push(`Hall booking is a minimum of ${MIN_HALL_HOURS} hours.`);
@@ -343,6 +439,29 @@ export function validateQuotationInput(i: Partial<QuotationInput>): string[] {
   nonNeg(i.photographyCustomAmount, "Photography amount");
   for (const c of i.customLines ?? []) {
     if (!Number.isFinite(c.amount) || c.amount < 0) errs.push(`Line "${c.label || "custom"}" amount cannot be negative.`);
+  }
+  // Vendor-package lines: qty (≥ minPax), non-negative unit price, and a
+  // per-line discount within self-consistent bounds. The package's DB-authoritative
+  // maxDiscount cap is re-checked server-side (validatePackageLinesAgainstCatalog).
+  for (const p of i.packageLines ?? []) {
+    if (!p?.vendorPackageId) continue;
+    const label = p.name?.trim() || "package";
+    const qty = Math.floor(p.qty ?? 0);
+    if (!Number.isFinite(p.qty) || qty < 1) {
+      errs.push(`Package "${label}" needs a quantity of at least 1.`);
+    } else if (p.minPax != null && qty < p.minPax) {
+      errs.push(`Package "${label}" requires a minimum of ${p.minPax} pax/units.`);
+    }
+    if (p.unitPrice != null && (!Number.isFinite(p.unitPrice) || p.unitPrice < 0)) {
+      errs.push(`Package "${label}" unit price cannot be negative.`);
+    }
+    if (p.discountValue != null) {
+      if (!Number.isFinite(p.discountValue) || p.discountValue < 0) {
+        errs.push(`Package "${label}" discount cannot be negative.`);
+      } else if (p.discountType === "PERCENT" && p.discountValue > 100) {
+        errs.push(`Package "${label}" percentage discount cannot exceed 100%.`);
+      }
+    }
   }
   return errs;
 }

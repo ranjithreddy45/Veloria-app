@@ -16,6 +16,7 @@ import {
 } from "@/lib/sales/quotation-calc";
 import { updateLeadStatus } from "@/actions/lead.actions";
 import { updateDeal } from "@/actions/pipeline.actions";
+import { validatePackageLinesAgainstCatalog } from "@/actions/quote-packages.actions";
 import { Prisma } from "@prisma/client";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string; code?: number };
@@ -250,6 +251,9 @@ export async function createSalesQuotation(
 
   const errs = validateQuotationInput(input);
   if (errs.length) return { success: false, error: errs.join(" ") };
+  // DB-authoritative min-pax + max-discount cap check on vendor-package lines.
+  const pkgErrs = await validatePackageLinesAgainstCatalog(input.packageLines);
+  if (pkgErrs.length) return { success: false, error: pkgErrs.join(" ") };
 
   const row = await createQuotationRow((quoteNumber) => ({
     quoteNumber,
@@ -286,6 +290,8 @@ export async function updateSalesQuotation(
 
   const errs = validateQuotationInput(input);
   if (errs.length) return { success: false, error: errs.join(" ") };
+  const pkgErrs = await validatePackageLinesAgainstCatalog(input.packageLines);
+  if (pkgErrs.length) return { success: false, error: pkgErrs.join(" ") };
 
   await prisma.salesQuotation.update({
     where: { id },

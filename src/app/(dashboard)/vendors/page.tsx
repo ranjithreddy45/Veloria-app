@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 
+import { auth } from "@/../auth";
+import { prisma } from "@/lib/prisma";
+import { hasPermission } from "@/lib/permissions";
+import { serialize } from "@/lib/utils";
 import { listCatalogVendors, listPackages } from "@/actions/vendor-catalog.actions";
+import { listVendorCategories } from "@/actions/vendor-category.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { VendorModule } from "./_components/vendor-module";
 
@@ -12,10 +17,25 @@ export const metadata: Metadata = { title: "Vendors & Packages" };
 // ============================================================
 
 export default async function VendorsPage() {
-  const [vendorsResult, packagesResult] = await Promise.all([
+  const session = await auth();
+  const role = session?.user?.role ?? "";
+  const canManageCategories = hasPermission(role, "vendor-categories:manage");
+
+  const [vendorsResult, packagesResult, categoriesResult, venueRows] = await Promise.all([
     listCatalogVendors({ pageSize: 100 }),
     listPackages({ pageSize: 100 }),
+    listVendorCategories(),
+    prisma.venue.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true, capacity: true },
+      orderBy: { name: "asc" },
+    }),
   ]);
+
+  const categories = categoriesResult.success
+    ? categoriesResult.data.map((c) => ({ key: c.key, label: c.label }))
+    : [];
+  const venues = serialize(venueRows);
 
   type VendorRow = {
     id: string;
@@ -29,6 +49,9 @@ export default async function VendorsPage() {
     qualityScore: number | null;
     isArchived: boolean;
     packageCount: number;
+    vendorType: string | null;
+    venueIds: string[];
+    allVenues: boolean;
   };
 
   type PackageRow = {
@@ -74,6 +97,9 @@ export default async function VendorsPage() {
         vendorTotal={vendorTotal}
         packages={packages}
         packageTotal={packageTotal}
+        categories={categories}
+        venues={venues}
+        canManageCategories={canManageCategories}
       />
     </div>
   );

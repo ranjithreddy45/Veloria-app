@@ -114,6 +114,124 @@ describe("buildPaymentSchedule", () => {
     expect(sched[2].amount).toBe(26015); // remainder
     expect(sched.reduce((s, i) => s + i.amount, 0)).toBe(130074); // no drift
   });
+
+  it("final balance is due '1 day before the event' (SCRM part 5a)", () => {
+    const sched = buildPaymentSchedule(100000);
+    expect(sched[2].label).toBe("Final balance");
+    expect(sched[2].dueHint).toBe("1 day before the event");
+    // The old "2 hours before the event" wording must be gone.
+    expect(sched.some((s) => s.dueHint.includes("2 hours"))).toBe(false);
+  });
+});
+
+// ============================================================
+// Vendor-package line items (Vendor Module spec, part 4)
+// ============================================================
+describe("computeQuotation — vendor-package lines", () => {
+  it("empty/undefined packageLines is byte-identical to today", () => {
+    const base = computeQuotation({ guestCount: 120, foodPackageId: "veg_gold" });
+    const withEmpty = computeQuotation({ guestCount: 120, foodPackageId: "veg_gold", packageLines: [] });
+    // Every legacy field is unchanged; lineDiscountsTotal defaults to 0.
+    expect(withEmpty.subtotal).toBe(base.subtotal);
+    expect(withEmpty.tax).toBe(base.tax);
+    expect(withEmpty.grandTotal).toBe(base.grandTotal);
+    expect(withEmpty.lines.length).toBe(base.lines.length);
+    expect(withEmpty.lineDiscountsTotal).toBe(0);
+  });
+
+  it("per-line PERCENT discount nets the line before the global discount + tax", () => {
+    // Package: 1000 × 10 = 10,000 gross, 10% off → 9,000 net.
+    const r = computeQuotation({
+      guestCount: 50,
+      packageLines: [
+        { vendorPackageId: "pk1", name: "Catering Gold", category: "Catering", unitPrice: 1000, qty: 10, discountType: "PERCENT", discountValue: 10 },
+      ],
+    });
+    const line = r.lines.find((l) => l.particulars.includes("Catering Gold"));
+    expect(line?.amount).toBe(9000);
+    expect(r.subtotal).toBe(9000);
+    expect(r.lineDiscountsTotal).toBe(1000);
+    expect(r.tax).toBe(450); // 5% of 9,000
+    expect(r.grandTotal).toBe(9450);
+  });
+
+  it("per-line AMOUNT discount is capped at the gross and folds into lineDiscountsTotal", () => {
+    // Gross 5,000, flat ₹800 off → 4,200 net.
+    const r = computeQuotation({
+      guestCount: 50,
+      packageLines: [
+        { vendorPackageId: "pk2", name: "Decor Deluxe", category: "Decor", unitPrice: 2500, qty: 2, discountType: "AMOUNT", discountValue: 800 },
+      ],
+    });
+    const line = r.lines.find((l) => l.particulars.includes("Decor Deluxe"));
+    expect(line?.amount).toBe(4200);
+    expect(r.lineDiscountsTotal).toBe(800);
+    // An AMOUNT discount larger than the gross can never make a line negative.
+    const r2 = computeQuotation({
+      guestCount: 50,
+      packageLines: [
+        { vendorPackageId: "pk2", name: "Decor Deluxe", category: "Decor", unitPrice: 1000, qty: 1, discountType: "AMOUNT", discountValue: 9999 },
+      ],
+    });
+    expect(r2.lines.find((l) => l.particulars.includes("Decor Deluxe"))?.amount).toBe(0);
+  });
+
+  it("allows multiple packages in the same category and sums them into the subtotal", () => {
+    const r = computeQuotation({
+      guestCount: 100,
+      packageLines: [
+        { vendorPackageId: "c1", name: "Veg Counter", category: "Catering", unitPrice: 500, qty: 100 }, // 50,000
+        { vendorPackageId: "c2", name: "Live Grill", category: "Catering", unitPrice: 200, qty: 100 }, // 20,000
+      ],
+    });
+    const catering = r.lines.filter((l) => l.particulars.startsWith("Catering:"));
+    expect(catering.length).toBe(2);
+    expect(r.subtotal).toBe(70000);
+    expect(r.lineDiscountsTotal).toBe(0);
+  });
+
+  it("combines package lines with catalog lines and the global discount", () => {
+    // Food 599×100 = 59,900 + package 40,100 = 100,000 subtotal, 10% global off.
+    const r = computeQuotation({
+      guestCount: 100,
+      foodPackageId: "veg_silver",
+      packageLines: [{ vendorPackageId: "p", name: "Photo Cinematic", category: "Photography", unitPrice: 40100, qty: 1 }],
+      discountPct: 10,
+    });
+    expect(r.subtotal).toBe(100000);
+    expect(r.discountAmount).toBe(10000);
+    expect(r.taxableAmount).toBe(90000);
+    expect(r.grandTotal).toBe(94500);
+  });
+});
+
+describe("validateQuotationInput — vendor-package lines", () => {
+  it("a package line alone satisfies the 'at least one line' rule", () => {
+    expect(
+      validateQuotationInput({
+        guestCount: 10,
+        packageLines: [{ vendorPackageId: "p", name: "X", category: "C", unitPrice: 100, qty: 5 }],
+      })
+    ).toEqual([]);
+  });
+
+  it("flags a qty below the line's minPax", () => {
+    expect(
+      validateQuotationInput({
+        guestCount: 10,
+        packageLines: [{ vendorPackageId: "p", name: "Catering", category: "C", unitPrice: 100, qty: 20, minPax: 50 }],
+      })
+    ).toContain('Package "Catering" requires a minimum of 50 pax/units.');
+  });
+
+  it("rejects a percentage discount over 100%", () => {
+    expect(
+      validateQuotationInput({
+        guestCount: 10,
+        packageLines: [{ vendorPackageId: "p", name: "Catering", category: "C", unitPrice: 100, qty: 5, discountType: "PERCENT", discountValue: 150 }],
+      })
+    ).toContain('Package "Catering" percentage discount cannot exceed 100%.');
+  });
 });
 
 describe("validateQuotationInput", () => {
