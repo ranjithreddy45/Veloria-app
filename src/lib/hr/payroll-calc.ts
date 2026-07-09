@@ -1,0 +1,311 @@
+// ============================================================
+// HR payroll compute engine — PURE (no IO), the single source of
+// truth for Indian salary + statutory math used by payslips, the
+// salary-structure builder, and full-&-final settlement.
+// ------------------------------------------------------------
+// IMPORTANT: statutory rules change every Union Budget. Every rate,
+// slab and cap lives in DEFAULT_STAT_CONFIG below and can be
+// overridden per call — never hard-code a number inside the math.
+// Defaults reflect the **New Tax Regime, FY 2026-27 (AY 2027-28)**
+// and Karnataka professional tax. These are estimates for monthly
+// TDS projection; actual year-end liability depends on the
+// employee's declarations and proofs.
+// ============================================================
+
+export type StatutoryType = "NONE" | "PF" | "ESI" | "PT" | "TDS" | "GRATUITY";
+export type PayComponentKind = "EARNING" | "DEDUCTION";
+export type PayCalcType = "FLAT" | "PCT_OF_BASIC" | "PCT_OF_CTC" | "BALANCE";
+
+/** A configurable pay head as defined by the admin. */
+export interface PayComponentDef {
+  code: string;
+  name: string;
+  kind: PayComponentKind;
+  calcType: PayCalcType;
+  rate: number; // percent when calcType is PCT_*
+  taxable: boolean;
+  partOfCtc: boolean;
+  statutory: StatutoryType;
+  order: number;
+}
+
+/** A resolved monthly line, snapshotted onto a salary structure. */
+export interface StructureLine {
+  code: string;
+  name: string;
+  kind: PayComponentKind;
+  monthly: number;
+  taxable: boolean;
+  statutory: StatutoryType;
+}
+
+export interface StatConfig {
+  // --- Provident Fund (employee share) ---
+  pfRatePct: number; // 12%
+  pfWageCeiling: number; // basic capped at 15,000 for statutory PF
+  pfOnFullBasic: boolean; // if true, ignore the ceiling
+  // --- ESI (employee share) ---
+  esiRatePct: number; // 0.75%
+  esiGrossCeiling: number; // applies only when monthly gross <= 21,000
+  // --- Professional Tax (Karnataka) ---
+  ptAmount: number; // 200
+  ptGrossThreshold: number; // charged when monthly gross > 25,000
+  // --- Gratuity ---
+  gratuityDaysPerYear: number; // 15
+  gratuityMonthDivisor: number; // 26
+  gratuityMinYears: number; // 5 — eligibility for payout
+  // --- Income tax (New Regime) ---
+  stdDeductionAnnual: number; // 75,000
+  rebateIncomeCeiling: number; // <= 12,00,000 taxable => full rebate
+  rebateMax: number; // 60,000
+  cessPct: number; // 4%
+  slabs: { upTo: number | null; ratePct: number }[]; // null upTo = "and above"
+}
+
+export const DEFAULT_STAT_CONFIG: StatConfig = {
+  pfRatePct: 12,
+  pfWageCeiling: 15000,
+  pfOnFullBasic: false,
+  esiRatePct: 0.75,
+  esiGrossCeiling: 21000,
+  ptAmount: 200,
+  ptGrossThreshold: 25000,
+  gratuityDaysPerYear: 15,
+  gratuityMonthDivisor: 26,
+  gratuityMinYears: 5,
+  stdDeductionAnnual: 75000,
+  rebateIncomeCeiling: 1200000,
+  rebateMax: 60000,
+  cessPct: 4,
+  // New Regime slabs (FY 2026-27). upTo is the top of the band.
+  slabs: [
+    { upTo: 400000, ratePct: 0 },
+    { upTo: 800000, ratePct: 5 },
+    { upTo: 1200000, ratePct: 10 },
+    { upTo: 1600000, ratePct: 15 },
+    { upTo: 2000000, ratePct: 20 },
+    { upTo: 2400000, ratePct: 25 },
+    { upTo: null, ratePct: 30 },
+  ],
+};
+
+const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
+const rupee = (n: number) => Math.round(n); // statutory amounts are whole rupees
+
+/**
+ * Resolve a monthly CTC + basic% + component defs into concrete monthly
+ * lines. Order of resolution: BASIC first (basicPct of monthly CTC), then
+ * FLAT / PCT_OF_BASIC / PCT_OF_CTC earnings, then a single BALANCE head
+ * (usually "Special Allowance") absorbs whatever is left so earnings that
+ * are part of CTC sum exactly to the monthly CTC. Statutory deductions are
+ * NOT included here — they are computed per-run by computePayslip.
+ */
+export function buildStructureLines(
+  monthlyCtc: number,
+  basicPct: number,
+  components: PayComponentDef[],
+  cfg: StatConfig = DEFAULT_STAT_CONFIG,
+): StructureLine[] {
+  void cfg;
+  const basic = r2((monthlyCtc * basicPct) / 100);
+  const lines: StructureLine[] = [
+    { code: "BASIC", name: "Basic", kind: "EARNING", monthly: basic, taxable: true, statutory: "NONE" },
+  ];
+
+  const earnings = components
+    .filter((c) => c.kind === "EARNING" && c.code !== "BASIC")
+    .sort((a, b) => a.order - b.order);
+
+  let balanceDef: PayComponentDef | null = null;
+  for (const c of earnings) {
+    if (c.calcType === "BALANCE") {
+      balanceDef = c; // resolve last
+      continue;
+    }
+    let monthly = 0;
+    if (c.calcType === "FLAT") monthly = c.rate; // FLAT stores the amount in rate
+    else if (c.calcType === "PCT_OF_BASIC") monthly = (basic * c.rate) / 100;
+    else if (c.calcType === "PCT_OF_CTC") monthly = (monthlyCtc * c.rate) / 100;
+    lines.push({
+      code: c.code,
+      name: c.name,
+      kind: "EARNING",
+      monthly: r2(monthly),
+      taxable: c.taxable,
+      statutory: c.statutory,
+    });
+  }
+
+  // BALANCE (special allowance) = monthly CTC − everything that is part of CTC.
+  const ctcConsumed = lines
+    .filter((l) => l.code !== "BASIC")
+    .reduce((s, l) => s + l.monthly, basic);
+  if (balanceDef) {
+    const bal = r2(Math.max(0, monthlyCtc - ctcConsumed));
+    lines.push({
+      code: balanceDef.code,
+      name: balanceDef.name,
+      kind: "EARNING",
+      monthly: bal,
+      taxable: balanceDef.taxable,
+      statutory: balanceDef.statutory,
+    });
+  }
+  return lines;
+}
+
+/** Annual income tax under the New Regime (with 87A rebate + cess). */
+export function newRegimeAnnualTax(taxableAnnual: number, cfg: StatConfig = DEFAULT_STAT_CONFIG): number {
+  const income = Math.max(0, taxableAnnual);
+  let tax = 0;
+  let lower = 0;
+  for (const band of cfg.slabs) {
+    const upper = band.upTo ?? Infinity;
+    if (income > lower) {
+      const slabIncome = Math.min(income, upper) - lower;
+      tax += (slabIncome * band.ratePct) / 100;
+    }
+    lower = upper;
+    if (income <= lower) break;
+  }
+  // Section 87A rebate — full relief up to the ceiling.
+  if (income <= cfg.rebateIncomeCeiling) tax = Math.max(0, tax - cfg.rebateMax);
+  if (tax < 0) tax = 0;
+  const withCess = tax * (1 + cfg.cessPct / 100);
+  return rupee(withCess);
+}
+
+export interface PayslipInput {
+  lines: StructureLine[]; // the employee's current structure lines
+  lopDays?: number; // loss-of-pay days in the month
+  monthDays?: number; // days in the month (default 30)
+  cfg?: StatConfig;
+}
+
+export interface PayslipComputation {
+  paidDays: number;
+  lopDays: number;
+  earnings: { code: string; name: string; amount: number }[];
+  deductions: { code: string; name: string; amount: number }[];
+  gross: number; // total earnings paid this month
+  basic: number; // paid basic this month
+  pf: number;
+  esi: number;
+  pt: number;
+  tds: number;
+  gratuityAccrued: number;
+  totalDeductions: number;
+  net: number;
+}
+
+/**
+ * Compute one month's payslip from the structure lines, pro-rated for LOP.
+ * All statutory deductions are derived from law (config), never from a flat
+ * stored value. TDS is the projected monthly tax = annual tax / 12 on the
+ * annualised taxable earnings.
+ */
+export function computePayslip(input: PayslipInput): PayslipComputation {
+  const cfg = input.cfg ?? DEFAULT_STAT_CONFIG;
+  const monthDays = input.monthDays && input.monthDays > 0 ? input.monthDays : 30;
+  const lopDays = Math.max(0, Math.min(input.lopDays ?? 0, monthDays));
+  const paidDays = monthDays - lopDays;
+  const payFactor = paidDays / monthDays;
+
+  const earnLines = input.lines.filter((l) => l.kind === "EARNING");
+  const earnings = earnLines.map((l) => ({
+    code: l.code,
+    name: l.name,
+    amount: r2(l.monthly * payFactor),
+  }));
+  const gross = r2(earnings.reduce((s, e) => s + e.amount, 0));
+  const fullBasic = input.lines.find((l) => l.code === "BASIC")?.monthly ?? 0;
+  const basic = r2(fullBasic * payFactor);
+
+  // Taxable monthly earnings (for annualised TDS projection).
+  const taxableMonthly = r2(
+    earnLines
+      .filter((l) => l.taxable)
+      .reduce((s, l) => s + l.monthly * payFactor, 0),
+  );
+
+  // ---- Statutory deductions ----
+  // PF: 12% of basic, basic capped at the wage ceiling unless configured off.
+  const pfBase = cfg.pfOnFullBasic ? basic : Math.min(basic, cfg.pfWageCeiling);
+  const pf = rupee((pfBase * cfg.pfRatePct) / 100);
+
+  // ESI: only when monthly gross is within the ceiling.
+  const esi = gross <= cfg.esiGrossCeiling ? rupee((gross * cfg.esiRatePct) / 100) : 0;
+
+  // PT (Karnataka): flat amount above the gross threshold.
+  const pt = gross > cfg.ptGrossThreshold ? cfg.ptAmount : 0;
+
+  // TDS: annualise taxable earnings, apply new-regime tax minus std deduction.
+  const annualTaxable = Math.max(0, taxableMonthly * 12 - cfg.stdDeductionAnnual);
+  const annualTax = newRegimeAnnualTax(annualTaxable, cfg);
+  const tds = rupee(annualTax / 12);
+
+  // Gratuity accrual (employer cost, shown for information; not deducted).
+  const gratuityAccrued = rupee(
+    (basic * cfg.gratuityDaysPerYear) / cfg.gratuityMonthDivisor / 12,
+  );
+
+  const statDeductions = [
+    { code: "PF", name: "Provident Fund", amount: pf },
+    { code: "ESI", name: "ESI", amount: esi },
+    { code: "PT", name: "Professional Tax", amount: pt },
+    { code: "TDS", name: "TDS (Income Tax)", amount: tds },
+  ].filter((d) => d.amount > 0);
+
+  // Any explicit DEDUCTION components on the structure (e.g. recoveries).
+  const otherDeductions = input.lines
+    .filter((l) => l.kind === "DEDUCTION")
+    .map((l) => ({ code: l.code, name: l.name, amount: r2(l.monthly * payFactor) }));
+
+  const deductions = [...statDeductions, ...otherDeductions];
+  const totalDeductions = r2(deductions.reduce((s, d) => s + d.amount, 0));
+  const net = r2(gross - totalDeductions);
+
+  return {
+    paidDays,
+    lopDays,
+    earnings,
+    deductions,
+    gross,
+    basic,
+    pf,
+    esi,
+    pt,
+    tds,
+    gratuityAccrued,
+    totalDeductions,
+    net,
+  };
+}
+
+/**
+ * Statutory gratuity payout on separation: (15/26) × last drawn basic ×
+ * completed years of service. Payable only at/above the eligibility years
+ * (5), except death/disablement (caller may pass force=true).
+ */
+export function gratuityPayout(
+  lastMonthlyBasic: number,
+  completedYears: number,
+  cfg: StatConfig = DEFAULT_STAT_CONFIG,
+  force = false,
+): number {
+  if (!force && completedYears < cfg.gratuityMinYears) return 0;
+  const years = Math.max(0, Math.floor(completedYears));
+  return rupee((lastMonthlyBasic * cfg.gratuityDaysPerYear * years) / cfg.gratuityMonthDivisor);
+}
+
+/** Per-day pay for leave encashment = monthly basic (or gross) / month divisor. */
+export function perDayPay(monthlyAmount: number, cfg: StatConfig = DEFAULT_STAT_CONFIG): number {
+  return r2(monthlyAmount / cfg.gratuityMonthDivisor);
+}
+
+/** Completed years of service between two dates (fractional). */
+export function completedYearsBetween(from: Date, to: Date): number {
+  const ms = to.getTime() - from.getTime();
+  if (ms <= 0) return 0;
+  return ms / (365.25 * 24 * 3600 * 1000);
+}

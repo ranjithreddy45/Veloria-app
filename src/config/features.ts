@@ -22,6 +22,8 @@ export const FEATURES = {
   hrHelpdesk: flag(process.env.NEXT_PUBLIC_FEATURE_HR_HELPDESK, true),
   hrShifts: flag(process.env.NEXT_PUBLIC_FEATURE_HR_SHIFTS, true),
   hrAnalytics: flag(process.env.NEXT_PUBLIC_FEATURE_HR_ANALYTICS, true),
+  // HR payroll & compensation (Wave 1) — salary structures, payslips, FnF.
+  hrPayroll: flag(process.env.NEXT_PUBLIC_FEATURE_HR_PAYROLL, true),
 } as const;
 
 export type FeatureKey = keyof typeof FEATURES;

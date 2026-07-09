@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getEmployee, getHrLookups } from "@/actions/hr-employee.actions";
 import { getStatutoryMasked } from "@/actions/hr-statutory.actions";
+import { getEmployeeCompensation } from "@/actions/hr-compensation.actions";
 import { getCustomFieldDefs } from "@/actions/hr-config.actions";
 import { getEmployeeDocuments } from "@/actions/hr-documents.actions";
 import { getDocumentCategories } from "@/actions/hr-documents.actions";
@@ -22,6 +23,7 @@ import {
 } from "@/lib/hr/constants";
 import { EmployeeEditDialog } from "./_components/employee-edit-dialog";
 import { StatutoryPanel } from "./_components/statutory-panel";
+import { CompensationPanel } from "./_components/compensation-panel";
 import { CustomFieldsCard, RequestEditButton, type ActiveFieldDef } from "./_components/profile-extras";
 
 export const metadata: Metadata = { title: "Employee" };
@@ -44,6 +46,10 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
   const canWrite = hasPermission(role, "hr:write");
   const canStatutory = hasPermission(role, "hr:statutory");
   const statutory = canStatutory ? await getStatutoryMasked(emp.id) : null;
+  const canPayroll = FEATURES.hrPayroll && hasPermission(role, "hr:payroll");
+  const compensation = canPayroll
+    ? await getEmployeeCompensation(emp.id)
+    : { current: null, history: [] };
   const isSelf = !!emp.user && emp.user.id === session?.user?.id;
   const activeDefs = fieldDefs as unknown as ActiveFieldDef[];
   const customValues = (emp.customFields as Record<string, unknown>) ?? {};
@@ -117,6 +123,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="team">Team</TabsTrigger>
           {showDocs && <TabsTrigger value="documents">Documents</TabsTrigger>}
+          {canPayroll && <TabsTrigger value="compensation">Compensation</TabsTrigger>}
           <TabsTrigger value="statutory">Statutory</TabsTrigger>
         </TabsList>
 
@@ -232,6 +239,18 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
                 </div>
               )}
             </div>
+          </TabsContent>
+        )}
+
+        {/* Compensation — CTC structure + revision history */}
+        {canPayroll && (
+          <TabsContent value="compensation">
+            <CompensationPanel
+              employeeId={emp.id}
+              current={compensation.current}
+              history={compensation.history}
+              canWrite={canPayroll}
+            />
           </TabsContent>
         )}
 

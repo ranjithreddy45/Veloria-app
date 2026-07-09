@@ -118,6 +118,7 @@ export type Permission =
   | "recruit:read"
   | "recruit:write"
   | "hr:statutory"
+  | "hr:payroll"
   // Menu
   | "menu:read"
   | "menu:create"
@@ -398,6 +399,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   "recruit:read",
   "recruit:write",
   "hr:statutory",
+  "hr:payroll",
   "menu:read",
   "menu:create",
   "menu:update",
@@ -625,6 +627,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "hr:admin",
     "hr:approve",
     "hr:statutory",
+    "hr:payroll",
     "recruit:read",
     "recruit:write",
     "menu:read",
@@ -1188,6 +1191,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "hr:admin",
     "hr:approve",
     "hr:statutory",
+    "hr:payroll",
     "recruit:read",
     "recruit:write",
     "analytics:read",

@@ -8084,3 +8084,146 @@ model DemandPricingConfig {
   scarcityCapPct  Int      @default(30) // cap on the scarcity bump
   updatedAt       DateTime @updatedAt
 }
+
+// ============================================================
+// HR Compensation & Payroll (Wave 1) — employee-facing salary
+// structures, monthly payslips with real Indian statutory
+// (PF/ESI/PT/TDS/gratuity) and full-&-final settlement.
+// All Employee references are denormalized String ids (no back
+// relation on the large Employee model) — the additive-safe pattern
+// used across HR. Additive only; never drops existing tables.
+// ============================================================
+
+enum HrPayComponentKind {
+  EARNING
+  DEDUCTION
+}
+
+enum HrPayCalcType {
+  FLAT // fixed monthly amount
+  PCT_OF_BASIC // rate% of basic
+  PCT_OF_CTC // rate% of monthly CTC
+  BALANCE // special allowance — balances the CTC after other heads
+}
+
+enum HrStatutoryType {
+  NONE
+  PF
+  ESI
+  PT
+  TDS
+  GRATUITY
+}
+
+// Configurable pay heads (earnings & deductions). Statutory heads are
+// flagged so the engine computes them from law rather than a flat value.
+model HrPayComponent {
+  id        String             @id @default(cuid())
+  entityId  String             @default("BILLION")
+  code      String
+  name      String
+  kind      HrPayComponentKind @default(EARNING)
+  calcType  HrPayCalcType      @default(FLAT)
+  rate      Decimal            @default(0) @db.Decimal(9, 4) // % when calcType is PCT_*
+  taxable   Boolean            @default(true)
+  partOfCtc Boolean            @default(true)
+  statutory HrStatutoryType    @default(NONE)
+  order     Int                @default(0)
+  active    Boolean            @default(true)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  @@unique([entityId, code])
+  @@index([entityId, active])
+}
+
+// Per-employee CTC + component breakdown. Revisions are new rows; the
+// latest current row (isCurrent) is the one payroll reads.
+model HrSalaryStructure {
+  id            String   @id @default(cuid())
+  employeeId    String
+  effectiveFrom DateTime @db.Date
+  annualCtc     Decimal  @db.Decimal(18, 2)
+  monthlyCtc    Decimal  @db.Decimal(18, 2)
+  basicPct      Int      @default(50)
+  note          String?
+  // Snapshot of the resolved monthly breakdown at save time:
+  // [{ code, name, kind, monthly, taxable, statutory }]
+  lines         Json
+  isCurrent     Boolean  @default(true)
+  createdById   String?
+  createdAt     DateTime @default(now())
+
+  @@index([employeeId, isCurrent])
+  @@index([employeeId, effectiveFrom])
+}
+
+model HrPayrollRun {
+  id              String      @id @default(cuid())
+  entityId        String      @default("BILLION")
+  fy              String // e.g. "2026-27"
+  month           Int // calendar month 1..12
+  label           String // "Jul 2026"
+  status          String      @default("DRAFT") // DRAFT | LOCKED | PAID
+  totalGross      Decimal     @default(0) @db.Decimal(18, 2)
+  totalDeductions Decimal     @default(0) @db.Decimal(18, 2)
+  totalNet        Decimal     @default(0) @db.Decimal(18, 2)
+  headcount       Int         @default(0)
+  createdById     String?
+  createdAt       DateTime    @default(now())
+  lockedAt        DateTime?
+  payslips        HrPayslip[]
+
+  @@unique([entityId, fy, month])
+  @@index([status])
+}
+
+model HrPayslip {
+  id              String       @id @default(cuid())
+  runId           String
+  run             HrPayrollRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  employeeId      String
+  empCodeSnap     String
+  nameSnap        String
+  paidDays        Decimal      @default(30) @db.Decimal(6, 2)
+  lopDays         Decimal      @default(0) @db.Decimal(6, 2)
+  gross           Decimal      @db.Decimal(18, 2)
+  earnings        Json // [{ code, name, amount }]
+  deductions      Json // [{ code, name, amount }]
+  pf              Decimal      @default(0) @db.Decimal(18, 2)
+  esi             Decimal      @default(0) @db.Decimal(18, 2)
+  pt              Decimal      @default(0) @db.Decimal(18, 2)
+  tds             Decimal      @default(0) @db.Decimal(18, 2)
+  gratuityAccrued Decimal      @default(0) @db.Decimal(18, 2)
+  net             Decimal      @db.Decimal(18, 2)
+  createdAt       DateTime     @default(now())
+
+  @@unique([runId, employeeId])
+  @@index([employeeId])
+}
+
+// Full-&-Final settlement on separation.
+model HrFnfSettlement {
+  id               String    @id @default(cuid())
+  employeeId       String
+  empCodeSnap      String
+  nameSnap         String
+  lastWorkingDay   DateTime  @db.Date
+  status           String    @default("DRAFT") // DRAFT | APPROVED | PAID
+  leaveEncashDays  Decimal   @default(0) @db.Decimal(6, 2)
+  leaveEncashAmt   Decimal   @default(0) @db.Decimal(18, 2)
+  gratuityAmt      Decimal   @default(0) @db.Decimal(18, 2)
+  pendingSalaryAmt Decimal   @default(0) @db.Decimal(18, 2)
+  noticeRecovery   Decimal   @default(0) @db.Decimal(18, 2)
+  otherAdditions   Decimal   @default(0) @db.Decimal(18, 2)
+  otherDeductions  Decimal   @default(0) @db.Decimal(18, 2)
+  netPayable       Decimal   @default(0) @db.Decimal(18, 2)
+  note             String?
+  breakdown        Json?
+  createdById      String?
+  createdAt        DateTime  @default(now())
+  approvedAt       DateTime?
+
+  @@index([employeeId])
+  @@index([status])
+}

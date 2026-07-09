@@ -1,0 +1,195 @@
+"use client";
+
+import * as React from "react";
+import { useRouter } from "next/navigation";
+import { Wallet, Pencil, Loader2, History } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+} from "@/components/ui/dialog";
+import { StatusPill } from "@/components/shared/status-pill";
+import { formatINR, formatDate } from "@/lib/utils";
+import { saveSalaryStructure, type SalaryStructureRow } from "@/actions/hr-compensation.actions";
+
+export function CompensationPanel({
+  employeeId, current, history, canWrite,
+}: {
+  employeeId: string;
+  current: SalaryStructureRow | null;
+  history: SalaryStructureRow[];
+  canWrite: boolean;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border bg-card p-5">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Wallet className="size-4 text-emerald-600" />
+            <h3 className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">Current compensation</h3>
+          </div>
+          {canWrite && <ReviseDialog employeeId={employeeId} current={current} />}
+        </div>
+
+        {current ? (
+          <>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Stat label="Annual CTC" value={formatINR(current.annualCtc)} big />
+              <Stat label="Monthly CTC" value={formatINR(current.monthlyCtc)} />
+              <Stat label="Basic" value={`${current.basicPct}% of CTC`} />
+            </div>
+            <p className="mt-2 text-[12px] text-muted-foreground">
+              Effective {formatDate(current.effectiveFrom)}{current.note ? ` · ${current.note}` : ""}
+            </p>
+
+            <div className="mt-4">
+              <h4 className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">Monthly breakdown</h4>
+              <div className="divide-y rounded-lg border">
+                {current.lines.map((l) => (
+                  <div key={l.code} className="flex items-center justify-between gap-3 px-3 py-2 text-[13px]">
+                    <span className="inline-flex items-center gap-2">
+                      {l.name}
+                      {l.kind === "DEDUCTION" && <StatusPill label="Deduction" hue="rose" size="xs" />}
+                      {!l.taxable && <StatusPill label="Tax-free" hue="slate" size="xs" />}
+                    </span>
+                    <span className="font-medium tabular-nums">{formatINR(l.monthly)}</span>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between gap-3 bg-muted/40 px-3 py-2 text-[13px] font-semibold">
+                  <span>Total monthly CTC</span>
+                  <span className="tabular-nums">{formatINR(current.monthlyCtc)}</span>
+                </div>
+              </div>
+              <p className="mt-2 text-[12px] text-muted-foreground">
+                Statutory deductions (PF, ESI, PT, TDS) are computed by the payroll engine at each pay run — they are not shown in the CTC build-up.
+              </p>
+            </div>
+          </>
+        ) : (
+          <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+            No salary structure on file yet.{canWrite ? " Use “Revise salary” to set one up." : ""}
+          </div>
+        )}
+      </div>
+
+      {history.length > 0 && (
+        <div className="rounded-xl border bg-card p-5">
+          <div className="mb-3 flex items-center gap-2">
+            <History className="size-4 text-muted-foreground" />
+            <h3 className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">Revision history</h3>
+          </div>
+          <div className="divide-y">
+            {history.map((h) => (
+              <div key={h.id} className="flex items-center justify-between gap-3 py-2.5 text-[13px] first:pt-0">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{formatINR(h.annualCtc)}</span>
+                    <span className="text-muted-foreground">/yr</span>
+                    {h.isCurrent && <StatusPill label="Current" hue="emerald" size="xs" />}
+                  </div>
+                  <span className="text-[12px] text-muted-foreground">
+                    Effective {formatDate(h.effectiveFrom)} · Basic {h.basicPct}%{h.note ? ` · ${h.note}` : ""}
+                  </span>
+                </div>
+                <span className="tabular-nums text-muted-foreground">{formatINR(h.monthlyCtc)}/mo</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Stat({ label, value, big }: { label: string; value: string; big?: boolean }) {
+  return (
+    <div className="rounded-lg bg-muted/30 px-3 py-2.5">
+      <div className="text-[11.5px] uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className={`mt-0.5 font-semibold tabular-nums ${big ? "text-lg" : "text-[15px]"}`}>{value}</div>
+    </div>
+  );
+}
+
+function todayIso() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function ReviseDialog({ employeeId, current }: { employeeId: string; current: SalaryStructureRow | null }) {
+  const router = useRouter();
+  const [open, setOpen] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const [annualCtc, setAnnualCtc] = React.useState(current ? String(current.annualCtc) : "");
+  const [basicPct, setBasicPct] = React.useState(current ? String(current.basicPct) : "50");
+  const [effectiveFrom, setEffectiveFrom] = React.useState(todayIso());
+  const [note, setNote] = React.useState("");
+
+  async function save() {
+    setError(null);
+    setSaving(true);
+    const res = await saveSalaryStructure(employeeId, {
+      annualCtc: Number(annualCtc) || 0,
+      basicPct: Number(basicPct) || 0,
+      effectiveFrom,
+      note: note.trim() || undefined,
+    });
+    setSaving(false);
+    if (!res.success) { setError(res.error); return; }
+    setNote("");
+    setOpen(false);
+    router.refresh();
+  }
+
+  const monthlyPreview = Number(annualCtc) > 0 ? Math.round(Number(annualCtc) / 12) : 0;
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1.5">
+          <Pencil className="size-3.5" /> Revise salary
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Revise salary</DialogTitle>
+          <DialogDescription>
+            Saving creates a new revision and supersedes the current structure. The monthly breakdown is resolved from your active pay components.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-3 py-2 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label className="text-[12.5px]">Annual CTC (₹)</Label>
+            <Input type="number" inputMode="numeric" value={annualCtc} onChange={(e) => setAnnualCtc(e.target.value)} placeholder="1200000" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-[12.5px]">Basic (% of CTC)</Label>
+            <Input type="number" inputMode="numeric" value={basicPct} onChange={(e) => setBasicPct(e.target.value)} placeholder="50" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-[12.5px]">Effective from</Label>
+            <Input type="date" value={effectiveFrom} onChange={(e) => setEffectiveFrom(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-[12.5px]">Monthly CTC</Label>
+            <div className="flex h-9 items-center rounded-md border bg-muted/40 px-3 text-[13px] font-medium tabular-nums text-muted-foreground">
+              {monthlyPreview > 0 ? formatINR(monthlyPreview) : "—"}
+            </div>
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label className="text-[12.5px]">Note (optional)</Label>
+            <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Annual increment, promotion, ..." />
+          </div>
+        </div>
+        {error && <p className="text-sm text-red-600">{error}</p>}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
+          <Button onClick={save} disabled={saving} className="gap-1.5">
+            {saving && <Loader2 className="size-4 animate-spin" />} Save revision
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

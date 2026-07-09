@@ -441,6 +441,19 @@ export const sidebarNavigation: NavItem[] = [
     ],
   },
   {
+    title: "Payroll",
+    href: "/people/payroll",
+    icon: "IndianRupee",
+    permissions: ["hr:payroll", "hr:read"],
+    children: [
+      { title: "My Payslips", href: "/people/my/payslips", icon: "FileText", permissions: ["hr:read"] },
+      { title: "Payroll Runs", href: "/people/payroll", icon: "CreditCard", permissions: ["hr:payroll"] },
+      { title: "Statutory Registers", href: "/people/payroll/registers", icon: "ClipboardList", permissions: ["hr:payroll"] },
+      { title: "Full & Final", href: "/people/payroll/fnf", icon: "FileInput", permissions: ["hr:payroll"] },
+      { title: "Pay Components", href: "/people/payroll/settings", icon: "Settings", permissions: ["hr:payroll"] },
+    ],
+  },
+  {
     title: "Catalog",
     href: "/packages",
     icon: "Package",
