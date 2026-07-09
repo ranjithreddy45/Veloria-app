@@ -75,6 +75,68 @@ export async function getEmployeeCompensation(
 }
 
 // ============================================================
+// Company-wide compensation overview: every ACTIVE employee with their
+// CURRENT salary structure (or null if none has been set yet). Powers the
+// /people/compensation landing.
+// ============================================================
+export interface CompensationOverviewRow {
+  employeeId: string;
+  empCode: string;
+  name: string;
+  designation: string | null;
+  department: string | null;
+  annualCtc: number | null;
+  monthlyCtc: number | null;
+  basicPct: number | null;
+  effectiveFrom: string | null; // ISO date
+}
+
+export async function listCompensation(): Promise<CompensationOverviewRow[]> {
+  const u = await requireUser();
+  if (!can(u?.role, "hr:payroll")) return [];
+
+  const employees = await prisma.employee.findMany({
+    where: { status: "ACTIVE", deletedAt: null },
+    orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
+    select: {
+      id: true,
+      empCode: true,
+      firstName: true,
+      lastName: true,
+      designation: { select: { name: true } },
+      department: { select: { name: true } },
+    },
+  });
+
+  // HrSalaryStructure has no Prisma relation to Employee (scalar employeeId),
+  // so fetch the current structures and join in memory.
+  const structures = await prisma.hrSalaryStructure.findMany({
+    where: { isCurrent: true, employeeId: { in: employees.map((e) => e.id) } },
+    orderBy: [{ effectiveFrom: "desc" }, { createdAt: "desc" }],
+    select: { employeeId: true, annualCtc: true, monthlyCtc: true, basicPct: true, effectiveFrom: true },
+  });
+  const byEmployee = new Map<string, (typeof structures)[number]>();
+  for (const s of structures) {
+    if (!byEmployee.has(s.employeeId)) byEmployee.set(s.employeeId, s);
+  }
+
+  return employees.map((e) => {
+    const cur = byEmployee.get(e.id) ?? null;
+    return {
+      employeeId: e.id,
+      empCode: e.empCode,
+      name: `${e.firstName} ${e.lastName}`.trim(),
+      designation: e.designation?.name ?? null,
+      department: e.department?.name ?? null,
+      annualCtc: cur ? Number(cur.annualCtc) : null,
+      monthlyCtc: cur ? Number(cur.monthlyCtc) : null,
+      basicPct: cur ? cur.basicPct : null,
+      effectiveFrom: cur ? cur.effectiveFrom.toISOString() : null,
+    };
+  });
+}
+
+// ============================================================
 // Save a new salary structure revision. Resolves the monthly breakdown from
 // the active pay components, supersedes the prior current row, inserts the new
 // one as current — all in one transaction.

@@ -244,7 +244,17 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
 
         {/* Compensation — CTC structure + revision history */}
         {canPayroll && (
-          <TabsContent value="compensation">
+          <TabsContent value="compensation" className="space-y-4">
+            <div className="flex justify-end">
+              <a
+                href={`/api/hr/form16/${emp.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-[13px] font-medium text-muted-foreground hover:text-foreground"
+              >
+                <FileText className="size-3.5" /> Download Form-16
+              </a>
+            </div>
             <CompensationPanel
               employeeId={emp.id}
               current={compensation.current}

@@ -390,6 +390,20 @@ export const sidebarNavigation: NavItem[] = [
       { title: "Applications", href: "/recruitment/applications", icon: "ClipboardList", permissions: ["recruit:read"] },
     ],
   },
+  // Employee self-service — visible to EVERY signed-in employee (empty
+  // permissions = always shown), independent of the HR-admin nav below.
+  {
+    title: "My HR",
+    href: "/people/my/payslips",
+    icon: "Contact",
+    permissions: [],
+    children: [
+      { title: "My Payslips", href: "/people/my/payslips", icon: "FileText", permissions: [] },
+      { title: "My Leave", href: "/people/leave", icon: "CalendarCheck", permissions: [] },
+      { title: "My Attendance", href: "/people/attendance", icon: "Clock", permissions: [] },
+      { title: "Help Desk", href: "/people/helpdesk", icon: "MessageCircle", permissions: [] },
+    ],
+  },
   // People split into focused sub-modules so the team finds things fast.
   {
     title: "People",

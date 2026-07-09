@@ -9,11 +9,16 @@ import { FnfHome } from "./_components/fnf-home";
 
 export const metadata: Metadata = { title: "Full & Final Settlements" };
 
-export default async function FnfPage() {
+export default async function FnfPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ employeeId?: string }>;
+}) {
   if (!FEATURES.hr || !FEATURES.hrPayroll) notFound();
   const session = await auth();
   if (!hasPermission(session?.user?.role ?? "", "hr:payroll")) redirect("/people");
 
+  const { employeeId } = await searchParams;
   const [settlements, employees] = await Promise.all([listFnf(), listFnfEmployees()]);
 
   return (
@@ -23,7 +28,7 @@ export default async function FnfPage() {
         title="Full & Final Settlements"
         description="Compute a leaver's gratuity, leave encashment and pending salary, less notice recovery — save a draft, get it approved, and mark it paid."
       />
-      <FnfHome settlements={settlements as never} employees={employees as never} />
+      <FnfHome settlements={settlements as never} employees={employees as never} initialEmployeeId={employeeId} />
     </div>
   );
 }

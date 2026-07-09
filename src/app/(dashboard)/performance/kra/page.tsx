@@ -8,7 +8,9 @@ import { KraList, type KraScorecardRow } from "./_components/kra-list";
 
 export const metadata: Metadata = { title: "KRA Scorecards" };
 
-const MANAGER_ROLES = ["SUPER_ADMIN", "ADMIN", "BD_HEAD", "HR_MANAGER"];
+// Must mirror KRA_MANAGE_ROLES in kra.actions.ts, else an authorized SALES_HEAD
+// sees no "Generate scorecard" button despite being allowed server-side.
+const MANAGER_ROLES = ["SUPER_ADMIN", "ADMIN", "BD_HEAD", "SALES_HEAD", "HR_MANAGER"];
 
 export default async function KraScorecardsPage() {
   const session = await auth();

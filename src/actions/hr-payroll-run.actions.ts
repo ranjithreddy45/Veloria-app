@@ -6,6 +6,47 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { hasPermission } from "@/lib/permissions";
 import { computePayslip, type StructureLine } from "@/lib/hr/payroll-calc";
+import { sendEmail } from "@/lib/email";
+
+const inr = (n: number) =>
+  new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n);
+
+/**
+ * Best-effort: notify each employee (with a linked work email) that their
+ * payslip for the run is ready, linking to ESS. Never throws.
+ */
+async function deliverPayslipEmails(runId: string): Promise<void> {
+  try {
+    const run = await prisma.hrPayrollRun.findUnique({
+      where: { id: runId },
+      select: { label: true, payslips: { select: { employeeId: true, net: true } } },
+    });
+    if (!run || run.payslips.length === 0) return;
+    const emps = await prisma.employee.findMany({
+      where: { id: { in: run.payslips.map((p) => p.employeeId) }, workEmail: { not: null } },
+      select: { id: true, firstName: true, workEmail: true },
+    });
+    const byId = new Map(emps.map((e) => [e.id, e]));
+    const base = process.env.NEXT_PUBLIC_APP_URL || "https://app.theveloriagrand.com";
+    await Promise.allSettled(
+      run.payslips.map((p) => {
+        const e = byId.get(p.employeeId);
+        if (!e?.workEmail) return Promise.resolve();
+        return sendEmail({
+          to: e.workEmail,
+          subject: `Your payslip for ${run.label} is ready`,
+          html: `<div style="font-family:system-ui,sans-serif;font-size:14px;color:#111;line-height:1.55">
+            <p>Hi ${e.firstName || "there"},</p>
+            <p>Your payslip for <strong>${run.label}</strong> is now available — net pay <strong>${inr(Number(p.net))}</strong>.</p>
+            <p><a href="${base}/people/my/payslips" style="color:#7c3aed">View & download your payslip →</a></p>
+          </div>`,
+        });
+      }),
+    );
+  } catch (err) {
+    console.error("[PAYSLIP_EMAIL_ERR]", err);
+  }
+}
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -224,6 +265,8 @@ export async function lockPayrollRun(runId: string): Promise<Result<{ id: string
     where: { id: runId },
     data: { status: "LOCKED", lockedAt: new Date() },
   });
+  // Payslips are final once locked — notify employees their payslip is ready.
+  await deliverPayslipEmails(runId);
   revalidatePath("/people/payroll");
   revalidatePath(`/people/payroll/${runId}`);
   return { success: true, data: { id: runId } };

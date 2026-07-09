@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Wallet } from "lucide-react";
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
 import { FEATURES } from "@/config/features";
 import { formatDate } from "@/lib/utils";
 import { PageHeader } from "@/components/layout/page-header";
+import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/shared/status-pill";
 import { getJourney } from "@/actions/hr-journey.actions";
 import { JourneyDetail, PortalInviteButton } from "./_components/journey-detail";
@@ -22,6 +23,7 @@ export default async function JourneyPage({ params }: { params: Promise<{ id: st
   const journey = await getJourney(id);
   if (!journey) notFound();
   const canWrite = hasPermission(session?.user?.role ?? "", "hr:write");
+  const canFnf = hasPermission(session?.user?.role ?? "", "hr:payroll");
 
   const isOnboarding = journey.type === "ONBOARDING";
   const name = `${journey.employee.firstName} ${journey.employee.lastName}`;
@@ -49,6 +51,13 @@ export default async function JourneyPage({ params }: { params: Promise<{ id: st
           />
           {canWrite && isOnboarding && journey.status === "IN_PROGRESS" && (
             <PortalInviteButton employeeId={journey.employee.id} />
+          )}
+          {canFnf && !isOnboarding && (
+            <Button asChild variant="outline" size="sm" className="gap-1.5">
+              <Link href={`/people/payroll/fnf?employeeId=${journey.employee.id}`}>
+                <Wallet className="size-3.5" /> Start Full & Final
+              </Link>
+            </Button>
           )}
         </div>
       </div>

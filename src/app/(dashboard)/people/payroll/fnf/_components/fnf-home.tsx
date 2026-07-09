@@ -30,11 +30,11 @@ const STATUS_HUE: Record<string, "slate" | "amber" | "emerald"> = {
   DRAFT: "slate", APPROVED: "amber", PAID: "emerald",
 };
 
-export function FnfHome({ settlements, employees }: { settlements: FnfRow[]; employees: EmpLite[] }) {
+export function FnfHome({ settlements, employees, initialEmployeeId }: { settlements: FnfRow[]; employees: EmpLite[]; initialEmployeeId?: string }) {
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <NewSettlementDialog employees={employees} />
+        <NewSettlementDialog employees={employees} initialEmployeeId={initialEmployeeId} />
       </div>
       {settlements.length === 0 ? (
         <div className="rounded-xl border border-dashed p-12 text-center text-sm text-muted-foreground">
@@ -67,13 +67,15 @@ export function FnfHome({ settlements, employees }: { settlements: FnfRow[]; emp
   );
 }
 
-function NewSettlementDialog({ employees }: { employees: EmpLite[] }) {
+function NewSettlementDialog({ employees, initialEmployeeId }: { employees: EmpLite[]; initialEmployeeId?: string }) {
   const router = useRouter();
-  const [open, setOpen] = React.useState(false);
+  // Pre-select only if the handed-off employee is actually in the picker.
+  const prefill = initialEmployeeId && employees.some((e) => e.id === initialEmployeeId) ? initialEmployeeId : "";
+  const [open, setOpen] = React.useState(Boolean(prefill));
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  const [employeeId, setEmployeeId] = React.useState("");
+  const [employeeId, setEmployeeId] = React.useState(prefill);
   const [lastWorkingDay, setLastWorkingDay] = React.useState("");
   const [noticeRecovery, setNoticeRecovery] = React.useState("");
   const [otherAdditions, setOtherAdditions] = React.useState("");

@@ -66,6 +66,16 @@ export default async function MyPayslipsPage() {
         description="Your finalised payslips. Download any month as a print-ready PDF."
       />
 
+      {employee && (
+        <div className="flex justify-end">
+          <Button asChild variant="outline" size="sm" className="gap-1.5">
+            <a href={`/api/hr/form16/${employee.id}`} target="_blank" rel="noopener noreferrer">
+              <FileText className="size-4" /> Download Form-16
+            </a>
+          </Button>
+        </div>
+      )}
+
       {!employee ? (
         <Card>
           <EmptyState

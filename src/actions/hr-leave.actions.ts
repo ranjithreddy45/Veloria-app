@@ -52,8 +52,11 @@ export async function seedLeaveSetup(): Promise<Result<{ types: number; holidays
 }
 
 export async function getLeaveTypes(activeOnly = true) {
+  // Non-sensitive lookup — every signed-in employee needs the leave types to
+  // apply and read balances (ESS). Do NOT gate on hr:read (was hiding setup
+  // from ordinary employees, forcing a false "leave not set up" state).
   const u = await requireUser();
-  if (!can(u?.role, "hr:read")) return [];
+  if (!u?.id) return [];
   return prisma.leaveType.findMany({
     where: activeOnly ? { isActive: true } : undefined,
     orderBy: [{ order: "asc" }, { name: "asc" }],
@@ -61,8 +64,9 @@ export async function getLeaveTypes(activeOnly = true) {
 }
 
 export async function getHolidays(year = currentYear()) {
+  // Non-sensitive lookup — every employee sees the holiday calendar (ESS).
   const u = await requireUser();
-  if (!can(u?.role, "hr:read")) return [];
+  if (!u?.id) return [];
   return prisma.holiday.findMany({ where: { year }, orderBy: { date: "asc" } });
 }
 
