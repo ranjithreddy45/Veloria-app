@@ -124,9 +124,12 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
   // monthly attendance sheet for this period. No FINAL sheet → LOP 0 (full pay).
   const sheets = await prisma.monthlyAttendanceSheet.findMany({
     where: { fy: run.fy, month: run.month, status: "FINAL", employeeId: { in: employees.map((e) => e.id) } },
-    select: { employeeId: true, lopDays: true },
+    select: { employeeId: true, lopDays: true, workingDays: true },
   });
-  const lopByEmp = new Map(sheets.map((s) => [s.employeeId, Number(s.lopDays)]));
+  // LOP + the working-day payable base go together so proration uses the same unit.
+  const sheetByEmp = new Map(
+    sheets.map((s) => [s.employeeId, { lop: Number(s.lopDays), workingDays: s.workingDays }]),
+  );
 
   let headcount = 0;
   let skipped = 0;
@@ -142,7 +145,14 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
         continue;
       }
       const lines = (struct.lines as unknown as StructureLine[]) ?? [];
-      const c = computePayslip({ lines, lopDays: lopByEmp.get(emp.id) ?? 0, monthDays });
+      const sheet = sheetByEmp.get(emp.id);
+      const c = computePayslip({
+        lines,
+        lopDays: sheet?.lop ?? 0,
+        // Working days from the FINAL sheet are the payable base; no sheet → full pay.
+        payableDays: sheet && sheet.workingDays > 0 ? sheet.workingDays : undefined,
+        monthDays,
+      });
 
       headcount++;
       totalGross += c.gross;

@@ -56,11 +56,33 @@ describe("computePayslip statutory", () => {
     expect(p.tds).toBe(24375);
   });
 
-  it("pro-rates for loss-of-pay days", () => {
+  it("pro-rates for loss-of-pay days (calendar fallback)", () => {
     const lines = [earn("BASIC", 30000), earn("SPECIAL", 30000)]; // 60000 full
     const p = computePayslip({ lines, lopDays: 3, monthDays: 30 });
     expect(p.paidDays).toBe(27);
     expect(p.gross).toBe(54000); // 60000 * 27/30
+  });
+
+  it("pro-rates LOP over WORKING days when payableDays is given", () => {
+    const lines = [earn("BASIC", 30000), earn("SPECIAL", 30000)]; // 60000 full
+    // July: 31 calendar, 23 working days, 5 unpaid working-day absences.
+    const p = computePayslip({ lines, lopDays: 5, payableDays: 23, monthDays: 31 });
+    expect(p.paidDays).toBe(18);
+    expect(p.gross).toBe(46956.52); // 60000 * 18/23, not 60000*26/31
+  });
+
+  it("pays ZERO for a full-month absence (LOP == working days)", () => {
+    const lines = [earn("BASIC", 30000), earn("SPECIAL", 30000)];
+    const p = computePayslip({ lines, lopDays: 23, payableDays: 23, monthDays: 31 });
+    expect(p.gross).toBe(0);
+    expect(p.net).toBe(0);
+  });
+
+  it("decides PT/ESI eligibility on FULL gross, not the LOP-reduced gross", () => {
+    const lines = [earn("BASIC", 12500), earn("SPECIAL", 12500)]; // full gross 25000
+    // Heavy LOP pulls paid gross well below thresholds, but eligibility holds.
+    const p = computePayslip({ lines, lopDays: 15, payableDays: 23, monthDays: 31 });
+    expect(p.pt).toBe(200); // full gross 25000 >= 25000 threshold
   });
 });
 
@@ -70,5 +92,11 @@ describe("gratuityPayout", () => {
   });
   it("is zero below the eligibility threshold", () => {
     expect(gratuityPayout(30000, 4)).toBe(0);
+  });
+  it("rounds the final year UP when >6 months served (Gratuity Act)", () => {
+    // 6.83 yrs → 7; 15/26 × 40000 × 7 = 161538.
+    expect(gratuityPayout(40000, 6.83)).toBe(161538);
+    // 6.4 yrs → 6 (<=6 months); 15/26 × 40000 × 6 = 138462.
+    expect(gratuityPayout(40000, 6.4)).toBe(138462);
   });
 });

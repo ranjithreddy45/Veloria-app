@@ -177,8 +177,15 @@ export function newRegimeAnnualTax(taxableAnnual: number, cfg: StatConfig = DEFA
 
 export interface PayslipInput {
   lines: StructureLine[]; // the employee's current structure lines
-  lopDays?: number; // loss-of-pay days in the month
-  monthDays?: number; // days in the month (default 30)
+  lopDays?: number; // loss-of-pay days (SAME unit as payableDays)
+  /**
+   * The payable base LOP is measured against. Pass the month's WORKING days
+   * (from the attendance sheet) so LOP is deducted per working day; if omitted
+   * we fall back to monthDays (calendar-day proration). lopDays MUST be in the
+   * same unit as this base.
+   */
+  payableDays?: number;
+  monthDays?: number; // calendar days in the month (default 30)
   cfg?: StatConfig;
 }
 
@@ -207,9 +214,14 @@ export interface PayslipComputation {
 export function computePayslip(input: PayslipInput): PayslipComputation {
   const cfg = input.cfg ?? DEFAULT_STAT_CONFIG;
   const monthDays = input.monthDays && input.monthDays > 0 ? input.monthDays : 30;
-  const lopDays = Math.max(0, Math.min(input.lopDays ?? 0, monthDays));
-  const paidDays = monthDays - lopDays;
-  const payFactor = paidDays / monthDays;
+  // LOP is deducted against the payable base — the month's WORKING days when
+  // supplied (matching the attendance sheet's unit), else calendar days. This
+  // keeps the LOP numerator and the proration denominator in the SAME unit, so
+  // a full-month absence yields zero pay (not a calendar-vs-working mismatch).
+  const base = input.payableDays && input.payableDays > 0 ? input.payableDays : monthDays;
+  const lopDays = Math.max(0, Math.min(input.lopDays ?? 0, base));
+  const paidDays = base - lopDays;
+  const payFactor = base > 0 ? paidDays / base : 1;
 
   const earnLines = input.lines.filter((l) => l.kind === "EARNING");
   const earnings = earnLines.map((l) => ({
@@ -218,35 +230,38 @@ export function computePayslip(input: PayslipInput): PayslipComputation {
     amount: r2(l.monthly * payFactor),
   }));
   const gross = r2(earnings.reduce((s, e) => s + e.amount, 0));
+  // FULL (un-prorated) figures decide statutory ELIGIBILITY — coverage is set by
+  // the contractual wage, not by how much a low-attendance month actually paid.
+  const fullGross = r2(earnLines.reduce((s, l) => s + l.monthly, 0));
+  const fullTaxableMonthly = r2(earnLines.filter((l) => l.taxable).reduce((s, l) => s + l.monthly, 0));
   const fullBasic = input.lines.find((l) => l.code === "BASIC")?.monthly ?? 0;
   const basic = r2(fullBasic * payFactor);
 
-  // Taxable monthly earnings (for annualised TDS projection).
-  const taxableMonthly = r2(
-    earnLines
-      .filter((l) => l.taxable)
-      .reduce((s, l) => s + l.monthly * payFactor, 0),
-  );
-
   // ---- Statutory deductions ----
-  // PF: 12% of basic, basic capped at the wage ceiling unless configured off.
+  // PF: 12% of basic ACTUALLY paid, capped at the wage ceiling unless configured off.
   const pfBase = cfg.pfOnFullBasic ? basic : Math.min(basic, cfg.pfWageCeiling);
   const pf = rupee((pfBase * cfg.pfRatePct) / 100);
 
-  // ESI: only when monthly gross is within the ceiling.
-  const esi = gross <= cfg.esiGrossCeiling ? rupee((gross * cfg.esiRatePct) / 100) : 0;
+  // Statutory deductions come OUT of wages paid — a zero-pay (fully-absent)
+  // month deducts nothing (never drive net negative), while a normal/partial
+  // month is judged for eligibility on the FULL contractual wage.
+  const hasPay = gross > 0;
 
-  // PT (Karnataka): flat amount above the gross threshold.
-  const pt = gross > cfg.ptGrossThreshold ? cfg.ptAmount : 0;
+  // ESI: eligibility on FULL gross (within ceiling); contribution on wages PAID.
+  const esi = hasPay && fullGross <= cfg.esiGrossCeiling ? rupee((gross * cfg.esiRatePct) / 100) : 0;
 
-  // TDS: annualise taxable earnings, apply new-regime tax minus std deduction.
-  const annualTaxable = Math.max(0, taxableMonthly * 12 - cfg.stdDeductionAnnual);
+  // PT (Karnataka): flat slab charged at/above the threshold on the FULL wage.
+  const pt = hasPay && fullGross >= cfg.ptGrossThreshold ? cfg.ptAmount : 0;
+
+  // TDS: project on the FULL annual taxable salary (a one-off LOP month must not
+  // swing annual tax); monthly = annual tax / 12. No pay this month → no TDS.
+  const annualTaxable = Math.max(0, fullTaxableMonthly * 12 - cfg.stdDeductionAnnual);
   const annualTax = newRegimeAnnualTax(annualTaxable, cfg);
-  const tds = rupee(annualTax / 12);
+  const tds = hasPay ? rupee(annualTax / 12) : 0;
 
   // Gratuity accrual (employer cost, shown for information; not deducted).
   const gratuityAccrued = rupee(
-    (basic * cfg.gratuityDaysPerYear) / cfg.gratuityMonthDivisor / 12,
+    (fullBasic * cfg.gratuityDaysPerYear) / cfg.gratuityMonthDivisor / 12,
   );
 
   const statDeductions = [
@@ -294,7 +309,10 @@ export function gratuityPayout(
   force = false,
 ): number {
   if (!force && completedYears < cfg.gratuityMinYears) return 0;
-  const years = Math.max(0, Math.floor(completedYears));
+  // Payment of Gratuity Act: a final year with MORE than 6 months of service
+  // counts as a full year (round up), otherwise round down.
+  const whole = Math.floor(completedYears);
+  const years = Math.max(0, completedYears - whole > 0.5 ? whole + 1 : whole);
   return rupee((lastMonthlyBasic * cfg.gratuityDaysPerYear * years) / cfg.gratuityMonthDivisor);
 }
 

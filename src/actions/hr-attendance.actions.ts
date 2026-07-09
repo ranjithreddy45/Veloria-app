@@ -90,7 +90,8 @@ async function notifyPunch(args: {
       </div>`;
 
     await sendEmail({
-      to: cc.length ? `${to}, ${cc.join(", ")}` : to,
+      to,
+      cc: cc.length ? cc : undefined, // HR looped in as a real cc header
       subject: `Attendance • ${args.employeeName} punched in (${args.visitType})`,
       html,
     });
@@ -163,7 +164,7 @@ export async function checkIn(input: {
   let locationVerified: boolean | null = null;
   let flagged = false;
   let flagReason: string | null = null;
-  const status: "PRESENT" = "PRESENT";
+  let status: "PRESENT" | "WFH" = "PRESENT";
 
   if (visitType === "CLIENT") {
     // Client visit — no geo-tag required. Leave location unverified (not flagged).
@@ -172,6 +173,7 @@ export async function checkIn(input: {
     // OFFICE / FIELD — geo-verify against active sites within their radius.
     const sites = await prisma.attendanceSite.findMany({ where: { isActive: true } });
     const geoSites = sites.filter((s) => s.lat != null && s.lng != null);
+    const anyWfh = sites.some((s) => s.allowWfh);
 
     if (geoSites.length === 0) {
       // Nothing configured to verify against — record but leave unverified, not flagged.
@@ -182,11 +184,21 @@ export async function checkIn(input: {
           ? geoSites.find((s) => withinRadius(input.lat!, input.lng!, s.lat!, s.lng!, s.radiusMeters)) ?? null
           : null;
       if (hit) {
-        // IP restriction (if any) must also pass for a verified on-site punch.
-        if (!ipAllowed(ip, hit.allowedIps))
-          return { success: false, error: "Check-in blocked: your network isn't allowed for this site." };
         matchedSite = { id: hit.id, name: hit.name };
-        locationVerified = true;
+        if (!ipAllowed(ip, hit.allowedIps)) {
+          // On-site GPS but off an allowed network — PREFER FLAG OVER BLOCK so a
+          // physically-present employee is never locked out; HR reviews the flag.
+          locationVerified = false;
+          flagged = true;
+          flagReason = "On-site but network not on the allow-list — needs review";
+        } else {
+          locationVerified = true;
+        }
+      } else if (anyWfh) {
+        // Outside every radius but WFH is permitted — mark WFH, not flagged
+        // (honours the site allowWfh escape hatch).
+        status = "WFH";
+        locationVerified = null;
       } else {
         // Missing coords or outside every site radius — record but auto-flag for review.
         locationVerified = false;
@@ -214,8 +226,9 @@ export async function checkIn(input: {
     data: { action: "ATTENDANCE_CHECK_IN", entityType: "ATTENDANCE", entityId: rec.id, userId: u.id, changes: { status, visitType, locationVerified, flagged } },
   });
 
-  // Best-effort notification — must not block or fail the check-in.
-  await notifyPunch({
+  // Best-effort notification — fire-and-forget so email latency never delays
+  // the check-in response (notifyPunch already swallows its own errors).
+  void notifyPunch({
     employeeName: `${emp.firstName} ${emp.lastName}`.trim(),
     reportingManagerId: emp.reportingManagerId,
     visitType, locationVerified, flagged, flagReason,
@@ -239,9 +252,9 @@ export async function checkOut(): Promise<Result<{ workedMinutes: number; status
 
   const now = new Date();
   const workedMinutes = Math.max(0, Math.round((now.getTime() - rec.checkInAt.getTime()) / 60000));
-  // Downgrade to half-day if short; keep WFH vs PRESENT otherwise.
+  // Downgrade to half-day if short — but never overwrite a WFH classification.
   let status = rec.status;
-  if (workedMinutes < HALF_DAY_MINUTES) status = "HALF_DAY";
+  if (rec.status !== "WFH" && workedMinutes < HALF_DAY_MINUTES) status = "HALF_DAY";
 
   await prisma.attendanceRecord.update({
     where: { id: rec.id },

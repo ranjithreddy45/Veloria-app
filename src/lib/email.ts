@@ -22,16 +22,18 @@ const FROM_EMAIL =
   `${APP_NAME} <noreply@${process.env.EMAIL_DOMAIN || "veloriagrand.com"}>`;
 
 interface SendEmailParams {
-  to: string;
+  to: string | string[];
   subject: string;
   html: string;
+  /** Optional carbon-copy recipients (e.g. HR looped in on a notification). */
+  cc?: string | string[];
 }
 
 /**
  * Send an email via Resend. Returns { success, messageId } or { success: false, error }.
  * Designed to be called fire-and-forget — wrap in try/catch in callers.
  */
-export async function sendEmail({ to, subject, html }: SendEmailParams) {
+export async function sendEmail({ to, subject, html, cc }: SendEmailParams) {
   const resend = getResend();
   if (!resend) {
     console.warn("[EMAIL] RESEND_API_KEY not configured — skipping email");
@@ -42,6 +44,7 @@ export async function sendEmail({ to, subject, html }: SendEmailParams) {
     const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,
       to,
+      ...(cc && (Array.isArray(cc) ? cc.length > 0 : true) ? { cc } : {}),
       subject: subject.includes(APP_NAME) ? subject : `${subject} — ${APP_NAME}`,
       html,
     });
