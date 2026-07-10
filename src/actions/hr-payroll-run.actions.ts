@@ -7,6 +7,9 @@ import { Prisma } from "@prisma/client";
 import { hasPermission } from "@/lib/permissions";
 import { computePayslip, type StructureLine, type StatConfig } from "@/lib/hr/payroll-calc";
 import { resolveStatConfig } from "@/lib/hr/stat-config";
+
+/** Round to paise. Money must never carry float dust into a Decimal column. */
+const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 import { sendEmail } from "@/lib/email";
 import { postWithinTx, fyForDate } from "@/lib/finance/ledger";
 import { FIN_ACCOUNT_CODES } from "@/lib/finance/coa-seed";
@@ -205,6 +208,20 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
     cfgByEntity.set(eid, resolved.cfg);
   }
 
+  // ---- Salary advances due for recovery this month ----
+  // An advance is due once its start period has arrived. `startFy` is "YYYY-YY",
+  // which sorts lexicographically in chronological order, so a plain string
+  // compare is correct here.
+  const advances = await prisma.hrAdvance.findMany({
+    where: { status: "ACTIVE", employeeId: { in: employees.map((e) => e.id) } },
+    include: { recoveries: { where: { runId }, select: { amount: true } } },
+  });
+  const dueAdvances = advances.filter(
+    (a) => a.startFy < run.fy || (a.startFy === run.fy && a.startMonth <= run.month),
+  );
+  const advByEmp = new Map<string, (typeof dueAdvances)[number]>();
+  for (const a of dueAdvances) advByEmp.set(a.employeeId, a); // at most one ACTIVE per employee
+
   await prisma.$transaction(async (tx) => {
     for (const emp of employees) {
       const struct = structByEmp.get(emp.id);
@@ -223,10 +240,48 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
         cfg: emp.legalEntityId ? cfgByEntity.get(emp.legalEntityId) : undefined,
       });
 
+      // ---- Advance recovery ----
+      // Idempotent by construction: a re-run of the SAME month first backs out
+      // whatever this run previously recovered, so `recovered` can never be
+      // double-counted. The instalment is capped by BOTH the outstanding balance
+      // and this month's net pay, so recovery never drives a salary negative.
+      const adv = advByEmp.get(emp.id);
+      let advanceRecovered = 0;
+      if (adv) {
+        const priorThisRun = adv.recoveries.length ? Number(adv.recoveries[0].amount) : 0;
+        const recoveredExcludingThisRun = Math.max(0, Number(adv.recovered) - priorThisRun);
+        const outstanding = Math.max(0, Number(adv.amount) - recoveredExcludingThisRun);
+        advanceRecovered = r2(Math.min(Number(adv.monthlyInstallment), outstanding, Math.max(0, c.net)));
+
+        if (advanceRecovered > 0) {
+          await tx.hrAdvanceRecovery.upsert({
+            where: { advanceId_runId: { advanceId: adv.id, runId } },
+            create: { advanceId: adv.id, runId, amount: new Prisma.Decimal(advanceRecovered) },
+            update: { amount: new Prisma.Decimal(advanceRecovered) },
+          });
+        } else if (priorThisRun > 0) {
+          // Nothing recoverable now (e.g. a zero-pay month) — drop a stale row.
+          await tx.hrAdvanceRecovery.deleteMany({ where: { advanceId: adv.id, runId } });
+        }
+
+        const newRecovered = r2(recoveredExcludingThisRun + advanceRecovered);
+        const settled = newRecovered >= Number(adv.amount) - 0.005;
+        await tx.hrAdvance.update({
+          where: { id: adv.id },
+          data: { recovered: new Prisma.Decimal(newRecovered), ...(settled ? { status: "CLOSED" } : {}) },
+        });
+      }
+
+      const netAfterAdvance = r2(Math.max(0, c.net - advanceRecovered));
+      const deductionsWithAdvance =
+        advanceRecovered > 0
+          ? [...c.deductions, { code: "ADV", name: "Advance recovery", amount: advanceRecovered }]
+          : c.deductions;
+
       headcount++;
       totalGross += c.gross;
-      totalDeductions += c.totalDeductions;
-      totalNet += c.net;
+      totalDeductions += c.totalDeductions + advanceRecovered;
+      totalNet += netAfterAdvance;
 
       const name = `${emp.firstName} ${emp.lastName}`.trim();
       const payslipData = {
@@ -236,13 +291,15 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
         lopDays: new Prisma.Decimal(c.lopDays),
         gross: new Prisma.Decimal(c.gross),
         earnings: c.earnings as unknown as Prisma.InputJsonValue,
-        deductions: c.deductions as unknown as Prisma.InputJsonValue,
+        deductions: deductionsWithAdvance as unknown as Prisma.InputJsonValue,
+        advanceRecovered: new Prisma.Decimal(advanceRecovered),
         pf: new Prisma.Decimal(c.pf),
         esi: new Prisma.Decimal(c.esi),
         pt: new Prisma.Decimal(c.pt),
         tds: new Prisma.Decimal(c.tds),
         gratuityAccrued: new Prisma.Decimal(c.gratuityAccrued),
-        net: new Prisma.Decimal(c.net),
+        // Net PAYABLE after advance recovery (never negative).
+        net: new Prisma.Decimal(netAfterAdvance),
         // Employer legs — cost to company, never deducted from the employee.
         employerEps: new Prisma.Decimal(c.employerEps),
         employerEpf: new Prisma.Decimal(c.employerEpf),

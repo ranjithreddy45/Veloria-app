@@ -5112,6 +5112,7 @@ model Employee {
   leaveApprovals    LeaveRequest[]            @relation("LeaveApprover")
   compOffs          CompOff[]
   attendance        AttendanceRecord[]
+  advances          HrAdvance[]
   regularizations   Regularization[]          @relation("RegnEmployee")
   documents         HrDocument[]
   docAcks           DocumentAcknowledgement[]
@@ -8278,6 +8279,50 @@ enum HrStatutoryType {
 
 // Configurable pay heads (earnings & deductions). Statutory heads are
 // flagged so the engine computes them from law rather than a flat value.
+// ============================================================
+// Salary advance (spec: Scheduled Deduction > Advance).
+// ------------------------------------------------------------
+// A lump sum paid to an employee and recovered in monthly instalments through
+// payroll. `recovered` is the running total already deducted; the outstanding
+// balance is (amount - recovered). Recovery stops automatically at zero.
+// ============================================================
+model HrAdvance {
+  id                 String   @id @default(cuid())
+  employeeId         String
+  employee           Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  amount             Decimal  @db.Decimal(18, 2)
+  monthlyInstallment Decimal  @db.Decimal(18, 2)
+  recovered          Decimal  @default(0) @db.Decimal(18, 2)
+  /// ACTIVE | CLOSED | CANCELLED — only ACTIVE advances are recovered in a run.
+  status             String   @default("ACTIVE")
+  startFy            String // e.g. "2026-27"
+  startMonth         Int // calendar month 1..12 recovery begins
+  reason             String?
+  createdById        String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  recoveries HrAdvanceRecovery[]
+
+  @@index([employeeId, status])
+  @@index([status])
+}
+
+/// One recovery instalment actually deducted, keyed to the payroll run that took
+/// it. Unique per (advance, run) so re-running a payroll month can never
+/// double-recover the same instalment.
+model HrAdvanceRecovery {
+  id        String    @id @default(cuid())
+  advanceId String
+  advance   HrAdvance @relation(fields: [advanceId], references: [id], onDelete: Cascade)
+  runId     String
+  amount    Decimal   @db.Decimal(18, 2)
+  createdAt DateTime  @default(now())
+
+  @@unique([advanceId, runId])
+  @@index([runId])
+}
+
 model HrPayComponent {
   id        String             @id @default(cuid())
   entityId  String             @default("BILLION")
@@ -8373,6 +8418,19 @@ model HrPayslip {
   employerEsi     Decimal @default(0) @db.Decimal(18, 2) // 3.25%
   employerCost    Decimal @default(0) @db.Decimal(18, 2) // employer legs + gratuity accrual
   ctc             Decimal @default(0) @db.Decimal(18, 2) // gross + employerCost
+
+  // --- Salary hold / release (spec: Salary Process > Salary On Hold) ---
+  // A held payslip is computed and visible but MUST be excluded from bank
+  // disbursement until released. The hold never alters the computed figures.
+  onHold       Boolean   @default(false)
+  holdReason   String?
+  heldById     String?
+  heldAt       DateTime?
+  releasedById String?
+  releasedAt   DateTime?
+
+  // --- Salary advance recovery deducted in this payslip ---
+  advanceRecovered Decimal @default(0) @db.Decimal(18, 2)
 
   createdAt       DateTime     @default(now())
 
