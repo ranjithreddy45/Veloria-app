@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -19,6 +19,7 @@ import { StatusPill } from "@/components/shared/status-pill";
 import { formatDate, cn } from "@/lib/utils";
 import { LEAVE_STATUS_HUE, LEAVE_STATUS_LABELS } from "@/lib/hr/constants";
 import { applyLeave, cancelLeave } from "@/actions/hr-leave.actions";
+import { LeaveApplyCalendar } from "./leave-apply-calendar";
 
 interface LeaveType { id: string; name: string; code: string; color: string; allowHalfDay: boolean }
 interface Balance {
@@ -66,6 +67,15 @@ export function LeaveHome({
   const bookedThisYear = balances.reduce((s, b) => s + b.used, 0);
   const pendingTotal = balances.reduce((s, b) => s + b.pending, 0);
 
+  // Controlled apply dialog so the calendar can open it prefilled with a range.
+  const [applyOpen, setApplyOpen] = React.useState(false);
+  const [seed, setSeed] = React.useState<{ start?: string; end?: string }>({});
+
+  function openApply(start?: string, end?: string) {
+    setSeed({ start, end });
+    setApplyOpen(true);
+  }
+
   return (
     <div className="space-y-5">
       {/* Summary line + apply */}
@@ -75,13 +85,14 @@ export function LeaveHome({
           <span className="h-3 w-px bg-border" />
           <span className="text-muted-foreground">Pending <span className="font-semibold tabular-nums text-foreground">{pendingTotal}</span></span>
         </div>
-        <ApplyLeaveDialog types={types} />
+        <Button className="gap-1.5" onClick={() => openApply()}><Plus className="size-4" /> Apply for leave</Button>
       </div>
 
       {/* Leave-type balance cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
         {balances.map((b) => {
-          const available = b.entitled + b.carriedForward - b.used - b.pending;
+          const total = b.entitled + b.carriedForward;
+          const available = total - b.used - b.pending;
           return (
             <div key={b.id} className="rounded-xl border border-border/70 bg-card p-4 shadow-card transition-shadow duration-200 hover:shadow-card-hover">
               <div className="flex items-center justify-between">
@@ -91,42 +102,55 @@ export function LeaveHome({
                 <StatusPill label={b.leaveType.code} hue={b.leaveType.color as never} size="xs" />
               </div>
               <div className="mt-2.5 truncate text-[12.5px] font-medium" title={b.leaveType.name}>{b.leaveType.name}</div>
-              <div className="mt-1.5 flex items-end justify-between">
-                <div>
-                  <div className="text-2xl font-semibold leading-none tabular-nums">{available}</div>
-                  <div className="mt-1 text-[11px] text-muted-foreground">Available</div>
+              <div className="mt-1.5">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl font-semibold leading-none tabular-nums">{available}</span>
+                  <span className="text-[12.5px] text-muted-foreground">of {total} days left</span>
                 </div>
-                <div className="text-right">
-                  <div className="text-base font-semibold leading-none tabular-nums text-muted-foreground">{b.used}</div>
-                  <div className="mt-1 text-[11px] text-muted-foreground">Booked</div>
+                <div className="mt-1.5 flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+                  <span>{b.used} booked</span>
+                  {b.pending > 0 && <span className="text-amber-600 dark:text-amber-400">· {b.pending} pending</span>}
                 </div>
               </div>
-              {b.pending > 0 && <div className="mt-2 text-[11px] text-amber-600 dark:text-amber-400">{b.pending} pending approval</div>}
             </div>
           );
         })}
       </div>
 
-      {/* Upcoming holidays */}
-      {holidays.length > 0 && (
-        <div className="rounded-xl border border-border/70 bg-card shadow-card">
-          <div className="flex items-center gap-2 border-b px-4 py-3 text-[13px] font-semibold">
-            <PartyPopper className="size-4 text-[#C9A96E]" /> Upcoming holidays
-          </div>
-          <ul className="divide-y">
-            {holidays.map((h) => (
-              <li key={h.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
-                <span className="flex items-center gap-2.5 text-[13px] font-medium">
-                  <CalendarDays className="size-3.5 text-muted-foreground" /> {h.name}
-                </span>
-                <span className="text-[12.5px] text-muted-foreground">
-                  {new Date(h.date).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
-                </span>
-              </li>
-            ))}
-          </ul>
+      {/* Click-to-apply calendar + upcoming holidays */}
+      <div className="grid gap-3 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <LeaveApplyCalendar onSelectRange={(start, end) => openApply(start, end)} />
         </div>
-      )}
+
+        {holidays.length > 0 && (
+          <div className="rounded-xl border border-border/70 bg-card shadow-card">
+            <div className="flex items-center gap-2 border-b px-4 py-3 text-[13px] font-semibold">
+              <PartyPopper className="size-4 text-[#C9A96E]" /> Upcoming holidays
+            </div>
+            <ul className="divide-y">
+              {holidays.map((h) => (
+                <li key={h.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                  <span className="flex items-center gap-2.5 text-[13px] font-medium">
+                    <CalendarDays className="size-3.5 text-muted-foreground" /> {h.name}
+                  </span>
+                  <span className="text-[12.5px] text-muted-foreground">
+                    {new Date(h.date).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
+      <ApplyLeaveDialog
+        types={types}
+        open={applyOpen}
+        onOpenChange={setApplyOpen}
+        initialStart={seed.start}
+        initialEnd={seed.end}
+      />
 
       <div className="rounded-xl border bg-card">
         <div className="border-b px-4 py-3 text-[13px] font-semibold">My leave requests</div>
@@ -192,9 +216,16 @@ function CancelButton({ id }: { id: string }) {
   );
 }
 
-function ApplyLeaveDialog({ types }: { types: LeaveType[] }) {
+function ApplyLeaveDialog({
+  types, open, onOpenChange, initialStart, initialEnd,
+}: {
+  types: LeaveType[];
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  initialStart?: string;
+  initialEnd?: string;
+}) {
   const router = useRouter();
-  const [open, setOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [leaveTypeId, setLeaveTypeId] = React.useState("");
@@ -203,6 +234,18 @@ function ApplyLeaveDialog({ types }: { types: LeaveType[] }) {
   const [startPart, setStartPart] = React.useState("FULL");
   const [endPart, setEndPart] = React.useState("FULL");
   const [reason, setReason] = React.useState("");
+
+  // Seed / reset the form each time the dialog opens (dates come from the
+  // calendar selection when present, otherwise a blank form).
+  React.useEffect(() => {
+    if (open) {
+      setStartDate(initialStart ?? "");
+      setEndDate(initialEnd ?? initialStart ?? "");
+      setStartPart("FULL");
+      setEndPart("FULL");
+      setError(null);
+    }
+  }, [open, initialStart, initialEnd]);
 
   const selected = types.find((t) => t.id === leaveTypeId);
   const singleDay = startDate && startDate === endDate;
@@ -219,16 +262,13 @@ function ApplyLeaveDialog({ types }: { types: LeaveType[] }) {
     });
     setSaving(false);
     if (!res.success) { setError(res.error); return; }
-    setOpen(false);
+    onOpenChange(false);
     setLeaveTypeId(""); setStartDate(""); setEndDate(""); setStartPart("FULL"); setEndPart("FULL"); setReason("");
     router.refresh();
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="gap-1.5"><Plus className="size-4" /> Apply for leave</Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Apply for leave</DialogTitle>
@@ -284,7 +324,7 @@ function ApplyLeaveDialog({ types }: { types: LeaveType[] }) {
         </div>
         {error && <p className="text-sm text-red-600">{error}</p>}
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancel</Button>
           <Button onClick={submit} disabled={saving} className="gap-1.5">
             {saving && <Loader2 className="size-4 animate-spin" />} Submit
           </Button>

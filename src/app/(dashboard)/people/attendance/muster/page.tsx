@@ -26,7 +26,12 @@ function currentFy(): string {
 export default async function AttendanceMusterPage() {
   if (!FEATURES.hr || !FEATURES.hrAttendance) notFound();
   const session = await auth();
-  if (!hasPermission(session?.user?.role ?? "", "hr:read")) redirect("/people");
+  const role = session?.user?.role ?? "";
+  if (!hasPermission(role, "hr:read")) redirect("/people");
+
+  // Correcting the muster is an HR-privileged action; read-only users still see
+  // the register but the grid stays static for them.
+  const canEdit = hasPermission(role, "hr:write") || hasPermission(role, "hr:admin");
 
   const date = todayIst();
   const initial = await getDailyMuster({ date });
@@ -38,7 +43,7 @@ export default async function AttendanceMusterPage() {
         title="Muster / Register"
         description="The organisation-wide attendance register. Pick a day to see who's present, absent, on leave or working from home — with check-in time and any flagged punches — or switch to the monthly grid."
       />
-      <MusterView initialDate={date} initial={initial} initialFy={currentFy()} initialMonth={new Date().getMonth() + 1} />
+      <MusterView initialDate={date} initial={initial} initialFy={currentFy()} initialMonth={new Date().getMonth() + 1} canEdit={canEdit} />
     </div>
   );
 }

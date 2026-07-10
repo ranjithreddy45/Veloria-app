@@ -71,6 +71,238 @@ export async function getHolidays(year = currentYear()) {
 }
 
 // ============================================================
+// Leave-type configuration (admin CRUD). Replaces the one-shot seed so
+// the catalogue can be tuned (entitlement, carry-forward, half-day, colour)
+// and new types added without a code change. All gated hr:admin.
+// ============================================================
+export interface LeaveTypeInput {
+  name: string;
+  code: string;
+  paid: boolean;
+  accrualPerYear: number;
+  carryForwardMax: number;
+  allowHalfDay: boolean;
+  allowNegative: boolean;
+  requiresApproval: boolean;
+  color: string;
+  order: number;
+}
+
+// Normalise + validate a submitted leave-type payload. Returns an error string
+// or a cleaned data object ready for Prisma.
+function normalizeLeaveTypeInput(input: LeaveTypeInput): { error: string } | { data: LeaveTypeInput } {
+  const name = input.name?.trim();
+  if (!name) return { error: "Name is required." };
+  const code = input.code?.trim().toUpperCase();
+  if (!code) return { error: "Code is required." };
+  if (!/^[A-Z0-9_]{1,12}$/.test(code)) return { error: "Code must be 1–12 letters, digits or underscores." };
+  const num = (v: number, label: string): number | { error: string } => {
+    const n = Number(v);
+    if (!Number.isFinite(n) || n < 0) return { error: `${label} must be a number ≥ 0.` };
+    return n;
+  };
+  const accrual = num(input.accrualPerYear, "Annual entitlement");
+  if (typeof accrual === "object") return accrual;
+  const carry = num(input.carryForwardMax, "Carry-forward cap");
+  if (typeof carry === "object") return carry;
+  const order = num(input.order, "Order");
+  if (typeof order === "object") return order;
+  return {
+    data: {
+      name,
+      code,
+      paid: !!input.paid,
+      accrualPerYear: accrual,
+      carryForwardMax: carry,
+      allowHalfDay: !!input.allowHalfDay,
+      allowNegative: !!input.allowNegative,
+      requiresApproval: !!input.requiresApproval,
+      color: (input.color?.trim() || "blue"),
+      order: Math.round(order),
+    },
+  };
+}
+
+export async function createLeaveType(input: LeaveTypeInput): Promise<Result<{ id: string }>> {
+  const u = await requireUser();
+  if (!can(u?.role, "hr:admin")) return { success: false, error: "Not authorized." };
+
+  const norm = normalizeLeaveTypeInput(input);
+  if ("error" in norm) return { success: false, error: norm.error };
+
+  const clash = await prisma.leaveType.findUnique({ where: { code: norm.data.code }, select: { id: true } });
+  if (clash) return { success: false, error: `A leave type with code ${norm.data.code} already exists.` };
+
+  try {
+    const created = await prisma.leaveType.create({ data: norm.data });
+    revalidatePath("/people/leave");
+    revalidatePath("/people/leave/types");
+    return { success: true, data: { id: created.id } };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : "Could not create leave type." };
+  }
+}
+
+export async function updateLeaveType(id: string, input: LeaveTypeInput): Promise<Result<{ id: string }>> {
+  const u = await requireUser();
+  if (!can(u?.role, "hr:admin")) return { success: false, error: "Not authorized." };
+
+  const existing = await prisma.leaveType.findUnique({ where: { id }, select: { id: true } });
+  if (!existing) return { success: false, error: "Leave type not found." };
+
+  const norm = normalizeLeaveTypeInput(input);
+  if ("error" in norm) return { success: false, error: norm.error };
+
+  // Guard the unique code against any OTHER type.
+  const clash = await prisma.leaveType.findFirst({
+    where: { code: norm.data.code, id: { not: id } },
+    select: { id: true },
+  });
+  if (clash) return { success: false, error: `A leave type with code ${norm.data.code} already exists.` };
+
+  try {
+    await prisma.leaveType.update({ where: { id }, data: norm.data });
+    revalidatePath("/people/leave");
+    revalidatePath("/people/leave/types");
+    return { success: true, data: { id } };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : "Could not update leave type." };
+  }
+}
+
+export async function setLeaveTypeActive(id: string, isActive: boolean): Promise<Result<{ id: string }>> {
+  const u = await requireUser();
+  if (!can(u?.role, "hr:admin")) return { success: false, error: "Not authorized." };
+  const existing = await prisma.leaveType.findUnique({ where: { id }, select: { id: true } });
+  if (!existing) return { success: false, error: "Leave type not found." };
+  await prisma.leaveType.update({ where: { id }, data: { isActive: !!isActive } });
+  revalidatePath("/people/leave");
+  revalidatePath("/people/leave/types");
+  return { success: true, data: { id } };
+}
+
+// List ALL leave types (active + inactive) for the admin config surface.
+export async function getLeaveTypesAdmin() {
+  const u = await requireUser();
+  if (!can(u?.role, "hr:admin")) return [];
+  return prisma.leaveType.findMany({ orderBy: [{ order: "asc" }, { name: "asc" }] });
+}
+
+// ============================================================
+// Balance provisioning (admin) + admin balances grid (hr:read).
+// ------------------------------------------------------------
+// provisionLeaveBalances seeds a LeaveBalance row for every active employee ×
+// active leave type for a year. IDEMPOTENT: it only inserts rows that are
+// missing (createMany + skipDuplicates on the [employeeId, leaveTypeId, year]
+// unique key) and NEVER updates existing rows, so re-running never resets an
+// employee's used / pending / carriedForward. Writes are chunked so a few
+// hundred employees don't blow a single statement.
+// ============================================================
+export async function provisionLeaveBalances(input: { year: number; leaveTypeId?: string }): Promise<Result<{ created: number; skipped: number }>> {
+  const u = await requireUser();
+  if (!can(u?.role, "hr:admin")) return { success: false, error: "Not authorized." };
+
+  const year = Number(input.year);
+  if (!Number.isInteger(year) || year < 2000 || year > 3000) return { success: false, error: "Invalid year." };
+
+  const types = await prisma.leaveType.findMany({
+    where: { isActive: true, ...(input.leaveTypeId ? { id: input.leaveTypeId } : {}) },
+    select: { id: true, accrualPerYear: true },
+  });
+  if (types.length === 0) return { success: false, error: "No active leave types to provision." };
+
+  const employees = await prisma.employee.findMany({
+    where: { deletedAt: null, status: "ACTIVE" },
+    select: { id: true },
+  });
+  if (employees.length === 0) return { success: true, data: { created: 0, skipped: 0 } };
+
+  const empIds = employees.map((e) => e.id);
+  const total = employees.length * types.length;
+
+  // Existing rows in scope — used only to compute the skipped count. The actual
+  // insert relies on skipDuplicates so it stays correct even under a race.
+  const existing = await prisma.leaveBalance.findMany({
+    where: { year, employeeId: { in: empIds }, ...(input.leaveTypeId ? { leaveTypeId: input.leaveTypeId } : {}) },
+    select: { employeeId: true, leaveTypeId: true },
+  });
+  const have = new Set(existing.map((b) => `${b.employeeId}:${b.leaveTypeId}`));
+
+  const toCreate: Prisma.LeaveBalanceCreateManyInput[] = [];
+  for (const e of employees) {
+    for (const t of types) {
+      if (!have.has(`${e.id}:${t.id}`)) {
+        toCreate.push({ employeeId: e.id, leaveTypeId: t.id, year, entitled: t.accrualPerYear });
+      }
+    }
+  }
+
+  let created = 0;
+  const CHUNK = 500;
+  try {
+    for (let i = 0; i < toCreate.length; i += CHUNK) {
+      const batch = toCreate.slice(i, i + CHUNK);
+      const res = await prisma.leaveBalance.createMany({ data: batch, skipDuplicates: true });
+      created += res.count;
+    }
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : "Could not provision balances." };
+  }
+
+  revalidatePath("/people/leave/balances");
+  return { success: true, data: { created, skipped: total - created } };
+}
+
+// Employees × leave types with entitled / used / pending / available for a year.
+export async function getLeaveBalancesAdmin(input: { year: number; leaveTypeId?: string }) {
+  const u = await requireUser();
+  if (!can(u?.role, "hr:read")) return { year: currentYear(), types: [], rows: [] };
+
+  const year = Number.isInteger(Number(input.year)) ? Number(input.year) : currentYear();
+
+  const types = await prisma.leaveType.findMany({
+    where: { isActive: true, ...(input.leaveTypeId ? { id: input.leaveTypeId } : {}) },
+    orderBy: [{ order: "asc" }, { name: "asc" }],
+    select: { id: true, name: true, code: true, color: true },
+  });
+
+  const employees = await prisma.employee.findMany({
+    where: { deletedAt: null, status: "ACTIVE" },
+    orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
+    select: {
+      id: true, firstName: true, lastName: true, empCode: true,
+      leaveBalances: {
+        where: { year, ...(input.leaveTypeId ? { leaveTypeId: input.leaveTypeId } : {}) },
+        select: { leaveTypeId: true, entitled: true, carriedForward: true, used: true, pending: true },
+      },
+    },
+  });
+
+  const rows = employees.map((e) => {
+    const byType: Record<string, { entitled: number; used: number; pending: number; available: number } | null> = {};
+    for (const t of types) {
+      const b = e.leaveBalances.find((x) => x.leaveTypeId === t.id);
+      byType[t.id] = b
+        ? {
+            entitled: b.entitled + b.carriedForward,
+            used: b.used,
+            pending: b.pending,
+            available: b.entitled + b.carriedForward - b.used - b.pending,
+          }
+        : null;
+    }
+    return {
+      employeeId: e.id,
+      name: `${e.firstName} ${e.lastName}`.trim(),
+      empCode: e.empCode,
+      byType,
+    };
+  });
+
+  return { year, types, rows };
+}
+
+// ============================================================
 // Holiday management (admin CRUD). Replaces the one-shot 2026 seed so
 // 2027+ holidays can be added and typos fixed without a code change.
 // Dates are stored at UTC midnight to match seedLeaveSetup exactly

@@ -1,23 +1,32 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   Users, CheckCircle2, CircleSlash, Home, Plane, AlertTriangle, Loader2, Search,
+  Download, Printer, Pencil,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { StatTile } from "@/components/ui/stat-tile";
 import { StatusPill, type Hue } from "@/components/shared/status-pill";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { toCSV, downloadCSV } from "@/lib/csv-export";
 import {
   getDailyMuster, getMonthlyRegister,
   type DailyMuster, type MonthlyRegister, type MusterStatus,
 } from "@/actions/hr-attendance-register.actions";
+import { markAttendanceManually } from "@/actions/hr-attendance.actions";
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -57,13 +66,30 @@ function prettyDay(dateStr: string): string {
   });
 }
 
+/** The 7 AttendanceStatus values, in the order shown in the edit Select. */
+const STATUS_VALUES: MusterStatus[] = [
+  "PRESENT", "ABSENT", "HALF_DAY", "WFH", "ON_LEAVE", "HOLIDAY", "WEEKEND",
+];
+
+/** Single-letter register codes for CSV export (distinct from the grid glyphs). */
+const CSV_CODE: Record<MusterStatus, string> = {
+  PRESENT: "P", ABSENT: "A", HALF_DAY: "HD", WFH: "W",
+  ON_LEAVE: "L", HOLIDAY: "H", WEEKEND: "WO",
+};
+
+/** Zero-padded UTC-midnight day key for a register cell, e.g. "2026-07-09". */
+function dayKey(year: number, month: number, day: number): string {
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
 export function MusterView({
-  initialDate, initial, initialFy, initialMonth,
+  initialDate, initial, initialFy, initialMonth, canEdit,
 }: {
   initialDate: string;
   initial: DailyMuster | null;
   initialFy: string;
   initialMonth: number;
+  canEdit: boolean;
 }) {
   const [tab, setTab] = React.useState<"day" | "month">("day");
 
@@ -88,7 +114,7 @@ export function MusterView({
 
       {tab === "day"
         ? <DayView initialDate={initialDate} initial={initial} />
-        : <MonthView initialFy={initialFy} initialMonth={initialMonth} />}
+        : <MonthView initialFy={initialFy} initialMonth={initialMonth} canEdit={canEdit} />}
     </div>
   );
 }
@@ -125,6 +151,29 @@ function DayView({ initialDate, initial }: { initialDate: string; initial: Daily
 
   const s = muster?.summary;
 
+  function exportCsv() {
+    if (!muster || muster.rows.length === 0) { toast.error("Nothing to export."); return; }
+    const headers = [
+      "Code", "Name", "Department", "Status",
+      "Check-in (IST)", "Check-out (IST)", "Worked (hrs)", "Flagged",
+    ];
+    const body = muster.rows.map((r) => [
+      r.empCode,
+      r.name,
+      r.department ?? "",
+      STATUS_META[r.status]?.label ?? r.status,
+      r.checkInAt ? istTime(r.checkInAt) : "",
+      r.checkOutAt ? istTime(r.checkOutAt) : "",
+      (r.workedMinutes / 60).toFixed(2),
+      r.flagged ? "Yes" : "",
+    ]);
+    downloadCSV(`muster-daily-${date}.csv`, toCSV(headers, body));
+  }
+
+  function openPrint() {
+    window.open(`/api/hr/muster?date=${encodeURIComponent(date)}`, "_blank", "noopener,noreferrer");
+  }
+
   return (
     <div className="space-y-4">
       {/* Controls */}
@@ -141,6 +190,14 @@ function DayView({ initialDate, initial }: { initialDate: string; initial: Daily
           </div>
         </div>
         {loading && <Loader2 className="mb-2 size-4 animate-spin text-muted-foreground" />}
+        <div className="flex items-center gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={exportCsv} disabled={!muster || muster.rows.length === 0}>
+            <Download /> Export CSV
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={openPrint}>
+            <Printer /> Print / PDF
+          </Button>
+        </div>
       </div>
 
       <p className="text-[12.5px] text-muted-foreground">{prettyDay(date)}</p>
@@ -221,12 +278,21 @@ function DayView({ initialDate, initial }: { initialDate: string; initial: Daily
 // ============================================================
 // Monthly register grid
 // ============================================================
-function MonthView({ initialFy, initialMonth }: { initialFy: string; initialMonth: number }) {
+function MonthView({ initialFy, initialMonth, canEdit }: { initialFy: string; initialMonth: number; canEdit: boolean }) {
+  const router = useRouter();
   const fys = React.useMemo(fyOptions, []);
   const [fy, setFy] = React.useState(initialFy);
   const [month, setMonth] = React.useState(String(initialMonth));
   const [reg, setReg] = React.useState<MonthlyRegister | null>(null);
   const [loading, setLoading] = React.useState(false);
+
+  // Click-to-edit dialog target (HR-privileged only).
+  const [edit, setEdit] = React.useState<
+    { employeeId: string; name: string; empCode: string; date: string; current: MusterStatus | null } | null
+  >(null);
+  const [editStatus, setEditStatus] = React.useState<MusterStatus>("PRESENT");
+  const [editNote, setEditNote] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
 
   const load = React.useCallback(async (f: string, m: number) => {
     setLoading(true);
@@ -239,6 +305,67 @@ function MonthView({ initialFy, initialMonth }: { initialFy: string; initialMont
   React.useEffect(() => { load(initialFy, initialMonth); }, [load, initialFy, initialMonth]);
 
   const days = reg ? Array.from({ length: reg.daysInMonth }, (_, i) => i + 1) : [];
+
+  function openEdit(row: MonthlyRegister["rows"][number], day: number) {
+    if (!reg) return;
+    const current = row.days[day] ?? null;
+    setEdit({
+      employeeId: row.employeeId,
+      name: row.name,
+      empCode: row.empCode,
+      date: dayKey(reg.year, reg.month, day),
+      current,
+    });
+    setEditStatus(current ?? "PRESENT");
+    setEditNote("");
+  }
+
+  async function saveEdit() {
+    if (!edit) return;
+    setSaving(true);
+    const res = await markAttendanceManually({
+      employeeId: edit.employeeId,
+      date: edit.date,
+      status: editStatus,
+      note: editNote.trim() || undefined,
+    });
+    setSaving(false);
+    if (!res.success) { toast.error(res.error || "Couldn't save."); return; }
+    toast.success("Attendance updated.");
+    setEdit(null);
+    // Refresh server data and re-pull the register so the grid reflects the change.
+    router.refresh();
+    load(fy, Number(month));
+  }
+
+  function exportCsv() {
+    if (!reg || reg.rows.length === 0) { toast.error("Nothing to export."); return; }
+    const headers = [
+      "Code", "Name", "Department",
+      ...days.map((d) => String(d)),
+      "Present", "Absent", "Leave", "WFH",
+    ];
+    const body = reg.rows.map((r) => {
+      const dayCells = days.map((d) => {
+        const st = r.days[d];
+        return st ? CSV_CODE[st] : "";
+      });
+      const vals = Object.values(r.days);
+      const present = vals.filter((s) => s === "PRESENT" || s === "HALF_DAY").length;
+      const absent = vals.filter((s) => s === "ABSENT").length;
+      const leave = vals.filter((s) => s === "ON_LEAVE").length;
+      const wfh = vals.filter((s) => s === "WFH").length;
+      return [r.empCode, r.name, r.department ?? "", ...dayCells, present, absent, leave, wfh];
+    });
+    downloadCSV(`muster-register-${reg.fy}-${String(reg.month).padStart(2, "0")}.csv`, toCSV(headers, body));
+  }
+
+  function openPrint() {
+    window.open(
+      `/api/hr/muster?fy=${encodeURIComponent(fy)}&month=${encodeURIComponent(month)}`,
+      "_blank", "noopener,noreferrer",
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -258,7 +385,22 @@ function MonthView({ initialFy, initialMonth }: { initialFy: string; initialMont
           </Select>
         </div>
         {loading && <Loader2 className="mb-2 size-4 animate-spin text-muted-foreground" />}
+        <div className="ml-auto flex items-center gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={exportCsv} disabled={!reg || reg.rows.length === 0}>
+            <Download /> Export CSV
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={openPrint}>
+            <Printer /> Print / PDF
+          </Button>
+        </div>
       </div>
+
+      {canEdit && (
+        <p className="text-[11.5px] text-muted-foreground">
+          <Pencil className="mr-1 inline size-3 align-[-1px]" />
+          Click any cell to correct that day&rsquo;s attendance.
+        </p>
+      )}
 
       {/* Legend */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11.5px] text-muted-foreground">
@@ -294,11 +436,21 @@ function MonthView({ initialFy, initialMonth }: { initialFy: string; initialMont
                   {days.map((d) => {
                     const st = r.days[d];
                     const meta = st ? STATUS_META[st] : null;
+                    const glyph = meta
+                      ? <span title={meta.label} className={`inline-flex size-6 items-center justify-center rounded text-[11px] font-semibold ${meta.cell}`}>{meta.code}</span>
+                      : <span className="text-muted-foreground/40">·</span>;
                     return (
                       <TableCell key={d} className="p-1 text-center">
-                        {meta
-                          ? <span title={meta.label} className={`inline-flex size-6 items-center justify-center rounded text-[11px] font-semibold ${meta.cell}`}>{meta.code}</span>
-                          : <span className="text-muted-foreground/40">·</span>}
+                        {canEdit ? (
+                          <button
+                            type="button"
+                            onClick={() => openEdit(r, d)}
+                            title={`Edit ${r.name} — day ${d}`}
+                            className="inline-flex items-center justify-center rounded transition hover:ring-2 hover:ring-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                          >
+                            {glyph}
+                          </button>
+                        ) : glyph}
                       </TableCell>
                     );
                   })}
@@ -309,6 +461,48 @@ function MonthView({ initialFy, initialMonth }: { initialFy: string; initialMont
           </Table>
         </div>
       )}
+
+      {/* Admin click-to-edit dialog */}
+      <Dialog open={!!edit} onOpenChange={(o) => { if (!o) setEdit(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Correct attendance</DialogTitle>
+            <DialogDescription>
+              {edit ? `${edit.name} (${edit.empCode}) · ${prettyDay(edit.date)}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <div>
+              <label className="mb-1 block text-[12px] font-medium text-muted-foreground">Status</label>
+              <Select value={editStatus} onValueChange={(v) => setEditStatus(v as MusterStatus)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {STATUS_VALUES.map((s) => (
+                    <SelectItem key={s} value={s}>{STATUS_META[s].label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="mb-1 block text-[12px] font-medium text-muted-foreground">Note <span className="font-normal">(optional)</span></label>
+              <Textarea
+                value={editNote}
+                onChange={(e) => setEditNote(e.target.value)}
+                placeholder="Reason for the correction"
+                rows={2}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => setEdit(null)} disabled={saving}>Cancel</Button>
+            <Button type="button" onClick={saveEdit} disabled={saving}>
+              {saving && <Loader2 className="animate-spin" />} Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

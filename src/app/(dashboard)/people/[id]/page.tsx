@@ -5,6 +5,7 @@ import {
   ArrowLeft, Mail, Phone, MapPin, Briefcase, Building2, Network, Lock, Users, FileText, ExternalLink,
 } from "lucide-react";
 import { auth } from "@/../auth";
+import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
 import { FEATURES } from "@/config/features";
 import { formatDate } from "@/lib/utils";
@@ -26,6 +27,7 @@ import { StatutoryPanel } from "./_components/statutory-panel";
 import { CompensationPanel } from "./_components/compensation-panel";
 import { CustomFieldsCard, RequestEditButton, type ActiveFieldDef } from "./_components/profile-extras";
 import { ProfileDetailsPanel } from "./_components/profile-details-panel";
+import { EmployeePayslips, type EmployeePayslipRow } from "./_components/employee-payslips";
 
 export const metadata: Metadata = { title: "Employee" };
 
@@ -51,6 +53,34 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
   const compensation = canPayroll
     ? await getEmployeeCompensation(emp.id)
     : { current: null, history: [] };
+
+  // Payslip history (HR-side). employeeId holds a real Employee.id; there is
+  // deliberately no FK relation, so we query HrPayslip directly.
+  const payslips: EmployeePayslipRow[] = canPayroll
+    ? (
+        await prisma.hrPayslip.findMany({
+          where: { employeeId: emp.id },
+          select: {
+            id: true,
+            net: true,
+            gross: true,
+            paidDays: true,
+            lopDays: true,
+            createdAt: true,
+            run: { select: { fy: true, month: true, label: true, status: true } },
+          },
+          orderBy: [{ run: { fy: "desc" } }, { run: { month: "desc" } }],
+        })
+      ).map((p) => ({
+        id: p.id,
+        net: Number(p.net),
+        gross: Number(p.gross),
+        paidDays: Number(p.paidDays),
+        lopDays: Number(p.lopDays),
+        createdAt: p.createdAt.toISOString(),
+        run: p.run,
+      }))
+    : [];
   const isSelf = !!emp.user && emp.user.id === session?.user?.id;
   const activeDefs = fieldDefs as unknown as ActiveFieldDef[];
   const customValues = (emp.customFields as Record<string, unknown>) ?? {};
@@ -132,6 +162,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
           <TabsTrigger value="team">Team</TabsTrigger>
           {showDocs && <TabsTrigger value="documents">Documents</TabsTrigger>}
           {canPayroll && <TabsTrigger value="compensation">Compensation</TabsTrigger>}
+          {canPayroll && <TabsTrigger value="payslips">Payslips</TabsTrigger>}
           <TabsTrigger value="statutory">Statutory</TabsTrigger>
         </TabsList>
 
@@ -290,6 +321,13 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
               history={compensation.history}
               canWrite={canPayroll}
             />
+          </TabsContent>
+        )}
+
+        {/* Payslips — HR-side history; drafts marked & non-downloadable */}
+        {canPayroll && (
+          <TabsContent value="payslips" className="space-y-4">
+            <EmployeePayslips payslips={payslips} />
           </TabsContent>
         )}
 

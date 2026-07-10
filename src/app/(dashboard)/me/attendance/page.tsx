@@ -6,6 +6,7 @@ import { FEATURES } from "@/config/features";
 import { PageHeader } from "@/components/layout/page-header";
 import { getMyAttendance } from "@/actions/hr-attendance.actions";
 import { AttendanceHome } from "@/app/(dashboard)/people/attendance/_components/attendance-home";
+import { MyMonthCalendar, type MyAttendanceDay } from "./_components/my-month-calendar";
 
 export const metadata: Metadata = { title: "My Attendance" };
 
@@ -47,14 +48,31 @@ export default async function MyAttendancePage() {
           connect your profile.
         </div>
       ) : (
-        // Self-service only: never expose the HR manual-mark override here.
-        <AttendanceHome
-          today={data.today as never}
-          records={data.records as never}
-          stats={data.stats}
-          canMarkManually={false}
-          employees={[]}
-        />
+        <>
+          {/* Additive month calendar — sits above the punch-in/out list. */}
+          <MyMonthCalendar
+            initialYear={data.year}
+            initialMonth={data.month}
+            initialRecords={data.records.map(
+              (r): MyAttendanceDay => ({
+                date: r.date.toISOString(),
+                status: r.status,
+                checkInAt: r.checkInAt ? r.checkInAt.toISOString() : null,
+                checkOutAt: r.checkOutAt ? r.checkOutAt.toISOString() : null,
+                workedMinutes: r.workedMinutes,
+              }),
+            )}
+          />
+
+          {/* Self-service only: never expose the HR manual-mark override here. */}
+          <AttendanceHome
+            today={data.today as never}
+            records={data.records as never}
+            stats={data.stats}
+            canMarkManually={false}
+            employees={[]}
+          />
+        </>
       )}
     </div>
   );
