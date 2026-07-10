@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
 import { redirect } from "next/navigation";
+import { UserSearchIcon } from "lucide-react";
 import { getRecruitDashboard } from "@/actions/recruit.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { RecruitOverview } from "./_components/recruit-overview";
@@ -20,6 +21,8 @@ export default async function RecruitmentPage() {
     <div className="space-y-5">
       <PageHeader
         aura
+        icon={UserSearchIcon}
+        accent="violet"
         title="Recruitment"
         eyebrow="Hiring · Overview"
         description="Track every opening through the hiring pipeline — screening to hire — with time-to-fill and time-to-hire at a glance."

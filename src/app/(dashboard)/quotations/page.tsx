@@ -34,6 +34,8 @@ export default async function QuotationsPage() {
     <div className="space-y-6">
       <PageHeader
         aura
+        icon={FileTextIcon}
+        accent="blue"
         eyebrow={
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <span>Sales · Pricing</span>

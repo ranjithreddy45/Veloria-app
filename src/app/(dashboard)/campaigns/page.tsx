@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, MegaphoneIcon } from "lucide-react";
 
 import { getCampaigns } from "@/actions/campaign.actions";
 import { PageHeader } from "@/components/layout/page-header";
@@ -31,6 +31,8 @@ export default async function CampaignsPage() {
     <div className="space-y-6">
       <PageHeader
         aura
+        icon={MegaphoneIcon}
+        accent="pink"
         eyebrow={eyebrow}
         title="Campaigns"
         help={<PageHelp id="campaigns" />}

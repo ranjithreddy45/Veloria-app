@@ -27,6 +27,8 @@ export default async function PackagesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        icon={PackageIcon}
+        accent="teal"
         eyebrow={eyebrow}
         title="Event Packages"
         help={<PageHelp id="packages" />}

@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PlusIcon, UploadCloud as UploadCloudIcon, Sparkles as SparklesIcon } from "lucide-react";
+import { PlusIcon, UploadCloud as UploadCloudIcon, Sparkles as SparklesIcon, UserPlus as UserPlusIcon } from "lucide-react";
 
 import { getLeads, getLeadStats } from "@/actions/lead.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { HelpHint } from "@/components/layout/help-hint";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { LeadsTable } from "./_components/leads-table";
+import { LeadsViews } from "./_components/leads-views";
 
 export const metadata: Metadata = { title: "Leads" };
 
@@ -42,6 +42,8 @@ export default async function LeadsPage() {
     <div className="space-y-5">
       <PageHeader
         aura
+        icon={UserPlusIcon}
+        accent="blue"
         title="Leads"
         help={
           <HelpHint title="What is a Lead?">
@@ -114,8 +116,9 @@ export default async function LeadsPage() {
       ) : (
         <div className="animate-rise-in animate-stagger-1">
           {/* KPI strip is rendered inside LeadsTable (co-located with its
-              status tabs + facets) so it must NOT be duplicated here. */}
-          <LeadsTable data={leads} />
+              status tabs + facets) so it must NOT be duplicated here.
+              LeadsViews wraps the List (table) + Board (kanban) switcher. */}
+          <LeadsViews data={leads} />
         </div>
       )}
     </div>

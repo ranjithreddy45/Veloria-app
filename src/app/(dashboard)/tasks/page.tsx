@@ -6,6 +6,7 @@ import {
   CircleDotIcon,
   CircleCheckIcon,
   AlertTriangleIcon,
+  ListChecks,
 } from "lucide-react";
 
 import { getTasks } from "@/actions/task.actions";
@@ -13,7 +14,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { StatTile } from "@/components/ui/stat-tile";
-import { TaskViewToggle } from "./_components/task-view-toggle";
+import { TasksViews } from "./_components/tasks-views";
 
 export const metadata: Metadata = { title: "Tasks" };
 
@@ -57,6 +58,8 @@ export default async function TasksPage() {
     <div className="flex h-[calc(100vh-8rem)] flex-col">
       <PageHeader
         aura
+        icon={ListChecks}
+        accent="amber"
         title="Tasks"
         help={<PageHelp id="tasks" />}
         eyebrow={
@@ -120,7 +123,7 @@ export default async function TasksPage() {
       )}
 
       <div className="mt-6 flex-1 overflow-hidden">
-        <TaskViewToggle tasks={tasks} tasksByStatus={tasksByStatus} />
+        <TasksViews tasks={tasks} />
       </div>
     </div>
   );

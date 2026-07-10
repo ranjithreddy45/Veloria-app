@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { ImageIcon } from "lucide-react";
 import { getGalleryItems } from "@/actions/gallery.actions";
 import { getVenues } from "@/actions/booking.actions";
 import { PageHeader } from "@/components/layout/page-header";
@@ -25,6 +26,8 @@ export default async function GalleryPage() {
     <div className="space-y-6">
       <PageHeader
         aura
+        icon={ImageIcon}
+        accent="cyan"
         eyebrow={`Brand · ${items.length} ${items.length === 1 ? "asset" : "assets"}`}
         title="Gallery"
         help={<PageHelp id="gallery" />}

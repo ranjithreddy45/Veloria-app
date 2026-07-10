@@ -41,7 +41,7 @@ import { formatINR } from "@/lib/utils";
 // Types
 // ============================================================
 
-interface BookingRow {
+export interface BookingRow {
   id: string;
   bookingNumber: string;
   eventName: string;

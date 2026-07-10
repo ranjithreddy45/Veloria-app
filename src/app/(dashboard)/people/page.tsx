@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Upload, SearchX, UserPlus2 } from "lucide-react";
+import { Upload, SearchX, UserPlus2, Users } from "lucide-react";
 import { auth } from "@/../auth";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -51,6 +51,8 @@ export default async function PeoplePage({ searchParams }: PageProps) {
     <div className="space-y-5">
       <PageHeader
         aura
+        icon={Users}
+        accent="violet"
         eyebrow="People · Directory"
         title="People"
         description="The single employee master for the whole group — across every legal entity and business vertical. The same record powers Projects, approvals and access everywhere."

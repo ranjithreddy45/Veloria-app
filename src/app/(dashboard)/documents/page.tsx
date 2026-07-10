@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { FolderOpenIcon } from "lucide-react";
 import { getDocuments } from "@/actions/document.actions";
 import { getVenues } from "@/actions/booking.actions";
 import { PageHeader } from "@/components/layout/page-header";
@@ -25,6 +26,8 @@ export default async function DocumentsPage() {
     <div className="space-y-6">
       <PageHeader
         aura
+        icon={FolderOpenIcon}
+        accent="cyan"
         eyebrow={
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <span>Workspace · Files</span>

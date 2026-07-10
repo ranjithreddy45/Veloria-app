@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { FolderKanbanIcon } from "lucide-react";
 import { auth } from "@/../auth";
 import { getProjects } from "@/actions/projects.actions";
 import { getDemoCount } from "@/actions/projects-demo.actions";
@@ -25,6 +26,8 @@ export default async function ProjectsPage() {
     <div className="space-y-5">
       <PageHeader
         aura
+        icon={FolderKanbanIcon}
+        accent="amber"
         eyebrow="Projects · Venue readiness"
         title="Venue Projects"
         description="Ready acquired venues to Veloria Grand standards: 9-stage workflow, readiness checklist, CapEx & timeline for the owner, snag register, operations audit, and launch handover."

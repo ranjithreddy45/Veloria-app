@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
+import { StoreIcon } from "lucide-react";
 import { serialize } from "@/lib/utils";
 import { listCatalogVendors, listPackages } from "@/actions/vendor-catalog.actions";
 import { listVendorCategories } from "@/actions/vendor-category.actions";
@@ -87,6 +88,8 @@ export default async function VendorsPage() {
     <div className="space-y-5">
       <PageHeader
         aura
+        icon={StoreIcon}
+        accent="teal"
         title="Vendors & Packages"
         eyebrow={`Operations · Marketplace · ${vendorTotal} vendors · ${packageTotal} packages`}
         description="Manage your empanelled vendor catalog, quality scores, and service packages."

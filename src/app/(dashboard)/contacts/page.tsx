@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PlusIcon, UsersIcon, UserIcon, Building2Icon } from "lucide-react";
+import { PlusIcon, UsersIcon, UserIcon, Building2Icon, ContactIcon } from "lucide-react";
 
 import { getContacts } from "@/actions/contact.actions";
 import { PageHeader } from "@/components/layout/page-header";
@@ -29,6 +29,8 @@ export default async function ContactsPage() {
     <div className="space-y-5">
       <PageHeader
         aura
+        icon={ContactIcon}
+        accent="blue"
         title="Enquiry"
         help={
           <HelpHint title="What is an Enquiry?">

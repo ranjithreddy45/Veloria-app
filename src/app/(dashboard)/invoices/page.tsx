@@ -5,6 +5,7 @@ import {
   WalletIcon,
   CheckCircle2Icon,
   AlertTriangleIcon,
+  FileTextIcon,
 } from "lucide-react";
 import { getInvoices } from "@/actions/invoice.actions";
 import { PageHeader } from "@/components/layout/page-header";
@@ -37,6 +38,8 @@ export default async function InvoicesPage() {
     <div className="space-y-6">
       <PageHeader
         aura
+        icon={FileTextIcon}
+        accent="emerald"
         eyebrow={`FINANCE · ${invoices.length} invoice${
           invoices.length === 1 ? "" : "s"
         } · ${formatINR(outstanding)} outstanding`}

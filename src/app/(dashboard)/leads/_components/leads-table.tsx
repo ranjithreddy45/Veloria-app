@@ -73,7 +73,7 @@ import { cn } from "@/lib/utils";
 // Types
 // ============================================================
 
-interface LeadWithContact {
+export interface LeadWithContact {
   id: string;
   title: string;
   status: string;

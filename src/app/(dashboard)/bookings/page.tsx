@@ -15,7 +15,7 @@ import { HelpHint } from "@/components/layout/help-hint";
 import { Button } from "@/components/ui/button";
 import { StatTile } from "@/components/ui/stat-tile";
 import { EmptyState } from "@/components/ui/empty-state";
-import { BookingsTable } from "./_components/bookings-table";
+import { BookingsViews } from "./_components/bookings-views";
 
 export const metadata: Metadata = { title: "Bookings" };
 
@@ -67,6 +67,8 @@ export default async function BookingsPage() {
     <div className="space-y-6">
       <PageHeader
         aura
+        icon={CalendarCheckIcon}
+        accent="blue"
         title="Bookings"
         eyebrow={
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -170,7 +172,7 @@ export default async function BookingsPage() {
             />
           </div>
         ) : (
-          <BookingsTable data={bookings} />
+          <BookingsViews data={bookings} />
         )}
       </div>
     </div>

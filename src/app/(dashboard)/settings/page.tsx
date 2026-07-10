@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Building2 } from "lucide-react";
+import { Building2, SettingsIcon } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -15,6 +15,8 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        icon={SettingsIcon}
+        accent="slate"
         title="Settings"
         eyebrow="System · Configuration"
         help={<PageHelp id="settings" />}

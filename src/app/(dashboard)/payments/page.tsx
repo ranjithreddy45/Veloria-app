@@ -2,6 +2,7 @@ import {
   IndianRupeeIcon,
   ClockIcon,
   CalendarIcon,
+  CreditCardIcon,
 } from "lucide-react";
 import { getPayments } from "@/actions/payment.actions";
 import { auth } from "@/../auth";
@@ -57,6 +58,8 @@ export default async function PaymentsPage() {
     <div className="space-y-6">
       <PageHeader
         aura
+        icon={CreditCardIcon}
+        accent="emerald"
         eyebrow={`FINANCE · ${payments.length} payments · ${formatINR(collectedTotal)} collected`}
         title="Payments"
         help={<PageHelp id="payments" />}
