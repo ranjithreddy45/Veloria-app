@@ -6,7 +6,11 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { Prisma, type UserRole } from "@prisma/client";
 import { hasPermission, ROLE_PERMISSIONS } from "@/lib/permissions";
-import { withinRadius, ipAllowed, clientIpFromHeaders } from "@/lib/hr/geo";
+import {
+  withinRadius, ipAllowed, clientIpFromHeaders,
+  isValidCoord, isTrustedAccuracy, MAX_TRUSTED_ACCURACY_M,
+} from "@/lib/hr/geo";
+import { isSafeReceiptUrl } from "@/lib/sales/receipt";
 import { FULL_DAY_MINUTES, HALF_DAY_MINUTES } from "@/lib/hr/constants";
 import { sendEmail } from "@/lib/email";
 
@@ -139,8 +143,109 @@ export async function upsertAttendanceSite(input: SiteInput): Promise<Result<{ i
 // ============================================================
 // Check-in / Check-out
 // ============================================================
+// ============================================================
+// Geo evaluation — the single source of truth for BOTH punches.
+// ------------------------------------------------------------
+// Coordinates arrive from the browser, so they are untrusted input:
+//   * validate range/finiteness (and reject 0,0 "Null Island"),
+//   * refuse to trust a radius match from a coarse GPS fix (a ±5km wifi fix
+//     lands inside a 200m radius by luck),
+//   * a punch claiming OFFICE that lands off-site is a discrepancy → flag it,
+//     rather than silently downgrading it to WFH.
+// This can never be spoof-proof on the web (devtools can feed any coordinate);
+// the goal is to make a bad punch VISIBLE (unverified / flagged) rather than
+// to pretend it is proof.
+// ============================================================
+
+/** Max selfie payload (~1.4MB of base64 ≈ a 1MB JPEG). Keeps the row sane. */
+const MAX_SELFIE_CHARS = 1_400_000;
+
+/**
+ * A selfie is untrusted client input. Accept only an https URL or an image
+ * data-URL (the app's established upload pattern), and cap the size — this
+ * blocks `javascript:` / `data:text/html` payloads and DB-bloating uploads.
+ */
+function safeSelfie(url: string | undefined | null): string | null {
+  const v = (url ?? "").trim();
+  if (!v) return null;
+  if (v.length > MAX_SELFIE_CHARS) return null;
+  if (!isSafeReceiptUrl(v)) return null;
+  return v;
+}
+
+interface GeoInput {
+  lat?: number;
+  lng?: number;
+  accuracyM?: number;
+  visitType: "OFFICE" | "FIELD" | "CLIENT";
+  ip: string | null;
+}
+
+interface GeoVerdict {
+  matchedSite: { id: string; name: string } | null;
+  verified: boolean | null; // true = inside a radius with a trusted fix
+  flagged: boolean;
+  flagReason: string | null;
+  wfh: boolean; // caller may downgrade status to WFH
+}
+
+async function evaluateGeo({ lat, lng, accuracyM, visitType, ip }: GeoInput): Promise<GeoVerdict> {
+  const none: GeoVerdict = { matchedSite: null, verified: null, flagged: false, flagReason: null, wfh: false };
+
+  // A client visit is off-site by definition — no geo-tag required.
+  if (visitType === "CLIENT") return none;
+
+  const sites = await prisma.attendanceSite.findMany({ where: { isActive: true } });
+  const geoSites = sites.filter((s) => s.lat != null && s.lng != null);
+
+  // Nothing to verify against. The muster shows a "location verification is OFF"
+  // banner for exactly this state, so don't flag every punch in the org.
+  if (geoSites.length === 0) return none;
+
+  // Untrusted or absent coordinates → never claim verification.
+  if (!isValidCoord(lat, lng)) {
+    return { ...none, verified: false, flagged: true, flagReason: "No valid location captured for this punch" };
+  }
+
+  // A coarse fix cannot substantiate a radius match.
+  if (!isTrustedAccuracy(accuracyM)) {
+    const acc = accuracyM == null ? "unknown" : `±${Math.round(accuracyM)}m`;
+    return {
+      ...none,
+      verified: false, flagged: true,
+      flagReason: `GPS accuracy ${acc} is too coarse to verify (needs ≤${MAX_TRUSTED_ACCURACY_M}m)`,
+    };
+  }
+
+  const hit = geoSites.find((s) => withinRadius(lat!, lng!, s.lat!, s.lng!, s.radiusMeters)) ?? null;
+
+  if (hit) {
+    const matchedSite = { id: hit.id, name: hit.name };
+    if (!ipAllowed(ip, hit.allowedIps)) {
+      // On-site GPS but off an allowed network — PREFER FLAG OVER BLOCK so a
+      // physically-present employee is never locked out; HR reviews the flag.
+      return { matchedSite, verified: false, flagged: true, flagReason: "On-site but network not on the allow-list — needs review", wfh: false };
+    }
+    return { matchedSite, verified: true, flagged: false, flagReason: null, wfh: false };
+  }
+
+  // Off-site, with a trusted fix.
+  if (visitType === "FIELD") {
+    // Field work is off-site by nature — record it unverified, but don't flag.
+    return { ...none, verified: false };
+  }
+
+  // visitType === "OFFICE" but they are not at any office.
+  // The WFH escape hatch applies only when EVERY active site permits it (the old
+  // `some()` meant one permissive site disabled flagging for the whole org).
+  if (sites.every((s) => s.allowWfh)) {
+    return { ...none, verified: false, flagged: true, flagReason: "Off-site check-in recorded as WFH", wfh: true };
+  }
+  return { ...none, verified: false, flagged: true, flagReason: "Location outside every site radius" };
+}
+
 export async function checkIn(input: {
-  lat?: number; lng?: number; selfieUrl?: string;
+  lat?: number; lng?: number; accuracyM?: number; selfieUrl?: string;
   visitType?: "OFFICE" | "FIELD" | "CLIENT";
 }): Promise<Result<{ status: string; siteName: string | null; visitType: string; locationVerified: boolean | null; flagged: boolean }>> {
   const u = await requireUser();
@@ -160,66 +265,31 @@ export async function checkIn(input: {
   const h = await headers();
   const ip = clientIpFromHeaders(h.get("x-forwarded-for"), h.get("x-real-ip"));
 
-  let matchedSite: { id: string; name: string } | null = null;
-  let locationVerified: boolean | null = null;
-  let flagged = false;
-  let flagReason: string | null = null;
-  let status: "PRESENT" | "WFH" = "PRESENT";
+  const verdict = await evaluateGeo({ lat: input.lat, lng: input.lng, accuracyM: input.accuracyM, visitType, ip });
+  const { matchedSite, verified: locationVerified, flagged, flagReason } = verdict;
+  const status: "PRESENT" | "WFH" = verdict.wfh ? "WFH" : "PRESENT";
 
-  if (visitType === "CLIENT") {
-    // Client visit — no geo-tag required. Leave location unverified (not flagged).
-    locationVerified = null;
-  } else {
-    // OFFICE / FIELD — geo-verify against active sites within their radius.
-    const sites = await prisma.attendanceSite.findMany({ where: { isActive: true } });
-    const geoSites = sites.filter((s) => s.lat != null && s.lng != null);
-    const anyWfh = sites.some((s) => s.allowWfh);
-
-    if (geoSites.length === 0) {
-      // Nothing configured to verify against — record but leave unverified, not flagged.
-      locationVerified = null;
-    } else {
-      const hit =
-        input.lat != null && input.lng != null
-          ? geoSites.find((s) => withinRadius(input.lat!, input.lng!, s.lat!, s.lng!, s.radiusMeters)) ?? null
-          : null;
-      if (hit) {
-        matchedSite = { id: hit.id, name: hit.name };
-        if (!ipAllowed(ip, hit.allowedIps)) {
-          // On-site GPS but off an allowed network — PREFER FLAG OVER BLOCK so a
-          // physically-present employee is never locked out; HR reviews the flag.
-          locationVerified = false;
-          flagged = true;
-          flagReason = "On-site but network not on the allow-list — needs review";
-        } else {
-          locationVerified = true;
-        }
-      } else if (anyWfh) {
-        // Outside every radius but WFH is permitted — mark WFH, not flagged
-        // (honours the site allowWfh escape hatch).
-        status = "WFH";
-        locationVerified = null;
-      } else {
-        // Missing coords or outside every site radius — record but auto-flag for review.
-        locationVerified = false;
-        flagged = true;
-        flagReason = "Location not verified within site radius";
-      }
-    }
-  }
+  // Only persist coordinates that passed validation — never store junk/spoofed
+  // sentinels like (0,0) that would later read as a real position.
+  const okCoords = isValidCoord(input.lat, input.lng);
+  const lat = okCoords ? input.lat! : null;
+  const lng = okCoords ? input.lng! : null;
+  const accuracyM = Number.isFinite(input.accuracyM as number) ? (input.accuracyM as number) : null;
+  const selfieUrl = safeSelfie(input.selfieUrl);
 
   const now = new Date();
   const rec = await prisma.attendanceRecord.upsert({
     where: { employeeId_date: { employeeId: emp.id, date } },
     create: {
       employeeId: emp.id, date, checkInAt: now,
-      checkInLat: input.lat ?? null, checkInLng: input.lng ?? null, checkInIp: ip,
-      siteId: matchedSite?.id ?? null, source: "WEB", status, selfieUrl: input.selfieUrl || null,
+      checkInLat: lat, checkInLng: lng, checkInIp: ip, checkInAccuracyM: accuracyM,
+      siteId: matchedSite?.id ?? null, source: "WEB", status, selfieUrl,
       visitType, locationVerified, flagged, flagReason,
     },
     update: {
-      checkInAt: now, checkInLat: input.lat ?? null, checkInLng: input.lng ?? null, checkInIp: ip,
+      checkInAt: now, checkInLat: lat, checkInLng: lng, checkInIp: ip, checkInAccuracyM: accuracyM,
       siteId: matchedSite?.id ?? null, status, visitType, locationVerified, flagged, flagReason,
+      ...(selfieUrl ? { selfieUrl } : {}),
     },
   });
   await prisma.activityLog.create({
@@ -239,7 +309,9 @@ export async function checkIn(input: {
   return { success: true, data: { status, siteName: matchedSite?.name ?? null, visitType, locationVerified, flagged } };
 }
 
-export async function checkOut(): Promise<Result<{ workedMinutes: number; status: string }>> {
+export async function checkOut(input: {
+  lat?: number; lng?: number; accuracyM?: number; selfieUrl?: string;
+} = {}): Promise<Result<{ workedMinutes: number; status: string; locationVerified: boolean | null; flagged: boolean }>> {
   const u = await requireUser();
   if (!u?.id) return { success: false, error: "Not signed in." };
   const emp = await myEmployee(u.id);
@@ -250,21 +322,137 @@ export async function checkOut(): Promise<Result<{ workedMinutes: number; status
   if (!rec?.checkInAt) return { success: false, error: "You haven't checked in today." };
   if (rec.checkOutAt) return { success: false, error: "You've already checked out today." };
 
+  const h = await headers();
+  const ip = clientIpFromHeaders(h.get("x-forwarded-for"), h.get("x-real-ip"));
+
+  // Geo-verify the punch-OUT with the same rules as the punch-in, using the
+  // visit type recorded at check-in. Without this you could check in at the
+  // venue and check out from home while the worked hours still counted.
+  const visitType = (rec.visitType as "OFFICE" | "FIELD" | "CLIENT" | null) ?? "OFFICE";
+  const verdict = await evaluateGeo({ lat: input.lat, lng: input.lng, accuracyM: input.accuracyM, visitType, ip });
+
+  const okCoords = isValidCoord(input.lat, input.lng);
+  const outLat = okCoords ? input.lat! : null;
+  const outLng = okCoords ? input.lng! : null;
+  const outAccuracy = Number.isFinite(input.accuracyM as number) ? (input.accuracyM as number) : null;
+  const outSelfie = safeSelfie(input.selfieUrl);
+
   const now = new Date();
   const workedMinutes = Math.max(0, Math.round((now.getTime() - rec.checkInAt.getTime()) / 60000));
   // Downgrade to half-day if short — but never overwrite a WFH classification.
   let status = rec.status;
   if (rec.status !== "WFH" && workedMinutes < HALF_DAY_MINUTES) status = "HALF_DAY";
 
+  // A flag raised at check-OUT must not silently clear a flag raised at check-in.
+  const flagged = rec.flagged || verdict.flagged;
+  const flagReason = rec.flagged
+    ? rec.flagReason
+    : verdict.flagged
+      ? `Check-out: ${verdict.flagReason}`
+      : null;
+
   await prisma.attendanceRecord.update({
     where: { id: rec.id },
-    data: { checkOutAt: now, workedMinutes, status },
+    data: {
+      checkOutAt: now, workedMinutes, status,
+      checkOutLat: outLat, checkOutLng: outLng, checkOutIp: ip, checkOutAccuracyM: outAccuracy,
+      checkOutSiteId: verdict.matchedSite?.id ?? null,
+      checkOutVerified: verdict.verified,
+      ...(outSelfie ? { checkOutSelfieUrl: outSelfie } : {}),
+      flagged, flagReason,
+    },
   });
   await prisma.activityLog.create({
-    data: { action: "ATTENDANCE_CHECK_OUT", entityType: "ATTENDANCE", entityId: rec.id, userId: u.id, changes: { workedMinutes } },
+    data: {
+      action: "ATTENDANCE_CHECK_OUT", entityType: "ATTENDANCE", entityId: rec.id, userId: u.id,
+      changes: { workedMinutes, checkOutVerified: verdict.verified, flagged: verdict.flagged },
+    },
   });
   revalidatePath("/people/attendance");
-  return { success: true, data: { workedMinutes, status } };
+  revalidatePath("/me/attendance");
+  return { success: true, data: { workedMinutes, status, locationVerified: verdict.verified, flagged: verdict.flagged } };
+}
+
+// ============================================================
+// Flagged-punch review queue (HR clears a flag after checking it).
+// ============================================================
+
+export interface FlaggedPunch {
+  id: string;
+  employeeId: string;
+  name: string;
+  empCode: string;
+  date: string;
+  checkInAt: string | null;
+  checkOutAt: string | null;
+  visitType: string | null;
+  flagReason: string | null;
+  locationVerified: boolean | null;
+  checkOutVerified: boolean | null;
+  siteName: string | null;
+  lat: number | null;
+  lng: number | null;
+  accuracyM: number | null;
+  selfieUrl: string | null;
+}
+
+/** Every unresolved flagged punch, newest first. Gate: hr:read. */
+export async function getFlaggedPunches(limit = 200): Promise<FlaggedPunch[]> {
+  const u = await requireUser();
+  if (!can(u?.role, "hr:read")) return [];
+
+  const [rows, sites] = await Promise.all([
+    prisma.attendanceRecord.findMany({
+      where: { flagged: true, flagClearedAt: null },
+      orderBy: [{ date: "desc" }, { checkInAt: "desc" }],
+      take: Math.min(500, Math.max(1, limit)),
+      include: { employee: { select: { id: true, firstName: true, lastName: true, empCode: true } } },
+    }),
+    prisma.attendanceSite.findMany({ select: { id: true, name: true } }),
+  ]);
+  const siteName = new Map(sites.map((s) => [s.id, s.name]));
+
+  return rows.map((r) => ({
+    id: r.id,
+    employeeId: r.employeeId,
+    name: `${r.employee.firstName} ${r.employee.lastName}`.trim(),
+    empCode: r.employee.empCode,
+    date: r.date.toISOString(),
+    checkInAt: r.checkInAt?.toISOString() ?? null,
+    checkOutAt: r.checkOutAt?.toISOString() ?? null,
+    visitType: r.visitType,
+    flagReason: r.flagReason,
+    locationVerified: r.locationVerified,
+    checkOutVerified: r.checkOutVerified,
+    siteName: r.siteId ? siteName.get(r.siteId) ?? null : null,
+    lat: r.checkInLat,
+    lng: r.checkInLng,
+    accuracyM: r.checkInAccuracyM,
+    selfieUrl: r.selfieUrl,
+  }));
+}
+
+/** Clear a flag after HR has reviewed it. Gate: hr:write || hr:admin. Audited. */
+export async function clearAttendanceFlag(recordId: string, note?: string): Promise<Result<{ id: string }>> {
+  const u = await requireUser();
+  if (!can(u?.role, "hr:write") && !can(u?.role, "hr:admin")) {
+    return { success: false, error: "Not authorized." };
+  }
+  const rec = await prisma.attendanceRecord.findUnique({ where: { id: recordId }, select: { id: true, flagged: true } });
+  if (!rec) return { success: false, error: "Attendance record not found." };
+  if (!rec.flagged) return { success: false, error: "This punch isn't flagged." };
+
+  await prisma.attendanceRecord.update({
+    where: { id: recordId },
+    // Keep flagReason for the audit trail — clear the flag, not the history.
+    data: { flagged: false, flagClearedById: u!.id, flagClearedAt: new Date(), flagClearNote: note?.trim() || null },
+  });
+  await prisma.activityLog.create({
+    data: { action: "ATTENDANCE_FLAG_CLEARED", entityType: "ATTENDANCE", entityId: recordId, userId: u!.id, changes: { note: note ?? null } },
+  });
+  revalidatePath("/people/attendance/flagged");
+  revalidatePath("/people/attendance/muster");
+  return { success: true, data: { id: recordId } };
 }
 
 // ============================================================

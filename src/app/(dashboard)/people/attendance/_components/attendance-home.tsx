@@ -16,6 +16,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { StatusPill } from "@/components/shared/status-pill";
+import { FileUpload } from "@/components/ui/file-upload";
 import { formatDate } from "@/lib/utils";
 import { ATTENDANCE_STATUS_LABELS, ATTENDANCE_STATUS_HUE } from "@/lib/hr/constants";
 import { checkIn, checkOut, requestRegularization, markAttendanceManually } from "@/actions/hr-attendance.actions";
@@ -109,32 +110,63 @@ function Stat({ label, value }: { label: string; value: number | string }) {
   );
 }
 
+// Browser fix worse than this (in metres) will be flagged by the server; we use
+// it purely to pre-warn the user. The 100 m rule itself is enforced server-side.
+const POOR_FIX_M = 100;
+
+interface Pos { lat?: number; lng?: number; accuracyM?: number }
+
 function CheckInCard({ today }: { today: Rec | null }) {
   const router = useRouter();
   const [busy, setBusy] = React.useState(false);
   const [msg, setMsg] = React.useState<string | null>(null);
   const [visitType, setVisitType] = React.useState<VisitType>("OFFICE");
+  const [pos, setPos] = React.useState<Pos | null>(null);
+  const [selfieUrl, setSelfieUrl] = React.useState<string | null>(null);
 
   const checkedIn = !!today?.checkInAt;
   const checkedOut = !!today?.checkOutAt;
   const needsGps = visitType !== "CLIENT";
+  const done = checkedIn && checkedOut;
+  const poorFix = pos?.accuracyM != null && pos.accuracyM > POOR_FIX_M;
 
-  function getPosition(): Promise<{ lat?: number; lng?: number }> {
+  function getPosition(): Promise<Pos> {
     return new Promise((resolve) => {
       if (typeof navigator === "undefined" || !navigator.geolocation) return resolve({});
       navigator.geolocation.getCurrentPosition(
-        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        (p) => resolve({
+          lat: p.coords.latitude,
+          lng: p.coords.longitude,
+          // Required for a verified punch — a missing/poor fix gets flagged server-side.
+          accuracyM: Number.isFinite(p.coords.accuracy) ? p.coords.accuracy : undefined,
+        }),
         () => resolve({}),
         { enableHighAccuracy: true, timeout: 8000 }
       );
     });
   }
 
+  // Acquire a fix ahead of the punch so we can show live accuracy and pre-warn
+  // on a poor fix. Only while there's still a punch to make, and only when a
+  // geo-tag is expected (Office/Field). Never blocks the UI — a denial resolves
+  // to no coords and the punch degrades to an unverified/flagged one server-side.
+  React.useEffect(() => {
+    if (done || !needsGps) { setPos(null); return; }
+    let active = true;
+    getPosition().then((p) => { if (active && (p.lat != null || p.lng != null)) setPos(p); });
+    return () => { active = false; };
+  }, [needsGps, done]);
+
   async function doCheckIn() {
     setBusy(true); setMsg(null);
     // Client visits need no geo-tag; Office/Field capture GPS for verification.
-    const pos = needsGps ? await getPosition() : {};
-    const res = await checkIn({ ...pos, visitType });
+    // Reuse the pre-acquired fix if we have one, else grab a fresh one.
+    const p = needsGps ? (pos ?? await getPosition()) : {};
+    const res = await checkIn({
+      lat: p.lat, lng: p.lng, accuracyM: p.accuracyM,
+      selfieUrl: selfieUrl ?? undefined,
+      visitType,
+    });
     setBusy(false);
     if (res.success) {
       const d = res.data;
@@ -146,15 +178,28 @@ function CheckInCard({ today }: { today: Rec | null }) {
             ? ` — location match verified${d.siteName ? ` at ${d.siteName}` : ""}`
             : "";
       setMsg(`Checked in${detail}.`);
+      setSelfieUrl(null);
       router.refresh();
     } else setMsg(res.error);
   }
   async function doCheckOut() {
     setBusy(true); setMsg(null);
-    const res = await checkOut();
+    // Check-out is geo-verified too now. Attempt a fix (optional) — a denial or
+    // timeout still lets the punch through; the server flags it if unverified.
+    const p = pos ?? await getPosition();
+    const res = await checkOut({ lat: p.lat, lng: p.lng, accuracyM: p.accuracyM });
     setBusy(false);
-    if (res.success) { setMsg(`Checked out — ${Math.round(res.data.workedMinutes / 60 * 10) / 10}h logged.`); router.refresh(); }
-    else setMsg(res.error);
+    if (res.success) {
+      const d = res.data;
+      const hrs = Math.round(d.workedMinutes / 60 * 10) / 10;
+      const detail = d.flagged
+        ? " — location not verified, flagged for review"
+        : d.locationVerified
+          ? " — location verified"
+          : "";
+      setMsg(`Checked out — ${hrs}h logged${detail}.`);
+      router.refresh();
+    } else setMsg(res.error);
   }
 
   return (
@@ -188,6 +233,17 @@ function CheckInCard({ today }: { today: Rec | null }) {
               ))}
             </SelectContent>
           </Select>
+          <div className="flex items-center gap-2 pt-1">
+            <FileUpload
+              accept="image/*"
+              maxMB={1}
+              label={selfieUrl ? "Retake selfie" : "Add selfie"}
+              onUploaded={(dataUrl) => setSelfieUrl(dataUrl)}
+            />
+            {selfieUrl
+              ? <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">Selfie attached ✓</span>
+              : <span className="text-[11px] text-muted-foreground">Optional</span>}
+          </div>
         </div>
       )}
       <div className="mt-4">
@@ -200,7 +256,7 @@ function CheckInCard({ today }: { today: Rec | null }) {
             {busy ? <Loader2 className="size-4 animate-spin" /> : <LogOut className="size-4" />} Check out
           </Button>
         ) : (
-          <div className="rounded-lg bg-emerald-50 py-2 text-center text-[13px] font-medium text-emerald-700">
+          <div className="rounded-lg bg-emerald-50 py-2 text-center text-[13px] font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
             All done for today ✓
           </div>
         )}
@@ -212,6 +268,12 @@ function CheckInCard({ today }: { today: Rec | null }) {
       ) : (
         <p className="mt-2 flex items-center gap-1 text-[11.5px] text-muted-foreground">
           <MapPin className="size-3" /> Client visit — no location tag required.
+        </p>
+      )}
+      {needsGps && !done && pos?.accuracyM != null && (
+        <p className={`mt-1 text-[11.5px] ${poorFix ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}>
+          Location accuracy: ±{Math.round(pos.accuracyM)}m
+          {poorFix && ` — this punch will be flagged for review.`}
         </p>
       )}
       {msg && <p className="mt-1.5 text-[12.5px] text-muted-foreground">{msg}</p>}

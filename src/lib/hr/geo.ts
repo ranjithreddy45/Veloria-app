@@ -2,6 +2,30 @@
 // Geo + IP helpers for attendance check-in. Pure & testable.
 // ============================================================
 
+/**
+ * Worst GPS fix (in metres) we will trust for a radius match. A coarse wifi/IP
+ * fix can be ±5km and would "land inside" a 200m radius by luck, so anything
+ * looser than this is treated as unverified and flagged for review.
+ */
+export const MAX_TRUSTED_ACCURACY_M = 100;
+
+/** A coordinate pair supplied by a client. Never trust it before this passes. */
+export function isValidCoord(lat: unknown, lng: unknown): lat is number {
+  return (
+    typeof lat === "number" && typeof lng === "number" &&
+    Number.isFinite(lat) && Number.isFinite(lng) &&
+    lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180 &&
+    // 0,0 (Null Island) is what a broken/spoofed sensor emits — never a workplace.
+    !(lat === 0 && lng === 0)
+  );
+}
+
+/** Is the reported GPS accuracy good enough to trust a radius match? */
+export function isTrustedAccuracy(accuracyM: number | null | undefined): boolean {
+  if (accuracyM == null) return false; // unknown accuracy is not trusted
+  return Number.isFinite(accuracyM) && accuracyM > 0 && accuracyM <= MAX_TRUSTED_ACCURACY_M;
+}
+
 /** Great-circle distance between two lat/lng points, in metres (Haversine). */
 export function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371000; // earth radius m

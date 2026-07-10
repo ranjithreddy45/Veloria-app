@@ -5337,6 +5337,25 @@ model AttendanceRecord {
   locationVerified Boolean? // true = GPS matched a site within radius
   flagged          Boolean  @default(false) // needs manager/HR review
   flagReason       String?
+
+  // --- Geo integrity (hardening) ---
+  // GPS fix quality in metres. A ±5km wifi fix looks identical to a ±5m GPS fix
+  // without this, so a coarse fix can "match" a small radius by luck.
+  checkInAccuracyM  Float?
+  checkOutAccuracyM Float?
+  // Check-OUT is geo-tagged too — otherwise you can punch in on-site and punch
+  // out from home while the worked hours still count.
+  checkOutLat      Float?
+  checkOutLng      Float?
+  checkOutIp       String?
+  checkOutSiteId   String?
+  checkOutVerified Boolean?
+  checkOutSelfieUrl String?
+  // Flag review (HR clears a flagged punch after checking it).
+  flagClearedById String?
+  flagClearedAt   DateTime?
+  flagClearNote   String?
+
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @default(now()) @updatedAt
 

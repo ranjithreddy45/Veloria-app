@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ClipboardCheck, MapPin } from "lucide-react";
+import { ClipboardCheck, MapPin, ShieldAlert } from "lucide-react";
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
 import { FEATURES } from "@/config/features";
@@ -17,6 +17,7 @@ export default async function AttendancePage() {
   const session = await auth();
   const role = session?.user?.role ?? "";
   const canApprove = hasPermission(role, "hr:approve");
+  const canReadHr = hasPermission(role, "hr:read");
   const canAdmin = hasPermission(role, "hr:admin");
   const canMarkManually = hasPermission(role, "hr:write") || canAdmin;
 
@@ -33,6 +34,11 @@ export default async function AttendancePage() {
           description="Check in and out with location verification, track your hours, and request corrections. Office and multi-site rules are enforced automatically."
         />
         <div className="flex items-center gap-2">
+          {canReadHr && (
+            <Button variant="outline" asChild className="gap-1.5">
+              <Link href="/people/attendance/flagged"><ShieldAlert className="size-4" /> Flagged</Link>
+            </Button>
+          )}
           {canApprove && (
             <Button variant="outline" asChild className="gap-1.5">
               <Link href="/people/attendance/regularizations"><ClipboardCheck className="size-4" /> Regularizations</Link>
