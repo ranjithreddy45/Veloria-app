@@ -313,11 +313,28 @@ export async function createEmployee(input: CreateEmployeeInput): Promise<Result
   });
   const empCode = nextEmpCode(topCodes.map((e) => e.empCode));
 
+  // Auto-link the login: if the work email matches an existing user account that
+  // isn't already claimed by another employee, connect them at creation. Without
+  // Employee.userId set, NOTHING in employee self-service (attendance, leave,
+  // payslips, help desk) can resolve "me → my employee record".
+  let autoUserId: string | null = null;
+  if (input.workEmail?.trim()) {
+    const user = await prisma.user.findUnique({
+      where: { email: input.workEmail.trim().toLowerCase() },
+      select: { id: true },
+    });
+    if (user) {
+      const claimed = await prisma.employee.findFirst({ where: { userId: user.id }, select: { id: true } });
+      if (!claimed) autoUserId = user.id;
+    }
+  }
+
   try {
     const created = await prisma.$transaction(async (tx) => {
       const emp = await tx.employee.create({
         data: {
           empCode,
+          userId: autoUserId,
           firstName: input.firstName.trim(),
           lastName: input.lastName.trim(),
           workEmail: input.workEmail?.trim() || null,
@@ -343,10 +360,115 @@ export async function createEmployee(input: CreateEmployeeInput): Promise<Result
     return { success: true, data: { id: created.id } };
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      // Both empCode and userId are @unique — say which one actually collided.
+      const target = String((err.meta as { target?: string | string[] } | undefined)?.target ?? "");
+      if (target.includes("userId")) {
+        return { success: false, error: "That work email's login was just linked to another employee. Create the employee without a work email, then link the login manually." };
+      }
       return { success: false, error: "An employee with that code already exists. Please retry." };
     }
     return { success: false, error: "Could not create employee." };
   }
+}
+
+// ============================================================
+// Login ↔ employee linkage.
+// ------------------------------------------------------------
+// `Employee.userId` is what every self-service resolver keys off
+// (`employee.findFirst({ where: { userId } })` in attendance / leave / payslips
+// / help desk / comp-off). Until it is set, an employee sees
+// "Your account isn't linked to an employee record yet". These actions are the
+// only supported way to establish or break that link.
+// ============================================================
+
+export interface LinkableUser {
+  id: string;
+  name: string | null;
+  email: string;
+  role: string;
+}
+
+/** Active user accounts that are not already claimed by another employee.
+ *  Pass the employee being edited so their own linked user stays selectable. */
+export async function getLinkableUsers(employeeId?: string): Promise<LinkableUser[]> {
+  const u = await requireUser();
+  if (!can(u?.role, "hr:admin")) return [];
+
+  const claimed = await prisma.employee.findMany({
+    where: { userId: { not: null }, ...(employeeId ? { id: { not: employeeId } } : {}) },
+    select: { userId: true },
+  });
+  const taken = claimed.map((c) => c.userId!).filter(Boolean);
+
+  const users = await prisma.user.findMany({
+    where: { isActive: true, ...(taken.length ? { id: { notIn: taken } } : {}) },
+    select: { id: true, name: true, email: true, role: true },
+    orderBy: { email: "asc" },
+    take: 500,
+  });
+  return users.map((x) => ({ ...x, role: String(x.role) }));
+}
+
+/** Connect an employee record to a login. `Employee.userId` is @unique, so a
+ *  user can back exactly one employee; a P2002 means someone claimed it first. */
+export async function linkEmployeeUser(employeeId: string, userId: string): Promise<Result<{ id: string }>> {
+  const u = await requireUser();
+  if (!can(u?.role, "hr:admin")) return { success: false, error: "Not authorized." };
+  if (!employeeId || !userId) return { success: false, error: "Pick an employee and a login." };
+
+  const [emp, user] = await Promise.all([
+    prisma.employee.findFirst({ where: { id: employeeId, deletedAt: null }, select: { id: true } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { id: true, isActive: true, email: true } }),
+  ]);
+  if (!emp) return { success: false, error: "Employee not found." };
+  if (!user) return { success: false, error: "That login no longer exists." };
+  if (!user.isActive) return { success: false, error: "That login is deactivated." };
+
+  const claimed = await prisma.employee.findFirst({
+    where: { userId, id: { not: employeeId } },
+    select: { empCode: true, firstName: true, lastName: true },
+  });
+  if (claimed) {
+    return {
+      success: false,
+      error: `That login is already linked to ${claimed.firstName} ${claimed.lastName} (${claimed.empCode}). Unlink it there first.`,
+    };
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.employee.update({ where: { id: employeeId }, data: { userId } });
+      await hrAudit(tx, u!.id, { action: "EMPLOYEE_USER_LINKED", entityId: employeeId, changes: { userId, email: user.email } });
+    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      return { success: false, error: "That login was just linked to another employee. Refresh and try again." };
+    }
+    return { success: false, error: "Could not link that login." };
+  }
+
+  revalidatePath(`/people/${employeeId}`);
+  revalidatePath("/people");
+  return { success: true, data: { id: employeeId } };
+}
+
+/** Break the link. The employee immediately loses self-service access. */
+export async function unlinkEmployeeUser(employeeId: string): Promise<Result<{ id: string }>> {
+  const u = await requireUser();
+  if (!can(u?.role, "hr:admin")) return { success: false, error: "Not authorized." };
+
+  const emp = await prisma.employee.findFirst({ where: { id: employeeId, deletedAt: null }, select: { id: true, userId: true } });
+  if (!emp) return { success: false, error: "Employee not found." };
+  if (!emp.userId) return { success: false, error: "This employee has no linked login." };
+
+  await prisma.$transaction(async (tx) => {
+    await tx.employee.update({ where: { id: employeeId }, data: { userId: null } });
+    await hrAudit(tx, u!.id, { action: "EMPLOYEE_USER_UNLINKED", entityId: employeeId, changes: { userId: emp.userId } });
+  });
+
+  revalidatePath(`/people/${employeeId}`);
+  revalidatePath("/people");
+  return { success: true, data: { id: employeeId } };
 }
 
 // ============================================================

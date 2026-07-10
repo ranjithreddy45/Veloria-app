@@ -28,6 +28,7 @@ import { CompensationPanel } from "./_components/compensation-panel";
 import { CustomFieldsCard, RequestEditButton, type ActiveFieldDef } from "./_components/profile-extras";
 import { ProfileDetailsPanel } from "./_components/profile-details-panel";
 import { EmployeePayslips, type EmployeePayslipRow } from "./_components/employee-payslips";
+import { EmployeeUserLink } from "./_components/employee-user-link";
 
 export const metadata: Metadata = { title: "Employee" };
 
@@ -47,6 +48,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
 
   const role = session?.user?.role ?? "";
   const canWrite = hasPermission(role, "hr:write");
+  const canAdmin = hasPermission(role, "hr:admin"); // only hr:admin may link/unlink a login
   const canStatutory = hasPermission(role, "hr:statutory");
   const statutory = canStatutory ? await getStatutoryMasked(emp.id) : null;
   const canPayroll = FEATURES.hrPayroll && hasPermission(role, "hr:payroll");
@@ -168,6 +170,19 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
 
         {/* Overview */}
         <TabsContent value="overview" className="space-y-4">
+          {/* Employee.userId drives ALL self-service (attendance/leave/payslips/
+              help desk). Surface it here so an unlinked employee is obvious. */}
+          <EmployeeUserLink
+            employeeId={emp.id}
+            employeeName={`${emp.firstName} ${emp.lastName}`}
+            linkedUser={
+              emp.user
+                ? { id: emp.user.id, email: emp.user.email, role: String(emp.user.role), isActive: emp.user.isActive }
+                : null
+            }
+            canAdmin={canAdmin}
+          />
+
           <div className="grid gap-4 md:grid-cols-2">
             <InfoCard title="Contact">
               <Row icon={<Mail className="size-3.5" />} label="Work email" value={emp.workEmail} />
