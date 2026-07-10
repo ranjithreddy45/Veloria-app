@@ -8285,6 +8285,19 @@ model HrPayslip {
   tds             Decimal      @default(0) @db.Decimal(18, 2)
   gratuityAccrued Decimal      @default(0) @db.Decimal(18, 2)
   net             Decimal      @db.Decimal(18, 2)
+
+  // --- Employer contributions (cost to company; never deducted from the employee).
+  // Previously not computed at all, so CTC understated true employer cost and any
+  // GL posting of payroll was missing the employer legs.
+  employerEps     Decimal @default(0) @db.Decimal(18, 2) // pension fund (capped)
+  employerEpf     Decimal @default(0) @db.Decimal(18, 2) // employer 12% − EPS
+  employerPf      Decimal @default(0) @db.Decimal(18, 2) // eps + epf
+  employerEdli    Decimal @default(0) @db.Decimal(18, 2) // A/c 21
+  employerPfAdmin Decimal @default(0) @db.Decimal(18, 2) // A/c 2
+  employerEsi     Decimal @default(0) @db.Decimal(18, 2) // 3.25%
+  employerCost    Decimal @default(0) @db.Decimal(18, 2) // employer legs + gratuity accrual
+  ctc             Decimal @default(0) @db.Decimal(18, 2) // gross + employerCost
+
   createdAt       DateTime     @default(now())
 
   @@unique([runId, employeeId])

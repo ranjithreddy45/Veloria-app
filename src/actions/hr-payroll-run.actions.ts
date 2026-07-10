@@ -226,6 +226,15 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
         tds: new Prisma.Decimal(c.tds),
         gratuityAccrued: new Prisma.Decimal(c.gratuityAccrued),
         net: new Prisma.Decimal(c.net),
+        // Employer legs — cost to company, never deducted from the employee.
+        employerEps: new Prisma.Decimal(c.employerEps),
+        employerEpf: new Prisma.Decimal(c.employerEpf),
+        employerPf: new Prisma.Decimal(c.employerPf),
+        employerEdli: new Prisma.Decimal(c.employerEdli),
+        employerPfAdmin: new Prisma.Decimal(c.employerPfAdmin),
+        employerEsi: new Prisma.Decimal(c.employerEsi),
+        employerCost: new Prisma.Decimal(c.employerCost),
+        ctc: new Prisma.Decimal(c.ctc),
       };
 
       // Idempotent: re-running overwrites the prior payslip for this employee.

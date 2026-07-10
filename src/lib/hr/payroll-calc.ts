@@ -44,8 +44,21 @@ export interface StatConfig {
   pfRatePct: number; // 12%
   pfWageCeiling: number; // basic capped at 15,000 for statutory PF
   pfOnFullBasic: boolean; // if true, ignore the ceiling
+  // --- Provident Fund (EMPLOYER share) ---
+  // The employer also contributes 12% of PF wages, split into the pension fund
+  // (EPS) and the balance to EPF. EPS is always computed on wages capped at
+  // `epsWageCeiling` (₹15,000 → ₹1,250 max) EVEN when the employee contributes
+  // on full basic; the remainder of the employer's 12% goes to EPF.
+  employerPfRatePct: number; // 12%
+  epsRatePct: number; // 8.33%
+  epsWageCeiling: number; // 15,000 → EPS caps at ₹1,250
+  epsApplicable: boolean; // false → whole employer 12% goes to EPF
+  edliRatePct: number; // 0.5% (A/c 21)
+  edliWageCeiling: number; // 15,000 → EDLI caps at ₹75
+  pfAdminRatePct: number; // 0.5% (A/c 2)
   // --- ESI (employee share) ---
   esiRatePct: number; // 0.75%
+  employerEsiRatePct: number; // 3.25%
   esiGrossCeiling: number; // applies only when monthly gross <= 21,000
   // --- Professional Tax (Karnataka) ---
   ptAmount: number; // 200
@@ -66,7 +79,15 @@ export const DEFAULT_STAT_CONFIG: StatConfig = {
   pfRatePct: 12,
   pfWageCeiling: 15000,
   pfOnFullBasic: false,
+  employerPfRatePct: 12,
+  epsRatePct: 8.33,
+  epsWageCeiling: 15000,
+  epsApplicable: true,
+  edliRatePct: 0.5,
+  edliWageCeiling: 15000,
+  pfAdminRatePct: 0.5,
   esiRatePct: 0.75,
+  employerEsiRatePct: 3.25,
   esiGrossCeiling: 21000,
   ptAmount: 200,
   ptGrossThreshold: 25000,
@@ -203,6 +224,15 @@ export interface PayslipComputation {
   gratuityAccrued: number;
   totalDeductions: number;
   net: number;
+  // --- Employer cost (NOT deducted from the employee) ---
+  employerEps: number; // pension fund, capped
+  employerEpf: number; // employer 12% minus EPS
+  employerPf: number; // employerEps + employerEpf
+  employerEdli: number; // A/c 21
+  employerPfAdmin: number; // A/c 2
+  employerEsi: number; // 3.25%
+  employerCost: number; // employerPf + edli + admin + employerEsi + gratuityAccrued
+  ctc: number; // gross + employerCost
 }
 
 /**
@@ -264,6 +294,37 @@ export function computePayslip(input: PayslipInput): PayslipComputation {
     (fullBasic * cfg.gratuityDaysPerYear) / cfg.gratuityMonthDivisor / 12,
   );
 
+  // ---- Employer contributions (cost to company; never deducted from the employee) ----
+  // The employer matches 12% of PF wages, but it is SPLIT:
+  //   EPS (pension) = 8.33% of PF wages capped at ₹15,000  → max ₹1,250
+  //   EPF (employer) = employer 12% − EPS
+  // The EPS ceiling applies even when the employee contributes on full basic
+  // (pfOnFullBasic), which is why EPS is computed off its own capped base.
+  const employerPfBase = pfBase; // same wage base as the employee leg
+  const employerPfTotal = rupee((employerPfBase * cfg.employerPfRatePct) / 100);
+  const epsBase = Math.min(employerPfBase, cfg.epsWageCeiling);
+  const employerEps = cfg.epsApplicable ? rupee((epsBase * cfg.epsRatePct) / 100) : 0;
+  // Never let EPS exceed the employer's total contribution (guards a misconfigured
+  // epsRatePct > employerPfRatePct from producing a negative EPF leg).
+  const employerEpsCapped = Math.min(employerEps, employerPfTotal);
+  const employerEpf = rupee(employerPfTotal - employerEpsCapped);
+
+  // EDLI (A/c 21) — 0.5% of PF wages capped at ₹15,000 → max ₹75.
+  const employerEdli = rupee((Math.min(employerPfBase, cfg.edliWageCeiling) * cfg.edliRatePct) / 100);
+  // PF admin charges (A/c 2) — 0.5% of PF wages. NOTE: the statutory ₹500/month
+  // minimum is an ESTABLISHMENT-level floor, not per employee, so it is applied
+  // at the run level (if at all), never multiplied across every payslip here.
+  const employerPfAdmin = rupee((employerPfBase * cfg.pfAdminRatePct) / 100);
+
+  // Employer ESI — same eligibility rule as the employee leg (FULL gross within
+  // the ceiling), contribution on wages actually PAID.
+  const employerEsi =
+    hasPay && fullGross <= cfg.esiGrossCeiling ? rupee((gross * cfg.employerEsiRatePct) / 100) : 0;
+
+  const employerPf = rupee(employerEpsCapped + employerEpf);
+  const employerCost = rupee(employerPf + employerEdli + employerPfAdmin + employerEsi + gratuityAccrued);
+  const ctc = rupee(gross + employerCost);
+
   const statDeductions = [
     { code: "PF", name: "Provident Fund", amount: pf },
     { code: "ESI", name: "ESI", amount: esi },
@@ -294,6 +355,14 @@ export function computePayslip(input: PayslipInput): PayslipComputation {
     gratuityAccrued,
     totalDeductions,
     net,
+    employerEps: employerEpsCapped,
+    employerEpf,
+    employerPf,
+    employerEdli,
+    employerPfAdmin,
+    employerEsi,
+    employerCost,
+    ctc,
   };
 }
 
