@@ -301,7 +301,7 @@ export default async function SalesReportsPage({
                   </div>
                   <div className="relative h-7 flex-1 overflow-hidden rounded-lg border border-border bg-muted/30">
                     <div
-                      className="h-full rounded-lg bg-gradient-to-r from-violet-500/25 to-fuchsia-500/15"
+                      className="h-full rounded-lg bg-gradient-to-r from-violet-500/30 to-violet-500/10"
                       style={{ width: `${width}%` }}
                     />
                     <div className="absolute inset-0 flex items-center px-3 text-[13px] font-medium tabular-nums text-foreground">
@@ -675,7 +675,7 @@ export default async function SalesReportsPage({
                       </span>
                       <div className="flex h-20 w-full items-end">
                         <div
-                          className="w-full rounded-t bg-gradient-to-t from-violet-500/40 to-fuchsia-500/30"
+                          className="w-full rounded-t bg-gradient-to-t from-violet-500/45 to-violet-500/20"
                           style={{ height: `${h}px` }}
                         />
                       </div>
