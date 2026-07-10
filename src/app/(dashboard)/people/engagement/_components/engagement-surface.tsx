@@ -82,7 +82,7 @@ function PulseAnswerCard({ survey }: { survey: ActiveSurveyForMe }) {
                 aria-label={`${n} — ${SCORE_LABELS[n]}`}
                 className={`flex h-11 flex-1 items-center justify-center rounded-full border text-base font-semibold tabular-nums transition-all duration-200 ease-[cubic-bezier(0.34,1.4,0.64,1)] ${
                   n === score
-                    ? "scale-105 border-transparent bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-md"
+                    ? "scale-105 border-transparent bg-gradient-to-br from-violet-500 to-violet-400 text-white shadow-md"
                     : "border-border bg-background text-muted-foreground hover:-translate-y-0.5 hover:border-violet-400 hover:text-foreground hover:shadow-sm"
                 }`}
               >
@@ -245,7 +245,7 @@ function ResultsDialog({ surveyId, title }: { surveyId: string; title: string })
                     <span className="w-3 text-right font-medium tabular-nums">{d.score}</span>
                     <div className="h-3 flex-1 overflow-hidden rounded-full bg-muted">
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500"
+                        className="h-full rounded-full bg-gradient-to-r from-violet-500 to-violet-400"
                         style={{ width: `${(d.count / maxCount) * 100}%` }}
                       />
                     </div>

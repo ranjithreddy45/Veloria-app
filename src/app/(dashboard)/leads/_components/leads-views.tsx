@@ -82,12 +82,20 @@ export function LeadsViews({ data }: { data: LeadWithContact[] }) {
       if (bucket) bucket.push(lead);
       else byStatus.set(lead.status, [lead]);
     }
-    return STAGE_ORDER.map((s) => ({
+    const cols: KanbanColumn<LeadWithContact>[] = STAGE_ORDER.map((s) => ({
       id: s.status,
       label: s.label,
       hue: s.hue,
       items: byStatus.get(s.status) ?? [],
     }));
+    // Safety net: a lead whose status isn't one of the mapped stages (e.g. a
+    // stage added to the enum later) must never silently vanish from the board.
+    const mapped = new Set(STAGE_ORDER.map((s) => s.status));
+    const unmapped = data.filter((l) => !mapped.has(l.status));
+    if (unmapped.length > 0) {
+      cols.push({ id: "__other", label: "Other", hue: "slate", items: unmapped });
+    }
+    return cols;
   }, [data]);
 
   return (

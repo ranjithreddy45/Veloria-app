@@ -88,6 +88,13 @@ export function TasksBoardView({ tasks }: TasksBoardViewProps) {
     hue: def.hue,
     items: tasks.filter((t) => t.status === def.id),
   }));
+  // Safety net: a task whose status isn't one of the mapped columns (e.g. a
+  // status added to the enum later) must never silently vanish from the board.
+  const mapped = new Set(COLUMN_DEFS.map((d) => d.id));
+  const unmapped = tasks.filter((t) => !mapped.has(t.status));
+  if (unmapped.length > 0) {
+    columns.push({ id: "__other", label: "Other", hue: "slate", items: unmapped });
+  }
 
   return (
     <KanbanBoard

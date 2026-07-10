@@ -324,7 +324,7 @@ function KeyResultRow({
       <div className="mt-2">
         <GradientProgress
           value={kr.progress}
-          fill={kr.progress >= 100 ? "bg-gradient-to-r from-emerald-500 to-teal-500" : "bg-gradient-to-r from-violet-500 to-fuchsia-500"}
+          fill={kr.progress >= 100 ? "bg-gradient-to-r from-emerald-500 to-teal-500" : "bg-gradient-to-r from-violet-500 to-violet-400"}
           className="h-1.5"
         />
       </div>

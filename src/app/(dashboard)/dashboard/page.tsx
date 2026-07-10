@@ -130,7 +130,7 @@ export default async function DashboardPage() {
               {velos && velos.players > 0 && (
                 <Link
                   href="/performance/velos"
-                  className="hover-lift inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-violet-500/15 to-fuchsia-500/15 px-2.5 py-1 text-[12.5px] font-semibold text-violet-600 ring-1 ring-inset ring-violet-500/20 transition-colors hover:from-violet-500/20 hover:to-fuchsia-500/20 dark:text-violet-300"
+                  className="hover-lift inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-violet-500/15 to-violet-400/15 px-2.5 py-1 text-[12.5px] font-semibold text-violet-600 ring-1 ring-inset ring-violet-500/20 transition-colors hover:from-violet-500/20 hover:to-violet-400/20 dark:text-violet-300"
                 >
                   <Trophy className="size-3.5" strokeWidth={2} />
                   <span className="tabular-nums">
@@ -186,7 +186,7 @@ export default async function DashboardPage() {
           ============================================================ */}
       <section className="animate-fade-in-up space-y-3" style={{ animationDelay: "120ms" }}>
         <div className="flex items-center gap-2">
-          <span aria-hidden className="h-3.5 w-[3px] rounded-full bg-gradient-to-b from-violet-500 to-fuchsia-500" />
+          <span aria-hidden className="h-3.5 w-[3px] rounded-full bg-gradient-to-b from-violet-500 to-violet-400" />
           <h2 className="text-[12px] font-semibold uppercase tracking-[0.12em] text-brand-gradient">
             Performance
           </h2>
@@ -208,7 +208,7 @@ export default async function DashboardPage() {
           ============================================================ */}
       <section className="animate-fade-in-up space-y-3" style={{ animationDelay: "180ms" }}>
         <div className="flex items-center gap-2">
-          <span aria-hidden className="h-3.5 w-[3px] rounded-full bg-gradient-to-b from-violet-500 to-fuchsia-500" />
+          <span aria-hidden className="h-3.5 w-[3px] rounded-full bg-gradient-to-b from-violet-500 to-violet-400" />
           <h2 className="text-[12px] font-semibold uppercase tracking-[0.12em] text-brand-gradient">
             What needs me
           </h2>
@@ -229,7 +229,7 @@ export default async function DashboardPage() {
           ============================================================ */}
       <section className="animate-fade-in-up space-y-3" style={{ animationDelay: "240ms" }}>
         <div className="flex items-center gap-2">
-          <span aria-hidden className="h-3.5 w-[3px] rounded-full bg-gradient-to-b from-violet-500 to-fuchsia-500" />
+          <span aria-hidden className="h-3.5 w-[3px] rounded-full bg-gradient-to-b from-violet-500 to-violet-400" />
           <h2 className="text-[12px] font-semibold uppercase tracking-[0.12em] text-brand-gradient">
             Team pulse
           </h2>

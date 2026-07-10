@@ -81,7 +81,7 @@ export function PageHeader({
         <div className="space-y-2">
           {eyebrow && (
             <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em]">
-              <span aria-hidden className="h-3 w-[3px] rounded-full bg-gradient-to-b from-violet-500 to-fuchsia-500" />
+              <span aria-hidden className="h-3 w-[3px] rounded-full bg-gradient-to-b from-violet-500 to-violet-400" />
               <span className="text-brand-gradient">{eyebrow}</span>
             </div>
           )}

@@ -9,7 +9,7 @@ export default function AuthLayout({
 }) {
   return (
     <div className="bg-auth-mesh relative flex min-h-screen items-center justify-center overflow-hidden">
-      {/* Layered ambient aura — soft violet/fuchsia/teal mesh */}
+      {/* Layered ambient aura — soft violet/indigo/teal mesh */}
       <div aria-hidden className="bg-aura pointer-events-none absolute inset-0" />
 
       {/* Faint dotted grid overlay — barely visible, premium texture */}
