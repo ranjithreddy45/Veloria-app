@@ -14,7 +14,11 @@ import { StatTile } from "@/components/ui/stat-tile";
 import { EmptyState } from "@/components/ui/empty-state";
 import { IndianRupee, CalendarCheck, Users, Trophy, Target, Flame } from "lucide-react";
 import { SegmentedControl, type SegmentOption } from "@/components/ui/segmented-control";
-import { StatusPill } from "@/components/shared/status-pill";
+import { StatusPill, type Hue } from "@/components/shared/status-pill";
+import { PageHeader } from "@/components/layout/page-header";
+import { ViewTabs } from "@/components/ui/view-tabs";
+import { KanbanBoard, type KanbanColumn } from "@/components/ui/kanban-board";
+import { LayoutList, Kanban as KanbanIcon, CalendarDays } from "lucide-react";
 import { WorkflowStepper, type Step } from "@/app/(dashboard)/projects/_components/workflow-stepper";
 import { CategorySection, ChecklistItem, ChecklistHeader, type ChecklistFilter } from "@/app/(dashboard)/projects/_components/checklist-kit";
 import { readinessTone, type ChecklistTone } from "@/lib/projects/ui";
@@ -52,7 +56,25 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+type BoardCard = { id: string; title: string; when: string; pax: number; amount: string; tag?: string; tagHue?: Hue };
+const BOARD_COLUMNS: KanbanColumn<BoardCard>[] = [
+  { id: "new", label: "New enquiry", hue: "blue", items: [
+    { id: "1", title: "Sharma–Kapoor Wedding", when: "18 Aug", pax: 450, amount: "₹12.5L", tag: "Wedding", tagHue: "pink" },
+    { id: "2", title: "Infosys Corporate Offsite", when: "02 Sep", pax: 120, amount: "₹4.2L", tag: "Corporate", tagHue: "blue" },
+  ] },
+  { id: "visit", label: "Site visit", hue: "cyan", items: [
+    { id: "3", title: "Reddy Reception", when: "Tomorrow, 4 PM", pax: 300, amount: "₹9.8L", tag: "Grand Hall", tagHue: "violet" },
+  ] },
+  { id: "quote", label: "Quotation", hue: "amber", items: [
+    { id: "4", title: "Mehta Sangeet", when: "Quote #Q-2048", pax: 250, amount: "₹16.0L", tag: "Awaiting approval", tagHue: "amber" },
+  ] },
+  { id: "booked", label: "Booked", hue: "emerald", items: [
+    { id: "5", title: "Iyer Wedding", when: "24 Aug · Grand Hall", pax: 500, amount: "₹22.0L", tag: "Advance paid", tagHue: "emerald" },
+  ] },
+];
+
 export default function StyleGuidePage() {
+  const [view, setView] = React.useState<"list" | "board" | "calendar">("board");
   const [seg, setSeg] = React.useState("DONE");
   const [filter, setFilter] = React.useState<ChecklistFilter>("all");
   const [open, setOpen] = React.useState(true);
@@ -73,6 +95,42 @@ export default function StyleGuidePage() {
         <h1 className="text-2xl font-semibold">Projects — design foundation</h1>
         <p className="text-sm text-muted-foreground">Phase 0 tokens &amp; primitives + the composed Workflow stepper and Readiness checklist.</p>
       </header>
+
+      <Section title="Workspace kit (ClickUp-style) — module header · view tabs · board">
+        <div className="space-y-4 rounded-2xl border border-border/60 bg-card/40 p-4">
+          <PageHeader
+            title="Bookings"
+            description="Every event across the pipeline, at a glance."
+            eyebrow="Sales & CRM"
+            icon={CalendarCheck}
+            accent="blue"
+          >
+            <ViewTabs
+              value={view}
+              onValueChange={setView}
+              options={[
+                { value: "list", label: "List", icon: LayoutList },
+                { value: "board", label: "Board", icon: KanbanIcon },
+                { value: "calendar", label: "Calendar", icon: CalendarDays },
+              ]}
+            />
+          </PageHeader>
+          <KanbanBoard
+            columns={BOARD_COLUMNS}
+            getKey={(c) => c.id}
+            renderCard={(c) => (
+              <div className="space-y-2">
+                <p className="text-[13px] font-semibold leading-snug">{c.title}</p>
+                <p className="text-[11.5px] text-muted-foreground">{c.when} · {c.pax} pax</p>
+                <div className="flex items-center justify-between gap-2">
+                  {c.tag ? <StatusPill label={c.tag} hue={c.tagHue} size="xs" /> : <span />}
+                  <span className="text-[12px] font-bold tabular-nums">{c.amount}</span>
+                </div>
+              </div>
+            )}
+          />
+        </div>
+      </Section>
 
       <Section title="Colorful KPI tiles (StatTile) — gamified progress">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
