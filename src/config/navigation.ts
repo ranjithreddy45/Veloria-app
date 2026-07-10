@@ -398,16 +398,19 @@ export const sidebarNavigation: NavItem[] = [
   },
   // Employee self-service — visible to EVERY signed-in employee (empty
   // permissions = always shown), independent of the HR-admin nav below.
+  // These MUST live under /me, not /people: ROUTE_PERMISSIONS gates the whole
+  // "/people" prefix on hr:read, which STAFF does not hold — so /people/* links
+  // here would render in the sidebar but dead-end at /not-authorized.
   {
     title: "My HR",
-    href: "/people/my/payslips",
+    href: "/me/attendance",
     icon: "Contact",
     permissions: [],
     children: [
-      { title: "My Payslips", href: "/people/my/payslips", icon: "FileText", permissions: [] },
-      { title: "My Leave", href: "/people/leave", icon: "CalendarCheck", permissions: [] },
-      { title: "My Attendance", href: "/people/attendance", icon: "Clock", permissions: [] },
-      { title: "Help Desk", href: "/people/helpdesk", icon: "MessageCircle", permissions: [] },
+      { title: "My Attendance", href: "/me/attendance", icon: "Clock", permissions: [] },
+      { title: "My Leave", href: "/me/leave", icon: "CalendarCheck", permissions: [] },
+      { title: "My Payslips", href: "/me/payslips", icon: "FileText", permissions: [] },
+      { title: "Help Desk", href: "/me/helpdesk", icon: "MessageCircle", permissions: [] },
     ],
   },
   // People split into focused sub-modules so the team finds things fast.
