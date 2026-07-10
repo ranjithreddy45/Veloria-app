@@ -667,13 +667,18 @@ export default async function SalesReportsPage({
             ) : (
               <div className="flex items-end gap-2">
                 {lost.trend.map((tr) => {
-                  const h = Math.max(4, Math.round((tr.winRate || 0) * 80));
+                  // `trend.winRate` arrives from the action already as a PERCENT
+                  // (0–100), not a fraction — unlike `conversion.winRate`. Treat it
+                  // as such, and clamp so bad data can never render a bar taller
+                  // than its 80px track (it used to streak up the whole page).
+                  const rate = Math.min(100, Math.max(0, tr.winRate || 0));
+                  const h = Math.max(4, Math.round((rate / 100) * 80));
                   return (
                     <div key={tr.month} className="flex flex-1 flex-col items-center gap-1">
                       <span className="text-[10px] tabular-nums text-muted-foreground">
-                        {Math.round((tr.winRate || 0) * 100)}%
+                        {Math.round(rate)}%
                       </span>
-                      <div className="flex h-20 w-full items-end">
+                      <div className="flex h-20 w-full items-end overflow-hidden">
                         <div
                           className="w-full rounded-t bg-gradient-to-t from-violet-500/45 to-violet-500/20"
                           style={{ height: `${h}px` }}
