@@ -265,6 +265,23 @@ const SECTION_DOT: Record<string, string> = {
   "System": "bg-slate-400",
 };
 
+// ClickUp-style colored icon tiles — each nav item's icon sits in a rounded
+// chip tinted with its section's signature hue, so the whole sidebar reads as a
+// colorful, scannable workspace rather than a monochrome list. (Full class
+// strings so Tailwind keeps them at build time.) The active item drops the tint
+// for a translucent white tile on the violet gradient row.
+const DEFAULT_TILE = "bg-muted text-muted-foreground";
+const SECTION_TILE: Record<string, string> = {
+  "Sales & CRM": "bg-blue-500/12 text-blue-600 dark:bg-blue-400/15 dark:text-blue-300",
+  "Delivery & Ops": "bg-amber-500/15 text-amber-600 dark:bg-amber-400/15 dark:text-amber-300",
+  "People": "bg-violet-500/12 text-violet-600 dark:bg-violet-400/15 dark:text-violet-300",
+  "Finance": "bg-emerald-500/12 text-emerald-600 dark:bg-emerald-400/15 dark:text-emerald-300",
+  "Catalog": "bg-teal-500/12 text-teal-600 dark:bg-teal-400/15 dark:text-teal-300",
+  "Marketing & Insights": "bg-pink-500/12 text-pink-600 dark:bg-pink-400/15 dark:text-pink-300",
+  "Workspace": "bg-cyan-500/12 text-cyan-600 dark:bg-cyan-400/15 dark:text-cyan-300",
+  "System": "bg-slate-500/12 text-slate-600 dark:bg-slate-400/15 dark:text-slate-300",
+};
+
 // ============================================================
 // Role display map
 // ============================================================
@@ -291,9 +308,11 @@ const ROLE_LABELS: Record<string, string> = {
 function SidebarNavItem({
   item,
   isActive,
+  tileClass,
 }: {
   item: NavItem;
   isActive: boolean;
+  tileClass: string;
 }) {
   const Icon = getIcon(item.icon);
 
@@ -304,14 +323,22 @@ function SidebarNavItem({
         isActive={isActive}
         tooltip={item.title}
         className={cn(
-          "group/nav relative h-9 overflow-hidden rounded-xl px-2.5 text-[13px] font-medium text-sidebar-foreground/80 transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
+          "group/nav relative h-9 overflow-hidden rounded-xl px-2 text-[13px] font-medium text-sidebar-foreground/80 transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
           "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
+          "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0!",
           isActive &&
             "sheen-sweep bg-gradient-to-b from-primary to-[color-mix(in_oklab,var(--primary)_90%,black_10%)] font-semibold text-primary-foreground shadow-[inset_0_1px_0_oklch(1_0_0/0.28),0_2px_8px_oklch(0.4_0.24_293/0.32)] hover:text-primary-foreground hover:from-primary hover:to-[color-mix(in_oklab,var(--primary)_90%,black_10%)]"
         )}
       >
         <Link href={item.href}>
-          <Icon className={cn("size-4 transition-colors", isActive ? "text-primary-foreground" : "text-sidebar-foreground/55 group-hover/nav:text-sidebar-accent-foreground")} strokeWidth={isActive ? 2.25 : 1.85} />
+          <span
+            className={cn(
+              "flex size-6 shrink-0 items-center justify-center rounded-[7px] transition-colors duration-200",
+              isActive ? "bg-white/20 text-primary-foreground" : tileClass
+            )}
+          >
+            <Icon className="size-3.5" strokeWidth={isActive ? 2.4 : 2} />
+          </span>
           <span className={cn(isActive && "tracking-[-0.01em]")}>{item.title}</span>
         </Link>
       </SidebarMenuButton>
@@ -326,9 +353,11 @@ function SidebarNavItem({
 function SidebarCollapsibleItem({
   item,
   pathname,
+  tileClass,
 }: {
   item: NavItem;
   pathname: string;
+  tileClass: string;
 }) {
   const Icon = getIcon(item.icon);
   const isGroupActive = pathname.startsWith(item.href);
@@ -340,13 +369,16 @@ function SidebarCollapsibleItem({
             <SidebarMenuButton
               tooltip={item.title}
               className={cn(
-                "group/nav h-9 rounded-xl px-2.5 text-[13px] font-medium text-sidebar-foreground/80 transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
+                "group/nav h-9 rounded-xl px-2 text-[13px] font-medium text-sidebar-foreground/80 transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
                 "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
+                "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0!",
                 isGroupActive &&
                   "bg-primary/[0.07] font-semibold text-sidebar-accent-foreground shadow-[inset_0_0_0_1px_oklch(0.55_0.25_293/0.14)]"
               )}
             >
-              <Icon className={cn("size-4 transition-colors", isGroupActive ? "text-primary" : "text-sidebar-foreground/55 group-hover/nav:text-sidebar-accent-foreground")} strokeWidth={isGroupActive ? 2.25 : 1.85} />
+              <span className={cn("flex size-6 shrink-0 items-center justify-center rounded-[7px] transition-colors duration-200", tileClass)}>
+                <Icon className="size-3.5" strokeWidth={isGroupActive ? 2.4 : 2} />
+              </span>
               <span className={cn(isGroupActive && "tracking-[-0.01em]")}>{item.title}</span>
               <ChevronRight className="ml-auto size-3.5 text-sidebar-foreground/40 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
             </SidebarMenuButton>
@@ -472,15 +504,20 @@ export function AppSidebar() {
                 return filteredNavigation.map((item) => {
                   const section = SECTIONS[item.href];
                   const showHeader = !!section && section !== prevSection;
+                  // Each item's icon-tile hue follows the section it belongs to
+                  // (items that don't start a section inherit the running one).
+                  const effectiveSection = section ?? prevSection;
+                  const tileClass = (effectiveSection && SECTION_TILE[effectiveSection]) || DEFAULT_TILE;
                   if (section) prevSection = section;
 
                   const node =
                     item.children && item.children.length > 0 ? (
-                      <SidebarCollapsibleItem item={item} pathname={pathname} />
+                      <SidebarCollapsibleItem item={item} pathname={pathname} tileClass={tileClass} />
                     ) : (
                       <SidebarNavItem
                         item={item}
                         isActive={pathname === item.href || pathname.startsWith(item.href + "/")}
+                        tileClass={tileClass}
                       />
                     );
 
