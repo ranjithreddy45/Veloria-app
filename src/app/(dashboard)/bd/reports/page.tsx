@@ -450,7 +450,7 @@ export default async function BdReportsPage({
           <StatTile
             label="Overdue"
             value={followup.counts.overdue}
-            accent="rose"
+            accent="red"
             icon={<AlertTriangle className="size-4" />}
             sub="Past due follow-ups"
           />
@@ -488,7 +488,7 @@ export default async function BdReportsPage({
           <FollowupList
             title="Overdue"
             items={followup.overdue}
-            tone="rose"
+            tone="red"
             empty="Nothing overdue — nice."
           />
           <FollowupList
@@ -512,7 +512,7 @@ export default async function BdReportsPage({
           <StatTile
             label="Deals lost"
             value={lost.totalCount}
-            accent="rose"
+            accent="red"
             icon={<XCircle className="size-4" />}
             sub="In this period"
           />
@@ -730,12 +730,12 @@ function FollowupList({
 }: {
   title: string;
   items: FollowupItem[];
-  tone: "rose" | "amber" | "muted";
+  tone: "red" | "amber" | "muted";
   empty: string;
 }) {
   const headTone =
-    tone === "rose"
-      ? "text-rose-600 dark:text-rose-400"
+    tone === "red"
+      ? "text-red-600 dark:text-red-400"
       : tone === "amber"
         ? "text-amber-600 dark:text-amber-400"
         : "text-muted-foreground";

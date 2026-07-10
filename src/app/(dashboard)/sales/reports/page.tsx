@@ -528,7 +528,7 @@ export default async function SalesReportsPage({
           <StatTile
             label="Overdue payments"
             value={alerts.counts.overdue}
-            accent="rose"
+            accent="red"
             icon={<AlertTriangle className="size-4" />}
             sub="Past due"
           />
@@ -550,12 +550,12 @@ export default async function SalesReportsPage({
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           {/* Overdue payments */}
-          <AlertCard title="Overdue payments" tone="rose" count={alerts.overdue.length} empty="Nothing overdue — nice.">
+          <AlertCard title="Overdue payments" tone="red" count={alerts.overdue.length} empty="Nothing overdue — nice.">
             {alerts.overdue.map((it) => (
               <li key={it.id} className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
                 <div className="flex items-center justify-between gap-2">
                   <span className="truncate text-[13px] font-medium text-foreground">{it.client || "—"}</span>
-                  <span className="shrink-0 text-[12px] font-semibold tabular-nums text-rose-600 dark:text-rose-400">
+                  <span className="shrink-0 text-[12px] font-semibold tabular-nums text-red-600 dark:text-red-400">
                     {inr(it.amount)}
                   </span>
                 </div>
@@ -612,7 +612,7 @@ export default async function SalesReportsPage({
           <StatTile
             label="Bookings lost"
             value={lost.totalCount}
-            accent="rose"
+            accent="red"
             icon={<XCircle className="size-4" />}
             sub="In this period"
           />
@@ -822,14 +822,14 @@ function AlertCard({
   children,
 }: {
   title: string;
-  tone: "rose" | "amber" | "muted";
+  tone: "red" | "amber" | "muted";
   count: number;
   empty: string;
   children: React.ReactNode;
 }) {
   const headTone =
-    tone === "rose"
-      ? "text-rose-600 dark:text-rose-400"
+    tone === "red"
+      ? "text-red-600 dark:text-red-400"
       : tone === "amber"
         ? "text-amber-600 dark:text-amber-400"
         : "text-muted-foreground";

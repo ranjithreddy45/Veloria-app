@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { Donut } from "@/components/ui/donut";
 import { CountUp } from "@/components/ui/count-up";
 
-export type Accent = "indigo" | "blue" | "violet" | "emerald" | "amber" | "rose" | "pink" | "cyan" | "teal";
+export type Accent = "indigo" | "blue" | "violet" | "emerald" | "amber" | "rose" | "red" | "pink" | "cyan" | "teal";
 
 const ACCENT: Record<Accent, { wash: string; chip: string; ring: string; bar: string; text: string }> = {
   indigo: { wash: "from-indigo-500/8 to-indigo-500/0", chip: "bg-indigo-100 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-300", ring: "text-indigo-500", bar: "bg-indigo-500", text: "text-indigo-600 dark:text-indigo-300" },
@@ -20,6 +20,9 @@ const ACCENT: Record<Accent, { wash: string; chip: string; ring: string; bar: st
   emerald: { wash: "from-emerald-500/8 to-emerald-500/0", chip: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-300", ring: "text-emerald-500", bar: "bg-emerald-500", text: "text-emerald-600 dark:text-emerald-300" },
   amber: { wash: "from-amber-500/8 to-amber-500/0", chip: "bg-amber-100 text-amber-600 dark:bg-amber-950/50 dark:text-amber-300", ring: "text-amber-500", bar: "bg-amber-500", text: "text-amber-600 dark:text-amber-300" },
   rose: { wash: "from-rose-500/8 to-rose-500/0", chip: "bg-rose-100 text-rose-600 dark:bg-rose-950/50 dark:text-rose-300", ring: "text-rose-500", bar: "bg-rose-500", text: "text-rose-600 dark:text-rose-300" },
+  // `red` for urgent/negative states (overdue money, failures). Distinct from
+  // `rose`, whose 500 stop (#f43f5e) reads pink rather than urgent.
+  red: { wash: "from-red-500/8 to-red-500/0", chip: "bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-300", ring: "text-red-500", bar: "bg-red-500", text: "text-red-600 dark:text-red-300" },
   pink: { wash: "from-pink-500/8 to-pink-500/0", chip: "bg-pink-100 text-pink-600 dark:bg-pink-950/50 dark:text-pink-300", ring: "text-pink-500", bar: "bg-pink-500", text: "text-pink-600 dark:text-pink-300" },
   cyan: { wash: "from-cyan-500/8 to-cyan-500/0", chip: "bg-cyan-100 text-cyan-600 dark:bg-cyan-950/50 dark:text-cyan-300", ring: "text-cyan-500", bar: "bg-cyan-500", text: "text-cyan-600 dark:text-cyan-300" },
   teal: { wash: "from-teal-500/8 to-teal-500/0", chip: "bg-teal-100 text-teal-600 dark:bg-teal-950/50 dark:text-teal-300", ring: "text-teal-500", bar: "bg-teal-500", text: "text-teal-600 dark:text-teal-300" },
