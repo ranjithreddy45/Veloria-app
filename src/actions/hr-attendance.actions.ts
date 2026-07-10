@@ -283,18 +283,24 @@ export async function getMyAttendance(year?: number, month?: number) {
   const to = new Date(Date.UTC(y, m + 1, 0));
   const today = todayUtcMidnight();
 
-  const [todayRec, monthRecs] = await Promise.all([
+  const [todayRec, monthRecs, siteRows] = await Promise.all([
     prisma.attendanceRecord.findUnique({ where: { employeeId_date: { employeeId: emp.id, date: today } } }),
     prisma.attendanceRecord.findMany({ where: { employeeId: emp.id, date: { gte: from, lte: to } }, orderBy: { date: "desc" } }),
+    prisma.attendanceSite.findMany({ select: { id: true, name: true, isActive: true, lat: true, lng: true } }),
   ]);
 
   const presentDays = monthRecs.filter((r) => r.status === "PRESENT" || r.status === "WFH").length;
   const halfDays = monthRecs.filter((r) => r.status === "HALF_DAY").length;
   const totalMinutes = monthRecs.reduce((s, r) => s + r.workedMinutes, 0);
 
+  // siteId is a plain String (no relation) — expose an id→name map so the UI can
+  // label a check-in's site. geoEnabled = any ACTIVE site with lat AND lng.
+  const sites: Record<string, string> = Object.fromEntries(siteRows.map((s) => [s.id, s.name]));
+  const geoEnabled = siteRows.some((s) => s.isActive && s.lat != null && s.lng != null);
+
   return {
     linked: true as const, employeeId: emp.id, year: y, month: m,
-    today: todayRec, records: monthRecs,
+    today: todayRec, records: monthRecs, sites, geoEnabled,
     stats: { presentDays, halfDays, totalHours: Math.round(totalMinutes / 60) },
   };
 }

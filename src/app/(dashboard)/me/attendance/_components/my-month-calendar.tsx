@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeft, ChevronRight, CalendarDays, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, Loader2, MapPin } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -33,6 +33,22 @@ export interface MyAttendanceDay {
   checkInAt: string | null;
   checkOutAt: string | null;
   workedMinutes: number;
+  // Geo-tag of the day's check-in (self-scoped — only ever the viewer's own).
+  siteName: string | null;
+  locationVerified: boolean | null;
+  lat: number | null;
+  lng: number | null;
+  visitType: string | null;
+}
+
+/**
+ * GPS verification chip, mirroring the admin muster + checkIn() semantics:
+ *   true → matched a site radius; false → outside/flagged; null → n/a.
+ */
+function verifyMeta(v: boolean | null): { label: string; cell: string } {
+  if (v === true) return { label: "Verified", cell: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300" };
+  if (v === false) return { label: "Unverified", cell: "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300" };
+  return { label: "No geo", cell: "bg-muted text-muted-foreground" };
 }
 
 // Colour map mirrors people/attendance/muster STATUS_META.
@@ -65,19 +81,32 @@ function workedLabel(min: number): string {
 }
 
 /** Convert action records (Date-or-string fields) to serialisable days. */
-function normalize(records: ReadonlyArray<{
-  date: Date | string;
-  status: string;
-  checkInAt: Date | string | null;
-  checkOutAt: Date | string | null;
-  workedMinutes: number;
-}>): MyAttendanceDay[] {
+function normalize(
+  records: ReadonlyArray<{
+    date: Date | string;
+    status: string;
+    checkInAt: Date | string | null;
+    checkOutAt: Date | string | null;
+    workedMinutes: number;
+    siteId?: string | null;
+    locationVerified?: boolean | null;
+    checkInLat?: number | null;
+    checkInLng?: number | null;
+    visitType?: string | null;
+  }>,
+  sites: Record<string, string>,
+): MyAttendanceDay[] {
   return records.map((r) => ({
     date: new Date(r.date).toISOString(),
     status: r.status as AttendanceStatus,
     checkInAt: r.checkInAt ? new Date(r.checkInAt).toISOString() : null,
     checkOutAt: r.checkOutAt ? new Date(r.checkOutAt).toISOString() : null,
     workedMinutes: r.workedMinutes,
+    siteName: r.siteId ? sites[r.siteId] ?? null : null,
+    locationVerified: r.locationVerified ?? null,
+    lat: r.checkInLat ?? null,
+    lng: r.checkInLng ?? null,
+    visitType: r.visitType ?? null,
   }));
 }
 
@@ -129,7 +158,7 @@ export function MyMonthCalendar({
       setYear(nextYear);
       setMonth(nextMonth);
       if (data && "linked" in data && data.linked && Array.isArray(data.records)) {
-        setRecords(normalize(data.records));
+        setRecords(normalize(data.records, data.sites ?? {}));
       } else {
         setRecords([]);
       }
@@ -265,6 +294,31 @@ export function MyMonthCalendar({
           <span className="text-muted-foreground">
             Worked: <span className="tabular-nums text-foreground">{workedLabel(selectedRec.workedMinutes)}</span>
           </span>
+          {/* Geo-tag of the day's check-in. */}
+          {selectedRec.visitType === "CLIENT" ? (
+            <span className="text-muted-foreground">Client visit — no geo required</span>
+          ) : (
+            <>
+              <span className="text-muted-foreground">
+                Site: <span className="text-foreground">{selectedRec.siteName ?? "—"}</span>
+              </span>
+              <span className={cn("rounded px-1.5 py-0.5 text-[11px] font-semibold", verifyMeta(selectedRec.locationVerified).cell)}>
+                {verifyMeta(selectedRec.locationVerified).label}
+              </span>
+              {selectedRec.lat != null && selectedRec.lng != null && (
+                <a
+                  href={`https://www.google.com/maps?q=${selectedRec.lat},${selectedRec.lng}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Open check-in location in Google Maps"
+                  className="inline-flex items-center gap-1 font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+                >
+                  <MapPin className="size-3.5" />
+                  <span className="tabular-nums">{selectedRec.lat.toFixed(5)}, {selectedRec.lng.toFixed(5)}</span>
+                </a>
+              )}
+            </>
+          )}
         </div>
       ) : selected != null ? (
         <div className="mt-3 rounded-lg border bg-muted/40 px-3 py-2 text-[12.5px] text-muted-foreground">

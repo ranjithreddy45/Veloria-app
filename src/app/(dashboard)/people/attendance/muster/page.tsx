@@ -32,6 +32,8 @@ export default async function AttendanceMusterPage() {
   // Correcting the muster is an HR-privileged action; read-only users still see
   // the register but the grid stays static for them.
   const canEdit = hasPermission(role, "hr:write") || hasPermission(role, "hr:admin");
+  // Only HR admins get the "configure a site" link in the geo-off banner.
+  const canAdmin = hasPermission(role, "hr:admin");
 
   const date = todayIst();
   const initial = await getDailyMuster({ date });
@@ -43,7 +45,7 @@ export default async function AttendanceMusterPage() {
         title="Muster / Register"
         description="The organisation-wide attendance register. Pick a day to see who's present, absent, on leave or working from home — with check-in time and any flagged punches — or switch to the monthly grid."
       />
-      <MusterView initialDate={date} initial={initial} initialFy={currentFy()} initialMonth={new Date().getMonth() + 1} canEdit={canEdit} />
+      <MusterView initialDate={date} initial={initial} initialFy={currentFy()} initialMonth={new Date().getMonth() + 1} canEdit={canEdit} canAdmin={canAdmin} />
     </div>
   );
 }

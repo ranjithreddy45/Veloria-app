@@ -60,6 +60,12 @@ export default async function MyAttendancePage() {
                 checkInAt: r.checkInAt ? r.checkInAt.toISOString() : null,
                 checkOutAt: r.checkOutAt ? r.checkOutAt.toISOString() : null,
                 workedMinutes: r.workedMinutes,
+                // Geo-tag: siteId is a plain String → resolve via the sites map.
+                siteName: r.siteId ? data.sites[r.siteId] ?? null : null,
+                locationVerified: r.locationVerified,
+                lat: r.checkInLat,
+                lng: r.checkInLng,
+                visitType: r.visitType,
               }),
             )}
           />

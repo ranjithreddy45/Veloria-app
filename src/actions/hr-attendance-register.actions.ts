@@ -60,11 +60,20 @@ export interface MusterRow {
   flagged: boolean;
   flagReason: string | null;
   isRegularized: boolean;
+  // Geo-tag fields carried from the AttendanceRecord (siteId is a plain String,
+  // no Prisma relation — siteName is resolved via a one-shot id→name map).
+  siteId: string | null;
+  siteName: string | null;
+  locationVerified: boolean | null;
+  lat: number | null;
+  lng: number | null;
 }
 
 export interface DailyMuster {
   date: string; // YYYY-MM-DD (IST day)
   rows: MusterRow[];
+  /** True when at least one ACTIVE AttendanceSite has non-null lat AND lng. */
+  geoEnabled: boolean;
   summary: {
     headcount: number;
     present: number; // PRESENT + HALF_DAY (physically working / in office)
@@ -110,11 +119,24 @@ export async function getDailyMuster(input: { date?: string }): Promise<DailyMus
           flagged: true,
           flagReason: true,
           isRegularized: true,
+          // Geo-tag columns already persisted by checkIn().
+          siteId: true,
+          locationVerified: true,
+          checkInLat: true,
+          checkInLng: true,
         },
       },
     },
     orderBy: ROSTER_ORDER,
   });
+
+  // One query for the site catalogue: builds the id→name map (siteId is a plain
+  // String, no relation) and tells us whether geo verification is operative.
+  const sites = await prisma.attendanceSite.findMany({
+    select: { id: true, name: true, isActive: true, lat: true, lng: true },
+  });
+  const siteNameById = new Map(sites.map((s) => [s.id, s.name]));
+  const geoEnabled = sites.some((s) => s.isActive && s.lat != null && s.lng != null);
 
   const rows: MusterRow[] = employees.map((e) => {
     const rec = e.attendance[0] ?? null;
@@ -131,6 +153,11 @@ export async function getDailyMuster(input: { date?: string }): Promise<DailyMus
       flagged: rec?.flagged ?? false,
       flagReason: rec?.flagReason ?? null,
       isRegularized: rec?.isRegularized ?? false,
+      siteId: rec?.siteId ?? null,
+      siteName: rec?.siteId ? siteNameById.get(rec.siteId) ?? null : null,
+      locationVerified: rec?.locationVerified ?? null,
+      lat: rec?.checkInLat ?? null,
+      lng: rec?.checkInLng ?? null,
     };
   });
 
@@ -143,7 +170,7 @@ export async function getDailyMuster(input: { date?: string }): Promise<DailyMus
     flagged: rows.filter((r) => r.flagged).length,
   };
 
-  return { date: dayStr, rows, summary };
+  return { date: dayStr, rows, geoEnabled, summary };
 }
 
 // ============================================================
@@ -156,6 +183,8 @@ export interface MonthlyRegister {
   month: number; // 1-12
   year: number; // calendar year the month falls in
   daysInMonth: number;
+  /** True when at least one ACTIVE AttendanceSite has non-null lat AND lng. */
+  geoEnabled: boolean;
   rows: Array<{
     employeeId: string;
     name: string;
@@ -187,7 +216,7 @@ export async function getMonthlyRegister(input: { fy: string; month: number }): 
   const to = new Date(Date.UTC(year, month, 0)); // last day of month, UTC-midnight
   const daysInMonth = to.getUTCDate();
 
-  const [employees, records] = await Promise.all([
+  const [employees, records, sites] = await Promise.all([
     prisma.employee.findMany({
       where: ROSTER_WHERE,
       select: {
@@ -203,7 +232,10 @@ export async function getMonthlyRegister(input: { fy: string; month: number }): 
       where: { date: { gte: from, lte: to }, employee: ROSTER_WHERE },
       select: { employeeId: true, date: true, status: true },
     }),
+    prisma.attendanceSite.findMany({ select: { isActive: true, lat: true, lng: true } }),
   ]);
+
+  const geoEnabled = sites.some((s) => s.isActive && s.lat != null && s.lng != null);
 
   // employeeId → (day-of-month → status)
   const byEmp = new Map<string, Record<number, MusterStatus>>();
@@ -229,5 +261,5 @@ export async function getMonthlyRegister(input: { fy: string; month: number }): 
     };
   });
 
-  return { fy: input.fy, month, year, daysInMonth, rows };
+  return { fy: input.fy, month, year, daysInMonth, geoEnabled, rows };
 }

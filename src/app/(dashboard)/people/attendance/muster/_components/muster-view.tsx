@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   Users, CheckCircle2, CircleSlash, Home, Plane, AlertTriangle, Loader2, Search,
-  Download, Printer, Pencil,
+  Download, Printer, Pencil, MapPin, ShieldOff,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -82,14 +82,68 @@ function dayKey(year: number, month: number, day: number): string {
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+/**
+ * GPS verification chip mirroring checkIn() semantics:
+ *   true  → GPS matched an active site radius (emerald)
+ *   false → outside radius or on-site-but-bad-IP, flagged (amber)
+ *   null  → not applicable: CLIENT visit or no sites configured (slate)
+ */
+function verifyMeta(v: boolean | null): { label: string; hue: Hue } {
+  if (v === true) return { label: "Verified", hue: "emerald" };
+  if (v === false) return { label: "Unverified", hue: "amber" };
+  return { label: "No geo", hue: "slate" };
+}
+
+/** A Google-Maps link for a captured lat/lng, labelled with the 5dp coords. */
+function MapLink({ lat, lng }: { lat: number; lng: number }) {
+  return (
+    <a
+      href={`https://www.google.com/maps?q=${lat},${lng}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      title="Open check-in location in Google Maps"
+      className="inline-flex items-center gap-1 text-[11.5px] font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+    >
+      <MapPin className="size-3.5" />
+      <span className="tabular-nums">{lat.toFixed(5)}, {lng.toFixed(5)}</span>
+    </a>
+  );
+}
+
+/**
+ * Prominent amber banner shown when NO active attendance site has coordinates,
+ * so check-ins are recorded but never geo-verified (a silent failure otherwise).
+ */
+function GeoOffBanner({ canAdmin }: { canAdmin: boolean }) {
+  return (
+    <div className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-[13px] text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/40 dark:text-amber-200">
+      <ShieldOff className="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-400" />
+      <div className="space-y-0.5">
+        <p className="font-semibold">Location verification is OFF</p>
+        <p>
+          No attendance site has coordinates configured, so check-ins are recorded but never geo-verified.{" "}
+          {canAdmin ? (
+            <a href="/people/attendance/sites" className="font-medium underline underline-offset-2">
+              Configure a site
+            </a>
+          ) : (
+            <span>Ask an HR admin to configure a site.</span>
+          )}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function MusterView({
-  initialDate, initial, initialFy, initialMonth, canEdit,
+  initialDate, initial, initialFy, initialMonth, canEdit, canAdmin,
 }: {
   initialDate: string;
   initial: DailyMuster | null;
   initialFy: string;
   initialMonth: number;
   canEdit: boolean;
+  canAdmin: boolean;
 }) {
   const [tab, setTab] = React.useState<"day" | "month">("day");
 
@@ -113,8 +167,8 @@ export function MusterView({
       </div>
 
       {tab === "day"
-        ? <DayView initialDate={initialDate} initial={initial} />
-        : <MonthView initialFy={initialFy} initialMonth={initialMonth} canEdit={canEdit} />}
+        ? <DayView initialDate={initialDate} initial={initial} canAdmin={canAdmin} />
+        : <MonthView initialFy={initialFy} initialMonth={initialMonth} canEdit={canEdit} canAdmin={canAdmin} />}
     </div>
   );
 }
@@ -122,7 +176,7 @@ export function MusterView({
 // ============================================================
 // Daily muster
 // ============================================================
-function DayView({ initialDate, initial }: { initialDate: string; initial: DailyMuster | null }) {
+function DayView({ initialDate, initial, canAdmin }: { initialDate: string; initial: DailyMuster | null; canAdmin: boolean }) {
   const [date, setDate] = React.useState(initialDate);
   const [muster, setMuster] = React.useState<DailyMuster | null>(initial);
   const [loading, setLoading] = React.useState(false);
@@ -156,6 +210,7 @@ function DayView({ initialDate, initial }: { initialDate: string; initial: Daily
     const headers = [
       "Code", "Name", "Department", "Status",
       "Check-in (IST)", "Check-out (IST)", "Worked (hrs)", "Flagged",
+      "Site", "Verified", "Lat", "Lng",
     ];
     const body = muster.rows.map((r) => [
       r.empCode,
@@ -166,6 +221,10 @@ function DayView({ initialDate, initial }: { initialDate: string; initial: Daily
       r.checkOutAt ? istTime(r.checkOutAt) : "",
       (r.workedMinutes / 60).toFixed(2),
       r.flagged ? "Yes" : "",
+      r.siteName ?? "",
+      verifyMeta(r.locationVerified).label,
+      r.lat != null ? r.lat.toFixed(5) : "",
+      r.lng != null ? r.lng.toFixed(5) : "",
     ]);
     downloadCSV(`muster-daily-${date}.csv`, toCSV(headers, body));
   }
@@ -176,6 +235,9 @@ function DayView({ initialDate, initial }: { initialDate: string; initial: Daily
 
   return (
     <div className="space-y-4">
+      {/* Silent-failure guard: geo verification not operative. */}
+      {muster && !muster.geoEnabled && <GeoOffBanner canAdmin={canAdmin} />}
+
       {/* Controls */}
       <div className="flex flex-wrap items-end gap-3">
         <div className="w-48">
@@ -234,6 +296,7 @@ function DayView({ initialDate, initial }: { initialDate: string; initial: Daily
                 <TableHead>Check-in (IST)</TableHead>
                 <TableHead>Check-out (IST)</TableHead>
                 <TableHead>Visit</TableHead>
+                <TableHead>Location</TableHead>
                 <TableHead className="text-right">Worked</TableHead>
               </TableRow>
             </TableHeader>
@@ -261,6 +324,18 @@ function DayView({ initialDate, initial }: { initialDate: string; initial: Daily
                     <TableCell className="tabular-nums text-[12.5px]">{r.checkInAt ? istTime(r.checkInAt) : <span className="text-muted-foreground">—</span>}</TableCell>
                     <TableCell className="tabular-nums text-[12.5px]">{r.checkOutAt ? istTime(r.checkOutAt) : <span className="text-muted-foreground">—</span>}</TableCell>
                     <TableCell className="text-[12.5px] text-muted-foreground">{r.visitType ?? "—"}</TableCell>
+                    <TableCell className="text-[12.5px]">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="text-muted-foreground">{r.siteName ?? "—"}</span>
+                          {(() => {
+                            const vm = verifyMeta(r.locationVerified);
+                            return <StatusPill label={vm.label} hue={vm.hue} size="xs" />;
+                          })()}
+                        </div>
+                        {r.lat != null && r.lng != null && <MapLink lat={r.lat} lng={r.lng} />}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-right tabular-nums text-[12.5px]">
                       {r.workedMinutes > 0 ? `${Math.floor(r.workedMinutes / 60)}h ${r.workedMinutes % 60}m` : "—"}
                     </TableCell>
@@ -278,7 +353,7 @@ function DayView({ initialDate, initial }: { initialDate: string; initial: Daily
 // ============================================================
 // Monthly register grid
 // ============================================================
-function MonthView({ initialFy, initialMonth, canEdit }: { initialFy: string; initialMonth: number; canEdit: boolean }) {
+function MonthView({ initialFy, initialMonth, canEdit, canAdmin }: { initialFy: string; initialMonth: number; canEdit: boolean; canAdmin: boolean }) {
   const router = useRouter();
   const fys = React.useMemo(fyOptions, []);
   const [fy, setFy] = React.useState(initialFy);
@@ -369,6 +444,9 @@ function MonthView({ initialFy, initialMonth, canEdit }: { initialFy: string; in
 
   return (
     <div className="space-y-4">
+      {/* Silent-failure guard: geo verification not operative. */}
+      {reg && !reg.geoEnabled && <GeoOffBanner canAdmin={canAdmin} />}
+
       <div className="flex flex-wrap items-end gap-3">
         <div className="w-40">
           <label className="mb-1 block text-[12px] font-medium text-muted-foreground">Financial year</label>
