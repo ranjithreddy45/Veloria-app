@@ -3,14 +3,15 @@
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
+  BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from "recharts";
-import { Users, UserMinus, CalendarCheck, ClipboardCheck } from "lucide-react";
+import { Users, UserMinus, CalendarCheck, ClipboardCheck, UserPlus, UserCheck } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 
 type Pair = { name: string; value: number };
+type GenderSlice = { name: string; value: number; pct: number };
 interface Data {
   headcount: { total: number; active: number; onboarding: number; onLeave: number };
   attrition: { exits12m: number; ratePct: number };
@@ -19,6 +20,11 @@ interface Data {
   leave: { pending: number; byType: Pair[] };
   appraisal: { submitted: number; eligible: number; pct: number } | null;
   cycleName: string | null;
+  genderSplit: GenderSlice[];
+  tenure: { distribution: Pair[]; avgYears: number };
+  ageProfile: Pair[];
+  joinedThisMonth: number;
+  confirmationPending: number;
   filterOptions: { entities: { id: string; name: string; shortCode: string | null }[]; verticals: { id: string; name: string }[] };
 }
 
@@ -53,6 +59,9 @@ export function AnalyticsDashboard({ data }: { data: Data }) {
         <Kpi icon={<UserMinus className="size-4" />} label="Attrition (12 mo)" value={`${data.attrition.ratePct}%`} sub={`${data.attrition.exits12m} exits`} />
         <Kpi icon={<CalendarCheck className="size-4" />} label="Attendance (mo)" value={data.attendance.presentPct != null ? `${data.attendance.presentPct}%` : "—"} sub={`${data.leave.pending} leave pending`} />
         <Kpi icon={<ClipboardCheck className="size-4" />} label="Appraisals" value={data.appraisal ? `${data.appraisal.pct}%` : "—"} sub={data.cycleName ? `${data.cycleName} · ${data.appraisal?.submitted ?? 0}/${data.appraisal?.eligible ?? 0}` : "No active cycle"} />
+        <Kpi icon={<UserPlus className="size-4" />} label="Joined (this month)" value={data.joinedThisMonth} sub="New joiners this period" />
+        <Kpi icon={<UserCheck className="size-4" />} label="Confirmation Pending" value={data.confirmationPending} sub="Still on probation (onboarding)" />
+        <Kpi icon={<CalendarCheck className="size-4" />} label="Avg tenure" value={`${data.tenure.avgYears.toFixed(1)} yr`} sub="Active employees" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -99,6 +108,45 @@ export function AnalyticsDashboard({ data }: { data: Data }) {
               </Pie>
               <Tooltip />
             </PieChart>
+          </ResponsiveContainer>
+        </ChartCard>
+      </div>
+
+      {/* Demographics */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <ChartCard title="Gender split">
+          <ResponsiveContainer width="100%" height={240}>
+            <PieChart>
+              <Pie data={data.genderSplit} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={(e: { name: string; pct: number }) => `${e.name} ${e.pct}%`} labelLine={false} fontSize={11}>
+                {data.genderSplit.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+              </Pie>
+              <Tooltip formatter={(v: number, _n, p: { payload?: GenderSlice }) => [`${v} (${p.payload?.pct ?? 0}%)`, "Employees"]} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+            </PieChart>
+          </ResponsiveContainer>
+        </ChartCard>
+
+        <ChartCard title={`Tenure distribution · avg ${data.tenure.avgYears.toFixed(1)} yr`}>
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={data.tenure.distribution} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#eee" vertical={false} />
+              <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+              <Tooltip />
+              <Bar dataKey="value" fill={GOLD} radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+
+        <ChartCard title="Age profile">
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={data.ageProfile} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#eee" vertical={false} />
+              <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+              <Tooltip />
+              <Bar dataKey="value" fill={PLUM} radius={[4, 4, 0, 0]} />
+            </BarChart>
           </ResponsiveContainer>
         </ChartCard>
       </div>

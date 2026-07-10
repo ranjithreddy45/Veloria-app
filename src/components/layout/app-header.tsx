@@ -24,6 +24,9 @@ import { useTheme } from "next-themes";
 import { NotificationPopover } from "@/components/layout/notification-popover";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { VelosChip } from "@/components/layout/velos-chip";
+import { PendingApprovalsChip } from "@/components/layout/pending-approvals-chip";
+import { WhatsNew } from "@/components/layout/whats-new";
+import { VersionBadge } from "@/components/layout/version-badge";
 import { AvailabilityToggle } from "@/components/availability/availability-toggle";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { cn } from "@/lib/utils";
@@ -240,6 +243,10 @@ export function AppHeader() {
             and keeps lastSeenAt fresh via heartbeat (smart-routing). */}
         <AvailabilityToggle />
 
+        {/* Pending approvals — items awaiting THIS user's action (self-scoped,
+            permission-aware). Renders only when there is something to approve. */}
+        <PendingApprovalsChip />
+
         {/* Velos engagement chip — live points + rank, celebrates on earn */}
         <VelosChip />
 
@@ -306,6 +313,9 @@ export function AppHeader() {
             </div>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {/* What's new — recent releases; unread dot until first opened */}
+        <WhatsNew />
 
         {/* Notifications */}
         <NotificationPopover />
@@ -375,6 +385,11 @@ export function AppHeader() {
               <LogOut className="mr-2 size-4" />
               Sign out
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            {/* Version footer — build-time app version, muted */}
+            <div className="flex items-center justify-center px-2 py-1.5">
+              <VersionBadge />
+            </div>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

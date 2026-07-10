@@ -4947,7 +4947,83 @@ model LegalEntity {
   updatedAt      DateTime   @default(now()) @updatedAt
   employees      Employee[]
 
+  statutoryConfig HrStatutoryConfig?
+
   @@index([isActive])
+}
+
+// ============================================================
+// Per-entity statutory configuration.
+// ------------------------------------------------------------
+// Payroll previously ran entirely on hardcoded DEFAULT_STAT_CONFIG constants,
+// which cannot be filed against (rates and ceilings change by year and state).
+// This persists them per legal entity. Rows are OPTIONAL: when absent the engine
+// falls back to DEFAULT_STAT_CONFIG, so existing runs keep working unchanged.
+// ============================================================
+model HrStatutoryConfig {
+  id            String      @id @default(cuid())
+  legalEntityId String      @unique
+  legalEntity   LegalEntity @relation(fields: [legalEntityId], references: [id], onDelete: Cascade)
+  effectiveFrom DateTime    @default(now())
+
+  // Applicability toggles (spec: Config > Company > Applicable)
+  pfApplicable  Boolean @default(true)
+  esiApplicable Boolean @default(true)
+  ptApplicable  Boolean @default(true)
+  tdsApplicable Boolean @default(true)
+  lwfApplicable Boolean @default(false)
+
+  // Provident Fund — employee + employer legs
+  pfRatePct         Decimal @default(12) @db.Decimal(6, 3)
+  pfWageCeiling     Decimal @default(15000) @db.Decimal(12, 2)
+  pfOnFullBasic     Boolean @default(false)
+  employerPfRatePct Decimal @default(12) @db.Decimal(6, 3)
+  epsApplicable     Boolean @default(true)
+  epsRatePct        Decimal @default(8.33) @db.Decimal(6, 3)
+  epsWageCeiling    Decimal @default(15000) @db.Decimal(12, 2)
+  edliRatePct       Decimal @default(0.5) @db.Decimal(6, 3)
+  edliWageCeiling   Decimal @default(15000) @db.Decimal(12, 2)
+  pfAdminRatePct    Decimal @default(0.5) @db.Decimal(6, 3)
+
+  // ESI
+  esiRatePct         Decimal @default(0.75) @db.Decimal(6, 3)
+  employerEsiRatePct Decimal @default(3.25) @db.Decimal(6, 3)
+  esiGrossCeiling    Decimal @default(21000) @db.Decimal(12, 2)
+  esiMinDailyWage    Decimal @default(0) @db.Decimal(12, 2)
+
+  // Professional Tax — flat fallback; per-state slabs live in HrPtSlab.
+  ptState          String? // e.g. "KA"
+  ptAmount         Decimal @default(200) @db.Decimal(12, 2)
+  ptGrossThreshold Decimal @default(25000) @db.Decimal(12, 2)
+
+  // Labour Welfare Fund
+  lwfState      String?
+  lwfEmployee   Decimal @default(0) @db.Decimal(12, 2)
+  lwfEmployer   Decimal @default(0) @db.Decimal(12, 2)
+  lwfMonths     Int[]   @default([]) // calendar months (1..12) it is deducted in
+
+  // Gratuity
+  gratuityDaysPerYear   Int @default(15)
+  gratuityMonthDivisor  Int @default(26)
+  gratuityMinYears      Int @default(5)
+
+  ptSlabs   HrPtSlab[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+/** Professional-tax slab band for an entity (spec: PT slab-rate table). */
+model HrPtSlab {
+  id               String            @id @default(cuid())
+  configId         String
+  config           HrStatutoryConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+  fromSalary       Decimal           @db.Decimal(12, 2)
+  toSalary         Decimal?          @db.Decimal(12, 2) // null = "and above"
+  ptAmount         Decimal           @db.Decimal(12, 2)
+  additionalAmount Decimal           @default(0) @db.Decimal(12, 2)
+  order            Int               @default(0)
+
+  @@index([configId])
 }
 
 model BusinessVertical {

@@ -2,14 +2,16 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Mail, MapPin, Phone, Radio, Star } from "lucide-react";
+import { FileText, Mail, MapPin, Phone, Radio, Star, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { updateCandidateNotes } from "@/actions/recruit-candidate.actions";
+import { updateCandidateResume } from "@/actions/recruit.actions";
 import { StatusPill } from "@/components/shared/status-pill";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { FileUpload } from "@/components/ui/file-upload";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
@@ -61,15 +63,30 @@ function InfoRow({
 
 export function CandidateProfile({
   candidate,
+  resumeUrl,
   canWrite,
 }: {
   candidate: CandidateView;
+  resumeUrl: string | null;
   canWrite: boolean;
 }) {
   const router = useRouter();
   const [notes, setNotes] = React.useState(candidate.notes ?? "");
   const [pending, setPending] = React.useState(false);
+  const [resumeBusy, setResumeBusy] = React.useState(false);
   const dirty = notes !== (candidate.notes ?? "");
+
+  async function saveResume(url: string | null) {
+    setResumeBusy(true);
+    const res = await updateCandidateResume(candidate.id, url);
+    setResumeBusy(false);
+    if (res.success) {
+      toast.success(url ? "Resume attached." : "Resume removed.");
+      router.refresh();
+    } else {
+      toast.error(res.error);
+    }
+  }
 
   async function saveNotes() {
     setPending(true);
@@ -112,6 +129,52 @@ export function CandidateProfile({
           <InfoRow icon={<Phone className="size-4" />} value={candidate.phone} />
           <InfoRow icon={<MapPin className="size-4" />} value={candidate.city} />
           <InfoRow icon={<Radio className="size-4" />} value={candidate.source} />
+        </div>
+
+        <Separator />
+
+        <div className="flex items-center justify-between gap-2 px-5 py-4">
+          <span className="flex items-center gap-2.5 text-[13px]">
+            <FileText className="size-4 text-muted-foreground" />
+            {resumeUrl ? (
+              <a
+                href={resumeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-primary hover:underline"
+              >
+                View resume
+              </a>
+            ) : (
+              <span className="text-muted-foreground">No resume</span>
+            )}
+          </span>
+          {canWrite && (
+            <div className="flex items-center gap-1.5">
+              <FileUpload
+                accept=".pdf,image/*"
+                maxMB={1}
+                label={resumeUrl ? "Replace" : "Attach"}
+                variant="outline"
+                size="sm"
+                disabled={resumeBusy}
+                onUploaded={(dataUrl) => saveResume(dataUrl)}
+              />
+              {resumeUrl && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="size-8 p-0 text-muted-foreground"
+                  onClick={() => saveResume(null)}
+                  disabled={resumeBusy}
+                  title="Remove resume"
+                >
+                  <X className="size-4" />
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </Card>
 

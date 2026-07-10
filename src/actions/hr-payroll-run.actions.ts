@@ -5,7 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { hasPermission } from "@/lib/permissions";
-import { computePayslip, type StructureLine } from "@/lib/hr/payroll-calc";
+import { computePayslip, type StructureLine, type StatConfig } from "@/lib/hr/payroll-calc";
+import { resolveStatConfig } from "@/lib/hr/stat-config";
 import { sendEmail } from "@/lib/email";
 import { postWithinTx, fyForDate } from "@/lib/finance/ledger";
 import { FIN_ACCOUNT_CODES } from "@/lib/finance/coa-seed";
@@ -162,7 +163,8 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
   // ACTIVE (payable) employees for this entity, each with their current structure.
   const employees = await prisma.employee.findMany({
     where: { status: "ACTIVE", deletedAt: null },
-    select: { id: true, empCode: true, firstName: true, lastName: true },
+    // legalEntityId drives which persisted statutory config applies to this employee.
+    select: { id: true, empCode: true, firstName: true, lastName: true, legalEntityId: true },
     orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
   });
 
@@ -189,6 +191,20 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
   let totalDeductions = 0;
   let totalNet = 0;
 
+  // Statutory config is per LEGAL ENTITY. Resolve each distinct entity ONCE
+  // (not per employee) before the transaction. An entity with no persisted
+  // config falls back to DEFAULT_STAT_CONFIG, so runs keep their existing
+  // numbers until an admin configures it — a missing config must never silently
+  // zero out a statutory deduction.
+  const entityIds = Array.from(
+    new Set(employees.map((e) => e.legalEntityId).filter((x): x is string => !!x)),
+  );
+  const cfgByEntity = new Map<string, StatConfig>();
+  for (const eid of entityIds) {
+    const resolved = await resolveStatConfig(eid);
+    cfgByEntity.set(eid, resolved.cfg);
+  }
+
   await prisma.$transaction(async (tx) => {
     for (const emp of employees) {
       const struct = structByEmp.get(emp.id);
@@ -204,6 +220,7 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
         // Working days from the FINAL sheet are the payable base; no sheet → full pay.
         payableDays: sheet && sheet.workingDays > 0 ? sheet.workingDays : undefined,
         monthDays,
+        cfg: emp.legalEntityId ? cfgByEntity.get(emp.legalEntityId) : undefined,
       });
 
       headcount++;

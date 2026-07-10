@@ -2,13 +2,15 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, Star, Users } from "lucide-react";
+import { FileText, Plus, Search, Star, Users, X } from "lucide-react";
 import { toast } from "sonner";
 
 import {
   createCandidate,
   setCandidateStage,
+  updateCandidateResume,
 } from "@/actions/recruit.actions";
+import { FileUpload } from "@/components/ui/file-upload";
 import { REC_CANDIDATE_STAGES } from "@/lib/recruit/constants";
 import { FacetFilterRail, type FacetDef } from "@/components/shared/facet-filter-rail";
 import { StatusPill, type Hue } from "@/components/shared/status-pill";
@@ -59,6 +61,7 @@ interface CandidateRow {
   source: string | null;
   rating: number;
   stage: Stage;
+  resumeUrl: string | null;
   owner: string | null;
   modifiedAt: string;
 }
@@ -229,6 +232,78 @@ function StageCell({
 }
 
 // ============================================================
+// Resume cell — link when present; attach control for write users
+// ============================================================
+
+function ResumeCell({
+  row,
+  canWrite,
+  onChanged,
+}: {
+  row: CandidateRow;
+  canWrite: boolean;
+  onChanged: () => void;
+}) {
+  const [pending, setPending] = React.useState(false);
+
+  async function save(url: string | null) {
+    setPending(true);
+    const res = await updateCandidateResume(row.id, url);
+    setPending(false);
+    if (res.success) {
+      toast.success(url ? "Resume attached." : "Resume removed.");
+      onChanged();
+    } else {
+      toast.error(res.error);
+    }
+  }
+
+  if (row.resumeUrl) {
+    return (
+      <div className="flex items-center gap-1.5">
+        <a
+          href={row.resumeUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-[12.5px] font-medium text-primary hover:underline"
+        >
+          <FileText className="size-3.5" /> Resume
+        </a>
+        {canWrite && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="size-6 p-0 text-muted-foreground"
+            onClick={() => save(null)}
+            disabled={pending}
+            title="Remove resume"
+          >
+            <X className="size-3.5" />
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  if (canWrite) {
+    return (
+      <FileUpload
+        accept=".pdf,image/*"
+        maxMB={1}
+        label="Attach"
+        variant="ghost"
+        size="sm"
+        disabled={pending}
+        onUploaded={(dataUrl) => save(dataUrl)}
+      />
+    );
+  }
+
+  return <span className="text-[12.5px] text-muted-foreground">No resume</span>;
+}
+
+// ============================================================
 // New-candidate dialog
 // ============================================================
 
@@ -236,6 +311,7 @@ function NewCandidateDialog() {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [pending, setPending] = React.useState(false);
+  const [resume, setResume] = React.useState<{ url: string; name: string } | null>(null);
   const [form, setForm] = React.useState({
     firstName: "",
     lastName: "",
@@ -263,11 +339,13 @@ function NewCandidateDialog() {
       phone: form.phone || undefined,
       city: form.city || undefined,
       source: form.source || undefined,
+      resumeUrl: resume?.url || undefined,
     });
     setPending(false);
     if (res.success) {
       toast.success("Candidate added.");
       setForm({ firstName: "", lastName: "", email: "", phone: "", city: "", source: "" });
+      setResume(null);
       setOpen(false);
       router.refresh();
     } else {
@@ -340,6 +418,37 @@ function NewCandidateDialog() {
                 value={form.source}
                 onChange={(e) => set("source", e.target.value)}
               />
+            </div>
+            <div className="col-span-2 space-y-1.5">
+              <Label>Resume</Label>
+              {resume ? (
+                <div className="flex items-center justify-between gap-2 rounded-md border border-border/80 bg-muted/40 px-3 py-2">
+                  <span className="flex min-w-0 items-center gap-2 text-[12.5px] text-foreground">
+                    <FileText className="size-4 shrink-0 text-muted-foreground" />
+                    <span className="truncate">{resume.name}</span>
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-muted-foreground"
+                    onClick={() => setResume(null)}
+                    disabled={pending}
+                  >
+                    <X className="size-4" />
+                  </Button>
+                </div>
+              ) : (
+                <FileUpload
+                  accept=".pdf,image/*"
+                  maxMB={1}
+                  label="Attach resume (PDF or image)"
+                  variant="outline"
+                  disabled={pending}
+                  className="w-full"
+                  onUploaded={(dataUrl, file) => setResume({ url: dataUrl, name: file.name })}
+                />
+              )}
             </div>
           </div>
           <DialogFooter>
@@ -438,6 +547,7 @@ export function Candidates({
                     <TableHead>Candidate Name</TableHead>
                     <TableHead>City</TableHead>
                     <TableHead>Candidate Stage</TableHead>
+                    <TableHead>Resume</TableHead>
                     <TableHead>Source</TableHead>
                     <TableHead>Owner</TableHead>
                     <TableHead className="text-right">Modified Time</TableHead>
@@ -478,6 +588,9 @@ export function Candidates({
                       </TableCell>
                       <TableCell>
                         <StageCell row={row} canWrite={canWrite} onChanged={() => router.refresh()} />
+                      </TableCell>
+                      <TableCell>
+                        <ResumeCell row={row} canWrite={canWrite} onChanged={() => router.refresh()} />
                       </TableCell>
                       <TableCell className="text-[13px] text-foreground/80">
                         {row.source || "—"}

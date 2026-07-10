@@ -8,6 +8,7 @@ import { hasPermission } from "@/lib/permissions";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { getCandidateDetail } from "@/actions/recruit-candidate.actions";
+import { getCandidateResume } from "@/actions/recruit.actions";
 
 import { CandidateProfile } from "./_components/candidate-profile";
 import { CandidateActivity } from "./_components/candidate-activity";
@@ -30,6 +31,8 @@ export default async function CandidateDetailPage({
 
   const detail = await getCandidateDetail(id);
   if (!detail) notFound();
+
+  const { resumeUrl } = await getCandidateResume(id);
 
   // Recruitment → HR handoff is offered once the candidate is hired:
   // stage HIRED, a HIRED application, or an accepted offer.
@@ -58,7 +61,7 @@ export default async function CandidateDetailPage({
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <CandidateProfile candidate={detail.candidate} canWrite={canWrite} />
+        <CandidateProfile candidate={detail.candidate} resumeUrl={resumeUrl} canWrite={canWrite} />
         <CandidateActivity
           candidateId={detail.candidate.id}
           applications={detail.applications}

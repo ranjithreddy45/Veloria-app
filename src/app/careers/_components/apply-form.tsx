@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle2, FileText, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FileUpload } from "@/components/ui/file-upload";
 import { applyToRole } from "@/actions/recruit-public.actions";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -14,6 +15,7 @@ export function ApplyForm({ jobOpeningId, roleTitle }: { jobOpeningId: string; r
   const [isPending, startTransition] = useTransition();
   const [submitted, setSubmitted] = useState(false);
   const [form, setForm] = useState({ firstName: "", lastName: "", email: "", phone: "", city: "" });
+  const [resume, setResume] = useState<{ url: string; name: string } | null>(null);
 
   function set(key: keyof typeof form, value: string) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -36,6 +38,7 @@ export function ApplyForm({ jobOpeningId, roleTitle }: { jobOpeningId: string; r
         email: form.email,
         phone: form.phone || undefined,
         city: form.city || undefined,
+        resumeUrl: resume?.url || undefined,
       });
       if (res.success) {
         setSubmitted(true);
@@ -124,6 +127,38 @@ export function ApplyForm({ jobOpeningId, roleTitle }: { jobOpeningId: string; r
             onChange={(e) => set("city", e.target.value)}
             autoComplete="address-level2"
           />
+        </div>
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label>Resume</Label>
+          {resume ? (
+            <div className="flex items-center justify-between gap-2 rounded-md border border-border/80 bg-muted/40 px-3 py-2">
+              <span className="flex min-w-0 items-center gap-2 text-[12.5px] text-foreground">
+                <FileText className="size-4 shrink-0 text-muted-foreground" />
+                <span className="truncate">{resume.name}</span>
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-muted-foreground"
+                onClick={() => setResume(null)}
+                disabled={isPending}
+              >
+                <X className="size-4" />
+              </Button>
+            </div>
+          ) : (
+            <FileUpload
+              accept=".pdf,image/*"
+              maxMB={1}
+              label="Attach resume (PDF or image)"
+              variant="outline"
+              disabled={isPending}
+              className="w-full"
+              onUploaded={(dataUrl, file) => setResume({ url: dataUrl, name: file.name })}
+            />
+          )}
+          <p className="text-[11.5px] text-muted-foreground">Optional. PDF or image, up to ~1 MB.</p>
         </div>
       </div>
 

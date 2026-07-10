@@ -114,10 +114,32 @@ export interface EmployeeFilters {
   legalEntityId?: string;
   businessVerticalId?: string;
   departmentId?: string;
+  designationId?: string;
   status?: string;
   page?: number;
   pageSize?: number;
+  /** Must be one of the whitelisted keys below; anything else falls back to the default order. */
+  sortBy?: string;
+  sortOrder?: string; // "asc" | "desc"
 }
+
+// Whitelist of sortable columns. A client-supplied `sortBy` is ONLY ever used as
+// a key into this map — a raw client string NEVER reaches Prisma's `orderBy`.
+// (Kept module-local: a "use server" file may only export async functions.)
+const EMPLOYEE_SORT_BUILDERS: Record<
+  string,
+  (dir: Prisma.SortOrder) => Prisma.EmployeeOrderByWithRelationInput[]
+> = {
+  name: (dir) => [{ firstName: dir }, { lastName: dir }],
+  empCode: (dir) => [{ empCode: dir }],
+  dateOfJoining: (dir) => [{ dateOfJoining: dir }],
+  status: (dir) => [{ status: dir }],
+  designation: (dir) => [{ designation: { name: dir } }],
+};
+const DEFAULT_EMPLOYEE_ORDER_BY: Prisma.EmployeeOrderByWithRelationInput[] = [
+  { status: "asc" },
+  { firstName: "asc" },
+];
 
 export async function getEmployees(filters: EmployeeFilters = {}) {
   const u = await requireUser();
@@ -130,6 +152,7 @@ export async function getEmployees(filters: EmployeeFilters = {}) {
   if (filters.legalEntityId) where.legalEntityId = filters.legalEntityId;
   if (filters.businessVerticalId) where.businessVerticalId = filters.businessVerticalId;
   if (filters.departmentId) where.departmentId = filters.departmentId;
+  if (filters.designationId) where.designationId = filters.designationId;
   if (filters.status) where.status = filters.status as Prisma.EmployeeWhereInput["status"];
   if (filters.search?.trim()) {
     const q = filters.search.trim();
@@ -142,6 +165,13 @@ export async function getEmployees(filters: EmployeeFilters = {}) {
     ];
   }
 
+  // Resolve the sort strictly through the whitelist; fall back to the default.
+  const sortDir: Prisma.SortOrder = filters.sortOrder === "desc" ? "desc" : "asc";
+  const orderBy =
+    filters.sortBy && EMPLOYEE_SORT_BUILDERS[filters.sortBy]
+      ? EMPLOYEE_SORT_BUILDERS[filters.sortBy](sortDir)
+      : DEFAULT_EMPLOYEE_ORDER_BY;
+
   const [rows, total] = await Promise.all([
     prisma.employee.findMany({
       where,
@@ -152,7 +182,7 @@ export async function getEmployees(filters: EmployeeFilters = {}) {
         designation: { select: { name: true } },
         reportingManager: { select: { firstName: true, lastName: true } },
       },
-      orderBy: [{ status: "asc" }, { firstName: "asc" }],
+      orderBy,
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),

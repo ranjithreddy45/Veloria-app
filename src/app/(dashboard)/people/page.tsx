@@ -19,7 +19,8 @@ export const metadata: Metadata = { title: "People" };
 
 interface PageProps {
   searchParams: Promise<{
-    q?: string; entity?: string; vertical?: string; dept?: string; status?: string; page?: string;
+    q?: string; entity?: string; vertical?: string; dept?: string; desig?: string;
+    status?: string; page?: string; sort?: string; dir?: string;
   }>;
 }
 
@@ -40,7 +41,10 @@ export default async function PeoplePage({ searchParams }: PageProps) {
       legalEntityId: sp.entity,
       businessVerticalId: sp.vertical,
       departmentId: sp.dept,
+      designationId: sp.desig,
       status: sp.status,
+      sortBy: sp.sort,
+      sortOrder: sp.dir,
       page: sp.page ? parseInt(sp.page, 10) : 1,
     }),
   ]);
@@ -97,11 +101,12 @@ export default async function PeoplePage({ searchParams }: PageProps) {
             entities={lookups.entities}
             verticals={lookups.verticals}
             departments={lookups.departments}
+            designations={lookups.designations}
           />
 
           {list.rows.length === 0 ? (
             <div className="rounded-xl border border-dashed bg-card">
-              {sp.q || sp.entity || sp.vertical || sp.dept || sp.status ? (
+              {sp.q || sp.entity || sp.vertical || sp.dept || sp.desig || sp.status ? (
                 <EmptyState
                   icon={<SearchX className="size-5" />}
                   title="No employees match these filters"
@@ -121,6 +126,7 @@ export default async function PeoplePage({ searchParams }: PageProps) {
               total={list.total}
               page={list.page}
               pageSize={list.pageSize}
+              canWrite={canWrite}
             />
           )}
         </>

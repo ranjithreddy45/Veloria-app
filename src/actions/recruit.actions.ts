@@ -6,8 +6,26 @@ import { revalidatePath } from "next/cache";
 import { hasPermission } from "@/lib/permissions";
 import { Prisma } from "@prisma/client";
 import { REC_APP_STAGES, REC_CANDIDATE_STAGES, REC_JOB_STATUSES } from "@/lib/recruit/constants";
+import { isSafeReceiptUrl } from "@/lib/sales/receipt";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
+
+// A resume is user-supplied (public applicants + staff uploads), so it must be
+// validated before it ever touches @db.Text — reuse the receipt validator
+// (https link or image/PDF base64 data-URL; rejects javascript:/data:text/html/http:).
+// Cap a data-URL at ~1.6 MB so nobody can push a huge blob into the column.
+const RESUME_MAX_LEN = 2_200_000;
+function validateResumeUrl(
+  raw: string | null | undefined,
+): { ok: true; value: string | null } | { ok: false; error: string } {
+  const v = (raw ?? "").trim();
+  if (!v) return { ok: true, value: null };
+  if (v.length > RESUME_MAX_LEN)
+    return { ok: false, error: "Resume file is too large — please keep it under ~1.6 MB." };
+  if (!isSafeReceiptUrl(v))
+    return { ok: false, error: "Resume must be a PDF or image file, or an https link." };
+  return { ok: true, value: v };
+}
 
 async function requireUser() {
   const session = await auth();
@@ -230,7 +248,7 @@ export async function getCandidates() {
   return {
     rows: cands.map((c) => ({
       id: c.id, name: `${c.firstName} ${c.lastName}`.trim(), email: c.email, phone: c.phone, city: c.city,
-      source: c.source, rating: c.rating, stage: c.stage,
+      source: c.source, rating: c.rating, stage: c.stage, resumeUrl: c.resumeUrl,
       owner: c.ownerId ? names.get(c.ownerId) ?? null : null,
       modifiedAt: c.updatedAt.toISOString(),
     })),
@@ -239,20 +257,47 @@ export async function getCandidates() {
 }
 
 export async function createCandidate(input: {
-  firstName: string; lastName?: string; email?: string; phone?: string; city?: string; source?: string;
+  firstName: string; lastName?: string; email?: string; phone?: string; city?: string; source?: string; resumeUrl?: string;
 }): Promise<Result<{ id: string }>> {
   const u = await requireUser();
   if (!canWrite(u?.role)) return { success: false, error: "Not authorized." };
   if (!input.firstName?.trim()) return { success: false, error: "Name is required." };
+  const resumeCheck = validateResumeUrl(input.resumeUrl);
+  if (!resumeCheck.ok) return { success: false, error: resumeCheck.error };
   const c = await prisma.recCandidate.create({
     data: {
       firstName: input.firstName.trim(), lastName: input.lastName?.trim() || "",
       email: input.email?.trim() || null, phone: input.phone?.trim() || null, city: input.city?.trim() || null,
-      source: input.source?.trim() || "Direct", ownerId: u!.id, createdById: u!.id,
+      source: input.source?.trim() || "Direct", resumeUrl: resumeCheck.value, ownerId: u!.id, createdById: u!.id,
     },
   });
   revalidatePath("/recruitment/candidates");
   return { success: true, data: { id: c.id } };
+}
+
+// Read a single candidate's resume (recruit:read). Kept as a dedicated action so
+// the detail page can surface the resume without widening the cross-module
+// candidate-detail fetch.
+export async function getCandidateResume(id: string): Promise<{ resumeUrl: string | null }> {
+  const u = await requireUser();
+  if (!canRead(u?.role)) return { resumeUrl: null };
+  const c = await prisma.recCandidate.findUnique({ where: { id }, select: { resumeUrl: true } });
+  return { resumeUrl: c?.resumeUrl ?? null };
+}
+
+// Attach / replace / clear a candidate's resume (recruit:write). Validates with
+// the SAME rule as the public path — never persists an unvalidated string.
+export async function updateCandidateResume(id: string, resumeUrl: string | null): Promise<Result<{ ok: true }>> {
+  const u = await requireUser();
+  if (!canWrite(u?.role)) return { success: false, error: "Not authorized." };
+  const resumeCheck = validateResumeUrl(resumeUrl);
+  if (!resumeCheck.ok) return { success: false, error: resumeCheck.error };
+  const exists = await prisma.recCandidate.findUnique({ where: { id }, select: { id: true } });
+  if (!exists) return { success: false, error: "Candidate not found." };
+  await prisma.recCandidate.update({ where: { id }, data: { resumeUrl: resumeCheck.value } });
+  revalidatePath("/recruitment/candidates");
+  revalidatePath(`/recruitment/candidates/${id}`);
+  return { success: true, data: { ok: true } };
 }
 
 export async function setCandidateStage(id: string, stage: string): Promise<Result<{ ok: true }>> {

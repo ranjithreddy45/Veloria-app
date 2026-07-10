@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
+import { isSafeReceiptUrl } from "@/lib/sales/receipt";
 
 // ============================================================
 // Public recruitment actions — power the PUBLIC /careers site.
@@ -26,6 +27,23 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Public free-text comes from an unauthenticated form — cap every field so a
 // scripted client can't push unbounded strings into the internal ATS.
 const cap = (s: string, n: number) => (s.length > n ? s.slice(0, n) : s);
+
+// A resume is customer-controlled input, so it must be validated before it ever
+// touches the DB — reuse the app's receipt validator (accepts an https link or
+// an image/PDF base64 data-URL; rejects javascript:/data:text/html/http:). Cap
+// a data-URL at ~1.6 MB so a scripted client can't push a huge blob into @db.Text.
+const RESUME_MAX_LEN = 2_200_000;
+function validateResumeUrl(
+  raw: string | null | undefined,
+): { ok: true; value: string | null } | { ok: false; error: string } {
+  const v = (raw ?? "").trim();
+  if (!v) return { ok: true, value: null };
+  if (v.length > RESUME_MAX_LEN)
+    return { ok: false, error: "Resume file is too large — please keep it under ~1.6 MB." };
+  if (!isSafeReceiptUrl(v))
+    return { ok: false, error: "Resume must be a PDF or image file, or an https link." };
+  return { ok: true, value: v };
+}
 
 function shortDescription(text: string | null): string | null {
   if (!text) return null;
@@ -90,6 +108,7 @@ export type ApplyInput = {
   email: string;
   phone?: string;
   city?: string;
+  resumeUrl?: string;
 };
 
 // Public apply flow. Creates (or reuses) a RecCandidate sourced from the
@@ -114,6 +133,11 @@ export async function applyToRole(
   if (phone && !/^[0-9+()\-\s]{6,20}$/.test(phone))
     return { success: false, error: "Please enter a valid phone number." };
 
+  // Validate the (optional) resume BEFORE any DB work — never store raw input.
+  const resumeCheck = validateResumeUrl(input.resumeUrl);
+  if (!resumeCheck.ok) return { success: false, error: resumeCheck.error };
+  const resumeUrl = resumeCheck.value;
+
   // Role must exist and be open.
   const role = await prisma.recJobOpening.findFirst({
     where: { id: jobOpeningId, status: "IN_PROGRESS" },
@@ -131,7 +155,9 @@ export async function applyToRole(
     // SECURITY: this endpoint is unauthenticated. Reuse the existing candidate
     // ONLY to link the new application — never overwrite their stored identity
     // (name/phone/city) from public input, or anyone who knows an email could
-    // silently corrupt that candidate's profile in the internal ATS.
+    // silently corrupt that candidate's profile in the internal ATS. The same
+    // reasoning applies to resumeUrl — we don't overwrite an existing
+    // candidate's stored resume from an unauthenticated request.
     candidateId = existing.id;
   } else {
     const candidate = await prisma.recCandidate.create({
@@ -141,6 +167,7 @@ export async function applyToRole(
         email,
         phone,
         city,
+        resumeUrl,
         source: "Career site",
         stage: "NEW",
       },

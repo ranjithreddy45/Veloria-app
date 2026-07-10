@@ -15,9 +15,9 @@ type Lookup = { id: string; name: string; shortCode?: string | null };
 const ALL = "__all__";
 
 export function DirectoryFilters({
-  entities, verticals, departments,
+  entities, verticals, departments, designations,
 }: {
-  entities: Lookup[]; verticals: Lookup[]; departments: Lookup[];
+  entities: Lookup[]; verticals: Lookup[]; departments: Lookup[]; designations: Lookup[];
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -47,7 +47,7 @@ export function DirectoryFilters({
 
   const active =
     params.get("q") || params.get("entity") || params.get("vertical") ||
-    params.get("dept") || params.get("status");
+    params.get("dept") || params.get("desig") || params.get("status");
 
   function clearAll() {
     setSearch("");
@@ -72,6 +72,8 @@ export function DirectoryFilters({
         options={verticals.map((v) => ({ value: v.id, label: v.name }))} />
       <FilterSelect label="Department" value={params.get("dept") ?? ALL} onChange={(v) => setParam("dept", v)}
         options={departments.map((d) => ({ value: d.id, label: d.name }))} />
+      <FilterSelect label="Designation" value={params.get("desig") ?? ALL} onChange={(v) => setParam("desig", v)}
+        options={designations.map((d) => ({ value: d.id, label: d.name }))} />
       <FilterSelect label="Status" value={params.get("status") ?? ALL} onChange={(v) => setParam("status", v)}
         options={Object.entries(EMPLOYEE_STATUS_LABELS).map(([v, l]) => ({ value: v, label: l }))} />
 
