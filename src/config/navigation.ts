@@ -460,6 +460,7 @@ export const sidebarNavigation: NavItem[] = [
     permissions: ["hr:read"],
     children: [
       { title: "Analytics", href: "/people/analytics", icon: "BarChart3", permissions: ["hr:read"] },
+      { title: "Reports", href: "/people/reports", icon: "FileText", permissions: ["hr:read"] },
       { title: "Help Desk", href: "/people/helpdesk", icon: "MessageCircle", permissions: ["hr:read"] },
       { title: "Change Requests", href: "/people/requests", icon: "Inbox", permissions: ["hr:approve"] },
       { title: "Compensation", href: "/people/compensation", icon: "IndianRupee", permissions: ["hr:read"] },
