@@ -222,6 +222,24 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
   const advByEmp = new Map<string, (typeof dueAdvances)[number]>();
   for (const a of dueAdvances) advByEmp.set(a.employeeId, a); // at most one ACTIVE per employee
 
+  // ---- Arrears due to be paid in THIS run's month ----
+  // Include arrears already stamped with this runId (a re-run) so re-processing
+  // the same month recomputes identically instead of dropping them.
+  const arrears = await prisma.hrArrear.findMany({
+    where: {
+      payFy: run.fy,
+      payMonth: run.month,
+      employeeId: { in: employees.map((e) => e.id) },
+      OR: [{ status: "PENDING" }, { status: "PAID", runId }],
+    },
+  });
+  const arrearsByEmp = new Map<string, typeof arrears>();
+  for (const a of arrears) {
+    const list = arrearsByEmp.get(a.employeeId) ?? [];
+    list.push(a);
+    arrearsByEmp.set(a.employeeId, list);
+  }
+
   await prisma.$transaction(async (tx) => {
     for (const emp of employees) {
       const struct = structByEmp.get(emp.id);
@@ -231,6 +249,7 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
       }
       const lines = (struct.lines as unknown as StructureLine[]) ?? [];
       const sheet = sheetByEmp.get(emp.id);
+      const empArrears = arrearsByEmp.get(emp.id) ?? [];
       const c = computePayslip({
         lines,
         lopDays: sheet?.lop ?? 0,
@@ -238,7 +257,23 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
         payableDays: sheet && sheet.workingDays > 0 ? sheet.workingDays : undefined,
         monthDays,
         cfg: emp.legalEntityId ? cfgByEntity.get(emp.legalEntityId) : undefined,
+        arrears: empArrears.map((a) => ({
+          amount: Number(a.amount),
+          taxable: a.taxable,
+          pfApplicable: a.pfApplicable,
+          esiApplicable: a.esiApplicable,
+          ptApplicable: a.ptApplicable,
+        })),
       });
+
+      // Stamp the arrears paid in this run (idempotent — a re-run re-marks the
+      // same rows to this runId; it never pays an arrear twice).
+      if (empArrears.length > 0) {
+        await tx.hrArrear.updateMany({
+          where: { id: { in: empArrears.map((a) => a.id) } },
+          data: { status: "PAID", runId },
+        });
+      }
 
       // ---- Advance recovery ----
       // Idempotent by construction: a re-run of the SAME month first backs out

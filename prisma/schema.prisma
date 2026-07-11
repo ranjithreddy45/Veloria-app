@@ -5113,6 +5113,7 @@ model Employee {
   compOffs          CompOff[]
   attendance        AttendanceRecord[]
   advances          HrAdvance[]
+  arrears           HrArrear[]
   regularizations   Regularization[]          @relation("RegnEmployee")
   documents         HrDocument[]
   docAcks           DocumentAcknowledgement[]
@@ -8321,6 +8322,44 @@ model HrAdvanceRecovery {
 
   @@unique([advanceId, runId])
   @@index([runId])
+}
+
+// ============================================================
+// Salary arrears (spec: Add On Pay > Arrears).
+// ------------------------------------------------------------
+// A retrospective amount (e.g. a back-dated increment) paid in a later month.
+// Statutory treatment is CONFIGURABLE per arrear because it depends on what the
+// arrear is FOR: arrears of PF-wages attract PF; a reimbursement-type arrear may
+// not. The payroll run folds a due arrear into that month's payslip and stamps
+// its runId so it is paid exactly once.
+// ============================================================
+model HrArrear {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  name       String
+  amount     Decimal  @db.Decimal(18, 2)
+  // The period the arrear is FOR (informational; e.g. an April increment).
+  forFy    String?
+  forMonth Int?
+  // The run that should PAY it.
+  payFy    String
+  payMonth Int
+  // Statutory applicability — the admin decides per arrear.
+  taxable       Boolean @default(true)
+  pfApplicable  Boolean @default(true) // arrear of PF-wages → attracts PF
+  esiApplicable Boolean @default(true)
+  ptApplicable  Boolean @default(false) // PT is a flat monthly levy; rarely changes
+  /// PENDING (awaiting its pay run) | PAID | CANCELLED
+  status      String   @default("PENDING")
+  runId       String? // the payroll run that paid it
+  reason      String?
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([employeeId, status])
+  @@index([payFy, payMonth, status])
 }
 
 model HrPayComponent {

@@ -208,6 +208,20 @@ export interface PayslipInput {
   payableDays?: number;
   monthDays?: number; // calendar days in the month (default 30)
   cfg?: StatConfig;
+  /**
+   * Retrospective arrears paid THIS month. Each carries its own statutory
+   * applicability because the treatment depends on what the arrear is for.
+   * Arrears are NOT pro-rated for LOP — they are a fixed back-dated sum.
+   */
+  arrears?: ArrearInput[];
+}
+
+export interface ArrearInput {
+  amount: number;
+  taxable?: boolean; // default true
+  pfApplicable?: boolean; // arrear of PF-wages → folds into the PF base
+  esiApplicable?: boolean;
+  ptApplicable?: boolean;
 }
 
 export interface PayslipComputation {
@@ -215,7 +229,8 @@ export interface PayslipComputation {
   lopDays: number;
   earnings: { code: string; name: string; amount: number }[];
   deductions: { code: string; name: string; amount: number }[];
-  gross: number; // total earnings paid this month
+  gross: number; // total earnings paid this month (INCLUDING arrears)
+  arrears: number; // arrear amount folded into this month
   basic: number; // paid basic this month
   pf: number;
   esi: number;
@@ -267,27 +282,50 @@ export function computePayslip(input: PayslipInput): PayslipComputation {
   const fullBasic = input.lines.find((l) => l.code === "BASIC")?.monthly ?? 0;
   const basic = r2(fullBasic * payFactor);
 
+  // ---- Arrears folded into THIS month (not pro-rated — a fixed back-dated sum).
+  // Each carries its own statutory applicability, so we sum per statute.
+  const arr = input.arrears ?? [];
+  const arrTotal = r2(arr.reduce((s, a) => s + (a.amount || 0), 0));
+  const arrPf = r2(arr.filter((a) => a.pfApplicable).reduce((s, a) => s + a.amount, 0));
+  const arrEsi = r2(arr.filter((a) => a.esiApplicable).reduce((s, a) => s + a.amount, 0));
+  const arrPt = r2(arr.filter((a) => a.ptApplicable).reduce((s, a) => s + a.amount, 0));
+  const arrTaxable = r2(arr.filter((a) => a.taxable !== false).reduce((s, a) => s + a.amount, 0));
+  if (arrTotal > 0) earnings.push({ code: "ARREAR", name: "Arrears", amount: arrTotal });
+
+  // grossPaid = this month's regular wages (the base for statutory contributions);
+  // grossOut adds arrears for what actually lands in the bank.
+  const grossOut = r2(gross + arrTotal);
+
+  // Pay exists if regular wages OR an arrear are being paid.
+  const hasPay = grossOut > 0;
+
   // ---- Statutory deductions ----
-  // PF: 12% of basic ACTUALLY paid, capped at the wage ceiling unless configured off.
-  const pfBase = cfg.pfOnFullBasic ? basic : Math.min(basic, cfg.pfWageCeiling);
+  // PF: 12% of PF-wages actually paid. A PF-applicable arrear folds into the wage
+  // base BEFORE the ceiling, so PF is never double-charged past ₹15,000.
+  const pfBase = cfg.pfOnFullBasic ? basic + arrPf : Math.min(basic + arrPf, cfg.pfWageCeiling);
   const pf = rupee((pfBase * cfg.pfRatePct) / 100);
 
-  // Statutory deductions come OUT of wages paid — a zero-pay (fully-absent)
-  // month deducts nothing (never drive net negative), while a normal/partial
-  // month is judged for eligibility on the FULL contractual wage.
-  const hasPay = gross > 0;
+  // ESI: eligibility on the FULL contractual gross (an arrear doesn't move you in
+  // or out of coverage); contribution on wages PAID + any ESI-applicable arrear.
+  const esiBase = r2(gross + arrEsi);
+  const esi = fullGross <= cfg.esiGrossCeiling && esiBase > 0 ? rupee((esiBase * cfg.esiRatePct) / 100) : 0;
 
-  // ESI: eligibility on FULL gross (within ceiling); contribution on wages PAID.
-  const esi = hasPay && fullGross <= cfg.esiGrossCeiling ? rupee((gross * cfg.esiRatePct) / 100) : 0;
+  // PT: a FLAT monthly levy — an arrear can push a below-threshold month over the
+  // line, but PT is charged at most ONCE (never doubled for the arrear).
+  const ptGross = r2(fullGross + arrPt);
+  const pt = hasPay && ptGross >= cfg.ptGrossThreshold ? cfg.ptAmount : 0;
 
-  // PT (Karnataka): flat slab charged at/above the threshold on the FULL wage.
-  const pt = hasPay && fullGross >= cfg.ptGrossThreshold ? cfg.ptAmount : 0;
-
-  // TDS: project on the FULL annual taxable salary (a one-off LOP month must not
-  // swing annual tax); monthly = annual tax / 12. No pay this month → no TDS.
+  // TDS: project the regular annual tax (a one-off LOP month must not swing it);
+  // an arrear adds to annual taxable ONCE and its incremental tax is charged in
+  // full this month. NOTE: Section 89(1) relief on arrears is the employee's to
+  // claim and is deliberately NOT auto-applied here.
   const annualTaxable = Math.max(0, fullTaxableMonthly * 12 - cfg.stdDeductionAnnual);
   const annualTax = newRegimeAnnualTax(annualTaxable, cfg);
-  const tds = hasPay ? rupee(annualTax / 12) : 0;
+  const arrearTax =
+    arrTaxable > 0
+      ? Math.max(0, newRegimeAnnualTax(annualTaxable + arrTaxable, cfg) - annualTax)
+      : 0;
+  const tds = r2((gross > 0 ? annualTax / 12 : 0) + arrearTax);
 
   // Gratuity accrual (employer cost, shown for information; not deducted).
   const gratuityAccrued = rupee(
@@ -319,11 +357,11 @@ export function computePayslip(input: PayslipInput): PayslipComputation {
   // Employer ESI — same eligibility rule as the employee leg (FULL gross within
   // the ceiling), contribution on wages actually PAID.
   const employerEsi =
-    hasPay && fullGross <= cfg.esiGrossCeiling ? rupee((gross * cfg.employerEsiRatePct) / 100) : 0;
+    fullGross <= cfg.esiGrossCeiling && esiBase > 0 ? rupee((esiBase * cfg.employerEsiRatePct) / 100) : 0;
 
   const employerPf = rupee(employerEpsCapped + employerEpf);
   const employerCost = rupee(employerPf + employerEdli + employerPfAdmin + employerEsi + gratuityAccrued);
-  const ctc = rupee(gross + employerCost);
+  const ctc = rupee(grossOut + employerCost);
 
   const statDeductions = [
     { code: "PF", name: "Provident Fund", amount: pf },
@@ -339,14 +377,15 @@ export function computePayslip(input: PayslipInput): PayslipComputation {
 
   const deductions = [...statDeductions, ...otherDeductions];
   const totalDeductions = r2(deductions.reduce((s, d) => s + d.amount, 0));
-  const net = r2(gross - totalDeductions);
+  const net = r2(grossOut - totalDeductions);
 
   return {
     paidDays,
     lopDays,
     earnings,
     deductions,
-    gross,
+    gross: grossOut,
+    arrears: arrTotal,
     basic,
     pf,
     esi,

@@ -476,6 +476,7 @@ export const sidebarNavigation: NavItem[] = [
       { title: "Payroll Runs", href: "/people/payroll", icon: "CreditCard", permissions: ["hr:payroll"] },
       { title: "Disbursement", href: "/people/payroll/disbursement", icon: "Banknote", permissions: ["hr:payroll"] },
       { title: "Salary Advances", href: "/people/payroll/advances", icon: "DollarSign", permissions: ["hr:payroll"] },
+      { title: "Arrears", href: "/people/payroll/arrears", icon: "ListOrdered", permissions: ["hr:payroll"] },
       { title: "Statutory Registers", href: "/people/payroll/registers", icon: "ClipboardList", permissions: ["hr:payroll"] },
       { title: "Statutory Config", href: "/people/payroll/statutory-config", icon: "Landmark", permissions: ["hr:payroll"] },
       { title: "Gratuity", href: "/people/gratuity", icon: "Gift", permissions: ["hr:payroll"] },

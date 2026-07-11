@@ -187,3 +187,65 @@ describe("computePayslip — CTC and a fully-absent month", () => {
     expect(p.net).toBe(0);
   });
 });
+
+// ============================================================
+// Arrears folded into a payslip. Statutory treatment is per-arrear and
+// interacts with the PF ceiling, so every boundary is tested — a wrong rule
+// here silently corrupts PF/ESI contributions.
+// ============================================================
+describe("computePayslip — arrears", () => {
+  const base = [earn("BASIC", 12000), earn("SPECIAL", 6000)]; // gross 18000, within ESI ceiling
+
+  it("adds the arrear to gross and to the bank net", () => {
+    const p = computePayslip({ lines: base, lopDays: 0, monthDays: 30, arrears: [{ amount: 5000 }] });
+    expect(p.arrears).toBe(5000);
+    expect(p.gross).toBe(23000); // 18000 + 5000
+    expect(p.earnings.some((e) => e.code === "ARREAR" && e.amount === 5000)).toBe(true);
+  });
+
+  it("a PF-applicable arrear folds into the PF base under the ceiling", () => {
+    // basic 12000 + arrear PF-wages 2000 = 14000 (< 15000 ceiling) → PF on 14000.
+    const p = computePayslip({ lines: base, lopDays: 0, monthDays: 30, arrears: [{ amount: 2000, pfApplicable: true }] });
+    expect(p.pf).toBe(1680);         // 12% of 14000
+    expect(p.employerPf).toBe(1680); // employer 12% of 14000
+  });
+
+  it("PF-applicable arrear is capped at the ₹15,000 ceiling, never charged past it", () => {
+    // basic 12000 + arrear 10000 = 22000 → capped at 15000 → PF on 15000.
+    const p = computePayslip({ lines: base, lopDays: 0, monthDays: 30, arrears: [{ amount: 10000, pfApplicable: true }] });
+    expect(p.pf).toBe(1800); // 12% of 15000, not of 22000
+  });
+
+  it("a non-PF arrear does NOT change PF", () => {
+    const p = computePayslip({ lines: base, lopDays: 0, monthDays: 30, arrears: [{ amount: 5000, pfApplicable: false }] });
+    expect(p.pf).toBe(1440); // 12% of 12000 basic only
+  });
+
+  it("an ESI-applicable arrear raises the ESI contribution base", () => {
+    const p = computePayslip({ lines: base, lopDays: 0, monthDays: 30, arrears: [{ amount: 2000, esiApplicable: true }] });
+    expect(p.esi).toBe(150);        // 0.75% of (18000 + 2000)
+    expect(p.employerEsi).toBe(650); // 3.25% of 20000
+  });
+
+  it("PT is charged at most once even with a PT-applicable arrear", () => {
+    // regular gross 18000 (< 25000 threshold), arrear 10000 pushes ptGross to 28000.
+    const p = computePayslip({ lines: base, lopDays: 0, monthDays: 30, arrears: [{ amount: 10000, ptApplicable: true }] });
+    expect(p.pt).toBe(200); // charged once, never doubled
+  });
+
+  it("a taxable arrear adds incremental tax charged fully this month (not spread)", () => {
+    // A high salary already in the taxed band; a 100000 arrear adds annual tax.
+    const hi = [earn("BASIC", 100000), earn("HRA", 40000)]; // 140000/mo → clearly taxable
+    const withArr = computePayslip({ lines: hi, lopDays: 0, monthDays: 30, arrears: [{ amount: 100000, taxable: true }] });
+    const without = computePayslip({ lines: hi, lopDays: 0, monthDays: 30 });
+    expect(withArr.tds).toBeGreaterThan(without.tds);
+  });
+
+  it("a fully-absent month still pays and taxes an arrear", () => {
+    const p = computePayslip({ lines: base, lopDays: 30, monthDays: 30, arrears: [{ amount: 5000, pfApplicable: true, esiApplicable: true }] });
+    expect(p.gross).toBe(5000);       // regular 0 + arrear 5000
+    expect(p.pf).toBe(600);           // 12% of 5000 (arrear PF-wages, basic paid = 0)
+    expect(p.esi).toBe(38);           // 0.75% of 5000 = 37.5, ESI rounds UP to the rupee
+    expect(p.net).toBeGreaterThan(0);
+  });
+})
