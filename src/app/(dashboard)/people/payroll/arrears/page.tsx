@@ -28,7 +28,7 @@ function currentFy(): string {
 }
 
 export default async function ArrearsPage() {
-  if (!FEATURES.hrPayroll) notFound();
+  if (!FEATURES.hr || !FEATURES.hrPayroll) notFound();
   const session = await auth();
   const role = session?.user?.role ?? "";
   if (!hasPermission(role, "hr:payroll")) redirect("/people");

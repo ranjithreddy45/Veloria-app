@@ -60,9 +60,21 @@ export interface StatConfig {
   esiRatePct: number; // 0.75%
   employerEsiRatePct: number; // 3.25%
   esiGrossCeiling: number; // applies only when monthly gross <= 21,000
-  // --- Professional Tax (Karnataka) ---
+  // Employees at or below this AVERAGE DAILY wage are exempt from the EMPLOYEE
+  // ESI leg (ESIC ~₹176/day). 0 (default) disables the exemption. The employer
+  // leg is unaffected.
+  esiMinDailyWage?: number;
+  // --- Professional Tax (Karnataka default; state slabs override the flat rule) ---
   ptAmount: number; // 200
   ptGrossThreshold: number; // charged when monthly gross > 25,000
+  // Optional graduated PT slab table (e.g. Maharashtra). When present it REPLACES
+  // the flat ptAmount/ptGrossThreshold rule. `additionalAmount` is a February-only
+  // top-up (the standard state convention). Empty/undefined → flat rule applies.
+  ptSlabs?: { fromSalary: number; toSalary: number | null; ptAmount: number; additionalAmount: number }[];
+  // --- Labour Welfare Fund (deducted only in the configured calendar months) ---
+  lwfEmployee?: number; // employee share (₹), deducted in lwfMonths
+  lwfEmployer?: number; // employer share (₹), added to employer cost in lwfMonths
+  lwfMonths?: number[]; // calendar months (1..12) LWF is due in
   // --- Gratuity ---
   gratuityDaysPerYear: number; // 15
   gratuityMonthDivisor: number; // 26
@@ -112,6 +124,10 @@ export const DEFAULT_STAT_CONFIG: StatConfig = {
 
 const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 const rupee = (n: number) => Math.round(n); // statutory amounts are whole rupees
+// ESI contributions round UP to the next whole rupee (ESIC Regulation 40), unlike
+// PF/EPS which round to nearest. The −1e-6 absorbs float dust so an exact rupee
+// (e.g. 150.0000001) is not pushed to 151.
+const ceilRupee = (n: number) => Math.ceil(n - 1e-6);
 
 /**
  * Resolve a monthly CTC + basic% + component defs into concrete monthly
@@ -196,6 +212,26 @@ export function newRegimeAnnualTax(taxableAnnual: number, cfg: StatConfig = DEFA
   return rupee(withCess);
 }
 
+/**
+ * Professional tax from a graduated state slab table. Slabs are inclusive of
+ * `fromSalary`; `toSalary: null` means "and above". `additionalAmount` is a
+ * February-only top-up (the standard state convention, e.g. Maharashtra's ₹300
+ * in Feb vs ₹200 otherwise). Returns null when no slabs are configured so the
+ * caller falls back to the flat threshold rule; 0 when no band matches.
+ */
+function ptSlabAmount(
+  monthlyGross: number,
+  slabs: StatConfig["ptSlabs"],
+  month?: number,
+): number | null {
+  if (!slabs || slabs.length === 0) return null;
+  const hit = slabs.find(
+    (s) => monthlyGross >= s.fromSalary && (s.toSalary == null || monthlyGross <= s.toSalary),
+  );
+  if (!hit) return 0;
+  return hit.ptAmount + (month === 2 ? hit.additionalAmount : 0);
+}
+
 export interface PayslipInput {
   lines: StructureLine[]; // the employee's current structure lines
   lopDays?: number; // loss-of-pay days (SAME unit as payableDays)
@@ -208,6 +244,14 @@ export interface PayslipInput {
   payableDays?: number;
   monthDays?: number; // calendar days in the month (default 30)
   cfg?: StatConfig;
+  /** Calendar month 1..12 — drives the PT February top-up and LWF due-months. */
+  month?: number;
+  /**
+   * Number of months this employee is actually paid in the financial year (used
+   * to annualise TDS). Defaults to 12; pass a smaller value for a mid-year joiner
+   * so their annual tax isn't over-projected as if they worked the whole year.
+   */
+  taxMonthsInYear?: number;
   /**
    * Retrospective arrears paid THIS month. Each carries its own statutory
    * applicability because the treatment depends on what the arrear is for.
@@ -236,6 +280,7 @@ export interface PayslipComputation {
   esi: number;
   pt: number;
   tds: number;
+  lwf: number;
   gratuityAccrued: number;
   totalDeductions: number;
   net: number;
@@ -306,26 +351,51 @@ export function computePayslip(input: PayslipInput): PayslipComputation {
   const pf = rupee((pfBase * cfg.pfRatePct) / 100);
 
   // ESI: eligibility on the FULL contractual gross (an arrear doesn't move you in
-  // or out of coverage); contribution on wages PAID + any ESI-applicable arrear.
+  // or out of coverage); contribution on wages PAID + any ESI-applicable arrear,
+  // rounded UP to the next rupee (ESIC Reg. 40). Low-wage exemption: an employee
+  // at/below the configured average daily wage is exempt from the EMPLOYEE leg
+  // (the employer leg still applies).
   const esiBase = r2(gross + arrEsi);
-  const esi = fullGross <= cfg.esiGrossCeiling && esiBase > 0 ? rupee((esiBase * cfg.esiRatePct) / 100) : 0;
+  const esiEligible = fullGross <= cfg.esiGrossCeiling && esiBase > 0;
+  const dailyWage = monthDays > 0 ? fullGross / monthDays : 0;
+  const esiEmployeeExempt = (cfg.esiMinDailyWage ?? 0) > 0 && dailyWage <= (cfg.esiMinDailyWage ?? 0);
+  const esi = esiEligible && !esiEmployeeExempt ? ceilRupee((esiBase * cfg.esiRatePct) / 100) : 0;
 
-  // PT: a FLAT monthly levy — an arrear can push a below-threshold month over the
-  // line, but PT is charged at most ONCE (never doubled for the arrear).
-  const ptGross = r2(fullGross + arrPt);
-  const pt = hasPay && ptGross >= cfg.ptGrossThreshold ? cfg.ptAmount : 0;
+  // PT: levied on the wages actually PAID this month (LOP-prorated regular gross +
+  // any PT-applicable arrear) — NOT the un-prorated contractual gross, so a heavy-
+  // LOP or fully-absent month isn't charged PT on salary never earned. A state
+  // slab table, when configured, REPLACES the flat threshold rule; February
+  // carries the state's top-up. Charged at most once (never doubled for arrears).
+  const ptBase = r2(gross + arrPt);
+  const ptSlab = ptSlabAmount(ptBase, cfg.ptSlabs, input.month);
+  const pt = !hasPay
+    ? 0
+    : ptSlab != null
+      ? ptSlab
+      : ptBase >= cfg.ptGrossThreshold
+        ? cfg.ptAmount
+        : 0;
 
-  // TDS: project the regular annual tax (a one-off LOP month must not swing it);
-  // an arrear adds to annual taxable ONCE and its incremental tax is charged in
-  // full this month. NOTE: Section 89(1) relief on arrears is the employee's to
-  // claim and is deliberately NOT auto-applied here.
-  const annualTaxable = Math.max(0, fullTaxableMonthly * 12 - cfg.stdDeductionAnnual);
+  // TDS: annualise the regular monthly taxable over the months this employee is
+  // actually paid in the FY (default 12) — a mid-year joiner is projected on their
+  // real annual earning, not a full 12 months. A one-off LOP month uses the
+  // un-prorated fullTaxableMonthly so attendance doesn't swing the projection. An
+  // arrear adds to annual taxable ONCE and its incremental tax is charged in full
+  // this month. NOTE: Section 89(1) relief on arrears is the employee's to claim
+  // and is deliberately NOT auto-applied here.
+  const taxMonths = input.taxMonthsInYear && input.taxMonthsInYear > 0 ? Math.min(12, input.taxMonthsInYear) : 12;
+  const annualTaxable = Math.max(0, fullTaxableMonthly * taxMonths - cfg.stdDeductionAnnual);
   const annualTax = newRegimeAnnualTax(annualTaxable, cfg);
   const arrearTax =
     arrTaxable > 0
       ? Math.max(0, newRegimeAnnualTax(annualTaxable + arrTaxable, cfg) - annualTax)
       : 0;
-  const tds = r2((gross > 0 ? annualTax / 12 : 0) + arrearTax);
+  const tds = r2((gross > 0 ? annualTax / taxMonths : 0) + arrearTax);
+
+  // LWF: a small fixed levy due only in the state's configured months.
+  const lwfDue = hasPay && (cfg.lwfMonths ?? []).includes(input.month ?? 0);
+  const lwf = lwfDue ? r2(cfg.lwfEmployee ?? 0) : 0;
+  const employerLwf = lwfDue ? r2(cfg.lwfEmployer ?? 0) : 0;
 
   // Gratuity accrual (employer cost, shown for information; not deducted).
   const gratuityAccrued = rupee(
@@ -355,12 +425,12 @@ export function computePayslip(input: PayslipInput): PayslipComputation {
   const employerPfAdmin = rupee((employerPfBase * cfg.pfAdminRatePct) / 100);
 
   // Employer ESI — same eligibility rule as the employee leg (FULL gross within
-  // the ceiling), contribution on wages actually PAID.
-  const employerEsi =
-    fullGross <= cfg.esiGrossCeiling && esiBase > 0 ? rupee((esiBase * cfg.employerEsiRatePct) / 100) : 0;
+  // the ceiling), contribution on wages actually PAID, rounded UP (Reg. 40). The
+  // low-wage exemption is employEE-only, so the employer leg keeps eligibility.
+  const employerEsi = esiEligible ? ceilRupee((esiBase * cfg.employerEsiRatePct) / 100) : 0;
 
   const employerPf = rupee(employerEpsCapped + employerEpf);
-  const employerCost = rupee(employerPf + employerEdli + employerPfAdmin + employerEsi + gratuityAccrued);
+  const employerCost = rupee(employerPf + employerEdli + employerPfAdmin + employerEsi + employerLwf + gratuityAccrued);
   const ctc = rupee(grossOut + employerCost);
 
   const statDeductions = [
@@ -368,6 +438,7 @@ export function computePayslip(input: PayslipInput): PayslipComputation {
     { code: "ESI", name: "ESI", amount: esi },
     { code: "PT", name: "Professional Tax", amount: pt },
     { code: "TDS", name: "TDS (Income Tax)", amount: tds },
+    { code: "LWF", name: "Labour Welfare Fund", amount: lwf },
   ].filter((d) => d.amount > 0);
 
   // Any explicit DEDUCTION components on the structure (e.g. recoveries).
@@ -391,6 +462,7 @@ export function computePayslip(input: PayslipInput): PayslipComputation {
     esi,
     pt,
     tds,
+    lwf,
     gratuityAccrued,
     totalDeductions,
     net,

@@ -90,6 +90,19 @@ export async function resolveStatConfig(legalEntityId?: string | null): Promise<
     gratuityDaysPerYear: row.gratuityDaysPerYear,
     gratuityMonthDivisor: row.gratuityMonthDivisor,
     gratuityMinYears: row.gratuityMinYears,
+    // Surface these onto the config the ENGINE actually reads — previously they
+    // were resolved but only exposed on ResolvedStatConfig, so computePayslip
+    // never saw them (PT slabs / LWF / the ESI low-wage floor were dead config).
+    esiMinDailyWage: num(row.esiMinDailyWage),
+    ptSlabs: row.ptSlabs.map((s) => ({
+      fromSalary: num(s.fromSalary),
+      toSalary: s.toSalary == null ? null : num(s.toSalary),
+      ptAmount: num(s.ptAmount),
+      additionalAmount: num(s.additionalAmount),
+    })),
+    lwfEmployee: row.lwfApplicable ? num(row.lwfEmployee) : 0,
+    lwfEmployer: row.lwfApplicable ? num(row.lwfEmployer) : 0,
+    lwfMonths: row.lwfApplicable ? row.lwfMonths : [],
   };
 
   // An "off" toggle must actually stop the deduction. Zeroing the rate is the
@@ -105,7 +118,10 @@ export async function resolveStatConfig(legalEntityId?: string | null): Promise<
     cfg.esiRatePct = 0;
     cfg.employerEsiRatePct = 0;
   }
-  if (!row.ptApplicable) cfg.ptAmount = 0;
+  if (!row.ptApplicable) {
+    cfg.ptAmount = 0;
+    cfg.ptSlabs = [];
+  }
 
   return {
     cfg,

@@ -365,12 +365,14 @@ export async function checkOut(input: {
   await prisma.activityLog.create({
     data: {
       action: "ATTENDANCE_CHECK_OUT", entityType: "ATTENDANCE", entityId: rec.id, userId: u.id,
-      changes: { workedMinutes, checkOutVerified: verdict.verified, flagged: verdict.flagged },
+      // Report the MERGED flag (a check-in flag survives a clean check-out) so the
+      // log and the caller's payload match the persisted row, not just this punch.
+      changes: { workedMinutes, checkOutVerified: verdict.verified, flagged },
     },
   });
   revalidatePath("/people/attendance");
   revalidatePath("/me/attendance");
-  return { success: true, data: { workedMinutes, status, locationVerified: verdict.verified, flagged: verdict.flagged } };
+  return { success: true, data: { workedMinutes, status, locationVerified: verdict.verified, flagged } };
 }
 
 // ============================================================

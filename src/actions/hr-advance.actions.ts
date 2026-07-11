@@ -12,7 +12,7 @@ import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { hasPermission } from "@/lib/permissions";
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -220,47 +220,57 @@ export async function createAdvance(input: {
   });
   if (!emp) return { success: false, error: "Employee not found." };
 
-  const existingActive = await prisma.hrAdvance.findFirst({
-    where: { employeeId: emp.id, status: "ACTIVE" },
-    select: { id: true },
-  });
-  if (existingActive) {
-    return {
-      success: false,
-      error: "This employee already holds an active advance. Close or cancel it before creating another.",
-    };
+  // The "at most one ACTIVE advance" invariant is load-bearing for the payroll
+  // recovery run. Check-and-create must be ATOMIC: a plain findFirst-then-create
+  // is a TOCTOU that a double-submit (or two payroll users) can slip a second
+  // ACTIVE advance through. Serializable makes the concurrent create abort rather
+  // than duplicate. (No DB partial-unique index — hard constraints are deferred
+  // until prod data is cleaned, per project policy.)
+  let created: { id: string };
+  try {
+    created = await prisma.$transaction(async (tx) => {
+      const existingActive = await tx.hrAdvance.findFirst({
+        where: { employeeId: emp.id, status: "ACTIVE" },
+        select: { id: true },
+      });
+      if (existingActive) throw new Error("ALREADY_ACTIVE");
+
+      const adv = await tx.hrAdvance.create({
+        data: {
+          employeeId: emp.id,
+          amount,
+          monthlyInstallment,
+          startFy,
+          startMonth,
+          reason: input.reason?.trim() || null,
+          createdById: gate.userId,
+        },
+        select: { id: true },
+      });
+      await tx.activityLog.create({
+        data: {
+          action: "ADVANCE_CREATED",
+          entityType: "EMPLOYEE",
+          entityId: emp.id,
+          userId: gate.userId,
+          changes: {
+            advanceId: adv.id,
+            amount,
+            monthlyInstallment,
+            startFy,
+            startMonth,
+            empCode: emp.empCode,
+            name: fullName(emp.firstName, emp.lastName),
+          },
+        },
+      });
+      return adv;
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  } catch (e) {
+    if (e instanceof Error && e.message === "ALREADY_ACTIVE")
+      return { success: false, error: "This employee already holds an active advance. Close or cancel it before creating another." };
+    return { success: false, error: "Could not create the advance." };
   }
-
-  const created = await prisma.hrAdvance.create({
-    data: {
-      employeeId: emp.id,
-      amount,
-      monthlyInstallment,
-      startFy,
-      startMonth,
-      reason: input.reason?.trim() || null,
-      createdById: gate.userId,
-    },
-    select: { id: true },
-  });
-
-  await prisma.activityLog.create({
-    data: {
-      action: "ADVANCE_CREATED",
-      entityType: "EMPLOYEE",
-      entityId: emp.id,
-      userId: gate.userId,
-      changes: {
-        advanceId: created.id,
-        amount,
-        monthlyInstallment,
-        startFy,
-        startMonth,
-        empCode: emp.empCode,
-        name: fullName(emp.firstName, emp.lastName),
-      },
-    },
-  });
 
   revalidatePath("/people/payroll/advances");
   return { success: true, data: { id: created.id } };

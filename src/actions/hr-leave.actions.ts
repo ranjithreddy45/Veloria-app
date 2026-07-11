@@ -644,33 +644,45 @@ export async function decideLeave(requestId: string, decision: "APPROVED" | "REJ
   // rows applyLeave reserved it on (a span crossing a year boundary touches two).
   const daysByYear = await requestDaysByYear(req);
 
-  await prisma.$transaction(async (tx) => {
-    await tx.leaveRequest.update({
-      where: { id: requestId },
-      data: { status: decision, decidedAt: new Date(), decisionNote: note || null, approverId: me?.id ?? req.approverId },
-    });
-    // Move the reserved pending balance on each year's row.
-    for (const [year, d] of daysByYear) {
-      const bal = await tx.leaveBalance.findUnique({
-        where: { employeeId_leaveTypeId_year: { employeeId: req.employeeId, leaveTypeId: req.leaveTypeId, year } },
+  try {
+    await prisma.$transaction(async (tx) => {
+      // Claim the PENDING→decision transition ATOMICALLY. The status predicate
+      // means a second concurrent approve (or a double-click) that already lost
+      // the race matches zero rows, so the reserved balance is moved exactly once
+      // — never doubled. Serializable backstops the read-modify-write on balances.
+      const claimed = await tx.leaveRequest.updateMany({
+        where: { id: requestId, status: "PENDING" },
+        data: { status: decision, decidedAt: new Date(), decisionNote: note || null, approverId: me?.id ?? req.approverId },
       });
-      if (!bal) continue;
-      if (decision === "APPROVED") {
-        await tx.leaveBalance.update({
-          where: { id: bal.id },
-          data: { pending: { decrement: d }, used: { increment: d } },
+      if (claimed.count === 0) throw new Error("ALREADY_DECIDED");
+
+      // Move the reserved pending balance on each year's row.
+      for (const [year, d] of daysByYear) {
+        const bal = await tx.leaveBalance.findUnique({
+          where: { employeeId_leaveTypeId_year: { employeeId: req.employeeId, leaveTypeId: req.leaveTypeId, year } },
         });
-      } else {
-        await tx.leaveBalance.update({ where: { id: bal.id }, data: { pending: { decrement: d } } });
+        if (!bal) continue;
+        if (decision === "APPROVED") {
+          await tx.leaveBalance.update({
+            where: { id: bal.id },
+            data: { pending: { decrement: d }, used: { increment: d } },
+          });
+        } else {
+          await tx.leaveBalance.update({ where: { id: bal.id }, data: { pending: { decrement: d } } });
+        }
       }
-    }
-    await tx.activityLog.create({
-      data: {
-        action: decision === "APPROVED" ? "LEAVE_APPROVED" : "LEAVE_REJECTED",
-        entityType: "LEAVE_REQUEST", entityId: requestId, userId: u.id, changes: { days: req.days },
-      },
-    });
-  });
+      await tx.activityLog.create({
+        data: {
+          action: decision === "APPROVED" ? "LEAVE_APPROVED" : "LEAVE_REJECTED",
+          entityType: "LEAVE_REQUEST", entityId: requestId, userId: u.id, changes: { days: req.days },
+        },
+      });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  } catch (e) {
+    if (e instanceof Error && e.message === "ALREADY_DECIDED")
+      return { success: false, error: "This request was already decided." };
+    return { success: false, error: "Could not record the decision." };
+  }
 
   revalidatePath("/people/leave");
   revalidatePath("/people/leave/approvals");
@@ -691,21 +703,35 @@ export async function cancelLeave(requestId: string): Promise<Result<{ id: strin
 
   // Per-year split so the release lands on the same year rows that were charged.
   const daysByYear = await requestDaysByYear(req);
-  const wasPending = req.status === "PENDING";
-  await prisma.$transaction(async (tx) => {
-    await tx.leaveRequest.update({ where: { id: requestId }, data: { status: "CANCELLED", decidedAt: new Date() } });
-    for (const [year, d] of daysByYear) {
-      const bal = await tx.leaveBalance.findUnique({
-        where: { employeeId_leaveTypeId_year: { employeeId: req.employeeId, leaveTypeId: req.leaveTypeId, year } },
+  const priorStatus = req.status; // PENDING or APPROVED (validated above)
+  const wasPending = priorStatus === "PENDING";
+  try {
+    await prisma.$transaction(async (tx) => {
+      // Claim the cancellation against the EXACT status we read, so the balance is
+      // released in the right direction (pending vs used) exactly once — a
+      // concurrent decide/cancel that already moved the request matches zero rows.
+      const claimed = await tx.leaveRequest.updateMany({
+        where: { id: requestId, status: priorStatus },
+        data: { status: "CANCELLED", decidedAt: new Date() },
       });
-      if (!bal) continue;
-      if (wasPending) await tx.leaveBalance.update({ where: { id: bal.id }, data: { pending: { decrement: d } } });
-      else await tx.leaveBalance.update({ where: { id: bal.id }, data: { used: { decrement: d } } });
-    }
-    await tx.activityLog.create({
-      data: { action: "LEAVE_CANCELLED", entityType: "LEAVE_REQUEST", entityId: requestId, userId: u.id },
-    });
-  });
+      if (claimed.count === 0) throw new Error("STATUS_CHANGED");
+      for (const [year, d] of daysByYear) {
+        const bal = await tx.leaveBalance.findUnique({
+          where: { employeeId_leaveTypeId_year: { employeeId: req.employeeId, leaveTypeId: req.leaveTypeId, year } },
+        });
+        if (!bal) continue;
+        if (wasPending) await tx.leaveBalance.update({ where: { id: bal.id }, data: { pending: { decrement: d } } });
+        else await tx.leaveBalance.update({ where: { id: bal.id }, data: { used: { decrement: d } } });
+      }
+      await tx.activityLog.create({
+        data: { action: "LEAVE_CANCELLED", entityType: "LEAVE_REQUEST", entityId: requestId, userId: u.id },
+      });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  } catch (e) {
+    if (e instanceof Error && e.message === "STATUS_CHANGED")
+      return { success: false, error: "This request just changed status — refresh and try again." };
+    return { success: false, error: "Could not cancel the leave." };
+  }
 
   revalidatePath("/people/leave");
   return { success: true, data: { id: requestId } };

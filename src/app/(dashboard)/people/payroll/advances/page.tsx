@@ -20,7 +20,7 @@ const inr = (n: number) =>
   }).format(n);
 
 export default async function AdvancesPage() {
-  if (!FEATURES.hrPayroll) notFound();
+  if (!FEATURES.hr || !FEATURES.hrPayroll) notFound();
   const session = await auth();
   const role = session?.user?.role ?? "";
   if (!hasPermission(role, "hr:payroll")) redirect("/people");

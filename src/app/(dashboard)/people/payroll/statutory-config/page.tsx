@@ -12,7 +12,7 @@ import { StatutoryConfigForm } from "./_components/statutory-config-form";
 export const metadata: Metadata = { title: "Statutory configuration" };
 
 export default async function StatutoryConfigPage() {
-  if (!FEATURES.hrPayroll) notFound();
+  if (!FEATURES.hr || !FEATURES.hrPayroll) notFound();
   const session = await auth();
   const role = session?.user?.role ?? "";
   if (!hasPermission(role, "hr:payroll")) redirect("/people");

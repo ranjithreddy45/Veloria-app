@@ -343,17 +343,20 @@ export async function createEmployee(input: CreateEmployeeInput): Promise<Result
   });
   const empCode = nextEmpCode(topCodes.map((e) => e.empCode));
 
-  // Auto-link the login: if the work email matches an existing user account that
-  // isn't already claimed by another employee, connect them at creation. Without
-  // Employee.userId set, NOTHING in employee self-service (attendance, leave,
-  // payslips, help desk) can resolve "me → my employee record".
+  // Auto-link the login so self-service (attendance, leave, payslips, help desk)
+  // can resolve "me → my employee record" — but only when it is SAFE to bind
+  // SILENTLY: the actor holds hr:admin (the same gate the dedicated
+  // linkEmployeeUser action requires, so an hr:write-only user can't bind an
+  // arbitrary unclaimed login such as an exec's), the user is ACTIVE (a
+  // deactivated/recycled email must never be silently bound), and the account
+  // isn't already claimed. Otherwise leave it null — an admin links it explicitly.
   let autoUserId: string | null = null;
-  if (input.workEmail?.trim()) {
+  if (input.workEmail?.trim() && can(u?.role, "hr:admin")) {
     const user = await prisma.user.findUnique({
       where: { email: input.workEmail.trim().toLowerCase() },
-      select: { id: true },
+      select: { id: true, isActive: true },
     });
-    if (user) {
+    if (user?.isActive) {
       const claimed = await prisma.employee.findFirst({ where: { userId: user.id }, select: { id: true } });
       if (!claimed) autoUserId = user.id;
     }

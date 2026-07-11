@@ -84,6 +84,25 @@ function daysInMonth(year: number, month: number): number {
   return new Date(year, month, 0).getDate();
 }
 
+/** FY-month index: April = 0 … March = 11 (Indian financial year). */
+function fyMonthIndex(calMonth: number): number {
+  return calMonth >= 4 ? calMonth - 4 : calMonth + 8;
+}
+
+/**
+ * Number of months an employee is actually paid in the given FY — used to
+ * annualise TDS so a mid-year joiner isn't over-projected as a full 12 months.
+ * A join date on/before the FY start (or unknown) means the full 12 months.
+ */
+function taxMonthsInFy(doj: Date | null | undefined, fy: string): number {
+  if (!doj) return 12;
+  const fyStartYear = Number(fy.slice(0, 4));
+  const fyStart = new Date(Date.UTC(fyStartYear, 3, 1)); // 1 April
+  const fyEnd = new Date(Date.UTC(fyStartYear + 1, 2, 31)); // 31 March
+  if (doj <= fyStart || doj > fyEnd) return 12;
+  return 12 - fyMonthIndex(doj.getUTCMonth() + 1);
+}
+
 // ============================================================
 // Reads
 // ============================================================
@@ -166,8 +185,9 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
   // ACTIVE (payable) employees for this entity, each with their current structure.
   const employees = await prisma.employee.findMany({
     where: { status: "ACTIVE", deletedAt: null },
-    // legalEntityId drives which persisted statutory config applies to this employee.
-    select: { id: true, empCode: true, firstName: true, lastName: true, legalEntityId: true },
+    // legalEntityId drives which persisted statutory config applies to this employee;
+    // dateOfJoining bounds the TDS annualisation for mid-year joiners.
+    select: { id: true, empCode: true, firstName: true, lastName: true, legalEntityId: true, dateOfJoining: true },
     orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
   });
 
@@ -213,14 +233,28 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
   // which sorts lexicographically in chronological order, so a plain string
   // compare is correct here.
   const advances = await prisma.hrAdvance.findMany({
-    where: { status: "ACTIVE", employeeId: { in: employees.map((e) => e.id) } },
-    include: { recoveries: { where: { runId }, select: { amount: true } } },
+    where: {
+      employeeId: { in: employees.map((e) => e.id) },
+      // ACTIVE advances due for recovery, PLUS any advance THIS run previously
+      // recovered — even now-CLOSED — so a re-compute can back it out / re-evaluate
+      // it instead of silently dropping the deduction while the loan stays "settled".
+      OR: [{ status: "ACTIVE" }, { recoveries: { some: { runId } } }],
+    },
+    select: { id: true, employeeId: true, amount: true, monthlyInstallment: true, startFy: true, startMonth: true, status: true },
   });
   const dueAdvances = advances.filter(
-    (a) => a.startFy < run.fy || (a.startFy === run.fy && a.startMonth <= run.month),
+    (a) =>
+      a.status !== "CANCELLED" &&
+      (a.startFy < run.fy || (a.startFy === run.fy && a.startMonth <= run.month)),
   );
-  const advByEmp = new Map<string, (typeof dueAdvances)[number]>();
-  for (const a of dueAdvances) advByEmp.set(a.employeeId, a); // at most one ACTIVE per employee
+  // Keyed by employee → list (an employee may carry an ACTIVE advance AND an older
+  // one this run touched); each is recovered in turn against the remaining net.
+  const advByEmp = new Map<string, typeof dueAdvances>();
+  for (const a of dueAdvances) {
+    const list = advByEmp.get(a.employeeId) ?? [];
+    list.push(a);
+    advByEmp.set(a.employeeId, list);
+  }
 
   // ---- Arrears due to be paid in THIS run's month ----
   // Include arrears already stamped with this runId (a re-run) so re-processing
@@ -256,6 +290,9 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
         // Working days from the FINAL sheet are the payable base; no sheet → full pay.
         payableDays: sheet && sheet.workingDays > 0 ? sheet.workingDays : undefined,
         monthDays,
+        month: run.month,
+        // Mid-year joiners are annualised over the months they actually work.
+        taxMonthsInYear: taxMonthsInFy(emp.dateOfJoining, run.fy),
         cfg: emp.legalEntityId ? cfgByEntity.get(emp.legalEntityId) : undefined,
         arrears: empArrears.map((a) => ({
           amount: Number(a.amount),
@@ -275,36 +312,53 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
         });
       }
 
-      // ---- Advance recovery ----
-      // Idempotent by construction: a re-run of the SAME month first backs out
-      // whatever this run previously recovered, so `recovered` can never be
-      // double-counted. The instalment is capped by BOTH the outstanding balance
-      // and this month's net pay, so recovery never drives a salary negative.
-      const adv = advByEmp.get(emp.id);
+      // ---- Advance recovery (idempotent + self-healing) ----
+      // The HrAdvanceRecovery rows are the SOURCE OF TRUTH. After (re)writing THIS
+      // run's row we recompute `recovered` = Σ(all recovery rows, read inside the
+      // tx) and set the advance's status from that sum. So a re-compute that
+      // recovers less — or nothing (a zero-pay month) — correctly lowers the
+      // balance AND reopens a wrongly-CLOSED advance, and a previously-settled
+      // advance re-processed here can never leave a stale row or a false "settled"
+      // state. Deriving from the row sum (not a mutable accumulator read before the
+      // tx) also removes the lost-update race between two concurrent-month runs.
+      // The instalment is capped by BOTH the outstanding balance and the remaining
+      // net pay, so recovery never drives a salary negative.
+      const empAdvances = advByEmp.get(emp.id) ?? [];
       let advanceRecovered = 0;
-      if (adv) {
-        const priorThisRun = adv.recoveries.length ? Number(adv.recoveries[0].amount) : 0;
-        const recoveredExcludingThisRun = Math.max(0, Number(adv.recovered) - priorThisRun);
+      let remainingNet = Math.max(0, c.net);
+      for (const adv of empAdvances) {
+        const priorAgg = await tx.hrAdvanceRecovery.aggregate({
+          where: { advanceId: adv.id, runId: { not: runId } },
+          _sum: { amount: true },
+        });
+        const recoveredExcludingThisRun = Number(priorAgg._sum.amount ?? 0);
         const outstanding = Math.max(0, Number(adv.amount) - recoveredExcludingThisRun);
-        advanceRecovered = r2(Math.min(Number(adv.monthlyInstallment), outstanding, Math.max(0, c.net)));
+        const take = r2(Math.min(Number(adv.monthlyInstallment), outstanding, remainingNet));
 
-        if (advanceRecovered > 0) {
+        if (take > 0) {
           await tx.hrAdvanceRecovery.upsert({
             where: { advanceId_runId: { advanceId: adv.id, runId } },
-            create: { advanceId: adv.id, runId, amount: new Prisma.Decimal(advanceRecovered) },
-            update: { amount: new Prisma.Decimal(advanceRecovered) },
+            create: { advanceId: adv.id, runId, amount: new Prisma.Decimal(take) },
+            update: { amount: new Prisma.Decimal(take) },
           });
-        } else if (priorThisRun > 0) {
-          // Nothing recoverable now (e.g. a zero-pay month) — drop a stale row.
+        } else {
+          // Nothing recoverable now — drop any stale row THIS run previously wrote.
           await tx.hrAdvanceRecovery.deleteMany({ where: { advanceId: adv.id, runId } });
         }
 
-        const newRecovered = r2(recoveredExcludingThisRun + advanceRecovered);
+        const totalAgg = await tx.hrAdvanceRecovery.aggregate({
+          where: { advanceId: adv.id },
+          _sum: { amount: true },
+        });
+        const newRecovered = r2(Number(totalAgg._sum.amount ?? 0));
         const settled = newRecovered >= Number(adv.amount) - 0.005;
         await tx.hrAdvance.update({
           where: { id: adv.id },
-          data: { recovered: new Prisma.Decimal(newRecovered), ...(settled ? { status: "CLOSED" } : {}) },
+          data: { recovered: new Prisma.Decimal(newRecovered), status: settled ? "CLOSED" : "ACTIVE" },
         });
+
+        advanceRecovered = r2(advanceRecovered + take);
+        remainingNet = r2(Math.max(0, remainingNet - take));
       }
 
       const netAfterAdvance = r2(Math.max(0, c.net - advanceRecovered));
@@ -441,7 +495,7 @@ export async function postHrPayrollToGL(runId: string): Promise<Result<{ entryNo
     select: {
       status: true, fy: true, month: true, label: true, journalEntryId: true,
       totalGross: true, totalNet: true,
-      payslips: { select: { pf: true, esi: true, pt: true, tds: true } },
+      payslips: { select: { pf: true, esi: true, pt: true, tds: true, advanceRecovered: true } },
     },
   });
   if (!run) return { success: false, error: "Payroll run not found." };
@@ -458,7 +512,12 @@ export async function postHrPayrollToGL(runId: string): Promise<Result<{ entryNo
   );
   const totalGross = Number(run.totalGross);
   const statutory = sum.pf + sum.esi + sum.pt + sum.tds;
-  const netPayable = Math.round((totalGross - statutory) * 100) / 100; // ≈ totalNet
+  // Advances recovered this run are a non-statutory deduction: they reduce the net
+  // cash owed to staff AND settle the employee-advance receivable, so they must
+  // leave Salaries Payable and credit the advances asset — otherwise Salaries
+  // Payable is permanently overstated and the recovery never touches the ledger.
+  const advanceTotal = Math.round(run.payslips.reduce((s, p) => s + Number(p.advanceRecovered ?? 0), 0) * 100) / 100;
+  const netPayable = Math.round((totalGross - statutory - advanceTotal) * 100) / 100; // = totalNet
   if (totalGross <= 0) return { success: false, error: "Run has a zero gross — nothing to post." };
 
   // Posting date = 1st of the run's calendar month; the ledger derives fy/period.
@@ -470,6 +529,7 @@ export async function postHrPayrollToGL(runId: string): Promise<Result<{ entryNo
   const codes = {
     salaries: FIN_ACCOUNT_CODES.salaries, // 5100
     salariesPayable: "2230", pfPayable: "2200", esiPayable: "2210", ptPayable: "2220", tdsPayable: "2110",
+    employeeAdvances: "1310", // Advances / Loans to Employees (asset)
   };
   const accounts = await prisma.finAccount.findMany({ where: { code: { in: Object.values(codes) } }, select: { id: true, code: true } });
   const idByCode = new Map(accounts.map((a) => [a.code, a.id]));
@@ -488,6 +548,11 @@ export async function postHrPayrollToGL(runId: string): Promise<Result<{ entryNo
     if (sum.esi > 0) lines.push({ accountId: need(codes.esiPayable, "ESI Payable"), credit: sum.esi, narration: "ESI" });
     if (sum.pt > 0) lines.push({ accountId: need(codes.ptPayable, "PT Payable"), credit: sum.pt, narration: "Professional tax" });
     if (sum.tds > 0) lines.push({ accountId: need(codes.tdsPayable, "TDS Payable"), credit: sum.tds, narration: "TDS" });
+    // Recovered advances settle the receivable (credit the asset). Only required
+    // when a run actually recovered an advance, so ordinary runs never depend on
+    // the account being seeded.
+    if (advanceTotal > 0)
+      lines.push({ accountId: need(codes.employeeAdvances, "Advances to Employees"), credit: advanceTotal, narration: "Advance recovery" });
 
     const entryNo = await prisma.$transaction(async (tx) => {
       const fresh = await tx.hrPayrollRun.findUnique({ where: { id: runId }, select: { status: true, journalEntryId: true } });

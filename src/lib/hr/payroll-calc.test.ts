@@ -79,11 +79,67 @@ describe("computePayslip statutory", () => {
     expect(p.net).toBe(0);
   });
 
-  it("decides PT/ESI eligibility on FULL gross, not the LOP-reduced gross", () => {
-    const lines = [earn("BASIC", 12500), earn("SPECIAL", 12500)]; // full gross 25000
-    // Heavy LOP pulls paid gross well below thresholds, but eligibility holds.
+  it("keeps ESI COVERAGE eligibility on full gross (an arrear/LOP can't move you in or out)", () => {
+    const lines = [earn("BASIC", 10000), earn("SPECIAL", 8000)]; // full gross 18000 ≤ 21000 → covered
+    // Heavy LOP drops paid gross, but coverage holds → ESI still deducted on paid wages.
     const p = computePayslip({ lines, lopDays: 15, payableDays: 23, monthDays: 31 });
-    expect(p.pt).toBe(200); // full gross 25000 >= 25000 threshold
+    expect(p.esi).toBeGreaterThan(0);
+  });
+
+  it("charges PT on the wages actually PAID (prorated), not the un-prorated full gross", () => {
+    const lines = [earn("BASIC", 20000), earn("SPECIAL", 20000)]; // full gross 40000
+    // Full attendance → PT applies (paid gross 40000 ≥ 25000 threshold).
+    expect(computePayslip({ lines, monthDays: 30 }).pt).toBe(200);
+    // Heavy LOP pulls the PAID gross below the threshold → no PT on salary not earned.
+    const lop = computePayslip({ lines, lopDays: 27, payableDays: 30, monthDays: 30 });
+    expect(lop.pt).toBe(0); // paid gross 4000 < 25000
+  });
+
+  it("rounds ESI UP to the next rupee (ESIC Reg. 40), not to nearest", () => {
+    // Full gross 20033 ≤ 21000; employee 0.75% = 150.2475 → statute wants 151.
+    const lines = [earn("BASIC", 12000), earn("SPECIAL", 8033)];
+    const p = computePayslip({ lines, monthDays: 30 });
+    expect(p.esi).toBe(151);
+  });
+
+  it("exempts the EMPLOYEE ESI leg for a daily wage at/below the configured floor", () => {
+    const cfg = { ...DEFAULT_STAT_CONFIG, esiMinDailyWage: 176 };
+    // Full gross 4500 over 30 days = ₹150/day ≤ 176 → employee exempt, still covered.
+    const lines = [earn("BASIC", 3000), earn("SPECIAL", 1500)];
+    const p = computePayslip({ lines, monthDays: 30, cfg });
+    expect(p.esi).toBe(0);
+    expect(p.employerEsi).toBeGreaterThan(0); // employer leg unaffected
+  });
+
+  it("uses a configured PT slab table (with a February top-up) over the flat rule", () => {
+    const cfg = {
+      ...DEFAULT_STAT_CONFIG,
+      ptSlabs: [
+        { fromSalary: 0, toSalary: 7500, ptAmount: 0, additionalAmount: 0 },
+        { fromSalary: 7501, toSalary: 10000, ptAmount: 175, additionalAmount: 0 },
+        { fromSalary: 10001, toSalary: null, ptAmount: 200, additionalAmount: 100 },
+      ],
+    };
+    const lines = [earn("BASIC", 8000), earn("SPECIAL", 4000)]; // paid gross 12000 → top band
+    expect(computePayslip({ lines, monthDays: 30, month: 1, cfg }).pt).toBe(200); // Jan
+    expect(computePayslip({ lines, monthDays: 30, month: 2, cfg }).pt).toBe(300); // Feb top-up
+  });
+
+  it("deducts LWF only in the configured months", () => {
+    const cfg = { ...DEFAULT_STAT_CONFIG, lwfEmployee: 20, lwfEmployer: 40, lwfMonths: [6, 12] };
+    const lines = [earn("BASIC", 20000), earn("SPECIAL", 20000)];
+    expect(computePayslip({ lines, monthDays: 30, month: 6, cfg }).lwf).toBe(20); // June
+    expect(computePayslip({ lines, monthDays: 30, month: 7, cfg }).lwf).toBe(0); // July
+  });
+
+  it("annualises TDS over the months a mid-year joiner is actually paid (not ×12)", () => {
+    // 2.5L/month taxable. A 3-month joiner earns 7.5L → under the 12L rebate → ~0 tax,
+    // whereas ×12 would project 30L and over-deduct heavily.
+    const lines = [earn("BASIC", 250000)];
+    const joiner = computePayslip({ lines, monthDays: 30, taxMonthsInYear: 3 });
+    const fullYear = computePayslip({ lines, monthDays: 30, taxMonthsInYear: 12 });
+    expect(joiner.tds).toBe(0);
+    expect(fullYear.tds).toBeGreaterThan(0);
   });
 });
 

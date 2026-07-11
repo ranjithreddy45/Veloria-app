@@ -21,6 +21,7 @@ export const COA_TEMPLATE: CoaSeed[] = [
   { code: "1200", name: "GST Input Credit", type: "ASSET", subtype: "Tax" },
   { code: "1210", name: "TDS Receivable", type: "ASSET", subtype: "Tax" },
   { code: "1300", name: "Advances to Vendors", type: "ASSET", subtype: "Advance" },
+  { code: "1310", name: "Advances / Loans to Employees", type: "ASSET", subtype: "Advance" },
   { code: "1500", name: "Fixed Assets — Venue Fit-out", type: "ASSET", subtype: "FixedAsset" },
   { code: "1590", name: "Accumulated Depreciation", type: "ASSET", subtype: "ContraAsset" },
   // Liabilities
