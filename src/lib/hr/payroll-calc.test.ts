@@ -2,9 +2,11 @@ import { describe, it, expect } from "vitest";
 import {
   newRegimeAnnualTax,
   computePayslip,
+  buildStructureLines,
   gratuityPayout,
   DEFAULT_STAT_CONFIG,
   type StructureLine,
+  type PayComponentDef,
 } from "./payroll-calc";
 
 const earn = (code: string, monthly: number, taxable = true): StructureLine => ({
@@ -140,6 +142,50 @@ describe("computePayslip statutory", () => {
     const fullYear = computePayslip({ lines, monthDays: 30, taxMonthsInYear: 12 });
     expect(joiner.tds).toBe(0);
     expect(fullYear.tds).toBeGreaterThan(0);
+  });
+
+  it("adds a non-taxable reimbursement to gross/net with NO PF/ESI/PT/TDS impact", () => {
+    const lines = [earn("BASIC", 20000), earn("SPECIAL", 20000)];
+    const base = computePayslip({ lines, monthDays: 30 });
+    const withReimb = computePayslip({ lines, monthDays: 30, reimbursements: [{ amount: 3000 }] });
+    expect(withReimb.reimbursements).toBe(3000);
+    expect(withReimb.gross).toBe(base.gross + 3000);
+    expect(withReimb.net).toBe(base.net + 3000); // full pass-through
+    expect(withReimb.pf).toBe(base.pf);
+    expect(withReimb.esi).toBe(base.esi);
+    expect(withReimb.pt).toBe(base.pt);
+    expect(withReimb.tds).toBe(base.tds); // non-taxable → no extra tax
+  });
+
+  it("charges incremental tax on a TAXABLE reimbursement only", () => {
+    const lines = [earn("BASIC", 120000), earn("SPECIAL", 80000)]; // 2L/mo — above the rebate ceiling
+    const base = computePayslip({ lines, monthDays: 30 });
+    const taxed = computePayslip({ lines, monthDays: 30, reimbursements: [{ amount: 50000, taxable: true }] });
+    expect(taxed.tds).toBeGreaterThan(base.tds);
+    // still no statutory impact
+    expect(taxed.pf).toBe(base.pf);
+    expect(taxed.esi).toBe(base.esi);
+  });
+
+  it("consumes DEDUCTION pay-components into the structure (was silently ignored)", () => {
+    const comp = (
+      code: string,
+      kind: PayComponentDef["kind"],
+      calcType: PayComponentDef["calcType"],
+      rate: number,
+    ): PayComponentDef => ({ code, name: code, kind, calcType, rate, taxable: true, partOfCtc: true, statutory: "NONE", order: 1 });
+    const components: PayComponentDef[] = [
+      comp("SPECIAL", "EARNING", "BALANCE", 0),
+      comp("CANTEEN", "DEDUCTION", "FLAT", 500), // ₹500 fixed monthly recovery
+    ];
+    const lines = buildStructureLines(50000, 50, components);
+    const canteen = lines.find((l) => l.code === "CANTEEN");
+    expect(canteen).toBeDefined();
+    expect(canteen!.kind).toBe("DEDUCTION");
+    expect(canteen!.monthly).toBe(500);
+    // and it nets out of the payslip
+    const p = computePayslip({ lines, monthDays: 30 });
+    expect(p.deductions.some((d) => d.code === "CANTEEN" && d.amount === 500)).toBe(true);
   });
 });
 

@@ -274,6 +274,25 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
     arrearsByEmp.set(a.employeeId, list);
   }
 
+  // ---- Approved reimbursements to be paid in THIS run's month ----
+  // Same idempotent shape as arrears: APPROVED (awaiting pay) OR already PAID by
+  // this run, so a re-compute folds them identically instead of dropping them.
+  const reimbursements = await prisma.hrReimbursementClaim.findMany({
+    where: {
+      payFy: run.fy,
+      payMonth: run.month,
+      employeeId: { in: employees.map((e) => e.id) },
+      OR: [{ status: "APPROVED" }, { status: "PAID", runId }],
+    },
+    select: { id: true, employeeId: true, amount: true, taxable: true },
+  });
+  const reimbByEmp = new Map<string, typeof reimbursements>();
+  for (const r of reimbursements) {
+    const list = reimbByEmp.get(r.employeeId) ?? [];
+    list.push(r);
+    reimbByEmp.set(r.employeeId, list);
+  }
+
   await prisma.$transaction(async (tx) => {
     for (const emp of employees) {
       const struct = structByEmp.get(emp.id);
@@ -284,6 +303,7 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
       const lines = (struct.lines as unknown as StructureLine[]) ?? [];
       const sheet = sheetByEmp.get(emp.id);
       const empArrears = arrearsByEmp.get(emp.id) ?? [];
+      const empReimb = reimbByEmp.get(emp.id) ?? [];
       const c = computePayslip({
         lines,
         lopDays: sheet?.lop ?? 0,
@@ -301,6 +321,7 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
           esiApplicable: a.esiApplicable,
           ptApplicable: a.ptApplicable,
         })),
+        reimbursements: empReimb.map((r) => ({ amount: Number(r.amount), taxable: r.taxable })),
       });
 
       // Stamp the arrears paid in this run (idempotent — a re-run re-marks the
@@ -309,6 +330,14 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
         await tx.hrArrear.updateMany({
           where: { id: { in: empArrears.map((a) => a.id) } },
           data: { status: "PAID", runId },
+        });
+      }
+
+      // Stamp the reimbursements disbursed in this run (same idempotent shape).
+      if (empReimb.length > 0) {
+        await tx.hrReimbursementClaim.updateMany({
+          where: { id: { in: empReimb.map((r) => r.id) } },
+          data: { status: "PAID", runId, paidAt: new Date() },
         });
       }
 

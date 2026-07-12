@@ -8362,6 +8362,42 @@ model HrArrear {
   @@index([payFy, payMonth, status])
 }
 
+// Employee expense reimbursement claims. Submitted by the employee (ESS), verified
+// + approved by HR, then disbursed through a payroll run (mirrors HrArrear's
+// approve→pay lifecycle). Non-taxable by default (paid against actual bills); HR
+// flags the taxable exceptions. No Prisma relation to Employee — the join is done
+// in memory, matching HrSalaryStructure / HrPayComponent.
+model HrReimbursementClaim {
+  id         String   @id @default(cuid())
+  entityId   String   @default("BILLION")
+  employeeId String
+  category   String // TRAVEL | MEDICAL | TELEPHONE | FUEL | BOOKS | OTHER
+  title      String
+  amount     Decimal  @db.Decimal(18, 2)
+  taxable    Boolean  @default(false)
+  claimDate  DateTime @db.Date
+  billUrl    String?  @db.Text // receipt (base64/URL now; object storage later)
+  note       String?
+  /// PENDING (awaiting HR) | APPROVED (awaiting its pay run) | REJECTED | PAID
+  status       String    @default("PENDING")
+  decidedById  String?
+  decidedAt    DateTime?
+  decisionNote String?
+  // The run that should PAY it (set on approval; mirrors HrArrear).
+  payFy    String?
+  payMonth Int?
+  runId    String? // the payroll run that paid it
+  paidAt   DateTime?
+  createdById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([employeeId, status])
+  @@index([entityId, status])
+  @@index([payFy, payMonth, status])
+  @@index([status])
+}
+
 model HrPayComponent {
   id        String             @id @default(cuid())
   entityId  String             @default("BILLION")

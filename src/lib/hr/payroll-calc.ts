@@ -188,6 +188,29 @@ export function buildStructureLines(
       statutory: balanceDef.statutory,
     });
   }
+
+  // Standing DEDUCTION heads (e.g. a fixed monthly recovery) resolve like earnings
+  // but are emitted as DEDUCTION lines so computePayslip nets them out. Previously
+  // deduction components existed in the master but were never consumed into any
+  // structure, so they silently did nothing.
+  const deductionDefs = components
+    .filter((c) => c.kind === "DEDUCTION")
+    .sort((a, b) => a.order - b.order);
+  for (const c of deductionDefs) {
+    let monthly = 0;
+    if (c.calcType === "FLAT") monthly = c.rate;
+    else if (c.calcType === "PCT_OF_BASIC") monthly = (basic * c.rate) / 100;
+    else if (c.calcType === "PCT_OF_CTC") monthly = (monthlyCtc * c.rate) / 100;
+    if (monthly > 0)
+      lines.push({
+        code: c.code,
+        name: c.name,
+        kind: "DEDUCTION",
+        monthly: r2(monthly),
+        taxable: false,
+        statutory: c.statutory,
+      });
+  }
   return lines;
 }
 
@@ -258,6 +281,19 @@ export interface PayslipInput {
    * Arrears are NOT pro-rated for LOP — they are a fixed back-dated sum.
    */
   arrears?: ArrearInput[];
+  /**
+   * Expense reimbursements disbursed THIS month. Paid against actual bills, so
+   * they are fixed (never LOP-prorated) and attract NO PF/ESI/PT; only a taxable
+   * reimbursement adds to the income-tax base.
+   */
+  reimbursements?: ReimbursementInput[];
+}
+
+export interface ReimbursementInput {
+  amount: number;
+  taxable?: boolean; // default false
+  code?: string;
+  name?: string;
 }
 
 export interface ArrearInput {
@@ -273,8 +309,9 @@ export interface PayslipComputation {
   lopDays: number;
   earnings: { code: string; name: string; amount: number }[];
   deductions: { code: string; name: string; amount: number }[];
-  gross: number; // total earnings paid this month (INCLUDING arrears)
+  gross: number; // total earnings paid this month (INCLUDING arrears + reimbursements)
   arrears: number; // arrear amount folded into this month
+  reimbursements: number; // reimbursement amount folded into this month
   basic: number; // paid basic this month
   pf: number;
   esi: number;
@@ -337,9 +374,16 @@ export function computePayslip(input: PayslipInput): PayslipComputation {
   const arrTaxable = r2(arr.filter((a) => a.taxable !== false).reduce((s, a) => s + a.amount, 0));
   if (arrTotal > 0) earnings.push({ code: "ARREAR", name: "Arrears", amount: arrTotal });
 
+  // ---- Reimbursements paid THIS month (fixed, non-prorated, non-statutory).
+  // Only a TAXABLE reimbursement touches the income-tax base; none attract PF/ESI/PT.
+  const reimb = input.reimbursements ?? [];
+  const reimbTotal = r2(reimb.reduce((s, r) => s + (r.amount || 0), 0));
+  const reimbTaxable = r2(reimb.filter((r) => r.taxable).reduce((s, r) => s + r.amount, 0));
+  if (reimbTotal > 0) earnings.push({ code: "REIMB", name: "Reimbursements", amount: reimbTotal });
+
   // grossPaid = this month's regular wages (the base for statutory contributions);
-  // grossOut adds arrears for what actually lands in the bank.
-  const grossOut = r2(gross + arrTotal);
+  // grossOut adds arrears + reimbursements for what actually lands in the bank.
+  const grossOut = r2(gross + arrTotal + reimbTotal);
 
   // Pay exists if regular wages OR an arrear are being paid.
   const hasPay = grossOut > 0;
@@ -386,11 +430,13 @@ export function computePayslip(input: PayslipInput): PayslipComputation {
   const taxMonths = input.taxMonthsInYear && input.taxMonthsInYear > 0 ? Math.min(12, input.taxMonthsInYear) : 12;
   const annualTaxable = Math.max(0, fullTaxableMonthly * taxMonths - cfg.stdDeductionAnnual);
   const annualTax = newRegimeAnnualTax(annualTaxable, cfg);
-  const arrearTax =
-    arrTaxable > 0
-      ? Math.max(0, newRegimeAnnualTax(annualTaxable + arrTaxable, cfg) - annualTax)
-      : 0;
-  const tds = r2((gross > 0 ? annualTax / taxMonths : 0) + arrearTax);
+  // A taxable arrear OR a taxable reimbursement adds to annual taxable ONCE; its
+  // incremental tax is charged in full this month (Section 89(1) relief on arrears
+  // is the employee's to claim and is NOT auto-applied).
+  const extraTaxable = r2(arrTaxable + reimbTaxable);
+  const oneOffTax =
+    extraTaxable > 0 ? Math.max(0, newRegimeAnnualTax(annualTaxable + extraTaxable, cfg) - annualTax) : 0;
+  const tds = r2((gross > 0 ? annualTax / taxMonths : 0) + oneOffTax);
 
   // LWF: a small fixed levy due only in the state's configured months.
   const lwfDue = hasPay && (cfg.lwfMonths ?? []).includes(input.month ?? 0);
@@ -457,6 +503,7 @@ export function computePayslip(input: PayslipInput): PayslipComputation {
     deductions,
     gross: grossOut,
     arrears: arrTotal,
+    reimbursements: reimbTotal,
     basic,
     pf,
     esi,
