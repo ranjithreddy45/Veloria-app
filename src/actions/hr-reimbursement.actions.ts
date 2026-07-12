@@ -15,13 +15,11 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { hasPermission } from "@/lib/permissions";
 import { isSafeReceiptUrl } from "@/lib/sales/receipt";
+import { REIMBURSEMENT_CATEGORIES, type ReimbursementCategory } from "@/lib/hr/reimbursement";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
 const ENTITY_ID = "BILLION";
-
-export const REIMBURSEMENT_CATEGORIES = ["TRAVEL", "MEDICAL", "TELEPHONE", "FUEL", "BOOKS", "OTHER"] as const;
-export type ReimbursementCategory = (typeof REIMBURSEMENT_CATEGORIES)[number];
 
 async function requireUser() {
   const session = await auth();

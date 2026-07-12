@@ -4,10 +4,8 @@ import { Receipt } from "lucide-react";
 import { auth } from "@/../auth";
 import { FEATURES } from "@/config/features";
 import { PageHeader } from "@/components/layout/page-header";
-import {
-  listMyReimbursements,
-  REIMBURSEMENT_CATEGORIES,
-} from "@/actions/hr-reimbursement.actions";
+import { listMyReimbursements } from "@/actions/hr-reimbursement.actions";
+import { REIMBURSEMENT_CATEGORIES } from "@/lib/hr/reimbursement";
 import { NewReimbursementButton } from "./_components/new-reimbursement-button";
 import { MyReimbursementsList } from "./_components/my-reimbursements-list";
 
