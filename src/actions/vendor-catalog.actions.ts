@@ -210,6 +210,29 @@ export async function createCatalogVendor(input: VendorCatalogInput): Promise<Re
     });
     if (dupe) return { success: false, error: "Validation failed", fields: { name: "A vendor with this name already exists" } };
 
+    // Also guard email/phone here — the other create path (vendor.actions) checks
+    // contact keys, so a shared guard on BOTH paths prevents a dupe slipping in via
+    // either (no DB unique constraint yet — deferred until prod data is cleaned).
+    const emailT = input.email?.trim() || null;
+    const phoneT = input.phone?.trim() || null;
+    if (emailT || phoneT) {
+      const contactDupe = await prisma.vendor.findFirst({
+        where: {
+          OR: [
+            ...(emailT ? [{ email: { equals: emailT, mode: "insensitive" as const } }] : []),
+            ...(phoneT ? [{ phone: phoneT }] : []),
+          ],
+        },
+        select: { id: true, name: true },
+      });
+      if (contactDupe)
+        return {
+          success: false,
+          error: "Validation failed",
+          fields: { [emailT ? "email" : "phone"]: `A vendor with this ${emailT ? "email" : "phone"} already exists (${contactDupe.name})` },
+        };
+    }
+
     const validKeys = await validCategoryKeys();
     const cats = input.categories.map((c) => c?.trim()).filter((c): c is string => !!c && validKeys.has(c));
     if (cats.length < 1) return { success: false, error: "Validation failed", fields: { categories: "Select at least one valid category" } };
@@ -446,6 +469,14 @@ export async function createPackage(input: VendorPackageInput): Promise<Result<{
     // R3 — category must be one of the vendor's categories
     if (!vendor.categories.includes(input.category))
       return { success: false, error: "Validation failed", fields: { category: "Category must be one of the vendor's categories" } };
+
+    // Dedup: a vendor can't have two packages with the same name (case-insensitive).
+    // createPackage previously had no name guard at all — fully unconstrained.
+    const pkgDupe = await prisma.vendorPackage.findFirst({
+      where: { vendorId: input.vendorId, name: { equals: input.name.trim(), mode: "insensitive" } },
+      select: { id: true },
+    });
+    if (pkgDupe) return { success: false, error: "Validation failed", fields: { name: "This vendor already has a package with that name" } };
 
     // Per-item R4 (block save on malformed options regardless of status)
     for (const s of input.sections ?? []) for (const it of s.items ?? []) {

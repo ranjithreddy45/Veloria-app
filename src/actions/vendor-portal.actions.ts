@@ -23,9 +23,19 @@ import {
 // ============================================================
 
 async function getCurrentVendor(email: string) {
-  return prisma.vendor.findFirst({
-    where: { email },
+  // Bind DETERMINISTICALLY: with no DB unique on Vendor.email (deferred), two rows
+  // could share an email — a plain findFirst would bind the portal to an arbitrary
+  // one (a data-isolation risk). Match case-insensitively, prefer the earliest row,
+  // and warn on ambiguity so it can be cleaned up. The create-guards now prevent
+  // NEW email dupes from forming.
+  const matches = await prisma.vendor.findMany({
+    where: { email: { equals: email, mode: "insensitive" } },
+    orderBy: { createdAt: "asc" },
   });
+  if (matches.length > 1) {
+    console.warn(`[VENDOR_PORTAL] ${matches.length} vendors share email "${email}"; binding to the earliest. Clean up the duplicates.`);
+  }
+  return matches[0] ?? null;
 }
 
 // ============================================================

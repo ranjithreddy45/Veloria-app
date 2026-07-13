@@ -187,6 +187,17 @@ export async function createVendor(data: VendorInput) {
 
     // Duplicate guard — block a second vendor with the same phone/email
     // (normalised, format-insensitive).
+    // Guard the NAME too (the catalog create path checks name; mirror it here so a
+    // dupe can't slip in via either path). Case-insensitive.
+    const nameT = vendorData.name?.trim();
+    if (nameT) {
+      const nameDupe = await prisma.vendor.findFirst({
+        where: { name: { equals: nameT, mode: "insensitive" } },
+        select: { id: true },
+      });
+      if (nameDupe) return { success: false as const, error: "A vendor with this name already exists." };
+    }
+
     if (vendorData.email || vendorData.phone) {
       const where = coarseContactWhere(vendorData.email, vendorData.phone);
       if (where) {
