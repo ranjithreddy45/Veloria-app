@@ -229,7 +229,10 @@ export async function createPayout(data: CreatePayoutInput) {
         vendorId,
         bookingId,
         billId: payoutData.billId ?? null,
-        isAdvance: payoutData.isAdvance ?? false,
+        // isAdvance is meaningful only for a vendor payment (a prepayment that
+        // debits Advances-to-Vendors 1300). Coerce false otherwise, so a crafted
+        // call can't mis-post an owner/commission payout to the 1300 asset.
+        isAdvance: payoutData.type === "VENDOR_PAYMENT" ? (payoutData.isAdvance ?? false) : false,
         notes: payoutData.notes || null,
         createdById: session.user.id as string,
       },

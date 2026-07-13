@@ -16,13 +16,15 @@ import { submitGuestConfirmation } from "@/actions/guest-confirm.actions";
 // state (no router needed on a public page).
 // ============================================================
 
+// dueAt is a real DateTime instant — render it in IST so the "(IST)" label is
+// truthful (formatting it in UTC showed a time ~5.5h off, sometimes the wrong day).
 const dueFmt = new Intl.DateTimeFormat("en-IN", {
   day: "numeric",
   month: "short",
   year: "numeric",
   hour: "numeric",
   minute: "2-digit",
-  timeZone: "UTC",
+  timeZone: "Asia/Kolkata",
 });
 
 function fmtDue(d: string | Date | null): string | null {

@@ -107,6 +107,20 @@ function toLocalInput(value: string | null | undefined): string {
   return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}`;
 }
 
+// Inverse of toLocalInput: the datetime-local value is IST wall-clock (that's how we
+// fill it), so build the absolute instant explicitly as IST = UTC+5:30 — NOT via
+// new Date(str), which parses in the BROWSER's zone and skews the saved instant on a
+// non-IST device (shifting the reminder anchor).
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+function istLocalToISO(local: string): string | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(local);
+  if (!m) return null;
+  const [, y, mo, d, h, mi] = m;
+  const utcMs = Date.UTC(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi)) - IST_OFFSET_MS;
+  const dt = new Date(utcMs);
+  return Number.isNaN(dt.getTime()) ? null : dt.toISOString();
+}
+
 export function HandoverCard({
   bookingId,
   handover,
@@ -127,12 +141,13 @@ export function HandoverCard({
       toast.error("Pick a date & time.");
       return;
     }
+    const iso = istLocalToISO(startInput);
+    if (!iso) {
+      toast.error("Pick a valid date & time.");
+      return;
+    }
     startTransition(async () => {
-      const res = await setEventStartAt(
-        bookingId,
-        // datetime-local yields wall-clock IST; send an absolute ISO instant.
-        new Date(startInput).toISOString()
-      );
+      const res = await setEventStartAt(bookingId, iso);
       if (res.success) {
         toast.success("Event start time saved");
         setEditingStart(false);
@@ -193,13 +208,17 @@ export function HandoverCard({
       toast.error("A location is required for a physical meeting.");
       return;
     }
+    const iso = istLocalToISO(scheduledAt);
+    if (!iso) {
+      toast.error("Pick a valid date & time.");
+      return;
+    }
     startTransition(async () => {
       const res = await scheduleHandoverMeeting({
         bookingId,
-        // datetime-local yields wall-clock IST; new Date() on the server parses
-        // it as local, but the string carries no zone — send an ISO with no
-        // offset so it's interpreted consistently, matching how it's displayed.
-        scheduledAt: new Date(scheduledAt).toISOString(),
+        // datetime-local is IST wall-clock; convert to an absolute instant that's
+        // correct regardless of the browser's own timezone.
+        scheduledAt: iso,
         mode,
         meetingUrl: mode === "VIRTUAL" ? meetingUrl.trim() : undefined,
         location: mode === "PHYSICAL" ? location.trim() : undefined,

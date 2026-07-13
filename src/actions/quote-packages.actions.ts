@@ -140,12 +140,13 @@ export async function validatePackageLinesAgainstCatalog(
       p.revisedUnitPrice != null && Number.isFinite(p.revisedUnitPrice) && p.revisedUnitPrice > 0
         ? r2(p.revisedUnitPrice)
         : null;
-    const effectiveUnit = revised ?? catalogUnit;
-    // A mark-UP is free revenue; only a mark-DOWN counts toward the discount floor.
-    const revisedReduction = Math.max(0, r2((catalogUnit - effectiveUnit) * qty));
-    const { lineDiscount } = computePackageLine({ ...p, unitPrice: catalogUnit, revisedUnitPrice: revised ?? undefined, qty });
-    const totalReduction = r2(revisedReduction + lineDiscount);
+    // What the customer actually pays for this line (revised base − any line discount).
+    // The capped quantity is the NET reduction below catalog: if the net price is still
+    // at/above catalog (e.g. a mark-up with a small discount), the reduction is 0 and the
+    // cap can't wrongly reject it — a mark-up is free revenue, never counted as a discount.
     const catalogGross = r2(catalogUnit * qty);
+    const { amount: netAmount } = computePackageLine({ ...p, unitPrice: catalogUnit, revisedUnitPrice: revised ?? undefined, qty });
+    const totalReduction = r2(Math.max(0, catalogGross - netAmount));
     if (pkg.maxDiscountValue != null && pkg.maxDiscountType) {
       const capVal = num(pkg.maxDiscountValue);
       const maxRupees =

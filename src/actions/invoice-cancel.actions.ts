@@ -567,28 +567,53 @@ export async function refundPayment(paymentId: string, reason: string) {
 
     const payment = await prisma.payment.findUnique({
       where: { id: paymentId },
-      select: { id: true, status: true, amount: true, invoiceId: true, receiptNumber: true, method: true, transactionId: true },
+      select: { id: true, status: true, amount: true, invoiceId: true, receiptNumber: true, method: true, transactionId: true, refundId: true },
     });
     if (!payment) return { success: false as const, error: "Payment not found" };
     if (payment.status === "REFUNDED") return { success: false as const, error: "Payment is already refunded" };
     if (payment.status !== "COMPLETED") return { success: false as const, error: "Only a completed payment can be refunded" };
 
     // Gateway refund FIRST for Razorpay — abort (no book change) if it can't be issued.
-    let refundId: string | null = null;
-    if (payment.method === "RAZORPAY") {
+    // Idempotency & durability (so real money out can never diverge from the books):
+    //  1. Reuse a refund already recorded on this payment (a prior attempt whose books
+    //     step failed) — never call the gateway twice.
+    //  2. Else ask the gateway whether this payment was ALREADY refunded and reuse it —
+    //     closes the double-refund window even if our DB never recorded the id.
+    //  3. Only if neither, issue a fresh refund — then PERSIST the id immediately,
+    //     before the books transaction, so a later failure leaves a reconcilable ref.
+    let refundId: string | null = payment.refundId ?? null;
+    if (payment.method === "RAZORPAY" && !refundId) {
       if (!razorpayConfigured()) {
         return { success: false as const, error: "Razorpay is not configured — cannot issue a gateway refund." };
       }
       if (!payment.transactionId) {
         return { success: false as const, error: "This Razorpay payment has no gateway payment id on file — refund it in the Razorpay dashboard, then cancel the payment instead." };
       }
+      const razorpay = new Razorpay({ key_id: razorpayKeyId()!, key_secret: razorpayKeySecret()! });
+      // Reuse an existing gateway refund if one is already on this payment.
       try {
-        const razorpay = new Razorpay({ key_id: razorpayKeyId()!, key_secret: razorpayKeySecret()! });
-        const refund = await razorpay.payments.refund(payment.transactionId, { amount: toPaise(Number(payment.amount)) });
-        refundId = (refund as { id?: string }).id ?? null;
+        const existing = await razorpay.payments.fetchMultipleRefund(payment.transactionId);
+        const first = (existing as { items?: { id?: string }[] })?.items?.[0];
+        if (first?.id) refundId = first.id;
       } catch (e) {
-        console.error("[REFUND_GATEWAY_ERROR]", paymentId, e);
-        return { success: false as const, error: "The gateway refund failed — nothing was changed. Check Razorpay and retry." };
+        // Non-fatal: if the lookup fails we fall through to issuing a new refund.
+        console.error("[REFUND_GATEWAY_LOOKUP_ERROR]", paymentId, e);
+      }
+      if (!refundId) {
+        try {
+          const refund = await razorpay.payments.refund(payment.transactionId, { amount: toPaise(Number(payment.amount)) });
+          refundId = (refund as { id?: string }).id ?? null;
+        } catch (e) {
+          console.error("[REFUND_GATEWAY_ERROR]", paymentId, e);
+          return { success: false as const, error: "The gateway refund failed — nothing was changed. Check Razorpay and retry." };
+        }
+      }
+      // Durably record the gateway refund id BEFORE the books transaction, so a
+      // failure below never loses the reference (retry-safe + reconcilable).
+      if (refundId) {
+        await prisma.payment.update({ where: { id: paymentId }, data: { refundId } }).catch((e) =>
+          console.error("[REFUND_PERSIST_ID_ERROR]", paymentId, e),
+        );
       }
     }
 

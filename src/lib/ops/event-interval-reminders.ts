@@ -64,9 +64,23 @@ export async function runEventIntervalReminders(): Promise<{ fired: number; read
         const when = new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }).format(startUtc);
         const label = `${b.eventName} (${b.bookingNumber}) at ${b.venue?.name ?? "the venue"} — ${when}`;
 
-        for (const off of OFFSETS) {
-          if (hoursTo > off) continue; // not yet within this bucket
+        // Buckets we're now inside (hoursTo ≤ off), smallest → largest. OFFSETS is
+        // descending, so eligible[last] is the smallest. Only the SMALLEST unlogged
+        // bucket actually SENDS — the label (~Xh) then matches the real time-to-event.
+        // Larger buckets are backfill-marked silently so a late first observation
+        // (e.g. 5h out) doesn't blast the 48h/24h/12h messages all at once.
+        const eligible = OFFSETS.filter((off) => hoursTo <= off);
+        const sendOff = eligible.length ? eligible[eligible.length - 1] : null; // smallest eligible
+        const backfill = eligible.filter((off) => off !== sendOff); // larger, mark-only
 
+        // Silently mark the larger buckets as handled (all audiences), no messages.
+        for (const off of backfill) {
+          for (const audience of ["GUEST", "VENDOR", "PROPERTY"]) {
+            if (!(await already(b.id, off, audience))) await mark(b.id, off, audience);
+          }
+        }
+
+        for (const off of sendOff === null ? [] : [sendOff]) {
           // GUEST
           if (b.contact?.phone && !(await already(b.id, off, "GUEST"))) {
             const msg = `Reminder: your event ${label} is coming up in ~${off}h. Our team will be in touch. — Veloria Grand`;

@@ -402,10 +402,10 @@ model User {
   signatureRequestsCreated   SignatureRequest[]         @relation("SignatureRequestCreatedBy")
   leadFirstResponsesAssigned LeadFirstResponse[]        @relation("LeadFirstResponseAssignee")
   franchisePartnersOwned     FranchisePartner[]         @relation("FranchisePartnerOwner")
+  signedOffOperations        EventOperation[]           @relation("OperationSignedOffBy")
 
   @@index([email])
   @@index([role])
-  signedOffOperations EventOperation[] @relation("OperationSignedOffBy")
 }
 
 model Account {
@@ -522,12 +522,12 @@ model Contact {
   salesQuotations    SalesQuotation[]
   reviewRequests     ReviewRequest[]
   corporateAccountId String?
+  corporateAccount   CorporateAccount? @relation("ContactCorporateAccount")
 
   @@index([email])
   @@index([phone])
   @@index([firstName, lastName])
   @@index([deletedAt, createdAt]) // hot list query: not-deleted, newest first
-  corporateAccount  CorporateAccount?  @relation("ContactCorporateAccount")
 }
 
 model Lead {
@@ -675,19 +675,19 @@ model Venue {
 }
 
 model Booking {
-  id              String        @id @default(cuid())
-  bookingNumber   String        @unique
-  eventName       String
-  eventType       String
-  status          BookingStatus @default(HOLD)
-  date            DateTime      @db.Date
-  timeSlot        TimeSlot
-  startTime       DateTime?
-  endTime         DateTime?
-  guestCount      Int
-  specialRequests String?       @db.Text
-  internalNotes   String?       @db.Text
-  holdExpiresAt   DateTime?
+  id                     String           @id @default(cuid())
+  bookingNumber          String           @unique
+  eventName              String
+  eventType              String
+  status                 BookingStatus    @default(HOLD)
+  date                   DateTime         @db.Date
+  timeSlot               TimeSlot
+  startTime              DateTime?
+  endTime                DateTime?
+  guestCount             Int
+  specialRequests        String?          @db.Text
+  internalNotes          String?          @db.Text
+  holdExpiresAt          DateTime?
   // Guest confirmation TAT (48h from booking) + the app-link declaration flow: the
   // guest reviews their services (menu/décor) and accepts the T&C. Token is the
   // credential for the public confirmation page.
@@ -704,18 +704,18 @@ model Booking {
   // an IST slot approximation when unset).
   eventStartAt           DateTime?
   handoverMeeting        HandoverMeeting?
-  totalAmount     Decimal       @db.Decimal(12, 2)
-  currency        String        @default("INR")
+  totalAmount            Decimal          @db.Decimal(12, 2)
+  currency               String           @default("INR")
 
   // Banquet commercials (mirrors Zoho Bookings/Deals custom fields)
-  hallBooked    String? // specific hall/section within the venue
+  hallBooked            String? // specific hall/section within the venue
   // OMS CR-004 service confirmation: when all services were locked + summary sent.
   servicesLockedAt      DateTime?
   servicesSummarySentAt DateTime?
-  perPlatePrice Decimal? @db.Decimal(12, 2)
-  hallRental    Decimal? @db.Decimal(12, 2)
-  decorCharges  Decimal? @db.Decimal(12, 2)
-  otherServices Decimal? @db.Decimal(12, 2)
+  perPlatePrice         Decimal?  @db.Decimal(12, 2)
+  hallRental            Decimal?  @db.Decimal(12, 2)
+  decorCharges          Decimal?  @db.Decimal(12, 2)
+  otherServices         Decimal?  @db.Decimal(12, 2)
 
   venueGroupId String?
   createdAt    DateTime @default(now())
@@ -861,15 +861,15 @@ model Task {
 
   subtasks       Task[]          @relation("SubTasks")
   checklistItems ChecklistItem[]
+  leadId         String?
+  inquiryId      String?
+  taskType       String? // FOLLOW_UP | CALL | MEETING | SHOW_AROUND | TASK
+  metadata       Json? // show-around invitees {ownerInvited, inviteeIds[], location}, etc.
 
   @@index([status])
   @@index([assigneeId])
   @@index([bookingId])
   @@index([dueDate])
-  leadId    String?
-  inquiryId String?
-  taskType  String? // FOLLOW_UP | CALL | MEETING | SHOW_AROUND | TASK
-  metadata  Json? // show-around invitees {ownerInvited, inviteeIds[], location}, etc.
   @@index([leadId])
 }
 
@@ -932,8 +932,8 @@ model Invoice {
   cancelledById       String?
   cancelledAt         DateTime?
 
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   contactId   String
   contact     Contact  @relation(fields: [contactId], references: [id])
@@ -1015,8 +1015,8 @@ model Payment {
   cancelledById       String?
   cancelledAt         DateTime?
 
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   invoiceId String
   invoice   Invoice @relation(fields: [invoiceId], references: [id])
@@ -1418,8 +1418,8 @@ model VendorPackage {
   maxDiscountType  String? // PERCENT | AMOUNT — cap on sales-exec discount for this package
   maxDiscountValue Decimal? @db.Decimal(12, 2)
 
-  createdAt    DateTime               @default(now())
-  updatedAt    DateTime               @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   sections VendorPackageSection[]
   images   VendorPackageImage[]
@@ -1592,23 +1592,23 @@ model EventOperation {
   createdById String
   createdBy   User    @relation("OperationCreatedBy", fields: [createdById], references: [id])
 
-  staffAssignments  StaffAssignment[]
-  vendorAssignments OperationVendorAssignment[]
+  staffAssignments     StaffAssignment[]
+  vendorAssignments    OperationVendorAssignment[]
+  opsProvisionedAt     DateTime?
+  provisioningError    String?
+  executionPlans       ExecutionPlan[]             @relation("OperationExecutionPlan")
+  beos                 Beo[]                       @relation("OperationBeo")
+  kitchenPlans         KitchenPlan[]               @relation("OperationKitchenPlan")
+  purchaseRequisitions PurchaseRequisition[]       @relation("OperationPurchaseReqs")
+  dispatchOrders       DispatchOrder[]             @relation("OperationDispatches")
+  supportTickets       SupportTicket[]             @relation("OperationSupportTickets")
+  clientToken          String? // unguessable token for the public client event-plan page
+  signedOffAt          DateTime?
+  signedOffById        String?
+  signedOffBy          User?                       @relation("OperationSignedOffBy", fields: [signedOffById], references: [id])
+  lastWatchdogAlertAt  DateTime? // throttle the readiness watchdog escalation to ~once/day
 
   @@index([status])
-  opsProvisionedAt  DateTime?
-  provisioningError String?
-  executionPlans       ExecutionPlan[]       @relation("OperationExecutionPlan")
-  beos                 Beo[]                 @relation("OperationBeo")
-  kitchenPlans         KitchenPlan[]         @relation("OperationKitchenPlan")
-  purchaseRequisitions PurchaseRequisition[] @relation("OperationPurchaseReqs")
-  dispatchOrders       DispatchOrder[]       @relation("OperationDispatches")
-  supportTickets       SupportTicket[]       @relation("OperationSupportTickets")
-  clientToken       String? // unguessable token for the public client event-plan page
-  signedOffAt        DateTime?
-  signedOffById      String?
-  signedOffBy        User?     @relation("OperationSignedOffBy", fields: [signedOffById], references: [id])
-  lastWatchdogAlertAt DateTime? // throttle the readiness watchdog escalation to ~once/day
 }
 
 model StaffAssignment {
@@ -1642,17 +1642,17 @@ model OperationVendorAssignment {
   operation       EventOperation @relation(fields: [operationId], references: [id], onDelete: Cascade)
   bookingVendorId String
   bookingVendor   BookingVendor  @relation(fields: [bookingVendorId], references: [id])
-
-  @@index([operationId])
-  status       String    @default("NOTIFIED") // NOTIFIED | CONFIRMED | DECLINED
-  confirmedAt  DateTime?
-  declinedAt   DateTime?
-  remindedAt   DateTime?
-  respondToken String?
+  status          String         @default("NOTIFIED") // NOTIFIED | CONFIRMED | DECLINED
+  confirmedAt     DateTime?
+  declinedAt      DateTime?
+  remindedAt      DateTime?
+  respondToken    String?
   // Vendor T&C acknowledgement captured on the public confirm page.
   termsAcceptedAt DateTime?
   termsVersion    String?
   termsAcceptedIp String?
+
+  @@index([operationId])
 }
 
 // 6.2 Event Day Manager
@@ -1733,28 +1733,28 @@ model BookingServiceSelection {
 
 // CR-005: a vendor Work Order generated from a booking's confirmed service.
 model WorkOrder {
-  id            String    @id @default(cuid())
-  woNumber      String?   @unique
-  bookingId     String
-  vendorId      String
-  serviceType   String
-  scope         String?   @db.Text
-  terms         String?   @db.Text
-  advanceAmount Decimal?  @db.Decimal(12, 2)
+  id                  String    @id @default(cuid())
+  woNumber            String?   @unique
+  bookingId           String
+  vendorId            String
+  serviceType         String
+  scope               String?   @db.Text
+  terms               String?   @db.Text
+  advanceAmount       Decimal?  @db.Decimal(12, 2)
   // DRAFT | SENT | ACKNOWLEDGED | SIGNED | DECLINED
-  status        String    @default("DRAFT")
-  sentAt           DateTime?
-  acknowledgedAt   DateTime?
-  signedAt         DateTime?
-  signerName       String?
-  signatureUrl     String?   @db.Text // data-URL or hosted link for the vendor's e-sign
-  declinedAt       DateTime?
-  declineReason    String?
+  status              String    @default("DRAFT")
+  sentAt              DateTime?
+  acknowledgedAt      DateTime?
+  signedAt            DateTime?
+  signerName          String?
+  signatureUrl        String?   @db.Text // data-URL or hosted link for the vendor's e-sign
+  declinedAt          DateTime?
+  declineReason       String?
   advanceReleasedAt   DateTime?
   advanceReleasedById String?
-  createdById   String
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdById         String
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   @@index([bookingId])
   @@index([vendorId])
@@ -2194,19 +2194,23 @@ model Payout {
   updatedAt       DateTime     @updatedAt
 
   vendorId     String?
-  vendor       Vendor?  @relation(fields: [vendorId], references: [id])
+  vendor       Vendor?     @relation(fields: [vendorId], references: [id])
   bookingId    String?
-  booking      Booking? @relation(fields: [bookingId], references: [id])
+  booking      Booking?    @relation(fields: [bookingId], references: [id])
   // Optional link to the vendor BILL this payout settles (accounts-payable). A
   // bill's paid/outstanding is derived from its linked PAID payouts.
   billId       String?
   bill         VendorBill? @relation(fields: [billId], references: [id])
   // A vendor ADVANCE (prepayment before the bill is accrued): posts Dr 1300
   // Advances-to-Vendors / Cr Bank on mark-paid, instead of Dr AP 2010.
-  isAdvance    Boolean  @default(false)
-  // Set when a paid advance has been netted against an approved VendorBill
-  // (Dr AP 2010 / Cr Advances 1300), so it's never double-netted.
+  isAdvance    Boolean     @default(false)
+  // Set when a paid advance has been (fully) netted against an approved
+  // VendorBill (Dr AP 2010 / Cr Advances 1300) — legacy whole-advance marker.
   nettedBillId String?
+  // How much of this advance has been applied (netted) to bills so far. The
+  // still-available balance = amount − nettedAmount. Supports partial netting
+  // and an advance larger than a single bill (netted across several bills).
+  nettedAmount Decimal     @default(0) @db.Decimal(12, 2)
   approvedById String?
 
   @@index([status])
@@ -2233,6 +2237,10 @@ model VendorBill {
   expenseCode           String    @default("5230") // P&L expense account for the accrual
   status                String    @default("DRAFT") // DRAFT | APPROVED | CANCELLED (paid-ness is derived)
   accrualJournalEntryId String? // GL accrual entry, set on approval (idempotency guard)
+  // Total paid vendor advances (1300) netted into this bill on approval. Its
+  // outstanding = amount − Σ(linked PAID payouts) − nettedAdvanceAmount, so a
+  // netted advance reduces what's still owed and can never be double-paid.
+  nettedAdvanceAmount   Decimal   @default(0) @db.Decimal(12, 2)
   notes                 String?   @db.Text
   createdById           String?
   approvedById          String?
@@ -2693,22 +2701,22 @@ model Review {
 // 10.4 Booking Widget (Embeddable)
 
 model WidgetInquiry {
-  id          String    @id @default(cuid())
-  name        String
-  email       String
-  phone       String?
-  eventType   String?
-  eventDate   DateTime?
-  guestCount  Int?
-  venueId     String?
-  message     String    @db.Text
-  source      String    @default("WIDGET")
-  isProcessed Boolean   @default(false)
-  createdAt   DateTime  @default(now())
+  id            String    @id @default(cuid())
+  name          String
+  email         String
+  phone         String?
+  eventType     String?
+  eventDate     DateTime?
+  guestCount    Int?
+  venueId       String?
+  message       String    @db.Text
+  source        String    @default("WIDGET")
+  isProcessed   Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  enquiryStatus String? // INTERESTED | DROPPED | NO_RESPONSE
 
   @@index([isProcessed])
   @@index([createdAt])
-  enquiryStatus String? // INTERESTED | DROPPED | NO_RESPONSE
 }
 
 // 10.5 Photo/Video Gallery
@@ -2885,15 +2893,15 @@ model SOPTemplate {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  phases         SOPPhase[]
-  executionPlans ExecutionPlan[]
-
-  @@index([eventType])
-  @@index([isActive])
+  phases          SOPPhase[]
+  executionPlans  ExecutionPlan[]
   kitchenSeed     Json? // [{ name, category, quantity, unit, estUnitCost }]
   procurementSeed Json? // [{ title, department, neededByOffsetDays, items:[{name,quantity,unit,unitPrice}] }]
   dispatchSeed    Json? // [{ fromLocation, toLocation, items:[{name,quantity,returnable}] }]
   beoDefaults     Json? // { menuNotes, floorPlanNotes, avNotes, decorNotes, staffingNotes, specialInstructions }
+
+  @@index([eventType])
+  @@index([isActive])
 }
 
 model SOPPhase {
@@ -2951,12 +2959,12 @@ model ExecutionPlan {
   createdById   String
   createdBy     User         @relation("ExecutionPlanCreatedBy", fields: [createdById], references: [id])
 
-  phases ExecutionPhase[]
+  phases      ExecutionPhase[]
+  operationId String?
+  operation   EventOperation?  @relation("OperationExecutionPlan", fields: [operationId], references: [id])
 
   @@index([status])
   @@index([eventDate])
-  operationId String?
-  operation   EventOperation? @relation("OperationExecutionPlan", fields: [operationId], references: [id])
 }
 
 model ExecutionPhase {
@@ -3022,13 +3030,13 @@ model ExecutionTask {
   proofs         TaskProof[]
   escalations    Escalation[]
   timeLogs       TaskTimeLog[]
+  reminderSentAt DateTime? // one-shot day-of "task starting soon" nudge
 
   @@index([phaseId])
   @@index([assigneeId])
   @@index([vendorId])
   @@index([status])
   @@index([slaFinishBy])
-  reminderSentAt   DateTime? // one-shot day-of "task starting soon" nudge
 }
 
 model ExecutionChecklist {
@@ -3948,17 +3956,17 @@ enum OwnershipStatus {
 // Plain userId refs (denormalized, no User back-relation) to stay additive.
 // ============================================================
 model Timesheet {
-  id           String            @id @default(cuid())
+  id           String           @id @default(cuid())
   userId       String
-  weekStart    DateTime          @db.Date // Monday of the week
-  status       String            @default("DRAFT") // DRAFT | SUBMITTED | APPROVED | REJECTED
+  weekStart    DateTime         @db.Date // Monday of the week
+  status       String           @default("DRAFT") // DRAFT | SUBMITTED | APPROVED | REJECTED
   submittedAt  DateTime?
   approvedById String?
   approvedAt   DateTime?
-  note         String?           @db.Text
+  note         String?          @db.Text
   entries      TimesheetEntry[]
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 
   @@unique([userId, weekStart])
   @@index([userId])
@@ -5121,22 +5129,24 @@ model HrStatutoryConfig {
   ptGrossThreshold Decimal @default(25000) @db.Decimal(12, 2)
 
   // Labour Welfare Fund
-  lwfState      String?
-  lwfEmployee   Decimal @default(0) @db.Decimal(12, 2)
-  lwfEmployer   Decimal @default(0) @db.Decimal(12, 2)
-  lwfMonths     Int[]   @default([]) // calendar months (1..12) it is deducted in
+  lwfState    String?
+  lwfEmployee Decimal @default(0) @db.Decimal(12, 2)
+  lwfEmployer Decimal @default(0) @db.Decimal(12, 2)
+  lwfMonths   Int[]   @default([]) // calendar months (1..12) it is deducted in
 
   // Gratuity
-  gratuityDaysPerYear   Int @default(15)
-  gratuityMonthDivisor  Int @default(26)
-  gratuityMinYears      Int @default(5)
+  gratuityDaysPerYear  Int @default(15)
+  gratuityMonthDivisor Int @default(26)
+  gratuityMinYears     Int @default(5)
 
   ptSlabs   HrPtSlab[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 }
 
-/** Professional-tax slab band for an entity (spec: PT slab-rate table). */
+/**
+ * Professional-tax slab band for an entity (spec: PT slab-rate table).
+ */
 model HrPtSlab {
   id               String            @id @default(cuid())
   configId         String
@@ -5430,28 +5440,28 @@ model LeaveBalance {
 }
 
 model LeaveRequest {
-  id           String             @id @default(cuid())
-  employeeId   String
-  employee     Employee           @relation("LeaveEmployee", fields: [employeeId], references: [id], onDelete: Cascade)
-  leaveTypeId  String
-  leaveType    LeaveType          @relation(fields: [leaveTypeId], references: [id])
-  startDate    DateTime
-  endDate      DateTime
-  startPart    HalfDayPart        @default(FULL)
-  endPart      HalfDayPart        @default(FULL)
-  days         Float // computed working days (excludes weekends + holidays)
-  reason       String?
-  status       LeaveRequestStatus @default(PENDING)
-  approverId   String? // Employee id of the approver (org-chart manager or HR)
-  approver     Employee?          @relation("LeaveApprover", fields: [approverId], references: [id])
-  decidedAt    DateTime?
-  decisionNote String?
-  escalatedAt  DateTime? // set when auto-escalated past a stale approver
+  id            String             @id @default(cuid())
+  employeeId    String
+  employee      Employee           @relation("LeaveEmployee", fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveTypeId   String
+  leaveType     LeaveType          @relation(fields: [leaveTypeId], references: [id])
+  startDate     DateTime
+  endDate       DateTime
+  startPart     HalfDayPart        @default(FULL)
+  endPart       HalfDayPart        @default(FULL)
+  days          Float // computed working days (excludes weekends + holidays)
+  reason        String?
+  status        LeaveRequestStatus @default(PENDING)
+  approverId    String? // Employee id of the approver (org-chart manager or HR)
+  approver      Employee?          @relation("LeaveApprover", fields: [approverId], references: [id])
+  decidedAt     DateTime?
+  decisionNote  String?
+  escalatedAt   DateTime? // set when auto-escalated past a stale approver
   // HRMS flowchart cutoff rule: applications on/before the 25th are "on time"
   // (green); after the 25th are auto-flagged late (red).
   appliedOnTime Boolean? // null = legacy/unknown
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @default(now()) @updatedAt
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @default(now()) @updatedAt
 
   @@index([employeeId])
   @@index([approverId])
@@ -5518,27 +5528,27 @@ model AttendanceSite {
 }
 
 model AttendanceRecord {
-  id            String           @id @default(cuid())
-  employeeId    String
-  employee      Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  date          DateTime // UTC midnight of the attendance day
-  checkInAt     DateTime?
-  checkOutAt    DateTime?
-  checkInLat    Float?
-  checkInLng    Float?
-  checkInIp     String?
-  siteId        String?
-  source        AttendanceSource @default(WEB)
-  status        AttendanceStatus @default(PRESENT)
-  workedMinutes Int              @default(0)
-  selfieUrl     String?
-  isRegularized Boolean          @default(false)
-  note          String?
+  id               String           @id @default(cuid())
+  employeeId       String
+  employee         Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  date             DateTime // UTC midnight of the attendance day
+  checkInAt        DateTime?
+  checkOutAt       DateTime?
+  checkInLat       Float?
+  checkInLng       Float?
+  checkInIp        String?
+  siteId           String?
+  source           AttendanceSource @default(WEB)
+  status           AttendanceStatus @default(PRESENT)
+  workedMinutes    Int              @default(0)
+  selfieUrl        String?
+  isRegularized    Boolean          @default(false)
+  note             String?
   // Geo-tagging flow (HRMS flowchart): OFFICE/FIELD punches are geo-verified
   // (within site radius); CLIENT visits need no geo-tag.
-  visitType        String?  // OFFICE | FIELD | CLIENT
+  visitType        String? // OFFICE | FIELD | CLIENT
   locationVerified Boolean? // true = GPS matched a site within radius
-  flagged          Boolean  @default(false) // needs manager/HR review
+  flagged          Boolean          @default(false) // needs manager/HR review
   flagReason       String?
 
   // --- Geo integrity (hardening) ---
@@ -5548,19 +5558,19 @@ model AttendanceRecord {
   checkOutAccuracyM Float?
   // Check-OUT is geo-tagged too — otherwise you can punch in on-site and punch
   // out from home while the worked hours still count.
-  checkOutLat      Float?
-  checkOutLng      Float?
-  checkOutIp       String?
-  checkOutSiteId   String?
-  checkOutVerified Boolean?
+  checkOutLat       Float?
+  checkOutLng       Float?
+  checkOutIp        String?
+  checkOutSiteId    String?
+  checkOutVerified  Boolean?
   checkOutSelfieUrl String?
   // Flag review (HR clears a flagged punch after checking it).
-  flagClearedById String?
-  flagClearedAt   DateTime?
-  flagClearNote   String?
+  flagClearedById   String?
+  flagClearedAt     DateTime?
+  flagClearNote     String?
 
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @default(now()) @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   regularizations Regularization[]
 
@@ -6768,10 +6778,10 @@ model KraScorecard {
 // (new tables, additive; plain string FKs to Booking/User)
 // ============================================================
 model Beo {
-  id                  String        @id @default(cuid())
-  beoNumber           String        @unique
+  id                  String          @id @default(cuid())
+  beoNumber           String          @unique
   bookingId           String
-  status              String        @default("DRAFT") // DRAFT | PUBLISHED | LOCKED
+  status              String          @default("DRAFT") // DRAFT | PUBLISHED | LOCKED
   covers              Int?
   runOfShow           Json? // [{ time, activity, owner, notes }]
   // Frozen vendor-package snapshots captured onto this BEO — [{ vendorPackageId,
@@ -6779,22 +6789,22 @@ model Beo {
   // name, type, chosen:[] }]}], capturedAt }]. Decouples the BEO from later edits
   // to the live VendorPackage so the agreed scope/price can't drift.
   packageSnapshotJson Json? // VendorPackageSnapshot[]
-  menuNotes           String?       @db.Text
-  floorPlanNotes      String?       @db.Text
-  avNotes             String?       @db.Text
-  decorNotes          String?       @db.Text
-  staffingNotes       String?       @db.Text
-  specialInstructions String?       @db.Text
+  menuNotes           String?         @db.Text
+  floorPlanNotes      String?         @db.Text
+  avNotes             String?         @db.Text
+  decorNotes          String?         @db.Text
+  staffingNotes       String?         @db.Text
+  specialInstructions String?         @db.Text
   publishedAt         DateTime?
   createdById         String
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
   incidents           BeoIncident[]
+  operationId         String?
+  operation           EventOperation? @relation("OperationBeo", fields: [operationId], references: [id])
 
   @@index([bookingId])
   @@index([status])
-  operationId String?
-  operation   EventOperation? @relation("OperationBeo", fields: [operationId], references: [id])
 }
 
 model BeoIncident {
@@ -6828,11 +6838,11 @@ model KitchenPlan {
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
   items          KitchenPlanItem[]
+  operationId    String?
+  operation      EventOperation?   @relation("OperationKitchenPlan", fields: [operationId], references: [id])
 
   @@index([bookingId])
   @@index([status])
-  operationId String?
-  operation   EventOperation? @relation("OperationKitchenPlan", fields: [operationId], references: [id])
 }
 
 model KitchenPlanItem {
@@ -6871,11 +6881,11 @@ model PurchaseRequisition {
   createdAt     DateTime                  @default(now())
   updatedAt     DateTime                  @updatedAt
   items         PurchaseRequisitionItem[]
+  operationId   String?
+  operation     EventOperation?           @relation("OperationPurchaseReqs", fields: [operationId], references: [id])
 
   @@index([status])
   @@index([bookingId])
-  operationId String?
-  operation   EventOperation? @relation("OperationPurchaseReqs", fields: [operationId], references: [id])
   @@index([operationId])
 }
 
@@ -6912,11 +6922,11 @@ model SupportTicket {
   createdAt      DateTime               @default(now())
   updatedAt      DateTime               @updatedAt
   messages       SupportTicketMessage[]
+  operationId    String?
+  operation      EventOperation?        @relation("OperationSupportTickets", fields: [operationId], references: [id])
 
   @@index([status])
   @@index([assignedToId])
-  operationId String?
-  operation   EventOperation? @relation("OperationSupportTickets", fields: [operationId], references: [id])
   @@index([operationId])
 }
 
@@ -6936,10 +6946,10 @@ model SupportTicketMessage {
 // Logistics / equipment dispatch
 // ============================================================
 model DispatchOrder {
-  id             String         @id @default(cuid())
-  dispatchNumber String         @unique
+  id             String          @id @default(cuid())
+  dispatchNumber String          @unique
   bookingId      String?
-  status         String         @default("PLANNED") // PLANNED | DISPATCHED | DELIVERED | RETURNED | CANCELLED
+  status         String          @default("PLANNED") // PLANNED | DISPATCHED | DELIVERED | RETURNED | CANCELLED
   fromLocation   String?
   toLocation     String?
   scheduledAt    DateTime?
@@ -6948,16 +6958,16 @@ model DispatchOrder {
   returnedAt     DateTime?
   driverName     String?
   vehicleNo      String?
-  notes          String?        @db.Text
+  notes          String?         @db.Text
   createdById    String
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
   items          DispatchItem[]
+  operationId    String?
+  operation      EventOperation? @relation("OperationDispatches", fields: [operationId], references: [id])
 
   @@index([status])
   @@index([bookingId])
-  operationId String?
-  operation   EventOperation? @relation("OperationDispatches", fields: [operationId], references: [id])
   @@index([operationId])
 }
 
@@ -8229,12 +8239,12 @@ model SiteVisitBooking {
   utmCampaign    String?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
+  venue          Venue?          @relation("VenueSiteVisits", fields: [venueId], references: [id])
 
   @@index([status])
   @@index([scheduledAt])
   @@index([venueId, scheduledAt])
   @@index([leadId])
-  venue   Venue?   @relation("VenueSiteVisits", fields: [venueId], references: [id])
 }
 
 // ============================================================
@@ -8333,11 +8343,11 @@ model CorporateAccount {
   notes                  String?              @db.Text
   createdAt              DateTime             @default(now())
   updatedAt              DateTime             @updatedAt
+  contact                Contact              @relation("ContactCorporateAccount", fields: [contactId], references: [id])
 
   @@index([tier])
   @@index([nextReengageAt])
   @@index([ownerUserId])
-  contact   Contact   @relation("ContactCorporateAccount", fields: [contactId], references: [id])
 }
 
 // ============================================================
@@ -8350,8 +8360,8 @@ model CorporateAccount {
 // ============================================================
 model PeakDate {
   id          String   @id @default(cuid())
-  date        DateTime  @db.Date
-  type        String    // MUHURTHAM | FESTIVAL | CUSTOM
+  date        DateTime @db.Date
+  type        String // MUHURTHAM | FESTIVAL | CUSTOM
   label       String
   premiumPct  Int? // per-date override; null → DemandPricingConfig default for the type
   venueId     String? // null = applies to all venues
@@ -8464,29 +8474,29 @@ model HrAdvanceRecovery {
 // its runId so it is paid exactly once.
 // ============================================================
 model HrArrear {
-  id         String   @id @default(cuid())
-  employeeId String
-  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  name       String
-  amount     Decimal  @db.Decimal(18, 2)
+  id            String   @id @default(cuid())
+  employeeId    String
+  employee      Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  name          String
+  amount        Decimal  @db.Decimal(18, 2)
   // The period the arrear is FOR (informational; e.g. an April increment).
-  forFy    String?
-  forMonth Int?
+  forFy         String?
+  forMonth      Int?
   // The run that should PAY it.
-  payFy    String
-  payMonth Int
+  payFy         String
+  payMonth      Int
   // Statutory applicability — the admin decides per arrear.
-  taxable       Boolean @default(true)
-  pfApplicable  Boolean @default(true) // arrear of PF-wages → attracts PF
-  esiApplicable Boolean @default(true)
-  ptApplicable  Boolean @default(false) // PT is a flat monthly levy; rarely changes
+  taxable       Boolean  @default(true)
+  pfApplicable  Boolean  @default(true) // arrear of PF-wages → attracts PF
+  esiApplicable Boolean  @default(true)
+  ptApplicable  Boolean  @default(false) // PT is a flat monthly levy; rarely changes
   /// PENDING (awaiting its pay run) | PAID | CANCELLED
-  status      String   @default("PENDING")
-  runId       String? // the payroll run that paid it
-  reason      String?
-  createdById String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  status        String   @default("PENDING")
+  runId         String? // the payroll run that paid it
+  reason        String?
+  createdById   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@index([employeeId, status])
   @@index([payFy, payMonth, status])
@@ -8498,29 +8508,29 @@ model HrArrear {
 // flags the taxable exceptions. No Prisma relation to Employee — the join is done
 // in memory, matching HrSalaryStructure / HrPayComponent.
 model HrReimbursementClaim {
-  id         String   @id @default(cuid())
-  entityId   String   @default("BILLION")
-  employeeId String
-  category   String // TRAVEL | MEDICAL | TELEPHONE | FUEL | BOOKS | OTHER
-  title      String
-  amount     Decimal  @db.Decimal(18, 2)
-  taxable    Boolean  @default(false)
-  claimDate  DateTime @db.Date
-  billUrl    String?  @db.Text // receipt (base64/URL now; object storage later)
-  note       String?
+  id           String    @id @default(cuid())
+  entityId     String    @default("BILLION")
+  employeeId   String
+  category     String // TRAVEL | MEDICAL | TELEPHONE | FUEL | BOOKS | OTHER
+  title        String
+  amount       Decimal   @db.Decimal(18, 2)
+  taxable      Boolean   @default(false)
+  claimDate    DateTime  @db.Date
+  billUrl      String?   @db.Text // receipt (base64/URL now; object storage later)
+  note         String?
   /// PENDING (awaiting HR) | APPROVED (awaiting its pay run) | REJECTED | PAID
   status       String    @default("PENDING")
   decidedById  String?
   decidedAt    DateTime?
   decisionNote String?
   // The run that should PAY it (set on approval; mirrors HrArrear).
-  payFy    String?
-  payMonth Int?
-  runId    String? // the payroll run that paid it
-  paidAt   DateTime?
-  createdById String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  payFy        String?
+  payMonth     Int?
+  runId        String? // the payroll run that paid it
+  paidAt       DateTime?
+  createdById  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@index([employeeId, status])
   @@index([entityId, status])
@@ -8563,22 +8573,22 @@ model HrRecurringPay {
 // conversion, OT rules. One default per entity. (Master + CRUD; wiring into the LOP
 // calc is a follow-up money-adjacent integration.)
 model HrAttendancePolicy {
-  id                        String   @id @default(cuid())
-  entityId                  String   @default("BILLION")
-  name                      String
-  graceMinutes              Int      @default(10)
-  halfDayAfterMinutes       Int      @default(240)
-  fullDayMinutes            Int      @default(480)
-  lateMarksToLop            Int      @default(3) // N late marks → 1 LOP day
-  weeklyOffs                Int[] // 0=Sun … 6=Sat
-  otEnabled                 Boolean  @default(false)
-  otMultiplier              Decimal  @default(1) @db.Decimal(6, 2)
-  maxRegularizationsPerMonth Int     @default(3)
-  isDefault                 Boolean  @default(false)
-  active                    Boolean  @default(true)
-  createdById               String?
-  createdAt                 DateTime @default(now())
-  updatedAt                 DateTime @updatedAt
+  id                         String   @id @default(cuid())
+  entityId                   String   @default("BILLION")
+  name                       String
+  graceMinutes               Int      @default(10)
+  halfDayAfterMinutes        Int      @default(240)
+  fullDayMinutes             Int      @default(480)
+  lateMarksToLop             Int      @default(3) // N late marks → 1 LOP day
+  weeklyOffs                 Int[] // 0=Sun … 6=Sat
+  otEnabled                  Boolean  @default(false)
+  otMultiplier               Decimal  @default(1) @db.Decimal(6, 2)
+  maxRegularizationsPerMonth Int      @default(3)
+  isDefault                  Boolean  @default(false)
+  active                     Boolean  @default(true)
+  createdById                String?
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
 
   @@index([entityId, active])
 }
@@ -8606,19 +8616,19 @@ model HrGrade {
 // anniversaries, document expiry, probation/contract end). daysBefore lets a rule
 // notify ahead of the date.
 model HrReminderRule {
-  id           String   @id @default(cuid())
-  entityId     String   @default("BILLION")
+  id           String    @id @default(cuid())
+  entityId     String    @default("BILLION")
   name         String
   trigger      String // BIRTHDAY | WORK_ANNIVERSARY | DOC_EXPIRY | PROBATION_END | CONTRACT_END
-  daysBefore   Int      @default(0)
-  channel      String   @default("EMAIL") // EMAIL | INAPP
+  daysBefore   Int       @default(0)
+  channel      String    @default("EMAIL") // EMAIL | INAPP
   audienceRole String? // role to notify (e.g. HR_MANAGER); null = the employee
   messageTpl   String? // optional message body with {{placeholders}}
-  active        Boolean @default(true)
+  active       Boolean   @default(true)
   lastRunOn    DateTime? @db.Date // idempotency guard for the cron
   createdById  String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@index([entityId, active])
 }
@@ -8767,7 +8777,7 @@ model HrPayslip {
   // --- Salary advance recovery deducted in this payslip ---
   advanceRecovered Decimal @default(0) @db.Decimal(18, 2)
 
-  createdAt       DateTime     @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([runId, employeeId])
   @@index([employeeId])

@@ -1101,8 +1101,17 @@ export async function cancelBooking(id: string, reason?: string) {
         internalNotes: reason
           ? `${existing.internalNotes ? existing.internalNotes + "\n" : ""}Cancellation reason: ${reason}`
           : existing.internalNotes,
+        // Void the guest confirmation link so a stale token can't confirm a dead event.
+        guestConfirmationToken: null,
+        guestConfirmationDueAt: null,
       },
     });
+
+    // Cancel any still-open Sales→Ops handover so the 24h SLA cron stops nagging the
+    // owner to schedule a handover for a cancelled booking. Idempotent; best-effort.
+    await prisma.handoverMeeting
+      .updateMany({ where: { bookingId: id, status: { in: ["PENDING", "SCHEDULED"] } }, data: { status: "CANCELLED" } })
+      .catch((e) => console.error("[CANCEL_HANDOVER_ERROR]", e));
 
     // Release the slot on the sales side: unlink any quotation that booked this
     // slot so it can re-block the (now free) slot. Without this the quotation's

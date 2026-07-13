@@ -191,6 +191,29 @@ describe("computeQuotation — vendor-package lines", () => {
     expect(r.lineDiscountsTotal).toBe(0);
   });
 
+  it("prints the AUTHORITATIVE (revised) unit price in the plan string, reconciling with the amount", () => {
+    // Regression: the customer-facing "₹unit × qty" must match the line total.
+    // catalog 700, revised 650, qty 100 → amount 65,000, and plan must show ₹650 (not ₹700).
+    const r = computeQuotation({
+      guestCount: 100,
+      packageLines: [{ vendorPackageId: "p", name: "Decor", category: "Décor", unitPrice: 700, revisedUnitPrice: 650, qty: 100 }],
+    });
+    const line = r.lines.find((l) => l.particulars.includes("Decor"))!;
+    expect(line.amount).toBe(65000);
+    expect(line.plan).toContain("₹650");
+    expect(line.plan).not.toContain("₹700");
+  });
+
+  it("a mark-UP prints the higher revised unit price in the plan string", () => {
+    const r = computeQuotation({
+      guestCount: 100,
+      packageLines: [{ vendorPackageId: "p", name: "Decor", category: "Décor", unitPrice: 700, revisedUnitPrice: 800, qty: 100 }],
+    });
+    const line = r.lines.find((l) => l.particulars.includes("Decor"))!;
+    expect(line.amount).toBe(80000);
+    expect(line.plan).toContain("₹800");
+  });
+
   it("combines package lines with catalog lines and the global discount", () => {
     // Food 599×100 = 59,900 + package 40,100 = 100,000 subtotal, 10% global off.
     const r = computeQuotation({

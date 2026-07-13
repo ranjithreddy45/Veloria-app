@@ -12,7 +12,12 @@ export async function runHandoverSlaChecks(): Promise<{ handoverNagged: number }
   let nagged = 0;
   try {
     const overdue = await prisma.handoverMeeting.findMany({
-      where: { status: "PENDING", slaDueAt: { lt: now }, slaNaggedAt: null },
+      // Skip meetings whose booking is no longer active — never nag about a
+      // cancelled/completed event's handover.
+      where: {
+        status: "PENDING", slaDueAt: { lt: now }, slaNaggedAt: null,
+        booking: { status: { notIn: ["CANCELLED", "COMPLETED"] } },
+      },
       select: {
         id: true,
         bookingId: true,

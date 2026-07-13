@@ -26,13 +26,15 @@ type Tx = Prisma.TransactionClient;
 
 // Which account each payout debits on disbursement.
 function payableCodeFor(type: string, isAdvance = false): string {
-  // A vendor ADVANCE is a prepayment: it debits the Advances-to-Vendors ASSET
-  // (1300), not a payable — the asset later nets against the accrued VendorBill.
-  if (isAdvance) return FIN_ACCOUNT_CODES.advancesToVendors; // 1300
   switch (type) {
     case "OWNER_PAYOUT":
       return FIN_ACCOUNT_CODES.ownerPayouts; // 2400
     case "VENDOR_PAYMENT":
+      // A vendor ADVANCE is a prepayment: it debits the Advances-to-Vendors ASSET
+      // (1300), not a payable — the asset later nets against the accrued VendorBill.
+      // isAdvance is meaningful ONLY for a vendor payment; guarded here (not just in
+      // the UI) so a mis-flagged non-vendor payout can never mis-post to 1300.
+      return isAdvance ? FIN_ACCOUNT_CODES.advancesToVendors : FIN_ACCOUNT_CODES.creditors; // 1300 | 2010
     case "COMMISSION":
     default:
       return FIN_ACCOUNT_CODES.creditors; // 2010

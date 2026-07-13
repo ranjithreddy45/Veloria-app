@@ -217,7 +217,9 @@ export async function createVendor(data: VendorInput) {
 
     const vendor = await prisma.vendor.create({
       data: {
-        name: vendorData.name,
+        // Trim to match the dedup guard (which trims the input) and the
+        // lower(name) unique index — otherwise a stray space bypasses both.
+        name: vendorData.name.trim(),
         category: vendorData.category,
         status: vendorData.status ?? "ACTIVE",
         email: vendorData.email || null,

@@ -380,10 +380,15 @@ export function computeQuotation(
           ? ` − ${Math.min(100, p.discountValue ?? 0)}%`
           : ` − ₹${r2(lineDiscount)}`
         : "";
+    // Show the AUTHORITATIVE unit price the amount is computed off (revised when
+    // set, else catalog) so the printed "₹unit × qty" reconciles with the line total.
+    const revisedUnit =
+      Number.isFinite(p.revisedUnitPrice) && (p.revisedUnitPrice ?? 0) > 0 ? (p.revisedUnitPrice as number) : null;
+    const shownUnit = revisedUnit ?? (p.unitPrice > 0 ? p.unitPrice : 0);
     lines.push({
       sl: ++sl,
       particulars: cat ? `${cat}: ${label}` : label,
-      plan: `₹${r2(p.unitPrice > 0 ? p.unitPrice : 0)} × ${qty}${discNote}`,
+      plan: `₹${r2(shownUnit)} × ${qty}${discNote}`,
       amount,
     });
   }

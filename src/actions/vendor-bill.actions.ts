@@ -42,24 +42,27 @@ function genBillNumber(): string {
 
 const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
-/** Serialize a bill row + derive paid/outstanding/effectiveStatus from linked PAID payouts. */
+/** Serialize a bill row + derive paid/outstanding/effectiveStatus. Settled = linked
+ * PAID payouts + netted advances (both reduce what's still owed). */
 function serializeBill(
-  b: { id: string; billNumber: string; vendorId: string; bookingId: string | null; description: string | null; amount: Prisma.Decimal; expenseCode: string; status: string; accrualJournalEntryId: string | null; notes: string | null; approvedAt: Date | null; createdAt: Date; payouts: { amount: Prisma.Decimal; status: string }[] },
+  b: { id: string; billNumber: string; vendorId: string; bookingId: string | null; description: string | null; amount: Prisma.Decimal; expenseCode: string; status: string; accrualJournalEntryId: string | null; nettedAdvanceAmount: Prisma.Decimal; notes: string | null; approvedAt: Date | null; createdAt: Date; payouts: { amount: Prisma.Decimal; status: string }[] },
   vendorName: string,
 ) {
   const amount = Number(b.amount);
   const paid = r2(b.payouts.filter((p) => p.status === "PAID").reduce((s, p) => s + Number(p.amount), 0));
-  const outstanding = r2(Math.max(0, amount - paid));
+  const nettedAdvance = r2(Number(b.nettedAdvanceAmount ?? 0));
+  const settled = r2(paid + nettedAdvance);
+  const outstanding = r2(Math.max(0, amount - settled));
   const effectiveStatus: "DRAFT" | "APPROVED" | "PARTIALLY_PAID" | "PAID" | "CANCELLED" =
     b.status === "CANCELLED" ? "CANCELLED"
     : b.status === "DRAFT" ? "DRAFT"
-    : paid >= amount - 0.005 ? "PAID"
-    : paid > 0 ? "PARTIALLY_PAID"
+    : settled >= amount - 0.005 ? "PAID"
+    : settled > 0 ? "PARTIALLY_PAID"
     : "APPROVED";
   return {
     id: b.id, billNumber: b.billNumber, vendorId: b.vendorId, vendorName, bookingId: b.bookingId,
     description: b.description, amount, expenseCode: b.expenseCode, status: b.status, effectiveStatus,
-    paid, outstanding, accrued: !!b.accrualJournalEntryId, notes: b.notes, approvedAt: b.approvedAt, createdAt: b.createdAt,
+    paid, nettedAdvance, outstanding, accrued: !!b.accrualJournalEntryId, notes: b.notes, approvedAt: b.approvedAt, createdAt: b.createdAt,
   };
 }
 
@@ -120,7 +123,8 @@ export async function getBillsForPayout(vendorId?: string) {
     .map((b) => {
       const amount = Number(b.amount);
       const paid = b.payouts.filter((p) => p.status === "PAID").reduce((s, p) => s + Number(p.amount), 0);
-      return { id: b.id, billNumber: b.billNumber, vendorId: b.vendorId, amount, outstanding: r2(Math.max(0, amount - paid)) };
+      const settled = paid + Number(b.nettedAdvanceAmount ?? 0);
+      return { id: b.id, billNumber: b.billNumber, vendorId: b.vendorId, amount, outstanding: r2(Math.max(0, amount - settled)) };
     })
     .filter((b) => b.outstanding > 0.005);
 }
@@ -307,30 +311,15 @@ export async function cancelVendorBill(id: string): Promise<Result<{ id: string 
 }
 
 // Net paid vendor ADVANCES (sitting in Advances-to-Vendors 1300) against a newly
-// approved bill: Dr AP 2010 / Cr 1300 for the netted amount, and stamp each
-// consumed advance's nettedBillId (idempotent — a re-run nets nothing new). Only
-// nets WHOLE advances that fit within the bill amount (no partials), so AP never
-// goes negative and 1300 clears cleanly per advance; a residual advance waits for
-// the next bill. Best-effort; never throws.
+// approved bill: Dr AP 2010 / Cr 1300 for the netted amount. Each advance carries
+// a nettedAmount (how much has been consumed), so a partial or an oversized advance
+// (larger than one bill) nets what fits here and keeps its residual available for
+// later bills — nothing strands. The netted total is stamped on the bill
+// (nettedAdvanceAmount) so its outstanding drops by exactly what was applied,
+// preventing a double payment on top of the advance. Idempotent (re-run computes
+// the bill's remaining from the stored total and nets 0 more) and never negative
+// (netted ≤ bill's remaining). Best-effort; never throws.
 async function netAdvancesAgainstBill(billId: string, vendorId: string, billAmount: number, actorId: string): Promise<void> {
-  const advances = await prisma.payout.findMany({
-    where: { vendorId, isAdvance: true, status: "PAID", nettedBillId: null },
-    orderBy: { createdAt: "asc" },
-    select: { id: true, amount: true },
-  });
-  let remaining = billAmount;
-  const toNet: string[] = [];
-  let netTotal = 0;
-  for (const a of advances) {
-    const amt = Number(a.amount);
-    if (amt > 0 && amt <= remaining + 0.005) {
-      toNet.push(a.id);
-      remaining = r2(remaining - amt);
-      netTotal = r2(netTotal + amt);
-    }
-  }
-  if (toNet.length === 0 || netTotal <= 0) return;
-
   const accounts = await prisma.finAccount.findMany({ where: { code: { in: [AP_CODE, "1300"] } }, select: { id: true, code: true } });
   const idByCode = new Map(accounts.map((a) => [a.code, a.id]));
   const apId = idByCode.get(AP_CODE);
@@ -338,13 +327,48 @@ async function netAdvancesAgainstBill(billId: string, vendorId: string, billAmou
   if (!apId || !advId) return; // finance not seeded
 
   await prisma.$transaction(async (tx) => {
-    // Claim the advances (idempotent) BEFORE posting, so a concurrent run can't double-net.
-    const claim = await tx.payout.updateMany({ where: { id: { in: toNet }, nettedBillId: null }, data: { nettedBillId: billId } });
-    if (claim.count === 0) return;
-    // Re-sum only the advances THIS call actually claimed (guards a partial race).
-    const claimed = await tx.payout.findMany({ where: { id: { in: toNet }, nettedBillId: billId }, select: { amount: true } });
-    const amount = r2(claimed.reduce((s, c) => s + Number(c.amount), 0));
-    if (amount <= 0) return;
+    // Bill's remaining capacity for netting = amount − already-netted − PAID payouts.
+    const bill = await tx.vendorBill.findUnique({
+      where: { id: billId },
+      select: { nettedAdvanceAmount: true, payouts: { select: { amount: true, status: true } } },
+    });
+    if (!bill) return;
+    const paid = bill.payouts.filter((p) => p.status === "PAID").reduce((s, p) => s + Number(p.amount), 0);
+    let remaining = r2(billAmount - Number(bill.nettedAdvanceAmount ?? 0) - paid);
+    if (remaining <= 0.005) return;
+
+    // Advances with an available balance, oldest first.
+    const advances = await tx.payout.findMany({
+      where: { vendorId, isAdvance: true, status: "PAID" },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, amount: true, nettedAmount: true },
+    });
+
+    let netTotal = 0;
+    for (const a of advances) {
+      if (remaining <= 0.005) break;
+      const available = r2(Number(a.amount) - Number(a.nettedAmount ?? 0));
+      if (available <= 0.005) continue;
+      const apply = r2(Math.min(available, remaining));
+      if (apply <= 0.005) continue;
+      const newNetted = r2(Number(a.nettedAmount ?? 0) + apply);
+      // Consume this slice of the advance; mark fully-netted advances for the legacy flag.
+      await tx.payout.update({
+        where: { id: a.id },
+        data: {
+          nettedAmount: new Prisma.Decimal(newNetted.toFixed(2)),
+          ...(newNetted >= Number(a.amount) - 0.005 ? { nettedBillId: billId } : {}),
+        },
+      });
+      remaining = r2(remaining - apply);
+      netTotal = r2(netTotal + apply);
+    }
+    if (netTotal <= 0.005) return;
+
+    await tx.vendorBill.update({
+      where: { id: billId },
+      data: { nettedAdvanceAmount: { increment: new Prisma.Decimal(netTotal.toFixed(2)) } },
+    });
     await postWithinTx(tx, {
       date: new Date(),
       narration: `Vendor advance netting — bill ${billId}`,
@@ -352,8 +376,8 @@ async function netAdvancesAgainstBill(billId: string, vendorId: string, billAmou
       sourceRefId: `net_${billId}`,
       createdById: actorId,
       lines: [
-        { accountId: apId, debit: amount, narration: "Net advance vs payable" },
-        { accountId: advId, credit: amount, narration: "Advance applied to bill" },
+        { accountId: apId, debit: netTotal, narration: "Net advance vs payable" },
+        { accountId: advId, credit: netTotal, narration: "Advance applied to bill" },
       ],
     });
   });
