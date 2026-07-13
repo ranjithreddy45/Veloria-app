@@ -112,3 +112,17 @@ export async function cancelHandoverMeeting(bookingId: string): Promise<Result<{
   revalidatePath(`/bookings/${bookingId}`);
   return { success: true, data: { id: m.id } };
 }
+
+/** Set (or clear) a booking's precise event start time — drives exact reminder timing. */
+export async function setEventStartAt(bookingId: string, iso: string | null): Promise<Result<{ id: string }>> {
+  const u = await gate("bookings:update");
+  if (!u) return { success: false, error: "Not authorized." };
+  let when: Date | null = null;
+  if (iso) {
+    when = new Date(iso);
+    if (Number.isNaN(when.getTime())) return { success: false, error: "Pick a valid date & time." };
+  }
+  await prisma.booking.update({ where: { id: bookingId }, data: { eventStartAt: when } });
+  revalidatePath(`/bookings/${bookingId}`);
+  return { success: true, data: { id: bookingId } };
+}

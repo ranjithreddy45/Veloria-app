@@ -242,6 +242,10 @@ export async function approveVendorBill(id: string): Promise<Result<{ entryNo: s
       });
       return entry.entryNo;
     });
+    // Auto-net any paid vendor advances (sitting in 1300) against this bill.
+    await netAdvancesAgainstBill(bill.id, bill.vendorId, Number(bill.amount), u.id).catch((e) =>
+      console.error("[VENDOR_BILL_NET_ADVANCE_ERR]", bill.id, e),
+    );
     revalidatePath("/payouts/bills");
     revalidatePath("/finance");
     return { success: true, data: { entryNo } };
@@ -300,4 +304,57 @@ export async function cancelVendorBill(id: string): Promise<Result<{ id: string 
   await prisma.vendorBill.update({ where: { id }, data: { status: "CANCELLED" } });
   revalidatePath("/payouts/bills");
   return { success: true, data: { id } };
+}
+
+// Net paid vendor ADVANCES (sitting in Advances-to-Vendors 1300) against a newly
+// approved bill: Dr AP 2010 / Cr 1300 for the netted amount, and stamp each
+// consumed advance's nettedBillId (idempotent — a re-run nets nothing new). Only
+// nets WHOLE advances that fit within the bill amount (no partials), so AP never
+// goes negative and 1300 clears cleanly per advance; a residual advance waits for
+// the next bill. Best-effort; never throws.
+async function netAdvancesAgainstBill(billId: string, vendorId: string, billAmount: number, actorId: string): Promise<void> {
+  const advances = await prisma.payout.findMany({
+    where: { vendorId, isAdvance: true, status: "PAID", nettedBillId: null },
+    orderBy: { createdAt: "asc" },
+    select: { id: true, amount: true },
+  });
+  let remaining = billAmount;
+  const toNet: string[] = [];
+  let netTotal = 0;
+  for (const a of advances) {
+    const amt = Number(a.amount);
+    if (amt > 0 && amt <= remaining + 0.005) {
+      toNet.push(a.id);
+      remaining = r2(remaining - amt);
+      netTotal = r2(netTotal + amt);
+    }
+  }
+  if (toNet.length === 0 || netTotal <= 0) return;
+
+  const accounts = await prisma.finAccount.findMany({ where: { code: { in: [AP_CODE, "1300"] } }, select: { id: true, code: true } });
+  const idByCode = new Map(accounts.map((a) => [a.code, a.id]));
+  const apId = idByCode.get(AP_CODE);
+  const advId = idByCode.get("1300");
+  if (!apId || !advId) return; // finance not seeded
+
+  await prisma.$transaction(async (tx) => {
+    // Claim the advances (idempotent) BEFORE posting, so a concurrent run can't double-net.
+    const claim = await tx.payout.updateMany({ where: { id: { in: toNet }, nettedBillId: null }, data: { nettedBillId: billId } });
+    if (claim.count === 0) return;
+    // Re-sum only the advances THIS call actually claimed (guards a partial race).
+    const claimed = await tx.payout.findMany({ where: { id: { in: toNet }, nettedBillId: billId }, select: { amount: true } });
+    const amount = r2(claimed.reduce((s, c) => s + Number(c.amount), 0));
+    if (amount <= 0) return;
+    await postWithinTx(tx, {
+      date: new Date(),
+      narration: `Vendor advance netting — bill ${billId}`,
+      sourceModule: "PAYABLE",
+      sourceRefId: `net_${billId}`,
+      createdById: actorId,
+      lines: [
+        { accountId: apId, debit: amount, narration: "Net advance vs payable" },
+        { accountId: advId, credit: amount, narration: "Advance applied to bill" },
+      ],
+    });
+  });
 }

@@ -33,6 +33,42 @@ async function main() {
     console.error("[bootstrap] slot index setup failed (non-fatal):", e);
   }
 
+  // ---- 0b. Vendor name uniqueness: case-insensitive unique index (non-@unique so
+  // prisma db push's data-loss guard never blocks the deploy). If prod still has
+  // duplicate names the CREATE fails harmlessly and is retried next deploy once the
+  // /settings/duplicates finder is used to merge them. App-level create-guards
+  // already prevent NEW dupes. ----
+  try {
+    await prisma.$executeRawUnsafe(
+      `CREATE UNIQUE INDEX IF NOT EXISTS "Vendor_name_lower_key" ON "Vendor" (lower("name"));`
+    );
+    console.log("[bootstrap] Vendor name unique index ensured.");
+  } catch (e) {
+    console.warn("[bootstrap] Vendor name unique index NOT created — likely duplicate names exist; merge them via /settings/duplicates, then it applies next deploy.", (e as Error).message);
+  }
+
+  // ---- 0c. Karnataka Labour Welfare Fund on the primary payroll entity (BILLION):
+  // ₹20 employee / ₹40 employer, deducted in December. Idempotent upsert. ----
+  try {
+    const entity = await prisma.legalEntity.findFirst({ where: { shortCode: "BILLION" }, select: { id: true } });
+    if (entity) {
+      const cfg = await prisma.hrStatutoryConfig.findUnique({ where: { legalEntityId: entity.id }, select: { id: true } });
+      if (cfg) {
+        await prisma.hrStatutoryConfig.update({
+          where: { legalEntityId: entity.id },
+          data: { lwfApplicable: true, lwfState: "Karnataka", lwfEmployee: 20, lwfEmployer: 40, lwfMonths: [12] },
+        });
+      } else {
+        await prisma.hrStatutoryConfig.create({
+          data: { legalEntityId: entity.id, lwfApplicable: true, lwfState: "Karnataka", lwfEmployee: 20, lwfEmployer: 40, lwfMonths: [12] },
+        });
+      }
+      console.log("[bootstrap] Karnataka LWF (₹20/₹40, December) ensured on BILLION.");
+    }
+  } catch (e) {
+    console.error("[bootstrap] LWF config setup failed (non-fatal):", e);
+  }
+
   // ---- 1. Ensure a SUPER_ADMIN exists ----
   const adminEmail =
     process.env.BOOTSTRAP_ADMIN_EMAIL || "admin@veloriagrand.com";

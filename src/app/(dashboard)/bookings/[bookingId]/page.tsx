@@ -362,6 +362,11 @@ export default async function BookingDetailPage({
             ? new Date(booking.guestConfirmedAt).toISOString()
             : null
         }
+        eventStartAt={
+          booking.eventStartAt
+            ? new Date(booking.eventStartAt).toISOString()
+            : null
+        }
       />
 
       {/* Event / readiness photos (pre / post / during) */}

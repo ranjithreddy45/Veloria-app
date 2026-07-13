@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   PencilIcon,
   UserCheckIcon,
+  AlarmClockIcon,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,6 +48,7 @@ import { cn } from "@/lib/utils";
 import {
   scheduleHandoverMeeting,
   completeHandoverMeeting,
+  setEventStartAt,
 } from "@/actions/handover.actions";
 
 type HandoverStatus = "PENDING" | "SCHEDULED" | "COMPLETED" | "CANCELLED";
@@ -70,6 +72,7 @@ export interface HandoverCardProps {
   handover: HandoverMeeting | null;
   guestConfirmationDueAt: string | null;
   guestConfirmedAt: string | null;
+  eventStartAt: string | null;
 }
 
 const IST = "Asia/Kolkata";
@@ -109,10 +112,49 @@ export function HandoverCard({
   handover,
   guestConfirmationDueAt,
   guestConfirmedAt,
+  eventStartAt,
 }: HandoverCardProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
+
+  // ---- Event start time editor ----
+  const [editingStart, setEditingStart] = useState(false);
+  const [startInput, setStartInput] = useState(toLocalInput(eventStartAt));
+
+  function saveEventStart() {
+    if (!startInput) {
+      toast.error("Pick a date & time.");
+      return;
+    }
+    startTransition(async () => {
+      const res = await setEventStartAt(
+        bookingId,
+        // datetime-local yields wall-clock IST; send an absolute ISO instant.
+        new Date(startInput).toISOString()
+      );
+      if (res.success) {
+        toast.success("Event start time saved");
+        setEditingStart(false);
+        router.refresh();
+      } else {
+        toast.error(res.error || "Something went wrong");
+      }
+    });
+  }
+
+  function clearEventStart() {
+    startTransition(async () => {
+      const res = await setEventStartAt(bookingId, null);
+      if (res.success) {
+        toast.success("Event start time cleared");
+        setEditingStart(false);
+        router.refresh();
+      } else {
+        toast.error(res.error || "Something went wrong");
+      }
+    });
+  }
 
   const status: HandoverStatus = handover?.status ?? "PENDING";
   const slaOverdue =
@@ -320,6 +362,85 @@ export function HandoverCard({
             guestConfirmationDueAt={guestConfirmationDueAt}
             guestConfirmedAt={guestConfirmedAt}
           />
+        </div>
+
+        {/* ---- Event start time (drives exact reminder timing) ---- */}
+        <div className="border-t pt-4">
+          <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold">
+            <AlarmClockIcon className="size-4 text-muted-foreground" />
+            Event start time
+          </h3>
+          {editingStart ? (
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="event-start-when" className="text-xs">
+                  Date &amp; time (IST)
+                </Label>
+                <Input
+                  id="event-start-when"
+                  type="datetime-local"
+                  value={startInput}
+                  onChange={(e) => setStartInput(e.target.value)}
+                  disabled={isPending}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Precise start time for 48/24/12/4h reminders. Leave unset to
+                  use the slot&apos;s default time.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" onClick={saveEventStart} disabled={isPending}>
+                  Save
+                </Button>
+                {eventStartAt && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearEventStart}
+                    disabled={isPending}
+                  >
+                    Clear
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setStartInput(toLocalInput(eventStartAt));
+                    setEditingStart(false);
+                  }}
+                  disabled={isPending}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              {eventStartAt ? (
+                <span className="flex items-center gap-2 text-sm">
+                  <CalendarClockIcon className="size-4 shrink-0 text-muted-foreground" />
+                  <span className="font-medium">{fmt(eventStartAt)}</span>
+                </span>
+              ) : (
+                <span className="text-sm text-muted-foreground">
+                  Not set — reminders use the slot&apos;s default time
+                </span>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setStartInput(toLocalInput(eventStartAt));
+                  setEditingStart(true);
+                }}
+                disabled={isPending}
+              >
+                <PencilIcon className="mr-1.5 size-4" />
+                {eventStartAt ? "Edit" : "Set"}
+              </Button>
+            </div>
+          )}
         </div>
       </CardContent>
 

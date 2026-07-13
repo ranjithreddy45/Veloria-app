@@ -46,7 +46,7 @@ export async function runEventIntervalReminders(): Promise<{ fired: number; read
         date: { gte: new Date(now.getTime() - 24 * 3600_000), lte: horizon },
       },
       select: {
-        id: true, bookingNumber: true, eventName: true, date: true, timeSlot: true,
+        id: true, bookingNumber: true, eventName: true, date: true, timeSlot: true, eventStartAt: true,
         contact: { select: { phone: true, firstName: true } },
         venue: { select: { name: true } },
         createdById: true,
@@ -56,7 +56,8 @@ export async function runEventIntervalReminders(): Promise<{ fired: number; read
 
     for (const b of bookings) {
       try {
-        const startUtc = eventStartUtc(b.date, b.timeSlot);
+        // Precise start when set; else the IST slot approximation.
+        const startUtc = b.eventStartAt ? new Date(b.eventStartAt) : eventStartUtc(b.date, b.timeSlot);
         const hoursTo = (startUtc.getTime() - now.getTime()) / 3600_000;
         if (hoursTo <= 0) continue; // event started/past
 

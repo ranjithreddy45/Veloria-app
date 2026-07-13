@@ -700,6 +700,9 @@ model Booking {
   guestConfirmedName     String? // who accepted (guest-typed name on the declaration)
   guestTermsVersion      String? // T&C version accepted
   guestConfirmedIp       String?
+  // Precise event start (drives exact 48/24/12/4h reminder timing; falls back to
+  // an IST slot approximation when unset).
+  eventStartAt           DateTime?
   handoverMeeting        HandoverMeeting?
   totalAmount     Decimal       @db.Decimal(12, 2)
   currency        String        @default("INR")
@@ -2201,6 +2204,9 @@ model Payout {
   // A vendor ADVANCE (prepayment before the bill is accrued): posts Dr 1300
   // Advances-to-Vendors / Cr Bank on mark-paid, instead of Dr AP 2010.
   isAdvance    Boolean  @default(false)
+  // Set when a paid advance has been netted against an approved VendorBill
+  // (Dr AP 2010 / Cr Advances 1300), so it's never double-netted.
+  nettedBillId String?
   approvedById String?
 
   @@index([status])
