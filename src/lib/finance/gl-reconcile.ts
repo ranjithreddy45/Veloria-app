@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { postInvoiceIssued, postPaymentReceived } from "@/lib/finance/receivables";
+import { postPayoutPaid } from "@/lib/finance/payables";
+import { reconcileAdvanceNetting } from "@/actions/vendor-bill.actions";
 import { reportSystemFailure } from "@/lib/ops-alert";
 
 // ============================================================
@@ -18,9 +20,11 @@ const BENIGN_REASONS = new Set([
   "not-seeded",
   "zero-total",
   "non-positive-amount",
+  "accounts-missing", // finance mid-seed / chart incomplete — not a real posting failure
 ]);
 
 const RECEIVABLE = "RECEIVABLE" as Prisma.FinJournalEntryWhereInput["sourceModule"];
+const PAYABLE = "PAYABLE" as Prisma.FinJournalEntryWhereInput["sourceModule"];
 
 export interface GlReconcileResult {
   seeded: boolean;
@@ -28,7 +32,10 @@ export interface GlReconcileResult {
   invoicesReposted: number;
   paymentsChecked: number;
   paymentsReposted: number;
-  failures: { kind: "invoice" | "payment"; id: string; reason: string }[];
+  payoutsChecked: number;
+  payoutsReposted: number;
+  nettingReattempted: number;
+  failures: { kind: "invoice" | "payment" | "payout"; id: string; reason: string }[];
 }
 
 export async function reconcileGlPostings(opts?: { lookbackDays?: number }): Promise<GlReconcileResult> {
@@ -38,6 +45,9 @@ export async function reconcileGlPostings(opts?: { lookbackDays?: number }): Pro
     invoicesReposted: 0,
     paymentsChecked: 0,
     paymentsReposted: 0,
+    payoutsChecked: 0,
+    payoutsReposted: 0,
+    nettingReattempted: 0,
     failures: [],
   };
 
@@ -93,6 +103,38 @@ export async function reconcileGlPostings(opts?: { lookbackDays?: number }): Pro
       if (r.posted) result.paymentsReposted++;
       else if (!BENIGN_REASONS.has(r.reason)) result.failures.push({ kind: "payment", id, reason: r.reason });
     }
+  }
+
+  // 3) PAID payouts missing their cash-disbursement posting (Dr payable / Cr Bank),
+  //    keyed on sourceModule=PAYABLE, sourceRefId=payoutId. The real-time post runs
+  //    in after() and can be dropped on a serverless freeze with no other retry.
+  const paidPayouts = await prisma.payout.findMany({
+    where: { status: "PAID", createdAt: { gte: since } },
+    select: { id: true },
+  });
+  result.payoutsChecked = paidPayouts.length;
+  if (paidPayouts.length) {
+    const ids = paidPayouts.map((p) => p.id);
+    const posted = await prisma.finJournalEntry.findMany({
+      where: { sourceModule: PAYABLE, sourceRefId: { in: ids } },
+      select: { sourceRefId: true },
+    });
+    const postedSet = new Set(posted.map((e) => e.sourceRefId));
+    for (const id of ids) {
+      if (postedSet.has(id)) continue;
+      const r = await postPayoutPaid(id);
+      if (r.posted) result.payoutsReposted++;
+      else if (!BENIGN_REASONS.has(r.reason)) result.failures.push({ kind: "payout", id, reason: r.reason });
+    }
+  }
+
+  // 4) Re-attempt vendor advance-netting for any APPROVED bill whose post-approval
+  //    netting was dropped, so a paid advance can't be double-paid. Idempotent.
+  try {
+    const net = await reconcileAdvanceNetting(lookbackDays);
+    result.nettingReattempted = net.reattempted;
+  } catch (e) {
+    console.error("[GL_RECONCILE_NETTING_ERR]", e);
   }
 
   // Anything that still won't post after a retry needs a human — surface it.

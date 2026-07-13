@@ -104,6 +104,7 @@ export async function getRevenueAnalytics(params?: {
           select: {
             booking: {
               select: {
+                id: true,
                 eventType: true,
                 totalAmount: true,
                 venue: { select: { name: true } },
@@ -155,14 +156,17 @@ export async function getRevenueAnalytics(params?: {
       (sum, p) => sum + Number(p.amount),
       0
     );
-    const totalBookingsInPeriod = await prisma.booking.count({
-      where: {
-        createdAt: { gte: start, lte: end },
-        ...(params?.venueId ? { venueId: params.venueId } : {}),
-      },
-    });
+    // Average booking value = revenue ÷ the SAME population that produced it, i.e. the
+    // distinct bookings that actually received a completed payment in range. Dividing
+    // range-revenue by ALL bookings-created-in-range (a different set) understated the
+    // KPI; this mirrors the corrected sibling in report.actions.ts.
+    const paidBookingIds = new Set<string>();
+    for (const p of payments) {
+      const bid = p.invoice?.booking?.id;
+      if (bid) paidBookingIds.add(bid);
+    }
     const averageBookingValue =
-      totalBookingsInPeriod > 0 ? totalRevenue / totalBookingsInPeriod : 0;
+      paidBookingIds.size > 0 ? totalRevenue / paidBookingIds.size : 0;
 
     return serialize({
       success: true as const,

@@ -231,6 +231,11 @@ export async function recordPayment(data: {
         select: { totalAmount: true, paidAmount: true },
       });
       const paidPaise = toPaise(Number(credited.paidAmount));
+      // Over-collection guard INSIDE the tx: the pre-tx balance check read a stale
+      // snapshot, so a concurrent payment / double-submit could push total paid past
+      // the invoice total. The `increment` above took a row lock, so this post-increment
+      // read reflects any concurrent committed credit — if we overshot, roll back.
+      if (paidPaise > toPaise(Number(credited.totalAmount)) + 1) throw new Error("OVERPAY");
       const balPaise = toPaise(Number(credited.totalAmount)) - paidPaise;
       await tx.invoice.update({
         where: { id: data.invoiceId },
@@ -331,6 +336,9 @@ export async function recordPayment(data: {
     revalidatePath("/bookings");
     return { success: true as const, data: serialize(payment) };
   } catch (error) {
+    if (error instanceof Error && error.message === "OVERPAY") {
+      return { success: false as const, error: "This payment would exceed the invoice balance — it was just paid by another entry. Refresh and check the balance." };
+    }
     console.error("[RECORD_PAYMENT_ERROR]", error);
     return { success: false as const, error: "Failed to record payment" };
   }
@@ -361,6 +369,11 @@ export async function verifyPaymentProof(paymentId: string) {
       return { success: false as const, error: "This payment has no attached proof to verify" };
     if (payment.invoice.status === "CANCELLED")
       return { success: false as const, error: "Invoice is cancelled" };
+    // Fast reject: nothing left to collect. Pending proofs don't reduce balanceDue,
+    // so two proofs for the same invoice can both pass the submit-time guard; without
+    // this (and the in-tx overshoot guard below) verifying both would over-collect.
+    if (payment.invoice.status === "PAID")
+      return { success: false as const, error: "This invoice is already fully paid — nothing to verify against." };
 
     // Atomic + idempotent: only the writer that flips this PENDING row proceeds
     // to credit the invoice (relative increment, re-read for status) — so a
@@ -381,6 +394,11 @@ export async function verifyPaymentProof(paymentId: string) {
         select: { totalAmount: true, paidAmount: true },
       });
       const paidPaise = toPaise(Number(credited.paidAmount));
+      // Over-collection guard: verifying this proof must not push total paid past the
+      // invoice total (another proof/payment may have settled it first). The locked
+      // increment reflects concurrent committed credits — if we overshot, roll back so
+      // the proof stays PENDING rather than double-crediting + posting a phantom receipt.
+      if (paidPaise > toPaise(Number(credited.totalAmount)) + 1) throw new Error("OVERPAY");
       const balPaise = toPaise(Number(credited.totalAmount)) - paidPaise;
       await tx.invoice.update({
         where: { id: payment.invoice.id },
@@ -425,6 +443,9 @@ export async function verifyPaymentProof(paymentId: string) {
     revalidatePath("/bookings");
     return { success: true as const, data: { id: paymentId, receiptNumber } };
   } catch (error) {
+    if (error instanceof Error && error.message === "OVERPAY") {
+      return { success: false as const, error: "Verifying this proof would over-collect — the invoice balance is already covered. Reject this duplicate proof instead." };
+    }
     console.error("[VERIFY_PAYMENT_PROOF_ERROR]", error);
     return { success: false as const, error: "Failed to verify payment" };
   }

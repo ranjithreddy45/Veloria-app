@@ -506,6 +506,15 @@ export async function approveCommission(id: string) {
       };
     }
 
+    // Segregation of duties: you can't approve your OWN commission payable
+    // (self-dealing). A different approver — or a SUPER_ADMIN — must sign it off.
+    if (existing.userId === session.user.id && session.user.role !== "SUPER_ADMIN") {
+      return {
+        success: false as const,
+        error: "You can't approve your own commission — another approver must sign it off.",
+      };
+    }
+
     const entry = await prisma.commissionEntry.update({
       where: { id },
       data: { status: "APPROVED" },

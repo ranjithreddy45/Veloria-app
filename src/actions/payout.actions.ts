@@ -195,6 +195,31 @@ export async function createPayout(data: CreatePayoutInput) {
       }
     }
 
+    // Validate a linked vendor BILL: it must exist, be APPROVED, belong to the same
+    // vendor, and the payout must not exceed its outstanding. Without this a payout
+    // could be linked to another vendor's bill (wrongly reducing that bill's
+    // outstanding) or over-pay a bill and drive AP 2010 negative.
+    let billVendorId: string | null = null;
+    const billId = payoutData.billId || null;
+    if (billId) {
+      const bill = await prisma.vendorBill.findUnique({
+        where: { id: billId },
+        select: {
+          id: true, vendorId: true, amount: true, status: true, nettedAdvanceAmount: true,
+          payouts: { select: { amount: true, status: true } },
+        },
+      });
+      if (!bill) return { success: false as const, error: "Selected bill does not exist" };
+      if (bill.status !== "APPROVED") return { success: false as const, error: "Only an approved bill can be paid." };
+      if (vendorId && bill.vendorId !== vendorId) return { success: false as const, error: "That bill belongs to a different vendor." };
+      billVendorId = bill.vendorId;
+      const paid = bill.payouts.filter((p) => p.status === "PAID").reduce((s, p) => s + Number(p.amount), 0);
+      const outstanding = Number(bill.amount) - paid - Number(bill.nettedAdvanceAmount ?? 0);
+      if (payoutData.amount > outstanding + 0.5) {
+        return { success: false as const, error: `Amount exceeds the bill's outstanding (₹${Math.max(0, outstanding).toFixed(2)}).` };
+      }
+    }
+
     // Duplicate-payment control (Rule 4): block a near-identical payout to the
     // same vendor (same amount + type within the dedup window) BEFORE creating
     // it. Checking up-front — rather than warning after the row is already
@@ -226,9 +251,11 @@ export async function createPayout(data: CreatePayoutInput) {
         type: payoutData.type,
         description: payoutData.description || null,
         referenceNumber: generateReferenceNumber(),
-        vendorId,
+        // A bill-linked payout inherits the bill's vendor when none was passed, so
+        // it correctly reduces that bill's outstanding and joins dup-detection.
+        vendorId: vendorId ?? billVendorId,
         bookingId,
-        billId: payoutData.billId ?? null,
+        billId,
         // isAdvance is meaningful only for a vendor payment (a prepayment that
         // debits Advances-to-Vendors 1300). Coerce false otherwise, so a crafted
         // call can't mis-post an owner/commission payout to the 1300 asset.

@@ -118,12 +118,17 @@ function accumulate(acc: Accumulator, a: LoadedAttribution): void {
 function finalize(
   key: string,
   acc: Accumulator,
-  spend: Prisma.Decimal
+  spend: Prisma.Decimal,
+  // Spend is a LIFETIME running total (spendToDate) with no per-period breakdown.
+  // When the view is date-filtered, revenue/leads are range-scoped but spend is not,
+  // so CAC/ROAS (which mix the two) would be wrong — suppress them (render "—")
+  // rather than show a misleading ratio. They remain valid in the all-time view.
+  rangeScoped = false
 ): AttributionBucket {
   const spendNum = spend.toNumber();
   const bookedNum = acc.bookedRevenue.toNumber();
-  const cac = acc.wonCount > 0 && spendNum > 0 ? spendNum / acc.wonCount : null;
-  const roas = spendNum > 0 ? bookedNum / spendNum : null;
+  const cac = !rangeScoped && acc.wonCount > 0 && spendNum > 0 ? spendNum / acc.wonCount : null;
+  const roas = !rangeScoped && spendNum > 0 ? bookedNum / spendNum : null;
   const avgLtv =
     acc.ltvCount > 0 ? acc.ltvSum.toNumber() / acc.ltvCount : null;
   return {
@@ -198,7 +203,7 @@ export async function getChannelAttribution(params?: RangeParams) {
 
     const buckets: AttributionBucket[] = [];
     for (const [key, acc] of accs) {
-      buckets.push(finalize(key, acc, spendByChannel.get(key) ?? D0()));
+      buckets.push(finalize(key, acc, spendByChannel.get(key) ?? D0(), !!(params?.from || params?.to)));
     }
     buckets.sort((a, b) => b.bookedRevenue - a.bookedRevenue);
 
@@ -261,7 +266,7 @@ export async function getCampaignAttribution(params?: RangeParams) {
 
     const buckets: AttributionBucket[] = [];
     for (const [key, acc] of accs) {
-      buckets.push(finalize(key, acc, spendById.get(key) ?? D0()));
+      buckets.push(finalize(key, acc, spendById.get(key) ?? D0(), !!(params?.from || params?.to)));
     }
     buckets.sort((a, b) => b.bookedRevenue - a.bookedRevenue);
 

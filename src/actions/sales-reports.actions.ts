@@ -99,18 +99,28 @@ export async function getSalesRevenueCollections(params: Params): Promise<Result
   const advanceCollected = payments.reduce((s, p) => s + num(p.amount), 0);
   const pendingCollection = openInvoices.reduce((s, i) => s + num(i.balanceDue), 0);
 
-  // 20/60/20 milestones — bucket installments by label keyword.
-  const bucket = (kw: RegExp) => {
-    const items = installments.filter((i) => kw.test(i.label.toLowerCase()));
-    const due = items.reduce((s, i) => s + num(i.amount), 0);
-    const paid = items.filter((i) => i.status === "COMPLETED").reduce((s, i) => s + num(i.amount), 0);
-    return { due, paid, count: items.length };
-  };
+  // 20/60/20 milestones — assign each installment to EXACTLY ONE bucket by priority
+  // (advance → final → part). Independent regex tests double-counted: e.g. the real
+  // "Final balance (20%)" label matched both the final bucket and an advance "20%"
+  // test, inflating the advance total. One-installment-one-bucket removes that.
   const milestones = {
-    advance: bucket(/advance|booking|20%/),
-    part: bucket(/part|60%|15 day|balance 60/),
-    final: bucket(/final|balance|2 hour|last/),
+    advance: { due: 0, paid: 0, count: 0 },
+    part: { due: 0, paid: 0, count: 0 },
+    final: { due: 0, paid: 0, count: 0 },
   };
+  for (const i of installments) {
+    const l = i.label.toLowerCase();
+    const key: "advance" | "part" | "final" | null =
+      /advance|booking|blocks the slot/.test(l) ? "advance"
+      : /final|2 hour|last|balance/.test(l) ? "final"
+      : /part|60%|15 day/.test(l) ? "part"
+      : null;
+    if (!key) continue;
+    const b = milestones[key];
+    b.due += num(i.amount);
+    b.count += 1;
+    if (i.status === "COMPLETED") b.paid += num(i.amount);
+  }
 
   return { success: true, data: { revenueBooked, advanceCollected, pendingCollection, upsellRevenue, milestones, range: { label: range.label } } };
 }

@@ -319,7 +319,7 @@ export async function cancelVendorBill(id: string): Promise<Result<{ id: string 
 // preventing a double payment on top of the advance. Idempotent (re-run computes
 // the bill's remaining from the stored total and nets 0 more) and never negative
 // (netted ≤ bill's remaining). Best-effort; never throws.
-async function netAdvancesAgainstBill(billId: string, vendorId: string, billAmount: number, actorId: string): Promise<void> {
+async function netAdvancesAgainstBill(billId: string, vendorId: string, billAmount: number, actorId: string | null): Promise<void> {
   const accounts = await prisma.finAccount.findMany({ where: { code: { in: [AP_CODE, "1300"] } }, select: { id: true, code: true } });
   const idByCode = new Map(accounts.map((a) => [a.code, a.id]));
   const apId = idByCode.get(AP_CODE);
@@ -381,4 +381,46 @@ async function netAdvancesAgainstBill(billId: string, vendorId: string, billAmou
       ],
     });
   });
+}
+
+// Backstop for the post-approval netting step: netAdvancesAgainstBill runs in a
+// separate best-effort transaction after a bill is approved, so a crash/freeze/
+// period-closed error between the two could leave an APPROVED bill with an
+// un-netted paid advance still sitting in 1300 — the operator would then pay the
+// vendor again for what the advance already covered. This sweep re-runs netting
+// (idempotent) for any recent APPROVED bill whose vendor still has an advance with
+// an available balance. Safe to run every cron tick; never throws.
+export async function reconcileAdvanceNetting(lookbackDays = 45): Promise<{ reattempted: number }> {
+  let reattempted = 0;
+  try {
+    const accountCount = await prisma.finAccount.count();
+    if (accountCount === 0) return { reattempted };
+    // Vendors that currently have at least one advance with an un-netted balance.
+    const advances = await prisma.payout.findMany({
+      where: { isAdvance: true, status: "PAID" },
+      select: { vendorId: true, amount: true, nettedAmount: true },
+    });
+    const vendorsWithAvailAdvance = new Set(
+      advances.filter((a) => a.vendorId && Number(a.amount) - Number(a.nettedAmount ?? 0) > 0.005).map((a) => a.vendorId as string),
+    );
+    if (vendorsWithAvailAdvance.size === 0) return { reattempted };
+
+    const since = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000);
+    const bills = await prisma.vendorBill.findMany({
+      where: { status: "APPROVED", vendorId: { in: Array.from(vendorsWithAvailAdvance) }, createdAt: { gte: since } },
+      select: { id: true, vendorId: true, amount: true, nettedAdvanceAmount: true, payouts: { select: { amount: true, status: true } } },
+    });
+    for (const b of bills) {
+      const paid = b.payouts.filter((p) => p.status === "PAID").reduce((s, p) => s + Number(p.amount), 0);
+      const remaining = Number(b.amount) - Number(b.nettedAdvanceAmount ?? 0) - paid;
+      if (remaining <= 0.005) continue;
+      await netAdvancesAgainstBill(b.id, b.vendorId, Number(b.amount), null).catch((e) =>
+        console.error("[RECONCILE_NET_ADVANCE_ERR]", b.id, e),
+      );
+      reattempted++;
+    }
+  } catch (e) {
+    console.error("[RECONCILE_NET_ADVANCE_SWEEP_ERR]", e);
+  }
+  return { reattempted };
 }

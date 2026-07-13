@@ -167,6 +167,9 @@ export async function getCommandCenter(): Promise<CommandCenterData> {
     total: e.lines.reduce((s, ln) => s + n(ln.debit), 0),
     href: "/finance",
   }));
+  // The list above is capped at 50 for display; the badge must reflect the TRUE
+  // backlog, so count separately rather than reporting the truncated array length.
+  const approvalsCount = await prisma.finJournalEntry.count({ where: { status: "DRAFT" } });
 
   return {
     authorized: true,
@@ -176,7 +179,7 @@ export async function getCommandCenter(): Promise<CommandCenterData> {
     mtd,
     fyTotals,
     approvals,
-    approvalsCount: approvals.length,
+    approvalsCount,
     topExpenses,
   };
 }

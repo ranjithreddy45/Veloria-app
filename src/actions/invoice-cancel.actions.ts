@@ -639,9 +639,17 @@ export async function refundPayment(paymentId: string, reason: string) {
       const totalPaise = toPaise(Number(debited.totalAmount));
       const balPaise = Math.max(0, totalPaise - paidPaise);
       const pastDue = !!debited.dueDate && debited.dueDate < new Date();
-      // A refund moves the invoice off PAID. Fully refunded (no cash left) → REFUNDED;
-      // otherwise money remains → PARTIALLY_PAID (or OVERDUE past its due date).
-      const status = paidPaise <= 0 ? "REFUNDED" : pastDue ? "OVERDUE" : "PARTIALLY_PAID";
+      // Was the invoice FULLY settled before this refund? (prior paid = current + refunded)
+      const wasFullyPaid = toPaise(Number(debited.paidAmount) + Number(payment.amount)) >= totalPaise - 1;
+      // A refund moves the invoice off PAID:
+      //  - money still remains        → PARTIALLY_PAID (or OVERDUE past due)
+      //  - no cash left, was fully paid→ REFUNDED (a full refund closes it)
+      //  - no cash left, was PARTIAL  → the balance is owed AGAIN → SENT/OVERDUE, so the
+      //    still-collectible receivable is NOT hidden from AR (mirrors the cancel path).
+      const status =
+        paidPaise > 0
+          ? pastDue ? "OVERDUE" : "PARTIALLY_PAID"
+          : wasFullyPaid ? "REFUNDED" : pastDue ? "OVERDUE" : "SENT";
       await tx.invoice.update({
         where: { id: payment.invoiceId },
         data: { paidAmount: toRupees(paidPaise), balanceDue: toRupees(balPaise), status },

@@ -123,8 +123,11 @@ export async function getBookings(params?: {
     }
 
     if (params?.month && params?.year) {
-      const startDate = new Date(params.year, params.month - 1, 1);
-      const endDate = new Date(params.year, params.month, 0);
+      // Booking.date is @db.Date stored at UTC midnight — build the month window in
+      // UTC too, else on a server ahead of UTC (e.g. IST) the local-midnight bounds
+      // drop the last day's bookings from the list.
+      const startDate = new Date(Date.UTC(params.year, params.month - 1, 1));
+      const endDate = new Date(Date.UTC(params.year, params.month, 1) - 1);
       where.date = { gte: startDate, lte: endDate };
     }
 
@@ -1483,8 +1486,11 @@ export async function getBlackoutDates(params?: {
     }
 
     if (params?.month && params?.year) {
-      const startDate = new Date(params.year, params.month - 1, 1);
-      const endDate = new Date(params.year, params.month, 0);
+      // Booking.date is @db.Date stored at UTC midnight — build the month window in
+      // UTC too, else on a server ahead of UTC (e.g. IST) the local-midnight bounds
+      // drop the last day's bookings from the list.
+      const startDate = new Date(Date.UTC(params.year, params.month - 1, 1));
+      const endDate = new Date(Date.UTC(params.year, params.month, 1) - 1);
       where.date = { gte: startDate, lte: endDate };
     }
 

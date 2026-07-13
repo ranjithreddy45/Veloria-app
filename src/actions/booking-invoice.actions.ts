@@ -167,9 +167,14 @@ export async function createBookingInvoiceFromQuotation(
     // collect the confirming 20% advance, so it must be payable right away —
     // recordPayment rejects DRAFT invoices. Mark it SENT (no auto-email; the
     // slot-block / pay-link flow surfaces it to the customer separately).
+    // Set the invoice-level dueDate to the FINAL installment date (not tomorrow):
+    // the 20/60/20 plan runs to the event, so a tomorrow due-date would let
+    // markOverdue flip the WHOLE invoice OVERDUE once the advance date passes,
+    // overstating overdue receivables by the not-yet-due 60%+20%. Per-installment
+    // urgency is tracked on the installments themselves.
     await prisma.invoice.update({
       where: { id: invoiceId },
-      data: { status: "SENT" },
+      data: { status: "SENT", dueDate: balanceDue },
     });
 
     // Replace the sentinel with the real invoice id and mark the quotation CONVERTED
