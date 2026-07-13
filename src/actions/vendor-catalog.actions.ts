@@ -765,3 +765,80 @@ export async function listActivePackagesForBeo(category?: string): Promise<Resul
     return { success: false, error: "Failed to load packages" };
   }
 }
+
+// ============================================================
+// BEO package snapshot — freeze a vendor package's agreed scope + price onto a BEO
+// so later edits to the live VendorPackage can't drift a committed event. Deep-
+// copies sections/items and captures single/multi choice selections.
+// ============================================================
+async function requireBeoEdit(): Promise<{ id: string; role: string } | null> {
+  const session = await auth();
+  const role = (session?.user as { role?: string } | undefined)?.role;
+  const id = session?.user?.id;
+  if (!id || !role || !hasPermission(role, "operations:update")) return null;
+  return { id, role };
+}
+
+export async function snapshotPackageToEvent(input: {
+  packageId: string;
+  beoId: string;
+  choices?: Record<string, string[]>;
+}): Promise<Result<{ count: number }>> {
+  const u = await requireBeoEdit();
+  if (!u) return { success: false, error: "Unauthorized" };
+  const pkg = await prisma.vendorPackage.findUnique({
+    where: { id: input.packageId },
+    select: {
+      id: true, name: true, category: true, vendorPrice: true, price: true, priceUnit: true,
+      vendor: { select: { name: true } },
+      sections: {
+        orderBy: { sortOrder: "asc" },
+        select: { title: true, items: { orderBy: { sortOrder: "asc" }, select: { name: true, type: true, options: true, chooseCount: true } } },
+      },
+    },
+  });
+  if (!pkg) return { success: false, error: "Package not found" };
+  const beo = await prisma.beo.findUnique({ where: { id: input.beoId }, select: { id: true, status: true, packageSnapshotJson: true } });
+  if (!beo) return { success: false, error: "BEO not found" };
+  if (beo.status === "LOCKED") return { success: false, error: "This BEO is locked." };
+
+  const snapshot = {
+    snapshotId: `${pkg.id}-${Date.now()}`,
+    vendorPackageId: pkg.id,
+    vendorName: pkg.vendor.name,
+    name: pkg.name,
+    category: pkg.category,
+    vendorPrice: Number(pkg.vendorPrice ?? pkg.price),
+    priceUnit: pkg.priceUnit,
+    sections: pkg.sections.map((s) => ({
+      title: s.title,
+      items: s.items.map((it) => ({ name: it.name, type: it.type, options: it.options, chosen: input.choices?.[it.name] ?? [] })),
+    })),
+    capturedAt: new Date().toISOString(),
+  };
+  const existing = Array.isArray(beo.packageSnapshotJson) ? (beo.packageSnapshotJson as unknown[]) : [];
+  await prisma.beo.update({ where: { id: beo.id }, data: { packageSnapshotJson: [...existing, snapshot] as unknown as Prisma.InputJsonValue } });
+  revalidatePath("/bookings");
+  return { success: true, data: { count: existing.length + 1 } };
+}
+
+export async function getBeoPackageSnapshots(beoId: string): Promise<Result<unknown[]>> {
+  const u = await requirePerm("vendors:read");
+  if (!u) return { success: false, error: "Unauthorized" };
+  const beo = await prisma.beo.findUnique({ where: { id: beoId }, select: { packageSnapshotJson: true } });
+  if (!beo) return { success: false, error: "BEO not found" };
+  return { success: true, data: Array.isArray(beo.packageSnapshotJson) ? (beo.packageSnapshotJson as unknown[]) : [] };
+}
+
+export async function removeBeoPackageSnapshot(beoId: string, snapshotId: string): Promise<Result<{ count: number }>> {
+  const u = await requireBeoEdit();
+  if (!u) return { success: false, error: "Unauthorized" };
+  const beo = await prisma.beo.findUnique({ where: { id: beoId }, select: { id: true, status: true, packageSnapshotJson: true } });
+  if (!beo) return { success: false, error: "BEO not found" };
+  if (beo.status === "LOCKED") return { success: false, error: "This BEO is locked." };
+  const existing = Array.isArray(beo.packageSnapshotJson) ? (beo.packageSnapshotJson as { snapshotId?: string }[]) : [];
+  const next = existing.filter((s) => s?.snapshotId !== snapshotId);
+  await prisma.beo.update({ where: { id: beo.id }, data: { packageSnapshotJson: next as unknown as Prisma.InputJsonValue } });
+  revalidatePath("/bookings");
+  return { success: true, data: { count: next.length } };
+}

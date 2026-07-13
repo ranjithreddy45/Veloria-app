@@ -587,6 +587,7 @@ export const sidebarNavigation: NavItem[] = [
     permissions: ["payouts:read", "commissions:read", "insurance:read", "finance:read"],
     children: [
       { title: "Payouts", href: "/payouts", icon: "Banknote", permissions: ["payouts:read"] },
+      { title: "Vendor Bills", href: "/payouts/bills", icon: "Receipt", permissions: ["payouts:read"] },
       { title: "Commissions", href: "/commissions", icon: "Percent", permissions: ["commissions:read"] },
       { title: "Payroll", href: "/finance/payroll", icon: "Banknote", permissions: ["finance:read"] },
       { title: "Fixed Assets", href: "/finance/assets", icon: "Boxes", permissions: ["finance:read"] },

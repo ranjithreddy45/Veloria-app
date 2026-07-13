@@ -46,6 +46,7 @@ import {
   type RunOfShowItem,
 } from "@/actions/beo.actions";
 import { STATUS_HUE, STATUS_LABEL } from "../../_components/beo-dashboard";
+import { BeoPackageSnapshots } from "./beo-package-snapshots";
 
 const SEVERITY_HUE: Record<string, Hue> = { LOW: "slate", MEDIUM: "amber", HIGH: "rose" };
 const SEVERITY_LABEL: Record<string, string> = { LOW: "Low", MEDIUM: "Medium", HIGH: "High" };
@@ -147,6 +148,7 @@ export function BeoDetailView({ beo, canWrite }: { beo: BeoDetail; canWrite: boo
         </div>
         <div className="flex flex-col gap-5">
           <IncidentLog beo={beo} canWrite={canWrite} />
+          <BeoPackageSnapshots beoId={beo.id} locked={locked} />
         </div>
       </div>
     </div>

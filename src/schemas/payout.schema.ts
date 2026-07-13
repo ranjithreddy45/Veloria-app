@@ -43,6 +43,11 @@ export const createPayoutSchema = z.object({
     .string()
     .optional()
     .transform((v) => (v && v.trim() !== "" ? v : undefined)),
+  // Optional link to the vendor BILL this payout settles (accounts-payable).
+  billId: z
+    .string()
+    .optional()
+    .transform((v) => (v && v.trim() !== "" ? v : undefined)),
   notes: z
     .string()
     .max(2000, "Notes must be at most 2000 characters")

@@ -11,6 +11,9 @@ import {
   TruckIcon,
   SaveIcon,
   Loader2Icon,
+  CheckIcon,
+  XIcon,
+  BellIcon,
 } from "lucide-react";
 
 import {
@@ -23,6 +26,11 @@ import {
   assignVendor,
   removeVendorAssignment,
 } from "@/actions/operations.actions";
+import {
+  confirmVendorAssignment,
+  declineVendorAssignment,
+  remindVendorAssignment,
+} from "@/actions/vendor-assignment.actions";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -67,6 +75,22 @@ import { formatDate } from "@/lib/utils";
 import type { RunOfShowItem } from "@/schemas/operations.schema";
 
 // ============================================================
+// Local constants
+// ============================================================
+
+// Vendor assignment lifecycle colors (NOTIFIED→CONFIRMED/DECLINED). Kept local
+// because the shared VENDOR_ASSIGNMENT_STATUS_COLORS map covers a different
+// (PENDING/CONFIRMED/COMPLETED) vocabulary.
+const VENDOR_ASSIGNMENT_LIFECYCLE_COLORS: Record<string, string> = {
+  NOTIFIED:
+    "bg-amber-50 text-amber-700 border-amber-200/60 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/40",
+  CONFIRMED:
+    "bg-emerald-50 text-emerald-700 border-emerald-200/60 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/40",
+  DECLINED:
+    "bg-red-50 text-red-700 border-red-200/60 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800/40",
+};
+
+// ============================================================
 // Types
 // ============================================================
 
@@ -94,6 +118,7 @@ interface StaffAssignmentData {
 
 interface VendorAssignmentData {
   id: string;
+  status?: string;
   arrivalTime: string | null;
   setupTime: string | null;
   teardownTime: string | null;
@@ -831,6 +856,51 @@ function VendorsTab({
     });
   }
 
+  function handleConfirm(assignmentId: string) {
+    startTransition(async () => {
+      const result = await confirmVendorAssignment(assignmentId);
+      if (result.success) {
+        toast.success("Vendor confirmed");
+      } else {
+        toast.error(result.error || "Failed to confirm vendor");
+      }
+    });
+  }
+
+  function handleDecline(assignmentId: string) {
+    const reason = window.prompt(
+      "Reason for declining (optional):"
+    );
+    // A null return means the user cancelled the prompt — abort the action.
+    if (reason === null) return;
+    startTransition(async () => {
+      const result = await declineVendorAssignment(
+        assignmentId,
+        reason.trim() || undefined
+      );
+      if (result.success) {
+        toast.success("Vendor marked as declined");
+      } else {
+        toast.error(result.error || "Failed to decline vendor");
+      }
+    });
+  }
+
+  function handleRemind(assignmentId: string) {
+    startTransition(async () => {
+      const result = await remindVendorAssignment(assignmentId);
+      if (result.success) {
+        toast.success(
+          result.data.sent
+            ? "Reminder sent to vendor"
+            : "Reminder recorded (no contact channel available)"
+        );
+      } else {
+        toast.error(result.error || "Failed to send reminder");
+      }
+    });
+  }
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -953,9 +1023,17 @@ function VendorsTab({
                 className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex-1 space-y-1">
-                  <p className="font-medium text-sm">
-                    {assignment.bookingVendor.vendor.name}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-sm">
+                      {assignment.bookingVendor.vendor.name}
+                    </p>
+                    {assignment.status && (
+                      <StatusBadge
+                        status={assignment.status}
+                        colorMap={VENDOR_ASSIGNMENT_LIFECYCLE_COLORS}
+                      />
+                    )}
+                  </div>
                   <p className="text-muted-foreground text-xs">
                     {VENDOR_CATEGORY_LABELS[
                       assignment.bookingVendor.vendor.category
@@ -983,7 +1061,50 @@ function VendorsTab({
                     </p>
                   )}
                 </div>
-                <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {assignment.status === "NOTIFIED" ? (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleConfirm(assignment.id)}
+                        disabled={isPending}
+                        className="text-emerald-600 hover:text-emerald-700"
+                      >
+                        <CheckIcon className="mr-1.5 size-4" />
+                        Confirm
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDecline(assignment.id)}
+                        disabled={isPending}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <XIcon className="mr-1.5 size-4" />
+                        Decline
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleRemind(assignment.id)}
+                        disabled={isPending}
+                      >
+                        <BellIcon className="mr-1.5 size-4" />
+                        Remind
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled
+                      className="text-muted-foreground"
+                    >
+                      <BellIcon className="mr-1.5 size-4" />
+                      Remind
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="sm"

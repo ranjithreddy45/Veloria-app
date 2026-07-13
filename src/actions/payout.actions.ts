@@ -220,6 +220,7 @@ export async function createPayout(data: CreatePayoutInput) {
         referenceNumber: generateReferenceNumber(),
         vendorId,
         bookingId,
+        billId: payoutData.billId ?? null,
         notes: payoutData.notes || null,
         createdById: session.user.id as string,
       },

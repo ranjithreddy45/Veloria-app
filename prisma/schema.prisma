@@ -2119,11 +2119,48 @@ model Payout {
   vendor       Vendor?  @relation(fields: [vendorId], references: [id])
   bookingId    String?
   booking      Booking? @relation(fields: [bookingId], references: [id])
+  // Optional link to the vendor BILL this payout settles (accounts-payable). A
+  // bill's paid/outstanding is derived from its linked PAID payouts.
+  billId       String?
+  bill         VendorBill? @relation(fields: [billId], references: [id])
   approvedById String?
 
   @@index([status])
   @@index([vendorId])
   @@index([bookingId])
+  @@index([billId])
+}
+
+// Vendor BILL — the accounts-payable accrual missing from the payout flow. Captures
+// what a vendor is OWED for a booking (defaulted from BookingVendor.agreedRate),
+// accrues the liability to the GL on approval (Dr event-cost expense / Cr Accounts
+// Payable 2010), and is settled by one or more Payouts (Dr AP / Cr Bank — the
+// existing bridge). Paid/outstanding are DERIVED from the linked PAID payouts, so
+// there's no stored total to drift. No Prisma relation to Vendor/Booking (joined in
+// memory, matching HrReimbursementClaim) to keep those large models untouched.
+model VendorBill {
+  id                    String    @id @default(cuid())
+  billNumber            String    @unique // VB-YYMM-####
+  vendorId              String
+  bookingId             String?
+  bookingVendorId       String? // the agreed-rate source line, if derived
+  description           String?
+  amount                Decimal   @db.Decimal(12, 2) // amount owed (accrued)
+  expenseCode           String    @default("5230") // P&L expense account for the accrual
+  status                String    @default("DRAFT") // DRAFT | APPROVED | CANCELLED (paid-ness is derived)
+  accrualJournalEntryId String? // GL accrual entry, set on approval (idempotency guard)
+  notes                 String?   @db.Text
+  createdById           String?
+  approvedById          String?
+  approvedAt            DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  payouts Payout[]
+
+  @@index([vendorId, status])
+  @@index([bookingId])
+  @@index([status])
 }
 
 // 8.2 Commission Tracking
@@ -6650,6 +6687,11 @@ model Beo {
   status              String        @default("DRAFT") // DRAFT | PUBLISHED | LOCKED
   covers              Int?
   runOfShow           Json? // [{ time, activity, owner, notes }]
+  // Frozen vendor-package snapshots captured onto this BEO — [{ vendorPackageId,
+  // vendorName, name, category, vendorPrice, priceUnit, sections:[{name, items:[{
+  // name, type, chosen:[] }]}], capturedAt }]. Decouples the BEO from later edits
+  // to the live VendorPackage so the agreed scope/price can't drift.
+  packageSnapshotJson Json? // VendorPackageSnapshot[]
   menuNotes           String?       @db.Text
   floorPlanNotes      String?       @db.Text
   avNotes             String?       @db.Text

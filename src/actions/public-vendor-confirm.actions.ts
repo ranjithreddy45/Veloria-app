@@ -23,6 +23,7 @@ import { headers } from "next/headers";
 import { z } from "zod";
 import { assertTransition } from "@/lib/ops/state-machine";
 import { SLOT_LABEL } from "@/lib/sales/slot";
+import { reportSystemFailure } from "@/lib/ops-alert";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -228,6 +229,16 @@ export async function submitVendorResponse(
         return { success: true, data: { status: target, alreadyDone: true } };
       }
       return { success: false, error: "This request was just updated. Please reload." };
+    }
+
+    // A vendor DECLINING leaves a gap — alert ops to reassign (no auto-backfill yet).
+    if (target === "DECLINED") {
+      void reportSystemFailure({
+        area: "Vendor assignment — ACTION NEEDED",
+        title: "A vendor DECLINED an assignment — reassign",
+        detail: `Assignment ${a.id} was declined by the vendor${trimmedNote ? `: "${trimmedNote}"` : ""}. Assign an alternate vendor for this operation.`,
+        actionUrl: "/bookings",
+      }).catch(() => {});
     }
 
     return { success: true, data: { status: target, alreadyDone: false } };
