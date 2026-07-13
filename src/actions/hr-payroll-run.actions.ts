@@ -293,6 +293,26 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
     reimbByEmp.set(r.employeeId, list);
   }
 
+  // ---- Recurring earnings/deductions active for THIS run's month ----
+  // Active within [start, end]: started on/before this period, not yet ended.
+  const recurring = await prisma.hrRecurringPay.findMany({
+    where: {
+      active: true,
+      employeeId: { in: employees.map((e) => e.id) },
+      AND: [
+        { OR: [{ startFy: { lt: run.fy } }, { startFy: run.fy, startMonth: { lte: run.month } }] },
+        { OR: [{ endFy: null }, { endFy: { gt: run.fy } }, { endFy: run.fy, endMonth: { gte: run.month } }] },
+      ],
+    },
+    select: { employeeId: true, kind: true, code: true, name: true, amount: true, taxable: true },
+  });
+  const recurringByEmp = new Map<string, typeof recurring>();
+  for (const r of recurring) {
+    const list = recurringByEmp.get(r.employeeId) ?? [];
+    list.push(r);
+    recurringByEmp.set(r.employeeId, list);
+  }
+
   await prisma.$transaction(async (tx) => {
     for (const emp of employees) {
       const struct = structByEmp.get(emp.id);
@@ -300,10 +320,20 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
         skipped++;
         continue;
       }
-      const lines = (struct.lines as unknown as StructureLine[]) ?? [];
+      const baseLines = (struct.lines as unknown as StructureLine[]) ?? [];
       const sheet = sheetByEmp.get(emp.id);
       const empArrears = arrearsByEmp.get(emp.id) ?? [];
       const empReimb = reimbByEmp.get(emp.id) ?? [];
+      const empRecurring = recurringByEmp.get(emp.id) ?? [];
+      // Recurring EARNINGS join the structure lines (LOP-prorated like allowances);
+      // recurring DEDUCTIONS are fixed (non-prorated) via fixedDeductions.
+      const recurringEarnLines: StructureLine[] = empRecurring
+        .filter((r) => r.kind === "EARNING")
+        .map((r) => ({ code: r.code, name: r.name, kind: "EARNING", monthly: Number(r.amount), taxable: r.taxable, statutory: "NONE" }));
+      const lines = recurringEarnLines.length ? [...baseLines, ...recurringEarnLines] : baseLines;
+      const recurringFixedDeductions = empRecurring
+        .filter((r) => r.kind === "DEDUCTION")
+        .map((r) => ({ code: r.code, name: r.name, amount: Number(r.amount) }));
       const c = computePayslip({
         lines,
         lopDays: sheet?.lop ?? 0,
@@ -322,6 +352,7 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
           ptApplicable: a.ptApplicable,
         })),
         reimbursements: empReimb.map((r) => ({ amount: Number(r.amount), taxable: r.taxable })),
+        fixedDeductions: recurringFixedDeductions,
       });
 
       // Stamp the arrears paid in this run (idempotent — a re-run re-marks the

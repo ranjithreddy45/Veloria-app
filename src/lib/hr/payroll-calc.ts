@@ -287,6 +287,12 @@ export interface PayslipInput {
    * reimbursement adds to the income-tax base.
    */
   reimbursements?: ReimbursementInput[];
+  /**
+   * Fixed (non-prorated) deductions applied in full this month — e.g. a recurring
+   * society deduction or a standing recovery. Unlike structure DEDUCTION lines
+   * (which pro-rate for LOP), these are charged at their full amount.
+   */
+  fixedDeductions?: { code: string; name: string; amount: number }[];
 }
 
 export interface ReimbursementInput {
@@ -492,7 +498,12 @@ export function computePayslip(input: PayslipInput): PayslipComputation {
     .filter((l) => l.kind === "DEDUCTION")
     .map((l) => ({ code: l.code, name: l.name, amount: r2(l.monthly * payFactor) }));
 
-  const deductions = [...statDeductions, ...otherDeductions];
+  // Fixed (non-prorated) deductions — recurring society/standing recoveries.
+  const fixedDeductions = (input.fixedDeductions ?? [])
+    .map((d) => ({ code: d.code, name: d.name, amount: r2(d.amount) }))
+    .filter((d) => d.amount > 0);
+
+  const deductions = [...statDeductions, ...otherDeductions, ...fixedDeductions];
   const totalDeductions = r2(deductions.reduce((s, d) => s + d.amount, 0));
   const net = r2(grossOut - totalDeductions);
 

@@ -167,6 +167,19 @@ describe("computePayslip statutory", () => {
     expect(taxed.esi).toBe(base.esi);
   });
 
+  it("applies a fixed (non-prorated) deduction in full even in a heavy-LOP month", () => {
+    const lines = [earn("BASIC", 20000), earn("SPECIAL", 20000)];
+    // Structure DEDUCTION lines pro-rate; a fixedDeduction does not.
+    const full = computePayslip({ lines, monthDays: 30, fixedDeductions: [{ code: "SOC", name: "Society", amount: 500 }] });
+    expect(full.deductions.some((d) => d.code === "SOC" && d.amount === 500)).toBe(true);
+    const lop = computePayslip({
+      lines, lopDays: 15, payableDays: 30, monthDays: 30,
+      fixedDeductions: [{ code: "SOC", name: "Society", amount: 500 }],
+    });
+    // Charged in full despite 50% LOP.
+    expect(lop.deductions.find((d) => d.code === "SOC")?.amount).toBe(500);
+  });
+
   it("consumes DEDUCTION pay-components into the structure (was silently ignored)", () => {
     const comp = (
       code: string,

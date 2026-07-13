@@ -53,6 +53,7 @@ const JOBS = [
   "sell-down-refresh", // refresh SellDownTarget (after yield-demand-refresh so VenueDemandSignal occupancy is fresh)
   "franchise-revshare", // accrue monthly franchise revenue-share payouts
   "referral-payouts", // accrue converted-referral payouts + refresh partner rollups (after franchise-revshare)
+  "hr-reminders", // fire active HR reminder rules (birthday / work-anniversary / doc-expiry)
 ] as const;
 
 export async function GET(request: Request) {

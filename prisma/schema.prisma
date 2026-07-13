@@ -5085,6 +5085,7 @@ model Employee {
   department         Department?       @relation(fields: [departmentId], references: [id])
   designationId      String?
   designation        HrDesignation?    @relation(fields: [designationId], references: [id])
+  gradeId            String? // → HrGrade (in-memory join; no relation, keeps HrGrade back-relation-free)
 
   employmentType EmploymentType @default(FULL_TIME)
   dateOfJoining  DateTime?
@@ -8396,6 +8397,136 @@ model HrReimbursementClaim {
   @@index([entityId, status])
   @@index([payFy, payMonth, status])
   @@index([status])
+}
+
+// Per-employee RECURRING allowance/deduction that layers on top of the salary
+// structure (e.g. a standing transport allowance or a society deduction), distinct
+// from the one-off HrArrear/HrReimbursement and from a repayable HrAdvance. Active
+// within [start, end] pay periods. Earnings are LOP-prorated like structure lines;
+// deductions are fixed (not prorated). Reuses HrPayComponentKind.
+model HrRecurringPay {
+  id            String             @id @default(cuid())
+  entityId      String             @default("BILLION")
+  employeeId    String
+  kind          HrPayComponentKind @default(EARNING)
+  code          String
+  name          String
+  amount        Decimal            @db.Decimal(18, 2)
+  taxable       Boolean            @default(true)
+  pfApplicable  Boolean            @default(false)
+  esiApplicable Boolean            @default(false)
+  ptApplicable  Boolean            @default(false)
+  startFy       String
+  startMonth    Int
+  endFy         String? // null = open-ended
+  endMonth      Int?
+  active        Boolean            @default(true)
+  note          String?
+  createdById   String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@index([employeeId, active])
+  @@index([entityId, active])
+}
+
+// Attendance policy master — grace, half/full-day thresholds, weekly-offs, late→LOP
+// conversion, OT rules. One default per entity. (Master + CRUD; wiring into the LOP
+// calc is a follow-up money-adjacent integration.)
+model HrAttendancePolicy {
+  id                        String   @id @default(cuid())
+  entityId                  String   @default("BILLION")
+  name                      String
+  graceMinutes              Int      @default(10)
+  halfDayAfterMinutes       Int      @default(240)
+  fullDayMinutes            Int      @default(480)
+  lateMarksToLop            Int      @default(3) // N late marks → 1 LOP day
+  weeklyOffs                Int[] // 0=Sun … 6=Sat
+  otEnabled                 Boolean  @default(false)
+  otMultiplier              Decimal  @default(1) @db.Decimal(6, 2)
+  maxRegularizationsPerMonth Int     @default(3)
+  isDefault                 Boolean  @default(false)
+  active                    Boolean  @default(true)
+  createdById               String?
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  @@index([entityId, active])
+}
+
+// Pay grade / band master — a job level with an optional CTC range. Employees may
+// carry a gradeId (nullable; assignment is optional).
+model HrGrade {
+  id        String   @id @default(cuid())
+  entityId  String   @default("BILLION")
+  code      String
+  name      String
+  level     Int      @default(0)
+  minCtc    Decimal? @db.Decimal(18, 2)
+  maxCtc    Decimal? @db.Decimal(18, 2)
+  isActive  Boolean  @default(true)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([entityId, code])
+  @@index([entityId, isActive])
+}
+
+// Scheduled HR reminder rules — fired by the daily cron lane (birthdays, work
+// anniversaries, document expiry, probation/contract end). daysBefore lets a rule
+// notify ahead of the date.
+model HrReminderRule {
+  id           String   @id @default(cuid())
+  entityId     String   @default("BILLION")
+  name         String
+  trigger      String // BIRTHDAY | WORK_ANNIVERSARY | DOC_EXPIRY | PROBATION_END | CONTRACT_END
+  daysBefore   Int      @default(0)
+  channel      String   @default("EMAIL") // EMAIL | INAPP
+  audienceRole String? // role to notify (e.g. HR_MANAGER); null = the employee
+  messageTpl   String? // optional message body with {{placeholders}}
+  active        Boolean @default(true)
+  lastRunOn    DateTime? @db.Date // idempotency guard for the cron
+  createdById  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([entityId, active])
+}
+
+// Background-verification (BGV) check on a recruitment candidate.
+model RecBgvCheck {
+  id            String    @id @default(cuid())
+  candidateId   String
+  type          String // IDENTITY | EDUCATION | EMPLOYMENT | CRIMINAL | ADDRESS | REFERENCE
+  status        String    @default("PENDING") // PENDING | IN_PROGRESS | CLEARED | FLAGGED | FAILED
+  vendor        String?
+  requestedAt   DateTime  @default(now())
+  completedAt   DateTime?
+  remarks       String?
+  attachmentUrl String?   @db.Text
+  createdById   String?
+  updatedAt     DateTime  @updatedAt
+
+  @@index([candidateId, status])
+}
+
+// Required-document-type master — the mandatory documents an employee must have on
+// file. Missing mandatory docs are computed against HrDocument (scope EMPLOYEE) and
+// gate employee activation.
+model HrRequiredDocType {
+  id        String   @id @default(cuid())
+  entityId  String   @default("BILLION")
+  name      String
+  appliesTo String   @default("ALL") // ALL | FULL_TIME | PART_TIME | CONTRACT | INTERN
+  mandatory Boolean  @default(true)
+  order     Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([entityId, name])
+  @@index([entityId, active])
 }
 
 model HrPayComponent {
