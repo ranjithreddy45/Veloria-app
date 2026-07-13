@@ -693,7 +693,10 @@ model Booking {
   // credential for the public confirmation page.
   guestConfirmationDueAt DateTime?
   guestConfirmedAt       DateTime?
-  guestConfirmationToken String?   @unique
+  // Not @unique: adding a unique to the EXISTING Booking table trips prisma db
+  // push's data-loss guard (fails the prod deploy). The token is a collision-free
+  // randomUUID, so app-level uniqueness holds; look it up with findFirst.
+  guestConfirmationToken String?
   handoverMeeting        HandoverMeeting?
   totalAmount     Decimal       @db.Decimal(12, 2)
   currency        String        @default("INR")
@@ -759,6 +762,7 @@ model Booking {
   @@index([contactId])
   @@index([eventType]) // dashboard groupBy(eventType)
   @@index([status, date]) // active/upcoming filters by status + date range
+  @@index([guestConfirmationToken])
 }
 
 enum HandoverMeetingMode {
