@@ -697,6 +697,9 @@ model Booking {
   // push's data-loss guard (fails the prod deploy). The token is a collision-free
   // randomUUID, so app-level uniqueness holds; look it up with findFirst.
   guestConfirmationToken String?
+  guestConfirmedName     String? // who accepted (guest-typed name on the declaration)
+  guestTermsVersion      String? // T&C version accepted
+  guestConfirmedIp       String?
   handoverMeeting        HandoverMeeting?
   totalAmount     Decimal       @db.Decimal(12, 2)
   currency        String        @default("INR")
@@ -799,6 +802,19 @@ model HandoverMeeting {
 
   @@index([status])
   @@index([slaDueAt])
+}
+
+// Idempotency ledger for the pre-event interval reminders (48/24/12/4h). One row
+// per (booking, offset-hours, audience) so a reminder fires at most once per bucket.
+model EventReminderLog {
+  id          String   @id @default(cuid())
+  bookingId   String
+  offsetHours Int // 48 | 24 | 12 | 4
+  audience    String // VENDOR | GUEST | PROPERTY
+  sentAt      DateTime @default(now())
+
+  @@unique([bookingId, offsetHours, audience])
+  @@index([bookingId])
 }
 
 model BlackoutDate {
@@ -1630,6 +1646,10 @@ model OperationVendorAssignment {
   declinedAt   DateTime?
   remindedAt   DateTime?
   respondToken String?
+  // Vendor T&C acknowledgement captured on the public confirm page.
+  termsAcceptedAt DateTime?
+  termsVersion    String?
+  termsAcceptedIp String?
 }
 
 // 6.2 Event Day Manager
@@ -2178,6 +2198,9 @@ model Payout {
   // bill's paid/outstanding is derived from its linked PAID payouts.
   billId       String?
   bill         VendorBill? @relation(fields: [billId], references: [id])
+  // A vendor ADVANCE (prepayment before the bill is accrued): posts Dr 1300
+  // Advances-to-Vendors / Cr Bank on mark-paid, instead of Dr AP 2010.
+  isAdvance    Boolean  @default(false)
   approvedById String?
 
   @@index([status])
@@ -2689,6 +2712,8 @@ model GalleryItem {
   title        String?
   description  String?  @db.Text
   mediaType    String   @default("PHOTO")
+  // Event-day capture bucket: GENERAL | PRE_READINESS | POST_READINESS | DURING_EVENT.
+  kind         String   @default("GENERAL")
   url          String
   thumbnailUrl String?
   tags         String[] @default([])

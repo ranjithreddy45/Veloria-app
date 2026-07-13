@@ -60,6 +60,10 @@ import { getWorkOrders } from "@/actions/work-order.actions";
 import { getVendors } from "@/actions/vendor.actions";
 import { getHandoverMeeting } from "@/actions/handover.actions";
 import { HandoverCard, type HandoverMeeting } from "./_components/handover-card";
+import { BookingPhotos } from "./_components/booking-photos";
+import { GuestFeedbackCard } from "./_components/guest-feedback-card";
+import { getGalleryItems } from "@/actions/gallery.actions";
+import { hasPermission } from "@/lib/permissions";
 import { formatINR, cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Booking Details" };
@@ -127,11 +131,22 @@ export default async function BookingDetailPage({
   const servicesData = servicesResult.success ? servicesResult.data : null;
 
   // CR-005: Vendor work orders (Stage 3) + active-vendor list for the picker.
-  const [workOrdersResult, vendorsResult, handoverMeeting] = await Promise.all([
-    getWorkOrders(booking.id),
-    getVendors({ status: "ACTIVE", limit: 200 }),
-    getHandoverMeeting(booking.id),
-  ]);
+  // Also: event/readiness photos + any existing guest-feedback review.
+  const [workOrdersResult, vendorsResult, handoverMeeting, galleryResult, existingReview] =
+    await Promise.all([
+      getWorkOrders(booking.id),
+      getVendors({ status: "ACTIVE", limit: 200 }),
+      getHandoverMeeting(booking.id),
+      getGalleryItems({ bookingId: booking.id, limit: 200 }),
+      prisma.review.findFirst({
+        where: { bookingId: booking.id },
+        select: { id: true, rating: true, title: true, content: true },
+      }),
+    ]);
+  const galleryItems = galleryResult.success ? galleryResult.data.data : [];
+  const role = (session?.user as { role?: string } | undefined)?.role ?? "";
+  const canUploadPhotos = hasPermission(role, "gallery:create");
+  const canModerate = hasPermission(role, "reviews:moderate");
   const workOrders = workOrdersResult.success ? workOrdersResult.data : [];
   const vendorOptions = vendorsResult.success
     ? vendorsResult.data.data.map((v) => ({ id: v.id, name: v.name }))
@@ -347,6 +362,20 @@ export default async function BookingDetailPage({
             ? new Date(booking.guestConfirmedAt).toISOString()
             : null
         }
+      />
+
+      {/* Event / readiness photos (pre / post / during) */}
+      <BookingPhotos
+        bookingId={booking.id}
+        items={galleryItems}
+        canUploadPhotos={canUploadPhotos}
+      />
+
+      {/* Staff-entered guest feedback + rating */}
+      <GuestFeedbackCard
+        bookingId={booking.id}
+        review={existingReview}
+        canModerate={canModerate}
       />
 
       {/* Quick Access Links */}

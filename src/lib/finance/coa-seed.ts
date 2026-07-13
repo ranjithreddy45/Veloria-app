@@ -67,6 +67,7 @@ export const COA_TEMPLATE: CoaSeed[] = [
 export const FIN_ACCOUNT_CODES = {
   cash: "1010", bank: "1020", debtors: "1100", gstInput: "1200", tdsReceivable: "1210",
   creditors: "2010", gstOutput: "2100", tdsPayable: "2110", customerAdvances: "2300",
+  advancesToVendors: "1300",
   ownerPayouts: "2400", salariesPayable: "2230", pfPayable: "2200", esiPayable: "2210",
   ptPayable: "2220", retained: "3100", openingEquity: "3900",
   venueRental: "4010", managementFee: "4020", cateringCommission: "4030", decorCommission: "4040",

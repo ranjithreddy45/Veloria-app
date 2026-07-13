@@ -229,6 +229,7 @@ export async function createPayout(data: CreatePayoutInput) {
         vendorId,
         bookingId,
         billId: payoutData.billId ?? null,
+        isAdvance: payoutData.isAdvance ?? false,
         notes: payoutData.notes || null,
         createdById: session.user.id as string,
       },

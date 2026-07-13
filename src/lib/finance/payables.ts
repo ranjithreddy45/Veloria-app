@@ -24,8 +24,11 @@ export type BridgeResult =
 
 type Tx = Prisma.TransactionClient;
 
-// Which payable account each payout type settles.
-function payableCodeFor(type: string): string {
+// Which account each payout debits on disbursement.
+function payableCodeFor(type: string, isAdvance = false): string {
+  // A vendor ADVANCE is a prepayment: it debits the Advances-to-Vendors ASSET
+  // (1300), not a payable — the asset later nets against the accrued VendorBill.
+  if (isAdvance) return FIN_ACCOUNT_CODES.advancesToVendors; // 1300
   switch (type) {
     case "OWNER_PAYOUT":
       return FIN_ACCOUNT_CODES.ownerPayouts; // 2400
@@ -68,15 +71,16 @@ export async function postPayoutPaid(payoutId: string, byId?: string): Promise<B
       if (amount <= 0) return { posted: false, reason: "non-positive-amount" };
 
       const [payableId, bankId] = await Promise.all([
-        accountId(tx, payableCodeFor(payout.type)),
+        accountId(tx, payableCodeFor(payout.type, payout.isAdvance)),
         accountId(tx, FIN_ACCOUNT_CODES.bank),
       ]);
       if (!payableId || !bankId) return { posted: false, reason: "accounts-missing" };
 
       const ref = payout.referenceNumber ?? payout.id;
       const payee = payout.vendor?.name ?? payout.type.replace(/_/g, " ").toLowerCase();
+      const debitLabel = payout.isAdvance ? `Advance to ${payee} — ${ref}` : `${payee} — ${ref}`;
       const lines: JournalLineInput[] = [
-        { accountId: payableId, debit: amount, narration: `${payee} — ${ref}` },
+        { accountId: payableId, debit: amount, narration: debitLabel },
         { accountId: bankId, credit: amount, narration: `Payout ${ref}` },
       ];
 

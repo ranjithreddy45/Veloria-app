@@ -14,7 +14,9 @@ import { createPayout } from "@/actions/payout.actions";
 import { PAYOUT_TYPE_LABELS } from "@/lib/constants";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Card,
@@ -101,6 +103,7 @@ export function PayoutForm({ vendors, bookings, bills = [] }: PayoutFormProps) {
       vendorId: "",
       bookingId: "",
       billId: "",
+      isAdvance: false,
       notes: "",
     },
   });
@@ -129,6 +132,15 @@ export function PayoutForm({ vendors, bookings, bills = [] }: PayoutFormProps) {
       form.setValue("billId", "");
     }
   }, [selectedBillId, selectedType, billOptions, form]);
+
+  // An advance only applies to a vendor payment; force it off for other types
+  // so we never persist isAdvance on an owner payout or commission.
+  const isAdvance = form.watch("isAdvance");
+  React.useEffect(() => {
+    if (isAdvance && selectedType !== "VENDOR_PAYMENT") {
+      form.setValue("isAdvance", false);
+    }
+  }, [isAdvance, selectedType, form]);
 
   async function onSubmit(data: CreatePayoutInput) {
     setIsPending(true);
@@ -320,6 +332,42 @@ export function PayoutForm({ vendors, bookings, bills = [] }: PayoutFormProps) {
                         ))}
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+            {selectedType === "VENDOR_PAYMENT" && (
+              <FormField
+                control={form.control}
+                name="isAdvance"
+                render={({ field }) => (
+                  <FormItem className="sm:col-span-2">
+                    <div className="flex items-start gap-3 rounded-md border p-3">
+                      <FormControl>
+                        <Checkbox
+                          id="isAdvance"
+                          checked={!!field.value}
+                          onCheckedChange={(checked) =>
+                            field.onChange(checked === true)
+                          }
+                          className="mt-0.5"
+                        />
+                      </FormControl>
+                      <div className="space-y-1">
+                        <Label
+                          htmlFor="isAdvance"
+                          className="cursor-pointer font-medium"
+                        >
+                          Advance payment
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          A prepayment to the vendor before the bill is accrued
+                          (posts to Advances to Vendors, netted against the bill
+                          later).
+                        </p>
+                      </div>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}

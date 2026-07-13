@@ -48,6 +48,8 @@ export const createPayoutSchema = z.object({
     .string()
     .optional()
     .transform((v) => (v && v.trim() !== "" ? v : undefined)),
+  // Vendor ADVANCE (prepayment) — posts to Advances-to-Vendors (1300) on pay.
+  isAdvance: z.boolean().optional(),
   notes: z
     .string()
     .max(2000, "Notes must be at most 2000 characters")

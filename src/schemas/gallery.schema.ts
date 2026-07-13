@@ -38,6 +38,10 @@ export const galleryItemSchema = z.object({
   order: z.number().int().optional().default(0),
   bookingId: z.string().optional().or(z.literal("")),
   venueId: z.string().optional().or(z.literal("")),
+  // Event-day capture bucket (optional — the action defaults to GENERAL). Kept
+  // WITHOUT .default() so `kind` stays optional in the input type, otherwise every
+  // existing createGalleryItem caller would be forced to pass it.
+  kind: z.enum(["GENERAL", "PRE_READINESS", "POST_READINESS", "DURING_EVENT"]).optional(),
 });
 
 export type GalleryItemInput = z.infer<typeof galleryItemSchema>;

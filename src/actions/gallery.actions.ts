@@ -156,6 +156,7 @@ export async function createGalleryItem(data: GalleryItemInput) {
         title: itemData.title || null,
         description: itemData.description || null,
         mediaType: itemData.mediaType ?? "PHOTO",
+        kind: itemData.kind ?? "GENERAL",
         url: itemData.url,
         thumbnailUrl: itemData.thumbnailUrl || null,
         tags: itemData.tags ?? [],

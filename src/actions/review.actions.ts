@@ -426,3 +426,61 @@ export async function getCompletedBookingsForReview() {
     return { success: false as const, error: "Failed to fetch bookings" };
   }
 }
+
+// ============================================================
+// Staff-entered guest feedback + rating (item 10). submitReview is client-only
+// (must be the guest's own booking); this lets an ops/sales moderator record a
+// guest's post-event feedback on their behalf. It writes an unpublished Review
+// (isApproved/isPublic false) that flows through the normal moderation queue.
+// ============================================================
+export async function recordGuestFeedback(input: {
+  bookingId: string;
+  rating: number;
+  content: string;
+  title?: string;
+}): Promise<{ success: true; data: { id: string } } | { success: false; error: string }> {
+  const session = await auth();
+  const role = (session?.user as { role?: string } | undefined)?.role;
+  if (!session?.user?.id || !role || !hasPermission(role, "reviews:moderate")) {
+    return { success: false as const, error: "Not authorized." };
+  }
+  const rating = Math.round(Number(input.rating));
+  if (!(rating >= 1 && rating <= 5)) return { success: false as const, error: "Rating must be 1–5." };
+  const content = input.content?.trim();
+  if (!content) return { success: false as const, error: "Feedback text is required." };
+
+  const booking = await prisma.booking.findUnique({
+    where: { id: input.bookingId },
+    select: { id: true, contactId: true },
+  });
+  if (!booking) return { success: false as const, error: "Booking not found." };
+
+  // If a review already exists for this booking, update it; else create one.
+  const existing = await prisma.review.findFirst({ where: { bookingId: booking.id }, select: { id: true } });
+  let id: string;
+  if (existing) {
+    await prisma.review.update({
+      where: { id: existing.id },
+      data: { rating, content, title: input.title?.trim() || null },
+    });
+    id = existing.id;
+  } else {
+    const created = await prisma.review.create({
+      data: {
+        bookingId: booking.id,
+        contactId: booking.contactId,
+        rating,
+        content,
+        title: input.title?.trim() || null,
+        isApproved: false,
+        isPublic: false,
+      },
+      select: { id: true },
+    });
+    id = created.id;
+  }
+  await logActivity({ userId: session.user.id as string, action: "recorded_feedback", entityType: "Review", entityId: id });
+  revalidatePath(`/bookings/${booking.id}`);
+  revalidatePath("/reviews");
+  return { success: true as const, data: { id } };
+}

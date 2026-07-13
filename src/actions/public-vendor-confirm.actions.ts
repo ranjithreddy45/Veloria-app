@@ -24,6 +24,7 @@ import { z } from "zod";
 import { assertTransition } from "@/lib/ops/state-machine";
 import { SLOT_LABEL } from "@/lib/sales/slot";
 import { reportSystemFailure } from "@/lib/ops-alert";
+import { VENDOR_TERMS_VERSION } from "@/lib/legal/vendor-terms";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -163,7 +164,8 @@ export interface VendorResponseResult {
 export async function submitVendorResponse(
   token: string,
   response: "CONFIRM" | "DECLINE",
-  note?: string
+  note?: string,
+  termsAccepted?: boolean
 ): Promise<Result<VendorResponseResult>> {
   try {
     if (!tokenSchema.safeParse(token).success) {
@@ -171,6 +173,10 @@ export async function submitVendorResponse(
     }
     if (response !== "CONFIRM" && response !== "DECLINE") {
       return { success: false, error: "Please choose Confirm or Decline." };
+    }
+    // Confirming REQUIRES accepting the vendor Terms & Conditions.
+    if (response === "CONFIRM" && !termsAccepted) {
+      return { success: false, error: "Please accept the Terms & Conditions to confirm." };
     }
 
     const ip = await clientIp();
@@ -209,6 +215,9 @@ export async function submitVendorResponse(
               status: "CONFIRMED",
               confirmedAt: new Date(),
               declinedAt: null,
+              termsAcceptedAt: new Date(),
+              termsVersion: VENDOR_TERMS_VERSION,
+              termsAcceptedIp: ip,
               ...(trimmedNote ? { notes: `Vendor note: ${trimmedNote}` } : {}),
             }
           : {
