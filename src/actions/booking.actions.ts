@@ -11,6 +11,8 @@ import { serialize, formatINR } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
 import { notify } from "@/lib/notify";
 import { sendEmail } from "@/lib/email";
+import { sendSMSFireAndForget } from "@/lib/sms";
+import { sendWhatsApp } from "@/lib/integrations/whatsapp";
 import { bookingConfirmationEmail } from "@/lib/email-templates/booking-confirmation";
 import { triggerWorkflows } from "@/lib/workflow-executor";
 import { requestApprovalIfNeeded } from "@/lib/approval-engine";
@@ -921,6 +923,145 @@ export async function completeBooking(
   } catch (error) {
     console.error("[COMPLETE_BOOKING_ERROR]", error);
     return { success: false, error: "Failed to complete booking" };
+  }
+}
+
+// ============================================================
+// Confirm Booking — manual HOLD/TENTATIVE → CONFIRMED
+// ------------------------------------------------------------
+// The payment-driven auto-confirm (maybeConfirmBookingOnPayment) only fires when
+// a verified payment covers the 20% advance. A booking backed by a signed
+// contract or corporate credit — no upfront payment — would otherwise be stuck
+// on HOLD forever. This is the manual escape hatch: an authorised user flips it
+// to CONFIRMED, locking the slot, and the customer gets the same confirmation.
+// ============================================================
+
+const SLOT_LABEL_CONFIRM: Record<string, string> = {
+  MORNING: "Morning",
+  AFTERNOON: "Afternoon (11am–3pm)",
+  EVENING: "Evening (5pm–10pm)",
+  FULL_DAY: "Full Day",
+};
+
+export async function confirmBooking(id: string) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role, "bookings:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
+    const booking = await prisma.booking.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        status: true,
+        bookingNumber: true,
+        eventName: true,
+        date: true,
+        timeSlot: true,
+        createdById: true,
+        contact: { select: { firstName: true, lastName: true, email: true, phone: true } },
+        venue: { select: { name: true } },
+        createdBy: { select: { name: true, email: true, phone: true } },
+      },
+    });
+    if (!booking) {
+      return { success: false as const, error: "Booking not found" };
+    }
+
+    if (booking.status === "CONFIRMED") {
+      return { success: false as const, error: "Booking is already confirmed" };
+    }
+    if (booking.status === "COMPLETED") {
+      return { success: false as const, error: "A completed booking cannot be confirmed" };
+    }
+    if (booking.status === "CANCELLED") {
+      return { success: false as const, error: "A cancelled booking cannot be confirmed" };
+    }
+    if (booking.status !== "HOLD" && booking.status !== "TENTATIVE") {
+      return { success: false as const, error: "Only a held or tentative booking can be confirmed" };
+    }
+
+    // Atomic, once-only flip — mirrors maybeConfirmBookingOnPayment. A conditional
+    // updateMany keyed on the pre-confirm statuses means exactly one caller wins;
+    // if a concurrent payment-confirm (or another manual confirm) already flipped
+    // it, this sees count 0 and bails BEFORE any side effects.
+    const confirmed = await prisma.booking.updateMany({
+      where: { id, status: { in: ["HOLD", "TENTATIVE"] } },
+      data: { status: "CONFIRMED" },
+    });
+    if (confirmed.count === 0) {
+      return { success: false as const, error: "Booking could not be confirmed (status changed)" };
+    }
+
+    await logActivity({
+      userId: session.user.id as string,
+      action: "confirmed",
+      entityType: "Booking",
+      entityId: id,
+    });
+
+    // Best-effort customer confirmation — a minimal replica of the customer-facing
+    // notifications maybeConfirmBookingOnPayment sends (owner notify + email + SMS +
+    // WhatsApp). Deliberately NOT re-running the payment-anchored ops/vendor
+    // provisioning here — that stays owned by the payment path. Never blocks the flip.
+    try {
+      const dateStr = new Date(booking.date).toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+      const slot = SLOT_LABEL_CONFIRM[booking.timeSlot] ?? booking.timeSlot;
+      const name = `${booking.contact?.firstName ?? "Guest"} ${booking.contact?.lastName ?? ""}`.trim();
+      const poc = booking.createdBy;
+
+      if (booking.createdById) {
+        notify({
+          userId: booking.createdById,
+          type: "BOOKING_CREATED",
+          title: "Slot confirmed",
+          message: `${booking.bookingNumber} (${booking.eventName}) is now CONFIRMED for ${dateStr}, ${slot}.`,
+          actionUrl: `/bookings/${id}`,
+        });
+      }
+
+      const pocLine = poc?.name
+        ? ` Your point of contact is ${poc.name}${poc.phone ? ` (${poc.phone})` : ""}.`
+        : "";
+      const line = `Hi ${booking.contact?.firstName ?? "there"}, your booking ${booking.bookingNumber} at ${booking.venue?.name ?? "Veloria Grand"} is CONFIRMED for ${dateStr} (${slot}).${pocLine} — Veloria Grand`;
+
+      if (booking.contact?.email) {
+        sendEmail({
+          to: booking.contact.email,
+          subject: `Booking Confirmed — ${booking.bookingNumber}`,
+          html: `<p>Dear ${name || "Guest"},</p><p>Your booking <strong>${booking.bookingNumber}</strong> at <strong>${booking.venue?.name ?? "Veloria Grand"}</strong> is <strong>confirmed</strong> for <strong>${dateStr}</strong> (${slot}).</p><p>The slot is now locked in your name.</p>${
+            poc?.name
+              ? `<p><strong>Your point of contact:</strong> ${poc.name}${poc.phone ? ` · ${poc.phone}` : ""}${poc.email ? ` · ${poc.email}` : ""}</p>`
+              : ""
+          }<p>Warm regards,<br/>Veloria Grand</p>`,
+        }).catch((e) => console.error("[CONFIRM_BOOKING_EMAIL_ERROR]", e));
+      }
+      if (booking.contact?.phone) {
+        sendSMSFireAndForget({ to: booking.contact.phone, message: line });
+        sendWhatsApp({ to: booking.contact.phone, message: line }).catch((e) =>
+          console.error("[CONFIRM_BOOKING_WA_ERROR]", e)
+        );
+      }
+    } catch (e) {
+      console.error("[CONFIRM_BOOKING_NOTIFY_ERROR]", e);
+    }
+
+    revalidatePath("/bookings");
+    revalidatePath(`/bookings/${id}`);
+    revalidatePath("/bookings/calendar");
+    return { success: true as const, data: { id } };
+  } catch (error) {
+    console.error("[CONFIRM_BOOKING_ERROR]", error);
+    return { success: false as const, error: "Failed to confirm booking" };
   }
 }
 

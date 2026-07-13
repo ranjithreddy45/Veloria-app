@@ -402,6 +402,17 @@ async function calculateVendorScores(
       },
     });
 
+    // Also persist the rolling quality score onto the Vendor row so the
+    // vendor list/detail UI has a live value (best-effort, non-throwing).
+    await prisma.vendor
+      .update({
+        where: { id: vendorId },
+        data: {
+          qualityScore: Math.max(0, Math.min(100, Math.round(qualityScore))),
+        },
+      })
+      .catch(() => {});
+
     processedCount++;
   }
 

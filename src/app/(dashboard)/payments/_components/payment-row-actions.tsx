@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   XCircle,
   Loader2,
+  RotateCcw,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ import {
   requestPaymentCancellation,
   approvePaymentCancellation,
   rejectPaymentCancellation,
+  refundPayment,
 } from "@/actions/invoice-cancel.actions";
 
 export interface PaymentRowActionsProps {
@@ -57,9 +59,12 @@ export function PaymentRowActions({
   const router = useRouter();
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [reason, setReason] = React.useState("");
+  const [refundOpen, setRefundOpen] = React.useState(false);
+  const [refundReason, setRefundReason] = React.useState("");
   const [isPending, startTransition] = React.useTransition();
 
   const canRequest = canCancel && status === "COMPLETED" && !cancelPending;
+  const canRefund = canCancel && status === "COMPLETED";
   const canReview = isManager && cancelPending;
 
   function submitRequest() {
@@ -76,6 +81,24 @@ export function PaymentRowActions({
       toast.success(isManager ? "Payment cancelled" : "Cancellation requested — awaiting manager approval");
       setDialogOpen(false);
       setReason("");
+      router.refresh();
+    });
+  }
+
+  function submitRefund() {
+    if (!refundReason.trim()) {
+      toast.error("Please enter a reason");
+      return;
+    }
+    startTransition(async () => {
+      const res = await refundPayment(paymentId, refundReason.trim());
+      if (!res.success) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Payment refunded");
+      setRefundOpen(false);
+      setRefundReason("");
       router.refresh();
     });
   }
@@ -124,6 +147,22 @@ export function PaymentRowActions({
               >
                 <BanIcon className="mr-2 size-4" />
                 {isManager ? "Cancel payment" : "Request cancellation"}
+              </DropdownMenuItem>
+            </>
+          )}
+
+          {canRefund && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-red-600 focus:text-red-700"
+                onSelect={(e) => {
+                  e.preventDefault();
+                  setRefundOpen(true);
+                }}
+              >
+                <RotateCcw className="mr-2 size-4" />
+                Refund
               </DropdownMenuItem>
             </>
           )}
@@ -182,6 +221,38 @@ export function PaymentRowActions({
             <Button onClick={submitRequest} disabled={isPending} className="bg-red-600 hover:bg-red-700">
               {isPending ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
               {isManager ? "Cancel payment" : "Submit request"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={refundOpen} onOpenChange={setRefundOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Refund payment</DialogTitle>
+            <DialogDescription>
+              This <strong>returns money to the customer</strong>. It reverses the receipt in the
+              ledger, marks the payment as refunded and restores the invoice balance. For online
+              (Razorpay) payments a gateway refund is issued automatically. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="pay-refund-reason">Reason *</Label>
+            <Textarea
+              id="pay-refund-reason"
+              value={refundReason}
+              onChange={(e) => setRefundReason(e.target.value)}
+              placeholder="Why is this payment being refunded?"
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRefundOpen(false)} disabled={isPending}>
+              Close
+            </Button>
+            <Button onClick={submitRefund} disabled={isPending} className="bg-red-600 hover:bg-red-700">
+              {isPending ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
+              Refund payment
             </Button>
           </DialogFooter>
         </DialogContent>

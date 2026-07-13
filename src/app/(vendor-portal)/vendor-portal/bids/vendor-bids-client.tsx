@@ -1,7 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { Gavel, Plus, Filter, Clock } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Gavel, Plus, Filter, Clock, X } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -37,7 +39,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { VENDOR_BID_STATUS_COLORS } from "@/lib/constants";
 import { formatINR, formatDate } from "@/lib/utils";
-import { getVendorBids, submitVendorBid } from "@/actions/vendor-portal.actions";
+import {
+  getVendorBids,
+  submitVendorBid,
+  withdrawBid,
+} from "@/actions/vendor-portal.actions";
 import type { VendorBidStatus } from "@prisma/client";
 
 // ============================================================
@@ -89,9 +95,14 @@ interface VendorBidsClientProps {
 // ============================================================
 
 export function VendorBidsClient({ initialData, availableBookings }: VendorBidsClientProps) {
+  const router = useRouter();
   const [data, setData] = React.useState(initialData);
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
   const [loading, setLoading] = React.useState(false);
+
+  // Withdraw flow (confirm dialog + pending state).
+  const [withdrawTarget, setWithdrawTarget] = React.useState<Bid | null>(null);
+  const [withdrawing, startWithdraw] = React.useTransition();
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -123,6 +134,22 @@ export function VendorBidsClient({ initialData, availableBookings }: VendorBidsC
   const handleStatusChange = (value: string) => {
     setStatusFilter(value);
     fetchBids(value, 1);
+  };
+
+  const confirmWithdraw = () => {
+    if (!withdrawTarget) return;
+    const target = withdrawTarget;
+    startWithdraw(async () => {
+      const result = await withdrawBid(target.id);
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Bid withdrawn");
+      setWithdrawTarget(null);
+      await fetchBids(statusFilter, data.page);
+      router.refresh();
+    });
   };
 
   const handleSubmitBid = async () => {
@@ -326,6 +353,7 @@ export function VendorBidsClient({ initialData, availableBookings }: VendorBidsC
                       <TableHead>Status</TableHead>
                       <TableHead>Submitted</TableHead>
                       <TableHead>Responded</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -364,6 +392,21 @@ export function VendorBidsClient({ initialData, availableBookings }: VendorBidsC
                         </TableCell>
                         <TableCell className="whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400">
                           {bid.respondedAt ? formatDate(bid.respondedAt) : "--"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {bid.status === "PENDING" ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1 border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/30"
+                              onClick={() => setWithdrawTarget(bid)}
+                            >
+                              <X className="size-3.5" />
+                              Withdraw
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-zinc-400 dark:text-zinc-500">--</span>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -415,6 +458,19 @@ export function VendorBidsClient({ initialData, availableBookings }: VendorBidsC
                         &quot;{bid.message}&quot;
                       </p>
                     )}
+                    {bid.status === "PENDING" && (
+                      <div className="mt-3 flex justify-end">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1 border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/30"
+                          onClick={() => setWithdrawTarget(bid)}
+                        >
+                          <X className="size-3.5" />
+                          Withdraw
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -449,6 +505,43 @@ export function VendorBidsClient({ initialData, availableBookings }: VendorBidsC
           )}
         </CardContent>
       </Card>
+
+      {/* Withdraw confirmation dialog */}
+      <Dialog
+        open={withdrawTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setWithdrawTarget(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Withdraw bid</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            Withdraw your {withdrawTarget ? formatINR(withdrawTarget.amount) : ""} bid on{" "}
+            <span className="font-medium text-zinc-700 dark:text-zinc-200">
+              {withdrawTarget?.booking.eventName}
+            </span>
+            ? This removes it permanently and can&apos;t be undone.
+          </p>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => setWithdrawTarget(null)}
+              disabled={withdrawing}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-red-600 hover:bg-red-700"
+              onClick={confirmWithdraw}
+              disabled={withdrawing}
+            >
+              {withdrawing ? "Withdrawing..." : "Withdraw Bid"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

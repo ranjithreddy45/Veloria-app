@@ -120,6 +120,14 @@ export async function getPayoutById(id: string) {
             status: true,
           },
         },
+        bill: {
+          select: {
+            id: true,
+            billNumber: true,
+            amount: true,
+            status: true,
+          },
+        },
       },
     });
 

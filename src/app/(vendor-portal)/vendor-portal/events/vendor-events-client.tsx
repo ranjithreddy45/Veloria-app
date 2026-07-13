@@ -1,13 +1,33 @@
 "use client";
 
 import * as React from "react";
-import { CalendarCheck, MapPin, Users, Clock, Filter } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import {
+  CalendarCheck,
+  MapPin,
+  Users,
+  Clock,
+  Filter,
+  CheckCircle2,
+  XCircle,
+  ClipboardList,
+} from "lucide-react";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -31,8 +51,19 @@ import {
   TIME_SLOT_LABELS,
 } from "@/lib/constants";
 import { formatDate } from "@/lib/utils";
-import { getVendorEvents } from "@/actions/vendor-portal.actions";
+import {
+  getVendorEvents,
+  getMyOperationAssignments,
+  respondToMyAssignment,
+} from "@/actions/vendor-portal.actions";
 import type { VendorAssignmentStatus } from "@prisma/client";
+
+// Operation-assignment status has no shared colorMap (NOTIFIED|CONFIRMED|DECLINED).
+const OP_ASSIGNMENT_STATUS_COLORS: Record<string, string> = {
+  NOTIFIED: "bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400",
+  CONFIRMED: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400",
+  DECLINED: "bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400",
+};
 
 // ============================================================
 // Types
@@ -65,6 +96,27 @@ interface VendorEventsData {
   totalPages: number;
 }
 
+interface OpAssignment {
+  id: string;
+  status: string;
+  actionable: boolean;
+  role: string | null;
+  arrivalTime: string | null;
+  setupTime: string | null;
+  teardownTime: string | null;
+  notes: string | null;
+  operationStatus: string;
+  booking: {
+    id: string;
+    bookingNumber: string;
+    eventName: string;
+    eventType: string;
+    date: string;
+    timeSlot: string;
+    venue: { id: string; name: string } | null;
+  };
+}
+
 interface VendorEventsClientProps {
   initialData: VendorEventsData;
 }
@@ -74,9 +126,75 @@ interface VendorEventsClientProps {
 // ============================================================
 
 export function VendorEventsClient({ initialData }: VendorEventsClientProps) {
+  const router = useRouter();
   const [data, setData] = React.useState(initialData);
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
   const [loading, setLoading] = React.useState(false);
+
+  // Operation assignments (per-operation confirm/decline) — fetched client-side.
+  const [opAssignments, setOpAssignments] = React.useState<OpAssignment[]>([]);
+  const [opLoading, setOpLoading] = React.useState(true);
+  const [pending, startTransition] = React.useTransition();
+  const [pendingId, setPendingId] = React.useState<string | null>(null);
+
+  // Decline dialog state.
+  const [declineTarget, setDeclineTarget] = React.useState<OpAssignment | null>(null);
+  const [declineReason, setDeclineReason] = React.useState("");
+
+  const fetchOpAssignments = React.useCallback(async () => {
+    setOpLoading(true);
+    try {
+      const result = await getMyOperationAssignments();
+      if (result.success) {
+        setOpAssignments(result.data as OpAssignment[]);
+      }
+    } finally {
+      setOpLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    void fetchOpAssignments();
+  }, [fetchOpAssignments]);
+
+  const respond = React.useCallback(
+    (assignment: OpAssignment, action: "CONFIRM" | "DECLINE", note?: string) => {
+      setPendingId(assignment.id);
+      startTransition(async () => {
+        try {
+          const result = await respondToMyAssignment(assignment.id, action, note);
+          if (!result.success) {
+            toast.error(result.error);
+            return;
+          }
+          toast.success(
+            action === "CONFIRM"
+              ? "Assignment confirmed"
+              : "Assignment declined"
+          );
+          await fetchOpAssignments();
+          router.refresh();
+        } finally {
+          setPendingId(null);
+        }
+      });
+    },
+    [fetchOpAssignments, router]
+  );
+
+  const handleConfirm = (assignment: OpAssignment) => respond(assignment, "CONFIRM");
+
+  const openDecline = (assignment: OpAssignment) => {
+    setDeclineReason("");
+    setDeclineTarget(assignment);
+  };
+
+  const submitDecline = () => {
+    if (!declineTarget) return;
+    const target = declineTarget;
+    setDeclineTarget(null);
+    respond(target, "DECLINE", declineReason.trim() || undefined);
+  };
 
   const fetchEvents = React.useCallback(
     async (status?: string, page = 1) => {
@@ -134,6 +252,98 @@ export function VendorEventsClient({ initialData }: VendorEventsClientProps) {
           </Select>
         </div>
       </div>
+
+      {/* Operation Assignments — per-operation confirm/decline */}
+      {(opLoading || opAssignments.length > 0) && (
+        <Card className="border-zinc-200/80 shadow-sm dark:border-zinc-800">
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <ClipboardList className="size-4 text-violet-600 dark:text-violet-400" />
+              <CardTitle className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                Operation Assignments
+              </CardTitle>
+            </div>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Confirm or decline the operations you have been requested for.
+            </p>
+          </CardHeader>
+          <CardContent>
+            {opLoading ? (
+              <p className="py-6 text-center text-sm text-zinc-400 dark:text-zinc-500">
+                Loading assignments...
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {opAssignments.map((a) => (
+                  <div
+                    key={a.id}
+                    className="rounded-lg border border-zinc-100 bg-zinc-50/50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50"
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-zinc-900 dark:text-zinc-100">
+                            {a.booking.eventName}
+                          </p>
+                          <StatusBadge
+                            status={a.status}
+                            colorMap={OP_ASSIGNMENT_STATUS_COLORS}
+                          />
+                        </div>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                          {a.booking.bookingNumber} &middot; {a.booking.eventType}
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-3 text-xs text-zinc-500 dark:text-zinc-400">
+                          <span className="flex items-center gap-1">
+                            <Clock className="size-3" />
+                            {formatDate(a.booking.date)}
+                          </span>
+                          {a.booking.venue && (
+                            <span className="flex items-center gap-1">
+                              <MapPin className="size-3" />
+                              {a.booking.venue.name}
+                            </span>
+                          )}
+                          {a.role && (
+                            <span>
+                              Role: <span className="font-medium">{a.role}</span>
+                            </span>
+                          )}
+                          {a.arrivalTime && <span>Arrival: {a.arrivalTime}</span>}
+                        </div>
+                      </div>
+
+                      {a.actionable ? (
+                        <div className="flex shrink-0 gap-2">
+                          <Button
+                            size="sm"
+                            className="gap-1 bg-emerald-600 hover:bg-emerald-700"
+                            disabled={pending && pendingId === a.id}
+                            onClick={() => handleConfirm(a)}
+                          >
+                            <CheckCircle2 className="size-4" />
+                            Confirm
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1 border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/30"
+                            disabled={pending && pendingId === a.id}
+                            onClick={() => openDecline(a)}
+                          >
+                            <XCircle className="size-4" />
+                            Decline
+                          </Button>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Events Table */}
       <Card className="border-zinc-200/80 shadow-sm dark:border-zinc-800">
@@ -300,6 +510,46 @@ export function VendorEventsClient({ initialData }: VendorEventsClientProps) {
           )}
         </CardContent>
       </Card>
+
+      {/* Decline reason dialog */}
+      <Dialog
+        open={declineTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeclineTarget(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Decline assignment</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 pt-1">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              {declineTarget?.booking.eventName} &middot;{" "}
+              {declineTarget ? formatDate(declineTarget.booking.date) : ""}
+            </p>
+            <Label htmlFor="decline-reason">Reason (optional)</Label>
+            <Textarea
+              id="decline-reason"
+              rows={3}
+              placeholder="Let the team know why you can't take this on..."
+              value={declineReason}
+              onChange={(e) => setDeclineReason(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeclineTarget(null)}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-red-600 hover:bg-red-700"
+              disabled={pending}
+              onClick={submitDecline}
+            >
+              Decline
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

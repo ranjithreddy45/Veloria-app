@@ -932,6 +932,14 @@ model Payment {
   receiptUploadedAt DateTime?
   paidAt            DateTime?
 
+  // Refund (maker-checker). Set when a COMPLETED payment is refunded: the GL cash
+  // receipt is reversed, the invoice balance restored, and (for RAZORPAY) a gateway
+  // refund is issued — refundId holds the gateway refund ref (rfnd_…).
+  refundedAt   DateTime?
+  refundReason String?   @db.Text
+  refundId     String?
+  refundedById String?
+
   // Cancellation maker-checker (Vendor module spec §6a). Approving a cancel
   // reverses the payment's GL entry and restores the invoice balance.
   cancelPending       Boolean   @default(false)
@@ -4856,6 +4864,7 @@ enum SalesQuotationStatus {
   APPROVED
   SENT
   REJECTED
+  CONVERTED // a booking + invoice was generated from this quotation (terminal "won")
 }
 
 enum SalesQuotationSendMethod {

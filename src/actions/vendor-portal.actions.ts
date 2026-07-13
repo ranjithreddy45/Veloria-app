@@ -7,6 +7,7 @@ import { hasPermission } from "@/lib/permissions";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
 import { notify } from "@/lib/notify";
+import { assertTransition } from "@/lib/ops/state-machine";
 import {
   vendorPortalBidSchema,
   vendorEventsFilterSchema,
@@ -550,5 +551,286 @@ export async function getAvailableBookingsForBid() {
   } catch (error) {
     console.error("[GET_AVAILABLE_BOOKINGS_ERROR]", error);
     return { success: false as const, error: "Failed to fetch available bookings" };
+  }
+}
+
+// ============================================================
+// Get My Operation Assignments (per-operation vendor confirm/decline)
+// ------------------------------------------------------------
+// OperationVendorAssignment rows join to this vendor ONLY through
+// bookingVendor.vendorId — we filter on that so a vendor can never see another
+// vendor's operation assignments. `actionable` mirrors the public confirm flow:
+// the vendor can still respond only while the row is NOTIFIED.
+// ============================================================
+
+export async function getMyOperationAssignments() {
+  try {
+    const session = await auth();
+    if (!session?.user?.email) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role as string, "vendor-portal:access")) {
+      return { success: false as const, error: "Not authorized to access vendor portal" };
+    }
+
+    const vendor = await getCurrentVendor(session.user.email);
+    if (!vendor) {
+      return { success: false as const, error: "Vendor profile not found for this account" };
+    }
+
+    const assignments = await prisma.operationVendorAssignment.findMany({
+      // Ownership is enforced by the join: only rows whose bookingVendor belongs
+      // to the current vendor are ever returned.
+      where: { bookingVendor: { vendorId: vendor.id } },
+      select: {
+        id: true,
+        status: true,
+        arrivalTime: true,
+        setupTime: true,
+        teardownTime: true,
+        notes: true,
+        confirmedAt: true,
+        declinedAt: true,
+        createdAt: true,
+        operation: {
+          select: {
+            id: true,
+            status: true,
+          },
+        },
+        bookingVendor: {
+          select: {
+            role: true,
+            booking: {
+              select: {
+                id: true,
+                bookingNumber: true,
+                eventName: true,
+                eventType: true,
+                date: true,
+                timeSlot: true,
+                venue: { select: { id: true, name: true } },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const shaped = assignments.map((a) => ({
+      id: a.id,
+      status: a.status,
+      actionable: a.status === "NOTIFIED",
+      role: a.bookingVendor.role,
+      arrivalTime: a.arrivalTime,
+      setupTime: a.setupTime,
+      teardownTime: a.teardownTime,
+      notes: a.notes,
+      confirmedAt: a.confirmedAt,
+      declinedAt: a.declinedAt,
+      // EventOperation has no display name of its own; surface its lifecycle
+      // status so the vendor can tell operations apart, plus booking context.
+      operationStatus: a.operation.status,
+      booking: a.bookingVendor.booking,
+    }));
+
+    return { success: true as const, data: serialize(shaped) };
+  } catch (error) {
+    console.error("[GET_MY_OPERATION_ASSIGNMENTS_ERROR]", error);
+    return { success: false as const, error: "Failed to fetch operation assignments" };
+  }
+}
+
+// ============================================================
+// Respond to My Operation Assignment (Confirm / Decline)
+// ------------------------------------------------------------
+// Reuses the exact assertTransition + atomic status-guarded updateMany flip from
+// submitVendorResponse, but access is by the LOGGED-IN vendor (not a token): we
+// load the row, join through bookingVendor, and assert its vendorId === the
+// current vendor's id before touching anything.
+// ============================================================
+
+export async function respondToMyAssignment(
+  assignmentId: string,
+  action: "CONFIRM" | "DECLINE",
+  note?: string
+) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id || !session?.user?.email) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role as string, "vendor-portal:access")) {
+      return { success: false as const, error: "Not authorized to access vendor portal" };
+    }
+
+    if (action !== "CONFIRM" && action !== "DECLINE") {
+      return { success: false as const, error: "Please choose Confirm or Decline." };
+    }
+
+    const vendor = await getCurrentVendor(session.user.email);
+    if (!vendor) {
+      return { success: false as const, error: "Vendor profile not found for this account" };
+    }
+
+    const target: "CONFIRMED" | "DECLINED" =
+      action === "CONFIRM" ? "CONFIRMED" : "DECLINED";
+
+    const assignment = await prisma.operationVendorAssignment.findUnique({
+      where: { id: assignmentId },
+      select: {
+        id: true,
+        status: true,
+        bookingVendor: { select: { vendorId: true } },
+      },
+    });
+    if (!assignment) {
+      return { success: false as const, error: "Assignment not found" };
+    }
+
+    // Ownership check — never trust the client-supplied id blindly.
+    if (assignment.bookingVendor.vendorId !== vendor.id) {
+      return { success: false as const, error: "Not authorized" };
+    }
+
+    // Idempotent: re-submitting the SAME response is a no-op success.
+    if (assignment.status === target) {
+      revalidatePath("/vendor-portal/events");
+      return { success: true as const, data: { status: target, alreadyDone: true } };
+    }
+
+    const check = assertTransition("vendorAssignment", assignment.status, target);
+    if (!check.ok) {
+      return {
+        success: false as const,
+        error: check.error ?? "This assignment can no longer be changed.",
+      };
+    }
+
+    const trimmedNote = (note ?? "").trim().slice(0, 500);
+
+    // Atomic guard: only flip from the status we read (concurrency-safe).
+    const flipped = await prisma.operationVendorAssignment.updateMany({
+      where: { id: assignment.id, status: assignment.status },
+      data:
+        target === "CONFIRMED"
+          ? {
+              status: "CONFIRMED",
+              confirmedAt: new Date(),
+              declinedAt: null,
+              ...(trimmedNote ? { notes: `Vendor note: ${trimmedNote}` } : {}),
+            }
+          : {
+              status: "DECLINED",
+              declinedAt: new Date(),
+              confirmedAt: null,
+              ...(trimmedNote ? { notes: `Vendor declined: ${trimmedNote}` } : {}),
+            },
+    });
+
+    if (flipped.count === 0) {
+      const fresh = await prisma.operationVendorAssignment.findUnique({
+        where: { id: assignment.id },
+        select: { status: true },
+      });
+      if (fresh?.status === target) {
+        revalidatePath("/vendor-portal/events");
+        return { success: true as const, data: { status: target, alreadyDone: true } };
+      }
+      return { success: false as const, error: "This assignment was just updated. Please reload." };
+    }
+
+    logActivity({
+      userId: session.user.id as string,
+      action: target === "CONFIRMED" ? "confirmed" : "declined",
+      entityType: "OperationVendorAssignment",
+      entityId: assignment.id,
+      changes: { status: target, vendorId: vendor.id },
+    });
+
+    revalidatePath("/vendor-portal/events");
+    revalidatePath("/vendor-portal");
+    return { success: true as const, data: { status: target, alreadyDone: false } };
+  } catch (error) {
+    console.error("[RESPOND_TO_MY_ASSIGNMENT_ERROR]", error);
+    return { success: false as const, error: "Failed to update assignment" };
+  }
+}
+
+// ============================================================
+// Withdraw a Pending Bid
+// ------------------------------------------------------------
+// The VendorBidStatus enum is PENDING | ACCEPTED | REJECTED — there is NO
+// "WITHDRAWN" state, so a withdrawal DELETES the row (guarded to PENDING only so
+// an already-decided bid can never be retracted). The atomic deleteMany where
+// status=PENDING makes this concurrency-safe.
+// ============================================================
+
+export async function withdrawBid(bidId: string) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id || !session?.user?.email) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+
+    if (!hasPermission(session.user.role as string, "vendor-portal:bids")) {
+      return { success: false as const, error: "Not authorized to manage bids" };
+    }
+
+    const vendor = await getCurrentVendor(session.user.email);
+    if (!vendor) {
+      return { success: false as const, error: "Vendor profile not found for this account" };
+    }
+
+    const bid = await prisma.vendorBid.findUnique({
+      where: { id: bidId },
+      select: { id: true, vendorId: true, status: true, bookingId: true },
+    });
+    if (!bid) {
+      return { success: false as const, error: "Bid not found" };
+    }
+
+    // Ownership check — never trust the client-supplied id blindly.
+    if (bid.vendorId !== vendor.id) {
+      return { success: false as const, error: "Not authorized" };
+    }
+
+    if (bid.status !== "PENDING") {
+      return {
+        success: false as const,
+        error: "Only pending bids can be withdrawn.",
+      };
+    }
+
+    // No WITHDRAWN enum value exists → delete, guarded atomically to PENDING so a
+    // concurrent accept/reject wins instead of being silently discarded.
+    const removed = await prisma.vendorBid.deleteMany({
+      where: { id: bid.id, vendorId: vendor.id, status: "PENDING" },
+    });
+
+    if (removed.count === 0) {
+      return {
+        success: false as const,
+        error: "This bid was just updated and can no longer be withdrawn.",
+      };
+    }
+
+    logActivity({
+      userId: session.user.id as string,
+      action: "deleted",
+      entityType: "VendorBid",
+      entityId: bid.id,
+      changes: { withdrawn: true, vendorId: vendor.id, bookingId: bid.bookingId },
+    });
+
+    revalidatePath("/vendor-portal/bids");
+    revalidatePath("/vendor-portal");
+    return { success: true as const, data: { id: bid.id } };
+  } catch (error) {
+    console.error("[WITHDRAW_BID_ERROR]", error);
+    return { success: false as const, error: "Failed to withdraw bid" };
   }
 }

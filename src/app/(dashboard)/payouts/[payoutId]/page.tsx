@@ -272,6 +272,40 @@ export default async function PayoutDetailPage({
             </CardContent>
           </Card>
         )}
+
+        {/* Linked Bill Card */}
+        {payout.bill && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center justify-between">
+                <span>Linked Bill</span>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href="/payouts/bills">View Bills</Link>
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <p className="text-muted-foreground text-xs">Bill Number</p>
+                <p className="text-sm font-mono font-medium">
+                  {payout.bill.billNumber}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground text-xs">Bill Amount</p>
+                <p className="text-sm font-medium">
+                  {formatINR(payout.bill.amount)}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground text-xs">Status</p>
+                <Badge variant="outline" className="mt-0.5">
+                  {payout.bill.status}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

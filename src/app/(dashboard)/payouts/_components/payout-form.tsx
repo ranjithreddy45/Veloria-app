@@ -55,10 +55,25 @@ interface BookingOption {
   totalAmount: number;
 }
 
+interface BillOption {
+  id: string;
+  billNumber: string;
+  vendorId: string;
+  amount: number;
+  outstanding: number;
+}
+
 interface PayoutFormProps {
   vendors: VendorOption[];
   bookings: BookingOption[];
+  bills?: BillOption[];
 }
+
+const inr = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  maximumFractionDigits: 0,
+});
 
 // ============================================================
 // Type Options
@@ -72,7 +87,7 @@ const typeOptions = Object.entries(PAYOUT_TYPE_LABELS).map(
 // PayoutForm Component
 // ============================================================
 
-export function PayoutForm({ vendors, bookings }: PayoutFormProps) {
+export function PayoutForm({ vendors, bookings, bills = [] }: PayoutFormProps) {
   const router = useRouter();
   const [isPending, setIsPending] = React.useState(false);
 
@@ -85,9 +100,35 @@ export function PayoutForm({ vendors, bookings }: PayoutFormProps) {
       description: "",
       vendorId: "",
       bookingId: "",
+      billId: "",
       notes: "",
     },
   });
+
+  // The bill link only makes sense for a vendor payment; when a vendor is
+  // chosen we narrow the list to that vendor's outstanding bills.
+  const selectedType = form.watch("type");
+  const selectedVendorId = form.watch("vendorId");
+  const billOptions = React.useMemo(
+    () =>
+      selectedVendorId
+        ? bills.filter((b) => b.vendorId === selectedVendorId)
+        : bills,
+    [bills, selectedVendorId]
+  );
+
+  // Drop a stale bill selection if it no longer belongs to the chosen vendor /
+  // type, so we never submit a billId that isn't shown in the narrowed list.
+  const selectedBillId = form.watch("billId");
+  React.useEffect(() => {
+    if (
+      selectedBillId &&
+      (selectedType !== "VENDOR_PAYMENT" ||
+        !billOptions.some((b) => b.id === selectedBillId))
+    ) {
+      form.setValue("billId", "");
+    }
+  }, [selectedBillId, selectedType, billOptions, form]);
 
   async function onSubmit(data: CreatePayoutInput) {
     setIsPending(true);
@@ -248,6 +289,42 @@ export function PayoutForm({ vendors, bookings }: PayoutFormProps) {
                 </FormItem>
               )}
             />
+            {selectedType === "VENDOR_PAYMENT" && (
+              <FormField
+                control={form.control}
+                name="billId"
+                render={({ field }) => (
+                  <FormItem className="sm:col-span-2">
+                    <FormLabel>Bill (optional)</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue
+                            placeholder={
+                              billOptions.length === 0
+                                ? "No outstanding bills"
+                                : "Link a vendor bill (optional)"
+                            }
+                          />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {billOptions.map((bill) => (
+                          <SelectItem key={bill.id} value={bill.id}>
+                            {bill.billNumber} — {inr.format(bill.outstanding)}{" "}
+                            outstanding
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
           </CardContent>
         </Card>
 

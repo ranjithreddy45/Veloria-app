@@ -27,6 +27,7 @@ import {
 
 import { getWinbackStats, getWinbackTargets } from "@/actions/winback.actions";
 import type { WinbackStatus } from "@prisma/client";
+import { WinbackRowActions } from "./_components/winback-row-actions";
 
 export const metadata: Metadata = {
   title: "Win-back",
@@ -63,6 +64,9 @@ export default async function WinbackPage() {
   if (!hasPermission(session.user.role as string, "marketing:read")) {
     redirect("/not-authorized");
   }
+  // Operator actions (Suppress / Mark recovered) are gated by marketing:manage;
+  // read-only marketing roles still see the cockpit but without the controls.
+  const canManage = hasPermission(session.user.role as string, "marketing:manage");
 
   const [statsRes, targetsRes] = await Promise.all([
     getWinbackStats(),
@@ -175,6 +179,7 @@ export default async function WinbackPage() {
                   <TableHead className="text-right">Attempts</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead className="text-right">Lead</TableHead>
+                  {canManage && <TableHead className="text-right">Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -211,6 +216,11 @@ export default async function WinbackPage() {
                         <span className="text-muted-foreground">—</span>
                       )}
                     </TableCell>
+                    {canManage && (
+                      <TableCell className="text-right">
+                        <WinbackRowActions targetId={t.id} status={t.status} />
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>

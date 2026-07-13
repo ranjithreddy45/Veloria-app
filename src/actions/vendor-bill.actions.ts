@@ -250,6 +250,45 @@ export async function approveVendorBill(id: string): Promise<Result<{ entryNo: s
   }
 }
 
+export interface UpdateVendorBillInput {
+  amount?: number;
+  description?: string;
+  expenseCode?: string;
+  notes?: string;
+}
+
+export async function updateVendorBill(id: string, input: UpdateVendorBillInput): Promise<Result<{ id: string }>> {
+  const u = await gate("payouts:create");
+  if (!u) return { success: false, error: "Not authorized." };
+
+  const bill = await prisma.vendorBill.findUnique({ where: { id }, select: { status: true } });
+  if (!bill) return { success: false, error: "Bill not found." };
+  // A draft is the only editable state — once approved the amount is accrued to the GL.
+  if (bill.status !== "DRAFT") return { success: false, error: "Only a draft bill can be edited" };
+
+  const data: Prisma.VendorBillUpdateInput = {};
+
+  if (input.amount !== undefined) {
+    const amount = Number(input.amount);
+    if (!Number.isFinite(amount) || amount <= 0) return { success: false, error: "Bill amount must be greater than zero." };
+    data.amount = new Prisma.Decimal(amount.toFixed(2));
+  }
+  if (input.expenseCode !== undefined) {
+    if (!EXPENSE_CODES.includes(input.expenseCode)) return { success: false, error: "Invalid expense account." };
+    data.expenseCode = input.expenseCode;
+  }
+  if (input.description !== undefined) data.description = input.description.trim() || null;
+  if (input.notes !== undefined) data.notes = input.notes.trim() || null;
+
+  try {
+    await prisma.vendorBill.update({ where: { id }, data });
+    revalidatePath("/payouts/bills");
+    return { success: true, data: { id } };
+  } catch {
+    return { success: false, error: "Could not update the bill." };
+  }
+}
+
 export async function cancelVendorBill(id: string): Promise<Result<{ id: string }>> {
   const u = await gate("payouts:approve");
   if (!u) return { success: false, error: "Not authorized." };

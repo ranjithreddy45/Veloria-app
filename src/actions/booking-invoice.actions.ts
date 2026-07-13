@@ -172,8 +172,9 @@ export async function createBookingInvoiceFromQuotation(
       data: { status: "SENT" },
     });
 
-    // Replace the sentinel with the real invoice id.
-    await prisma.salesQuotation.update({ where: { id: quotationId }, data: { invoiceId } });
+    // Replace the sentinel with the real invoice id and mark the quotation CONVERTED
+    // (terminal "won") so open-vs-won can be read from status, not just invoiceId.
+    await prisma.salesQuotation.update({ where: { id: quotationId }, data: { invoiceId, status: "CONVERTED" } });
 
     revalidatePath(`/quotations/${quotationId}`);
     revalidatePath("/invoices");

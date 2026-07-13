@@ -23,6 +23,8 @@ import { logActivity } from "@/lib/activity-logger";
 import { notifyAwait } from "@/lib/notify";
 import { reverseReceivableEntry, reversePaymentEntry } from "@/lib/finance/receivables";
 import { allocatePaidAmountToInstallments } from "@/lib/payments/apply-capture";
+import Razorpay from "razorpay";
+import { razorpayConfigured, razorpayKeyId, razorpayKeySecret } from "@/lib/payments/razorpay-creds";
 
 // ---- Money helpers (paise-exact; never persist a micro-balance) ----
 function toPaise(rupees: number): number {
@@ -541,5 +543,99 @@ export async function rejectPaymentCancellation(paymentId: string) {
   } catch (error) {
     console.error("[REJECT_PAYMENT_CANCELLATION_ERROR]", error);
     return { success: false as const, error: "Failed to reject cancellation" };
+  }
+}
+
+// ============================================================
+// Refund a COMPLETED payment (money returned to the customer).
+// ------------------------------------------------------------
+// Distinct from cancellation: a refund actually returns money. For a RAZORPAY
+// payment the GATEWAY refund is issued FIRST (so the books never say "refunded"
+// while the gateway didn't); if it fails we abort with nothing changed. Then,
+// mirroring approvePaymentCancellation, we winner-gate the flip to REFUNDED,
+// restore the invoice balance/installments, and reverse the cash-receipt GL
+// entry. Gated on payments:cancel (the strong money-reversal permission).
+// ============================================================
+export async function refundPayment(paymentId: string, reason: string) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) return { success: false as const, error: "Unauthorized" };
+    if (!hasPermission(session.user.role as string, "payments:cancel")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+    if (!reason?.trim()) return { success: false as const, error: "A refund reason is required." };
+
+    const payment = await prisma.payment.findUnique({
+      where: { id: paymentId },
+      select: { id: true, status: true, amount: true, invoiceId: true, receiptNumber: true, method: true, transactionId: true },
+    });
+    if (!payment) return { success: false as const, error: "Payment not found" };
+    if (payment.status === "REFUNDED") return { success: false as const, error: "Payment is already refunded" };
+    if (payment.status !== "COMPLETED") return { success: false as const, error: "Only a completed payment can be refunded" };
+
+    // Gateway refund FIRST for Razorpay — abort (no book change) if it can't be issued.
+    let refundId: string | null = null;
+    if (payment.method === "RAZORPAY") {
+      if (!razorpayConfigured()) {
+        return { success: false as const, error: "Razorpay is not configured — cannot issue a gateway refund." };
+      }
+      if (!payment.transactionId) {
+        return { success: false as const, error: "This Razorpay payment has no gateway payment id on file — refund it in the Razorpay dashboard, then cancel the payment instead." };
+      }
+      try {
+        const razorpay = new Razorpay({ key_id: razorpayKeyId()!, key_secret: razorpayKeySecret()! });
+        const refund = await razorpay.payments.refund(payment.transactionId, { amount: toPaise(Number(payment.amount)) });
+        refundId = (refund as { id?: string }).id ?? null;
+      } catch (e) {
+        console.error("[REFUND_GATEWAY_ERROR]", paymentId, e);
+        return { success: false as const, error: "The gateway refund failed — nothing was changed. Check Razorpay and retry." };
+      }
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const flip = await tx.payment.updateMany({
+        where: { id: paymentId, status: "COMPLETED" },
+        data: {
+          status: "REFUNDED",
+          refundedAt: new Date(),
+          refundReason: reason.trim(),
+          refundedById: session.user!.id,
+          refundId,
+        },
+      });
+      if (flip.count !== 1) return { done: false as const };
+
+      const debited = await tx.invoice.update({
+        where: { id: payment.invoiceId },
+        data: { paidAmount: { decrement: Number(payment.amount) } },
+        select: { totalAmount: true, paidAmount: true, dueDate: true },
+      });
+      const paidPaise = Math.max(0, toPaise(Number(debited.paidAmount)));
+      const totalPaise = toPaise(Number(debited.totalAmount));
+      const balPaise = Math.max(0, totalPaise - paidPaise);
+      const pastDue = !!debited.dueDate && debited.dueDate < new Date();
+      // A refund moves the invoice off PAID. Fully refunded (no cash left) → REFUNDED;
+      // otherwise money remains → PARTIALLY_PAID (or OVERDUE past its due date).
+      const status = paidPaise <= 0 ? "REFUNDED" : pastDue ? "OVERDUE" : "PARTIALLY_PAID";
+      await tx.invoice.update({
+        where: { id: payment.invoiceId },
+        data: { paidAmount: toRupees(paidPaise), balanceDue: toRupees(balPaise), status },
+      });
+      await allocatePaidAmountToInstallments(tx, payment.invoiceId, toRupees(paidPaise));
+      return { done: true as const };
+    });
+    if (!result.done) return { success: false as const, error: "Payment was just modified by someone else" };
+
+    const rev = await reversePaymentEntry(paymentId, `Payment ${payment.receiptNumber ?? paymentId} refunded`, session.user.id);
+    if (!rev.ok) console.error("[REFUND_PAYMENT_GL]", paymentId, rev.error);
+
+    await logActivity({ userId: session.user.id as string, action: "refunded", entityType: "Payment", entityId: paymentId });
+    revalidatePath("/invoices");
+    revalidatePath(`/invoices/${payment.invoiceId}`);
+    revalidatePath("/payments");
+    return { success: true as const, data: { refundId } };
+  } catch (e) {
+    console.error("[REFUND_PAYMENT_ERROR]", e);
+    return { success: false as const, error: "Failed to refund the payment" };
   }
 }

@@ -4,9 +4,12 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { CheckCircle2Icon, XCircleIcon, Loader2Icon, ReceiptTextIcon } from "lucide-react";
+import { CheckCircle2Icon, XCircleIcon, Loader2Icon, ReceiptTextIcon, PencilIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -22,9 +25,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { StatusPill, type Hue } from "@/components/shared/status-pill";
 import { EmptyState } from "@/components/ui/empty-state";
-import { approveVendorBill, cancelVendorBill } from "@/actions/vendor-bill.actions";
+import { approveVendorBill, cancelVendorBill, updateVendorBill } from "@/actions/vendor-bill.actions";
 
 // ============================================================
 // Types
@@ -93,11 +104,143 @@ const FILTERS: { value: string; label: string }[] = [
 ];
 
 // ============================================================
+// Edit dialog (DRAFT only)
+// ============================================================
+
+const EXPENSE_OPTIONS: { value: string; label: string }[] = [
+  { value: "5010", label: "Catering (5010)" },
+  { value: "5020", label: "Décor (5020)" },
+  { value: "5030", label: "Staffing (5030)" },
+  { value: "5040", label: "AV (5040)" },
+  { value: "5230", label: "Procurement (5230)" },
+];
+
+function EditBillDialog({ bill }: { bill: BillRow }) {
+  const router = useRouter();
+  const [open, setOpen] = React.useState(false);
+  const [pending, startTransition] = React.useTransition();
+  const [amount, setAmount] = React.useState(String(bill.amount));
+  const [description, setDescription] = React.useState(bill.description ?? "");
+  const [expenseCode, setExpenseCode] = React.useState(bill.expenseCode);
+  const [notes, setNotes] = React.useState(bill.notes ?? "");
+
+  // Re-seed the fields whenever the dialog is (re)opened so edits start from truth.
+  React.useEffect(() => {
+    if (open) {
+      setAmount(String(bill.amount));
+      setDescription(bill.description ?? "");
+      setExpenseCode(bill.expenseCode);
+      setNotes(bill.notes ?? "");
+    }
+  }, [open, bill]);
+
+  function onSave() {
+    const amt = Number(amount);
+    if (!Number.isFinite(amt) || amt <= 0) {
+      toast.error("Bill amount must be greater than zero.");
+      return;
+    }
+    startTransition(async () => {
+      const res = await updateVendorBill(bill.id, {
+        amount: amt,
+        description,
+        expenseCode,
+        notes,
+      });
+      if (res.success) {
+        toast.success("Bill updated");
+        setOpen(false);
+        router.refresh();
+      } else {
+        toast.error(res.error);
+      }
+    });
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-8 gap-1.5 text-muted-foreground hover:text-foreground"
+        >
+          <PencilIcon className="size-3.5" />
+          Edit
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit bill {bill.billNumber}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="edit-bill-amount">Amount</Label>
+            <Input
+              id="edit-bill-amount"
+              type="number"
+              step="0.01"
+              min="0"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-bill-expense">Expense account</Label>
+            <Select value={expenseCode} onValueChange={setExpenseCode}>
+              <SelectTrigger id="edit-bill-expense" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {EXPENSE_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-bill-description">Description</Label>
+            <Input
+              id="edit-bill-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Brief description"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-bill-notes">Notes</Label>
+            <Textarea
+              id="edit-bill-notes"
+              rows={3}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Any additional notes..."
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={pending}>
+            Cancel
+          </Button>
+          <Button onClick={onSave} disabled={pending}>
+            {pending && <Loader2Icon className="mr-2 size-4 animate-spin" />}
+            Save changes
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ============================================================
 // Row action buttons (DRAFT only)
 // ============================================================
 
-function DraftActions({ id }: { id: string }) {
+function DraftActions({ bill }: { bill: BillRow }) {
   const router = useRouter();
+  const id = bill.id;
   const [pending, startTransition] = React.useTransition();
   const [action, setAction] = React.useState<"approve" | "cancel" | null>(null);
 
@@ -131,6 +274,7 @@ function DraftActions({ id }: { id: string }) {
 
   return (
     <div className="flex items-center justify-end gap-2">
+      <EditBillDialog bill={bill} />
       <Button
         size="sm"
         variant="outline"
@@ -266,7 +410,7 @@ export function BillsTable({ data }: { data: BillRow[] }) {
                   </TableCell>
                   <TableCell className="text-right">
                     {b.effectiveStatus === "DRAFT" ? (
-                      <DraftActions id={b.id} />
+                      <DraftActions bill={b} />
                     ) : (
                       <span className="text-muted-foreground">--</span>
                     )}

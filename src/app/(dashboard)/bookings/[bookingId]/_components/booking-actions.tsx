@@ -37,6 +37,7 @@ import {
   placeHold,
   releaseHold,
   completeBooking,
+  confirmBooking,
 } from "@/actions/booking.actions";
 import { celebrate } from "@/lib/celebrate";
 
@@ -130,6 +131,23 @@ export function BookingActions({ bookingId, currentStatus, canOverride = false }
     }
   }
 
+  async function handleConfirm() {
+    setIsPending(true);
+    try {
+      const result = await confirmBooking(bookingId);
+      if (result.success) {
+        toast.success("Booking confirmed — slot locked");
+        router.refresh();
+      } else {
+        toast.error(result.error);
+      }
+    } catch {
+      toast.error("Failed to confirm booking");
+    } finally {
+      setIsPending(false);
+    }
+  }
+
   async function handleReleaseHold() {
     setIsPending(true);
     try {
@@ -150,6 +168,7 @@ export function BookingActions({ bookingId, currentStatus, canOverride = false }
   const isCancelled = currentStatus === "CANCELLED";
   const isCompleted = currentStatus === "COMPLETED";
   const isHold = currentStatus === "HOLD";
+  const canConfirm = currentStatus === "HOLD" || currentStatus === "TENTATIVE";
 
   if (isCancelled || isCompleted) {
     return null;
@@ -165,6 +184,12 @@ export function BookingActions({ bookingId, currentStatus, canOverride = false }
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
+          {canConfirm && (
+            <DropdownMenuItem onClick={handleConfirm}>
+              <CheckCircle2Icon className="mr-2 size-4" />
+              Confirm booking
+            </DropdownMenuItem>
+          )}
           {isHold && (
             <DropdownMenuItem onClick={handleReleaseHold}>
               <UnlockIcon className="mr-2 size-4" />

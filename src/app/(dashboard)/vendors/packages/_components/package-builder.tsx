@@ -12,6 +12,10 @@ import {
   GripVerticalIcon,
   CheckIcon,
   AlertCircleIcon,
+  ChevronUpIcon,
+  ChevronDownIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -26,6 +30,7 @@ import {
   addPackageImage,
   setPackageCover,
   deletePackageImage,
+  reorderPackageImages,
 } from "@/actions/vendor-catalog.actions";
 import type { CategoryOption } from "@/app/(dashboard)/vendors/_components/vendor-module";
 import { Button } from "@/components/ui/button";
@@ -190,10 +195,22 @@ interface ItemEditorProps {
   item: LocalItem;
   onChange: (updated: LocalItem) => void;
   onRemove: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  isFirst: boolean;
+  isLast: boolean;
   fieldErrors?: Record<string, string>;
 }
 
-function ItemEditor({ item, onChange, onRemove }: ItemEditorProps) {
+function ItemEditor({
+  item,
+  onChange,
+  onRemove,
+  onMoveUp,
+  onMoveDown,
+  isFirst,
+  isLast,
+}: ItemEditorProps) {
   const update = (patch: Partial<LocalItem>) => onChange({ ...item, ...patch });
 
   const TYPE_LABELS: Record<ItemType, string> = {
@@ -213,6 +230,26 @@ function ItemEditor({ item, onChange, onRemove }: ItemEditorProps) {
           placeholder="Item name"
           className="h-8 flex-1 text-[13px]"
         />
+        <div className="flex shrink-0 items-center">
+          <button
+            type="button"
+            onClick={onMoveUp}
+            disabled={isFirst}
+            className="rounded p-1 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30 disabled:hover:text-muted-foreground"
+            aria-label="Move item up"
+          >
+            <ChevronUpIcon className="size-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={onMoveDown}
+            disabled={isLast}
+            className="rounded p-1 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30 disabled:hover:text-muted-foreground"
+            aria-label="Move item down"
+          >
+            <ChevronDownIcon className="size-3.5" />
+          </button>
+        </div>
         <button
           type="button"
           onClick={onRemove}
@@ -320,13 +357,34 @@ interface SectionEditorProps {
   index: number;
   onChange: (updated: LocalSection) => void;
   onRemove: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  isFirst: boolean;
+  isLast: boolean;
 }
 
-function SectionEditor({ section, index, onChange, onRemove }: SectionEditorProps) {
+function SectionEditor({
+  section,
+  index,
+  onChange,
+  onRemove,
+  onMoveUp,
+  onMoveDown,
+  isFirst,
+  isLast,
+}: SectionEditorProps) {
   const update = (patch: Partial<LocalSection>) => onChange({ ...section, ...patch });
 
   const addItem = () =>
     update({ items: [...section.items, emptyItem()] });
+
+  // Swap an item with its neighbour (reorder within this section).
+  const moveItem = (from: number, to: number) => {
+    if (to < 0 || to >= section.items.length) return;
+    const items = [...section.items];
+    [items[from], items[to]] = [items[to], items[from]];
+    update({ items });
+  };
 
   const totalItems = section.items.length;
 
@@ -343,6 +401,26 @@ function SectionEditor({ section, index, onChange, onRemove }: SectionEditorProp
         <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
           {totalItems} {totalItems === 1 ? "item" : "items"}
         </span>
+        <div className="flex shrink-0 items-center">
+          <button
+            type="button"
+            onClick={onMoveUp}
+            disabled={isFirst}
+            className="rounded p-1 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30 disabled:hover:text-muted-foreground"
+            aria-label="Move section up"
+          >
+            <ChevronUpIcon className="size-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={onMoveDown}
+            disabled={isLast}
+            className="rounded p-1 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30 disabled:hover:text-muted-foreground"
+            aria-label="Move section down"
+          >
+            <ChevronDownIcon className="size-3.5" />
+          </button>
+        </div>
         <button
           type="button"
           onClick={onRemove}
@@ -367,6 +445,10 @@ function SectionEditor({ section, index, onChange, onRemove }: SectionEditorProp
             onRemove={() =>
               update({ items: section.items.filter((_, i) => i !== ii) })
             }
+            onMoveUp={() => moveItem(ii, ii - 1)}
+            onMoveDown={() => moveItem(ii, ii + 1)}
+            isFirst={ii === 0}
+            isLast={ii === section.items.length - 1}
           />
         ))}
       </div>
@@ -437,6 +519,17 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
       ? toLocalSections(initial.sections)
       : [emptySection()]
   );
+
+  // Swap a section with its neighbour. sortOrder is renumbered from the array
+  // index on save, so reordering the array is all that's needed to persist.
+  const moveSection = (from: number, to: number) => {
+    setSections((prev) => {
+      if (to < 0 || to >= prev.length) return prev;
+      const next = [...prev];
+      [next[from], next[to]] = [next[to], next[from]];
+      return next;
+    });
+  };
 
   // ── Image state ──
   const [images, setImages] = React.useState<Image[]>(initial?.images ?? []);
@@ -589,6 +682,30 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
         }
         toast.success("Image removed");
       } else {
+        toast.error(res.error);
+      }
+    });
+  };
+
+  // Reorder an image with its neighbour. Images are persisted immediately, so
+  // optimistically reorder the local array, then persist via reorderPackageImages
+  // and refresh. On failure, revert to the previous order.
+  const handleMoveImage = (from: number, to: number) => {
+    if (!pkgId) return;
+    if (to < 0 || to >= images.length) return;
+    const prevImages = images;
+    const reordered = [...images];
+    [reordered[from], reordered[to]] = [reordered[to], reordered[from]];
+    setImages(reordered);
+    startImgTransition(async () => {
+      const res = await reorderPackageImages(
+        pkgId,
+        reordered.map((i) => i.id)
+      );
+      if (res.success) {
+        router.refresh();
+      } else {
+        setImages(prevImages);
         toast.error(res.error);
       }
     });
@@ -964,6 +1081,10 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
               onRemove={() =>
                 setSections(sections.filter((_, i) => i !== si))
               }
+              onMoveUp={() => moveSection(si, si - 1)}
+              onMoveDown={() => moveSection(si, si + 1)}
+              isFirst={si === 0}
+              isLast={si === sections.length - 1}
             />
           ))}
 
@@ -1044,8 +1165,10 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
               {/* Thumbnail grid */}
               {images.length > 0 ? (
                 <div className="grid grid-cols-3 gap-2">
-                  {images.map((img) => {
+                  {images.map((img, imgIdx) => {
                     const isCover = img.id === coverId;
+                    const isFirstImg = imgIdx === 0;
+                    const isLastImg = imgIdx === images.length - 1;
                     return (
                       <div
                         key={img.id}
@@ -1066,6 +1189,24 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
                         )}
                         {/* Hover actions */}
                         <div className="absolute inset-0 flex items-center justify-center gap-1 bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+                          <button
+                            type="button"
+                            onClick={() => handleMoveImage(imgIdx, imgIdx - 1)}
+                            disabled={imgPending || isFirstImg}
+                            className="rounded-full bg-white/90 p-1.5 text-foreground hover:bg-white disabled:opacity-40"
+                            title="Move earlier"
+                          >
+                            <ChevronLeftIcon className="size-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveImage(imgIdx, imgIdx + 1)}
+                            disabled={imgPending || isLastImg}
+                            className="rounded-full bg-white/90 p-1.5 text-foreground hover:bg-white disabled:opacity-40"
+                            title="Move later"
+                          >
+                            <ChevronRightIcon className="size-3" />
+                          </button>
                           {!isCover && (
                             <button
                               type="button"
