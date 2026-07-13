@@ -24,6 +24,7 @@ function num(v: unknown): number {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
 }
+const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
 /**
  * ACTIVE vendor packages the rep may add to a quote, grouped/sorted by category
@@ -130,31 +131,40 @@ export async function validatePackageLinesAgainstCatalog(
     if (pkg.minPax != null && qty < pkg.minPax) {
       errs.push(`Package "${pkg.name}" requires a minimum of ${pkg.minPax} pax/units.`);
     }
-    // AUTHORITATIVE unit price — always the catalog customerPrice, never the
-    // client's value. This makes the price basis un-forgeable and closes the
-    // "lower the unitPrice to dodge the cap" bypass.
-    const unitPrice = num(pkg.customerPrice ?? pkg.price);
-    // Max-discount cap. Compute the rupee discount the engine would apply on the
-    // AUTHORITATIVE price, then compare against the package's cap.
-    const { gross, lineDiscount } = computePackageLine({ ...p, unitPrice, qty });
+    // Catalog customerPrice is the un-forgeable REFERENCE. A sales-entered revised
+    // (negotiated) price is allowed, but the client can never dodge the cap by
+    // silently lowering the base — the reduction below catalog (revised mark-down +
+    // any line discount) is what's capped, computed against the catalog gross.
+    const catalogUnit = num(pkg.customerPrice ?? pkg.price);
+    const revised =
+      p.revisedUnitPrice != null && Number.isFinite(p.revisedUnitPrice) && p.revisedUnitPrice > 0
+        ? r2(p.revisedUnitPrice)
+        : null;
+    const effectiveUnit = revised ?? catalogUnit;
+    // A mark-UP is free revenue; only a mark-DOWN counts toward the discount floor.
+    const revisedReduction = Math.max(0, r2((catalogUnit - effectiveUnit) * qty));
+    const { lineDiscount } = computePackageLine({ ...p, unitPrice: catalogUnit, revisedUnitPrice: revised ?? undefined, qty });
+    const totalReduction = r2(revisedReduction + lineDiscount);
+    const catalogGross = r2(catalogUnit * qty);
     if (pkg.maxDiscountValue != null && pkg.maxDiscountType) {
       const capVal = num(pkg.maxDiscountValue);
       const maxRupees =
-        pkg.maxDiscountType === "PERCENT" ? gross * (Math.min(100, capVal) / 100) : capVal;
+        pkg.maxDiscountType === "PERCENT" ? catalogGross * (Math.min(100, capVal) / 100) : capVal;
       // 1-rupee tolerance for rounding.
-      if (lineDiscount - maxRupees > 1) {
+      if (totalReduction - maxRupees > 1) {
         const capLabel = pkg.maxDiscountType === "PERCENT" ? `${capVal}%` : `₹${capVal}`;
-        errs.push(`Package "${pkg.name}" discount exceeds the allowed cap of ${capLabel}.`);
+        errs.push(`Package "${pkg.name}" revised price/discount exceeds the allowed cap of ${capLabel} below catalog.`);
       }
-    } else if (lineDiscount > 0) {
-      // No cap configured → no discount permitted on this package.
-      errs.push(`Package "${pkg.name}" does not allow a discount.`);
+    } else if (totalReduction > 0) {
+      // No cap configured → cannot be priced below its catalog rate.
+      errs.push(`Package "${pkg.name}" cannot be priced below its catalog rate.`);
     }
-    // Persist the sanitised line: DB unit price / min-pax / name / category,
-    // client's qty + discount (already validated above).
+    // Persist: catalog unitPrice (reference) + revised price (authoritative when set),
+    // DB min-pax / name / category, client's qty + discount (validated above).
     corrected.push({
       ...p,
-      unitPrice,
+      unitPrice: catalogUnit,
+      revisedUnitPrice: revised ?? undefined,
       qty,
       minPax: pkg.minPax ?? undefined,
       name: pkg.name,

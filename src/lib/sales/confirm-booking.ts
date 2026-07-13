@@ -1,3 +1,4 @@
+import { initBookingConfirmationArtifacts } from "@/lib/sales/booking-confirmation-artifacts";
 import { prisma } from "@/lib/prisma";
 import { notify } from "@/lib/notify";
 import { sendEmail } from "@/lib/email";
@@ -77,6 +78,10 @@ export async function maybeConfirmBookingOnPayment(invoiceId: string): Promise<v
       data: { status: "CONFIRMED" },
     });
     if (confirmed.count === 0) return;
+
+    // Post-sale SLA artifacts (24h handover + 48h guest-confirm) — best-effort,
+    // idempotent, system-actored on the payment path.
+    await initBookingConfirmationArtifacts(b.id, null);
 
     const dateStr = new Date(b.date).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
     const slot = SLOT_LABEL[b.timeSlot] ?? b.timeSlot;

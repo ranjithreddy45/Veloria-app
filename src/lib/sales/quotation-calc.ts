@@ -47,8 +47,15 @@ export interface PackageLine {
   vendorPackageId: string;
   name: string;
   category: string;
-  /** Customer-facing unit price (VendorPackage.customerPrice ?? price). */
+  /** Catalog customer-facing unit price (VendorPackage.customerPrice ?? price) — the reference. */
   unitPrice: number;
+  /**
+   * Optional sales-entered REVISED unit price (negotiated). When set (>0) it is the
+   * authoritative unit for this line, replacing the catalog price. A mark-UP is
+   * always allowed; a mark-DOWN below the catalog is treated as a discount and is
+   * capped server-side by the package's maxDiscount floor (anti-forgery preserved).
+   */
+  revisedUnitPrice?: number;
   /** pax / units for this line. */
   qty: number;
   /** The package's minimum pax (copied in for UI + validation). */
@@ -79,7 +86,10 @@ export interface QuotePackageOption {
  */
 export function computePackageLine(line: PackageLine): { gross: number; lineDiscount: number; amount: number } {
   const qty = Math.max(0, Math.floor(line.qty || 0));
-  const unit = Number.isFinite(line.unitPrice) && line.unitPrice > 0 ? line.unitPrice : 0;
+  // A revised (negotiated) unit price, when set, is authoritative for this line.
+  const revised = Number.isFinite(line.revisedUnitPrice) && (line.revisedUnitPrice ?? 0) > 0 ? (line.revisedUnitPrice as number) : null;
+  const catalog = Number.isFinite(line.unitPrice) && line.unitPrice > 0 ? line.unitPrice : 0;
+  const unit = revised ?? catalog;
   const gross = r2(unit * qty);
   let lineDiscount = 0;
   const val = line.discountValue ?? 0;

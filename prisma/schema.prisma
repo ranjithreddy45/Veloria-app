@@ -688,6 +688,13 @@ model Booking {
   specialRequests String?       @db.Text
   internalNotes   String?       @db.Text
   holdExpiresAt   DateTime?
+  // Guest confirmation TAT (48h from booking) + the app-link declaration flow: the
+  // guest reviews their services (menu/décor) and accepts the T&C. Token is the
+  // credential for the public confirmation page.
+  guestConfirmationDueAt DateTime?
+  guestConfirmedAt       DateTime?
+  guestConfirmationToken String?   @unique
+  handoverMeeting        HandoverMeeting?
   totalAmount     Decimal       @db.Decimal(12, 2)
   currency        String        @default("INR")
 
@@ -752,6 +759,42 @@ model Booking {
   @@index([contactId])
   @@index([eventType]) // dashboard groupBy(eventType)
   @@index([status, date]) // active/upcoming filters by status + date range
+}
+
+enum HandoverMeetingMode {
+  PHYSICAL
+  VIRTUAL
+}
+
+// Post-sale Sales→Ops/Event handover meeting (24h SLA from booking confirmation).
+// One per booking. Physical or virtual (with a meeting link), scheduled in-app.
+// Mirrors IntroductionMeeting (BD pipeline) but keyed on a Booking. The 24h SLA is
+// tracked by slaDueAt + a companion Task; a cron nags if it's still PENDING past it.
+model HandoverMeeting {
+  id             String              @id @default(cuid())
+  bookingId      String              @unique
+  booking        Booking             @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  scheduledAt    DateTime?
+  mode           HandoverMeetingMode @default(PHYSICAL)
+  meetingUrl     String? // for VIRTUAL
+  location       String? // for PHYSICAL
+  agenda         String?             @db.Text
+  /// PENDING (awaiting schedule) | SCHEDULED | COMPLETED | CANCELLED
+  status         String              @default("PENDING")
+  slaDueAt       DateTime? // 24h from booking confirmation
+  slaNaggedAt    DateTime? // cron idempotency for the overdue nag
+  teamSales      Boolean             @default(true)
+  teamOperations Boolean             @default(true)
+  teamEvents     Boolean             @default(false)
+  attendeeIds    String[]
+  createdById    String?
+  scheduledById  String?
+  completedAt    DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@index([status])
+  @@index([slaDueAt])
 }
 
 model BlackoutDate {

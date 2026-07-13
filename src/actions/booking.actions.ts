@@ -1,4 +1,5 @@
 "use server";
+import { initBookingConfirmationArtifacts } from "@/lib/sales/booking-confirmation-artifacts";
 
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
@@ -1004,6 +1005,10 @@ export async function confirmBooking(id: string) {
       entityType: "Booking",
       entityId: id,
     });
+
+    // Post-sale SLA artifacts: 24h Sales→Ops handover meeting + task, 48h guest-
+    // confirmation deadline + token. Idempotent + best-effort.
+    await initBookingConfirmationArtifacts(id, session.user.id as string);
 
     // Best-effort customer confirmation — a minimal replica of the customer-facing
     // notifications maybeConfirmBookingOnPayment sends (owner notify + email + SMS +

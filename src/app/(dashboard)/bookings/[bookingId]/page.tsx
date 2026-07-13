@@ -58,6 +58,8 @@ import { SignaturePanel } from "./_components/signature-panel";
 import { VendorWorkOrdersCard } from "./_components/vendor-work-orders-card";
 import { getWorkOrders } from "@/actions/work-order.actions";
 import { getVendors } from "@/actions/vendor.actions";
+import { getHandoverMeeting } from "@/actions/handover.actions";
+import { HandoverCard, type HandoverMeeting } from "./_components/handover-card";
 import { formatINR, cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Booking Details" };
@@ -125,9 +127,10 @@ export default async function BookingDetailPage({
   const servicesData = servicesResult.success ? servicesResult.data : null;
 
   // CR-005: Vendor work orders (Stage 3) + active-vendor list for the picker.
-  const [workOrdersResult, vendorsResult] = await Promise.all([
+  const [workOrdersResult, vendorsResult, handoverMeeting] = await Promise.all([
     getWorkOrders(booking.id),
     getVendors({ status: "ACTIVE", limit: 200 }),
+    getHandoverMeeting(booking.id),
   ]);
   const workOrders = workOrdersResult.success ? workOrdersResult.data : [];
   const vendorOptions = vendorsResult.success
@@ -328,6 +331,22 @@ export default async function BookingDetailPage({
         bookingId={booking.id}
         workOrders={workOrders}
         vendors={vendorOptions}
+      />
+
+      {/* Sales → Ops handover meeting (24h SLA) + guest confirmation (48h TAT) */}
+      <HandoverCard
+        bookingId={booking.id}
+        handover={(handoverMeeting as HandoverMeeting | null) ?? null}
+        guestConfirmationDueAt={
+          booking.guestConfirmationDueAt
+            ? new Date(booking.guestConfirmationDueAt).toISOString()
+            : null
+        }
+        guestConfirmedAt={
+          booking.guestConfirmedAt
+            ? new Date(booking.guestConfirmedAt).toISOString()
+            : null
+        }
       />
 
       {/* Quick Access Links */}

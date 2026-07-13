@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   computeQuotation,
+  computePackageLine,
   buildPaymentSchedule,
   validateQuotationInput,
   QUOTE_CATALOG,
@@ -300,5 +301,39 @@ describe("computeQuotation — hall-only (no food)", () => {
       "Select a hall charge (per hour)."
     );
     expect(validateQuotationInput({ guestCount: 50, foodMode: "HALL_ONLY", hallRate: 6999 })).toEqual([]);
+  });
+});
+
+describe("computePackageLine — revised (negotiated) unit price", () => {
+  const base = { vendorPackageId: "p1", name: "Pkg", category: "catering" };
+
+  it("uses the CATALOG unit price when no revised price is set", () => {
+    const r = computePackageLine({ ...base, unitPrice: 700, qty: 100 });
+    expect(r.gross).toBe(70000);
+    expect(r.amount).toBe(70000);
+  });
+
+  it("uses the REVISED unit price when set (mark-up)", () => {
+    const r = computePackageLine({ ...base, unitPrice: 700, revisedUnitPrice: 800, qty: 100 });
+    expect(r.gross).toBe(80000); // 800 × 100, not the catalog 700
+    expect(r.amount).toBe(80000);
+  });
+
+  it("uses the REVISED unit price when set (mark-down)", () => {
+    const r = computePackageLine({ ...base, unitPrice: 700, revisedUnitPrice: 650, qty: 100 });
+    expect(r.gross).toBe(65000);
+    expect(r.amount).toBe(65000);
+  });
+
+  it("ignores a zero/invalid revised price and falls back to catalog", () => {
+    const r = computePackageLine({ ...base, unitPrice: 700, revisedUnitPrice: 0, qty: 10 });
+    expect(r.amount).toBe(7000);
+  });
+
+  it("applies a line discount on top of the revised price", () => {
+    const r = computePackageLine({ ...base, unitPrice: 700, revisedUnitPrice: 600, qty: 10, discountType: "PERCENT", discountValue: 10 });
+    expect(r.gross).toBe(6000); // 600 × 10
+    expect(r.lineDiscount).toBe(600); // 10% of 6000
+    expect(r.amount).toBe(5400);
   });
 });

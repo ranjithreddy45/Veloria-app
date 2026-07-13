@@ -14,6 +14,7 @@ import {
   CheckIcon,
   XIcon,
   BellIcon,
+  PhoneIcon,
 } from "lucide-react";
 
 import {
@@ -1051,9 +1052,16 @@ function VendorsTab({
                     )}
                   </div>
                   {assignment.bookingVendor.vendor.phone && (
-                    <p className="text-muted-foreground text-xs">
-                      Phone: {assignment.bookingVendor.vendor.phone}
-                    </p>
+                    <div className="flex items-center gap-2 text-muted-foreground text-xs">
+                      <span>Phone: {assignment.bookingVendor.vendor.phone}</span>
+                      <a
+                        href={`tel:${assignment.bookingVendor.vendor.phone}`}
+                        className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-medium text-emerald-600 transition-colors hover:bg-emerald-50 hover:text-emerald-700"
+                      >
+                        <PhoneIcon className="size-3" />
+                        Call
+                      </a>
+                    </div>
                   )}
                   {assignment.notes && (
                     <p className="text-muted-foreground text-xs">

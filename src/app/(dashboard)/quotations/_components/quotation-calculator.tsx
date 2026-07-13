@@ -174,13 +174,24 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
   function pickPackage(id: string, vendorPackageId: string) {
     const opt = optById.get(vendorPackageId);
     if (!opt) return;
+    // Pax-aware default qty: per-plate (per-person) packages default to the
+    // current guest count when it's set; everything else uses the min-pax floor.
+    const pax = num(guestCount);
+    const defaultQty =
+      opt.priceUnit === "PER_PLATE" && pax >= 1
+        ? pax
+        : opt.minPax && opt.minPax > 0
+        ? opt.minPax
+        : 1;
     patchPackageLine(id, {
       vendorPackageId: opt.id,
       name: opt.name,
       category: opt.category,
+      // Catalog reference price + editable revised cost defaulted to catalog.
       unitPrice: opt.customerPrice,
+      revisedUnitPrice: opt.customerPrice,
       minPax: opt.minPax ?? undefined,
-      qty: opt.minPax && opt.minPax > 0 ? opt.minPax : 1,
+      qty: defaultQty,
       // Reset any prior discount — caps are per-package.
       discountType: undefined,
       discountValue: undefined,
@@ -228,6 +239,7 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
           name: p.name,
           category: p.category,
           unitPrice: p.unitPrice,
+          revisedUnitPrice: p.revisedUnitPrice,
           qty: Math.max(0, Math.floor(p.qty || 0)),
           minPax: p.minPax,
           discountType: p.discountType,
@@ -618,8 +630,32 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
                       <>
                         <div className="grid gap-3 sm:grid-cols-3">
                           <div className="space-y-1.5">
-                            <Label>Unit price</Label>
-                            <Input value={inr(line.unitPrice)} readOnly disabled />
+                            <Label>Revised cost (₹/unit)</Label>
+                            <Input
+                              type="number"
+                              min={0}
+                              value={line.revisedUnitPrice != null ? String(line.revisedUnitPrice) : ""}
+                              onChange={(e) => patchPackageLine(line.id!, { revisedUnitPrice: num(e.target.value) })}
+                              placeholder={String(line.unitPrice)}
+                            />
+                            {(() => {
+                              const revised = line.revisedUnitPrice ?? 0;
+                              const adjusted = revised > 0 && Math.abs(revised - line.unitPrice) > 0.5;
+                              return (
+                                <p className="text-xs text-muted-foreground">
+                                  {adjusted ? (
+                                    <>
+                                      Catalog <span className="line-through">{inr(line.unitPrice)}</span>
+                                      <span className="ml-1 font-medium text-amber-600">
+                                        · adjusted {revised > line.unitPrice ? "up" : "down"}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <>Catalog {inr(line.unitPrice)}</>
+                                  )}
+                                </p>
+                              );
+                            })()}
                           </div>
                           <div className="space-y-1.5">
                             <Label>Qty / units *</Label>
