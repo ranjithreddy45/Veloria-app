@@ -23,6 +23,8 @@
       "gstin": null,
       "categoryKeys": [
         "decor",
+        "emcee",
+        "entertainment",
         "activities",
         "live_stalls"
       ],
@@ -34,7 +36,62 @@
           "priceUnit": "PER_EVENT",
           "vendorPrice": 4500.0,
           "customerPrice": 8000.0,
-          "description": "* Them Backdrop\n* 1 Them Cutouts\n* 1Focuslights\n* 1Welcome Board\n *LED Name Letters\n* LED Age Numbers\n*Cake Tables With Props\n*  Balloons On The Floor & Wall"
+          "description": null,
+          "sections": [
+            {
+              "title": "Inclusions",
+              "items": [
+                {
+                  "name": "Them Backdrop",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "1 Them Cutouts",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "1Focuslights",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "1Welcome Board",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "LED Name Letters",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "LED Age Numbers",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "Cake Tables With Props",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "Balloons On The Floor & Wall",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "DOUBLE PANEL DECOR",
@@ -42,7 +99,62 @@
           "priceUnit": "PER_EVENT",
           "vendorPrice": 6000.0,
           "customerPrice": 12000.0,
-          "description": "*2 theme backdrops\n* 2 theme cutouts\n* 2 focus lights\n* 1Welcome Board\n* LED Name Letters\n* LED Age Numbers\n* Cake Tables With Props\n*  Balloons On The Floor & Wall"
+          "description": null,
+          "sections": [
+            {
+              "title": "Inclusions",
+              "items": [
+                {
+                  "name": "2 theme backdrops",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "2 theme cutouts",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "2 focus lights",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "1Welcome Board",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "LED Name Letters",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "LED Age Numbers",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "Cake Tables With Props",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "Balloons On The Floor & Wall",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "TRIPLE PANEL DECOR",
@@ -50,7 +162,62 @@
           "priceUnit": "PER_EVENT",
           "vendorPrice": 7500.0,
           "customerPrice": 16900.0,
-          "description": "*3 theme backdrops\n* 3 theme cutouts\n* 3 focus lights\n* 1Welcome Board\n* LED Name Letters\n* LED Age Numbers\n* Cake Tables With Props\n *Balloons On The Floor & Wall"
+          "description": null,
+          "sections": [
+            {
+              "title": "Inclusions",
+              "items": [
+                {
+                  "name": "3 theme backdrops",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "3 theme cutouts",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "3 focus lights",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "1Welcome Board",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "LED Name Letters",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "LED Age Numbers",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "Cake Tables With Props",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "Balloons On The Floor & Wall",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "ADDITIONAL ADD-ON'S BALLOON",
@@ -58,7 +225,8 @@
           "priceUnit": "PER_PIECE",
           "vendorPrice": 250.0,
           "customerPrice": 250.0,
-          "description": "BALLOON PILLAR WITH CUT OUTS"
+          "description": "BALLOON PILLAR WITH CUT OUTS",
+          "sections": []
         },
         {
           "name": "Fog Entry",
@@ -66,7 +234,8 @@
           "priceUnit": "PER_EVENT",
           "vendorPrice": 3500.0,
           "customerPrice": 4000.0,
-          "description": "Fog Entry"
+          "description": "Fog Entry",
+          "sections": []
         },
         {
           "name": "Chariot Entry",
@@ -74,7 +243,8 @@
           "priceUnit": "PER_EVENT",
           "vendorPrice": 1500.0,
           "customerPrice": 2000.0,
-          "description": "CHARIOT ENTRY"
+          "description": "CHARIOT ENTRY",
+          "sections": []
         },
         {
           "name": "Baloon Arch",
@@ -82,31 +252,35 @@
           "priceUnit": "PER_EVENT",
           "vendorPrice": 1500.0,
           "customerPrice": 2000.0,
-          "description": "BALLOON ARCH"
+          "description": "BALLOON ARCH",
+          "sections": []
         },
         {
           "name": "EMCEE GAMES",
-          "category": "decor",
+          "category": "emcee",
           "priceUnit": "PER_EVENT",
           "vendorPrice": 5000.0,
           "customerPrice": 6500.0,
-          "description": "Duration 1 Hour Fun & Laughter Games Host"
+          "description": "Duration 1 Hour Fun & Laughter Games Host",
+          "sections": []
         },
         {
           "name": "MAGIC SHOW",
-          "category": "decor",
+          "category": "entertainment",
           "priceUnit": "PER_EVENT",
           "vendorPrice": 5000.0,
           "customerPrice": 6500.0,
-          "description": "Duration 45 mins, Joy and Fun"
+          "description": "Duration 45 mins, Joy and Fun",
+          "sections": []
         },
         {
           "name": "CARICATURE Duration",
-          "category": "decor",
+          "category": "entertainment",
           "priceUnit": "PER_EVENT",
           "vendorPrice": 3500.0,
           "customerPrice": 4500.0,
-          "description": "3 hours Fun & Art"
+          "description": "3 hours Fun & Art",
+          "sections": []
         },
         {
           "name": "Mascot",
@@ -114,7 +288,8 @@
           "priceUnit": "PER_EVENT",
           "vendorPrice": 3500.0,
           "customerPrice": 4500.0,
-          "description": "1character"
+          "description": "1character",
+          "sections": []
         },
         {
           "name": "Key chain making",
@@ -122,7 +297,8 @@
           "priceUnit": "PER_EVENT",
           "vendorPrice": 3500.0,
           "customerPrice": 4500.0,
-          "description": null
+          "description": null,
+          "sections": []
         },
         {
           "name": "pottery making",
@@ -130,7 +306,8 @@
           "priceUnit": "PER_EVENT",
           "vendorPrice": 3500.0,
           "customerPrice": 4500.0,
-          "description": null
+          "description": null,
+          "sections": []
         },
         {
           "name": "Pop corn",
@@ -138,7 +315,8 @@
           "priceUnit": "PER_EVENT",
           "vendorPrice": 3000.0,
           "customerPrice": 4500.0,
-          "description": "100 nos"
+          "description": "100 nos",
+          "sections": []
         },
         {
           "name": "Cotton candy",
@@ -146,7 +324,8 @@
           "priceUnit": "PER_EVENT",
           "vendorPrice": 3000.0,
           "customerPrice": 4500.0,
-          "description": "100 nos"
+          "description": "100 nos",
+          "sections": []
         },
         {
           "name": "Chocolate fountain",
@@ -154,7 +333,8 @@
           "priceUnit": "PER_EVENT",
           "vendorPrice": 3000.0,
           "customerPrice": 4500.0,
-          "description": "100 nos"
+          "description": "100 nos",
+          "sections": []
         }
       ]
     },
@@ -176,7 +356,127 @@
           "priceUnit": "PER_PLATE",
           "vendorPrice": 299.0,
           "customerPrice": 599.0,
-          "description": ">Welcome Drink (Any 1)\n* Lemon Juice / Butter Milk\n> Starter (Any 1)\n * Veg Cutlet/ Veg Pakoda/ Baby Corn Fry\n> Main Course\n* 1 Paneer Gravy (Paneer Butter Masala / Kadai Paneer)\n* 1 Veg Gravy (Mix Veg/ Aloo Mutter)\n* 1 Dry Veg (Beans Poriyal/ Cabbage Sabzi)\n* Dal (Dal Fry/ Sambar)\n> Breads\n* Chapati/ Poori\n> Rice \n* Steam Rice \n> Extra \n* Rasam/ Sambar\n* Curd\n* Pickle + Salad + Papad\n> Dessert (Any 1)\n* Gulab Jamun/ Kesari/ Payasam"
+          "description": null,
+          "sections": [
+            {
+              "title": "Welcome Drink",
+              "items": [
+                {
+                  "name": "Welcome Drink",
+                  "type": "SINGLE_CHOICE",
+                  "options": [
+                    "Lemon Juice",
+                    "Butter Milk"
+                  ],
+                  "chooseCount": null
+                }
+              ]
+            },
+            {
+              "title": "Starter",
+              "items": [
+                {
+                  "name": "Starter",
+                  "type": "SINGLE_CHOICE",
+                  "options": [
+                    "Veg Cutlet",
+                    "Veg Pakoda",
+                    "Baby Corn Fry"
+                  ],
+                  "chooseCount": null
+                }
+              ]
+            },
+            {
+              "title": "Main Course",
+              "items": [
+                {
+                  "name": "1 Paneer Gravy (Paneer Butter Masala / Kadai Paneer)",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "1 Veg Gravy (Mix Veg/ Aloo Mutter)",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "1 Dry Veg (Beans Poriyal/ Cabbage Sabzi)",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "Dal (Dal Fry/ Sambar)",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                }
+              ]
+            },
+            {
+              "title": "Breads",
+              "items": [
+                {
+                  "name": "Chapati/ Poori",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                }
+              ]
+            },
+            {
+              "title": "Rice",
+              "items": [
+                {
+                  "name": "Steam Rice",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                }
+              ]
+            },
+            {
+              "title": "Extra",
+              "items": [
+                {
+                  "name": "Rasam/ Sambar",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "Curd",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "Pickle + Salad + Papad",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                }
+              ]
+            },
+            {
+              "title": "Dessert",
+              "items": [
+                {
+                  "name": "Dessert",
+                  "type": "SINGLE_CHOICE",
+                  "options": [
+                    "Gulab Jamun",
+                    "Kesari",
+                    "Payasam"
+                  ],
+                  "chooseCount": null
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "GOLD PACKAGE",
@@ -184,7 +484,123 @@
           "priceUnit": "PER_PLATE",
           "vendorPrice": 350.0,
           "customerPrice": 699.0,
-          "description": ">Welcome Drink (Any 1)\n* Fruit Punch/ Jaljeera/ Buttermilk\n> Starters (Any 2)\n* Paneer Tikka\n* Veg Spring Roll\n* Crispy Corn/ Hara Bhara Kebab\n> Main Course\n* 1 Paneer Premium (Shahi Paneer/ Paneer Tikka Masala)\n* 1 Veg Gravy (Veg Kolhapuri/ Navartan Korma)\n* 1 Dry Veg \n* Dal (Dal Tadka/ Dal Makhani)\n> Breads\n* Butter Roti/ Naan\n> Rice \n* Jeera Rice / Veg Pulao \n> Extra \n* Raita\n* Pickle + Salad + Papad\n> Dessert (Any 1)\n* Gulab Jamun/ Ice Cream/ Halwa"
+          "description": null,
+          "sections": [
+            {
+              "title": "Welcome Drink",
+              "items": [
+                {
+                  "name": "Welcome Drink",
+                  "type": "SINGLE_CHOICE",
+                  "options": [
+                    "Fruit Punch",
+                    "Jaljeera",
+                    "Buttermilk"
+                  ],
+                  "chooseCount": null
+                }
+              ]
+            },
+            {
+              "title": "Starters",
+              "items": [
+                {
+                  "name": "Starters",
+                  "type": "MULTI_CHOICE",
+                  "options": [
+                    "Paneer Tikka",
+                    "Veg Spring Roll",
+                    "Crispy Corn",
+                    "Hara Bhara Kebab"
+                  ],
+                  "chooseCount": 2
+                }
+              ]
+            },
+            {
+              "title": "Main Course",
+              "items": [
+                {
+                  "name": "1 Paneer Premium (Shahi Paneer/ Paneer Tikka Masala)",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "1 Veg Gravy (Veg Kolhapuri/ Navartan Korma)",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "1 Dry Veg",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "Dal (Dal Tadka/ Dal Makhani)",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                }
+              ]
+            },
+            {
+              "title": "Breads",
+              "items": [
+                {
+                  "name": "Butter Roti/ Naan",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                }
+              ]
+            },
+            {
+              "title": "Rice",
+              "items": [
+                {
+                  "name": "Jeera Rice / Veg Pulao",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                }
+              ]
+            },
+            {
+              "title": "Extra",
+              "items": [
+                {
+                  "name": "Raita",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "Pickle + Salad + Papad",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                }
+              ]
+            },
+            {
+              "title": "Dessert",
+              "items": [
+                {
+                  "name": "Dessert",
+                  "type": "SINGLE_CHOICE",
+                  "options": [
+                    "Gulab Jamun",
+                    "Ice Cream",
+                    "Halwa"
+                  ],
+                  "chooseCount": null
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Special Menu",
@@ -192,7 +608,110 @@
           "priceUnit": "PER_PLATE",
           "vendorPrice": 300.0,
           "customerPrice": 699.0,
-          "description": "Payasa, Pickle, Kosambari (1type), Palya (2 types), Happala, Sweet (1type), Starter (1type), Rotti (1type), Curries(1type), Colour Rice (1type),  Raita, South Menu (White Rice, Sambar, Rasam), Water bottel 500ml, Cherry Beeda"
+          "description": null,
+          "sections": [
+            {
+              "title": "Inclusions",
+              "items": [
+                {
+                  "name": "Payasa",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "Pickle",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "Kosambari (1type)",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "Palya (2 types)",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "Happala",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "Sweet (1type)",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "Starter (1type)",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "Rotti (1type)",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "Curries(1type)",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "Colour Rice (1type)",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "Raita",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "South Menu (White Rice",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "Sambar",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "Rasam)",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "Water bottel 500ml",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "Cherry Beeda",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -214,7 +733,122 @@
           "priceUnit": "PER_PLATE",
           "vendorPrice": 390.0,
           "customerPrice": 899.0,
-          "description": ">Welcome Drink (Any 2)\n* Mocktail+ Buttermilk\n> Starters (Any 3)\n* Paneer Tikka\n* Chees Balls\n* Mushroom Pepper Fry\n* Baby Corn Manchurian\n> Main Course\n* 2 Paneer Dishes\n* 2 Veg Gravy \n* 1 Dry Veg \n* Dal (Dal Tadka/ Dal Makhani)\n> Breads\n* Butter Naan + Kulcha\n> Rice \n* Jeera Rice + Veg Biryani\n> Extra \n* Raita + Salad Bar\n* Pickle  + Papad\n> Dessert (Any 2)\n* Gulab Jamun\n*  Ice Cream\n* Brownie/ Halwa"
+          "description": null,
+          "sections": [
+            {
+              "title": "Welcome Drink",
+              "items": [
+                {
+                  "name": "Welcome Drink",
+                  "type": "MULTI_CHOICE",
+                  "options": [
+                    "Mocktail+ Buttermilk"
+                  ],
+                  "chooseCount": 1
+                }
+              ]
+            },
+            {
+              "title": "Starters",
+              "items": [
+                {
+                  "name": "Starters",
+                  "type": "MULTI_CHOICE",
+                  "options": [
+                    "Paneer Tikka",
+                    "Chees Balls",
+                    "Mushroom Pepper Fry",
+                    "Baby Corn Manchurian"
+                  ],
+                  "chooseCount": 3
+                }
+              ]
+            },
+            {
+              "title": "Main Course",
+              "items": [
+                {
+                  "name": "2 Paneer Dishes",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "2 Veg Gravy",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "1 Dry Veg",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "Dal (Dal Tadka/ Dal Makhani)",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                }
+              ]
+            },
+            {
+              "title": "Breads",
+              "items": [
+                {
+                  "name": "Butter Naan + Kulcha",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                }
+              ]
+            },
+            {
+              "title": "Rice",
+              "items": [
+                {
+                  "name": "Jeera Rice + Veg Biryani",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                }
+              ]
+            },
+            {
+              "title": "Extra",
+              "items": [
+                {
+                  "name": "Raita + Salad Bar",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "Pickle + Papad",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                }
+              ]
+            },
+            {
+              "title": "Dessert",
+              "items": [
+                {
+                  "name": "Dessert",
+                  "type": "MULTI_CHOICE",
+                  "options": [
+                    "Gulab Jamun",
+                    "Ice Cream",
+                    "Brownie",
+                    "Halwa"
+                  ],
+                  "chooseCount": 2
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "DIAMOND PACKAGE",
@@ -222,7 +856,134 @@
           "priceUnit": "PER_PLATE",
           "vendorPrice": 450.0,
           "customerPrice": 1199.0,
-          "description": ">Welcome Drink (2-3 options)\n* Mocktail+ Fresh Juice\n> Starters (3 - 5 options)\n* Paneer Tikka Live\n* Chat Counter\n* Pasta/ Chinese Counter\n> Main Course\n* 2 Paneer Premium\n* 3 Veg Gravy \n* 2 Dry Veg \n* Dal (Premium)\n> Breads\n* Butter Naan/ Garlic Naan/ Phulka\n> Rice \n* Jeera Rice \n* Veg Biryani/ Steam Rice\n> Extra \n* Raita Varieties\n* Salad Bar\n* Papad/ Pickle\n> Dessert (Any 2)\n* Hot Gulab Jamun\n* Ice Cream Counter\n* Sweet (Rasmalai/ Brownie)"
+          "description": null,
+          "sections": [
+            {
+              "title": "Welcome Drink",
+              "items": [
+                {
+                  "name": "Welcome Drink",
+                  "type": "MULTI_CHOICE",
+                  "options": [
+                    "Mocktail+ Fresh Juice"
+                  ],
+                  "chooseCount": 1
+                }
+              ]
+            },
+            {
+              "title": "Starters",
+              "items": [
+                {
+                  "name": "Starters",
+                  "type": "MULTI_CHOICE",
+                  "options": [
+                    "Paneer Tikka Live",
+                    "Chat Counter",
+                    "Pasta",
+                    "Chinese Counter"
+                  ],
+                  "chooseCount": 3
+                }
+              ]
+            },
+            {
+              "title": "Main Course",
+              "items": [
+                {
+                  "name": "2 Paneer Premium",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "3 Veg Gravy",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "2 Dry Veg",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "Dal (Premium)",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                }
+              ]
+            },
+            {
+              "title": "Breads",
+              "items": [
+                {
+                  "name": "Butter Naan/ Garlic Naan/ Phulka",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                }
+              ]
+            },
+            {
+              "title": "Rice",
+              "items": [
+                {
+                  "name": "Jeera Rice",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "Veg Biryani/ Steam Rice",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                }
+              ]
+            },
+            {
+              "title": "Extra",
+              "items": [
+                {
+                  "name": "Raita Varieties",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "Salad Bar",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "Papad/ Pickle",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                }
+              ]
+            },
+            {
+              "title": "Dessert",
+              "items": [
+                {
+                  "name": "Dessert",
+                  "type": "MULTI_CHOICE",
+                  "options": [
+                    "Hot Gulab Jamun",
+                    "Ice Cream Counter",
+                    "Sweet (Rasmalai",
+                    "Brownie)"
+                  ],
+                  "chooseCount": 2
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -244,7 +1005,8 @@
           "priceUnit": "PER_EVENT",
           "vendorPrice": 6000.0,
           "customerPrice": 6500.0,
-          "description": "Unlimited Photos Traditional & Candid Event Highlights Video"
+          "description": "Unlimited Photos Traditional & Candid Event Highlights Video",
+          "sections": []
         },
         {
           "name": "Photography + Videography",
@@ -252,7 +1014,8 @@
           "priceUnit": "PER_EVENT",
           "vendorPrice": 6000.0,
           "customerPrice": 10000.0,
-          "description": "Unlimited Photos Traditional & Candid Event Highlights Video"
+          "description": "Unlimited Photos Traditional & Candid Event Highlights Video",
+          "sections": []
         },
         {
           "name": "candid photography  Premium",
@@ -260,7 +1023,8 @@
           "priceUnit": "PER_EVENT",
           "vendorPrice": 6500.0,
           "customerPrice": 17000.0,
-          "description": null
+          "description": null,
+          "sections": []
         },
         {
           "name": "candid photography  Basic",
@@ -268,7 +1032,8 @@
           "priceUnit": "PER_EVENT",
           "vendorPrice": 4000.0,
           "customerPrice": 8500.0,
-          "description": null
+          "description": null,
+          "sections": []
         }
       ]
     },
@@ -290,7 +1055,8 @@
           "priceUnit": "PER_PIECE",
           "vendorPrice": 1500.0,
           "customerPrice": 2000.0,
-          "description": "Minimum order is 3KG\n(Priced per KG.)"
+          "description": "Minimum order is 3KG",
+          "sections": []
         },
         {
           "name": "PREMIUM CAKE",
@@ -298,7 +1064,8 @@
           "priceUnit": "PER_PIECE",
           "vendorPrice": 1700.0,
           "customerPrice": 2500.0,
-          "description": "Minimum order is 4KG\n(Priced per KG.)"
+          "description": "Minimum order is 4KG",
+          "sections": []
         }
       ]
     },
@@ -320,7 +1087,26 @@
           "priceUnit": "PER_EVENT",
           "vendorPrice": 12000.0,
           "customerPrice": 15000.0,
-          "description": "Inclusions: Stage Decor + 2 Welcome Boards"
+          "description": null,
+          "sections": [
+            {
+              "title": "Inclusions",
+              "items": [
+                {
+                  "name": "Stage Decor",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "2 Welcome Boards",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Baby shower Premium",
@@ -328,7 +1114,32 @@
           "priceUnit": "PER_EVENT",
           "vendorPrice": 25000.0,
           "customerPrice": 35000.0,
-          "description": "Inclusions : stage Decor + 1 entrance arch + 2 welcome boards"
+          "description": null,
+          "sections": [
+            {
+              "title": "Inclusions",
+              "items": [
+                {
+                  "name": "stage Decor",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "1 entrance arch",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "2 welcome boards",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Half Sarees Basic",
@@ -336,7 +1147,26 @@
           "priceUnit": "PER_EVENT",
           "vendorPrice": 12000.0,
           "customerPrice": 15000.0,
-          "description": "Inclusions : stage Decor + 2 welcome board"
+          "description": null,
+          "sections": [
+            {
+              "title": "Inclusions",
+              "items": [
+                {
+                  "name": "stage Decor",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "2 welcome board",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Half Sarees Premium",
@@ -344,7 +1174,32 @@
           "priceUnit": "PER_EVENT",
           "vendorPrice": 20000.0,
           "customerPrice": 25000.0,
-          "description": "Inclusions : stage Decor + 1 entrance arch + 2 welcome boards"
+          "description": null,
+          "sections": [
+            {
+              "title": "Inclusions",
+              "items": [
+                {
+                  "name": "stage Decor",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "1 entrance arch",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "2 welcome boards",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Naming Ceremony  Basic",
@@ -352,7 +1207,26 @@
           "priceUnit": "PER_EVENT",
           "vendorPrice": 15000.0,
           "customerPrice": 24000.0,
-          "description": "Inclusions : stage Decor + 2 welcome board"
+          "description": null,
+          "sections": [
+            {
+              "title": "Inclusions",
+              "items": [
+                {
+                  "name": "stage Decor",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "2 welcome board",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Naming Ceremony Premium",
@@ -360,7 +1234,32 @@
           "priceUnit": "PER_EVENT",
           "vendorPrice": 20000.0,
           "customerPrice": 25000.0,
-          "description": "Inclusions : stage Decor + 1 entrance arch + 2 welcome boards"
+          "description": null,
+          "sections": [
+            {
+              "title": "Inclusions",
+              "items": [
+                {
+                  "name": "stage Decor",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "1 entrance arch",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "2 welcome boards",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Engagement Basic",
@@ -368,7 +1267,26 @@
           "priceUnit": "PER_EVENT",
           "vendorPrice": 12000.0,
           "customerPrice": 15000.0,
-          "description": "Inclusions : stage Decor + 2 welcome board"
+          "description": null,
+          "sections": [
+            {
+              "title": "Inclusions",
+              "items": [
+                {
+                  "name": "stage Decor",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "2 welcome board",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Engagement Premium",
@@ -376,7 +1294,32 @@
           "priceUnit": "PER_EVENT",
           "vendorPrice": 25000.0,
           "customerPrice": 25000.0,
-          "description": "Inclusions : stage Decor + 1 entrance arch + 2 welcome boards"
+          "description": null,
+          "sections": [
+            {
+              "title": "Inclusions",
+              "items": [
+                {
+                  "name": "stage Decor",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "1 entrance arch",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "2 welcome boards",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Weddings Premium",
@@ -384,7 +1327,32 @@
           "priceUnit": "PER_EVENT",
           "vendorPrice": 25000.0,
           "customerPrice": 35000.0,
-          "description": "Inclusions : stage Decor + 1 entrance arch + 2 welcome boards"
+          "description": null,
+          "sections": [
+            {
+              "title": "Inclusions",
+              "items": [
+                {
+                  "name": "stage Decor",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "1 entrance arch",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "2 welcome boards",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Weddings Luxury",
@@ -392,7 +1360,32 @@
           "priceUnit": "PER_EVENT",
           "vendorPrice": 35000.0,
           "customerPrice": 75000.0,
-          "description": "Inclusions : Mandapa Decoration + 2 entrance arch + 2 welcome boards"
+          "description": null,
+          "sections": [
+            {
+              "title": "Inclusions",
+              "items": [
+                {
+                  "name": "Mandapa Decoration",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "2 entrance arch",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                },
+                {
+                  "name": "2 welcome boards",
+                  "type": "FIXED",
+                  "options": [],
+                  "chooseCount": null
+                }
+              ]
+            }
+          ]
         }
       ]
     }

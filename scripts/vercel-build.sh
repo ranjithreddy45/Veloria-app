@@ -28,10 +28,13 @@ if [ -n "$DDL_URL" ]; then
   DATABASE_URL="$DDL_URL" pnpm prisma db push --skip-generate
   echo "▲ [vercel-build] Bootstrapping admin + pipeline stages…"
   DATABASE_URL="$DDL_URL" pnpm tsx prisma/bootstrap.ts
-  # NOTE: the Vendor Rate Card was imported once at deploy 6755ef7 (6 vendors /
-  # 37 packages). The one-shot build step was removed afterwards so re-deploys
-  # never overwrite in-app edits. To re-import, run scripts/import-vendor-rate-card.ts
-  # manually against the target DB (idempotent upsert).
+  # One-shot: (re)import the Vendor Rate Card into the catalog — idempotent upsert by
+  # vendor name / vendor+package name, replacing each package's structured sections.
+  # Non-fatal so a data hiccup can't fail deploy. Removed again after this deploy.
+  if [ -f scripts/vendor-import.json ]; then
+    echo "▲ [vercel-build] Importing vendor rate card…"
+    DATABASE_URL="$DDL_URL" pnpm tsx scripts/import-vendor-rate-card.ts || echo "⚠ [vercel-build] vendor rate-card import failed (non-fatal)"
+  fi
 else
   echo "⚠ [vercel-build] No database URL found — skipping schema sync."
 fi

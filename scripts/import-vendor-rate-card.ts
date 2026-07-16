@@ -5,14 +5,16 @@
  * vendor + name. Run:
  *   DATABASE_URL=<target> npx tsx scripts/import-vendor-rate-card.ts [--dry]
  */
-import { PrismaClient, Prisma, VendorCategory, VendorPackagePriceUnit } from "@prisma/client";
+import { PrismaClient, Prisma, VendorCategory, VendorPackagePriceUnit, VendorPackageItemType } from "@prisma/client";
 import { readFileSync } from "fs";
 import { join } from "path";
 
 const prisma = new PrismaClient();
 const DRY = process.argv.includes("--dry");
 
-type Pkg = { name: string; category: string; priceUnit: string; vendorPrice: number | null; customerPrice: number | null; description: string | null };
+type Item = { name: string; type: string; options: string[]; chooseCount: number | null };
+type Section = { title: string; items: Item[] };
+type Pkg = { name: string; category: string; priceUnit: string; vendorPrice: number | null; customerPrice: number | null; description: string | null; sections: Section[] };
 type Vendor = { name: string; email: string | null; phone: string | null; address: string | null; city: string | null; gstin: string | null; categoryKeys: string[]; primaryEnum: string; packages: Pkg[] };
 type Data = { categories: { key: string; label: string }[]; vendors: Vendor[] };
 
@@ -35,7 +37,7 @@ async function main() {
     console.log(`  category ${c.key} (${c.label}) ✓`);
   }
 
-  let vCreated = 0, vUpdated = 0, pCreated = 0, pUpdated = 0;
+  let vCreated = 0, vUpdated = 0, pCreated = 0, pUpdated = 0, pItems = 0;
 
   for (const v of data.vendors) {
     // Match case-insensitively by name (mirrors the lower(name) unique index).
@@ -86,12 +88,34 @@ async function main() {
         where: { vendorId, name: { equals: p.name, mode: "insensitive" } },
         select: { id: true },
       });
-      if (ex) { await prisma.vendorPackage.update({ where: { id: ex.id }, data: pkgData }); pUpdated++; }
-      else { await prisma.vendorPackage.create({ data: { ...pkgData, vendorId } }); pCreated++; }
+      let packageId: string;
+      if (ex) { await prisma.vendorPackage.update({ where: { id: ex.id }, data: pkgData }); packageId = ex.id; pUpdated++; }
+      else { packageId = (await prisma.vendorPackage.create({ data: { ...pkgData, vendorId }, select: { id: true } })).id; pCreated++; }
+      // Replace the structured graph (sections → items) wholesale so a re-run is clean.
+      await prisma.vendorPackageSection.deleteMany({ where: { packageId } });
+      for (const [si, s] of p.sections.entries()) {
+        const section = await prisma.vendorPackageSection.create({
+          data: { packageId, title: s.title, sortOrder: si },
+          select: { id: true },
+        });
+        for (const [ii, it] of s.items.entries()) {
+          await prisma.vendorPackageItem.create({
+            data: {
+              sectionId: section.id,
+              name: it.name,
+              type: it.type as VendorPackageItemType,
+              options: it.options ?? [],
+              chooseCount: it.type === "MULTI_CHOICE" ? it.chooseCount ?? null : null,
+              sortOrder: ii,
+            },
+          });
+          pItems++;
+        }
+      }
     }
   }
 
-  console.log(`\n${DRY ? "[DRY] would " : ""}vendors: +${vCreated} new / ${vUpdated} updated · packages: +${pCreated} new / ${pUpdated} updated`);
+  console.log(`\n${DRY ? "[DRY] would " : ""}vendors: +${vCreated} new / ${vUpdated} updated · packages: +${pCreated} new / ${pUpdated} updated · items: ${pItems}`);
 }
 
 main().then(() => prisma.$disconnect()).catch(async (e) => { console.error(e); await prisma.$disconnect(); process.exit(1); });
