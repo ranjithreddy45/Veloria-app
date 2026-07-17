@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   haversineMeters, withinRadius, ipAllowed,
   isValidCoord, isTrustedAccuracy, MAX_TRUSTED_ACCURACY_M,
+  ipExplicitlyAllowed, evaluateGeofence, type GeofenceSite,
 } from "./geo";
 
 // ============================================================
@@ -85,5 +86,78 @@ describe("ipAllowed", () => {
   it("rejects a non-listed ip", () => {
     expect(ipAllowed("8.8.8.8", "1.2.3.4")).toBe(false);
     expect(ipAllowed(null, "1.2.3.4")).toBe(false);
+  });
+});
+
+describe("ipExplicitlyAllowed", () => {
+  it("empty/absent list is NOT a match (unlike ipAllowed)", () => {
+    expect(ipExplicitlyAllowed("1.2.3.4", null)).toBe(false);
+    expect(ipExplicitlyAllowed("1.2.3.4", "")).toBe(false);
+  });
+  it("matches a listed ip only", () => {
+    expect(ipExplicitlyAllowed("1.2.3.4", "9.9.9.9, 1.2.3.4")).toBe(true);
+    expect(ipExplicitlyAllowed("8.8.8.8", "1.2.3.4")).toBe(false);
+    expect(ipExplicitlyAllowed(null, "1.2.3.4")).toBe(false);
+  });
+});
+
+describe("evaluateGeofence — check-in against the assigned site", () => {
+  // Site centred at 12.9700,77.5940, radius 200m.
+  const base: GeofenceSite = {
+    id: "s1", name: "Bengaluru HQ", lat: 12.9700, lng: 77.5940,
+    radiusMeters: 200, allowedIps: null, allowWfh: false,
+  };
+  const IN = { lat: 12.9701, lng: 77.5940, accuracyM: 20 };   // ~11m away
+  const OUT = { lat: 12.9800, lng: 77.5940, accuracyM: 20 };  // ~1.1km away
+
+  it("ACCEPTS inside the radius with a trusted fix", () => {
+    const v = evaluateGeofence(base, { ...IN, visitType: "OFFICE", ip: null });
+    expect(v.verified).toBe(true);
+    expect(v.flagged).toBe(false);
+    expect(v.matchedSite?.id).toBe("s1");
+  });
+
+  it("ACCEPTS via office IP even with no GPS", () => {
+    const v = evaluateGeofence({ ...base, allowedIps: "203.0.113.7" }, { visitType: "OFFICE", ip: "203.0.113.7" });
+    expect(v.verified).toBe(true);
+    expect(v.flagged).toBe(false);
+  });
+
+  it("FLAGS an out-of-radius OFFICE punch when WFH is not allowed", () => {
+    const v = evaluateGeofence(base, { ...OUT, visitType: "OFFICE", ip: null });
+    expect(v.verified).toBe(false);
+    expect(v.flagged).toBe(true);
+    expect(v.flagReason).toMatch(/Outside the 200m radius/);
+  });
+
+  it("records WFH (unflagged) out-of-radius when the site allows WFH", () => {
+    const v = evaluateGeofence({ ...base, allowWfh: true }, { ...OUT, visitType: "OFFICE", ip: null });
+    expect(v.wfh).toBe(true);
+    expect(v.flagged).toBe(false);
+  });
+
+  it("FLAGS a coarse GPS fix that can't substantiate a radius match", () => {
+    const v = evaluateGeofence(base, { lat: 12.9701, lng: 77.5940, accuracyM: MAX_TRUSTED_ACCURACY_M + 50, visitType: "OFFICE", ip: null });
+    expect(v.verified).toBe(false);
+    expect(v.flagged).toBe(true);
+    expect(v.flagReason).toMatch(/too coarse/);
+  });
+
+  it("FLAGS when no valid coordinate is captured (WFH off)", () => {
+    const v = evaluateGeofence(base, { visitType: "OFFICE", ip: null });
+    expect(v.flagged).toBe(true);
+    expect(v.flagReason).toMatch(/No valid location/);
+  });
+
+  it("FIELD visits off-site are recorded unverified but NOT flagged", () => {
+    const v = evaluateGeofence(base, { ...OUT, visitType: "FIELD", ip: null });
+    expect(v.flagged).toBe(false);
+    expect(v.verified).toBe(false);
+  });
+
+  it("an office-IP match wins even when GPS is out of radius", () => {
+    const v = evaluateGeofence({ ...base, allowedIps: "203.0.113.7" }, { ...OUT, visitType: "OFFICE", ip: "203.0.113.7" });
+    expect(v.verified).toBe(true);
+    expect(v.flagged).toBe(false);
   });
 });

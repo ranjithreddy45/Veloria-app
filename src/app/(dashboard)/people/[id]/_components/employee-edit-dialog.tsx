@@ -38,6 +38,7 @@ interface Props {
     personalEmail: string | null;
     phone: string | null;
     workLocation: string | null;
+    siteId?: string | null;
     employmentType: string;
     status: string;
     legalEntityId: string;
@@ -51,6 +52,8 @@ interface Props {
   departments: Lookup[];
   designations: Lookup[];
   managers: ManagerLookup[];
+  /** Active attendance sites — the employee's check-ins are geofenced to the selected one. */
+  sites?: Lookup[];
   /** Explicitly grant/deny archive; when omitted, falls back to the viewer's hr:admin permission. */
   canArchive?: boolean;
 }
@@ -64,7 +67,7 @@ function toDateInput(v: Date | string | null | undefined): string {
   return d.toISOString().slice(0, 10);
 }
 
-export function EmployeeEditDialog({ employee, entities, verticals, departments, designations, managers, canArchive }: Props) {
+export function EmployeeEditDialog({ employee, entities, verticals, departments, designations, managers, sites = [], canArchive }: Props) {
   const router = useRouter();
   const { data: session } = useSession();
   const viewerRole = (session?.user as { role?: string } | undefined)?.role;
@@ -86,6 +89,7 @@ export function EmployeeEditDialog({ employee, entities, verticals, departments,
   const [personalEmail, setPersonalEmail] = React.useState(employee.personalEmail ?? "");
   const [phone, setPhone] = React.useState(employee.phone ?? "");
   const [workLocation, setWorkLocation] = React.useState(employee.workLocation ?? "");
+  const [siteId, setSiteId] = React.useState(employee.siteId ?? NONE);
   const [employmentType, setEmploymentType] = React.useState(employee.employmentType);
   const [status, setStatus] = React.useState(employee.status);
   const [legalEntityId, setLegalEntityId] = React.useState(employee.legalEntityId);
@@ -102,6 +106,7 @@ export function EmployeeEditDialog({ employee, entities, verticals, departments,
       gender: gender === NONE ? "" : gender,
       dob, dateOfJoining, photoUrl,
       workEmail, personalEmail, phone, workLocation,
+      siteId: siteId === NONE ? "" : siteId,
       employmentType, status, legalEntityId,
       businessVerticalId: businessVerticalId === NONE ? "" : businessVerticalId,
       departmentId: departmentId === NONE ? "" : departmentId,
@@ -148,6 +153,10 @@ export function EmployeeEditDialog({ employee, entities, verticals, departments,
           <F label="Personal email"><Input value={personalEmail} onChange={(e) => setPersonalEmail(e.target.value)} /></F>
           <F label="Phone"><Input value={phone} onChange={(e) => setPhone(e.target.value)} /></F>
           <F label="Work location"><Input value={workLocation} onChange={(e) => setWorkLocation(e.target.value)} /></F>
+          <F label="Attendance site (geofence)">
+            <P value={siteId} onChange={setSiteId} allowNone
+              options={sites.map((s) => ({ value: s.id, label: s.name }))} />
+          </F>
 
           <F label="Legal entity">
             <P value={legalEntityId} onChange={setLegalEntityId}

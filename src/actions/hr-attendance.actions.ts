@@ -9,6 +9,7 @@ import { hasPermission, ROLE_PERMISSIONS } from "@/lib/permissions";
 import {
   withinRadius, ipAllowed, clientIpFromHeaders,
   isValidCoord, isTrustedAccuracy, MAX_TRUSTED_ACCURACY_M,
+  evaluateGeofence,
 } from "@/lib/hr/geo";
 import { isSafeReceiptUrl } from "@/lib/sales/receipt";
 import { FULL_DAY_MINUTES, HALF_DAY_MINUTES } from "@/lib/hr/constants";
@@ -27,7 +28,10 @@ function can(role: string | undefined, perm: string) {
 async function myEmployee(userId: string) {
   return prisma.employee.findFirst({
     where: { userId, deletedAt: null },
-    select: { id: true, firstName: true, lastName: true, reportingManagerId: true, legalEntityId: true },
+    select: {
+      id: true, firstName: true, lastName: true, reportingManagerId: true, legalEntityId: true,
+      site: { select: { id: true, name: true, lat: true, lng: true, radiusMeters: true, allowedIps: true, allowWfh: true, isActive: true } },
+    },
   });
 }
 function todayUtcMidnight(): Date {
@@ -189,11 +193,24 @@ interface GeoVerdict {
   wfh: boolean; // caller may downgrade status to WFH
 }
 
-async function evaluateGeo({ lat, lng, accuracyM, visitType, ip }: GeoInput): Promise<GeoVerdict> {
+/** The employee's assigned attendance site, as selected by myEmployee(). */
+type AssignedSite = {
+  id: string; name: string; lat: number | null; lng: number | null;
+  radiusMeters: number; allowedIps: string | null; allowWfh: boolean; isActive: boolean;
+} | null;
+
+async function evaluateGeo({ lat, lng, accuracyM, visitType, ip }: GeoInput, assignedSite: AssignedSite = null): Promise<GeoVerdict> {
   const none: GeoVerdict = { matchedSite: null, verified: null, flagged: false, flagReason: null, wfh: false };
 
   // A client visit is off-site by definition — no geo-tag required.
   if (visitType === "CLIENT") return none;
+
+  // Employee has an assigned site with a geofence → validate against THAT site via
+  // the pure, unit-tested rule. (An inactive or geo-less assignment can't be
+  // enforced; fall through to the org-wide any-site match below.)
+  if (assignedSite?.isActive && assignedSite.lat != null && assignedSite.lng != null) {
+    return evaluateGeofence(assignedSite, { lat, lng, accuracyM, visitType, ip });
+  }
 
   const sites = await prisma.attendanceSite.findMany({ where: { isActive: true } });
   const geoSites = sites.filter((s) => s.lat != null && s.lng != null);
@@ -265,7 +282,7 @@ export async function checkIn(input: {
   const h = await headers();
   const ip = clientIpFromHeaders(h.get("x-forwarded-for"), h.get("x-real-ip"));
 
-  const verdict = await evaluateGeo({ lat: input.lat, lng: input.lng, accuracyM: input.accuracyM, visitType, ip });
+  const verdict = await evaluateGeo({ lat: input.lat, lng: input.lng, accuracyM: input.accuracyM, visitType, ip }, emp.site);
   const { matchedSite, verified: locationVerified, flagged, flagReason } = verdict;
   const status: "PRESENT" | "WFH" = verdict.wfh ? "WFH" : "PRESENT";
 
@@ -329,7 +346,7 @@ export async function checkOut(input: {
   // visit type recorded at check-in. Without this you could check in at the
   // venue and check out from home while the worked hours still counted.
   const visitType = (rec.visitType as "OFFICE" | "FIELD" | "CLIENT" | null) ?? "OFFICE";
-  const verdict = await evaluateGeo({ lat: input.lat, lng: input.lng, accuracyM: input.accuracyM, visitType, ip });
+  const verdict = await evaluateGeo({ lat: input.lat, lng: input.lng, accuracyM: input.accuracyM, visitType, ip }, emp.site);
 
   const okCoords = isValidCoord(input.lat, input.lng);
   const outLat = okCoords ? input.lat! : null;

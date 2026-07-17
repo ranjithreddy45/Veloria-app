@@ -306,6 +306,7 @@ export interface CreateEmployeeInput {
   employmentType?: string;
   dateOfJoining?: string;
   workLocation?: string;
+  siteId?: string; // assigned attendance site (geofence)
   reportingManagerId?: string;
   status?: string;
 }
@@ -325,6 +326,12 @@ export async function createEmployee(input: CreateEmployeeInput): Promise<Result
   if (input.reportingManagerId) {
     const mgr = await prisma.employee.findFirst({ where: { id: input.reportingManagerId, deletedAt: null }, select: { id: true } });
     if (!mgr) return { success: false, error: "Selected reporting manager is not a valid active employee." };
+  }
+
+  // The assigned attendance site must exist and be active.
+  if (input.siteId) {
+    const site = await prisma.attendanceSite.findFirst({ where: { id: input.siteId, isActive: true }, select: { id: true } });
+    if (!site) return { success: false, error: "Selected attendance site no longer exists (or is inactive)." };
   }
 
   // Reject a duplicate work email (the field isn't DB-unique on legacy data).
@@ -382,6 +389,7 @@ export async function createEmployee(input: CreateEmployeeInput): Promise<Result
           employmentType: (input.employmentType as Prisma.EmployeeCreateInput["employmentType"]) || "FULL_TIME",
           dateOfJoining: input.dateOfJoining ? new Date(input.dateOfJoining) : null,
           workLocation: input.workLocation?.trim() || null,
+          siteId: input.siteId || null,
           reportingManagerId: input.reportingManagerId || null,
           status: (input.status as Prisma.EmployeeCreateInput["status"]) || "ONBOARDING",
         },
@@ -526,6 +534,12 @@ export async function updateEmployee(id: string, input: UpdateEmployeeInput): Pr
     if (!mgr) return { success: false, error: "Selected reporting manager is not a valid active employee." };
   }
 
+  // The assigned attendance site must exist and be active.
+  if (input.siteId) {
+    const site = await prisma.attendanceSite.findFirst({ where: { id: input.siteId, isActive: true }, select: { id: true } });
+    if (!site) return { success: false, error: "Selected attendance site no longer exists (or is inactive)." };
+  }
+
   // Reject a duplicate work email on another employee.
   if (input.workEmail?.trim()) {
     const dupe = await prisma.employee.findFirst({
@@ -564,6 +578,7 @@ export async function updateEmployee(id: string, input: UpdateEmployeeInput): Pr
   if (input.dob !== undefined) data.dob = input.dob ? new Date(input.dob) : null;
   if (input.photoUrl !== undefined) data.photoUrl = input.photoUrl?.trim() || null;
   if (input.workLocation !== undefined) data.workLocation = input.workLocation?.trim() || null;
+  if (input.siteId !== undefined) data.site = input.siteId ? { connect: { id: input.siteId } } : { disconnect: true };
   if (input.dateOfJoining !== undefined) data.dateOfJoining = input.dateOfJoining ? new Date(input.dateOfJoining) : null;
   if (input.employmentType !== undefined) data.employmentType = input.employmentType as Prisma.EmployeeUpdateInput["employmentType"];
   if (input.status !== undefined) data.status = input.status as Prisma.EmployeeUpdateInput["status"];

@@ -5221,11 +5221,16 @@ model Employee {
   designation        HrDesignation?    @relation(fields: [designationId], references: [id])
   gradeId            String? // → HrGrade (in-memory join; no relation, keeps HrGrade back-relation-free)
 
-  employmentType EmploymentType @default(FULL_TIME)
+  employmentType EmploymentType  @default(FULL_TIME)
   dateOfJoining  DateTime?
   dateOfExit     DateTime?
-  workLocation   String?
-  status         EmployeeStatus @default(ONBOARDING)
+  workLocation   String? // legacy free-text label; siteId below is the geofence-resolving reference
+  // Assigned attendance site — check-ins are geofence-validated against THIS site
+  // (radius / IP allow-list / WFH policy). Null = not yet assigned; check-in falls
+  // back to matching any active site.
+  siteId         String?
+  site           AttendanceSite? @relation(fields: [siteId], references: [id])
+  status         EmployeeStatus  @default(ONBOARDING)
 
   // Org chart / approval routing — self relation.
   reportingManagerId String?
@@ -5523,6 +5528,8 @@ model AttendanceSite {
   isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @default(now()) @updatedAt
+
+  employees Employee[] // employees assigned to this site (Employee.siteId)
 
   @@index([isActive])
 }

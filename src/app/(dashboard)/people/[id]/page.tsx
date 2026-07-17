@@ -13,6 +13,7 @@ import { StatusPill } from "@/components/shared/status-pill";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getEmployee, getHrLookups } from "@/actions/hr-employee.actions";
+import { getAttendanceSites } from "@/actions/hr-attendance.actions";
 import { getStatutoryMasked } from "@/actions/hr-statutory.actions";
 import { getEmployeeCompensation } from "@/actions/hr-compensation.actions";
 import { getCustomFieldDefs } from "@/actions/hr-config.actions";
@@ -36,10 +37,15 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
   if (!FEATURES.hr) notFound();
   const { id } = await params;
 
-  const [emp, lookups, session, fieldDefs] = await Promise.all([
-    getEmployee(id), getHrLookups(), auth(), getCustomFieldDefs(true),
+  const [emp, lookups, session, fieldDefs, allSites] = await Promise.all([
+    getEmployee(id), getHrLookups(), auth(), getCustomFieldDefs(true), getAttendanceSites(),
   ]);
   if (!emp) notFound();
+  // Active sites for the geofence dropdown; keep the currently-assigned one even if
+  // it was later deactivated, so the field shows the truth.
+  const siteOptions = allSites
+    .filter((s) => s.isActive || s.id === emp.siteId)
+    .map((s) => ({ id: s.id, name: s.name }));
 
   const showDocs = FEATURES.hrDocuments;
   const [empDocs, docCategories] = showDocs
@@ -139,6 +145,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
                 personalEmail: emp.personalEmail,
                 phone: emp.phone,
                 workLocation: emp.workLocation,
+                siteId: emp.siteId,
                 employmentType: emp.employmentType,
                 status: emp.status,
                 legalEntityId: emp.legalEntityId,
@@ -152,6 +159,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
               departments={lookups.departments}
               designations={lookups.designations}
               managers={lookups.managers}
+              sites={siteOptions}
             />
           )}
         </div>

@@ -61,3 +61,82 @@ export function clientIpFromHeaders(xff: string | null, realIp: string | null): 
   if (realIp) return realIp.trim();
   return null;
 }
+
+/** An EXPLICIT allow-list match. Unlike ipAllowed(), an empty list is NOT a match —
+ * "no restriction" must not, by itself, count as an IP-based acceptance. */
+export function ipExplicitlyAllowed(ip: string | null | undefined, allowList: string | null | undefined): boolean {
+  if (!allowList?.trim() || !ip) return false;
+  return allowList.split(",").map((s) => s.trim()).filter(Boolean).includes(ip.trim());
+}
+
+/** A geofence site the check-in is validated against. */
+export interface GeofenceSite {
+  id: string;
+  name: string;
+  lat: number | null;
+  lng: number | null;
+  radiusMeters: number;
+  allowedIps: string | null;
+  allowWfh: boolean;
+}
+
+export interface GeofenceInput {
+  lat?: number;
+  lng?: number;
+  accuracyM?: number;
+  visitType: "OFFICE" | "FIELD" | "CLIENT";
+  ip: string | null;
+}
+
+export interface GeofenceVerdict {
+  matchedSite: { id: string; name: string } | null;
+  verified: boolean | null; // true = provably at the site (radius or office IP)
+  flagged: boolean;
+  flagReason: string | null;
+  wfh: boolean; // caller downgrades the punch status to WFH
+}
+
+/**
+ * Decide a check-in against ONE assigned site. Acceptance is an OR:
+ *   office IP allow-list match  OR  inside the radius with a trusted GPS fix  OR
+ *   the site permits WFH (recorded as WFH). Otherwise the punch is recorded but
+ *   FLAGGED for review — never hard-blocked, so a present employee with a flaky
+ *   sensor is not locked out. Pure & deterministic (the DB read happens in the
+ *   caller); this is the single source of truth for the geofence rule.
+ */
+export function evaluateGeofence(site: GeofenceSite, input: GeofenceInput): GeofenceVerdict {
+  const matchedSite = { id: site.id, name: site.name };
+
+  // 1) Office network — an explicit IP match verifies even without GPS (a desktop
+  //    punch on the office LAN has no geolocation).
+  if (ipExplicitlyAllowed(input.ip, site.allowedIps)) {
+    return { matchedSite, verified: true, flagged: false, flagReason: null, wfh: false };
+  }
+
+  const validCoord = isValidCoord(input.lat, input.lng);
+  const trusted = validCoord && isTrustedAccuracy(input.accuracyM);
+
+  // 2) Inside the geofence with a trusted fix.
+  if (trusted && site.lat != null && site.lng != null &&
+      withinRadius(input.lat!, input.lng!, site.lat, site.lng, site.radiusMeters)) {
+    return { matchedSite, verified: true, flagged: false, flagReason: null, wfh: false };
+  }
+
+  // Field work is off-site by nature — record unverified, don't flag.
+  if (input.visitType === "FIELD") {
+    return { matchedSite: null, verified: false, flagged: false, flagReason: null, wfh: false };
+  }
+
+  // 3) WFH policy on the assigned site.
+  if (site.allowWfh) {
+    return { matchedSite: null, verified: false, flagged: false, flagReason: null, wfh: true };
+  }
+
+  // Rejected: outside the fence, no other acceptance path → flag for review.
+  const reason = !validCoord
+    ? `No valid location captured — ${site.name} requires on-site check-in`
+    : !trusted
+      ? `GPS accuracy ${input.accuracyM == null ? "unknown" : `±${Math.round(input.accuracyM)}m`} too coarse to verify at ${site.name} (needs ≤${MAX_TRUSTED_ACCURACY_M}m)`
+      : `Outside the ${site.radiusMeters}m radius of your assigned site (${site.name})`;
+  return { matchedSite: null, verified: false, flagged: true, flagReason: reason, wfh: false };
+}
