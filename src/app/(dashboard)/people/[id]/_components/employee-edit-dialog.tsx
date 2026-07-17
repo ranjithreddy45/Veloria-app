@@ -7,6 +7,8 @@ import { Pencil, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
@@ -38,7 +40,8 @@ interface Props {
     personalEmail: string | null;
     phone: string | null;
     workLocation: string | null;
-    siteId?: string | null;
+    siteIds?: string[] | null;
+    attendanceAllSites?: boolean | null;
     employmentType: string;
     status: string;
     legalEntityId: string;
@@ -52,7 +55,7 @@ interface Props {
   departments: Lookup[];
   designations: Lookup[];
   managers: ManagerLookup[];
-  /** Active attendance sites — the employee's check-ins are geofenced to the selected one. */
+  /** Active attendance sites — the employee's check-ins are geofenced to the selected ones. */
   sites?: Lookup[];
   /** Explicitly grant/deny archive; when omitted, falls back to the viewer's hr:admin permission. */
   canArchive?: boolean;
@@ -89,8 +92,11 @@ export function EmployeeEditDialog({ employee, entities, verticals, departments,
   const [personalEmail, setPersonalEmail] = React.useState(employee.personalEmail ?? "");
   const [phone, setPhone] = React.useState(employee.phone ?? "");
   const [workLocation, setWorkLocation] = React.useState(employee.workLocation ?? "");
-  const [siteId, setSiteId] = React.useState(employee.siteId ?? NONE);
+  const [siteIds, setSiteIds] = React.useState<string[]>(employee.siteIds ?? []);
+  const [allSites, setAllSites] = React.useState(employee.attendanceAllSites ?? false);
   const [employmentType, setEmploymentType] = React.useState(employee.employmentType);
+  const toggleSite = (id: string) =>
+    setSiteIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   const [status, setStatus] = React.useState(employee.status);
   const [legalEntityId, setLegalEntityId] = React.useState(employee.legalEntityId);
   const [businessVerticalId, setBusinessVerticalId] = React.useState(employee.businessVerticalId ?? NONE);
@@ -106,7 +112,8 @@ export function EmployeeEditDialog({ employee, entities, verticals, departments,
       gender: gender === NONE ? "" : gender,
       dob, dateOfJoining, photoUrl,
       workEmail, personalEmail, phone, workLocation,
-      siteId: siteId === NONE ? "" : siteId,
+      siteIds: allSites ? [] : siteIds,
+      attendanceAllSites: allSites,
       employmentType, status, legalEntityId,
       businessVerticalId: businessVerticalId === NONE ? "" : businessVerticalId,
       departmentId: departmentId === NONE ? "" : departmentId,
@@ -153,10 +160,35 @@ export function EmployeeEditDialog({ employee, entities, verticals, departments,
           <F label="Personal email"><Input value={personalEmail} onChange={(e) => setPersonalEmail(e.target.value)} /></F>
           <F label="Phone"><Input value={phone} onChange={(e) => setPhone(e.target.value)} /></F>
           <F label="Work location"><Input value={workLocation} onChange={(e) => setWorkLocation(e.target.value)} /></F>
-          <F label="Attendance site (geofence)">
-            <P value={siteId} onChange={setSiteId} allowNone
-              options={sites.map((s) => ({ value: s.id, label: s.name }))} />
-          </F>
+
+          <div className="space-y-2 sm:col-span-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-[12.5px]">Attendance sites (geofence)</Label>
+              <label className="flex items-center gap-2 text-[12.5px] text-muted-foreground">
+                Can mark from all locations
+                <Switch checked={allSites} onCheckedChange={setAllSites} />
+              </label>
+            </div>
+            {allSites ? (
+              <p className="rounded-md border border-dashed bg-muted/30 px-3 py-2 text-[12.5px] text-muted-foreground">
+                This employee may check in from <strong>any</strong> active site.
+              </p>
+            ) : sites.length === 0 ? (
+              <p className="text-[12.5px] text-muted-foreground">No attendance sites configured yet.</p>
+            ) : (
+              <div className="grid gap-1.5 rounded-md border p-2 sm:grid-cols-2">
+                {sites.map((s) => (
+                  <label key={s.id} className="flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 text-[13px] hover:bg-muted/50">
+                    <Checkbox checked={siteIds.includes(s.id)} onCheckedChange={() => toggleSite(s.id)} />
+                    {s.name}
+                  </label>
+                ))}
+              </div>
+            )}
+            <p className="text-[12.5px] text-muted-foreground">
+              A check-in is accepted if it matches <strong>any</strong> selected site (radius / office IP / WFH).
+            </p>
+          </div>
 
           <F label="Legal entity">
             <P value={legalEntityId} onChange={setLegalEntityId}

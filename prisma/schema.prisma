@@ -495,6 +495,10 @@ model Contact {
   notes            String?     @db.Text
   tags             String[]
   isActive         Boolean     @default(true)
+  // Enquiry pipeline status (Sales CRM). Null = new/untouched enquiry.
+  // LEAD_CREATED | INTERESTED | NO_RESPONSE | DROPPED
+  enquiryStatus    String?
+  enquiryStatusAt  DateTime?
   // Customer 360 (spec §3.2) — vipCustomer/anniversary set by staff;
   // customerType, lifetimeBookings, totalRevenue, lastEventDate are
   // auto-rolled by the daily customer-360 cron.
@@ -863,6 +867,7 @@ model Task {
   checklistItems ChecklistItem[]
   leadId         String?
   inquiryId      String?
+  contactId      String? // Enquiry (Contact) reminders — same scheduler as leads
   taskType       String? // FOLLOW_UP | CALL | MEETING | SHOW_AROUND | TASK
   metadata       Json? // show-around invitees {ownerInvited, inviteeIds[], location}, etc.
 
@@ -871,6 +876,7 @@ model Task {
   @@index([bookingId])
   @@index([dueDate])
   @@index([leadId])
+  @@index([contactId])
 }
 
 model ChecklistItem {
@@ -5221,16 +5227,19 @@ model Employee {
   designation        HrDesignation?    @relation(fields: [designationId], references: [id])
   gradeId            String? // → HrGrade (in-memory join; no relation, keeps HrGrade back-relation-free)
 
-  employmentType EmploymentType  @default(FULL_TIME)
-  dateOfJoining  DateTime?
-  dateOfExit     DateTime?
-  workLocation   String? // legacy free-text label; siteId below is the geofence-resolving reference
-  // Assigned attendance site — check-ins are geofence-validated against THIS site
-  // (radius / IP allow-list / WFH policy). Null = not yet assigned; check-in falls
-  // back to matching any active site.
-  siteId         String?
-  site           AttendanceSite? @relation(fields: [siteId], references: [id])
-  status         EmployeeStatus  @default(ONBOARDING)
+  employmentType     EmploymentType  @default(FULL_TIME)
+  dateOfJoining      DateTime?
+  dateOfExit         DateTime?
+  workLocation       String? // legacy free-text label; the site assignment below resolves the geofence
+  // Assigned attendance sites — a check-in is accepted if it matches ANY of these
+  // (radius / IP allow-list / WFH). Staff who float across venues get several.
+  siteIds            String[]        @default([]) // AttendanceSite ids this employee may punch from
+  attendanceAllSites Boolean         @default(false) // true ⇒ may punch from ANY active site
+  // Legacy single-site reference (pre multi-site). Kept for back-compat and folded
+  // into the effective set; new assignments write siteIds / attendanceAllSites.
+  siteId             String?
+  site               AttendanceSite? @relation(fields: [siteId], references: [id])
+  status             EmployeeStatus  @default(ONBOARDING)
 
   // Org chart / approval routing — self relation.
   reportingManagerId String?
@@ -8854,6 +8863,7 @@ model CrmNote {
   callOutcome String? // CALL kind: CONNECTED | NO_ANSWER | BUSY | FOLLOW_UP
   leadId      String?
   inquiryId   String?
+  contactId   String? // Enquiry (Contact) notes — same multi-note thread as leads
   authorId    String
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -8861,4 +8871,5 @@ model CrmNote {
 
   @@index([leadId])
   @@index([inquiryId])
+  @@index([contactId])
 }

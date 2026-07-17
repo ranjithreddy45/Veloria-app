@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   haversineMeters, withinRadius, ipAllowed,
   isValidCoord, isTrustedAccuracy, MAX_TRUSTED_ACCURACY_M,
-  ipExplicitlyAllowed, evaluateGeofence, type GeofenceSite,
+  ipExplicitlyAllowed, evaluateGeofence, evaluateGeofenceMulti, type GeofenceSite,
 } from "./geo";
 
 // ============================================================
@@ -159,5 +159,35 @@ describe("evaluateGeofence — check-in against the assigned site", () => {
     const v = evaluateGeofence({ ...base, allowedIps: "203.0.113.7" }, { ...OUT, visitType: "OFFICE", ip: "203.0.113.7" });
     expect(v.verified).toBe(true);
     expect(v.flagged).toBe(false);
+  });
+});
+
+describe("evaluateGeofenceMulti — accept a punch matching ANY assigned site", () => {
+  const hq: GeofenceSite = { id: "hq", name: "HQ", lat: 12.9700, lng: 77.5940, radiusMeters: 200, allowedIps: null, allowWfh: false };
+  const banquet: GeofenceSite = { id: "bq", name: "Grand Banquet", lat: 13.0000, lng: 77.6000, radiusMeters: 200, allowedIps: null, allowWfh: false };
+
+  it("ACCEPTS when inside the SECOND assigned site", () => {
+    const v = evaluateGeofenceMulti([hq, banquet], { lat: 13.0001, lng: 77.6000, accuracyM: 20, visitType: "OFFICE", ip: null });
+    expect(v.verified).toBe(true);
+    expect(v.flagged).toBe(false);
+    expect(v.matchedSite?.id).toBe("bq");
+  });
+
+  it("FLAGS when outside ALL assigned sites (no WFH), naming the count", () => {
+    const v = evaluateGeofenceMulti([hq, banquet], { lat: 12.5000, lng: 77.0000, accuracyM: 20, visitType: "OFFICE", ip: null });
+    expect(v.flagged).toBe(true);
+    expect(v.flagReason).toMatch(/any of your 2 assigned sites/);
+  });
+
+  it("records WFH if ANY assigned site permits it", () => {
+    const v = evaluateGeofenceMulti([hq, { ...banquet, allowWfh: true }], { lat: 12.5, lng: 77.0, accuracyM: 20, visitType: "OFFICE", ip: null });
+    expect(v.wfh).toBe(true);
+    expect(v.flagged).toBe(false);
+  });
+
+  it("an office-IP match on the second site verifies with no GPS", () => {
+    const v = evaluateGeofenceMulti([hq, { ...banquet, allowedIps: "10.0.0.5" }], { visitType: "OFFICE", ip: "10.0.0.5" });
+    expect(v.verified).toBe(true);
+    expect(v.matchedSite?.id).toBe("bq");
   });
 });

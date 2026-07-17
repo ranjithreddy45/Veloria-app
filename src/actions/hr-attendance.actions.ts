@@ -9,7 +9,7 @@ import { hasPermission, ROLE_PERMISSIONS } from "@/lib/permissions";
 import {
   withinRadius, ipAllowed, clientIpFromHeaders,
   isValidCoord, isTrustedAccuracy, MAX_TRUSTED_ACCURACY_M,
-  evaluateGeofence,
+  evaluateGeofenceMulti, type GeofenceSite,
 } from "@/lib/hr/geo";
 import { isSafeReceiptUrl } from "@/lib/sales/receipt";
 import { FULL_DAY_MINUTES, HALF_DAY_MINUTES } from "@/lib/hr/constants";
@@ -30,10 +30,24 @@ async function myEmployee(userId: string) {
     where: { userId, deletedAt: null },
     select: {
       id: true, firstName: true, lastName: true, reportingManagerId: true, legalEntityId: true,
-      site: { select: { id: true, name: true, lat: true, lng: true, radiusMeters: true, allowedIps: true, allowWfh: true, isActive: true } },
+      siteIds: true, attendanceAllSites: true, siteId: true,
     },
   });
 }
+
+/** Resolve the ACTIVE attendance sites an employee may punch from:
+ * attendanceAllSites → every active site; else the union of siteIds + legacy siteId. */
+async function resolveAssignedSites(emp: {
+  siteIds: string[]; attendanceAllSites: boolean; siteId: string | null;
+}): Promise<GeofenceSite[]> {
+  if (emp.attendanceAllSites) {
+    return prisma.attendanceSite.findMany({ where: { isActive: true }, select: GEOFENCE_SELECT });
+  }
+  const ids = Array.from(new Set([...(emp.siteIds ?? []), ...(emp.siteId ? [emp.siteId] : [])]));
+  if (ids.length === 0) return [];
+  return prisma.attendanceSite.findMany({ where: { id: { in: ids }, isActive: true }, select: GEOFENCE_SELECT });
+}
+const GEOFENCE_SELECT = { id: true, name: true, lat: true, lng: true, radiusMeters: true, allowedIps: true, allowWfh: true } as const;
 function todayUtcMidnight(): Date {
   const n = new Date();
   return new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate()));
@@ -193,23 +207,25 @@ interface GeoVerdict {
   wfh: boolean; // caller may downgrade status to WFH
 }
 
-/** The employee's assigned attendance site, as selected by myEmployee(). */
-type AssignedSite = {
-  id: string; name: string; lat: number | null; lng: number | null;
-  radiusMeters: number; allowedIps: string | null; allowWfh: boolean; isActive: boolean;
-} | null;
+/** The employee's site assignment, as selected by myEmployee(). */
+type EmpAssignment = { siteIds: string[]; attendanceAllSites: boolean; siteId: string | null } | null;
 
-async function evaluateGeo({ lat, lng, accuracyM, visitType, ip }: GeoInput, assignedSite: AssignedSite = null): Promise<GeoVerdict> {
+async function evaluateGeo({ lat, lng, accuracyM, visitType, ip }: GeoInput, assignment: EmpAssignment = null): Promise<GeoVerdict> {
   const none: GeoVerdict = { matchedSite: null, verified: null, flagged: false, flagReason: null, wfh: false };
 
   // A client visit is off-site by definition — no geo-tag required.
   if (visitType === "CLIENT") return none;
 
-  // Employee has an assigned site with a geofence → validate against THAT site via
-  // the pure, unit-tested rule. (An inactive or geo-less assignment can't be
-  // enforced; fall through to the org-wide any-site match below.)
-  if (assignedSite?.isActive && assignedSite.lat != null && assignedSite.lng != null) {
-    return evaluateGeofence(assignedSite, { lat, lng, accuracyM, visitType, ip });
+  // Employee has assigned site(s) → validate against ANY of them via the pure,
+  // unit-tested multi-site rule. Only ENFORCEABLE sites count (a geofence or an IP
+  // allow-list); if the assignment resolves to none enforceable, fall through to the
+  // org-wide any-site match below (non-regressive).
+  if (assignment) {
+    const assigned = await resolveAssignedSites(assignment);
+    const enforceable = assigned.filter((s) => (s.lat != null && s.lng != null) || (s.allowedIps && s.allowedIps.trim()));
+    if (enforceable.length > 0) {
+      return evaluateGeofenceMulti(enforceable, { lat, lng, accuracyM, visitType, ip });
+    }
   }
 
   const sites = await prisma.attendanceSite.findMany({ where: { isActive: true } });
@@ -282,7 +298,7 @@ export async function checkIn(input: {
   const h = await headers();
   const ip = clientIpFromHeaders(h.get("x-forwarded-for"), h.get("x-real-ip"));
 
-  const verdict = await evaluateGeo({ lat: input.lat, lng: input.lng, accuracyM: input.accuracyM, visitType, ip }, emp.site);
+  const verdict = await evaluateGeo({ lat: input.lat, lng: input.lng, accuracyM: input.accuracyM, visitType, ip }, { siteIds: emp.siteIds, attendanceAllSites: emp.attendanceAllSites, siteId: emp.siteId });
   const { matchedSite, verified: locationVerified, flagged, flagReason } = verdict;
   const status: "PRESENT" | "WFH" = verdict.wfh ? "WFH" : "PRESENT";
 
@@ -346,7 +362,7 @@ export async function checkOut(input: {
   // visit type recorded at check-in. Without this you could check in at the
   // venue and check out from home while the worked hours still counted.
   const visitType = (rec.visitType as "OFFICE" | "FIELD" | "CLIENT" | null) ?? "OFFICE";
-  const verdict = await evaluateGeo({ lat: input.lat, lng: input.lng, accuracyM: input.accuracyM, visitType, ip }, emp.site);
+  const verdict = await evaluateGeo({ lat: input.lat, lng: input.lng, accuracyM: input.accuracyM, visitType, ip }, { siteIds: emp.siteIds, attendanceAllSites: emp.attendanceAllSites, siteId: emp.siteId });
 
   const okCoords = isValidCoord(input.lat, input.lng);
   const outLat = okCoords ? input.lat! : null;

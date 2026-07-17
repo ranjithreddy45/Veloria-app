@@ -97,29 +97,38 @@ export interface GeofenceVerdict {
 }
 
 /**
- * Decide a check-in against ONE assigned site. Acceptance is an OR:
- *   office IP allow-list match  OR  inside the radius with a trusted GPS fix  OR
- *   the site permits WFH (recorded as WFH). Otherwise the punch is recorded but
- *   FLAGGED for review — never hard-blocked, so a present employee with a flaky
+ * Decide a check-in against the employee's assigned site(s). A punch is accepted if
+ * it matches ANY assigned site — acceptance is an OR across sites AND across signals:
+ *   office IP allow-list match  OR  inside a site radius with a trusted GPS fix  OR
+ *   any assigned site permits WFH (recorded as WFH). Otherwise the punch is recorded
+ *   but FLAGGED for review — never hard-blocked, so a present employee with a flaky
  *   sensor is not locked out. Pure & deterministic (the DB read happens in the
  *   caller); this is the single source of truth for the geofence rule.
+ *
+ * `sites` must be non-empty — the caller decides the org-wide fallback when an
+ * employee has no assignment.
  */
-export function evaluateGeofence(site: GeofenceSite, input: GeofenceInput): GeofenceVerdict {
-  const matchedSite = { id: site.id, name: site.name };
+export function evaluateGeofenceMulti(sites: GeofenceSite[], input: GeofenceInput): GeofenceVerdict {
+  const single = sites.length === 1 ? sites[0] : null;
 
-  // 1) Office network — an explicit IP match verifies even without GPS (a desktop
-  //    punch on the office LAN has no geolocation).
-  if (ipExplicitlyAllowed(input.ip, site.allowedIps)) {
-    return { matchedSite, verified: true, flagged: false, flagReason: null, wfh: false };
+  // 1) Office network — an explicit IP match on ANY assigned site verifies even
+  //    without GPS (a desktop punch on the office LAN has no geolocation).
+  for (const s of sites) {
+    if (ipExplicitlyAllowed(input.ip, s.allowedIps)) {
+      return { matchedSite: { id: s.id, name: s.name }, verified: true, flagged: false, flagReason: null, wfh: false };
+    }
   }
 
   const validCoord = isValidCoord(input.lat, input.lng);
   const trusted = validCoord && isTrustedAccuracy(input.accuracyM);
 
-  // 2) Inside the geofence with a trusted fix.
-  if (trusted && site.lat != null && site.lng != null &&
-      withinRadius(input.lat!, input.lng!, site.lat, site.lng, site.radiusMeters)) {
-    return { matchedSite, verified: true, flagged: false, flagReason: null, wfh: false };
+  // 2) Inside ANY assigned site's geofence with a trusted fix.
+  if (trusted) {
+    for (const s of sites) {
+      if (s.lat != null && s.lng != null && withinRadius(input.lat!, input.lng!, s.lat, s.lng, s.radiusMeters)) {
+        return { matchedSite: { id: s.id, name: s.name }, verified: true, flagged: false, flagReason: null, wfh: false };
+      }
+    }
   }
 
   // Field work is off-site by nature — record unverified, don't flag.
@@ -127,16 +136,23 @@ export function evaluateGeofence(site: GeofenceSite, input: GeofenceInput): Geof
     return { matchedSite: null, verified: false, flagged: false, flagReason: null, wfh: false };
   }
 
-  // 3) WFH policy on the assigned site.
-  if (site.allowWfh) {
+  // 3) WFH policy — allowed if ANY assigned site permits it.
+  if (sites.some((s) => s.allowWfh)) {
     return { matchedSite: null, verified: false, flagged: false, flagReason: null, wfh: true };
   }
 
-  // Rejected: outside the fence, no other acceptance path → flag for review.
+  // Rejected: matched no assigned site, no other acceptance path → flag for review.
+  const where = single ? `your assigned site (${single.name})` : `any of your ${sites.length} assigned sites`;
+  const radiusPart = single ? `the ${single.radiusMeters}m radius of ${where}` : `the radius of ${where}`;
   const reason = !validCoord
-    ? `No valid location captured — ${site.name} requires on-site check-in`
+    ? `No valid location captured — ${single ? `${single.name} requires` : "your assigned sites require"} on-site check-in`
     : !trusted
-      ? `GPS accuracy ${input.accuracyM == null ? "unknown" : `±${Math.round(input.accuracyM)}m`} too coarse to verify at ${site.name} (needs ≤${MAX_TRUSTED_ACCURACY_M}m)`
-      : `Outside the ${site.radiusMeters}m radius of your assigned site (${site.name})`;
+      ? `GPS accuracy ${input.accuracyM == null ? "unknown" : `±${Math.round(input.accuracyM)}m`} too coarse to verify at ${single ? single.name : "your assigned sites"} (needs ≤${MAX_TRUSTED_ACCURACY_M}m)`
+      : `Outside ${radiusPart}`;
   return { matchedSite: null, verified: false, flagged: true, flagReason: reason, wfh: false };
+}
+
+/** Single-site convenience wrapper (see evaluateGeofenceMulti). */
+export function evaluateGeofence(site: GeofenceSite, input: GeofenceInput): GeofenceVerdict {
+  return evaluateGeofenceMulti([site], input);
 }

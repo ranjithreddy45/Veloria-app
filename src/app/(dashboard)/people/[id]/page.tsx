@@ -41,10 +41,11 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
     getEmployee(id), getHrLookups(), auth(), getCustomFieldDefs(true), getAttendanceSites(),
   ]);
   if (!emp) notFound();
-  // Active sites for the geofence dropdown; keep the currently-assigned one even if
-  // it was later deactivated, so the field shows the truth.
+  // Active sites for the geofence picker; keep any currently-assigned site visible
+  // even if it was later deactivated, so the field shows the truth.
+  const assignedSet = new Set([...(emp.siteIds ?? []), ...(emp.siteId ? [emp.siteId] : [])]);
   const siteOptions = allSites
-    .filter((s) => s.isActive || s.id === emp.siteId)
+    .filter((s) => s.isActive || assignedSet.has(s.id))
     .map((s) => ({ id: s.id, name: s.name }));
 
   const showDocs = FEATURES.hrDocuments;
@@ -145,7 +146,8 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
                 personalEmail: emp.personalEmail,
                 phone: emp.phone,
                 workLocation: emp.workLocation,
-                siteId: emp.siteId,
+                siteIds: Array.from(assignedSet), // includes any legacy single-site assignment
+                attendanceAllSites: emp.attendanceAllSites,
                 employmentType: emp.employmentType,
                 status: emp.status,
                 legalEntityId: emp.legalEntityId,
