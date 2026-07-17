@@ -79,8 +79,12 @@ export async function exportLeads() {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
+    // Mirror the leads LIST scoping: reps see (and therefore export) only their
+    // own book; managers with leads:assign export org-wide. Without this, an
+    // own-book-only rep could CSV-download every lead in the company.
+    const canViewAll = hasPermission(session.user.role, "leads:assign");
     const leads = await prisma.lead.findMany({
-      where: { deletedAt: null },
+      where: { deletedAt: null, ...(canViewAll ? {} : { assignedToId: session.user.id }) },
       orderBy: { createdAt: "desc" },
       take: 10000,
       include: {

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import {
   Users, MapPin, FileText, Link2, Wallet, CheckCircle2, XCircle,
-  Sparkles, TrendingUp, Trophy, Flame, Megaphone,
+  Sparkles, TrendingUp, Trophy, Flame, Megaphone, Inbox,
 } from "lucide-react";
 import { getSalesAnalytics, getSalesExecutives } from "@/actions/sales-analytics.actions";
 import { PageHeader } from "@/components/layout/page-header";
@@ -20,6 +20,10 @@ interface Analytics {
     siteVisits: number; quotationsSent: number; paymentLinksSent: number;
     advanceCollected: number; bookingsConfirmed: number; bookingsLost: number;
     upsellValue: number; revenueBooked: number; lostValue: number; salesScore: number;
+    /** Contact rows created in range (date range only — Contact has no owner column). */
+    enquiriesCreated: number;
+    /** Lead rows created in range, employee-filtered by Lead.assignedToId. */
+    leadsCreated: number;
   };
   employees: SalesEmployeeRow[];
   leaderboard: { userId: string; name: string; salesScore: number }[];
@@ -62,6 +66,9 @@ export default async function SalesDashboardPage({
   const range = sp.range ?? "month";
   const employeeIds = sp.emp ? sp.emp.split(",").filter(Boolean) : null;
   const params = { rangeKey: range, from: sp.from ?? null, to: sp.to ?? null, employeeIds };
+  // Contact (enquiry) rows carry no owner column, so the enquiry count is always
+  // all-staff. Flag it on the tile when an employee filter is active.
+  const empFiltered = !!employeeIds?.length;
 
   const [execRes, aRes] = await Promise.all([
     getSalesExecutives(),
@@ -76,7 +83,10 @@ export default async function SalesDashboardPage({
 
   const kpis: { label: string; value: number; icon: React.ComponentType<{ className?: string }>; accent: Accent; sub?: string }[] = t
     ? [
-        { label: "Enquiries", value: t.enquiriesTotal, icon: Users, accent: "indigo", sub: `${t.enquiriesCold} cold · ${t.enquiriesCampaign} campaign` },
+        // Two distinct counts — previously conflated under a single "Enquiries"
+        // tile that actually showed the Lead count.
+        { label: "Enquiries created", value: t.enquiriesCreated, icon: Inbox, accent: "cyan", sub: empFiltered ? "All staff — not employee-filtered" : "New enquiries (contacts)" },
+        { label: "Leads created", value: t.leadsCreated, icon: Users, accent: "indigo", sub: `${t.enquiriesCold} cold · ${t.enquiriesCampaign} campaign` },
         { label: "Site Visits", value: t.siteVisits, icon: MapPin, accent: "pink" },
         { label: "Quotations Sent", value: t.quotationsSent, icon: FileText, accent: "blue" },
         { label: "Payment Links", value: t.paymentLinksSent, icon: Link2, accent: "teal" },
@@ -133,9 +143,10 @@ export default async function SalesDashboardPage({
                   })}
                 </div>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-[12px] text-muted-foreground">
-                  <span>Enquiry→Booking <b className="text-foreground">{pct(a.conversion.enquiryToBooking)}</b></span>
+                  {/* Both ratios are computed off Lead rows, not Contact rows. */}
+                  <span>Lead→Booking <b className="text-foreground">{pct(a.conversion.enquiryToBooking)}</b></span>
                   <span>Win rate <b className="text-foreground">{pct(a.conversion.winRate)}</b></span>
-                  <span>Avg enquiry→booking <b className="text-foreground">{a.avgDaysEnquiryToBooking ?? "—"} days</b></span>
+                  <span>Avg lead→booking <b className="text-foreground">{a.avgDaysEnquiryToBooking ?? "—"} days</b></span>
                   <span>Avg upsell/booking <b className="text-foreground">{inr(a.avgUpsellPerBooking)}</b></span>
                 </div>
                 {/* Goal-gradient: small remaining distance to beat last month's booked revenue */}
@@ -165,7 +176,7 @@ export default async function SalesDashboardPage({
                     <thead>
                       <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted-foreground">
                         <th className="py-2 pr-3 font-medium">Employee</th>
-                        <th className="px-2 py-2 text-right font-medium">Enquiries</th>
+                        <th className="px-2 py-2 text-right font-medium">Leads</th>
                         <th className="px-2 py-2 text-right font-medium">Site visits</th>
                         <th className="px-2 py-2 text-right font-medium">Quotes</th>
                         <th className="px-2 py-2 text-right font-medium">Confirmed</th>
@@ -239,7 +250,7 @@ export default async function SalesDashboardPage({
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <Card className="gap-0 py-0">
               <CardContent className="space-y-3 px-5 py-5">
-                <h2 className="text-[13px] font-semibold tracking-[-0.01em] text-foreground">Enquiries by source</h2>
+                <h2 className="text-[13px] font-semibold tracking-[-0.01em] text-foreground">Leads by source</h2>
                 <div className="flex gap-3">
                   <div className="flex-1 rounded-lg border border-border bg-muted/20 p-3">
                     <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground"><Flame className="size-3.5 text-orange-500" /> Cold</div>

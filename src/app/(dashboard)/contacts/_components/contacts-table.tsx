@@ -50,6 +50,7 @@ import { exportContacts } from "@/actions/export.actions";
 import { toCSV, downloadCSV } from "@/lib/csv-export";
 import { BulkWhatsAppDialog } from "@/components/shared/bulk-whatsapp-dialog";
 import { cn } from "@/lib/utils";
+import { enquiryStatusOption } from "./enquiry-status";
 
 // ============================================================
 // Types
@@ -72,12 +73,17 @@ interface Contact {
   notes: string | null;
   tags: string[];
   isActive: boolean;
+  enquiryStatus: string | null;
+  enquiryStatusAt: Date | string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
 }
 
 // Zoho-style "Filter by" facets — all derived from existing contact fields.
 const CONTACT_FACETS: FacetDef<Contact>[] = [
+  // Enquiry status is also filterable server-side from the URL rail; this facet
+  // narrows within whatever the server returned.
+  { key: "enquiryStatus", label: "Enquiry status", get: (c) => enquiryStatusOption(c.enquiryStatus).label },
   { key: "status", label: "Status", get: (c) => (c.isActive ? "Active" : "Inactive") },
   { key: "city", label: "City", get: (c) => c.city, max: 8 },
   { key: "state", label: "State", get: (c) => c.state, max: 8 },
@@ -344,6 +350,17 @@ const columns: ColumnDef<Contact>[] = [
           size="xs"
         />
       );
+    },
+  },
+  {
+    id: "enquiryStatus",
+    accessorFn: (row) => enquiryStatusOption(row.enquiryStatus).label,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Enquiry" />
+    ),
+    cell: ({ row }) => {
+      const opt = enquiryStatusOption(row.original.enquiryStatus);
+      return <StatusPill label={opt.label} hue={opt.hue} size="xs" />;
     },
   },
   {

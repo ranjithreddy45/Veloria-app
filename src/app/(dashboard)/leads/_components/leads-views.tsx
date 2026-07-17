@@ -72,7 +72,14 @@ function BoardCard({ lead }: { lead: LeadWithContact }) {
   );
 }
 
-export function LeadsViews({ data }: { data: LeadWithContact[] }) {
+export function LeadsViews({
+  data,
+  statusFiltered = false,
+}: {
+  data: LeadWithContact[];
+  /** True when the server already narrowed the list to a single status. */
+  statusFiltered?: boolean;
+}) {
   const [view, setView] = React.useState<ViewMode>("list");
 
   const columns = React.useMemo<KanbanColumn<LeadWithContact>[]>(() => {
@@ -111,7 +118,7 @@ export function LeadsViews({ data }: { data: LeadWithContact[] }) {
         />
       </div>
       {view === "list" ? (
-        <LeadsTable data={data} />
+        <LeadsTable data={data} statusFiltered={statusFiltered} />
       ) : (
         <KanbanBoard
           columns={columns}

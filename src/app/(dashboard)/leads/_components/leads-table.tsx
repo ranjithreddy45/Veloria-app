@@ -652,18 +652,27 @@ function ExportButton() {
 
 interface LeadsTableProps {
   data: LeadWithContact[];
+  /**
+   * True when the server-side filter bar already narrowed the list to one
+   * status. The client status tabs are then hidden: their per-tab counts would
+   * all read 0 except the active one, and clicking any other tab would dead-end
+   * on an empty table.
+   */
+  statusFiltered?: boolean;
 }
 
-export function LeadsTable({ data }: LeadsTableProps) {
+export function LeadsTable({ data, statusFiltered = false }: LeadsTableProps) {
   const router = useRouter();
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("ALL");
   const [selectedRows, setSelectedRows] = React.useState<LeadWithContact[]>([]);
 
   // Post-tab rows feed the facet rail; the rail's output feeds the table.
+  // When the server already filtered by status the tabs are hidden, so any
+  // leftover local tab state must NOT keep narrowing rows invisibly.
   const filtered = React.useMemo(() => {
-    if (statusFilter === "ALL") return data;
+    if (statusFiltered || statusFilter === "ALL") return data;
     return data.filter((l) => l.status === statusFilter);
-  }, [data, statusFilter]);
+  }, [data, statusFilter, statusFiltered]);
 
   const [facetFiltered, setFacetFiltered] = React.useState<LeadWithContact[]>(filtered);
 
@@ -771,11 +780,13 @@ export function LeadsTable({ data }: LeadsTableProps) {
   return (
     <div className="space-y-4">
       <LeadsStatStrip data={data} />
-      <StatusTabs
-        data={data}
-        active={statusFilter}
-        onChange={setStatusFilter}
-      />
+      {!statusFiltered && (
+        <StatusTabs
+          data={data}
+          active={statusFilter}
+          onChange={setStatusFilter}
+        />
+      )}
       <div className="flex items-start gap-4">
         <FacetFilterRail
           className="hidden lg:block"

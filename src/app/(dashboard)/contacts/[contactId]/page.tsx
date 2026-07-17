@@ -43,6 +43,11 @@ import { AIEmailComposer } from "@/components/ai/ai-email-composer";
 import { WhatsAppQuickSendDialog } from "@/components/shared/whatsapp-quick-send-dialog";
 import { SmartSuggestions } from "@/components/ai/smart-suggestions";
 import { SentimentTrendChart } from "@/components/ai/sentiment-trend-chart";
+import { EnquiryStatusSelect } from "./_components/enquiry-status-select";
+import { EnquiryNotesPanel } from "./_components/enquiry-notes-panel";
+import { EnquiryRemindersPanel } from "./_components/enquiry-reminders-panel";
+import { StatusPill } from "@/components/shared/status-pill";
+import { enquiryStatusOption } from "../_components/enquiry-status";
 
 export const metadata: Metadata = { title: "Contact Details" };
 
@@ -65,6 +70,7 @@ export default async function ContactDetailPage({
   }
 
   const contact = result.data;
+  const statusOption = enquiryStatusOption(contact.enquiryStatus);
 
   // Format currency in Indian format
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -82,14 +88,24 @@ export default async function ContactDetailPage({
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            {contact.firstName} {contact.lastName}
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold tracking-tight">
+              {contact.firstName} {contact.lastName}
+            </h1>
+            <StatusPill label={statusOption.label} hue={statusOption.hue} size="sm" />
+          </div>
           <p className="text-muted-foreground mt-1 text-sm">
             {contact.company ? `${contact.designation ? contact.designation + " at " : ""}${contact.company}` : contact.type === "CORPORATE" ? "Corporate Contact" : "Individual Contact"}
+            {contact.enquiryStatusAt && (
+              <> · status updated {format(new Date(contact.enquiryStatusAt), "dd MMM yyyy")}</>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <EnquiryStatusSelect
+            contactId={contact.id}
+            currentStatus={contact.enquiryStatus ?? null}
+          />
           <AIEmailComposer
             contactId={contact.id}
             contactName={`${contact.firstName} ${contact.lastName}`}
@@ -241,6 +257,14 @@ export default async function ContactDetailPage({
                 </div>
               </CardContent>
             </Card>
+          </div>
+
+          {/* Notes & call log + reminders — parity with the lead detail page.
+              Both write through the shared CRM actions, so a reminder booked
+              here shows up on /calendar and notifies the assignee. */}
+          <div className="grid gap-6 md:grid-cols-2">
+            <EnquiryNotesPanel contactId={contact.id} />
+            <EnquiryRemindersPanel contactId={contact.id} />
           </div>
 
           {/* Smart Suggestions */}

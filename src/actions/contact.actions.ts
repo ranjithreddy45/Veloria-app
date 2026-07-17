@@ -10,13 +10,51 @@ import { logActivity } from "@/lib/activity-logger";
 import { coarseContactWhere, matchesContactKey } from "@/lib/dedup";
 
 // ============================================================
-// Get Contacts (Paginated + Search)
+// Enquiry status (Sales CRM) — the pipeline state of an enquiry (Contact).
+// Null = new/untouched. Mirrors the lead status pill.
+// ============================================================
+
+const ENQUIRY_STATUSES = [
+  "LEAD_CREATED",
+  "INTERESTED",
+  "NO_RESPONSE",
+  "DROPPED",
+] as const;
+
+export type EnquiryStatus = (typeof ENQUIRY_STATUSES)[number];
+
+/** Server-side whitelist — enquiryStatus is a free String column, so an
+ *  unvalidated value would persist straight through Prisma. */
+function isEnquiryStatus(v: unknown): v is EnquiryStatus {
+  return typeof v === "string" && (ENQUIRY_STATUSES as readonly string[]).includes(v);
+}
+
+/** Parse a "yyyy-MM-dd" filter bound into a server-local day boundary.
+ *  `new Date("2026-07-01")` would parse as UTC midnight and silently shift the
+ *  range by the timezone offset, so build the local date explicitly. */
+function dayBound(value: string | undefined, edge: "start" | "end"): Date | undefined {
+  if (!value) return undefined;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(value.trim());
+  if (!m) return undefined;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  if (Number.isNaN(d.getTime())) return undefined;
+  if (edge === "end") d.setHours(23, 59, 59, 999);
+  return d;
+}
+
+// ============================================================
+// Get Contacts (Paginated + Search + Enquiry filters)
 // ============================================================
 
 export async function getContacts(params?: {
   search?: string;
   page?: number;
   limit?: number;
+  /** Enquiry creation date range (inclusive), "yyyy-MM-dd" or ISO. */
+  createdFrom?: string;
+  createdTo?: string;
+  /** Enquiry status filter. "NEW" matches untouched (null) enquiries. */
+  enquiryStatus?: string;
 }) {
   try {
     const session = await auth();
@@ -35,6 +73,22 @@ export async function getContacts(params?: {
 
     // Exclude soft-deleted contacts; combine with any search filter.
     const where: Record<string, unknown> = { deletedAt: null };
+
+    // Enquiry creation-date range (inclusive on both ends).
+    const from = dayBound(params?.createdFrom, "start");
+    const to = dayBound(params?.createdTo, "end");
+    if (from || to) {
+      where.createdAt = { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) };
+    }
+
+    // Enquiry status. "NEW" is the untouched (null) bucket, not a stored value.
+    const status = params?.enquiryStatus?.trim();
+    if (status === "NEW") {
+      where.enquiryStatus = null;
+    } else if (isEnquiryStatus(status)) {
+      where.enquiryStatus = status;
+    }
+
     if (search) {
       where.OR = [
         { firstName: { contains: search, mode: "insensitive" as const } },
@@ -291,6 +345,67 @@ export async function updateContact(id: string, data: ContactInput) {
   } catch (error) {
     console.error("[UPDATE_CONTACT_ERROR]", error);
     return { success: false as const, error: "Failed to update contact" };
+  }
+}
+
+// ============================================================
+// Set Enquiry Status
+// ============================================================
+
+/** Move an enquiry (Contact) along the pipeline. Pass null to reset to "New".
+ *  Stamps enquiryStatusAt so the list can show how long it's been sitting. */
+export async function setEnquiryStatus(contactId: string, status: string | null) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+
+    // Gated like every other contact write.
+    if (!hasPermission(session.user.role, "contacts:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
+    if (!contactId || typeof contactId !== "string") {
+      return { success: false as const, error: "Invalid enquiry" };
+    }
+    if (status !== null && !isEnquiryStatus(status)) {
+      return { success: false as const, error: "Invalid enquiry status" };
+    }
+
+    const existing = await prisma.contact.findFirst({
+      where: { id: contactId, deletedAt: null },
+      select: { id: true, enquiryStatus: true },
+    });
+    if (!existing) {
+      return { success: false as const, error: "Contact not found" };
+    }
+
+    // No-op guard: don't churn the timestamp when nothing changed.
+    if (existing.enquiryStatus === status) {
+      return { success: true as const, data: { id: contactId, enquiryStatus: status } };
+    }
+
+    const contact = await prisma.contact.update({
+      where: { id: contactId },
+      data: { enquiryStatus: status, enquiryStatusAt: status ? new Date() : null },
+      select: { id: true, enquiryStatus: true, enquiryStatusAt: true },
+    });
+
+    await logActivity({
+      userId: session.user.id as string,
+      action: "status_changed",
+      entityType: "Contact",
+      entityId: contactId,
+      changes: { enquiryStatus: { from: existing.enquiryStatus, to: status } },
+    });
+
+    revalidatePath("/contacts");
+    revalidatePath(`/contacts/${contactId}`);
+    return { success: true as const, data: serialize(contact) };
+  } catch (error) {
+    console.error("[SET_ENQUIRY_STATUS_ERROR]", error);
+    return { success: false as const, error: "Failed to update enquiry status" };
   }
 }
 

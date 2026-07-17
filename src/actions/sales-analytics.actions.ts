@@ -4,9 +4,15 @@
 // Sales Analytics — dashboard + reports aggregation engine
 // ------------------------------------------------------------
 // Mirrors the BD analytics engine (acq-analytics.actions.ts) on the sales side:
-// Enquiries (Lead) → Site visits → Quotations → Advance → Bookings, plus upsell
-// and the Velos sales-score leaderboard. Filtered by {rangeKey,from,to,
-// employeeIds}. Additive: no schema change, reads existing data. Money = rupees.
+// Leads → Site visits → Quotations → Advance → Bookings, plus upsell and the
+// Velos sales-score leaderboard. Filtered by {rangeKey,from,to,employeeIds}.
+// Additive: no schema change, reads existing data. Money = rupees.
+//
+// TERMINOLOGY: "Enquiry" = Contact (nav → /contacts); "Lead" = Lead (nav →
+// /leads); an enquiry later becomes a lead. The `enquiries*` fields below are
+// historical misnomers — they all count LEAD rows, and are kept under those
+// names because /sales/reports reads them. The two honestly-named headline
+// counts are `totals.leadsCreated` and `totals.enquiriesCreated`.
 // ============================================================
 
 import { auth } from "@/../auth";
@@ -105,7 +111,7 @@ export async function getSalesAnalytics(params: SalesRangeParams): Promise<Resul
   // to the previous IST month window. Null for any other range.
   const prevMonthRange = range.key === "month" ? resolveBdRange("month", null, null, new Date(range.start.getTime() - 1)) : null;
 
-  const [leads, siteVisits, quotes, payLinks, payments, confirmed, lostBookings, lostLeads, velos, lastMonthAgg] = await Promise.all([
+  const [leads, siteVisits, quotes, payLinks, payments, confirmed, lostBookings, lostLeads, velos, lastMonthAgg, enquiriesCreated] = await Promise.all([
     prisma.lead.findMany({ where: { createdAt: inRange, ...(empIds ? { assignedToId: { in: empIds } } : {}) }, select: { source: true, status: true, assignedToId: true, createdById: true } }),
     prisma.siteVisitBooking.findMany({ where: { status: "COMPLETED", completedAt: inRange, ...(empIds ? { assignedToId: { in: empIds } } : {}) }, select: { assignedToId: true } }),
     prisma.salesQuotation.findMany({ where: { status: "SENT", sentAt: inRange, ...(empIds ? { sentById: { in: empIds } } : {}) }, select: { sentById: true, createdById: true } }),
@@ -118,6 +124,12 @@ export async function getSalesAnalytics(params: SalesRangeParams): Promise<Resul
     prevMonthRange
       ? prisma.booking.aggregate({ where: { status: "CONFIRMED", createdAt: { gte: prevMonthRange.start, lte: prevMonthRange.end }, ...(empIds ? { createdById: { in: empIds } } : {}) }, _sum: { totalAmount: true } })
       : Promise.resolve(null),
+    // True enquiry count = Contact rows (nav "Enquiry" → /contacts). Distinct from
+    // `leads` above, which are Lead rows. NOTE: Contact has no creator/owner column,
+    // so this honours the date range ONLY — the employee filter cannot be applied
+    // without inventing an ownership link. `deletedAt: null` matches the /contacts
+    // list, which excludes soft-deleted enquiries.
+    prisma.contact.count({ where: { createdAt: inRange, deletedAt: null } }),
   ]);
 
   const lastMonthRevenue: number | null = lastMonthAgg ? num(lastMonthAgg._sum.totalAmount) : null;
@@ -219,11 +231,18 @@ export async function getSalesAnalytics(params: SalesRangeParams): Promise<Resul
     siteVisits: sum((r) => r.siteVisits), quotationsSent: sum((r) => r.quotationsSent), paymentLinksSent: sum((r) => r.paymentLinksSent),
     advanceCollected: advanceTotal, bookingsConfirmed: sum((r) => r.bookingsConfirmed), bookingsLost: sum((r) => r.bookingsLost),
     upsellValue: upsellTotal, salesScore: sum((r) => r.salesScore), revenueBooked, lostValue,
+    // Two unambiguous headline counts. `enquiriesTotal`/`enquiriesCold`/
+    // `enquiriesCampaign` above are Lead-derived (kept as-is: /sales/reports reads
+    // them); these two name what they actually count.
+    leadsCreated: leads.length,   // Lead rows: createdAt in range + assignedToId in empIds
+    enquiriesCreated,             // Contact rows: createdAt in range only (no owner column)
   };
 
   // Funnel (cross-stage counts in range)
   const funnel = [
-    { key: "enquiries", label: "Enquiries", count: leads.length },
+    // Label says "Leads" because this stage counts Lead rows. Key kept as
+    // "enquiries" for stability (other consumers may match on it).
+    { key: "enquiries", label: "Leads", count: leads.length },
     { key: "siteVisit", label: "Site Visit Done", count: siteVisits.length },
     { key: "quotation", label: "Quotation Sent", count: quotes.length },
     { key: "advance", label: "Advance Collected", count: advanceBookingIds.size },

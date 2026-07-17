@@ -13,6 +13,7 @@ import { logActivity } from "@/lib/activity-logger";
 import { notify } from "@/lib/notify";
 import { evaluateAssignmentRules } from "@/actions/assignment-rule.actions";
 import { runLeadIntake, leadSlaDeadline } from "@/lib/lead-pipeline";
+import { resolveBdRange, istDateStr } from "@/lib/acq/analytics-range";
 import { after } from "next/server";
 // LeadStatus enum values matching Prisma schema
 type LeadStatus = "NEW" | "CONTACTED" | "QUALIFIED" | "PROPOSAL_SENT" | "NEGOTIATION" | "WON" | "LOST";
@@ -68,13 +69,131 @@ async function assigneeInvalid(userId: string): Promise<string | null> {
 }
 
 // ============================================================
-// Get Leads (Paginated + Filters)
+// Lead list filters + ownership scoping (shared by the list and its KPIs)
 // ============================================================
 
-export async function getLeads(params?: {
+/**
+ * Which leads the list shows. Defaults to "mine" (leads assigned to the signed-in
+ * user). "all" is a manager view — see `canSeeAllLeads`.
+ */
+export type LeadScope = "mine" | "all";
+
+export interface LeadListFilters {
   search?: string;
   status?: string;
   source?: string;
+  /** Event-date period — IST yyyy-mm-dd, inclusive on both ends. */
+  eventFrom?: string;
+  eventTo?: string;
+  /** Lead-creation period — IST yyyy-mm-dd, inclusive on both ends. */
+  createdFrom?: string;
+  createdTo?: string;
+  scope?: LeadScope;
+}
+
+const ISO_DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * "All leads" is the lead-manager view. It reuses the EXISTING `leads:assign`
+ * permission — the one that already distinguishes a lead manager (SUPER_ADMIN /
+ * ADMIN / SALES_HEAD) from a rep who only works their own book — rather than
+ * introducing a new permission key.
+ */
+function canSeeAllLeads(role: string): boolean {
+  return hasPermission(role, "leads:assign");
+}
+
+/**
+ * The absolute [start, end] UTC instants of one IST calendar day. Anchored via
+ * the shared BD range resolver so leads use the same IST (+5:30) day boundaries
+ * as every other date filter in the app — no bespoke timezone maths here.
+ */
+function istDayWindow(iso: string | undefined): { start: Date; end: Date } | null {
+  if (!iso || !ISO_DAY_RE.test(iso)) return null;
+  const r = resolveBdRange("custom", iso, iso);
+  // resolveBdRange falls back to "this month" when the pair won't parse, and
+  // Date.UTC silently rolls impossible days over (Feb 31 → Mar 3). Reject both by
+  // requiring the resolved window to round-trip back to the same IST day.
+  if (r.key !== "custom" || istDateStr(r.start) !== iso || istDateStr(r.end) !== iso) {
+    return null;
+  }
+  return { start: r.start, end: r.end };
+}
+
+/** Inclusive IST day-range filter; either end may be omitted (open-ended). */
+function istRangeFilter(fromISO?: string, toISO?: string): { gte?: Date; lte?: Date } | null {
+  const from = istDayWindow(fromISO);
+  const to = istDayWindow(toISO);
+  if (!from && !to) return null;
+  const f: { gte?: Date; lte?: Date } = {};
+  if (from) f.gte = from.start; // 00:00:00.000 IST of the "from" day
+  if (to) f.lte = to.end; // 23:59:59.999 IST of the "to" day
+  return f;
+}
+
+/**
+ * Builds the list `where` clause plus the EFFECTIVE scope. Scope is resolved
+ * server-side from the viewer's role — a client asking for `scope: "all"` without
+ * the permission is silently downgraded to "mine", so the query can never widen
+ * beyond what the role allows.
+ */
+function buildLeadListWhere(
+  filters: LeadListFilters | undefined,
+  viewer: { id: string; role: string }
+): { where: Record<string, unknown>; scope: LeadScope; canViewAll: boolean } {
+  // Exclude soft-deleted records by default
+  const where: Record<string, unknown> = { deletedAt: null };
+
+  // ---- Ownership scoping (server-authoritative) ----
+  const canViewAll = canSeeAllLeads(viewer.role);
+  const scope: LeadScope = filters?.scope === "all" && canViewAll ? "all" : "mine";
+  if (scope === "mine") {
+    where.assignedToId = viewer.id;
+  }
+
+  const search = filters?.search?.trim();
+  if (search) {
+    where.OR = [
+      { title: { contains: search, mode: "insensitive" } },
+      {
+        contact: {
+          OR: [
+            { firstName: { contains: search, mode: "insensitive" } },
+            { lastName: { contains: search, mode: "insensitive" } },
+            { email: { contains: search, mode: "insensitive" } },
+          ],
+        },
+      },
+    ];
+  }
+
+  // Validate enum filters before querying — an unknown string would otherwise
+  // make Prisma throw and surface as a generic "Failed to fetch leads".
+  if (filters?.status && LEAD_STATUS_VALUES.has(filters.status)) {
+    where.status = filters.status;
+  }
+
+  if (filters?.source && LEAD_SOURCE_VALUES.has(filters.source)) {
+    where.source = filters.source;
+  }
+
+  // Event-date period. eventDate is nullable — a lead with no event date simply
+  // falls outside the window (Prisma treats NULL as non-matching for gte/lte).
+  const eventRange = istRangeFilter(filters?.eventFrom, filters?.eventTo);
+  if (eventRange) where.eventDate = eventRange;
+
+  // Lead-creation period.
+  const createdRange = istRangeFilter(filters?.createdFrom, filters?.createdTo);
+  if (createdRange) where.createdAt = createdRange;
+
+  return { where, scope, canViewAll };
+}
+
+// ============================================================
+// Get Leads (Paginated + Filters)
+// ============================================================
+
+export async function getLeads(params?: LeadListFilters & {
   page?: number;
   limit?: number;
   sort?: "score" | "recent"; // default: score (hot-lead worklist)
@@ -95,35 +214,11 @@ export async function getLeads(params?: {
     // response on accounts with thousands of leads. Bound it to a sane ceiling.
     const limit = Math.min(Math.max(1, Math.floor(params?.limit ?? 50)), 100);
     const skip = (page - 1) * limit;
-    const search = params?.search?.trim();
 
-    // Build where clause — exclude soft-deleted records by default
-    const where: Record<string, unknown> = { deletedAt: null };
-
-    if (search) {
-      where.OR = [
-        { title: { contains: search, mode: "insensitive" } },
-        {
-          contact: {
-            OR: [
-              { firstName: { contains: search, mode: "insensitive" } },
-              { lastName: { contains: search, mode: "insensitive" } },
-              { email: { contains: search, mode: "insensitive" } },
-            ],
-          },
-        },
-      ];
-    }
-
-    // Validate enum filters before querying — an unknown string would otherwise
-    // make Prisma throw and surface as a generic "Failed to fetch leads".
-    if (params?.status && LEAD_STATUS_VALUES.has(params.status)) {
-      where.status = params.status;
-    }
-
-    if (params?.source && LEAD_SOURCE_VALUES.has(params.source)) {
-      where.source = params.source;
-    }
+    const { where, scope, canViewAll } = buildLeadListWhere(params, {
+      id: session.user.id as string,
+      role: session.user.role,
+    });
 
     const [leads, total] = await Promise.all([
       prisma.lead.findMany({
@@ -162,6 +257,11 @@ export async function getLeads(params?: {
         page,
         limit,
         totalPages: Math.ceil(total / limit),
+        // Effective (post-permission) scope + whether this viewer may switch to
+        // "All leads". The UI renders the toggle from these, never from its own
+        // role guess.
+        scope,
+        canViewAll,
       },
     };
   } catch (error) {
@@ -174,11 +274,16 @@ export async function getLeads(params?: {
 // Get Lead Stats (aggregate KPIs — not capped by pagination)
 // ============================================================
 
-// Header KPIs must reflect ALL leads, not the paginated slice the list renders,
-// so they're computed with DB aggregates here. `total` = every active lead;
-// `pipelineValue` = Σ estimatedValue over OPEN statuses only (excludes WON/LOST),
-// matching the "Pipeline value" definition used elsewhere (S-1).
-export async function getLeadStats() {
+// Header KPIs must reflect ALL leads matching the current scope + filters, not the
+// paginated slice the list renders, so they're computed with DB aggregates here.
+// `total` = every active lead in scope; `pipelineValue` = Σ estimatedValue over
+// OPEN statuses only (excludes WON/LOST), matching the "Pipeline value"
+// definition used elsewhere (S-1).
+//
+// It takes the SAME filter/scope input as getLeads and resolves it through the
+// same server-side builder, so the header can never report a number the list
+// isn't allowed to show (e.g. an org-wide total above a rep's own rows).
+export async function getLeadStats(params?: LeadListFilters) {
   try {
     const session = await auth();
     if (!session?.user) {
@@ -189,10 +294,18 @@ export async function getLeadStats() {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
+    const { where } = buildLeadListWhere(params, {
+      id: session.user.id as string,
+      role: session.user.role,
+    });
+
     const [total, openAgg] = await Promise.all([
-      prisma.lead.count({ where: { deletedAt: null } }),
+      prisma.lead.count({ where }),
       prisma.lead.aggregate({
-        where: { deletedAt: null, status: { notIn: ["WON", "LOST"] } },
+        // AND (not a spread) so an explicit status filter is intersected with the
+        // open-status rule rather than overwritten by it — filtering to Won must
+        // report ₹0 pipeline, not "all open leads".
+        where: { AND: [where, { status: { notIn: ["WON", "LOST"] } }] },
         _sum: { estimatedValue: true },
       }),
     ]);

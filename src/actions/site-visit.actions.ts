@@ -9,6 +9,8 @@
 // tastings:update. Exports only async functions; revalidates /site-visits.
 // ============================================================
 
+import { randomBytes } from "crypto";
+import { z } from "zod";
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/utils";
@@ -16,17 +18,22 @@ import { hasPermission } from "@/lib/permissions";
 import { notifyAwait } from "@/lib/notify";
 import { logActivity } from "@/lib/activity-logger";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
+import { sendEmail } from "@/lib/email";
+import { scheduleCrmTask } from "@/actions/crm-task.actions";
 import { revalidatePath } from "next/cache";
 import type { SiteVisitStatus, SiteVisitKind } from "@prisma/client";
 import {
   updateSiteVisitStatusSchema,
   type UpdateSiteVisitStatusInput,
+  normalizeVisitPhone,
+  SITE_VISIT_KINDS,
 } from "@/schemas/site-visit.schema";
 import {
   isValidVisitSlot,
   formatVisitDateLabel,
   formatVisitTimeLabel,
   SITE_VISIT_KIND_LABEL,
+  VISIT_MAX_DAYS_AHEAD,
 } from "@/lib/site-visit/slots";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
@@ -503,6 +510,386 @@ export async function getSiteVisitStats(): Promise<Result<SiteVisitStats>> {
   } catch (error) {
     console.error("[GET_SITE_VISIT_STATS_ERROR]", error);
     return { success: false, error: "Failed to load stats." };
+  }
+}
+
+// ============================================================
+// Lead-scoped scheduling — "Schedule site visit" from /leads/[leadId].
+// ------------------------------------------------------------
+// Staff-initiated counterpart to the public /visit scheduler. Deliberately does
+// NOT reuse lib/site-visit/public-booking.createSiteVisitBooking: that engine
+// MINTS A NEW LEAD via captureLeadFromExternal (correct for an anonymous web
+// prospect, wrong here — the lead already exists and re-minting would duplicate
+// the lead + fire a cold-prospect WhatsApp auto-reply at a known customer).
+// We reuse its token shape, IST label helpers and kind labels instead, and
+// back-link the EXISTING leadId/contactId onto the booking.
+//
+// Gated on leads:update (the permission the lead detail page already uses for
+// writes) rather than tastings:update — this control lives on the lead page and
+// is used by sales reps who may not hold the tastings scope.
+//
+// Slot policy: unlike the public scheduler, staff are NOT restricted to the
+// VISIT_SLOTS catalog (isValidVisitSlot) — they book real appointments at
+// arbitrary times with a variable durationMin. We validate future + horizon only.
+// ============================================================
+
+/** Unguessable /visit/<token> access token — same shape as public-booking's. */
+function newVisitToken(): string {
+  return randomBytes(24).toString("base64url");
+}
+
+const scheduleLeadVisitSchema = z.object({
+  leadId: z.string().trim().min(1, "Lead is required."),
+  kind: z.enum(SITE_VISIT_KINDS),
+  scheduledAt: z
+    .string()
+    .min(1, "Pick a date & time.")
+    .refine((v) => !Number.isNaN(new Date(v).getTime()), "Pick a valid date & time."),
+  durationMin: z.coerce.number().int().min(15).max(480),
+  venueId: z.string().trim().optional().or(z.literal("")),
+  customerName: z.string().trim().min(2, "Customer name is required.").max(120),
+  customerPhone: z
+    .string()
+    .trim()
+    .min(1, "Customer phone is required.")
+    .refine((v) => v.replace(/\D/g, "").length >= 7, "Enter a valid phone number."),
+  customerEmail: z.string().trim().email("Enter a valid email.").optional().or(z.literal("")),
+  notes: z.string().trim().max(1000).optional().or(z.literal("")),
+  assignedToId: z.string().trim().min(1, "Pick a host rep."),
+  inviteeIds: z.array(z.string().trim().min(1)).max(50).optional(),
+});
+
+/** Input for scheduleSiteVisitForLead (types are erasable — safe to export here). */
+export type ScheduleLeadVisitInput = z.input<typeof scheduleLeadVisitSchema>;
+
+export interface ScheduleLeadVisitResult {
+  id: string;
+  token: string;
+  /** true when the guest invitation email actually went out. */
+  emailSent: boolean;
+}
+
+/**
+ * Schedule a customer site visit / menu tasting against an existing lead:
+ * creates the SiteVisitBooking (minting the /visit/<token> link), tags the
+ * internal property team via the SHOW_AROUND CRM-task path (notifies each +
+ * lands on their /calendar), and emails the guest an invitation.
+ * Every side effect after the row is best-effort — none may fail the booking.
+ */
+export async function scheduleSiteVisitForLead(
+  input: ScheduleLeadVisitInput
+): Promise<Result<ScheduleLeadVisitResult>> {
+  const g = await gate("leads:update");
+  if (!g.ok) return { success: false, error: g.error };
+
+  const parsed = scheduleLeadVisitSchema.safeParse(input);
+  if (!parsed.success) {
+    const first = Object.values(parsed.error.flatten().fieldErrors)[0]?.[0];
+    return { success: false, error: first || "Please check the form and try again." };
+  }
+  const p = parsed.data;
+
+  const scheduledAt = new Date(p.scheduledAt);
+  const now = Date.now();
+  if (scheduledAt.getTime() <= now) {
+    return { success: false, error: "Pick a time in the future." };
+  }
+  if (scheduledAt.getTime() > now + VISIT_MAX_DAYS_AHEAD * 24 * 60 * 60 * 1000) {
+    return {
+      success: false,
+      error: `Visits can only be booked up to ${VISIT_MAX_DAYS_AHEAD} days ahead.`,
+    };
+  }
+
+  try {
+    // (1) The lead must exist (and not be soft-deleted) — never trust a stale id.
+    const lead = await prisma.lead.findFirst({
+      where: { id: p.leadId, deletedAt: null },
+      select: { id: true, title: true, contactId: true, eventType: true, guestCount: true },
+    });
+    if (!lead) return { success: false, error: "Lead not found." };
+
+    // (2) Resolve venue (optional) — confirm it exists + is active, and grab its
+    // name for the guest copy / task description.
+    let venueId: string | null = null;
+    let venueName: string | null = null;
+    if (p.venueId) {
+      const venue = await prisma.venue.findFirst({
+        where: { id: p.venueId, isActive: true },
+        select: { id: true, name: true },
+      });
+      if (!venue) return { success: false, error: "That venue isn't available." };
+      venueId = venue.id;
+      venueName = venue.name;
+    }
+
+    // (3) Host rep must be a real active user.
+    const host = await prisma.user.findFirst({
+      where: { id: p.assignedToId, isActive: true },
+      select: { id: true, name: true },
+    });
+    if (!host) return { success: false, error: "That host rep isn't available." };
+
+    const kindLabel = SITE_VISIT_KIND_LABEL[p.kind];
+    const dateLabel = formatVisitDateLabel(scheduledAt);
+    const timeLabel = formatVisitTimeLabel(scheduledAt);
+    const token = newVisitToken();
+    const email = p.customerEmail || null;
+
+    // (4) The booking row is the source of truth — back-linked to the EXISTING
+    // lead/contact (no lead minting).
+    const booking = await prisma.siteVisitBooking.create({
+      data: {
+        token,
+        kind: p.kind,
+        status: "REQUESTED",
+        customerName: p.customerName,
+        customerPhone: normalizeVisitPhone(p.customerPhone),
+        customerEmail: email,
+        eventType: lead.eventType,
+        guestCount: lead.guestCount,
+        venueId,
+        scheduledAt,
+        durationMin: p.durationMin,
+        notes: p.notes || null,
+        leadId: lead.id,
+        contactId: lead.contactId,
+        assignedToId: host.id,
+      },
+      select: { id: true },
+    });
+
+    // (5) Tag the internal property team via the existing SHOW_AROUND path: it
+    // notifies every invitee AND puts the tour on their /calendar. Host rep is
+    // the assignee, so they're notified by the same call.
+    const inviteeIds = [...new Set((p.inviteeIds ?? []).filter(Boolean))];
+    try {
+      const tagged = await scheduleCrmTask({
+        leadId: lead.id,
+        taskType: "SHOW_AROUND",
+        title: `${kindLabel} — ${p.customerName}`,
+        dueDate: scheduledAt.toISOString(),
+        assigneeId: host.id,
+        description: [
+          `${kindLabel} scheduled by ${g.user.name ?? "the sales team"}.`,
+          venueName ? `Venue: ${venueName}.` : null,
+          `Time: ${dateLabel} · ${timeLabel} (IST) · ${p.durationMin} min.`,
+          `Guest: ${p.customerName} · ${p.customerPhone}${email ? ` · ${email}` : ""}.`,
+          p.notes ? `Notes: ${p.notes}` : null,
+          `Manage: /visit/${token}`,
+        ]
+          .filter(Boolean)
+          .join(" "),
+        metadata: { inviteeIds, location: venueName },
+      });
+      // scheduleCrmTask RETURNS a Result rather than throwing — a bare try/catch
+      // would swallow a tagging failure silently. Log it; the booking still stands.
+      if (!tagged.success) {
+        console.error("[SCHEDULE_LEAD_VISIT_TASK_FAILED]", tagged.error);
+      }
+    } catch (e) {
+      console.error("[SCHEDULE_LEAD_VISIT_TASK_ERROR]", e);
+    }
+
+    // (6) Guest invitation email — best-effort, never fails the booking.
+    let emailSent = false;
+    if (email) {
+      try {
+        const sent = await sendEmail({
+          to: email,
+          subject: `Your ${kindLabel.toLowerCase()} on ${dateLabel}`,
+          html: buildVisitInviteHtml({
+            firstName: p.customerName.trim().split(/\s+/)[0] || "there",
+            kindLabel,
+            venueName,
+            dateLabel,
+            timeLabel,
+            durationMin: p.durationMin,
+            token,
+          }),
+        });
+        emailSent = !!sent.success;
+      } catch (e) {
+        console.error("[SCHEDULE_LEAD_VISIT_EMAIL_ERROR]", e);
+      }
+    }
+
+    logActivity({
+      action: "CREATE",
+      entityType: "site_visit",
+      entityId: booking.id,
+      changes: {
+        kind: p.kind,
+        scheduledAt: scheduledAt.toISOString(),
+        venueId,
+        leadId: lead.id,
+        assignedToId: host.id,
+        inviteeIds,
+      },
+      userId: g.user.id,
+    });
+
+    revalidatePath(`/leads/${lead.id}`);
+    revalidatePath("/site-visits");
+    revalidatePath("/calendar");
+    return { success: true, data: { id: booking.id, token, emailSent } };
+  } catch (error) {
+    console.error("[SCHEDULE_LEAD_VISIT_ERROR]", error);
+    return { success: false, error: "Failed to schedule the site visit." };
+  }
+}
+
+/** Escape interpolated values so a name/venue can never inject markup. */
+function esc(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/**
+ * Guest-facing invitation body. Carries ONLY customer-safe data (venue, IST
+ * time, manage link) — never the rep identity, internal notes or lead id.
+ */
+function buildVisitInviteHtml(args: {
+  firstName: string;
+  kindLabel: string;
+  venueName: string | null;
+  dateLabel: string;
+  timeLabel: string;
+  durationMin: number;
+  token: string;
+}): string {
+  const base = process.env.NEXT_PUBLIC_APP_URL || "https://veloriagrand.com";
+  // token is base64url ([A-Za-z0-9_-]) so it is already URL/attribute safe.
+  const manageUrl = `${base}/visit/${args.token}`;
+  const where = esc(args.venueName || "Veloria Grand");
+  const kind = esc(args.kindLabel.toLowerCase());
+  return `
+    <div style="font-family:system-ui,-apple-system,'Segoe UI',sans-serif;max-width:560px;margin:0 auto;color:#1f2937">
+      <h2 style="margin:0 0 12px;font-size:20px;color:#111827">Your ${kind} is booked</h2>
+      <p style="margin:0 0 16px;line-height:1.6">
+        Hi ${esc(args.firstName)}, we've reserved time for your ${kind} at ${where}.
+        Here are the details:
+      </p>
+      <table style="width:100%;border-collapse:collapse;margin:0 0 20px;background:#f9fafb;border-radius:8px">
+        <tr><td style="padding:10px 14px;color:#6b7280;font-size:13px">Venue</td><td style="padding:10px 14px;font-weight:600">${where}</td></tr>
+        <tr><td style="padding:10px 14px;color:#6b7280;font-size:13px">Date</td><td style="padding:10px 14px;font-weight:600">${esc(args.dateLabel)}</td></tr>
+        <tr><td style="padding:10px 14px;color:#6b7280;font-size:13px">Time</td><td style="padding:10px 14px;font-weight:600">${esc(args.timeLabel)} IST (${args.durationMin} min)</td></tr>
+      </table>
+      <p style="margin:0 0 16px;line-height:1.6">
+        Please confirm so our team can be ready for you. You can also reschedule or cancel from the same link.
+      </p>
+      <p style="margin:0 0 24px">
+        <a href="${manageUrl}" style="display:inline-block;background:#111827;color:#fff;text-decoration:none;padding:11px 22px;border-radius:6px;font-weight:600">Confirm or reschedule</a>
+      </p>
+      <p style="margin:0;color:#6b7280;font-size:12px;line-height:1.6">
+        If the button doesn't work, paste this into your browser:<br />
+        <a href="${manageUrl}" style="color:#6b7280">${manageUrl}</a>
+      </p>
+    </div>
+  `;
+}
+
+export interface LeadSiteVisitRow {
+  id: string;
+  token: string;
+  kindLabel: string;
+  status: SiteVisitStatus;
+  venueName: string | null;
+  scheduledAtISO: string;
+  dateLabel: string;
+  timeLabel: string;
+  durationMin: number;
+  assignedToName: string | null;
+  customerEmail: string | null;
+  notes: string | null;
+}
+
+/** Site visits booked against a lead, for the lead detail panel. */
+export async function getLeadSiteVisits(
+  leadId: string
+): Promise<Result<LeadSiteVisitRow[]>> {
+  const g = await gate("leads:read");
+  if (!g.ok) return { success: false, error: g.error };
+  if (!leadId) return { success: false, error: "Lead not found." };
+
+  try {
+    const rows = await prisma.siteVisitBooking.findMany({
+      where: { leadId },
+      select: {
+        id: true,
+        token: true,
+        kind: true,
+        status: true,
+        scheduledAt: true,
+        durationMin: true,
+        assignedToId: true,
+        customerEmail: true,
+        notes: true,
+        venue: { select: { name: true } },
+      },
+      orderBy: { scheduledAt: "desc" },
+      take: 50,
+    });
+
+    const repIds = Array.from(
+      new Set(rows.map((r) => r.assignedToId).filter((x): x is string => !!x))
+    );
+    const reps = repIds.length
+      ? await prisma.user.findMany({
+          where: { id: { in: repIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const repName = new Map(reps.map((r) => [r.id, r.name] as const));
+
+    const data: LeadSiteVisitRow[] = rows.map((r) => ({
+      id: r.id,
+      token: r.token,
+      kindLabel: SITE_VISIT_KIND_LABEL[r.kind],
+      status: r.status,
+      venueName: r.venue?.name ?? null,
+      scheduledAtISO: r.scheduledAt.toISOString(),
+      dateLabel: formatVisitDateLabel(r.scheduledAt),
+      timeLabel: formatVisitTimeLabel(r.scheduledAt),
+      durationMin: r.durationMin,
+      assignedToName: r.assignedToId ? repName.get(r.assignedToId) ?? null : null,
+      customerEmail: r.customerEmail,
+      notes: r.notes,
+    }));
+
+    return { success: true, data: serialize(data) };
+  } catch (error) {
+    console.error("[GET_LEAD_SITE_VISITS_ERROR]", error);
+    return { success: false, error: "Failed to load site visits." };
+  }
+}
+
+export interface LeadVisitVenueOption {
+  id: string;
+  name: string;
+}
+
+/**
+ * Bookable venues for the lead-page scheduler. Gated on leads:read so a sales
+ * rep can open the dialog without the tastings scope.
+ */
+export async function getLeadVisitVenues(): Promise<Result<LeadVisitVenueOption[]>> {
+  const g = await gate("leads:read");
+  if (!g.ok) return { success: false, error: g.error };
+  try {
+    const venues = await prisma.venue.findMany({
+      where: { isActive: true, parentVenueId: null },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    });
+    return { success: true, data: venues };
+  } catch (error) {
+    console.error("[GET_LEAD_VISIT_VENUES_ERROR]", error);
+    return { success: false, error: "Failed to load venues." };
   }
 }
 

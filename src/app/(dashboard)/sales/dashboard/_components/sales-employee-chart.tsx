@@ -29,7 +29,8 @@ export interface SalesEmployeeRow {
 }
 
 const METRICS: { key: keyof SalesEmployeeRow; label: string; color: string }[] = [
-  { key: "enquiriesTotal", label: "Enquiries", color: "#6366f1" },
+  // enquiriesTotal counts Lead rows (field name kept — /sales/reports reads it).
+  { key: "enquiriesTotal", label: "Leads", color: "#6366f1" },
   { key: "siteVisits", label: "Site visits", color: "#ec4899" },
   { key: "quotationsSent", label: "Quotations", color: "#0ea5e9" },
   { key: "paymentLinksSent", label: "Payment links", color: "#14b8a6" },

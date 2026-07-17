@@ -46,6 +46,8 @@ import { AIEmailComposer } from "@/components/ai/ai-email-composer";
 import { SmartSuggestions } from "@/components/ai/smart-suggestions";
 import { CrmNotesPanel } from "@/components/crm/crm-notes-panel";
 import { ScheduleTaskDialog } from "@/components/crm/schedule-task-dialog";
+import { ScheduleSiteVisitDialog } from "./_components/schedule-site-visit-dialog";
+import { LeadSiteVisits } from "./_components/lead-site-visits";
 
 export const metadata: Metadata = { title: "Lead Details" };
 
@@ -135,6 +137,14 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
           />
           <MacroButton entityType="LEAD" entityId={lead.id} />
           <ScheduleTaskDialog leadId={lead.id} />
+          <ScheduleSiteVisitDialog
+            leadId={lead.id}
+            customerName={`${lead.contact.firstName} ${lead.contact.lastName}`.trim()}
+            customerPhone={lead.contact.phone ?? ""}
+            customerEmail={lead.contact.email ?? ""}
+            preferredVenueId={lead.preferredVenueId ?? null}
+            defaultHostId={lead.assignedToId ?? null}
+          />
           <LeadQuickActions
             leadId={lead.id}
             leadTitle={lead.title}
@@ -324,6 +334,9 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
 
           {/* Notes & call log — editable, multiple entries per user */}
           <CrmNotesPanel leadId={lead.id} />
+
+          {/* Site visits / tastings booked for this lead */}
+          <LeadSiteVisits leadId={lead.id} />
 
           {/* Quotations raised from this lead */}
           <Card>
