@@ -94,6 +94,7 @@ function EnquiryStatusControl({ inquiry }: { inquiry: InquiryData }) {
     } finally { setSaving(null); }
   }
   const tone: Record<EnquiryStatus, string> = {
+    LEAD_CREATED: "border-violet-300 bg-violet-50 text-violet-700",
     INTERESTED: "border-emerald-300 bg-emerald-50 text-emerald-700",
     DROPPED: "border-rose-300 bg-rose-50 text-rose-700",
     NO_RESPONSE: "border-amber-300 bg-amber-50 text-amber-700",
