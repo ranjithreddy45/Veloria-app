@@ -13,6 +13,7 @@ import {
   Image as ImageIcon,
   Gift,
   FolderOpen,
+  Users,
   LogOut,
   Menu,
   X,
@@ -23,6 +24,7 @@ import { Button } from "@/components/ui/button";
 const portalLinks = [
   { href: "/portal", label: "Home", icon: Home },
   { href: "/portal/bookings", label: "Bookings", icon: CalendarCheck },
+  { href: "/portal/guests", label: "Guests", icon: Users },
   { href: "/portal/invoices", label: "Invoices", icon: FileText },
   { href: "/portal/payments", label: "Payments", icon: CreditCard },
   { href: "/portal/contracts", label: "Contracts", icon: FileSignature, badgeKey: "contracts" as const },
