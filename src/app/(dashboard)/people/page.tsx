@@ -9,6 +9,7 @@ import { hasPermission } from "@/lib/permissions";
 import { FEATURES } from "@/config/features";
 import { PageHeader } from "@/components/layout/page-header";
 import { getEmployees, getEmployeeStats, getHrLookups } from "@/actions/hr-employee.actions";
+import { getAttendanceSites } from "@/actions/hr-attendance.actions";
 import { DirectoryFilters } from "./_components/directory-filters";
 import { DirectoryTable, type DirectoryRow } from "./_components/directory-table";
 import { HeadcountStrip } from "./_components/headcount-strip";
@@ -33,7 +34,7 @@ export default async function PeoplePage({ searchParams }: PageProps) {
   const canWrite = hasPermission(role, "hr:write");
   const canAdmin = hasPermission(role, "hr:admin");
 
-  const [lookups, stats, list] = await Promise.all([
+  const [lookups, stats, list, sites] = await Promise.all([
     getHrLookups(),
     getEmployeeStats(),
     getEmployees({
@@ -47,7 +48,9 @@ export default async function PeoplePage({ searchParams }: PageProps) {
       sortOrder: sp.dir,
       page: sp.page ? parseInt(sp.page, 10) : 1,
     }),
+    getAttendanceSites(),
   ]);
+  const siteOptions = sites.filter((s) => s.isActive).map((s) => ({ id: s.id, name: s.name }));
 
   const needsSeed = lookups.entities.length === 0;
 
@@ -72,6 +75,7 @@ export default async function PeoplePage({ searchParams }: PageProps) {
               departments={lookups.departments}
               designations={lookups.designations}
               managers={lookups.managers}
+              sites={siteOptions}
             />
           </>
         )}

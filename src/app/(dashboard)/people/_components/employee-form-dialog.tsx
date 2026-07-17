@@ -6,6 +6,8 @@ import { UserPlus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
@@ -24,9 +26,11 @@ interface Props {
   departments: Lookup[];
   designations: Lookup[];
   managers: ManagerLookup[];
+  /** Active attendance sites — the new hire can be geofenced to any selected ones. */
+  sites?: Lookup[];
 }
 
-export function EmployeeFormDialog({ entities, verticals, departments, designations, managers }: Props) {
+export function EmployeeFormDialog({ entities, verticals, departments, designations, managers, sites = [] }: Props) {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -47,14 +51,18 @@ export function EmployeeFormDialog({ entities, verticals, departments, designati
   const [employmentType, setEmploymentType] = React.useState("FULL_TIME");
   const [dateOfJoining, setDateOfJoining] = React.useState("");
   const [workLocation, setWorkLocation] = React.useState("");
+  const [siteIds, setSiteIds] = React.useState<string[]>([]);
+  const [allSites, setAllSites] = React.useState(false);
   const [reportingManagerId, setReportingManagerId] = React.useState("");
   const [status, setStatus] = React.useState("ONBOARDING");
+  const toggleSite = (id: string) =>
+    setSiteIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
   function reset() {
     setFirstName(""); setLastName(""); setWorkEmail(""); setPersonalEmail(""); setPhone(""); setGender(""); setDob("");
     setLegalEntityId(""); setBusinessVerticalId(""); setDepartmentId(""); setDesignationId("");
-    setEmploymentType("FULL_TIME"); setDateOfJoining(""); setWorkLocation(""); setReportingManagerId("");
-    setStatus("ONBOARDING"); setError(null);
+    setEmploymentType("FULL_TIME"); setDateOfJoining(""); setWorkLocation(""); setSiteIds([]); setAllSites(false);
+    setReportingManagerId(""); setStatus("ONBOARDING"); setError(null);
   }
 
   async function handleSubmit() {
@@ -76,6 +84,8 @@ export function EmployeeFormDialog({ entities, verticals, departments, designati
       employmentType,
       dateOfJoining: dateOfJoining || undefined,
       workLocation: workLocation || undefined,
+      siteIds: allSites ? [] : siteIds,
+      attendanceAllSites: allSites,
       reportingManagerId: reportingManagerId || undefined,
       status,
     });
@@ -153,6 +163,35 @@ export function EmployeeFormDialog({ entities, verticals, departments, designati
           <Field label="Work location">
             <Input value={workLocation} onChange={(e) => setWorkLocation(e.target.value)} placeholder="Bengaluru HQ" />
           </Field>
+
+          <div className="space-y-2 sm:col-span-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-[12.5px]">Attendance sites (geofence)</Label>
+              <label className="flex items-center gap-2 text-[12.5px] text-muted-foreground">
+                Can mark from all locations
+                <Switch checked={allSites} onCheckedChange={setAllSites} />
+              </label>
+            </div>
+            {allSites ? (
+              <p className="rounded-md border border-dashed bg-muted/30 px-3 py-2 text-[12.5px] text-muted-foreground">
+                This employee may check in from <strong>any</strong> active site.
+              </p>
+            ) : sites.length === 0 ? (
+              <p className="text-[12.5px] text-muted-foreground">No attendance sites configured yet.</p>
+            ) : (
+              <div className="grid gap-1.5 rounded-md border p-2 sm:grid-cols-2">
+                {sites.map((s) => (
+                  <label key={s.id} className="flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 text-[13px] hover:bg-muted/50">
+                    <Checkbox checked={siteIds.includes(s.id)} onCheckedChange={() => toggleSite(s.id)} />
+                    {s.name}
+                  </label>
+                ))}
+              </div>
+            )}
+            <p className="text-[12.5px] text-muted-foreground">
+              A check-in is accepted if it matches <strong>any</strong> selected site (radius / office IP / WFH).
+            </p>
+          </div>
 
           <Field label="Gender">
             <Picker value={gender} onChange={setGender} placeholder="Select"
