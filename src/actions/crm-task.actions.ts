@@ -11,7 +11,7 @@
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
-import { notify } from "@/lib/notify";
+import { notifyAwait } from "@/lib/notify";
 import { revalidatePath } from "next/cache";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
@@ -82,9 +82,16 @@ export async function scheduleCrmTask(input: {
   });
 
   const whenStr = due.toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-  // Notify the assignee (if not self).
+  // Notifications are AWAITED, not fire-and-forget: on serverless the function
+  // can be frozen the moment this action returns, silently dropping an
+  // un-awaited notify() — and "notify the assignee/tagged team" is the whole
+  // point of scheduling. Collected and settled together so one bad write can't
+  // fail the (already-persisted) task.
+  const notifications: Promise<unknown>[] = [];
   if (assigneeId !== u.id) {
-    notify({ userId: assigneeId, type: "TASK_ASSIGNED", title: `New ${TYPE_LABEL[input.taskType] ?? "task"}: ${title}`, message: `Scheduled for ${whenStr}.`, actionUrl: "/calendar" });
+    notifications.push(
+      notifyAwait({ userId: assigneeId, type: "TASK_ASSIGNED", title: `New ${TYPE_LABEL[input.taskType] ?? "task"}: ${title}`, message: `Scheduled for ${whenStr}.`, actionUrl: "/calendar" }),
+    );
   }
   // Show-around: notify the tagged internal team members (owner invite handled by UI/email).
   if (input.taskType === "SHOW_AROUND" && input.metadata?.inviteeIds?.length) {
@@ -92,7 +99,15 @@ export async function scheduleCrmTask(input: {
     const invitees = [...new Set(input.metadata.inviteeIds.filter((x) => typeof x === "string" && x))].slice(0, 50);
     for (const uid of invitees) {
       if (uid === u.id) continue;
-      notify({ userId: uid, type: "TASK_ASSIGNED", title: `Show-around invite: ${title}`, message: `You're tagged for a venue tour on ${whenStr}${input.metadata.location ? ` at ${input.metadata.location}` : ""}.`, actionUrl: "/calendar" });
+      notifications.push(
+        notifyAwait({ userId: uid, type: "TASK_ASSIGNED", title: `Show-around invite: ${title}`, message: `You're tagged for a venue tour on ${whenStr}${input.metadata.location ? ` at ${input.metadata.location}` : ""}.`, actionUrl: "/calendar" }),
+      );
+    }
+  }
+  if (notifications.length) {
+    const settled = await Promise.allSettled(notifications);
+    for (const r of settled) {
+      if (r.status === "rejected") console.error("[CRM_TASK_NOTIFY_ERROR]", r.reason);
     }
   }
 
