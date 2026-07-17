@@ -29,17 +29,27 @@ function isEnquiryStatus(v: unknown): v is EnquiryStatus {
   return typeof v === "string" && (ENQUIRY_STATUSES as readonly string[]).includes(v);
 }
 
-/** Parse a "yyyy-MM-dd" filter bound into a server-local day boundary.
- *  `new Date("2026-07-01")` would parse as UTC midnight and silently shift the
- *  range by the timezone offset, so build the local date explicitly. */
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; // India has no DST — fixed +5:30.
+
+/** Parse a "yyyy-MM-dd" filter bound into a true **IST** day boundary instant.
+ *  Server-local boundaries are wrong here: prod runs in UTC, so an enquiry
+ *  created 01:00 IST (= 19:30 UTC the previous day) would fall outside its own
+ *  day. Matches the IST windows the rest of the app filters on. Malformed or
+ *  impossible dates (2026-02-31, 2026-13-01) return undefined → no filter,
+ *  rather than a silently-wrong window from Date rollover. */
 function dayBound(value: string | undefined, edge: "start" | "end"): Date | undefined {
   if (!value) return undefined;
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(value.trim());
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
   if (!m) return undefined;
-  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-  if (Number.isNaN(d.getTime())) return undefined;
-  if (edge === "end") d.setHours(23, 59, 59, 999);
-  return d;
+  const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+  const utcMidnight = Date.UTC(y, mo - 1, d);
+  const chk = new Date(utcMidnight);
+  // Reject rollover (Date.UTC(2026, 1, 31) silently becomes 3 Mar).
+  if (chk.getUTCFullYear() !== y || chk.getUTCMonth() !== mo - 1 || chk.getUTCDate() !== d) return undefined;
+  const startOfIstDay = utcMidnight - IST_OFFSET_MS; // 00:00:00.000 IST as an instant
+  return edge === "start"
+    ? new Date(startOfIstDay)
+    : new Date(startOfIstDay + 24 * 60 * 60 * 1000 - 1); // 23:59:59.999 IST
 }
 
 // ============================================================

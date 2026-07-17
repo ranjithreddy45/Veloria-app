@@ -114,6 +114,8 @@ function TaskRow({
 
   const linkHref = task.leadId
     ? `/leads/${task.leadId}`
+    : task.contactId
+    ? `/contacts/${task.contactId}`
     : task.inquiryId
     ? `/inquiries`
     : null;
