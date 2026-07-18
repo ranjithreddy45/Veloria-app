@@ -39,6 +39,7 @@ import { CommunicationTimeline } from "@/components/shared/communication-timelin
 import { Contact360Timeline } from "./_components/contact-360-timeline";
 import { MacroButton } from "@/components/shared/macro-button";
 import { ContactDeleteButton } from "./_components/contact-delete-button";
+import { HostInviteButton } from "./_components/host-invite-button";
 import { AIEmailComposer } from "@/components/ai/ai-email-composer";
 import { WhatsAppQuickSendDialog } from "@/components/shared/whatsapp-quick-send-dialog";
 import { SmartSuggestions } from "@/components/ai/smart-suggestions";
@@ -117,6 +118,7 @@ export default async function ContactDetailPage({
             contactPhone={contact.phone}
           />
           <MacroButton entityType="CONTACT" entityId={contact.id} />
+          {contact.email && <HostInviteButton contactId={contact.id} />}
           <Button variant="outline" asChild>
             <Link href={`/contacts/${contact.id}/edit`}>
               <PencilIcon className="mr-2 size-4" />

@@ -44,6 +44,28 @@ export async function createPortalInvite(contactId: string): Promise<string> {
   return rawToken;
 }
 
+/** Validate an invite token against the contact it was issued for (does NOT
+ * consume it). Used by the single-step host-activate flow, where the customer is
+ * logged OUT and the activation CREATES their account. Expired tokens are cleaned. */
+export async function checkPortalInvite(contactId: string, token: string): Promise<"valid" | "invalid" | "expired"> {
+  if (!contactId || !token) return "invalid";
+  const identifier = `${IDENTIFIER_PREFIX}${contactId}`;
+  const tokenHash = hashToken(token);
+  const record = await prisma.verificationToken.findFirst({ where: { identifier, token: tokenHash } });
+  if (!record) return "invalid";
+  if (record.expires < new Date()) {
+    await prisma.verificationToken.deleteMany({ where: { identifier, token: tokenHash } });
+    return "expired";
+  }
+  return "valid";
+}
+
+/** Single-use: delete the token once the account is provisioned. */
+export async function consumePortalInvite(contactId: string, token: string): Promise<void> {
+  const identifier = `${IDENTIFIER_PREFIX}${contactId}`;
+  await prisma.verificationToken.deleteMany({ where: { identifier, token: hashToken(token) } });
+}
+
 /**
  * Consume a portal invite token and mark the given user as email-verified,
  * linking them to the invited contact's email. Idempotent-ish: the token is
