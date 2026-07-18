@@ -11,6 +11,7 @@ import { VENDOR_TYPE_LABELS } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { VendorDetail } from "../_components/vendor-detail";
+import { VendorInviteButton } from "./_components/vendor-invite-button";
 
 export const metadata: Metadata = { title: "Vendor Details" };
 
@@ -125,6 +126,7 @@ export default async function VendorDetailPage({
               Edit
             </Link>
           </Button>
+          {vendor.email && <VendorInviteButton vendorId={vendor.id} />}
         </div>
       </div>
 
