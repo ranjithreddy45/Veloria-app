@@ -289,6 +289,12 @@ export const sidebarNavigation: NavItem[] = [
         icon: "CalendarCheck",
         permissions: ["tastings:read"],
       },
+      {
+        title: "Guest Draw",
+        href: "/admin/draw",
+        icon: "Gift",
+        permissions: ["bookings:read"],
+      },
     ],
   },
   {

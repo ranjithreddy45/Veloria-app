@@ -1233,6 +1233,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
 // ============================================================
 export const ROUTE_PERMISSIONS: { prefix: string; permission: Permission }[] = [
   // More specific first (the lookup sorts by length, but keep readable).
+  { prefix: "/admin/draw", permission: "bookings:read" }, // Guest Draw register (managers)
   { prefix: "/settings/users", permission: "users:read" },
   { prefix: "/settings/roles", permission: "users:manage-roles" },
   { prefix: "/settings/public-quotes", permission: "publicquotes:read" },

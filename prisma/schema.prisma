@@ -8873,3 +8873,44 @@ model CrmNote {
   @@index([inquiryId])
   @@index([contactId])
 }
+
+// ============================================================
+// Guest Draw Module — public monthly lucky-draw entries + winner.
+// DPDP-minimal: six collected fields, consent captured at insert, opt-out
+// honoured, raw IP never stored (only a salted hash for abuse analysis).
+// Additive only.
+// ============================================================
+model DrawEntry {
+  id              Int      @id @default(autoincrement())
+  entryCode       String   @unique // VG-0047 (server-generated from id)
+  guestName       String
+  phone           String // ^[6-9]\d{9}$
+  hostName        String
+  eventType       String // milestone|naming_cradle|wedding_reception|engagement|corporate|other
+  eventDate       DateTime @db.Date
+  consentWhatsapp Boolean // must be true to insert
+  consentTs       DateTime // set server-side at insert
+  optedOut        Boolean  @default(false)
+  source          String   @default("qr") // qr | tablet | manual
+  ipHash          String? // sha256(dailySalt + ip) — never the raw IP
+  bookingId       String? // phase-2: link host to the actual booking
+  createdAt       DateTime @default(now())
+
+  @@unique([phone, eventDate]) // one entry per guest per event, DB-enforced
+  @@index([createdAt])
+  @@index([phone])
+  @@index([optedOut])
+}
+
+model DrawWinner {
+  id             Int      @id @default(autoincrement())
+  drawMonth      String   @unique // "2026-08" — one winner per month
+  entryId        Int
+  drawnById      String? // staff who ran the draw
+  drawnAt        DateTime @default(now())
+  poolSize       Int // entries in pool at draw time (fairness audit)
+  prizeDelivered Boolean  @default(false)
+  announced      Boolean  @default(false)
+
+  @@index([entryId])
+}

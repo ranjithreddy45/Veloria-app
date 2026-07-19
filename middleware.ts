@@ -54,6 +54,7 @@ const VENDOR_PORTAL_ROLES = ["VENDOR", "SUPER_ADMIN", "ADMIN"] as const;
  */
 const INTERNAL_ROUTES = [
   "/dashboard",
+  "/admin", // staff-only admin surfaces (e.g. /admin/draw). Public draw is /draw.
   "/my-work",
   "/recruitment",
   "/contacts",
