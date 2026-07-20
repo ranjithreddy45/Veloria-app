@@ -18,6 +18,7 @@ import {
 } from "@/schemas/invitation.schema";
 import {
   buildInvitationMessage,
+  buildInvitationTemplateParams,
   buildRsvpUrl,
 } from "@/lib/invitation-message-builder";
 import { scheduleReminders } from "@/lib/reminder-engine";
@@ -108,11 +109,16 @@ export async function sendGuestInvitation(data: SendInvitationInput) {
       customMessage: customMessage || undefined,
     });
 
-    // Send WhatsApp message (fire-and-forget)
+    // Send WhatsApp message (fire-and-forget). Templates need ordered body params —
+    // a free-text `message` is ignored on the template path and Meta rejects the
+    // zero-param send.
     sendWhatsApp({
       to: guest.phone,
       template: "guest_invitation",
-      message: messageContent,
+      params: buildInvitationTemplateParams({
+        guestName: guest.name, eventName: booking.eventName, eventDate, eventTime,
+        venueName: booking.venue.name, hostName: `${booking.contact.firstName} ${booking.contact.lastName}`, rsvpLink: rsvpUrl,
+      }),
     }).catch((err) => {
       console.error("[SEND_INVITATION_WHATSAPP_ERROR]", err);
     });
@@ -396,11 +402,14 @@ export async function resendInvitation(guestId: string) {
       rsvpLink: rsvpUrl,
     });
 
-    // Resend via WhatsApp (fire-and-forget)
+    // Resend via WhatsApp (fire-and-forget) — ordered template params, not free text.
     sendWhatsApp({
       to: guest.phone,
       template: "guest_invitation",
-      message: messageContent,
+      params: buildInvitationTemplateParams({
+        guestName: guest.name, eventName: booking.eventName, eventDate, eventTime,
+        venueName: booking.venue.name, hostName: `${booking.contact.firstName} ${booking.contact.lastName}`, rsvpLink: rsvpUrl,
+      }),
     }).catch((err) => {
       console.error("[RESEND_INVITATION_WHATSAPP_ERROR]", err);
     });

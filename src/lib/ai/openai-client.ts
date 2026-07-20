@@ -44,13 +44,14 @@ function initProvider(): void {
   _provider = "none";
 }
 
-/** Get the default model name for the active provider */
+/** Get the default model name for the active provider. Each provider honours its
+ * own model override — OPENAI_MODEL must NOT leak an OpenAI id into a Groq/Gemini
+ * request (which rejects it as an unknown model, breaking every AI feature). */
 export function getDefaultModel(): string {
   initProvider();
-  if (process.env.OPENAI_MODEL) return process.env.OPENAI_MODEL;
-  if (_provider === "groq") return "llama-3.3-70b-versatile";
-  if (_provider === "gemini") return "gemini-2.5-flash";
-  return "gpt-4o-mini";
+  if (_provider === "groq") return process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+  if (_provider === "gemini") return process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  return process.env.OPENAI_MODEL || "gpt-4o-mini";
 }
 
 /** Public getter — returns the raw client (for checking availability) */

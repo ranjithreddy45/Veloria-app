@@ -527,12 +527,14 @@ export async function sendContract(id: string) {
             "Contract marked as sent, but the email could not be delivered — please retry sending.";
         }
 
-        // Trigger e-sign placeholder
+        // E-sign: only warn if a CONFIGURED provider actually failed. When no
+        // provider is wired (the default), signing happens via the portal link —
+        // that's not a failure, so don't show a misleading "retry" warning.
         const esignResult = await requestSignature({
           contractId: contract.id,
           signerEmail: recipientEmail,
         });
-        if (!esignResult.success && !deliveryWarning) {
+        if (esignResult.configured && !esignResult.success && !deliveryWarning) {
           deliveryWarning =
             "Contract marked as sent, but the e-signature request failed — please retry sending.";
         }

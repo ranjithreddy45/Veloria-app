@@ -15,7 +15,7 @@ import { revalidatePath } from "next/cache";
 import { serialize } from "@/lib/utils";
 import { getVerifiedContactIds } from "@/lib/portal-identity";
 import { guestSchema, bulkImportSchema } from "@/schemas/guest.schema";
-import { buildInvitationMessage, buildRsvpUrl } from "@/lib/invitation-message-builder";
+import { buildInvitationMessage, buildInvitationTemplateParams, buildRsvpUrl } from "@/lib/invitation-message-builder";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
 import { scheduleReminders } from "@/lib/reminder-engine";
 import { nanoid } from "nanoid";
@@ -100,9 +100,14 @@ async function sendInvitationCore(
     rsvpLink: rsvpUrl,
   });
 
-  sendWhatsApp({ to: guest.phone, template: "guest_invitation", message: messageContent }).catch((e) =>
-    console.error("[PORTAL_INVITE_WA_ERR]", e),
-  );
+  sendWhatsApp({
+    to: guest.phone,
+    template: "guest_invitation",
+    params: buildInvitationTemplateParams({
+      guestName: guest.name, eventName: booking.eventName, eventDate, eventTime,
+      venueName: booking.venue.name, hostName: `${booking.contact.firstName} ${booking.contact.lastName}`.trim(), rsvpLink: rsvpUrl,
+    }),
+  }).catch((e) => console.error("[PORTAL_INVITE_WA_ERR]", e));
   await prisma.guestInvitation.upsert({
     where: { guestId: guest.id },
     create: { guestId: guest.id, bookingId: booking.id, rsvpToken, invitationStatus: "SENT", sentAt: new Date(), messageContent },

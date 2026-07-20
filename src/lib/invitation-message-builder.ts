@@ -63,6 +63,26 @@ export function buildInvitationMessage(
 }
 
 /**
+ * Ordered body params for the "guest_invitation" WhatsApp TEMPLATE, matching the
+ * exact declared order in WHATSAPP_TEMPLATES (guestName, eventName, eventDate,
+ * eventTime, venueName, hostName, rsvpLink). The template requires all 7 — passing
+ * a free-text `message` (the old bug) sent zero params and Meta rejected it, so the
+ * invitation never delivered. eventTime is optional in a booking → "TBD" keeps the
+ * count exact.
+ */
+export function buildInvitationTemplateParams(p: InvitationMessageParams): Record<string, string> {
+  return {
+    guestName: p.guestName,
+    eventName: p.eventName,
+    eventDate: p.eventDate,
+    eventTime: p.eventTime || "TBD",
+    venueName: p.venueName,
+    hostName: p.hostName,
+    rsvpLink: p.rsvpLink,
+  };
+}
+
+/**
  * Build the RSVP URL from a token.
  */
 export function buildRsvpUrl(token: string): string {

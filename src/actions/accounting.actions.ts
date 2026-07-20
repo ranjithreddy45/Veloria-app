@@ -175,27 +175,13 @@ export async function retryFailedSync(logId: string) {
       return { success: false as const, error: "Only failed syncs can be retried" };
     }
 
-    // Placeholder: mark as SYNCED
-    const updated = await prisma.accountingSyncLog.update({
-      where: { id: logId },
-      data: {
-        status: "SYNCED",
-        error: null,
-        syncedAt: new Date(),
-        externalRef: `TALLY-RETRY-${logId.slice(-6).toUpperCase()}`,
-      },
-    });
-
-    logActivity({
-      userId: session.user.id as string,
-      action: "updated",
-      entityType: "AccountingSyncLog",
-      entityId: logId,
-      changes: { action: "retry", previousStatus: "FAILED", newStatus: "SYNCED" },
-    });
-
-    revalidatePath("/settings/integrations/tally");
-    return { success: true as const, data: serialize(updated) };
+    // HONEST no-op: the Tally export is not wired to a provider yet, so a "retry"
+    // cannot actually sync. Never fabricate a SYNCED status + fake TALLY-RETRY ref —
+    // that misleads staff into believing the invoice reached the accounting system.
+    return {
+      success: false as const,
+      error: "Tally integration isn't connected yet — nothing was synced. Connect Tally in Settings → Integrations before retrying.",
+    };
   } catch (error) {
     console.error("[RETRY_FAILED_SYNC_ERROR]", error);
     return { success: false as const, error: "Failed to retry sync" };

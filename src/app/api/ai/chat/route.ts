@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
-import { getOpenAIClient, getDefaultModel } from "@/lib/ai/openai-client";
+import { getOpenAIClient, getDefaultModel, getAIProvider } from "@/lib/ai/openai-client";
 import { buildCRMSystemPrompt } from "@/lib/ai/system-prompt";
 import { CRM_TOOLS, executeCRMTool, type ToolContext } from "@/lib/ai/crm-tools";
 import { chatRequestSchema } from "@/schemas/ai.schema";
@@ -56,8 +56,13 @@ export async function POST(req: NextRequest) {
     entityLabel: context?.entityLabel,
   };
 
-  // Get OpenAI client
-  const openai = getOpenAIClient();
+  // Streaming + tool-calling needs a REAL OpenAI-SDK client (openai/groq). Gemini
+  // uses direct-fetch (no streaming/tools) and getOpenAIClient() returns a {} marker
+  // there, so gate the full path on the provider — otherwise the chat route calls
+  // `.chat.completions` on {} and throws. Gemini/none fall to Smart (keyword) mode.
+  const provider = getAIProvider();
+  const openai =
+    provider === "openai" || provider === "groq" ? getOpenAIClient() : null;
 
   // Create SSE stream
   const encoder = new TextEncoder();
@@ -294,7 +299,7 @@ async function handleFallbackQuery(
     send(`- 📅 **"Upcoming events"** — Bookings in next 30 days\n`);
     send(`- ⚠️ **"Overdue tasks"** — Tasks needing attention\n`);
     send(`- 🔍 **"Search contact John"** — Find contacts\n\n`);
-    send(`*Tip: Add a GOOGLE_AI_API_KEY (free) or OPENAI_API_KEY in Settings → Integrations to unlock full conversational AI mode.*\n`);
+    send(`*Tip: Add an OPENAI_API_KEY or GROQ_API_KEY (free) in Settings → Integrations to unlock full conversational AI mode. (A Gemini key powers the other AI features but not this chat's tool-calling.)*\n`);
   }
 }
 

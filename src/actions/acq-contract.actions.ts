@@ -472,7 +472,14 @@ export async function sendAcqContractForEsign(id: string): Promise<Result<{ conf
       esignStatus: res.success ? "SENT" : null,
     },
   });
-  await logActivity(id, user.id, "SENT_FOR_SIGN", res.configured ? `Sent via ${res.provider}` : "Pending e-sign setup (manual signing)");
+  await logActivity(
+    id, user.id, "SENT_FOR_SIGN",
+    res.success
+      ? `Sent via ${res.provider}`
+      : res.configured
+        ? `E-sign provider ${res.provider} not fully set up — sign manually`
+        : "Pending e-sign setup (manual signing)",
+  );
   revalidatePath(`/bd/contracts/${id}`);
   // If not configured, surface the hint but don't fail the flow.
   if (!res.configured) return { success: true, data: { configured: false } };

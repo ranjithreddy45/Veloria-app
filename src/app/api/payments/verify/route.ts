@@ -47,13 +47,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify payment signature
+    // Verify payment signature (length-guarded timing-safe compare — matches every
+    // other Razorpay verify path; a plain !== is a timing side-channel on the money path).
     const generatedSignature = crypto
       .createHmac("sha256", razorpayKeySecret() ?? "")
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
       .digest("hex");
+    const sigBuf = Buffer.from(generatedSignature);
+    const givenBuf = Buffer.from(razorpay_signature);
+    const signatureValid = sigBuf.length === givenBuf.length && crypto.timingSafeEqual(sigBuf, givenBuf);
 
-    if (generatedSignature !== razorpay_signature) {
+    if (!signatureValid) {
       // Mark payment as failed
       await prisma.payment.updateMany({
         where: { razorpayOrderId: razorpay_order_id },
