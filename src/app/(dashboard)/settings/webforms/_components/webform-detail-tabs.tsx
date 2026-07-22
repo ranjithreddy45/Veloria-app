@@ -22,6 +22,7 @@ import { WebformForm } from "./webform-form";
 import { FormPreview } from "./form-preview";
 import { SubmissionsTable } from "./submissions-table";
 import { CopyButtonClient } from "./copy-button-client";
+import { JsEmbedPanel } from "./embed-code-dialog";
 import type { WebformField, WebformInput } from "@/schemas/webform.schema";
 
 // ============================================================
@@ -160,10 +161,14 @@ export function WebformDetailTabs({
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <CodeIcon className="size-4" />
-                    Iframe Embed
+                    Iframe Embed (simple fallback)
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
+                  <p className="text-muted-foreground mb-2 text-sm">
+                    Plain iframe. Does not forward ad click ids from the
+                    landing page — use the JavaScript embed for Google Ads.
+                  </p>
                   <pre className="overflow-x-auto rounded-lg border bg-zinc-50 p-3 text-xs dark:bg-zinc-900">
                     {embedData.iframe}
                   </pre>
@@ -177,16 +182,16 @@ export function WebformDetailTabs({
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <CodeIcon className="size-4" />
-                    JavaScript Embed
+                    JavaScript Embed (recommended)
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <pre className="overflow-x-auto rounded-lg border bg-zinc-50 p-3 text-xs dark:bg-zinc-900">
-                    {embedData.jsEmbed}
-                  </pre>
-                  <div className="mt-2 flex justify-end">
-                    <CopyButtonClient text={embedData.jsEmbed} />
-                  </div>
+                  <p className="text-muted-foreground mb-3 text-sm">
+                    Forwards gclid/gbraid/wbraid/fbclid + UTM params from the
+                    landing page into the form, auto-sizes the iframe, and can
+                    fire a Google Ads conversion on submit.
+                  </p>
+                  <JsEmbedPanel jsEmbed={embedData.jsEmbed} />
                 </CardContent>
               </Card>
             </>

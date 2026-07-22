@@ -65,6 +65,69 @@ function CopyBtn({ text, label }: { text: string; label?: string }) {
   );
 }
 
+// ============================================================
+// JS Embed Panel — live Google Ads conversion injection
+// ------------------------------------------------------------
+// The server-generated snippet carries a single configurable line:
+//   var VELORIA_ADS_CONVERSION = '';
+// We rewrite that literal client-side as the user types, so the copied
+// snippet is ready to paste. No schema change, no env var.
+// ============================================================
+
+const CONVERSION_LINE = /VELORIA_ADS_CONVERSION = '[^']*'/;
+
+/** Strip anything that isn't valid in an `AW-XXXX/label` send_to value. */
+function sanitizeConversionId(raw: string): string {
+  return raw.trim().replace(/[^A-Za-z0-9_\-/.]/g, "");
+}
+
+export function JsEmbedPanel({ jsEmbed }: { jsEmbed: string }) {
+  const [conversionId, setConversionId] = React.useState("");
+
+  const safeId = sanitizeConversionId(conversionId);
+  const snippet = React.useMemo(
+    () =>
+      jsEmbed.replace(
+        CONVERSION_LINE,
+        `VELORIA_ADS_CONVERSION = '${safeId}'`
+      ),
+    [jsEmbed, safeId]
+  );
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-1.5">
+        <label
+          htmlFor="veloria-gads-conversion"
+          className="text-sm font-medium"
+        >
+          Google Ads conversion (optional)
+        </label>
+        <input
+          id="veloria-gads-conversion"
+          value={conversionId}
+          onChange={(e) => setConversionId(e.target.value)}
+          placeholder="AW-123456789/AbC-D_efGhIjK"
+          spellCheck={false}
+          autoComplete="off"
+          className="w-full rounded-lg border bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+        />
+        <p className="text-muted-foreground text-xs">
+          Paste your Google Ads conversion <span className="font-medium">send_to</span>{" "}
+          value to fire a conversion when a lead is submitted — leave it blank
+          and the snippet simply skips conversion firing.
+        </p>
+      </div>
+      <pre className="overflow-x-auto rounded-lg border bg-zinc-50 p-3 text-xs dark:bg-zinc-900">
+        {snippet}
+      </pre>
+      <div className="flex justify-end">
+        <CopyBtn text={snippet} label="Copy Code" />
+      </div>
+    </div>
+  );
+}
+
 export function EmbedCodeDialog({
   formUrl,
   iframe,
@@ -128,14 +191,11 @@ export function EmbedCodeDialog({
           {/* JavaScript */}
           <TabsContent value="js" className="space-y-3">
             <p className="text-muted-foreground text-sm">
-              Paste this JavaScript snippet to dynamically load the form on your website.
+              Recommended. This snippet forwards <code>gclid</code>/UTM params
+              from your landing page into the form, auto-sizes the iframe, and
+              can fire a Google Ads conversion on submit.
             </p>
-            <pre className="overflow-x-auto rounded-lg border bg-zinc-50 p-3 text-xs dark:bg-zinc-900">
-              {jsEmbed}
-            </pre>
-            <div className="flex justify-end">
-              <CopyBtn text={jsEmbed} label="Copy Code" />
-            </div>
+            <JsEmbedPanel jsEmbed={jsEmbed} />
           </TabsContent>
         </Tabs>
       </DialogContent>

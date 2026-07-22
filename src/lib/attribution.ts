@@ -27,6 +27,8 @@ export interface AttributionInput {
   referrerUrl?: string;
   landingUrl?: string;
   gclid?: string;
+  gbraid?: string;
+  wbraid?: string;
   fbclid?: string;
   clientId?: string;
 }
@@ -96,6 +98,8 @@ export async function parseAttributionFromRequest(
       referrerUrl: fromBody("referrer", "referrerUrl", "referer") ?? referer,
       landingUrl: fromBody("landing", "landingUrl") ?? qp("landing_url") ?? url?.toString(),
       gclid: fromBody("gclid") ?? qp("gclid"),
+      gbraid: fromBody("gbraid") ?? qp("gbraid"),
+      wbraid: fromBody("wbraid") ?? qp("wbraid"),
       fbclid: fromBody("fbclid") ?? qp("fbclid"),
       clientId: fromBody("clientId", "client_id", "_ga") ?? qp("_ga") ?? qp("client_id"),
     };
@@ -123,6 +127,8 @@ export function hasAttributionSignal(input: AttributionInput): boolean {
       input.utmMedium ||
       input.utmCampaign ||
       input.gclid ||
+      input.gbraid ||
+      input.wbraid ||
       input.fbclid ||
       input.term ||
       input.content
@@ -224,6 +230,8 @@ export async function attachAttributionToLead(
       referrerUrl: data.referrerUrl ?? null,
       landingUrl: data.landingUrl ?? null,
       gclid: data.gclid ?? null,
+      gbraid: data.gbraid ?? null,
+      wbraid: data.wbraid ?? null,
       fbclid: data.fbclid ?? null,
       clientId: data.clientId ?? null,
       campaignId,

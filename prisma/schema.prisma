@@ -7250,6 +7250,8 @@ model LeadAttribution {
   referrerUrl   String?  @db.Text
   landingUrl    String?  @db.Text
   gclid         String? // Google click id
+  gbraid        String? // Google click id for iOS app→web (privacy-safe)
+  wbraid        String? // Google click id for iOS web→web (privacy-safe)
   fbclid        String? // Facebook click id
   clientId      String? // GA/analytics client id
   // Closed-loop denormalised outcome (refreshed by cron from Lead→Booking)

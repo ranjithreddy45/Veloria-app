@@ -16,6 +16,83 @@ interface PublicFormProps {
   thankYouUrl?: string;
 }
 
+// ============================================================
+// Embed bridge — attribution capture + parent postMessage
+// ------------------------------------------------------------
+// The smart embed snippet (see generateEmbedCode) forwards the PARENT
+// page's click ids / utm params onto THIS page's query string, so we can
+// simply read our own location. Standalone (un-embedded) usage still
+// works: we fall back to our own href / document.referrer.
+//
+// Contract with the parent page:
+//   child -> parent  { type: 'veloria:resize', height: <px> }
+//   child -> parent  { type: 'veloria:lead:submitted', slug: <slug> }
+// The parent verifies event.origin === <app origin> before acting.
+// ============================================================
+
+const ATTRIBUTION_PARAMS = [
+  "gclid",
+  "gbraid",
+  "wbraid",
+  "fbclid",
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "utm_term",
+  "utm_content",
+] as const;
+
+/**
+ * Read attribution off our own query string. Shaped as the nested
+ * `attribution` object that `parseAttributionFromRequest` accepts.
+ * Never throws — attribution must never block a submission.
+ */
+function collectAttribution(): Record<string, string> {
+  const out: Record<string, string> = {};
+  try {
+    if (typeof window === "undefined") return out;
+    const params = new URLSearchParams(window.location.search);
+
+    for (const key of ATTRIBUTION_PARAMS) {
+      const value = params.get(key)?.trim();
+      if (value) out[key] = value.slice(0, 255);
+    }
+
+    // landing_url: the PARENT page URL when embedded, else our own URL.
+    const landing = params.get("landing_url")?.trim() || window.location.href;
+    if (landing) {
+      out.landingUrl = landing.slice(0, 2048);
+      out.landing_url = out.landingUrl;
+    }
+
+    // referrer: forwarded parent referrer when embedded, else our own.
+    const referrer = params.get("referrer")?.trim() || document.referrer;
+    if (referrer) out.referrer = referrer.slice(0, 2048);
+  } catch {
+    // ignore — best effort only
+  }
+  return out;
+}
+
+/** True when this page is rendered inside an iframe. */
+function isEmbedded(): boolean {
+  try {
+    return typeof window !== "undefined" && window.parent !== window;
+  } catch {
+    return false;
+  }
+}
+
+/** Best-effort postMessage to the embedding parent. Never throws. */
+function postToParent(message: Record<string, unknown>): void {
+  try {
+    if (!isEmbedded()) return;
+    window.parent.postMessage(message, "*");
+  } catch {
+    // ignore — standalone page or blocked frame
+  }
+}
+
 export function PublicForm({
   slug,
   fields,
@@ -28,6 +105,50 @@ export function PublicForm({
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isSubmitted, setIsSubmitted] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
+
+  // Capture attribution once on mount (query string is stable for the page).
+  const attributionRef = React.useRef<Record<string, string>>({});
+  React.useEffect(() => {
+    attributionRef.current = collectAttribution();
+  }, []);
+
+  // Keep the embedding iframe sized to our content (no inner scrollbar).
+  React.useEffect(() => {
+    if (!isEmbedded()) return;
+
+    let last = 0;
+    const report = () => {
+      try {
+        const height = Math.ceil(
+          Math.max(
+            document.body?.scrollHeight ?? 0,
+            document.documentElement?.scrollHeight ?? 0
+          )
+        );
+        if (!height || Math.abs(height - last) < 2) return;
+        last = height;
+        postToParent({ type: "veloria:resize", height });
+      } catch {
+        // ignore
+      }
+    };
+
+    report();
+    const raf = window.requestAnimationFrame(report);
+    window.addEventListener("resize", report);
+
+    let observer: ResizeObserver | undefined;
+    if (typeof ResizeObserver !== "undefined" && document.body) {
+      observer = new ResizeObserver(report);
+      observer.observe(document.body);
+    }
+
+    return () => {
+      window.cancelAnimationFrame(raf);
+      window.removeEventListener("resize", report);
+      observer?.disconnect();
+    };
+  }, [isSubmitted]);
 
   const handleChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -96,12 +217,24 @@ export function PublicForm({
             ) as HTMLInputElement)?.value || ""
           : undefined;
 
-      const payload: { data: Record<string, string>; honeypot?: string } = {
+      const payload: {
+        data: Record<string, string>;
+        honeypot?: string;
+        attribution?: Record<string, string>;
+      } = {
         data: { ...formData },
       };
 
       if (honeypotValue !== undefined) {
         payload.honeypot = honeypotValue;
+      }
+
+      // Nested `attribution` — the shape parseAttributionFromRequest reads.
+      const attribution = Object.keys(attributionRef.current).length
+        ? attributionRef.current
+        : collectAttribution();
+      if (Object.keys(attribution).length) {
+        payload.attribution = attribution;
       }
 
       const response = await fetch(`/api/webforms/${slug}`, {
@@ -116,6 +249,10 @@ export function PublicForm({
         setSubmitError(result.error || "Something went wrong. Please try again.");
         return;
       }
+
+      // Tell the embedding page a lead was captured BEFORE any redirect, so
+      // the parent can fire its Google Ads conversion while we're still alive.
+      postToParent({ type: "veloria:lead:submitted", slug });
 
       // Handle redirect
       if (result.data?.redirectUrl) {

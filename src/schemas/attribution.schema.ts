@@ -36,6 +36,8 @@ export const attributionInputSchema = z.object({
   referrerUrl: optUrl,
   landingUrl: optUrl,
   gclid: optLabel,
+  gbraid: optLabel,
+  wbraid: optLabel,
   fbclid: optLabel,
   clientId: optLabel,
 });
