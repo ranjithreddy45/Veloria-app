@@ -675,16 +675,24 @@ export async function generateEmbedCode(webformId: string) {
         const req = f.required ? " required" : "";
         const ph = f.placeholder ? ` placeholder="${htmlAttr(f.placeholder)}"` : "";
         const label = `    <label class="vg-label" for="${id}">${htmlAttr(f.label)}${f.required ? " *" : ""}</label>`;
+        // Field types are stored UPPERCASE (TEXT|EMAIL|PHONE|NUMBER|DATE|SELECT|
+        // TEXTAREA). Normalise so a SELECT renders as a real dropdown with its
+        // options and EMAIL/PHONE/NUMBER/DATE get the right mobile keyboard.
+        const kind = String(f.type || "TEXT").toUpperCase();
+        const HTML_INPUT_TYPE: Record<string, string> = {
+          EMAIL: "email", PHONE: "tel", NUMBER: "number", DATE: "date", TEXT: "text",
+        };
         let control: string;
-        if (f.type === "textarea") {
+        if (kind === "TEXTAREA") {
           control = `    <textarea class="vg-input" id="${id}" name="${htmlAttr(f.name)}" rows="4"${ph}${req}></textarea>`;
-        } else if (f.type === "select" && Array.isArray(f.options)) {
-          const opts = ["    <option value=\"\">Select…</option>"]
-            .concat(f.options.map((o) => `    <option value="${htmlAttr(o)}">${htmlAttr(o)}</option>`))
-            .join("\n    ");
-          control = `    <select class="vg-input" id="${id}" name="${htmlAttr(f.name)}"${req}>\n    ${opts}\n    </select>`;
+        } else if (kind === "SELECT") {
+          const placeholderOpt = `<option value="">${htmlAttr(f.placeholder || "Select…")}</option>`;
+          const opts = [placeholderOpt]
+            .concat((f.options ?? []).map((o) => `<option value="${htmlAttr(o)}">${htmlAttr(o)}</option>`))
+            .join("\n      ");
+          control = `    <select class="vg-input" id="${id}" name="${htmlAttr(f.name)}"${req}>\n      ${opts}\n    </select>`;
         } else {
-          const t = ["email", "tel", "number", "date"].includes(f.type) ? f.type : "text";
+          const t = HTML_INPUT_TYPE[kind] ?? "text";
           control = `    <input class="vg-input" type="${t}" id="${id}" name="${htmlAttr(f.name)}"${ph}${req}>`;
         }
         return `  <div class="vg-field">\n${label}\n${control}\n  </div>`;
