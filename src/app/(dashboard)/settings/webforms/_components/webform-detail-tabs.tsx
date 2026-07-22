@@ -45,6 +45,7 @@ interface EmbedData {
   apiUrl: string;
   iframe: string;
   jsEmbed: string;
+  nativeHtml?: string;
 }
 
 interface WebformDetailTabsProps {
@@ -156,6 +157,33 @@ export function WebformDetailTabs({
                   </div>
                 </CardContent>
               </Card>
+
+              {embedData.nativeHtml && (
+                <Card className="border-emerald-300 dark:border-emerald-800">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <CodeIcon className="size-4" />
+                      Native form — your own design (best for a landing page)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground mb-2 text-sm">
+                      Real HTML on your page — no iframe — so you can restyle it to
+                      match your landing page exactly (every class is prefixed{" "}
+                      <code>vg-</code>). Leads still land in this app, and Google
+                      click ids are read straight from the landing-page URL. To fire
+                      a Google Ads conversion, put your ID in the{" "}
+                      <code>ADS_CONVERSION</code> line at the top of the script.
+                    </p>
+                    <pre className="max-h-80 overflow-auto rounded-lg border bg-zinc-50 p-3 text-xs dark:bg-zinc-900">
+                      {embedData.nativeHtml}
+                    </pre>
+                    <div className="mt-2 flex justify-end">
+                      <CopyButtonClient text={embedData.nativeHtml} />
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               <Card>
                 <CardHeader>

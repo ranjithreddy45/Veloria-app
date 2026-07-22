@@ -520,7 +520,8 @@ export async function generateEmbedCode(webformId: string) {
 
     const webform = await prisma.webform.findUnique({
       where: { id: webformId },
-      select: { slug: true, name: true },
+      // fields + honeypot drive the NATIVE html form generated below.
+      select: { slug: true, name: true, fields: true, honeypotField: true, thankYouMessage: true, thankYouUrl: true },
     });
 
     if (!webform) {
@@ -655,6 +656,148 @@ export async function generateEmbedCode(webformId: string) {
 })();
 </script>`;
 
+    // ---- NATIVE HTML form ---------------------------------------------
+    // Your OWN markup on your OWN landing page — no iframe, so it inherits /
+    // can be restyled to your site's design completely. Posts straight to the
+    // app API (CORS is already enabled on /api/webforms/<slug>), captures the
+    // Google click ids from the landing-page URL directly (no cross-frame hop),
+    // and fires the Google Ads conversion on success.
+    const fieldDefs = Array.isArray(webform.fields)
+      ? (webform.fields as unknown as {
+          type: string; label: string; name: string; required?: boolean;
+          placeholder?: string; options?: string[];
+        }[])
+      : [];
+
+    const fieldHtml = fieldDefs
+      .map((f) => {
+        const id = `vg_${htmlAttr(f.name)}`;
+        const req = f.required ? " required" : "";
+        const ph = f.placeholder ? ` placeholder="${htmlAttr(f.placeholder)}"` : "";
+        const label = `    <label class="vg-label" for="${id}">${htmlAttr(f.label)}${f.required ? " *" : ""}</label>`;
+        let control: string;
+        if (f.type === "textarea") {
+          control = `    <textarea class="vg-input" id="${id}" name="${htmlAttr(f.name)}" rows="4"${ph}${req}></textarea>`;
+        } else if (f.type === "select" && Array.isArray(f.options)) {
+          const opts = ["    <option value=\"\">Select…</option>"]
+            .concat(f.options.map((o) => `    <option value="${htmlAttr(o)}">${htmlAttr(o)}</option>`))
+            .join("\n    ");
+          control = `    <select class="vg-input" id="${id}" name="${htmlAttr(f.name)}"${req}>\n    ${opts}\n    </select>`;
+        } else {
+          const t = ["email", "tel", "number", "date"].includes(f.type) ? f.type : "text";
+          control = `    <input class="vg-input" type="${t}" id="${id}" name="${htmlAttr(f.name)}"${ph}${req}>`;
+        }
+        return `  <div class="vg-field">\n${label}\n${control}\n  </div>`;
+      })
+      .join("\n");
+
+    const honeypotHtml = webform.honeypotField
+      ? `  <!-- anti-spam: real people never see or fill this -->\n  <div class="vg-hp" aria-hidden="true"><input type="text" name="__hp" tabindex="-1" autocomplete="off"></div>`
+      : "";
+
+    const successMsg = htmlAttr(webform.thankYouMessage || "Thank you — we'll be in touch shortly.");
+
+    const nativeHtml = `<!-- ${commentName} — native form (your markup, your styling, no iframe) -->
+<!-- Restyle freely: every class is prefixed vg- and nothing here is required by the API. -->
+<style>
+  .vg-form{max-width:520px;font-family:inherit}
+  .vg-field{margin-bottom:16px}
+  .vg-label{display:block;margin-bottom:6px;font-size:14px}
+  .vg-input{width:100%;padding:12px;font-size:16px;border:1px solid #ccc;border-radius:4px;font-family:inherit}
+  .vg-btn{width:100%;padding:14px;font-size:16px;cursor:pointer;border:none;border-radius:4px;background:#24382F;color:#fff}
+  .vg-btn[disabled]{opacity:.6;cursor:wait}
+  .vg-hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+  .vg-msg{margin-top:14px;font-size:15px}
+  .vg-msg.ok{color:#1B7F4B}.vg-msg.err{color:#B3261E}
+</style>
+
+<form class="vg-form" id="${containerId}-native" novalidate>
+${fieldHtml}
+${honeypotHtml}
+  <button class="vg-btn" type="submit">Send enquiry</button>
+  <div class="vg-msg" role="status" aria-live="polite"></div>
+</form>
+
+<script>
+(function () {
+  var ADS_CONVERSION = ''; /* Google Ads conversion, e.g. AW-123456789/AbC-D_efGhIjK. Blank = skip. */
+
+  var API = '${jsStr(apiUrl)}';
+  var form = document.getElementById('${jsStr(containerId)}-native');
+  if (!form) return;
+  var msg = form.querySelector('.vg-msg');
+  var btn = form.querySelector('.vg-btn');
+  var FORWARD = ['gclid','gbraid','wbraid','fbclid','utm_source','utm_medium','utm_campaign','utm_term','utm_content'];
+
+  function param(k) {
+    try {
+      var re = new RegExp('[?&]' + k.replace(/[.*+?^\${}()|[\\]\\\\]/g, '\\\\$&') + '=([^&#]*)');
+      var m = re.exec(window.location.search || '');
+      return m ? decodeURIComponent(m[1].replace(/\\+/g, ' ')) : '';
+    } catch (e) { return ''; }
+  }
+  /* Click ids come straight off THIS page's URL — no iframe hop to lose them. */
+  function attribution() {
+    var a = {};
+    for (var i = 0; i < FORWARD.length; i++) { var v = param(FORWARD[i]); if (v) a[FORWARD[i]] = v; }
+    try { a.landingUrl = window.location.href; a.landing_url = window.location.href; } catch (e) {}
+    try { if (document.referrer) a.referrer = document.referrer; } catch (e) {}
+    return a;
+  }
+  function fireConversion() {
+    if (!ADS_CONVERSION) return;
+    try {
+      if (typeof window.gtag === 'function') {
+        window.gtag('event', 'conversion', { send_to: ADS_CONVERSION, value: 0, currency: 'INR' });
+      }
+    } catch (e) {}
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!form.checkValidity()) { form.reportValidity(); return; }
+
+    var data = {}, hp = '';
+    var els = form.elements;
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      if (!el.name) continue;
+      if (el.name === '__hp') { hp = el.value; continue; }
+      data[el.name] = el.value;
+    }
+
+    btn.disabled = true;
+    msg.className = 'vg-msg';
+    msg.textContent = 'Sending…';
+
+    fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: data, honeypot: hp, attribution: attribution() })
+    })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, body: j }; }); })
+      .then(function (res) {
+        btn.disabled = false;
+        if (res.ok && res.body && res.body.success !== false) {
+          form.reset();
+          msg.className = 'vg-msg ok';
+          msg.textContent = '${successMsg}';
+          fireConversion();
+        } else {
+          msg.className = 'vg-msg err';
+          msg.textContent = (res.body && (res.body.error || res.body.message)) || 'Could not send. Please try again.';
+        }
+      })
+      .catch(function () {
+        /* Network/offline: keep everything the guest typed, let them retry. */
+        btn.disabled = false;
+        msg.className = 'vg-msg err';
+        msg.textContent = 'Could not send — please check your connection and try again.';
+      });
+  });
+})();
+</script>`;
+
     return {
       success: true as const,
       data: {
@@ -662,6 +805,7 @@ export async function generateEmbedCode(webformId: string) {
         apiUrl,
         iframe,
         jsEmbed,
+        nativeHtml,
       },
     };
   } catch (error) {
