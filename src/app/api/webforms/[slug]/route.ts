@@ -150,6 +150,11 @@ export async function POST(
       (formData.firstName as string) ||
       (formData.name as string) ||
       (formData.Name as string) ||
+      // fullName is what the shipped Event Inquiry form actually uses; without
+      // it every submission created a contact literally named "Unknown".
+      (formData.fullName as string) ||
+      (formData.full_name as string) ||
+      (formData.fullname as string) ||
       "";
     const lastName =
       (formData.last_name as string) ||
@@ -159,6 +164,8 @@ export async function POST(
       (formData.phone as string) ||
       (formData.Phone as string) ||
       (formData.mobile as string) ||
+      (formData.phoneNumber as string) ||
+      (formData.phone_number as string) ||
       null;
 
     let contactId: string | null = null;
@@ -185,11 +192,13 @@ export async function POST(
           });
           contactId = newContact.id;
         }
-      } else if (firstName) {
-        // Create contact without email
+      } else if (firstName || phone) {
+        // No email (common on high-converting landing-page forms that only ask
+        // for name + phone). A phone alone is still a real, contactable lead —
+        // never drop it just because the name field wasn't recognised.
         const newContact = await prisma.contact.create({
           data: {
-            firstName,
+            firstName: firstName || "Unknown",
             lastName: lastName || "",
             phone,
           },
