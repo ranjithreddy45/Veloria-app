@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 import bcryptjs from "bcryptjs";
+import { randomInt } from "crypto";
 import { hasPermission } from "@/lib/permissions";
 import { logActivity } from "@/lib/activity-logger";
 
@@ -256,6 +257,74 @@ export async function updateUser(
   } catch (error) {
     console.error("[UPDATE_USER_ERROR]", error);
     return { success: false as const, error: "Failed to update user" };
+  }
+}
+
+// ============================================================
+// Reset a user's password (admin action)
+// ------------------------------------------------------------
+// Works WITHOUT email (the self-serve /forgot-password flow needs Resend, which
+// isn't configured yet). The admin either sets a password or generates a strong
+// temporary one that is returned ONCE to hand over out-of-band. The plaintext
+// is never stored or logged — only a bcrypt hash is persisted.
+// ============================================================
+
+/** Ambiguity-free temp password: no 0/O/1/l/I. ~72 bits over 14 chars. */
+function generateTempPassword(): string {
+  const alphabet = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+  let out = "";
+  for (let i = 0; i < 14; i++) out += alphabet[randomInt(0, alphabet.length)];
+  // Guarantee at least one digit + one special so it clears any policy.
+  return `${out}#${randomInt(0, 10)}`;
+}
+
+export async function resetUserPassword(
+  id: string,
+  opts?: { newPassword?: string }
+): Promise<{ success: true; tempPassword?: string } | { success: false; error: string }> {
+  try {
+    const session = await auth();
+    if (!session?.user) return { success: false as const, error: "Unauthorized" };
+    if (!hasPermission(session.user.role as string, "users:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
+    const target = await prisma.user.findUnique({ where: { id }, select: { id: true, role: true, email: true } });
+    if (!target) return { success: false as const, error: "User not found" };
+
+    // Privilege guard: only a SUPER_ADMIN may reset another SUPER_ADMIN's
+    // password (prevents a lower admin from seizing the top account).
+    if (target.role === "SUPER_ADMIN" && session.user.role !== "SUPER_ADMIN") {
+      return { success: false as const, error: "Only a Super Admin can reset a Super Admin's password." };
+    }
+
+    const provided = opts?.newPassword?.trim();
+    if (provided !== undefined && provided.length > 0 && provided.length < 8) {
+      return { success: false as const, error: "Password must be at least 8 characters." };
+    }
+    const plaintext = provided && provided.length >= 8 ? provided : generateTempPassword();
+    const generated = !(provided && provided.length >= 8);
+
+    const hashedPassword = await bcryptjs.hash(plaintext, 12);
+    await prisma.$transaction([
+      prisma.user.update({ where: { id }, data: { hashedPassword } }),
+      // Invalidate any outstanding self-serve reset tokens for this user.
+      prisma.passwordResetToken.deleteMany({ where: { email: target.email } }),
+    ]);
+
+    await logActivity({
+      userId: session.user.id as string,
+      action: "reset_password", // never log the password itself
+      entityType: "User",
+      entityId: id,
+    });
+    revalidatePath("/settings/users");
+
+    // Only return the plaintext when WE generated it (so the admin can share it).
+    return { success: true as const, ...(generated ? { tempPassword: plaintext } : {}) };
+  } catch (error) {
+    console.error("[RESET_USER_PASSWORD_ERROR]", error);
+    return { success: false as const, error: "Failed to reset password" };
   }
 }
 

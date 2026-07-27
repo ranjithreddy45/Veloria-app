@@ -11,6 +11,9 @@ import {
   ShieldIcon,
   Loader2Icon,
   SearchIcon,
+  KeyRoundIcon,
+  CopyIcon,
+  CheckIcon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -40,7 +43,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { createUser, updateUser, toggleUserActive } from "@/actions/user.actions";
+import { createUser, updateUser, toggleUserActive, resetUserPassword } from "@/actions/user.actions";
 
 // ============================================================
 // Types
@@ -132,6 +135,41 @@ export function UsersList({ users }: UsersListProps) {
   const [editingUser, setEditingUser] = React.useState<UserData | null>(null);
   const [isPending, setIsPending] = React.useState(false);
   const [search, setSearch] = React.useState("");
+
+  // Reset-password dialog state
+  const [resetUser, setResetUser] = React.useState<UserData | null>(null);
+  const [resetPassword, setResetPassword] = React.useState("");
+  const [resetPending, setResetPending] = React.useState(false);
+  const [resetTemp, setResetTemp] = React.useState<string | null>(null); // generated pwd shown once
+  const [copied, setCopied] = React.useState(false);
+
+  function openResetDialog(user: UserData) {
+    setResetUser(user);
+    setResetPassword("");
+    setResetTemp(null);
+    setCopied(false);
+  }
+
+  async function handleReset() {
+    if (!resetUser) return;
+    if (resetPassword && resetPassword.length < 8) {
+      toast.error("Password must be at least 8 characters (or leave blank to auto-generate).");
+      return;
+    }
+    setResetPending(true);
+    try {
+      const res = await resetUserPassword(resetUser.id, resetPassword ? { newPassword: resetPassword } : undefined);
+      if (!res.success) { toast.error(res.error); return; }
+      if (res.tempPassword) {
+        setResetTemp(res.tempPassword); // keep dialog open to reveal + copy once
+      } else {
+        toast.success(`Password reset for ${resetUser.name || resetUser.email}.`);
+        setResetUser(null);
+      }
+    } finally {
+      setResetPending(false);
+    }
+  }
 
   // Form state
   const [name, setName] = React.useState("");
@@ -367,6 +405,14 @@ export function UsersList({ users }: UsersListProps) {
                     <PencilIcon className="mr-1.5 size-3" />
                     Edit
                   </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => openResetDialog(user)}
+                  >
+                    <KeyRoundIcon className="mr-1.5 size-3" />
+                    Reset password
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -465,6 +511,71 @@ export function UsersList({ users }: UsersListProps) {
               )}
               {isEditing ? "Update User" : "Create User"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={!!resetUser} onOpenChange={(o) => { if (!o) setResetUser(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reset password</DialogTitle>
+            <DialogDescription>
+              {resetUser ? <>For <strong>{resetUser.name || resetUser.email}</strong> ({resetUser.email}).</> : null}
+            </DialogDescription>
+          </DialogHeader>
+
+          {resetTemp ? (
+            // Generated temp password — shown ONCE.
+            <div className="space-y-3 py-2">
+              <p className="text-sm text-muted-foreground">
+                Temporary password set. Share it securely with the user — it won&apos;t be shown again.
+                Ask them to change it after signing in.
+              </p>
+              <div className="flex items-center gap-2 rounded-md border bg-muted/40 p-3">
+                <code className="flex-1 select-all font-mono text-sm">{resetTemp}</code>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    try { await navigator.clipboard.writeText(resetTemp); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* ignore */ }
+                  }}
+                >
+                  {copied ? <CheckIcon className="size-4 text-emerald-500" /> : <CopyIcon className="size-4" />}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3 py-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="reset-pwd">New password</Label>
+                <Input
+                  id="reset-pwd"
+                  type="text"
+                  autoComplete="off"
+                  placeholder="Leave blank to auto-generate a strong one"
+                  value={resetPassword}
+                  onChange={(e) => setResetPassword(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Min 8 characters. Leave blank and we&apos;ll generate a secure temporary password to hand over.
+                </p>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            {resetTemp ? (
+              <Button onClick={() => setResetUser(null)}>Done</Button>
+            ) : (
+              <>
+                <Button variant="outline" onClick={() => setResetUser(null)} disabled={resetPending}>Cancel</Button>
+                <Button onClick={handleReset} disabled={resetPending}>
+                  {resetPending && <Loader2Icon className="mr-2 size-4 animate-spin" />}
+                  {resetPassword ? "Set password" : "Generate & reset"}
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
