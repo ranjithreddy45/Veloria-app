@@ -2,10 +2,9 @@
 
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatusPill, type Hue } from "@/components/shared/status-pill";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Copy, Check, Webhook } from "lucide-react";
 import { toast } from "sonner";
 import { FacebookConfig } from "./facebook-config";
@@ -45,24 +44,24 @@ export function LeadCaptureConfig({ baseUrl, configs, apiKeys }: Props) {
     {
       name: "Facebook Lead Ads",
       url: `${baseUrl}/api/webhooks/facebook-leads`,
-      description: "Use this URL in your Facebook Lead Ads webhook configuration",
+      description: "Paste into your Facebook Lead Ads webhook configuration.",
       badge: "Facebook",
-      badgeColor: "bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400",
+      hue: "blue" as Hue,
     },
     {
       name: "Google Ads",
       url: `${baseUrl}/api/webhooks/google-ads`,
-      description: "Use this URL for Google Ads lead form extensions",
+      description: "Paste into your Google Ads lead form extension.",
       badge: "Google",
-      badgeColor: "bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400",
+      hue: "red" as Hue,
     },
     {
       name: "Generic Lead Capture API",
       url: `${baseUrl}/api/leads/capture`,
       description:
-        "Universal API for IndiaMart, JustDial, Sulekha, 99Acres, or any custom integration. Requires x-api-key header.",
+        "Universal endpoint for IndiaMart, JustDial, Sulekha, 99Acres or any custom integration. Requires an x-api-key header.",
       badge: "Universal",
-      badgeColor: "bg-violet-50 text-violet-700 dark:bg-violet-950/30 dark:text-violet-400",
+      hue: "violet" as Hue,
     },
   ];
 
@@ -119,42 +118,39 @@ export function LeadCaptureConfig({ baseUrl, configs, apiKeys }: Props) {
 
       {/* Webhooks Tab */}
       <TabsContent value="webhooks">
-        <Card className="border-border/50">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Webhook className="h-5 w-5" />
+        <section className="rounded-2xl border bg-card shadow-card">
+          <div className="border-b px-5 py-4">
+            <h3 className="flex items-center gap-2 text-[15px] font-semibold tracking-[-0.01em]">
+              <Webhook className="size-4 text-muted-foreground" />
               Webhook URLs
-            </CardTitle>
-            <CardDescription>
-              Copy these URLs and configure them in your ad platform settings
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            </h3>
+            <p className="mt-1 text-[13px] text-muted-foreground">
+              Copy each URL into the matching platform&apos;s settings — leads
+              posted here land in your pipeline instantly.
+            </p>
+          </div>
+          <div className="divide-y">
             {webhookUrls.map((webhook) => (
-              <div
-                key={webhook.name}
-                className="border border-border/50 rounded-lg p-4 space-y-2"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <h4 className="font-medium text-sm">{webhook.name}</h4>
-                    <Badge variant="outline" className={webhook.badgeColor}>
-                      {webhook.badge}
-                    </Badge>
-                  </div>
+              <div key={webhook.name} className="space-y-2.5 px-5 py-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h4 className="text-sm font-medium">{webhook.name}</h4>
+                  <StatusPill label={webhook.badge} hue={webhook.hue} size="xs" />
                 </div>
-                <p className="text-xs text-muted-foreground">{webhook.description}</p>
+                <p className="text-[13px] text-muted-foreground">
+                  {webhook.description}
+                </p>
                 <div className="flex items-center gap-2">
                   <Input
                     readOnly
                     value={webhook.url}
-                    className="font-mono text-xs bg-muted/30"
+                    className="numeric bg-muted/40 text-xs"
                   />
                   <Button
                     variant="outline"
                     size="icon"
                     className="shrink-0"
                     onClick={() => copyToClipboard(webhook.url, webhook.name)}
+                    title={`Copy ${webhook.name} URL`}
                   >
                     {copiedField === webhook.name ? (
                       <Check className="h-4 w-4 text-emerald-500" />
@@ -165,8 +161,8 @@ export function LeadCaptureConfig({ baseUrl, configs, apiKeys }: Props) {
                 </div>
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       </TabsContent>
     </Tabs>
   );

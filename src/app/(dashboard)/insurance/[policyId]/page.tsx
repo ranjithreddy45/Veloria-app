@@ -1,12 +1,19 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { PencilIcon, FileTextIcon } from "lucide-react";
+import {
+  ChevronRightIcon,
+  PencilIcon,
+  FileTextIcon,
+  ShieldIcon,
+} from "lucide-react";
 
 import { getInsurancePolicyById } from "@/actions/insurance.actions";
+import { PageHeader } from "@/components/layout/page-header";
+import { StatusBadge } from "@/components/shared/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { formatINR, formatDate } from "@/lib/utils";
 import {
   INSURANCE_TYPE_LABELS,
@@ -35,208 +42,214 @@ export default async function InsurancePolicyDetailPage({
   }
 
   const policy = result.data;
-  const statusColorClass =
-    INSURANCE_STATUS_COLORS[policy.status] ?? "bg-muted text-foreground/80";
-  const documents = (policy.documents as { name: string; url: string }[] | null) ?? [];
+  const typeLabel = INSURANCE_TYPE_LABELS[policy.type] ?? policy.type;
+  const documents =
+    (policy.documents as { name: string; url: string }[] | null) ?? [];
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight">
-              {policy.policyNumber}
-            </h1>
-            <Badge variant="outline" className={`text-xs ${statusColorClass}`}>
-              {policy.status}
-            </Badge>
-            <Badge variant="secondary" className="text-xs">
-              {INSURANCE_TYPE_LABELS[policy.type] ?? policy.type}
-            </Badge>
-          </div>
-          <p className="text-muted-foreground mt-1 text-sm">
-            {policy.provider}
+      <PageHeader
+        icon={ShieldIcon}
+        accent="blue"
+        title={policy.policyNumber}
+        eyebrow={
+          <span className="flex items-center gap-1.5">
+            <Link
+              href="/insurance"
+              className="transition-colors hover:text-foreground"
+            >
+              Insurance
+            </Link>
+            <ChevronRightIcon className="size-3 opacity-50" />
+            <span>{typeLabel}</span>
+          </span>
+        }
+        description={policy.provider}
+      >
+        <StatusBadge status={policy.status} colorMap={INSURANCE_STATUS_COLORS} />
+        <Button variant="outline" asChild>
+          <Link href={`/insurance/${policy.id}/edit`}>
+            <PencilIcon className="mr-2 size-4" />
+            Edit
+          </Link>
+        </Button>
+        <InsurancePolicyActions
+          policyId={policy.id}
+          status={policy.status}
+          policyNumber={policy.policyNumber}
+        />
+      </PageHeader>
+
+      {/* ============================================================
+          Cover at a glance — the four numbers that matter
+          ============================================================ */}
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border bg-border shadow-card lg:grid-cols-4">
+        <div className="bg-card p-5">
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            Coverage amount
+          </p>
+          <p className="numeric mt-1.5 text-2xl font-semibold tracking-tight">
+            {formatINR(policy.coverageAmount)}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" asChild>
-            <Link href={`/insurance/${policy.id}/edit`}>
-              <PencilIcon className="mr-2 size-4" />
-              Edit
-            </Link>
-          </Button>
-          <InsurancePolicyActions
-            policyId={policy.id}
-            status={policy.status}
-            policyNumber={policy.policyNumber}
-          />
+        <div className="bg-card p-5">
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            Premium
+          </p>
+          <p className="numeric mt-1.5 text-2xl font-semibold tracking-tight">
+            {formatINR(policy.premium)}
+          </p>
+        </div>
+        <div className="bg-card p-5">
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            Cover starts
+          </p>
+          <p className="numeric mt-1.5 text-base font-medium">
+            {formatDate(policy.startDate)}
+          </p>
+        </div>
+        <div className="bg-card p-5">
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            Cover ends
+          </p>
+          <p className="numeric mt-1.5 text-base font-medium">
+            {formatDate(policy.endDate)}
+          </p>
         </div>
       </div>
 
-      {/* Policy Details */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Policy Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-muted-foreground text-xs font-medium uppercase">
-                  Provider
-                </p>
-                <p className="text-sm font-medium">{policy.provider}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-xs font-medium uppercase">
-                  Policy Number
-                </p>
-                <p className="text-sm font-medium">{policy.policyNumber}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-xs font-medium uppercase">
-                  Type
-                </p>
-                <p className="text-sm font-medium">
-                  {INSURANCE_TYPE_LABELS[policy.type] ?? policy.type}
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-xs font-medium uppercase">
-                  Status
-                </p>
-                <Badge
-                  variant="outline"
-                  className={`text-xs ${statusColorClass}`}
-                >
-                  {policy.status}
-                </Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 lg:grid-cols-2">
+        {/* ============================================================
+            Policy details
+            ============================================================ */}
+        <section className="rounded-2xl border bg-card p-5 shadow-card">
+          <h2 className="text-[15px] font-semibold tracking-[-0.01em]">
+            Policy details
+          </h2>
+          <p className="mt-0.5 text-[13px] text-muted-foreground">
+            Who underwrites this cover and what it protects.
+          </p>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Financial Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-muted-foreground text-xs font-medium uppercase">
-                  Coverage Amount
-                </p>
-                <p className="text-lg font-bold text-green-700">
-                  {formatINR(policy.coverageAmount)}
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-xs font-medium uppercase">
-                  Premium
-                </p>
-                <p className="text-lg font-bold">
-                  {formatINR(policy.premium)}
-                </p>
-              </div>
+          <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-5">
+            <div>
+              <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                Provider
+              </dt>
+              <dd className="mt-1 text-sm">{policy.provider}</dd>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Policy Period</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-muted-foreground text-xs font-medium uppercase">
-                  Start Date
-                </p>
-                <p className="text-sm font-medium">
-                  {formatDate(policy.startDate)}
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-xs font-medium uppercase">
-                  End Date
-                </p>
-                <p className="text-sm font-medium">
-                  {formatDate(policy.endDate)}
-                </p>
-              </div>
+            <div>
+              <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                Policy number
+              </dt>
+              <dd className="numeric mt-1 text-sm">{policy.policyNumber}</dd>
             </div>
-          </CardContent>
-        </Card>
+            <div>
+              <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                Type
+              </dt>
+              <dd className="mt-1 text-sm">{typeLabel}</dd>
+            </div>
+            <div>
+              <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                Status
+              </dt>
+              <dd className="mt-1.5">
+                <StatusBadge
+                  status={policy.status}
+                  colorMap={INSURANCE_STATUS_COLORS}
+                />
+              </dd>
+            </div>
+          </dl>
+        </section>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Linked Entities</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-muted-foreground text-xs font-medium uppercase">
-                  Booking
-                </p>
+        {/* ============================================================
+            Linked entities
+            ============================================================ */}
+        <section className="rounded-2xl border bg-card p-5 shadow-card">
+          <h2 className="text-[15px] font-semibold tracking-[-0.01em]">
+            Linked to
+          </h2>
+          <p className="mt-0.5 text-[13px] text-muted-foreground">
+            The booking and venue this policy covers.
+          </p>
+
+          <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-5">
+            <div>
+              <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                Booking
+              </dt>
+              <dd className="mt-1 text-sm">
                 {policy.booking ? (
                   <Link
                     href={`/bookings/${policy.booking.id}`}
-                    className="text-sm font-medium text-blue-600 hover:underline"
+                    className="font-medium text-primary underline-offset-4 hover:underline"
                   >
-                    {policy.booking.bookingNumber} - {policy.booking.eventName}
+                    {policy.booking.bookingNumber} · {policy.booking.eventName}
                   </Link>
                 ) : (
-                  <p className="text-muted-foreground text-sm">--</p>
+                  <span className="text-muted-foreground">Not linked</span>
                 )}
-              </div>
-              <div>
-                <p className="text-muted-foreground text-xs font-medium uppercase">
-                  Venue
-                </p>
-                {policy.venue ? (
-                  <p className="text-sm font-medium">{policy.venue.name}</p>
-                ) : (
-                  <p className="text-muted-foreground text-sm">--</p>
-                )}
-              </div>
+              </dd>
             </div>
-          </CardContent>
-        </Card>
+            <div>
+              <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                Venue
+              </dt>
+              <dd className="mt-1 text-sm">
+                {policy.venue?.name ?? (
+                  <span className="text-muted-foreground">Not linked</span>
+                )}
+              </dd>
+            </div>
+          </dl>
+        </section>
       </div>
 
-      {/* Documents Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileTextIcon className="size-4" />
-            Documents
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {documents.length > 0 ? (
-            <ul className="space-y-2">
-              {documents.map((doc, index) => (
-                <li key={index} className="flex items-center gap-2 text-sm">
-                  <FileTextIcon className="text-muted-foreground size-4" />
-                  <a
-                    href={doc.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline"
-                  >
-                    {doc.name}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-muted-foreground text-sm">
-              No documents attached to this policy.
+      {/* ============================================================
+          Documents
+          ============================================================ */}
+      <section className="rounded-2xl border bg-card p-5 shadow-card">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-[15px] font-semibold tracking-[-0.01em]">
+              Documents
+            </h2>
+            <p className="mt-0.5 text-[13px] text-muted-foreground">
+              Certificates and paperwork attached to this policy.
             </p>
+          </div>
+          {documents.length > 0 && (
+            <Badge variant="outline" className="numeric shrink-0">
+              {documents.length}
+            </Badge>
           )}
-        </CardContent>
-      </Card>
+        </div>
+
+        {documents.length > 0 ? (
+          <ul className="mt-5 divide-y rounded-xl border">
+            {documents.map((doc, index) => (
+              <li key={index}>
+                <a
+                  href={doc.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 px-4 py-3 text-sm transition-colors hover:bg-muted/50"
+                >
+                  <FileTextIcon className="size-4 shrink-0 text-muted-foreground" />
+                  <span className="truncate font-medium">{doc.name}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <EmptyState
+            icon={<FileTextIcon />}
+            title="No documents attached"
+            description="Upload the policy certificate so the ops team can find it on event day."
+          />
+        )}
+      </section>
     </div>
   );
 }

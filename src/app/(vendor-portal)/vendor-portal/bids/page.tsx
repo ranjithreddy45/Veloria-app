@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { Gavel } from "lucide-react";
+import { Gavel, AlertCircle } from "lucide-react";
 import { auth } from "@/../auth";
 import { getVendorBids, getAvailableBookingsForBid } from "@/actions/vendor-portal.actions";
+import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/layout/page-header";
 import { VendorBidsClient } from "./vendor-bids-client";
 
 export const metadata: Metadata = { title: "My Bids | Vendor Portal" };
@@ -22,16 +25,24 @@ export default async function VendorBidsPage() {
 
   if (!bidsResult.success) {
     return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-3">
-          <Gavel className="size-6 text-teal-700 dark:text-teal-300" />
-          <h1 className="text-[28px] leading-tight text-foreground">Your bids</h1>
-        </div>
-        <div className="rounded-2xl border border-red-500/25 bg-red-500/10 p-6">
-          <p className="text-sm text-red-600 dark:text-red-400">
-            {bidsResult.error}
-          </p>
-        </div>
+      <div className="space-y-6">
+        <PageHeader
+          eyebrow="Quoting"
+          icon={Gavel}
+          accent="amber"
+          title="Your bids"
+          description="What you've quoted us, and where each one stands."
+        />
+        <Card className="rounded-2xl border bg-card shadow-card py-0">
+          <CardContent className="p-0">
+            <EmptyState
+              icon={<AlertCircle />}
+              tone="warning"
+              title="We couldn't load your bids"
+              description={bidsResult.error}
+            />
+          </CardContent>
+        </Card>
       </div>
     );
   }

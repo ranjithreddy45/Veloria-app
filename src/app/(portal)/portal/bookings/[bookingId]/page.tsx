@@ -4,7 +4,6 @@ import { BookingTerms } from "@/components/legal/booking-terms";
 import {
   ArrowLeft,
   CalendarCheck,
-  Clock,
   MapPin,
   Users,
   Phone,
@@ -105,7 +104,7 @@ export default async function PortalBookingDetailPage({
       <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
-            Your account
+            Your celebration
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="large-title text-foreground text-[28px] leading-tight sm:text-[32px]">
@@ -243,10 +242,10 @@ export default async function PortalBookingDetailPage({
               </div>
 
               {booking.specialRequests && (
-                <div className="mt-6 rounded-xl border border-amber-500/25 bg-amber-500/[0.07] p-4">
-                  <div className="flex items-center gap-2">
-                    <MessageSquare className="size-3.5 text-amber-600 dark:text-amber-400" />
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-400">
+                <div className="border-warning/30 bg-warning/[0.08] mt-6 rounded-xl border p-4">
+                  <div className="text-warning flex items-center gap-2">
+                    <MessageSquare className="size-3.5" />
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em]">
                       What you asked us for
                     </p>
                   </div>
@@ -367,7 +366,7 @@ export default async function PortalBookingDetailPage({
                             {formatINR(inv.totalAmount)}
                           </p>
                           {inv.balanceDue > 0 && (
-                            <p className="numeric text-xs font-medium text-red-600 dark:text-red-400">
+                            <p className="numeric text-destructive text-xs font-medium">
                               {formatINR(inv.balanceDue)} due
                             </p>
                           )}
@@ -390,16 +389,16 @@ export default async function PortalBookingDetailPage({
         <div className="space-y-6">
           {/* Event Coordinator */}
           {booking.coordinator && (
-            <Card className="border-zinc-200/80 shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold text-foreground">
-                  Your Coordinator
+            <Card className="shadow-card rounded-2xl py-0">
+              <CardHeader className="px-6 pb-4 pt-6">
+                <CardTitle className="font-editorial text-foreground text-[20px] font-semibold">
+                  Your coordinator
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-6 pb-6">
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
-                    <div className="flex size-10 items-center justify-center rounded-full bg-indigo-100 text-sm font-bold text-indigo-700">
+                    <div className="bg-primary/10 text-primary flex size-11 items-center justify-center rounded-2xl text-sm font-semibold">
                       {booking.coordinator.name
                         ? booking.coordinator.name
                             .split(" ")
@@ -408,28 +407,32 @@ export default async function PortalBookingDetailPage({
                             .toUpperCase()
                         : "?"}
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">
+                    <div className="min-w-0">
+                      <p className="text-foreground text-sm font-semibold">
                         {booking.coordinator.name || "Coordinator"}
                       </p>
-                      <p className="text-xs text-zinc-500">Event Coordinator</p>
+                      <p className="text-muted-foreground text-xs">
+                        Here for you, start to finish
+                      </p>
                     </div>
                   </div>
                   {booking.coordinator.phone && (
                     <a
                       href={`tel:${booking.coordinator.phone}`}
-                      className="flex items-center gap-2 rounded-lg border border-zinc-100 p-3 text-sm text-zinc-600 transition-colors hover:bg-zinc-50"
+                      className="text-foreground hover:bg-muted/60 flex items-center gap-2.5 rounded-xl border p-3 text-sm transition-colors"
                     >
-                      <Phone className="size-4 text-indigo-500" />
-                      {booking.coordinator.phone}
+                      <Phone className="text-primary size-4 shrink-0" />
+                      <span className="numeric">
+                        {booking.coordinator.phone}
+                      </span>
                     </a>
                   )}
                   {booking.coordinator.email && (
                     <a
                       href={`mailto:${booking.coordinator.email}`}
-                      className="flex items-center gap-2 rounded-lg border border-zinc-100 p-3 text-sm text-zinc-600 transition-colors hover:bg-zinc-50"
+                      className="text-foreground hover:bg-muted/60 flex items-center gap-2.5 rounded-xl border p-3 text-sm transition-colors"
                     >
-                      <Mail className="size-4 text-indigo-500" />
+                      <Mail className="text-primary size-4 shrink-0" />
                       <span className="truncate">
                         {booking.coordinator.email}
                       </span>
@@ -441,26 +444,28 @@ export default async function PortalBookingDetailPage({
           )}
 
           {/* Payment Summary */}
-          <Card className="border-zinc-200/80 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
-                <IndianRupee className="size-4 text-indigo-500" />
-                Payment Summary
+          <Card className="shadow-card rounded-2xl py-0">
+            <CardHeader className="px-6 pb-4 pt-6">
+              <CardTitle className="flex items-center gap-2.5">
+                <IndianRupee className="text-primary size-4" />
+                <span className="font-editorial text-foreground text-[20px] font-semibold">
+                  Where you stand
+                </span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-6 pb-6">
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-zinc-500">Total Amount</span>
-                  <span className="text-sm font-semibold text-foreground">
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-muted-foreground">Total</span>
+                  <span className="numeric text-foreground font-medium">
                     {formatINR(booking.totalAmount)}
                   </span>
                 </div>
                 {booking.invoices.length > 0 && (
                   <>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-zinc-500">Paid</span>
-                      <span className="text-sm font-medium text-emerald-600">
+                    <div className="flex items-center justify-between gap-3 text-sm">
+                      <span className="text-muted-foreground">Paid</span>
+                      <span className="numeric text-success font-medium">
                         {formatINR(
                           booking.invoices.reduce(
                             (sum, inv) => sum + Number(inv.paidAmount),
@@ -469,19 +474,18 @@ export default async function PortalBookingDetailPage({
                         )}
                       </span>
                     </div>
-                    <div className="h-px bg-zinc-100" />
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-zinc-700">
-                        Balance Due
+                    <div className="flex items-center justify-between gap-3 border-t pt-3">
+                      <span className="text-foreground text-sm font-semibold">
+                        Balance due
                       </span>
                       <span
-                        className={`text-sm font-bold ${
+                        className={`numeric text-[17px] font-semibold ${
                           booking.invoices.reduce(
                             (sum, inv) => sum + Number(inv.balanceDue),
                             0
                           ) > 0
-                            ? "text-red-600"
-                            : "text-emerald-600"
+                            ? "text-destructive"
+                            : "text-success"
                         }`}
                       >
                         {formatINR(
@@ -509,14 +513,14 @@ export default async function PortalBookingDetailPage({
                             )
                           : 0;
                       return (
-                        <div>
-                          <div className="flex items-center justify-between text-xs text-zinc-400 mb-1">
-                            <span>Payment progress</span>
-                            <span>{percent}%</span>
+                        <div className="pt-1">
+                          <div className="text-muted-foreground mb-1.5 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.12em]">
+                            <span>Settled</span>
+                            <span className="numeric">{percent}%</span>
                           </div>
-                          <div className="h-2 rounded-full bg-zinc-100 overflow-hidden">
+                          <div className="bg-muted h-1.5 overflow-hidden rounded-full">
                             <div
-                              className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-indigo-600 transition-all duration-500"
+                              className="bg-primary h-full rounded-full transition-all duration-500"
                               style={{ width: `${percent}%` }}
                             />
                           </div>
@@ -530,23 +534,23 @@ export default async function PortalBookingDetailPage({
           </Card>
 
           {/* Quick Info */}
-          <Card className="border-zinc-200/80 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold text-foreground">
-                Quick Info
+          <Card className="shadow-card rounded-2xl py-0">
+            <CardHeader className="px-6 pb-4 pt-6">
+              <CardTitle className="font-editorial text-foreground text-[20px] font-semibold">
+                At a glance
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-500">Booking #</span>
-                  <span className="font-medium text-foreground">
+            <CardContent className="px-6 pb-6">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-muted-foreground">Booking</span>
+                  <span className="numeric text-foreground font-medium">
                     {booking.bookingNumber}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-500">Created</span>
-                  <span className="font-medium text-foreground">
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-muted-foreground">Created</span>
+                  <span className="numeric text-foreground font-medium">
                     {new Date(booking.createdAt).toLocaleDateString("en-IN", {
                       month: "short",
                       day: "numeric",
@@ -554,15 +558,15 @@ export default async function PortalBookingDetailPage({
                     })}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-500">Event Type</span>
-                  <span className="font-medium text-foreground">
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-muted-foreground">Event type</span>
+                  <span className="text-foreground text-right font-medium">
                     {booking.eventType}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-500">Invoices</span>
-                  <span className="font-medium text-foreground">
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-muted-foreground">Invoices</span>
+                  <span className="numeric text-foreground font-medium">
                     {booking.invoices.length}
                   </span>
                 </div>

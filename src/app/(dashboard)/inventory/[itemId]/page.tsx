@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { PencilIcon } from "lucide-react";
+import { ChevronRightIcon, PackageIcon, PencilIcon } from "lucide-react";
 
 import { getItem } from "@/actions/inventory.actions";
+import { PageHeader } from "@/components/layout/page-header";
+import { StatusPill } from "@/components/shared/status-pill";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { InventoryDetail } from "../_components/inventory-detail";
 
 export const metadata: Metadata = { title: "Inventory Item Details" };
@@ -32,28 +33,32 @@ export default async function InventoryDetailPage({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight">{item.name}</h1>
-            {!item.isActive && (
-              <Badge variant="secondary">Inactive</Badge>
-            )}
-          </div>
-          <p className="text-muted-foreground mt-1 text-sm">
-            {item.sku ? `SKU: ${item.sku}` : item.category}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" asChild>
-            <Link href={`/inventory/${item.id}/edit`}>
-              <PencilIcon className="mr-2 size-4" />
-              Edit
+      <PageHeader
+        icon={PackageIcon}
+        accent="amber"
+        title={item.name}
+        eyebrow={
+          <span className="flex items-center gap-1.5">
+            <Link href="/inventory" className="transition-colors hover:text-foreground">
+              Inventory
             </Link>
-          </Button>
-        </div>
-      </div>
+            <ChevronRightIcon className="size-3 opacity-50" />
+            <span>{item.category}</span>
+          </span>
+        }
+        description={item.sku ? `SKU ${item.sku}` : undefined}
+      >
+        <StatusPill
+          label={item.isActive ? "Active" : "Inactive"}
+          hue={item.isActive ? "emerald" : "slate"}
+        />
+        <Button variant="outline" asChild>
+          <Link href={`/inventory/${item.id}/edit`}>
+            <PencilIcon className="mr-2 size-4" />
+            Edit
+          </Link>
+        </Button>
+      </PageHeader>
 
       {/* Detail Component */}
       <InventoryDetail item={item} />

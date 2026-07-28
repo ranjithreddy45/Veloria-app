@@ -36,7 +36,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/layout/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { VENDOR_BID_STATUS_COLORS } from "@/lib/constants";
 import { formatINR, formatDate } from "@/lib/utils";
@@ -196,26 +198,16 @@ export function VendorBidsClient({ initialData, availableBookings }: VendorBidsC
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex items-start gap-3.5">
-          <span className="mt-0.5 hidden size-11 shrink-0 items-center justify-center rounded-2xl bg-teal-500/12 text-teal-700 sm:flex dark:text-teal-300">
-            <Gavel className="size-[22px]" />
-          </span>
-          <div className="space-y-1.5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-teal-700 dark:text-teal-300">
-              Opportunities
-            </p>
-            <h1 className="text-[28px] leading-tight text-foreground sm:text-[32px]">
-              Your bids
-            </h1>
-            <p className="text-[14px] text-muted-foreground">
-              <span className="numeric">{data.total}</span> bid
-              {data.total !== 1 ? "s" : ""} submitted to our events team.
-            </p>
-          </div>
-        </div>
-
+      <PageHeader
+        eyebrow="Opportunities"
+        icon={Gavel}
+        accent="amber"
+        title="Your bids"
+        description="What you've quoted us, and where each one stands."
+      >
+        <Badge variant="outline" className="numeric">
+          {data.total} {data.total === 1 ? "bid" : "bids"}
+        </Badge>
         <div className="flex items-center gap-3">
           {/* Filter */}
           <div className="flex items-center gap-2">
@@ -297,9 +289,7 @@ export function VendorBidsClient({ initialData, availableBookings }: VendorBidsC
 
                 {/* Error */}
                 {error && (
-                  <p className="text-sm text-red-600 dark:text-red-400">
-                    {error}
-                  </p>
+                  <p className="text-destructive text-sm">{error}</p>
                 )}
 
                 {/* Submit */}
@@ -322,7 +312,7 @@ export function VendorBidsClient({ initialData, availableBookings }: VendorBidsC
             </DialogContent>
           </Dialog>
         </div>
-      </div>
+      </PageHeader>
 
       {/* Bids Table */}
       <Card className="rounded-2xl border bg-card shadow-card">
@@ -407,7 +397,7 @@ export function VendorBidsClient({ initialData, availableBookings }: VendorBidsC
                             <Button
                               variant="outline"
                               size="sm"
-                              className="gap-1 border-red-500/30 text-red-600 hover:bg-red-500/10 dark:text-red-400"
+                              className="gap-1 border-destructive/30 text-destructive hover:bg-destructive/10"
                               onClick={() => setWithdrawTarget(bid)}
                             >
                               <X className="size-3.5" />
@@ -474,7 +464,7 @@ export function VendorBidsClient({ initialData, availableBookings }: VendorBidsC
                         <Button
                           variant="outline"
                           size="sm"
-                          className="gap-1 border-red-500/30 text-red-600 hover:bg-red-500/10 dark:text-red-400"
+                          className="gap-1 border-destructive/30 text-destructive hover:bg-destructive/10"
                           onClick={() => setWithdrawTarget(bid)}
                         >
                           <X className="size-3.5" />
@@ -550,7 +540,7 @@ export function VendorBidsClient({ initialData, availableBookings }: VendorBidsC
               Cancel
             </Button>
             <Button
-              className="bg-red-600 hover:bg-red-700"
+              variant="destructive"
               onClick={confirmWithdraw}
               disabled={withdrawing}
             >

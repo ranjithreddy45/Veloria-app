@@ -1,24 +1,25 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeftIcon } from "lucide-react";
+import { ArrowLeftIcon, GitBranchIcon } from "lucide-react";
 
 import { getBlueprint } from "@/actions/blueprint.actions";
+import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { StatusPill, type Hue } from "@/components/shared/status-pill";
 import { TransitionsList } from "../_components/transitions-list";
 import { TransitionMap } from "../_components/transition-map";
 
 export const metadata: Metadata = { title: "Blueprint Details" };
 
 // ============================================================
-// Entity Type Badge Colors
+// Entity Type Hues
 // ============================================================
 
-const ENTITY_TYPE_COLORS: Record<string, string> = {
-  LEAD: "bg-indigo-100 text-indigo-800 border-indigo-200",
-  DEAL: "bg-orange-100 text-orange-800 border-orange-200",
-  BOOKING: "bg-emerald-100 text-emerald-800 border-emerald-200",
+const ENTITY_TYPE_HUE: Record<string, Hue> = {
+  LEAD: "indigo",
+  DEAL: "orange",
+  BOOKING: "emerald",
 };
 
 // ============================================================
@@ -43,52 +44,41 @@ export default async function BlueprintDetailPage({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/settings/blueprints">
-              <ArrowLeftIcon className="size-4" />
-              <span className="sr-only">Back to Blueprints</span>
-            </Link>
-          </Button>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight">
-                {blueprint.name}
-              </h1>
-              <Badge
-                variant="outline"
-                className={
-                  ENTITY_TYPE_COLORS[blueprint.entityType] ??
-                  "bg-muted text-foreground"
-                }
-              >
-                {blueprint.entityType}
-              </Badge>
-              {blueprint.isActive ? (
-                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                  Active
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="bg-muted/50 text-muted-foreground border-border">
-                  Inactive
-                </Badge>
-              )}
-              {blueprint.isPublished && (
-                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                  Published
-                </Badge>
-              )}
-            </div>
-            {blueprint.description && (
-              <p className="text-muted-foreground mt-1 text-sm">
-                {blueprint.description}
-              </p>
-            )}
-          </div>
-        </div>
+      {/* Back */}
+      <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          asChild
+          className="-ml-2 h-8 text-muted-foreground hover:text-foreground"
+        >
+          <Link href="/settings/blueprints">
+            <ArrowLeftIcon className="mr-1 size-4" />
+            Back to Blueprints
+          </Link>
+        </Button>
       </div>
+
+      <PageHeader
+        eyebrow="Settings · Blueprints"
+        icon={GitBranchIcon}
+        accent="violet"
+        title={blueprint.name}
+        description={
+          blueprint.description ??
+          "The state machine this record type follows — which transitions are legal, who may make them, and what must be filled in first."
+        }
+      >
+        <StatusPill
+          label={blueprint.entityType}
+          hue={ENTITY_TYPE_HUE[blueprint.entityType] ?? "neutral"}
+        />
+        <StatusPill
+          label={blueprint.isActive ? "Active" : "Inactive"}
+          hue={blueprint.isActive ? "emerald" : "slate"}
+        />
+        {blueprint.isPublished && <StatusPill label="Published" hue="blue" />}
+      </PageHeader>
 
       {/* Transition Map */}
       <TransitionMap

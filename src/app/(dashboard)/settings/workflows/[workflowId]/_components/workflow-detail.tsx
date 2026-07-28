@@ -12,15 +12,10 @@ import {
   RefreshCwIcon,
 } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
+import { StatusPill } from "@/components/shared/status-pill";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Switch } from "@/components/ui/switch";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -149,50 +144,75 @@ export function WorkflowDetail({ workflow }: WorkflowDetailProps) {
     <div className="space-y-6">
       {/* Workflow Info */}
       <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Configuration</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Status</span>
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={workflow.isActive}
-                  onCheckedChange={handleToggle}
-                  disabled={isToggling}
-                />
-                <span className="text-sm">
-                  {workflow.isActive ? "Active" : "Inactive"}
-                </span>
+        <section className="rounded-2xl border bg-card shadow-card">
+          <div className="border-b px-5 py-4">
+            <h3 className="text-[15px] font-semibold tracking-[-0.01em]">
+              Configuration
+            </h3>
+            <p className="mt-1 text-[13px] text-muted-foreground">
+              When this workflow fires and how it has behaved so far.
+            </p>
+          </div>
+          <div className="divide-y">
+            <div className="flex items-center justify-between gap-4 px-5 py-3.5">
+              <div className="min-w-0">
+                <p className="text-sm font-medium">Status</p>
+                <p className="mt-0.5 text-[12.5px] text-muted-foreground">
+                  {workflow.isActive
+                    ? "Running — the trigger is live."
+                    : "Paused — the trigger is ignored."}
+                </p>
               </div>
+              <Switch
+                checked={workflow.isActive}
+                onCheckedChange={handleToggle}
+                disabled={isToggling}
+                aria-label="Workflow active"
+              />
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Trigger</span>
-              <Badge variant="secondary">
-                {WORKFLOW_TRIGGER_LABELS[workflow.trigger] ?? workflow.trigger}
-              </Badge>
+            <div className="flex items-center justify-between gap-4 px-5 py-3.5">
+              <p className="text-sm font-medium">Trigger</p>
+              <StatusPill
+                label={
+                  WORKFLOW_TRIGGER_LABELS[workflow.trigger] ?? workflow.trigger
+                }
+                hue="violet"
+                size="xs"
+              />
             </div>
             {workflow.delayMinutes !== null && workflow.delayMinutes > 0 && (
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Delay</span>
-                <span className="text-sm">{workflow.delayMinutes} minutes</span>
+              <div className="flex items-center justify-between gap-4 px-5 py-3.5">
+                <p className="text-sm font-medium">Delay</p>
+                <span className="numeric text-sm">
+                  {workflow.delayMinutes} min
+                </span>
               </div>
             )}
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Created</span>
-              <span className="text-sm">{formatDate(workflow.createdAt)}</span>
+            <div className="flex items-center justify-between gap-4 px-5 py-3.5">
+              <p className="text-sm font-medium">Created</p>
+              <span className="numeric text-sm text-muted-foreground">
+                {formatDate(workflow.createdAt)}
+              </span>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Total Runs</span>
-              <span className="text-sm">{workflow._count.logs}</span>
+            <div className="flex items-center justify-between gap-4 px-5 py-3.5">
+              <p className="text-sm font-medium">Total runs</p>
+              <span className="numeric text-sm font-medium">
+                {workflow._count.logs}
+              </span>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Actions ({workflow.actions.length})</CardTitle>
+        <section className="rounded-2xl border bg-card shadow-card">
+          <div className="flex items-start justify-between gap-3 border-b px-5 py-4">
+            <div className="min-w-0">
+              <h3 className="text-[15px] font-semibold tracking-[-0.01em]">
+                Actions
+              </h3>
+              <p className="mt-1 text-[13px] text-muted-foreground">
+                Run top to bottom every time the trigger fires.
+              </p>
+            </div>
             <Button
               size="sm"
               onClick={handleExecute}
@@ -205,109 +225,127 @@ export function WorkflowDetail({ workflow }: WorkflowDetailProps) {
               )}
               Run Now
             </Button>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {workflow.actions.map((action, index) => (
-              <div
-                key={index}
-                className="flex items-start gap-3 rounded-md border p-3"
-              >
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted">
-                  {ACTION_TYPE_ICONS[action.type] ?? (
-                    <RefreshCwIcon className="size-4" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">
-                    {ACTION_TYPE_LABELS[action.type] ?? action.type}
-                  </p>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {action.type === "SEND_EMAIL" && (
-                      <span>
-                        Template: {String(action.config.template || "--")} |
-                        To: {String(action.config.to || "--")}
-                      </span>
+          </div>
+          {workflow.actions.length === 0 ? (
+            <EmptyState
+              icon={<RefreshCwIcon />}
+              title="No actions configured"
+              description="This workflow fires but does nothing. Edit it to add at least one action."
+            />
+          ) : (
+            <div className="divide-y">
+              {workflow.actions.map((action, index) => (
+                <div key={index} className="flex items-start gap-3 px-5 py-3.5">
+                  <span
+                    className="numeric mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold"
+                    aria-hidden
+                  >
+                    {index + 1}
+                  </span>
+                  <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                    {ACTION_TYPE_ICONS[action.type] ?? (
+                      <RefreshCwIcon className="size-4" />
                     )}
-                    {action.type === "CREATE_TASK" && (
-                      <span>
-                        Title: {String(action.config.title || "--")}
-                      </span>
-                    )}
-                    {action.type === "SEND_NOTIFICATION" && (
-                      <span>
-                        Message: {String(action.config.message || "--")}
-                      </span>
-                    )}
-                    {action.type === "UPDATE_STATUS" && (
-                      <span>
-                        Status: {String(action.config.status || "--")}
-                      </span>
-                    )}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium">
+                      {ACTION_TYPE_LABELS[action.type] ?? action.type}
+                    </p>
+                    <div className="mt-0.5 text-[12.5px] text-muted-foreground">
+                      {action.type === "SEND_EMAIL" && (
+                        <span>
+                          Template {String(action.config.template || "--")} · to{" "}
+                          {String(action.config.to || "--")}
+                        </span>
+                      )}
+                      {action.type === "CREATE_TASK" && (
+                        <span>Title: {String(action.config.title || "--")}</span>
+                      )}
+                      {action.type === "SEND_NOTIFICATION" && (
+                        <span>
+                          Message: {String(action.config.message || "--")}
+                        </span>
+                      )}
+                      {action.type === "UPDATE_STATUS" && (
+                        <span>
+                          Sets status to {String(action.config.status || "--")}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <Badge variant="outline" className="text-xs shrink-0">
-                  #{index + 1}
-                </Badge>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+              ))}
+            </div>
+          )}
+        </section>
       </div>
 
       {/* Execution Logs */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Execution Logs</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {workflow.logs.length === 0 ? (
-            <p className="text-muted-foreground text-center text-sm py-8">
-              No execution logs yet. Use the &quot;Run Now&quot; button to test
-              this workflow.
-            </p>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Action</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Booking ID</TableHead>
-                    <TableHead>Error</TableHead>
+      <section className="rounded-2xl border bg-card shadow-card">
+        <div className="border-b px-5 py-4">
+          <h3 className="text-[15px] font-semibold tracking-[-0.01em]">
+            Execution Log
+          </h3>
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            Every run this workflow has made, newest first.
+          </p>
+        </div>
+        {workflow.logs.length === 0 ? (
+          <EmptyState
+            icon={<PlayIcon />}
+            title="No runs yet"
+            description="This workflow hasn't fired since it was created. Hit Run Now to test it against live data."
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Date
+                  </TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Action
+                  </TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Status
+                  </TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Booking
+                  </TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Error
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {workflow.logs.map((log) => (
+                  <TableRow key={log.id}>
+                    <TableCell className="numeric whitespace-nowrap text-sm text-muted-foreground">
+                      {formatDate(log.executedAt)}
+                    </TableCell>
+                    <TableCell className="text-sm font-medium">
+                      {ACTION_TYPE_LABELS[log.action] ?? log.action}
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge
+                        status={log.status}
+                        colorMap={WORKFLOW_LOG_STATUS_COLORS}
+                      />
+                    </TableCell>
+                    <TableCell className="numeric text-sm text-muted-foreground">
+                      {log.bookingId ?? "—"}
+                    </TableCell>
+                    <TableCell className="max-w-[220px] truncate text-sm text-destructive">
+                      {log.error ?? "—"}
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {workflow.logs.map((log) => (
-                    <TableRow key={log.id}>
-                      <TableCell className="text-sm">
-                        {formatDate(log.executedAt)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs">
-                          {ACTION_TYPE_LABELS[log.action] ?? log.action}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge
-                          status={log.status}
-                          colorMap={WORKFLOW_LOG_STATUS_COLORS}
-                        />
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
-                        {log.bookingId ?? "--"}
-                      </TableCell>
-                      <TableCell className="text-sm text-destructive max-w-[200px] truncate">
-                        {log.error ?? "--"}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { RouteIcon } from "lucide-react";
 
+import { PageHeader } from "@/components/layout/page-header";
 import {
   getTeamAvailability,
   getRoutingDecisions,
@@ -29,14 +31,13 @@ export default async function RoutingSettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Smart Routing</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Workload- and skill-aware lead routing. Reps set their own
-          availability and skills; SMART assignment rules route each lead to the
-          available, lightest-loaded, best-matched rep.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Settings · Automation"
+        icon={RouteIcon}
+        accent="teal"
+        title="Smart Routing"
+        description="Workload- and skill-aware lead routing. Reps set their own availability and skills; SMART assignment rules send each lead to the available, lightest-loaded, best-matched rep."
+      />
 
       <RoutingBoard
         initialTeam={team}

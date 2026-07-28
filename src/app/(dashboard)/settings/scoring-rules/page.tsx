@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
+import { GaugeIcon } from "lucide-react";
+
 import { getScoringRuleSets } from "@/actions/scoring-rule.actions";
+import { PageHeader } from "@/components/layout/page-header";
 import { ScoringRuleSetsTable } from "./_components/scoring-rule-sets-table";
 
 export const metadata: Metadata = { title: "Scoring Rules" };
@@ -10,14 +13,13 @@ export default async function ScoringRulesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Scoring Rules</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Configure scoring rule sets to automatically score leads, contacts,
-          and deals based on custom criteria. Rules are evaluated in order and
-          the total score is capped at the configured maximum.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Settings · Automation"
+        icon={GaugeIcon}
+        accent="violet"
+        title="Scoring Rules"
+        description="Score leads, contacts and deals automatically from your own criteria. Rules run in order and the running total is capped at the rule set's maximum."
+      />
       <ScoringRuleSetsTable initialData={ruleSets} />
     </div>
   );

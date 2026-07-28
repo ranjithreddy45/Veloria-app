@@ -4,13 +4,6 @@ import * as React from "react";
 import { ArrowRightIcon, FileTextIcon, ZapIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 // ============================================================
@@ -184,23 +177,26 @@ export function TransitionMap({ entityType, transitions }: TransitionMapProps) {
   // For DEAL entity type, we don't have predefined statuses
   if (statusNodes.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Transition Map</CardTitle>
-          <CardDescription>
-            Visual transition map is available for Lead and Booking entity types.
-            Deal transitions use dynamic pipeline stages.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <p className="text-muted-foreground text-sm">
-              {transitions.length} transition{transitions.length !== 1 ? "s" : ""}{" "}
-              defined. View them in the transitions table below.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <section className="rounded-2xl border bg-card shadow-card">
+        <div className="border-b px-5 py-4">
+          <h3 className="text-[15px] font-semibold tracking-[-0.01em]">
+            Transition Map
+          </h3>
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            The visual map covers Lead and Booking blueprints. Deals use dynamic
+            pipeline stages, so their transitions are listed rather than drawn.
+          </p>
+        </div>
+        <div className="px-5 py-6 text-center">
+          <p className="text-[13px] text-muted-foreground">
+            <span className="numeric font-medium text-foreground">
+              {transitions.length}
+            </span>{" "}
+            transition{transitions.length !== 1 ? "s" : ""} defined — see the
+            table below.
+          </p>
+        </div>
+      </section>
     );
   }
 
@@ -219,15 +215,17 @@ export function TransitionMap({ entityType, transitions }: TransitionMapProps) {
   );
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Transition Map</CardTitle>
-        <CardDescription>
-          Visual overview of all defined transitions. Arrows indicate allowed
-          status changes.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+    <section className="rounded-2xl border bg-card shadow-card">
+      <div className="border-b px-5 py-4">
+        <h3 className="text-[15px] font-semibold tracking-[-0.01em]">
+          Transition Map
+        </h3>
+        <p className="mt-1 text-[13px] text-muted-foreground">
+          Every legal status change at a glance. Arrows show which way a record
+          is allowed to move.
+        </p>
+      </div>
+      <div className="px-5 py-5">
         <div className="space-y-6">
           {/* Main Flow */}
           <div className="flex items-center gap-2 overflow-x-auto pb-2">
@@ -308,8 +306,8 @@ export function TransitionMap({ entityType, transitions }: TransitionMapProps) {
             statusNodes={statusNodes}
           />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   );
 }
 

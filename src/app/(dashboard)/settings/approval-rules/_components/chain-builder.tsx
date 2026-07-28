@@ -19,12 +19,7 @@ import {
   type ApprovalChainStepData,
 } from "@/actions/approval.actions";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -208,26 +203,37 @@ export function ChainBuilder({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2">
-            <LinkIcon className="size-4 text-zinc-500" />
+    <section className="rounded-2xl border bg-card shadow-card">
+      <div className="flex items-start justify-between gap-3 border-b px-5 py-4">
+        <div className="min-w-0">
+          <h3 className="flex items-center gap-2 text-[15px] font-semibold tracking-[-0.01em]">
+            <LinkIcon className="size-4 text-muted-foreground" />
             Approval Chain
-          </CardTitle>
-          <Button variant="outline" size="sm" onClick={addStep} type="button">
-            <PlusIcon className="mr-1 size-3" />
-            Add Step
-          </Button>
+          </h3>
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            Approvers sign off in this order. Drag to reorder — optional steps
+            can be skipped.
+          </p>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-3">
+        <Button variant="outline" size="sm" onClick={addStep} type="button">
+          <PlusIcon className="mr-1 size-3" />
+          Add Step
+        </Button>
+      </div>
+
+      <div className="space-y-3 px-5 py-5">
         {steps.length === 0 && (
-          <div className="py-8 text-center">
-            <p className="text-sm text-zinc-400">
-              No approval steps defined. Add steps to create an approval chain.
-            </p>
-          </div>
+          <EmptyState
+            icon={<LinkIcon />}
+            title="No approvers yet"
+            description="Nothing will hold this rule up until you add at least one step. Add the first approver to build the chain."
+            action={
+              <Button variant="outline" size="sm" onClick={addStep} type="button">
+                <PlusIcon className="mr-1 size-3" />
+                Add first step
+              </Button>
+            }
+          />
         )}
 
         {steps.map((step, index) => (
@@ -238,16 +244,15 @@ export function ChainBuilder({
             onDragOver={(e) => handleDragOver(e, index)}
             onDragEnd={handleDragEnd}
             className={cn(
-              "rounded-lg border bg-card p-3 transition-all",
-              dragIndex === index && "opacity-50 border-dashed",
-              "hover:shadow-sm"
+              "rounded-xl border bg-card p-3 transition-all hover:shadow-card",
+              dragIndex === index && "border-dashed opacity-50"
             )}
           >
             <div className="flex items-start gap-3">
               {/* Drag handle + order number */}
               <div className="flex flex-col items-center gap-1 pt-1">
-                <GripVerticalIcon className="size-4 text-zinc-300 cursor-grab active:cursor-grabbing" />
-                <div className="flex size-6 items-center justify-center rounded-full bg-zinc-100 text-xs font-bold text-zinc-600">
+                <GripVerticalIcon className="size-4 cursor-grab text-muted-foreground/50 active:cursor-grabbing" />
+                <div className="numeric flex size-6 items-center justify-center rounded-full bg-muted text-xs font-semibold text-foreground">
                   {index + 1}
                 </div>
               </div>
@@ -322,8 +327,11 @@ export function ChainBuilder({
                       updateStep(index, { isOptional: v })
                     }
                     className="scale-75"
+                    aria-label="Optional step"
                   />
-                  <span className="text-xs text-zinc-500">Optional step</span>
+                  <span className="text-xs text-muted-foreground">
+                    Optional step
+                  </span>
                 </div>
               </div>
 
@@ -351,7 +359,8 @@ export function ChainBuilder({
                   variant="ghost"
                   size="sm"
                   onClick={() => removeStep(index)}
-                  className="h-6 w-6 p-0 text-red-500 hover:text-red-600"
+                  className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                  title="Remove step"
                 >
                   <TrashIcon className="size-3" />
                 </Button>
@@ -359,26 +368,31 @@ export function ChainBuilder({
             </div>
           </div>
         ))}
+      </div>
 
-        {/* Save button */}
-        {ruleId && steps.length > 0 && (
-          <Button
-            onClick={handleSave}
-            disabled={saving}
-            className="w-full mt-4"
-            variant="outline"
-          >
-            {saving && <Loader2Icon className="mr-2 size-4 animate-spin" />}
-            Save Chain ({steps.length} step{steps.length !== 1 ? "s" : ""})
-          </Button>
-        )}
-
-        {!ruleId && steps.length > 0 && (
-          <p className="text-xs text-amber-600 text-center mt-2">
-            Save the rule first, then configure the approval chain.
-          </p>
-        )}
-      </CardContent>
-    </Card>
+      {/* Save */}
+      {steps.length > 0 && (
+        <div className="flex items-center justify-between gap-3 border-t bg-muted/30 px-5 py-3.5">
+          {ruleId ? (
+            <>
+              <p className="text-[12.5px] text-muted-foreground">
+                <span className="numeric font-medium text-foreground">
+                  {steps.length}
+                </span>{" "}
+                step{steps.length !== 1 ? "s" : ""} in this chain
+              </p>
+              <Button onClick={handleSave} disabled={saving} variant="outline">
+                {saving && <Loader2Icon className="mr-2 size-4 animate-spin" />}
+                Save Chain
+              </Button>
+            </>
+          ) : (
+            <p className="text-[12.5px] text-amber-600 dark:text-amber-400">
+              Save the rule first, then this chain can be stored against it.
+            </p>
+          )}
+        </div>
+      )}
+    </section>
   );
 }

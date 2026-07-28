@@ -2,18 +2,11 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
-import { ArrowLeftIcon, UserIcon, CalendarIcon } from "lucide-react";
+import { ChevronRightIcon, ShieldCheckIcon } from "lucide-react";
 
 import { getApprovalRequest } from "@/actions/approval.actions";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { PageHeader } from "@/components/layout/page-header";
+import { StatusPill, type Hue } from "@/components/shared/status-pill";
 import { ApprovalStatusBadge } from "@/components/shared/approval-status-badge";
 import { ApprovalDetailCard } from "../_components/approval-detail-card";
 import { ApprovalDecisionForm } from "../_components/approval-decision-form";
@@ -21,13 +14,13 @@ import { ApprovalDecisionForm } from "../_components/approval-decision-form";
 export const metadata: Metadata = { title: "Approval Request" };
 
 // ============================================================
-// Entity Type Colors
+// Entity Type Hues
 // ============================================================
 
-const ENTITY_TYPE_COLORS: Record<string, string> = {
-  QUOTE: "bg-purple-100 text-purple-700 border-purple-200",
-  DEAL: "bg-blue-100 text-blue-700 border-blue-200",
-  BOOKING: "bg-emerald-100 text-emerald-700 border-emerald-200",
+const ENTITY_TYPE_HUE: Record<string, Hue> = {
+  QUOTE: "violet",
+  DEAL: "blue",
+  BOOKING: "emerald",
 };
 
 // ============================================================
@@ -59,37 +52,27 @@ export default async function ApprovalRequestPage({
 
   return (
     <div className="space-y-6">
-      {/* Back Button */}
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/approvals">
-            <ArrowLeftIcon className="mr-1 size-4" />
-            Back to Approvals
-          </Link>
-        </Button>
-      </div>
-
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-2">
-          <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl font-bold tracking-tight">{entityLabel}</h1>
-            <Badge
-              variant="outline"
-              className={
-                ENTITY_TYPE_COLORS[request.entityType] ??
-                "bg-muted text-foreground/80 border-border"
-              }
-            >
-              {request.entityType}
-            </Badge>
-            <ApprovalStatusBadge status={request.status} />
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Rule: {request.rule.name}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={ShieldCheckIcon}
+        accent="amber"
+        title={entityLabel}
+        eyebrow={
+          <span className="flex items-center gap-1.5">
+            <Link href="/approvals" className="transition-colors hover:text-foreground">
+              Approvals
+            </Link>
+            <ChevronRightIcon className="size-3 opacity-50" />
+            <span>{request.entityType}</span>
+          </span>
+        }
+        description={`Governed by the “${request.rule.name}” approval rule.`}
+      >
+        <StatusPill
+          label={request.entityType}
+          hue={ENTITY_TYPE_HUE[request.entityType] ?? "slate"}
+        />
+        <ApprovalStatusBadge status={request.status} />
+      </PageHeader>
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Main Content */}
@@ -104,105 +87,76 @@ export default async function ApprovalRequestPage({
             <ApprovalDecisionForm requestId={request.id} />
           )}
 
-          {/* Details Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          {/* Details */}
+          <section className="rounded-2xl border bg-card p-5 shadow-card">
+            <h2 className="text-[15px] font-semibold tracking-[-0.01em]">
+              Request details
+            </h2>
+            <p className="mt-0.5 text-[13px] text-muted-foreground">
+              Where this request sits in the approval chain.
+            </p>
+
+            <dl className="mt-5 space-y-4">
               <div>
-                <p className="text-xs text-muted-foreground mb-1">Status</p>
-                <ApprovalStatusBadge status={request.status} />
+                <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  Status
+                </dt>
+                <dd className="mt-1.5">
+                  <ApprovalStatusBadge status={request.status} />
+                </dd>
               </div>
 
-              <Separator />
-
               <div>
-                <p className="text-xs text-muted-foreground mb-1">
-                  Entity Type
-                </p>
-                <Badge
-                  variant="outline"
-                  className={
-                    ENTITY_TYPE_COLORS[request.entityType] ??
-                    "bg-muted text-foreground/80 border-border"
-                  }
-                >
-                  {request.entityType}
-                </Badge>
+                <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  Submitted by
+                </dt>
+                <dd className="mt-1 text-sm">
+                  {request.submittedBy?.name ??
+                    request.submittedBy?.email ??
+                    "Unknown"}
+                </dd>
               </div>
 
-              <Separator />
-
               <div>
-                <p className="text-xs text-muted-foreground mb-1">
-                  Submitted By
-                </p>
-                <div className="flex items-center gap-2">
-                  <UserIcon className="size-3.5 text-zinc-400" />
-                  <span className="text-sm text-zinc-700">
-                    {request.submittedBy?.name ?? request.submittedBy?.email ?? "Unknown"}
-                  </span>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">
-                  Submitted At
-                </p>
-                <div className="flex items-center gap-1.5 text-sm text-zinc-700">
-                  <CalendarIcon className="size-3.5" />
-                  {format(
-                    new Date(request.submittedAt),
-                    "dd MMM yyyy, HH:mm"
-                  )}
-                </div>
+                <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  Submitted at
+                </dt>
+                <dd className="numeric mt-1 text-sm">
+                  {format(new Date(request.submittedAt), "dd MMM yyyy, HH:mm")}
+                </dd>
               </div>
 
               {request.resolvedAt && (
-                <>
-                  <Separator />
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">
-                      Resolved At
-                    </p>
-                    <div className="flex items-center gap-1.5 text-sm text-zinc-700">
-                      <CalendarIcon className="size-3.5" />
-                      {format(
-                        new Date(request.resolvedAt),
-                        "dd MMM yyyy, HH:mm"
-                      )}
-                    </div>
-                  </div>
-                </>
+                <div>
+                  <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Resolved at
+                  </dt>
+                  <dd className="numeric mt-1 text-sm">
+                    {format(new Date(request.resolvedAt), "dd MMM yyyy, HH:mm")}
+                  </dd>
+                </div>
               )}
 
-              <Separator />
-
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">
-                  Current Step
-                </p>
-                <span className="text-sm text-zinc-700">
-                  Step {request.currentStep + 1} of{" "}
-                  {request.rule.approverChain.length}
-                </span>
+              <div className="grid grid-cols-2 gap-4 border-t pt-4">
+                <div>
+                  <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Current step
+                  </dt>
+                  <dd className="numeric mt-1 text-sm">
+                    {request.currentStep + 1} of {request.rule.approverChain.length}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Decisions
+                  </dt>
+                  <dd className="numeric mt-1 text-sm">
+                    {request.decisions.length}
+                  </dd>
+                </div>
               </div>
-
-              <Separator />
-
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">
-                  Total Decisions
-                </p>
-                <span className="text-sm text-zinc-700">
-                  {request.decisions.length}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
+            </dl>
+          </section>
         </div>
       </div>
     </div>

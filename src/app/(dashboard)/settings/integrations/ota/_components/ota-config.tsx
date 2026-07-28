@@ -13,11 +13,12 @@ import {
   X,
   ListChecks,
 } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatusPill, type Hue } from "@/components/shared/status-pill";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
@@ -248,20 +249,23 @@ export function OtaConfig({ baseUrl, channels, venues, canManage }: Props) {
     setLogsLoading(false);
   };
 
-  const statusBadge = (status: string) => {
-    const map: Record<string, string> = {
-      SUCCESS: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400",
-      PARTIAL: "bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400",
-      FAILED: "bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400",
+  const statusHue = (status: string): Hue => {
+    const map: Record<string, Hue> = {
+      SUCCESS: "emerald",
+      PARTIAL: "amber",
+      FAILED: "rose",
     };
-    return map[status] ?? "bg-muted text-muted-foreground";
+    return map[status] ?? "neutral";
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          {channels.length} channel{channels.length === 1 ? "" : "s"} configured
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-[13px] text-muted-foreground">
+          <span className="numeric font-medium text-foreground">
+            {channels.length}
+          </span>{" "}
+          channel{channels.length === 1 ? "" : "s"} configured
         </p>
         {canManage && !editing && (
           <Button onClick={startCreate} size="sm">
@@ -272,18 +276,18 @@ export function OtaConfig({ baseUrl, channels, venues, canManage }: Props) {
 
       {/* Editor */}
       {editing && (
-        <Card className="border-primary/40">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Pencil className="h-5 w-5" />
+        <section className="rounded-2xl border border-primary/40 bg-card shadow-card">
+          <div className="border-b px-5 py-4">
+            <h3 className="flex items-center gap-2 text-[15px] font-semibold tracking-[-0.01em]">
+              <Pencil className="size-4 text-muted-foreground" />
               {editing.id ? "Edit Channel" : "New Channel"}
-            </CardTitle>
-            <CardDescription>
-              Configure the marketplace channel, its outbound feed venue, and the inbound
-              field mapping.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            </h3>
+            <p className="mt-1 text-[13px] text-muted-foreground">
+              Set the marketplace, the venue its outbound feed publishes, and how
+              inbound lead fields map onto yours.
+            </p>
+          </div>
+          <div className="space-y-4 px-5 py-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Name</Label>
@@ -452,66 +456,74 @@ export function OtaConfig({ baseUrl, channels, venues, canManage }: Props) {
               </Button>
             </div>
 
-            <div className="flex items-center gap-2 pt-2">
-              <Button onClick={save} disabled={isPending}>
-                {isPending ? "Saving…" : "Save Channel"}
-              </Button>
-              <Button variant="ghost" onClick={() => setEditing(null)} disabled={isPending}>
-                Cancel
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 border-t bg-muted/30 px-5 py-3.5">
+            <Button variant="ghost" onClick={() => setEditing(null)} disabled={isPending}>
+              Cancel
+            </Button>
+            <Button onClick={save} disabled={isPending}>
+              {isPending ? "Saving…" : "Save Channel"}
+            </Button>
+          </div>
+        </section>
       )}
 
       {/* Channel list */}
       {channels.length === 0 && !editing && (
-        <Card className="border-border/50">
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            <Rss className="h-8 w-8 mx-auto mb-2 opacity-40" />
-            No OTA channels yet. Create one to publish availability feeds or ingest aggregator leads.
-          </CardContent>
-        </Card>
+        <div className="rounded-2xl border border-dashed bg-card shadow-card">
+          <EmptyState
+            icon={<Rss />}
+            title="No OTA channels yet"
+            description="Marketplaces can't see your availability and their leads have nowhere to land. Add a channel to open both directions."
+            action={
+              canManage ? (
+                <Button onClick={startCreate} size="sm">
+                  <Plus className="mr-1 h-4 w-4" /> Create first channel
+                </Button>
+              ) : undefined
+            }
+          />
+        </div>
       )}
 
       {channels.map((c) => {
         const feedUrl = c.feedToken ? `${baseUrl}/api/ota/feed/${c.feedToken}` : null;
         const inboundUrl = c.inboundToken ? `${baseUrl}/api/ota/inbound/${c.inboundToken}` : null;
         return (
-          <Card key={c.id} className="border-border/50">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    {c.name}
-                    <Badge variant="outline">{c.channelType}</Badge>
-                    {c.isActive ? (
-                      <Badge className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">
-                        Active
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-muted-foreground">
-                        Inactive
-                      </Badge>
-                    )}
-                  </CardTitle>
-                  <CardDescription className="mt-1">
-                    Venue: {venueName(c.venueId)} · Feed: {c.feedFormat} · Inbound source: {c.defaultSource}
-                  </CardDescription>
+          <section key={c.id} className="rounded-2xl border bg-card shadow-card">
+            <div className="border-b px-5 py-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-[15px] font-semibold tracking-[-0.01em]">
+                      {c.name}
+                    </h3>
+                    <StatusPill label={c.channelType} hue="blue" size="xs" />
+                    <StatusPill
+                      label={c.isActive ? "Active" : "Inactive"}
+                      hue={c.isActive ? "emerald" : "slate"}
+                      size="xs"
+                    />
+                  </div>
+                  <p className="mt-1 text-[13px] text-muted-foreground">
+                    {venueName(c.venueId)} · {c.feedFormat} feed · inbound tagged{" "}
+                    {c.defaultSource}
+                  </p>
                 </div>
                 {canManage && (
-                  <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => startEdit(c)}>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => startEdit(c)} title="Edit channel">
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => remove(c.id)} disabled={isPending}>
-                      <Trash2 className="h-4 w-4 text-rose-500" />
+                    <Button variant="ghost" size="icon" onClick={() => remove(c.id)} disabled={isPending} title="Delete channel">
+                      <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
                 )}
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
+            </div>
+            <div className="space-y-4 px-5 py-5">
               {/* Outbound feed URL */}
               <div className="space-y-1.5">
                 <Label className="text-xs">Public Feed URL {c.venueId ? "" : "(set a venue to enable)"}</Label>
@@ -519,7 +531,7 @@ export function OtaConfig({ baseUrl, channels, venues, canManage }: Props) {
                   <Input
                     readOnly
                     value={feedUrl ?? "—"}
-                    className="font-mono text-xs bg-muted/30"
+                    className="numeric bg-muted/40 text-xs"
                   />
                   {feedUrl && (
                     <Button variant="outline" size="icon" className="shrink-0" onClick={() => copy(feedUrl, `feed-${c.id}`)}>
@@ -541,7 +553,7 @@ export function OtaConfig({ baseUrl, channels, venues, canManage }: Props) {
                   <Input
                     readOnly
                     value={inboundUrl ?? "—"}
-                    className="font-mono text-xs bg-muted/30"
+                    className="numeric bg-muted/40 text-xs"
                   />
                   {inboundUrl && (
                     <Button variant="outline" size="icon" className="shrink-0" onClick={() => copy(inboundUrl, `inbound-${c.id}`)}>
@@ -556,10 +568,10 @@ export function OtaConfig({ baseUrl, channels, venues, canManage }: Props) {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>
-                  Last outbound: {c.lastOutboundSyncAt ? new Date(c.lastOutboundSyncAt).toLocaleString() : "never"} ·
-                  Last inbound: {c.lastInboundSyncAt ? new Date(c.lastInboundSyncAt).toLocaleString() : "never"}
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3 text-xs text-muted-foreground">
+                <span className="numeric">
+                  Last outbound {c.lastOutboundSyncAt ? new Date(c.lastOutboundSyncAt).toLocaleString() : "never"} ·
+                  last inbound {c.lastInboundSyncAt ? new Date(c.lastInboundSyncAt).toLocaleString() : "never"}
                 </span>
                 <Button variant="ghost" size="sm" onClick={() => loadLogs(c.id)}>
                   <ListChecks className="h-4 w-4 mr-1" />
@@ -569,49 +581,59 @@ export function OtaConfig({ baseUrl, channels, venues, canManage }: Props) {
 
               {/* Sync log table */}
               {logsFor === c.id && (
-                <div className="rounded-lg border border-border/50 overflow-hidden">
+                <div className="overflow-hidden rounded-xl border">
                   {logsLoading ? (
-                    <div className="py-6 text-center text-sm text-muted-foreground">Loading…</div>
+                    <div className="space-y-2 p-4">
+                      <Skeleton className="h-8 w-full" />
+                      <Skeleton className="h-8 w-full" />
+                    </div>
                   ) : logs.length === 0 ? (
-                    <div className="py-6 text-center text-sm text-muted-foreground">No sync activity yet.</div>
+                    <EmptyState
+                      icon={<ListChecks />}
+                      title="No sync activity yet"
+                      description="Nothing has been published or ingested on this channel so far."
+                      className="py-10"
+                    />
                   ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>When</TableHead>
-                          <TableHead>Direction</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead className="text-right">Records</TableHead>
-                          <TableHead className="text-right">Errors</TableHead>
-                          <TableHead>Message</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {logs.map((l) => (
-                          <TableRow key={l.id}>
-                            <TableCell className="whitespace-nowrap text-xs">
-                              {new Date(l.createdAt).toLocaleString()}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline">{l.direction}</Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Badge className={statusBadge(l.status)}>{l.status}</Badge>
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums">{l.recordCount}</TableCell>
-                            <TableCell className="text-right tabular-nums">{l.errorCount}</TableCell>
-                            <TableCell className="text-xs text-muted-foreground max-w-xs truncate">
-                              {l.message ?? "—"}
-                            </TableCell>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="hover:bg-transparent">
+                            <TableHead className="text-[11px] uppercase tracking-wide text-muted-foreground">When</TableHead>
+                            <TableHead className="text-[11px] uppercase tracking-wide text-muted-foreground">Direction</TableHead>
+                            <TableHead className="text-[11px] uppercase tracking-wide text-muted-foreground">Status</TableHead>
+                            <TableHead className="text-right text-[11px] uppercase tracking-wide text-muted-foreground">Records</TableHead>
+                            <TableHead className="text-right text-[11px] uppercase tracking-wide text-muted-foreground">Errors</TableHead>
+                            <TableHead className="text-[11px] uppercase tracking-wide text-muted-foreground">Message</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {logs.map((l) => (
+                            <TableRow key={l.id}>
+                              <TableCell className="numeric whitespace-nowrap text-xs text-muted-foreground">
+                                {new Date(l.createdAt).toLocaleString()}
+                              </TableCell>
+                              <TableCell>
+                                <StatusPill label={l.direction} hue="slate" size="xs" noDot />
+                              </TableCell>
+                              <TableCell>
+                                <StatusPill label={l.status} hue={statusHue(l.status)} size="xs" />
+                              </TableCell>
+                              <TableCell className="numeric text-right">{l.recordCount}</TableCell>
+                              <TableCell className="numeric text-right">{l.errorCount}</TableCell>
+                              <TableCell className="max-w-xs truncate text-xs text-muted-foreground">
+                                {l.message ?? "—"}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   )}
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </section>
         );
       })}
     </div>

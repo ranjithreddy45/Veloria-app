@@ -43,8 +43,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/layout/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import {
   BOOKING_STATUS_COLORS,
@@ -61,10 +63,9 @@ import type { VendorAssignmentStatus } from "@prisma/client";
 
 // Operation-assignment status has no shared colorMap (NOTIFIED|CONFIRMED|DECLINED).
 const OP_ASSIGNMENT_STATUS_COLORS: Record<string, string> = {
-  NOTIFIED: "bg-amber-500/14 text-amber-700 border-amber-500/25 dark:text-amber-300",
-  CONFIRMED:
-    "bg-emerald-500/12 text-emerald-700 border-emerald-500/25 dark:text-emerald-300",
-  DECLINED: "bg-red-500/12 text-red-700 border-red-500/25 dark:text-red-300",
+  NOTIFIED: "bg-warning/15 text-warning border-warning/25",
+  CONFIRMED: "bg-success/12 text-success border-success/25",
+  DECLINED: "bg-destructive/12 text-destructive border-destructive/25",
 };
 
 // ============================================================
@@ -224,27 +225,16 @@ export function VendorEventsClient({ initialData }: VendorEventsClientProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex items-start gap-3.5">
-          <span className="mt-0.5 hidden size-11 shrink-0 items-center justify-center rounded-2xl bg-teal-500/12 text-teal-700 sm:flex dark:text-teal-300">
-            <CalendarCheck className="size-[22px]" />
-          </span>
-          <div className="space-y-1.5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-teal-700 dark:text-teal-300">
-              Schedule
-            </p>
-            <h1 className="text-[28px] leading-tight text-foreground sm:text-[32px]">
-              Your events
-            </h1>
-            <p className="text-[14px] text-muted-foreground">
-              <span className="numeric">{data.total}</span> event
-              {data.total !== 1 ? "s" : ""} where our clients are counting on you.
-            </p>
-          </div>
-        </div>
-
-        {/* Filter */}
+      <PageHeader
+        eyebrow="Schedule"
+        icon={CalendarCheck}
+        accent="teal"
+        title="Your events"
+        description="Every date our clients are counting on you for."
+      >
+        <Badge variant="outline" className="numeric">
+          {data.total} {data.total === 1 ? "event" : "events"}
+        </Badge>
         <div className="flex items-center gap-2">
           <Filter className="size-4 text-muted-foreground" />
           <Select value={statusFilter} onValueChange={handleStatusChange}>
@@ -259,7 +249,7 @@ export function VendorEventsClient({ initialData }: VendorEventsClientProps) {
             </SelectContent>
           </Select>
         </div>
-      </div>
+      </PageHeader>
 
       {/* Operation Assignments — per-operation confirm/decline */}
       {(opLoading || opAssignments.length > 0) && (
@@ -286,7 +276,7 @@ export function VendorEventsClient({ initialData }: VendorEventsClientProps) {
                 {opAssignments.map((a) => (
                   <div
                     key={a.id}
-                    className="rounded-xl border bg-muted/30 p-4"
+                    className="rounded-xl border bg-muted/30 p-4 transition-colors hover:bg-muted/50"
                   >
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0">
@@ -328,7 +318,7 @@ export function VendorEventsClient({ initialData }: VendorEventsClientProps) {
                         <div className="flex shrink-0 gap-2">
                           <Button
                             size="sm"
-                            className="gap-1 bg-emerald-600 hover:bg-emerald-700"
+                            className="gap-1 bg-success text-success-foreground hover:bg-success/90"
                             disabled={pending && pendingId === a.id}
                             onClick={() => handleConfirm(a)}
                           >
@@ -338,7 +328,7 @@ export function VendorEventsClient({ initialData }: VendorEventsClientProps) {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="gap-1 border-red-500/30 text-red-600 hover:bg-red-500/10 dark:text-red-400"
+                            className="gap-1 border-destructive/30 text-destructive hover:bg-destructive/10"
                             disabled={pending && pendingId === a.id}
                             onClick={() => openDecline(a)}
                           >
@@ -384,7 +374,7 @@ export function VendorEventsClient({ initialData }: VendorEventsClientProps) {
               <div className="hidden md:block">
                 <Table>
                   <TableHeader>
-                    <TableRow className="[&>th]:text-[11px] [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-[0.1em] [&>th]:text-muted-foreground">
+                    <TableRow className="[&>th]:text-[11px] [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wide [&>th]:text-muted-foreground">
                       <TableHead>Event</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Time slot</TableHead>
@@ -570,7 +560,7 @@ export function VendorEventsClient({ initialData }: VendorEventsClientProps) {
               Cancel
             </Button>
             <Button
-              className="bg-red-600 hover:bg-red-700"
+              variant="destructive"
               disabled={pending}
               onClick={submitDecline}
             >

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { MailOpenIcon } from "lucide-react";
 import { getTrackingStats, getTrackingEvents, getTopEngagedContacts } from "@/actions/email-tracking.actions";
+import { PageHeader } from "@/components/layout/page-header";
 import { PageHelp } from "@/lib/page-help";
 import { TrackingDashboard } from "./_components/tracking-dashboard";
 
@@ -22,18 +24,15 @@ export default async function EmailTrackingPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Email Insights
-          </h1>
-          <PageHelp id="email-insights" />
-        </div>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Track email opens, clicks, and engagement across all your
-          communications.
-        </p>
-      </div>
+      <PageHeader
+        aura
+        icon={MailOpenIcon}
+        accent="blue"
+        eyebrow="CRM"
+        title="Email Insights"
+        description="Track email opens, clicks, and engagement across all your communications."
+        help={<PageHelp id="email-insights" />}
+      />
 
       <TrackingDashboard
         initialStats={stats}

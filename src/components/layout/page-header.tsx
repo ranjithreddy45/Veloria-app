@@ -29,7 +29,9 @@ const ACCENT_CHIP: Record<HeaderAccent, string> = {
 
 interface PageHeaderProps {
   title: string;
-  description?: string;
+  /** Supporting copy under the title. ReactNode (not just string) so callers can
+   * inline links/emphasis instead of flattening rich content to a template string. */
+  description?: React.ReactNode;
   /** Small uppercase label rendered above the title (Linear-style eyebrow). */
   eyebrow?: React.ReactNode;
   /** Optional module icon rendered in a colored chip to the left of the title. */

@@ -21,6 +21,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ShieldAlert } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { auth } from "@/../auth";
 import { getPortalDashboard } from "@/actions/portal.actions";
 import { resolvePortalContactIds } from "@/lib/portal-identity";
@@ -33,6 +34,10 @@ import {
 import { formatINR } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Client Portal" };
+
+// Customer-facing empty states get the editorial serif headline — this is a
+// brand surface, not an internal tool.
+const PORTAL_EMPTY = "[&_p:first-of-type]:font-editorial [&_p:first-of-type]:text-[18px]";
 
 // ============================================================
 // Helper: Days until a given date
@@ -63,32 +68,33 @@ export default async function PortalPage() {
 
   const summaryCards = [
     {
-      title: "Upcoming Bookings",
+      title: "Upcoming bookings",
       value: String(data.upcomingBookings),
       description: data.nextEvent
-        ? `Next: ${new Date(data.nextEvent.date).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}`
-        : "No upcoming events",
+        ? `Next on ${new Date(data.nextEvent.date).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}`
+        : "Nothing on the calendar yet",
       icon: CalendarCheck,
-      color: "text-indigo-600 dark:text-indigo-400",
-      bgColor: "bg-indigo-500/10",
+      color: "text-primary",
+      bgColor: "bg-primary/10",
       href: "/portal/bookings",
     },
     {
-      title: "Pending Invoices",
+      title: "Pending invoices",
       value: String(data.pendingInvoices),
-      description: data.pendingInvoices > 0 ? "Action required" : "All clear",
+      description:
+        data.pendingInvoices > 0 ? "Waiting on you" : "Nothing outstanding",
       icon: FileText,
-      color: "text-amber-600 dark:text-amber-400",
-      bgColor: "bg-amber-500/12",
+      color: "text-warning",
+      bgColor: "bg-warning/15",
       href: "/portal/invoices",
     },
     {
-      title: "Total Paid",
+      title: "Total paid",
       value: formatINR(data.totalPaid),
-      description: "Across all bookings",
+      description: "Across every booking with us",
       icon: IndianRupee,
-      color: "text-emerald-600 dark:text-emerald-400",
-      bgColor: "bg-emerald-500/10",
+      color: "text-success",
+      bgColor: "bg-success/12",
       href: "/portal/payments",
     },
   ];
@@ -112,7 +118,7 @@ export default async function PortalPage() {
         {/* Event Countdown */}
         {data.nextEvent && days !== null && days >= 0 && (
           <div className="bg-card shadow-card mt-7 inline-flex items-center gap-4 rounded-2xl border px-5 py-4">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/12 text-amber-600 dark:text-amber-400">
+            <span className="bg-warning/15 text-warning flex size-11 shrink-0 items-center justify-center rounded-xl">
               <PartyPopper className="size-5" />
             </span>
             <div>
@@ -136,15 +142,15 @@ export default async function PortalPage() {
 
       {/* C9: unverified account — never silently show empty/foreign data. */}
       {!identity.verified && (
-        <div className="flex items-start gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/[0.07] p-5">
-          <ShieldAlert className="mt-0.5 size-5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+        <div className="border-warning/30 bg-warning/[0.08] flex items-start gap-3.5 rounded-2xl border p-5">
+          <ShieldAlert className="text-warning mt-0.5 size-5 flex-shrink-0" />
           <div>
-            <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-200">
-              Your account needs to be verified
+            <h3 className="text-foreground text-sm font-semibold">
+              Let&apos;s get your portal verified
             </h3>
-            <p className="mt-1 text-sm text-amber-800/80 dark:text-amber-300/80">
-              Please contact us to activate your portal. Until then, your
-              bookings, invoices, and documents won&apos;t appear here.
+            <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+              Give us a call and we&apos;ll activate it right away. Until then
+              your bookings, invoices and documents stay hidden.
             </p>
           </div>
         </div>
@@ -270,15 +276,12 @@ export default async function PortalPage() {
         </CardHeader>
         <CardContent>
           {data.recentBookings.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 text-center">
-              <CalendarCheck className="text-muted-foreground/30 size-10" />
-              <p className="font-editorial text-foreground mt-4 text-lg font-semibold">
-                Your story starts here
-              </p>
-              <p className="text-muted-foreground mt-1 text-sm">
-                Bookings will appear here as soon as your date is confirmed.
-              </p>
-            </div>
+            <EmptyState
+              icon={<CalendarCheck />}
+              title="Your story starts here"
+              description="The moment your date is confirmed, it appears here with everything you need for the day."
+              className={PORTAL_EMPTY}
+            />
           ) : (
             <div className="space-y-2">
               {data.recentBookings.map((booking) => (
@@ -329,28 +332,28 @@ export default async function PortalPage() {
         <div className="grid gap-4 sm:grid-cols-3">
         {[
           {
-            title: "View Bookings",
-            description: "See all your events and dates",
+            title: "Your bookings",
+            description: "Every event and date, in one place",
             icon: CalendarCheck,
             href: "/portal/bookings",
-            color: "text-indigo-600 dark:text-indigo-400",
-            bgColor: "bg-indigo-500/10",
+            color: "text-primary",
+            bgColor: "bg-primary/10",
           },
           {
-            title: "Pay Invoice",
-            description: "View and pay pending invoices",
+            title: "Settle an invoice",
+            description: "Review and pay in a couple of taps",
             icon: CreditCard,
             href: "/portal/invoices",
-            color: "text-emerald-600 dark:text-emerald-400",
-            bgColor: "bg-emerald-500/10",
+            color: "text-success",
+            bgColor: "bg-success/12",
           },
           {
-            title: "View Documents",
-            description: "Access contracts and files",
+            title: "Your documents",
+            description: "Contracts, agreements and files",
             icon: FolderOpen,
             href: "/portal/documents",
-            color: "text-violet-600 dark:text-violet-400",
-            bgColor: "bg-violet-500/10",
+            color: "text-muted-foreground",
+            bgColor: "bg-muted",
           },
           ].map((action) => {
             const Icon = action.icon;

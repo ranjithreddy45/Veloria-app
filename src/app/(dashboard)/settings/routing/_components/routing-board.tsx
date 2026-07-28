@@ -18,9 +18,9 @@ import {
   type TeamAvailabilityRow,
   type RoutingDecisionData,
 } from "@/actions/rep-availability.actions";
-import { Badge } from "@/components/ui/badge";
+import { StatusPill } from "@/components/shared/status-pill";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -155,31 +155,39 @@ export function RoutingBoard({
   return (
     <div className="space-y-6">
       {teamError && (
-        <Card>
-          <CardContent className="py-6 text-sm text-muted-foreground">
-            {teamError === "Insufficient permissions"
-              ? "You need the leads:assign permission to view the team availability board."
-              : teamError}
-          </CardContent>
-        </Card>
+        <div className="rounded-2xl border bg-card px-5 py-4 text-sm text-muted-foreground shadow-card">
+          {teamError === "Insufficient permissions"
+            ? "You need the leads:assign permission to view the team availability board."
+            : teamError}
+        </div>
       )}
 
       {/* Team availability board */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Users className="size-4 text-primary" />
-            Team availability
-            <Badge variant="secondary">{onlineCount} active</Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {team.length === 0 && !teamError && (
-            <p className="text-sm text-muted-foreground">
-              No reps have a routing profile yet. Reps appear here once they set
-              their availability from the top-bar chip, or you can configure one
-              below as they join.
+      <section className="rounded-2xl border bg-card shadow-card">
+        <div className="flex items-start justify-between gap-3 border-b px-5 py-4">
+          <div className="min-w-0">
+            <h3 className="flex items-center gap-2 text-[15px] font-semibold tracking-[-0.01em]">
+              <Users className="size-4 text-muted-foreground" />
+              Team availability
+            </h3>
+            <p className="mt-1 text-[13px] text-muted-foreground">
+              Each rep&apos;s status, capacity and skills — the inputs SMART
+              routing weighs when picking an owner.
             </p>
+          </div>
+          <StatusPill
+            label={`${onlineCount} active`}
+            hue={onlineCount > 0 ? "emerald" : "slate"}
+            size="xs"
+          />
+        </div>
+        <div className="space-y-4 px-5 py-5">
+          {team.length === 0 && !teamError && (
+            <EmptyState
+              icon={<Users />}
+              title="No routing profiles yet"
+              description="Reps show up here the moment they set their availability from the top-bar chip. Until then, SMART rules fall back to round-robin."
+            />
           )}
 
           {team.map((rep) => {
@@ -191,7 +199,7 @@ export function RoutingBoard({
             return (
               <div
                 key={rep.userId}
-                className="rounded-lg border border-border/70 p-4"
+                className="rounded-xl border p-4 transition-shadow hover:shadow-card"
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="min-w-0">
@@ -203,15 +211,21 @@ export function RoutingBoard({
                         {rep.user?.name || rep.user?.email || rep.userId}
                       </span>
                       {rep.user?.role && (
-                        <Badge variant="outline" className="text-[10px]">
-                          {rep.user.role}
-                        </Badge>
+                        <StatusPill
+                          label={rep.user.role}
+                          hue="slate"
+                          size="xs"
+                          noDot
+                        />
                       )}
                     </div>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       <Gauge className="mr-1 inline size-3" />
-                      {rep.openLeadCount}/{rep.capacityLimit} open leads ·{" "}
-                      {loadPct}% load
+                      <span className="numeric">
+                        {rep.openLeadCount}/{rep.capacityLimit}
+                      </span>{" "}
+                      open leads · <span className="numeric">{loadPct}%</span>{" "}
+                      load
                       {rep.lastSeenAt && (
                         <>
                           {" "}
@@ -308,65 +322,63 @@ export function RoutingBoard({
               </div>
             );
           })}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
       {/* Routing decision audit feed */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <History className="size-4 text-primary" />
+      <section className="rounded-2xl border bg-card shadow-card">
+        <div className="border-b px-5 py-4">
+          <h3 className="flex items-center gap-2 text-[15px] font-semibold tracking-[-0.01em]">
+            <History className="size-4 text-muted-foreground" />
             Routing decisions
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {decisions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No SMART routing decisions recorded yet. They appear here as leads
-              are routed by a SMART assignment rule.
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {decisions.map((dec) => (
-                <div
-                  key={dec.id}
-                  className="flex flex-wrap items-center gap-2 rounded-md border border-border/60 px-3 py-2 text-xs"
-                >
-                  <Badge
-                    variant={dec.method === "SMART" ? "default" : "secondary"}
-                  >
-                    {dec.method}
-                  </Badge>
-                  <span className="font-medium">
-                    {dec.assignedTo?.name ||
-                      dec.assignedTo?.email ||
-                      (dec.assignedToId ? dec.assignedToId : "Unassigned")}
-                  </span>
-                  <span className="text-muted-foreground">
-                    load {dec.repLoadAtDecision}
-                  </span>
-                  {dec.matchedEventType && (
-                    <Badge variant="success" className="text-[10px]">
-                      event match
-                    </Badge>
-                  )}
-                  {dec.matchedLanguage && (
-                    <Badge variant="outline" className="text-[10px]">
-                      language match
-                    </Badge>
-                  )}
-                  <span className="ml-auto text-muted-foreground">
-                    {new Date(dec.createdAt).toLocaleString("en-IN", {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    })}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </h3>
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            An audit trail of who each lead went to and why.
+          </p>
+        </div>
+        {decisions.length === 0 ? (
+          <EmptyState
+            icon={<History />}
+            title="No routing decisions yet"
+            description="Once a SMART assignment rule routes its first lead, every decision it makes is logged here with the reasoning."
+          />
+        ) : (
+          <div className="divide-y">
+            {decisions.map((dec) => (
+              <div
+                key={dec.id}
+                className="flex flex-wrap items-center gap-2 px-5 py-3 text-xs"
+              >
+                <StatusPill
+                  label={dec.method}
+                  hue={dec.method === "SMART" ? "violet" : "slate"}
+                  size="xs"
+                />
+                <span className="text-[13px] font-medium">
+                  {dec.assignedTo?.name ||
+                    dec.assignedTo?.email ||
+                    (dec.assignedToId ? dec.assignedToId : "Unassigned")}
+                </span>
+                <span className="text-muted-foreground">
+                  load <span className="numeric">{dec.repLoadAtDecision}</span>
+                </span>
+                {dec.matchedEventType && (
+                  <StatusPill label="event match" hue="emerald" size="xs" />
+                )}
+                {dec.matchedLanguage && (
+                  <StatusPill label="language match" hue="blue" size="xs" />
+                )}
+                <span className="numeric ml-auto text-muted-foreground">
+                  {new Date(dec.createdAt).toLocaleString("en-IN", {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

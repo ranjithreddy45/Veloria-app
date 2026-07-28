@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import {
-  ArrowLeftIcon,
+  ChevronRightIcon,
   Building2Icon,
   TrendingUpIcon,
   CalendarCheckIcon,
@@ -11,16 +11,16 @@ import {
   MailIcon,
   PhoneIcon,
   UserIcon,
-  ClockIcon,
 } from "lucide-react";
 
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
 import { getCorporateAccount } from "@/actions/corporate-account.actions";
 import { getAccountEvents } from "@/actions/corporate-account-events.actions";
+import { PageHeader } from "@/components/layout/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
+import { StatusPill } from "@/components/shared/status-pill";
 import { StatTile } from "@/components/ui/stat-tile";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CommitmentOfferForm } from "../_components/commitment-offer-form";
 import {
   AccountEventsTimeline,
@@ -85,57 +85,76 @@ export default async function AccountDetailPage({
 
   return (
     <div className="space-y-6">
-      <Link
-        href="/accounts"
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+      <PageHeader
+        icon={Building2Icon}
+        accent="violet"
+        title={account.accountName}
+        eyebrow={
+          <span className="flex items-center gap-1.5">
+            <Link href="/accounts" className="transition-colors hover:text-foreground">
+              Corporate accounts
+            </Link>
+            <ChevronRightIcon className="size-3 opacity-50" />
+            <span>Account</span>
+          </span>
+        }
       >
-        <ArrowLeftIcon className="size-4" />
-        Back to accounts
-      </Link>
+        <StatusBadge status={account.tier} colorMap={CORPORATE_TIER_COLORS} />
+        {account.isDue && <StatusPill label="Due to re-engage" hue="amber" />}
+      </PageHeader>
 
-      {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      {/* Identity strip — primary contact + ownership at a glance */}
+      <div className="grid gap-5 rounded-2xl border bg-card p-5 shadow-card sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <div className="flex items-center gap-3">
-            <Building2Icon className="size-7 text-violet-600" />
-            <h1 className="text-2xl font-semibold tracking-tight">{account.accountName}</h1>
-            <StatusBadge status={account.tier} colorMap={CORPORATE_TIER_COLORS} />
-            {account.isDue && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-950/50 dark:text-amber-300">
-                <ClockIcon className="size-3" /> Due to re-engage
-              </span>
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            Primary contact
+          </p>
+          <p className="mt-1 flex items-center gap-1.5 text-sm">
+            <UserIcon className="size-3.5 shrink-0 text-muted-foreground" />
+            {account.contact
+              ? `${account.contact.firstName} ${account.contact.lastName}${
+                  account.contact.designation ? ` · ${account.contact.designation}` : ""
+                }`
+              : "—"}
+          </p>
+        </div>
+        <div>
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            Reach
+          </p>
+          <div className="mt-1 space-y-0.5 text-sm">
+            {account.contact?.email && (
+              <p className="flex items-center gap-1.5 truncate">
+                <MailIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                {account.contact.email}
+              </p>
+            )}
+            {account.contact?.phone && (
+              <p className="numeric flex items-center gap-1.5">
+                <PhoneIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                {account.contact.phone}
+              </p>
+            )}
+            {!account.contact?.email && !account.contact?.phone && (
+              <p className="text-muted-foreground">—</p>
             )}
           </div>
-          {account.contact && (
-            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-              <span className="inline-flex items-center gap-1">
-                <UserIcon className="size-3.5" />
-                {account.contact.firstName} {account.contact.lastName}
-                {account.contact.designation ? ` · ${account.contact.designation}` : ""}
-              </span>
-              {account.contact.email && (
-                <span className="inline-flex items-center gap-1">
-                  <MailIcon className="size-3.5" />
-                  {account.contact.email}
-                </span>
-              )}
-              {account.contact.phone && (
-                <span className="inline-flex items-center gap-1">
-                  <PhoneIcon className="size-3.5" />
-                  {account.contact.phone}
-                </span>
-              )}
-            </div>
-          )}
         </div>
-        <div className="text-right text-sm text-muted-foreground">
-          <div>Owner: {account.ownerName ?? "Unassigned"}</div>
-          <div>
-            Next re-engage:{" "}
+        <div>
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            Owner
+          </p>
+          <p className="mt-1 text-sm">{account.ownerName ?? "Unassigned"}</p>
+        </div>
+        <div>
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            Next re-engage
+          </p>
+          <p className="numeric mt-1 text-sm">
             {account.nextReengageAt
               ? format(new Date(account.nextReengageAt), "dd MMM yyyy")
               : "—"}
-          </div>
+          </p>
         </div>
       </div>
 
@@ -187,18 +206,23 @@ export default async function AccountDetailPage({
           commitmentEnd={account.commitmentEnd}
           canManage={canManage}
         />
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Account notes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {account.notes ? (
-              <p className="whitespace-pre-wrap text-sm">{account.notes}</p>
-            ) : (
-              <p className="text-sm text-muted-foreground">No notes recorded.</p>
-            )}
-          </CardContent>
-        </Card>
+        <section className="rounded-2xl border bg-card p-5 shadow-card">
+          <h2 className="text-[15px] font-semibold tracking-[-0.01em]">
+            Account notes
+          </h2>
+          <p className="mt-0.5 text-[13px] text-muted-foreground">
+            Context the next person picking up this account should know.
+          </p>
+          {account.notes ? (
+            <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed">
+              {account.notes}
+            </p>
+          ) : (
+            <p className="mt-4 text-sm text-muted-foreground">
+              No notes recorded yet.
+            </p>
+          )}
+        </section>
       </div>
 
       {/* Event history */}

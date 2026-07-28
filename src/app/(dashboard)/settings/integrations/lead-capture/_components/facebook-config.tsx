@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { StatusPill } from "@/components/shared/status-pill";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Save, Wifi, WifiOff, Copy, Check, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, Save, Wifi, Copy, Check, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { upsertLeadCaptureConfig, testLeadCaptureConfig } from "@/actions/lead-capture-config.actions";
 
@@ -71,32 +70,28 @@ export function FacebookConfig({ initialConfig }: Props) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-lg">Facebook Lead Ads</CardTitle>
-            <CardDescription>
-              Automatically capture leads from your Facebook & Instagram ad campaigns.
-            </CardDescription>
+    <section className="rounded-2xl border bg-card shadow-card">
+      <div className="border-b px-5 py-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="text-[15px] font-semibold tracking-[-0.01em]">
+              Facebook Lead Ads
+            </h3>
+            <p className="mt-1 text-[13px] text-muted-foreground">
+              Capture leads from your Facebook and Instagram ad campaigns the
+              moment they submit.
+            </p>
           </div>
-          <Badge
-            variant="outline"
-            className={
-              isConnected
-                ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-                : "bg-zinc-100 text-zinc-500 border-zinc-200"
-            }
-          >
+          <span className="shrink-0">
             {isConnected ? (
-              <><Wifi className="mr-1 h-3 w-3" /> Connected</>
+              <StatusPill label="Connected" hue="emerald" size="xs" />
             ) : (
-              <><WifiOff className="mr-1 h-3 w-3" /> Not Connected</>
+              <StatusPill label="Not connected" hue="slate" size="xs" />
             )}
-          </Badge>
+          </span>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-5">
+      </div>
+      <div className="space-y-5 px-5 py-5">
         {/* Webhook URL */}
         <div className="space-y-1.5">
           <Label>Webhook URL</Label>
@@ -192,7 +187,7 @@ export function FacebookConfig({ initialConfig }: Props) {
             </ol>
           )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   );
 }

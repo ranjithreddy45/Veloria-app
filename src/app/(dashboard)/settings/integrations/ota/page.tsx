@@ -5,6 +5,8 @@ import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { getOtaChannels } from "@/actions/ota.actions";
+import { PageHeader } from "@/components/layout/page-header";
+import { StatusPill } from "@/components/shared/status-pill";
 import { OtaConfig } from "./_components/ota-config";
 
 export const metadata: Metadata = {
@@ -52,18 +54,16 @@ export default async function OtaSyndicationPage() {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.theveloriagrand.com";
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <Rss className="h-6 w-6 text-primary" />
-          OTA Syndication
-        </h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Publish per-venue availability feeds (JSON / iCal) to marketplaces and ingest leads
-          from aggregators. Public feed/inbound URLs are tokenized — share them only with the
-          intended channel.
-        </p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Settings · Integrations"
+        icon={Rss}
+        accent="pink"
+        title="OTA Syndication"
+        description="Publish per-venue availability feeds (JSON / iCal) to marketplaces and ingest leads back from aggregators. Feed and inbound URLs are tokenized — share each one only with its intended channel."
+      >
+        {!canManage && <StatusPill label="Read-only access" hue="amber" />}
+      </PageHeader>
 
       <OtaConfig
         baseUrl={baseUrl}

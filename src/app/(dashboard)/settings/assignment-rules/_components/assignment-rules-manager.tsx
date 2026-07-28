@@ -9,6 +9,7 @@ import {
   Loader2Icon,
   ShieldCheckIcon,
   UsersIcon,
+  ArrowRightIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -19,9 +20,10 @@ import {
   toggleAssignmentRule,
   type AssignmentRuleData,
 } from "@/actions/assignment-rule.actions";
-import { Badge } from "@/components/ui/badge";
+import { StatusPill } from "@/components/shared/status-pill";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -51,6 +53,29 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+
+// ============================================================
+// Condition → plain English
+// ============================================================
+
+const OPERATOR_LABEL: Record<string, string> = {
+  equals: "is",
+  contains: "contains",
+  in: "is one of",
+  notIn: "is not one of",
+  gt: "is over",
+  lt: "is under",
+  gte: "is at least",
+  lte: "is at most",
+};
+
+/** camelCase / snake_case field key → "Title Case" label. */
+function humanizeField(field: string): string {
+  return field
+    .replace(/[_.]/g, " ")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/^./, (c) => c.toUpperCase());
+}
 
 // ============================================================
 // Component
@@ -141,17 +166,25 @@ export function AssignmentRulesManager() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16 text-zinc-500">
-        <Loader2Icon className="mr-2 size-5 animate-spin" /> Loading rules...
+      <div className="rounded-2xl border bg-card p-4 shadow-card">
+        <div className="space-y-3">
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-20 w-full rounded-xl" />
+          <Skeleton className="h-20 w-full rounded-xl" />
+        </div>
       </div>
     );
   }
 
   return (
     <>
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-zinc-500">
-          {rules.length} rule{rules.length !== 1 ? "s" : ""} configured
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-[13px] text-muted-foreground">
+          <span className="numeric font-medium text-foreground">
+            {rules.length}
+          </span>{" "}
+          rule{rules.length !== 1 ? "s" : ""} configured · evaluated highest
+          priority first
         </p>
         <Button onClick={() => setDialogOpen(true)}>
           <PlusIcon className="mr-2 size-4" />
@@ -160,15 +193,19 @@ export function AssignmentRulesManager() {
       </div>
 
       {rules.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="py-12 text-center">
-            <ShieldCheckIcon className="mx-auto mb-3 size-10 text-zinc-300" />
-            <p className="text-sm text-zinc-500">
-              No assignment rules yet. Create your first rule to auto-assign
-              incoming leads.
-            </p>
-          </CardContent>
-        </Card>
+        <div className="rounded-2xl border border-dashed bg-card shadow-card">
+          <EmptyState
+            icon={<ShieldCheckIcon />}
+            title="No assignment rules yet"
+            description="New leads currently sit unassigned until someone claims them. Add a rule to send each one to the right rep the moment it arrives."
+            action={
+              <Button onClick={() => setDialogOpen(true)}>
+                <PlusIcon className="mr-2 size-4" />
+                Create first rule
+              </Button>
+            }
+          />
+        </div>
       ) : (
         <div className="space-y-3">
           {rules.map((rule) => {
@@ -178,52 +215,69 @@ export function AssignmentRulesManager() {
               value: string | string[];
             }>;
             return (
-              <Card
+              <div
                 key={rule.id}
                 className={cn(
-                  "border-zinc-200/80 shadow-sm",
-                  !rule.isActive && "opacity-50"
+                  "rounded-2xl border bg-card shadow-card transition-shadow hover:shadow-card-hover",
+                  !rule.isActive && "opacity-65"
                 )}
               >
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between gap-4">
+                <div className="p-4 sm:p-5">
+                  <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium">{rule.name}</h3>
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "text-xs",
-                            rule.isActive
-                              ? "border-green-200 bg-green-50 text-green-700"
-                              : "border-zinc-200 bg-zinc-50 text-zinc-500"
-                          )}
-                        >
-                          {rule.isActive ? "Active" : "Disabled"}
-                        </Badge>
-                        <Badge variant="outline" className="text-xs">
-                          Priority: {rule.priority}
-                        </Badge>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-[15px] font-semibold tracking-[-0.01em]">
+                          {rule.name}
+                        </h3>
+                        <StatusPill
+                          label={rule.isActive ? "Active" : "Disabled"}
+                          hue={rule.isActive ? "emerald" : "slate"}
+                          size="xs"
+                        />
                       </div>
 
-                      <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
-                        <span className="font-medium">When:</span>
+                      <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[13px]">
+                        <span className="text-muted-foreground">When</span>
                         {conditions.map((c, i) => (
-                          <span key={i} className="rounded bg-zinc-100 px-1.5 py-0.5">
-                            {c.field} {c.operator}{" "}
-                            {Array.isArray(c.value) ? c.value.join(", ") : String(c.value)}
-                          </span>
+                          <React.Fragment key={`${rule.id}-cond-${i}`}>
+                            {i > 0 && (
+                              <span className="text-muted-foreground">and</span>
+                            )}
+                            <span className="rounded-md bg-muted px-1.5 py-0.5 text-[12.5px]">
+                              <span className="font-medium text-foreground">
+                                {humanizeField(c.field)}
+                              </span>{" "}
+                              <span className="text-muted-foreground">
+                                {OPERATOR_LABEL[c.operator] ?? c.operator}
+                              </span>{" "}
+                              <span className="numeric font-medium text-foreground">
+                                {Array.isArray(c.value)
+                                  ? c.value.join(", ")
+                                  : String(c.value)}
+                              </span>
+                            </span>
+                          </React.Fragment>
                         ))}
-                        <span className="font-medium">→</span>
-                        <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-indigo-700">
+                        <ArrowRightIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                        <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-1.5 py-0.5 text-[12.5px] font-medium">
+                          <UsersIcon className="size-3.5 text-muted-foreground" />
                           {rule.assignmentMethod === "DIRECT"
                             ? `Assign to ${rule.assignToUser?.name || "User"}`
-                            : `Round-robin (${rule.assignToTeam.length} members)`}
+                            : rule.assignmentMethod === "SMART"
+                              ? "Smart routing"
+                              : `Round-robin across ${rule.assignToTeam.length} member${rule.assignToTeam.length !== 1 ? "s" : ""}`}
+                        </span>
+                      </div>
+
+                      <div className="mt-2.5 text-[11px] uppercase tracking-wide text-muted-foreground">
+                        Priority{" "}
+                        <span className="numeric font-medium text-foreground">
+                          {rule.priority}
                         </span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1">
+                    <div className="flex shrink-0 items-center gap-1">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -231,15 +285,15 @@ export function AssignmentRulesManager() {
                         title={rule.isActive ? "Disable" : "Enable"}
                       >
                         {rule.isActive ? (
-                          <ToggleRightIcon className="size-4 text-green-600" />
+                          <ToggleRightIcon className="size-4 text-emerald-600" />
                         ) : (
-                          <ToggleLeftIcon className="size-4 text-zinc-400" />
+                          <ToggleLeftIcon className="size-4 text-muted-foreground" />
                         )}
                       </Button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <TrashIcon className="size-4 text-red-500" />
+                          <Button variant="ghost" size="sm" title="Delete rule">
+                            <TrashIcon className="size-4 text-destructive" />
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
@@ -262,8 +316,8 @@ export function AssignmentRulesManager() {
                       </AlertDialog>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             );
           })}
         </div>
@@ -311,7 +365,7 @@ export function AssignmentRulesManager() {
                   </SelectContent>
                 </Select>
                 {formMethod === "SMART" && (
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-muted-foreground">
                     Routes to the available, lightest-loaded, best-matched rep.
                   </p>
                 )}

@@ -2,24 +2,11 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
-import {
-  PencilIcon,
-  SendIcon,
-  XCircleIcon,
-  CalendarIcon,
-  ArrowLeftIcon,
-} from "lucide-react";
+import { ChevronRightIcon, MegaphoneIcon } from "lucide-react";
 
 import { getCampaignById } from "@/actions/campaign.actions";
+import { PageHeader } from "@/components/layout/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { CAMPAIGN_STATUS_COLORS } from "@/lib/constants";
 import { CampaignPerformance } from "../_components/campaign-stats";
 import { CampaignActions } from "./_components/campaign-actions";
@@ -51,33 +38,24 @@ export default async function CampaignDetailPage({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Button variant="ghost" size="sm" asChild className="h-auto p-0">
-              <Link href="/campaigns">
-                <ArrowLeftIcon className="mr-1 size-4" />
-                Campaigns
-              </Link>
-            </Button>
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight">{campaign.name}</h1>
-          <div className="mt-1 flex items-center gap-3">
-            <StatusBadge
-              status={campaign.status}
-              colorMap={CAMPAIGN_STATUS_COLORS}
-            />
-            <span className="text-sm text-muted-foreground">
-              Created {format(new Date(campaign.createdAt), "dd MMM yyyy")}
-            </span>
-          </div>
-        </div>
-        <CampaignActions
-          campaignId={campaign.id}
-          status={campaign.status}
-        />
-      </div>
+      <PageHeader
+        icon={MegaphoneIcon}
+        accent="pink"
+        title={campaign.name}
+        eyebrow={
+          <span className="flex items-center gap-1.5">
+            <Link href="/campaigns" className="transition-colors hover:text-foreground">
+              Campaigns
+            </Link>
+            <ChevronRightIcon className="size-3 opacity-50" />
+            <span>Email blast</span>
+          </span>
+        }
+        description={campaign.subject}
+      >
+        <StatusBadge status={campaign.status} colorMap={CAMPAIGN_STATUS_COLORS} />
+        <CampaignActions campaignId={campaign.id} status={campaign.status} />
+      </PageHeader>
 
       {/* Stats (only if sent) */}
       {campaign.status === "SENT" && (
@@ -89,77 +67,91 @@ export default async function CampaignDetailPage({
       )}
 
       {/* Campaign Details */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Info Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Campaign Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Setup */}
+        <section className="rounded-2xl border bg-card p-5 shadow-card">
+          <h2 className="text-[15px] font-semibold tracking-[-0.01em]">Setup</h2>
+          <p className="mt-0.5 text-[13px] text-muted-foreground">
+            How this campaign is addressed and scheduled.
+          </p>
+
+          <dl className="mt-5 space-y-4">
             <div>
-              <p className="text-muted-foreground text-xs">Subject Line</p>
-              <p className="text-sm font-medium">{campaign.subject}</p>
+              <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                Subject line
+              </dt>
+              <dd className="mt-1 text-sm">{campaign.subject}</dd>
             </div>
-            <Separator />
+
             <div>
-              <p className="text-muted-foreground text-xs">Recipient Filter</p>
-              {filter ? (
-                <div className="mt-1 space-y-1">
-                  {filter.eventType && (
-                    <p className="text-sm">
-                      Event Type:{" "}
-                      <span className="font-medium">{filter.eventType}</span>
-                    </p>
-                  )}
-                  {filter.contactType && (
-                    <p className="text-sm">
-                      Contact Type:{" "}
-                      <span className="font-medium">{filter.contactType}</span>
-                    </p>
-                  )}
+              <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                Audience
+              </dt>
+              <dd className="mt-1 text-sm">
+                {filter?.eventType || filter?.contactType ? (
+                  <span className="flex flex-wrap gap-x-4 gap-y-1">
+                    {filter.eventType && <span>Event type · {filter.eventType}</span>}
+                    {filter.contactType && (
+                      <span>Contact type · {filter.contactType}</span>
+                    )}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">All contacts</span>
+                )}
+              </dd>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  Created
+                </dt>
+                <dd className="numeric mt-1 text-sm">
+                  {format(new Date(campaign.createdAt), "dd MMM yyyy")}
+                </dd>
+              </div>
+              {campaign.scheduledAt && (
+                <div>
+                  <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Scheduled for
+                  </dt>
+                  <dd className="numeric mt-1 text-sm">
+                    {format(new Date(campaign.scheduledAt), "dd MMM yyyy, hh:mm a")}
+                  </dd>
                 </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">All contacts</p>
+              )}
+              {campaign.sentAt && (
+                <div>
+                  <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Sent at
+                  </dt>
+                  <dd className="numeric mt-1 text-sm">
+                    {format(new Date(campaign.sentAt), "dd MMM yyyy, hh:mm a")}
+                  </dd>
+                </div>
               )}
             </div>
-            <Separator />
-            {campaign.scheduledAt && (
-              <div>
-                <p className="text-muted-foreground text-xs">Scheduled For</p>
-                <p className="text-sm font-medium flex items-center gap-1">
-                  <CalendarIcon className="size-3.5" />
-                  {format(new Date(campaign.scheduledAt), "dd MMM yyyy, hh:mm a")}
-                </p>
-              </div>
-            )}
-            {campaign.sentAt && (
-              <div>
-                <p className="text-muted-foreground text-xs">Sent At</p>
-                <p className="text-sm font-medium">
-                  {format(new Date(campaign.sentAt), "dd MMM yyyy, hh:mm a")}
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          </dl>
+        </section>
 
-        {/* Content Preview Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Content Preview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-lg border bg-white dark:bg-card p-4 max-h-[400px] overflow-auto">
-              {/* Sandboxed iframe prevents XSS — no scripts can execute */}
-              <iframe
-                srcDoc={campaign.htmlContent}
-                sandbox=""
-                className="w-full min-h-[400px] border-0 rounded-lg"
-                title="Campaign Content Preview"
-              />
-            </div>
-          </CardContent>
-        </Card>
+        {/* Content Preview */}
+        <section className="rounded-2xl border bg-card p-5 shadow-card">
+          <h2 className="text-[15px] font-semibold tracking-[-0.01em]">
+            Content preview
+          </h2>
+          <p className="mt-0.5 text-[13px] text-muted-foreground">
+            Exactly what recipients will see in their inbox.
+          </p>
+          <div className="mt-5 max-h-[400px] overflow-auto rounded-xl border bg-white p-4 dark:bg-background">
+            {/* Sandboxed iframe prevents XSS — no scripts can execute */}
+            <iframe
+              srcDoc={campaign.htmlContent}
+              sandbox=""
+              className="min-h-[400px] w-full rounded-lg border-0"
+              title="Campaign Content Preview"
+            />
+          </div>
+        </section>
       </div>
     </div>
   );

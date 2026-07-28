@@ -16,12 +16,6 @@ import {
 } from "@/actions/approval.actions";
 import type { ApprovalChainStepInput } from "@/schemas/approval.schema";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -168,13 +162,18 @@ export function ApprovalRuleForm({ rule, users }: ApprovalRuleFormProps) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">
-          {isNew ? "Rule Details" : "Edit Rule Details"}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <section className="rounded-2xl border bg-card shadow-card">
+      <div className="border-b px-5 py-4">
+        <h3 className="text-[15px] font-semibold tracking-[-0.01em]">
+          Rule Details
+        </h3>
+        <p className="mt-1 text-[13px] text-muted-foreground">
+          Name the rule, pick what it watches, and set the conditions that make
+          it fire.
+        </p>
+      </div>
+
+      <div className="space-y-5 px-5 py-5">
         {/* Name */}
         <div className="space-y-2">
           <Label>Rule Name</Label>
@@ -210,36 +209,52 @@ export function ApprovalRuleForm({ rule, users }: ApprovalRuleFormProps) {
             rows={2}
           />
         </div>
+      </div>
 
-        {/* Priority & Active */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Priority</Label>
-            <Input
-              type="number"
-              min={0}
-              value={priority}
-              onChange={(e) => setPriority(Number(e.target.value))}
-            />
-            <p className="text-[11px] text-zinc-400">
+      {/* Behaviour rows — label + helper left, control right */}
+      <div className="divide-y border-y">
+        <div className="flex items-center justify-between gap-4 px-5 py-3.5">
+          <div className="min-w-0">
+            <Label className="text-sm">Priority</Label>
+            <p className="mt-0.5 text-[12.5px] text-muted-foreground">
               Lower values are evaluated first.
             </p>
           </div>
-          <div className="space-y-2">
-            <Label>Active</Label>
-            <div className="flex items-center gap-2 pt-1">
-              <Switch checked={isActive} onCheckedChange={setIsActive} />
-              <span className="text-sm text-zinc-600">
-                {isActive ? "Enabled" : "Disabled"}
-              </span>
-            </div>
-          </div>
+          <Input
+            type="number"
+            min={0}
+            value={priority}
+            onChange={(e) => setPriority(Number(e.target.value))}
+            className="numeric w-24 shrink-0 text-right"
+          />
         </div>
+        <div className="flex items-center justify-between gap-4 px-5 py-3.5">
+          <div className="min-w-0">
+            <Label className="text-sm">Active</Label>
+            <p className="mt-0.5 text-[12.5px] text-muted-foreground">
+              {isActive
+                ? "This rule is live — matching requests will need approval."
+                : "Paused. Matching requests go through without approval."}
+            </p>
+          </div>
+          <Switch
+            checked={isActive}
+            onCheckedChange={setIsActive}
+            aria-label="Rule active"
+          />
+        </div>
+      </div>
 
+      <div className="space-y-5 px-5 py-5">
         {/* Conditions */}
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <Label>Conditions</Label>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <Label>Conditions</Label>
+              <p className="mt-0.5 text-[12.5px] text-muted-foreground">
+                All conditions must match for the rule to fire.
+              </p>
+            </div>
             <Button
               variant="outline"
               size="sm"
@@ -252,8 +267,9 @@ export function ApprovalRuleForm({ rule, users }: ApprovalRuleFormProps) {
           </div>
 
           {conditions.length === 0 && (
-            <p className="text-xs text-zinc-400">
-              No conditions — rule will match all entities of this type.
+            <p className="rounded-lg border border-dashed px-3 py-2.5 text-[13px] text-muted-foreground">
+              No conditions yet — this rule will match every{" "}
+              {entityType.toLowerCase()}.
             </p>
           )}
 
@@ -304,24 +320,23 @@ export function ApprovalRuleForm({ rule, users }: ApprovalRuleFormProps) {
                 variant="ghost"
                 size="sm"
                 onClick={() => removeCondition(index)}
-                className="text-red-500 hover:text-red-600"
+                className="text-destructive hover:text-destructive"
+                title="Remove condition"
               >
                 <TrashIcon className="size-4" />
               </Button>
             </div>
           ))}
         </div>
+      </div>
 
-        {/* Save */}
-        <Button
-          onClick={handleSubmit}
-          disabled={saving || !name.trim()}
-          className="w-full"
-        >
+      {/* Save */}
+      <div className="flex justify-end border-t bg-muted/30 px-5 py-3.5">
+        <Button onClick={handleSubmit} disabled={saving || !name.trim()}>
           {saving && <Loader2Icon className="mr-2 size-4 animate-spin" />}
-          {isNew ? "Create Rule" : "Update Rule"}
+          {isNew ? "Create Rule" : "Save Changes"}
         </Button>
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   );
 }

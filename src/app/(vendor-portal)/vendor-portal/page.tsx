@@ -9,6 +9,7 @@ import {
   Clock,
   ArrowUpRight,
   Sparkles,
+  AlertCircle,
 } from "lucide-react";
 import {
   Card,
@@ -41,15 +42,17 @@ export default async function VendorPortalPage() {
 
   if (!result.success) {
     return (
-      <div className="space-y-4">
-        <div className="rounded-2xl border border-red-500/25 bg-red-500/10 p-6">
-          <h2 className="text-lg font-semibold text-red-700 dark:text-red-300">
-            We couldn&apos;t load your dashboard
-          </h2>
-          <p className="mt-1 text-sm text-red-600/90 dark:text-red-400">
-            {result.error}
-          </p>
-        </div>
+      <div className="space-y-6">
+        <Card className="rounded-2xl border bg-card py-0 shadow-card">
+          <CardContent className="p-0">
+            <EmptyState
+              icon={<AlertCircle />}
+              tone="warning"
+              title="We couldn't load your dashboard"
+              description={result.error}
+            />
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -72,7 +75,7 @@ export default async function VendorPortalPage() {
       description:
         data.pendingBids > 0 ? "Awaiting our response" : "Everything has been answered",
       icon: Gavel,
-      chip: "bg-amber-500/14 text-amber-700 dark:text-amber-300",
+      chip: "bg-warning/15 text-warning",
       href: "/vendor-portal/bids",
     },
     {
@@ -80,7 +83,7 @@ export default async function VendorPortalPage() {
       value: formatINR(data.totalPayouts),
       description: "Paid to you to date",
       icon: Wallet,
-      chip: "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300",
+      chip: "bg-success/12 text-success",
       href: "/vendor-portal/payouts",
     },
     {
@@ -89,7 +92,7 @@ export default async function VendorPortalPage() {
       description:
         data.vendorRating > 0 ? "From the events team" : "Rated after your first event",
       icon: Star,
-      chip: "bg-violet-500/12 text-violet-700 dark:text-violet-300",
+      chip: "bg-primary/10 text-primary",
       href: "/vendor-portal",
     },
   ];
@@ -105,7 +108,7 @@ export default async function VendorPortalPage() {
             {" "}Partner
           </span>
         </div>
-        <h1 className="text-[30px] leading-tight tracking-[-0.01em] text-foreground sm:text-[38px]">
+        <h1 className="large-title text-[30px] leading-tight text-foreground sm:text-[38px]">
           {data.vendorName}
         </h1>
         <p className="max-w-xl text-[15px] leading-relaxed text-muted-foreground">
@@ -186,7 +189,7 @@ export default async function VendorPortalPage() {
               }) => (
                 <div
                   key={assignment.id}
-                  className="flex items-center gap-4 rounded-xl border bg-muted/30 p-4"
+                  className="flex items-center gap-4 rounded-xl border bg-muted/30 p-4 transition-colors hover:bg-muted/50"
                 >
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-teal-500/12 text-teal-700 dark:text-teal-300">
                     <CalendarCheck className="size-[18px]" />
@@ -255,9 +258,9 @@ export default async function VendorPortalPage() {
               }) => (
                 <div
                   key={bid.id}
-                  className="flex items-center gap-4 rounded-xl border bg-muted/30 p-4"
+                  className="flex items-center gap-4 rounded-xl border bg-muted/30 p-4 transition-colors hover:bg-muted/50"
                 >
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/14 text-amber-700 dark:text-amber-300">
+                  <div className="bg-warning/15 text-warning flex size-10 shrink-0 items-center justify-center rounded-xl">
                     <Gavel className="size-[18px]" />
                   </div>
                   <div className="min-w-0 flex-1">

@@ -22,6 +22,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { PageHeader } from "@/components/layout/page-header";
 import {
@@ -32,6 +33,9 @@ import {
 export const metadata: Metadata = {
   title: "Loyalty & Rewards",
 };
+
+// Customer-facing empty states keep the editorial serif headline.
+const PORTAL_EMPTY = "[&_p:first-of-type]:font-editorial [&_p:first-of-type]:text-[18px]";
 
 // ============================================================
 // Tier Thresholds
@@ -69,7 +73,7 @@ function TransactionIcon({ type }: { type: string }) {
   switch (type) {
     case "EARNED":
       return (
-        <ArrowUpIcon className="size-4 text-emerald-600 dark:text-emerald-400" />
+        <ArrowUpIcon className="text-success size-4" />
       );
     case "REDEEMED":
       return <ArrowDownIcon className="text-primary size-4" />;
@@ -77,7 +81,7 @@ function TransactionIcon({ type }: { type: string }) {
       return <MinusIcon className="text-muted-foreground/60 size-4" />;
     case "ADJUSTED":
       return (
-        <SlidersHorizontalIcon className="size-4 text-blue-600 dark:text-blue-400" />
+        <SlidersHorizontalIcon className="text-muted-foreground size-4" />
       );
     default:
       return <CoinsIcon className="text-muted-foreground/60 size-4" />;
@@ -85,11 +89,10 @@ function TransactionIcon({ type }: { type: string }) {
 }
 
 const TRANSACTION_TYPE_COLORS: Record<string, string> = {
-  EARNED:
-    "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
+  EARNED: "bg-success/12 text-success border-success/25",
   REDEEMED: "bg-primary/10 text-primary border-primary/25",
   EXPIRED: "bg-muted text-muted-foreground border-border",
-  ADJUSTED: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/25",
+  ADJUSTED: "bg-muted text-muted-foreground border-border",
 };
 
 // ============================================================
@@ -111,17 +114,13 @@ export default async function PortalLoyaltyPage() {
           description="Points you've collected with us, and what they unlock next."
         />
         <Card className="shadow-card rounded-2xl py-0">
-          <CardContent className="flex flex-col items-center justify-center px-6 py-20 text-center">
-            <div className="bg-muted flex size-16 items-center justify-center rounded-2xl">
-              <AwardIcon className="text-muted-foreground/60 size-8" />
-            </div>
-            <h3 className="font-editorial text-foreground mt-5 text-xl font-semibold">
-              We couldn&apos;t reach your rewards
-            </h3>
-            <p className="text-muted-foreground mt-2 max-w-sm text-sm leading-relaxed">
-              Nothing is lost — your points are safe. Please refresh in a moment
-              and they&apos;ll be back.
-            </p>
+          <CardContent className="p-0">
+            <EmptyState
+              icon={<AwardIcon />}
+              title="We couldn't reach your rewards"
+              description="Nothing is lost — your points are safe. Refresh in a moment and they'll be right back."
+              className={PORTAL_EMPTY}
+            />
           </CardContent>
         </Card>
       </div>
@@ -140,17 +139,13 @@ export default async function PortalLoyaltyPage() {
           description="Points you've collected with us, and what they unlock next."
         />
         <Card className="shadow-card rounded-2xl py-0">
-          <CardContent className="flex flex-col items-center justify-center px-6 py-20 text-center">
-            <div className="bg-muted flex size-16 items-center justify-center rounded-2xl">
-              <AwardIcon className="text-muted-foreground/60 size-8" />
-            </div>
-            <h3 className="font-editorial text-foreground mt-5 text-xl font-semibold">
-              Your first points are waiting
-            </h3>
-            <p className="text-muted-foreground mt-2 max-w-sm text-sm leading-relaxed">
-              Book with us or introduce a friend, and your rewards account opens
-              itself — nothing to sign up for.
-            </p>
+          <CardContent className="p-0">
+            <EmptyState
+              icon={<AwardIcon />}
+              title="Your first points are waiting"
+              description="Book with us or introduce a friend, and your rewards account opens itself — nothing to sign up for."
+              className={PORTAL_EMPTY}
+            />
           </CardContent>
         </Card>
       </div>
@@ -162,10 +157,10 @@ export default async function PortalLoyaltyPage() {
   return (
     <div className="space-y-10">
       {/* Hero Banner */}
-      <div className="shadow-card relative overflow-hidden rounded-2xl border border-amber-500/20 bg-amber-500/[0.07] px-6 py-8 sm:px-8 sm:py-10">
-        <div className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full bg-amber-500/10 blur-3xl" />
+      <div className="shadow-card border-warning/25 bg-warning/[0.07] relative overflow-hidden rounded-2xl border px-6 py-8 sm:px-8 sm:py-10">
+        <div className="bg-warning/12 pointer-events-none absolute -right-16 -top-16 size-48 rounded-full blur-3xl" />
         <div className="relative">
-          <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+          <div className="text-warning flex items-center gap-2">
             <Sparkles className="size-3.5" />
             <span className="text-[11px] font-semibold uppercase tracking-[0.14em]">
               Your account
@@ -197,9 +192,9 @@ export default async function PortalLoyaltyPage() {
           {/* Progress bar */}
           {tierProgress.nextTierName && (
             <div className="mt-5 space-y-1.5">
-              <div className="h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-amber-500/15">
+              <div className="bg-warning/20 h-1.5 w-full max-w-xs overflow-hidden rounded-full">
                 <div
-                  className="h-full rounded-full bg-amber-500 transition-all duration-500"
+                  className="bg-warning h-full rounded-full transition-all duration-500"
                   style={{ width: `${tierProgress.progress}%` }}
                 />
               </div>
@@ -225,8 +220,8 @@ export default async function PortalLoyaltyPage() {
                   {account.points.toLocaleString("en-IN")}
                 </p>
               </div>
-              <div className="flex size-11 items-center justify-center rounded-xl bg-amber-500/10">
-                <CoinsIcon className="size-5 text-amber-600 dark:text-amber-400" />
+              <div className="bg-warning/15 flex size-11 items-center justify-center rounded-xl">
+                <CoinsIcon className="text-warning size-5" />
               </div>
             </div>
           </CardContent>
@@ -243,8 +238,8 @@ export default async function PortalLoyaltyPage() {
                   {account.totalEarned.toLocaleString("en-IN")}
                 </p>
               </div>
-              <div className="flex size-11 items-center justify-center rounded-xl bg-emerald-500/10">
-                <TrendingUpIcon className="size-5 text-emerald-600 dark:text-emerald-400" />
+              <div className="bg-success/12 flex size-11 items-center justify-center rounded-xl">
+                <TrendingUpIcon className="text-success size-5" />
               </div>
             </div>
           </CardContent>
@@ -283,7 +278,7 @@ export default async function PortalLoyaltyPage() {
                 key={t.tier}
                 className={`flex flex-col items-center gap-2 rounded-xl border p-4 text-center transition-all ${
                   t.tier === account.tier
-                    ? "border-amber-500/30 bg-amber-500/[0.07]"
+                    ? "border-warning/30 bg-warning/[0.07]"
                     : "bg-muted/30"
                 }`}
               >
@@ -296,7 +291,7 @@ export default async function PortalLoyaltyPage() {
                       : `${t.min.toLocaleString("en-IN")} – ${t.max.toLocaleString("en-IN")} pts`}
                 </p>
                 {t.tier === account.tier && (
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-700 dark:text-amber-400">
+                  <span className="text-warning text-[10px] font-semibold uppercase tracking-[0.12em]">
                     You&apos;re here
                   </span>
                 )}
@@ -315,17 +310,12 @@ export default async function PortalLoyaltyPage() {
         </CardHeader>
         <CardContent className="px-6 pb-6">
           {account.transactions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="bg-muted flex size-14 items-center justify-center rounded-2xl">
-                <CoinsIcon className="text-muted-foreground/60 size-7" />
-              </div>
-              <p className="font-editorial text-foreground mt-4 text-[18px] font-semibold">
-                The counting begins soon
-              </p>
-              <p className="text-muted-foreground mt-1.5 max-w-sm text-sm leading-relaxed">
-                Every booking and every referral adds points here.
-              </p>
-            </div>
+            <EmptyState
+              icon={<CoinsIcon />}
+              title="The counting begins soon"
+              description="Every booking and every referral you send our way adds points right here."
+              className={PORTAL_EMPTY}
+            />
           ) : (
             <div className="space-y-3">
               {account.transactions.map((tx: {
@@ -364,10 +354,10 @@ export default async function PortalLoyaltyPage() {
                   <div
                     className={`numeric shrink-0 text-sm font-semibold ${
                       tx.type === "EARNED" || (tx.type === "ADJUSTED" && tx.points > 0)
-                        ? "text-emerald-600 dark:text-emerald-400"
+                        ? "text-success"
                         : tx.type === "REDEEMED" ||
                             (tx.type === "ADJUSTED" && tx.points < 0)
-                          ? "text-red-600 dark:text-red-400"
+                          ? "text-destructive"
                           : "text-muted-foreground"
                     }`}
                   >

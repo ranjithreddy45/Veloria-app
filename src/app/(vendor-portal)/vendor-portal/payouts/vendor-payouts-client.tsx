@@ -30,8 +30,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/layout/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { PAYOUT_STATUS_COLORS, PAYOUT_TYPE_LABELS } from "@/lib/constants";
 import { formatINR, formatDate } from "@/lib/utils";
@@ -122,47 +124,36 @@ export function VendorPayoutsClient({ initialData }: VendorPayoutsClientProps) {
       value: formatINR(stats.totalPaid),
       count: stats.paidCount,
       icon: CheckCircle2,
-      chip: "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300",
+      chip: "bg-success/12 text-success",
     },
     {
       title: "Pending",
       value: formatINR(stats.totalPending),
       count: stats.pendingCount,
       icon: Clock,
-      chip: "bg-amber-500/14 text-amber-700 dark:text-amber-300",
+      chip: "bg-warning/15 text-warning",
     },
     {
       title: "Approved",
       value: formatINR(stats.totalApproved),
       count: stats.approvedCount,
       icon: CircleDot,
-      chip: "bg-teal-500/12 text-teal-700 dark:text-teal-300",
+      chip: "bg-primary/10 text-primary",
     },
   ];
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex items-start gap-3.5">
-          <span className="mt-0.5 hidden size-11 shrink-0 items-center justify-center rounded-2xl bg-teal-500/12 text-teal-700 sm:flex dark:text-teal-300">
-            <Wallet className="size-[22px]" />
-          </span>
-          <div className="space-y-1.5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-teal-700 dark:text-teal-300">
-              Payments
-            </p>
-            <h1 className="text-[28px] leading-tight text-foreground sm:text-[32px]">
-              Your payouts
-            </h1>
-            <p className="text-[14px] text-muted-foreground">
-              <span className="numeric">{data.total}</span> payout
-              {data.total !== 1 ? "s" : ""} on record with Veloria Grand.
-            </p>
-          </div>
-        </div>
-
-        {/* Filter */}
+      <PageHeader
+        eyebrow="Payments"
+        icon={Wallet}
+        accent="emerald"
+        title="Your payouts"
+        description="Every advance and settlement we've raised against your work."
+      >
+        <Badge variant="outline" className="numeric">
+          {data.total} {data.total === 1 ? "payout" : "payouts"}
+        </Badge>
         <div className="flex items-center gap-2">
           <Filter className="size-4 text-muted-foreground" />
           <Select value={statusFilter} onValueChange={handleStatusChange}>
@@ -178,7 +169,7 @@ export function VendorPayoutsClient({ initialData }: VendorPayoutsClientProps) {
             </SelectContent>
           </Select>
         </div>
-      </div>
+      </PageHeader>
 
       {/* Stats Summary */}
       <div className="grid gap-4 sm:grid-cols-3">
@@ -187,7 +178,7 @@ export function VendorPayoutsClient({ initialData }: VendorPayoutsClientProps) {
           return (
             <Card
               key={card.title}
-              className="rounded-2xl border bg-card py-0 shadow-card"
+              className="rounded-2xl border bg-card py-0 shadow-card transition-shadow hover:shadow-card-hover"
             >
               <CardContent className="p-5">
                 <div className="flex items-start justify-between gap-3">
@@ -243,7 +234,7 @@ export function VendorPayoutsClient({ initialData }: VendorPayoutsClientProps) {
               <div className="hidden md:block">
                 <Table>
                   <TableHeader>
-                    <TableRow className="[&>th]:text-[11px] [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-[0.1em] [&>th]:text-muted-foreground">
+                    <TableRow className="[&>th]:text-[11px] [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wide [&>th]:text-muted-foreground">
                       <TableHead>Reference</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead>Booking</TableHead>

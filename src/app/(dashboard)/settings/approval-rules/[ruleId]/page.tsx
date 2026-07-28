@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeftIcon } from "lucide-react";
+import { ArrowLeftIcon, ShieldCheckIcon } from "lucide-react";
 
 import { getApprovalRule } from "@/actions/approval.actions";
 import { getUsers } from "@/actions/user.actions";
+import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { ApprovalRuleForm } from "../_components/approval-rule-form";
 import { ChainBuilder } from "../_components/chain-builder";
@@ -43,7 +44,12 @@ export default async function ApprovalRuleDetailPage({
     <div className="space-y-6">
       {/* Back Button */}
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          asChild
+          className="-ml-2 h-8 text-muted-foreground hover:text-foreground"
+        >
           <Link href="/settings/approval-rules">
             <ArrowLeftIcon className="mr-1 size-4" />
             Back to Rules
@@ -51,16 +57,17 @@ export default async function ApprovalRuleDetailPage({
         </Button>
       </div>
 
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">
-          {isNew ? "Create Approval Rule" : `Edit: ${rule?.name}`}
-        </h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          {isNew
-            ? "Define conditions and an approval chain for automatic routing."
-            : "Update rule settings, conditions, and the approval chain."}
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Settings · Governance"
+        icon={ShieldCheckIcon}
+        accent="emerald"
+        title={isNew ? "Create Approval Rule" : rule?.name ?? "Approval Rule"}
+        description={
+          isNew
+            ? "Define the conditions that trigger this rule, then build the chain of approvers a matching request has to clear."
+            : "Update this rule's settings, matching conditions and approval chain. Changes apply to requests raised from now on."
+        }
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <ApprovalRuleForm

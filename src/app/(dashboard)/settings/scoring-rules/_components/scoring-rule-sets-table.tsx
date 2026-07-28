@@ -20,9 +20,10 @@ import {
   updateScoringRuleSet,
   type ScoringRuleSetData,
 } from "@/actions/scoring-rule.actions";
-import { Badge } from "@/components/ui/badge";
+import { StatusPill, type Hue } from "@/components/shared/status-pill";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -58,10 +59,10 @@ import { cn } from "@/lib/utils";
 // Helpers
 // ============================================================
 
-const ENTITY_TYPE_STYLES: Record<string, string> = {
-  LEAD: "border-indigo-200 bg-indigo-50 text-indigo-700",
-  CONTACT: "border-teal-200 bg-teal-50 text-teal-700",
-  DEAL: "border-orange-200 bg-orange-50 text-orange-700",
+const ENTITY_TYPE_HUE: Record<string, Hue> = {
+  LEAD: "indigo",
+  CONTACT: "teal",
+  DEAL: "orange",
 };
 
 // ============================================================
@@ -176,17 +177,24 @@ export function ScoringRuleSetsTable({ initialData }: Props) {
 
   if (loading && ruleSets.length === 0) {
     return (
-      <div className="flex items-center justify-center py-16 text-zinc-500">
-        <Loader2Icon className="mr-2 size-5 animate-spin" /> Loading rule sets...
+      <div className="rounded-2xl border bg-card p-4 shadow-card">
+        <div className="space-y-3">
+          <Skeleton className="h-4 w-44" />
+          <Skeleton className="h-20 w-full rounded-xl" />
+          <Skeleton className="h-20 w-full rounded-xl" />
+        </div>
       </div>
     );
   }
 
   return (
     <>
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-zinc-500">
-          {ruleSets.length} rule set{ruleSets.length !== 1 ? "s" : ""} configured
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-[13px] text-muted-foreground">
+          <span className="numeric font-medium text-foreground">
+            {ruleSets.length}
+          </span>{" "}
+          rule set{ruleSets.length !== 1 ? "s" : ""} configured
         </p>
         <Button onClick={openCreateDialog}>
           <PlusIcon className="mr-2 size-4" />
@@ -195,89 +203,101 @@ export function ScoringRuleSetsTable({ initialData }: Props) {
       </div>
 
       {ruleSets.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="py-12 text-center">
-            <TargetIcon className="mx-auto mb-3 size-10 text-zinc-300" />
-            <p className="text-sm text-zinc-500">
-              No scoring rule sets yet. Create your first rule set to define
-              custom scoring logic for leads, contacts, or deals.
-            </p>
-          </CardContent>
-        </Card>
+        <div className="rounded-2xl border border-dashed bg-card shadow-card">
+          <EmptyState
+            icon={<TargetIcon />}
+            title="No scoring rule sets yet"
+            description="Every lead looks equally promising until you score them. Build a rule set to rank leads, contacts or deals by the signals that actually predict a win."
+            action={
+              <Button onClick={openCreateDialog}>
+                <PlusIcon className="mr-2 size-4" />
+                Create first rule set
+              </Button>
+            }
+          />
+        </div>
       ) : (
         <div className="space-y-3">
           {ruleSets.map((set) => (
-            <Card
+            <div
               key={set.id}
               className={cn(
-                "border-zinc-200/80 shadow-sm",
-                !set.isActive && "opacity-50"
+                "rounded-2xl border bg-card shadow-card transition-shadow hover:shadow-card-hover",
+                !set.isActive && "opacity-65"
               )}
             >
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between gap-4">
+              <div className="p-4 sm:p-5">
+                <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Link
                         href={`/settings/scoring-rules/${set.id}`}
-                        className="font-medium hover:underline"
+                        className="text-[15px] font-semibold tracking-[-0.01em] hover:underline"
                       >
                         {set.name}
                       </Link>
-                      <Badge
-                        variant="outline"
-                        className={cn("text-xs", ENTITY_TYPE_STYLES[set.entityType])}
-                      >
-                        {set.entityType}
-                      </Badge>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "text-xs",
-                          set.isActive
-                            ? "border-green-200 bg-green-50 text-green-700"
-                            : "border-zinc-200 bg-zinc-50 text-zinc-500"
-                        )}
-                      >
-                        {set.isActive ? "Active" : "Disabled"}
-                      </Badge>
+                      <StatusPill
+                        label={set.entityType}
+                        hue={ENTITY_TYPE_HUE[set.entityType] ?? "neutral"}
+                        size="xs"
+                      />
+                      <StatusPill
+                        label={set.isActive ? "Active" : "Disabled"}
+                        hue={set.isActive ? "emerald" : "slate"}
+                        size="xs"
+                      />
                     </div>
-                    <div className="mt-1.5 flex items-center gap-3 text-xs text-zinc-500">
-                      {set.description && (
-                        <span className="truncate max-w-md">{set.description}</span>
-                      )}
-                      <span className="rounded bg-zinc-100 px-1.5 py-0.5">
-                        Max: {set.maxScore} pts
+
+                    {set.description && (
+                      <p className="mt-1 line-clamp-1 text-[13px] text-muted-foreground">
+                        {set.description}
+                      </p>
+                    )}
+
+                    <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                      <span>
+                        <span className="numeric font-medium text-foreground">
+                          {set._count?.rules ?? 0}
+                        </span>{" "}
+                        rule{(set._count?.rules ?? 0) !== 1 ? "s" : ""}
                       </span>
-                      <span className="rounded bg-zinc-100 px-1.5 py-0.5">
-                        {set._count?.rules ?? 0} rule{(set._count?.rules ?? 0) !== 1 ? "s" : ""}
+                      <span aria-hidden className="text-border">
+                        ·
+                      </span>
+                      <span>
+                        Capped at{" "}
+                        <span className="numeric font-medium text-foreground">
+                          {set.maxScore}
+                        </span>{" "}
+                        pts
                       </span>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1">
-                    <Link href={`/settings/scoring-rules/${set.id}`}>
-                      <Button variant="ghost" size="sm" title="Manage rules">
-                        <ExternalLinkIcon className="size-4 text-zinc-500" />
-                      </Button>
-                    </Link>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Button variant="ghost" size="sm" asChild title="Manage rules">
+                      <Link href={`/settings/scoring-rules/${set.id}`}>
+                        <ExternalLinkIcon className="size-4 text-muted-foreground" />
+                      </Link>
+                    </Button>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => openEditDialog(set)}
                       title="Edit rule set"
                     >
-                      <PencilIcon className="size-4 text-zinc-500" />
+                      <PencilIcon className="size-4 text-muted-foreground" />
                     </Button>
                     <Switch
                       checked={set.isActive}
                       onCheckedChange={() => handleToggle(set.id, set.isActive)}
                       size="sm"
+                      aria-label={set.isActive ? "Disable rule set" : "Enable rule set"}
                     />
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <TrashIcon className="size-4 text-red-500" />
+                        <Button variant="ghost" size="sm" title="Delete rule set">
+                          <TrashIcon className="size-4 text-destructive" />
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
@@ -301,8 +321,8 @@ export function ScoringRuleSetsTable({ initialData }: Props) {
                     </AlertDialog>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
       )}

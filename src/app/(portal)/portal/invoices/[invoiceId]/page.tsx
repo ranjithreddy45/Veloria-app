@@ -2,13 +2,10 @@ import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import {
   ArrowLeft,
-  FileText,
-  CalendarCheck,
   Clock,
   CheckCircle2,
   AlertCircle,
   CreditCard,
-  Building2,
   User,
   IndianRupee,
 } from "lucide-react";
@@ -42,6 +39,18 @@ function formatINRRound(amount: number): string {
   }).format(amount);
 }
 
+function shortDate(value: Date | string): string {
+  return new Date(value).toLocaleDateString("en-IN", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+// Quiet uppercase micro-label used across the document surfaces.
+const LABEL =
+  "text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground";
+
 // ============================================================
 // Invoice Detail Page
 // ============================================================
@@ -66,21 +75,22 @@ export default async function PortalInvoiceDetailPage({
     invoice.status !== "REFUNDED";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Back Button */}
       <Link
         href="/portal/invoices"
-        className="inline-flex items-center gap-2 text-sm text-zinc-500 transition-colors hover:text-zinc-700"
+        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-2 text-[13px] transition-colors"
       >
-        <ArrowLeft className="size-4" />
-        Back to Invoices
+        <ArrowLeft className="size-3.5" />
+        Back to invoices
       </Link>
 
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+      {/* Header — the invoice number is the identity of this page */}
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-2">
+          <p className={LABEL}>Invoice</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="large-title text-foreground text-[28px] leading-tight sm:text-[32px]">
               {invoice.invoiceNumber}
             </h1>
             <StatusBadge
@@ -89,19 +99,26 @@ export default async function PortalInvoiceDetailPage({
             />
           </div>
           {invoice.booking && (
-            <p className="mt-1 text-sm text-zinc-500">
+            <p className="text-muted-foreground text-[15px]">
               {invoice.booking.eventName}
               {invoice.booking.bookingNumber && (
-                <> &middot; Booking #{invoice.booking.bookingNumber}</>
+                <>
+                  {" "}
+                  &middot; Booking{" "}
+                  <span className="numeric">
+                    {invoice.booking.bookingNumber}
+                  </span>
+                </>
               )}
             </p>
           )}
         </div>
-        <div className="flex items-center gap-4">
+
+        <div className="flex flex-shrink-0 items-center gap-5">
           <PortalPdfButton invoiceId={invoiceId} />
           <div className="text-right">
-            <p className="text-sm text-zinc-400">Total Amount</p>
-            <p className="text-2xl font-bold text-foreground">
+            <p className={LABEL}>Total</p>
+            <p className="numeric text-foreground mt-1 text-[26px] font-semibold leading-none">
               {formatINRRound(invoice.totalAmount)}
             </p>
           </div>
@@ -111,56 +128,40 @@ export default async function PortalInvoiceDetailPage({
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Left Column */}
         <div className="space-y-6 lg:col-span-2">
-          {/* Invoice Info */}
-          <Card className="border-zinc-200/80 shadow-sm overflow-hidden">
+          {/* Invoice Document */}
+          <Card className="shadow-card overflow-hidden rounded-2xl py-0">
             {/* Invoice Meta */}
-            <div className="grid grid-cols-2 gap-4 border-b border-zinc-100 bg-zinc-50/50 p-5 sm:grid-cols-4">
+            <div className="bg-muted/30 grid grid-cols-2 gap-5 border-b p-6 sm:grid-cols-4">
               <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">
-                  Issue Date
-                </p>
-                <p className="mt-1 text-sm font-medium text-foreground">
-                  {new Date(invoice.issueDate).toLocaleDateString("en-IN", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
+                <p className={LABEL}>Issued</p>
+                <p className="numeric text-foreground mt-1.5 text-sm font-medium">
+                  {shortDate(invoice.issueDate)}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">
-                  Due Date
-                </p>
+                <p className={LABEL}>Due</p>
                 <p
-                  className={`mt-1 text-sm font-medium ${
+                  className={`numeric mt-1.5 text-sm font-medium ${
                     invoice.status === "OVERDUE"
-                      ? "text-red-600"
+                      ? "text-destructive"
                       : "text-foreground"
                   }`}
                 >
-                  {new Date(invoice.dueDate).toLocaleDateString("en-IN", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
+                  {shortDate(invoice.dueDate)}
                 </p>
               </div>
               {invoice.gstin && (
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">
-                    GSTIN
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-foreground">
+                  <p className={LABEL}>GSTIN</p>
+                  <p className="numeric text-foreground mt-1.5 text-sm font-medium">
                     {invoice.gstin}
                   </p>
                 </div>
               )}
               {invoice.placeOfSupply && (
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">
-                    Place of Supply
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-foreground">
+                  <p className={LABEL}>Place of supply</p>
+                  <p className="text-foreground mt-1.5 text-sm font-medium">
                     {invoice.placeOfSupply}
                   </p>
                 </div>
@@ -168,29 +169,29 @@ export default async function PortalInvoiceDetailPage({
             </div>
 
             {/* Billed To */}
-            <div className="border-b border-zinc-100 p-5">
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+            <div className="border-b p-6">
+              <div className={`flex items-center gap-2 ${LABEL}`}>
                 <User className="size-3.5" />
-                Billed To
+                Billed to
               </div>
-              <div className="mt-2">
-                <p className="text-sm font-medium text-foreground">
+              <div className="mt-2.5 space-y-0.5">
+                <p className="text-foreground text-sm font-medium">
                   {invoice.contact.firstName} {invoice.contact.lastName}
                 </p>
                 {invoice.contact.company && (
-                  <p className="text-sm text-zinc-500">
+                  <p className="text-muted-foreground text-sm">
                     {invoice.contact.company}
                   </p>
                 )}
                 {invoice.contact.email && (
-                  <p className="text-sm text-zinc-500">
+                  <p className="text-muted-foreground text-sm">
                     {invoice.contact.email}
                   </p>
                 )}
                 {(invoice.contact.address ||
                   invoice.contact.city ||
                   invoice.contact.state) && (
-                  <p className="text-sm text-zinc-500">
+                  <p className="text-muted-foreground text-sm leading-relaxed">
                     {[
                       invoice.contact.address,
                       invoice.contact.city,
@@ -205,46 +206,47 @@ export default async function PortalInvoiceDetailPage({
             </div>
 
             {/* Line Items */}
-            <div className="p-5">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-3">
-                Line Items
-              </h3>
+            <div className="p-6">
+              <h2 className={`${LABEL} mb-3`}>What you&apos;re paying for</h2>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-zinc-100">
-                      <th className="pb-2 text-left text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                    <tr className="border-b">
+                      <th className="pb-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                         Description
                       </th>
-                      <th className="pb-2 text-right text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                      <th className="pb-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                         Qty
                       </th>
-                      <th className="pb-2 text-right text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                      <th className="pb-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                         Rate
                       </th>
-                      <th className="pb-2 text-right text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                      <th className="pb-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                         Amount
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-50">
+                  <tbody className="divide-border/60 divide-y">
                     {invoice.lineItems.map((item) => (
-                      <tr key={item.id}>
-                        <td className="py-3 text-sm text-zinc-700">
+                      <tr
+                        key={item.id}
+                        className="hover:bg-muted/40 transition-colors"
+                      >
+                        <td className="text-foreground py-3.5 pr-4 text-sm">
                           {item.description}
                           {item.sacCode && (
-                            <span className="block text-xs text-zinc-400">
-                              SAC: {item.sacCode}
+                            <span className="numeric text-muted-foreground/70 mt-0.5 block text-xs">
+                              SAC {item.sacCode}
                             </span>
                           )}
                         </td>
-                        <td className="py-3 text-right text-sm text-zinc-700">
+                        <td className="numeric text-muted-foreground py-3.5 text-right text-sm">
                           {item.quantity}
                         </td>
-                        <td className="py-3 text-right text-sm text-zinc-700">
+                        <td className="numeric text-muted-foreground py-3.5 text-right text-sm">
                           {formatINR(item.unitPrice)}
                         </td>
-                        <td className="py-3 text-right text-sm font-medium text-foreground">
+                        <td className="numeric text-foreground py-3.5 pl-4 text-right text-sm font-medium">
                           {formatINR(item.amount)}
                         </td>
                       </tr>
@@ -254,23 +256,23 @@ export default async function PortalInvoiceDetailPage({
               </div>
 
               {/* Totals */}
-              <div className="mt-4 border-t border-zinc-100 pt-4 space-y-2">
+              <div className="mt-5 space-y-2.5 border-t pt-5">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-500">Subtotal</span>
-                  <span className="text-foreground">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="numeric text-foreground">
                     {formatINR(invoice.subtotal)}
                   </span>
                 </div>
 
                 {invoice.discountAmount && invoice.discountAmount > 0 && (
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-zinc-500">
+                    <span className="text-muted-foreground">
                       Discount
                       {invoice.discountPercent
                         ? ` (${invoice.discountPercent}%)`
                         : ""}
                     </span>
-                    <span className="text-emerald-600">
+                    <span className="numeric text-success font-medium">
                       -{formatINR(invoice.discountAmount)}
                     </span>
                   </div>
@@ -278,10 +280,10 @@ export default async function PortalInvoiceDetailPage({
 
                 {invoice.cgstAmount > 0 && (
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-zinc-500">
+                    <span className="text-muted-foreground">
                       CGST ({invoice.cgstRate}%)
                     </span>
-                    <span className="text-foreground">
+                    <span className="numeric text-foreground">
                       {formatINR(invoice.cgstAmount)}
                     </span>
                   </div>
@@ -289,10 +291,10 @@ export default async function PortalInvoiceDetailPage({
 
                 {invoice.sgstAmount > 0 && (
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-zinc-500">
+                    <span className="text-muted-foreground">
                       SGST ({invoice.sgstRate}%)
                     </span>
-                    <span className="text-foreground">
+                    <span className="numeric text-foreground">
                       {formatINR(invoice.sgstAmount)}
                     </span>
                   </div>
@@ -300,40 +302,40 @@ export default async function PortalInvoiceDetailPage({
 
                 {invoice.igstAmount > 0 && (
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-zinc-500">
+                    <span className="text-muted-foreground">
                       IGST ({invoice.igstRate}%)
                     </span>
-                    <span className="text-foreground">
+                    <span className="numeric text-foreground">
                       {formatINR(invoice.igstAmount)}
                     </span>
                   </div>
                 )}
 
-                <div className="h-px bg-zinc-200" />
-
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-foreground">
+                <div className="flex items-center justify-between border-t pt-3">
+                  <span className="text-foreground text-sm font-semibold">
                     Total
                   </span>
-                  <span className="text-lg font-bold text-foreground">
+                  <span className="numeric text-foreground text-[19px] font-semibold">
                     {formatINR(invoice.totalAmount)}
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-zinc-500">Paid</span>
-                  <span className="text-sm font-medium text-emerald-600">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Paid so far</span>
+                  <span className="numeric text-success font-medium">
                     {formatINR(invoice.paidAmount)}
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between rounded-lg bg-zinc-50 p-3">
-                  <span className="text-sm font-semibold text-zinc-700">
-                    Balance Due
+                <div className="bg-muted/50 flex items-center justify-between rounded-xl px-4 py-3">
+                  <span className="text-foreground text-sm font-semibold">
+                    Balance due
                   </span>
                   <span
-                    className={`text-lg font-bold ${
-                      invoice.balanceDue > 0 ? "text-red-600" : "text-emerald-600"
+                    className={`numeric text-[19px] font-semibold ${
+                      invoice.balanceDue > 0
+                        ? "text-destructive"
+                        : "text-success"
                     }`}
                   >
                     {formatINR(invoice.balanceDue)}
@@ -344,23 +346,19 @@ export default async function PortalInvoiceDetailPage({
 
             {/* Notes & Terms */}
             {(invoice.notes || invoice.terms) && (
-              <div className="border-t border-zinc-100 p-5 space-y-4">
+              <div className="space-y-5 border-t p-6">
                 {invoice.notes && (
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                      Notes
-                    </p>
-                    <p className="mt-1 text-sm text-zinc-600 whitespace-pre-line">
+                    <p className={LABEL}>Notes</p>
+                    <p className="text-muted-foreground mt-1.5 whitespace-pre-line text-sm leading-relaxed">
                       {invoice.notes}
                     </p>
                   </div>
                 )}
                 {invoice.terms && (
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                      Terms & Conditions
-                    </p>
-                    <p className="mt-1 text-sm text-zinc-600 whitespace-pre-line">
+                    <p className={LABEL}>Terms &amp; conditions</p>
+                    <p className="text-muted-foreground mt-1.5 whitespace-pre-line text-sm leading-relaxed">
                       {invoice.terms}
                     </p>
                   </div>
@@ -371,40 +369,42 @@ export default async function PortalInvoiceDetailPage({
 
           {/* Payment History */}
           {invoice.payments.length > 0 && (
-            <Card className="border-zinc-200/80 shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
-                  <CreditCard className="size-4 text-indigo-500" />
-                  Payment History
+            <Card className="shadow-card rounded-2xl py-0">
+              <CardHeader className="px-6 pb-4 pt-6">
+                <CardTitle className="flex items-center gap-2.5">
+                  <CreditCard className="text-primary size-4" />
+                  <span className="font-editorial text-foreground text-[20px] font-semibold">
+                    Every payment so far
+                  </span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-6 pb-6">
                 <div className="space-y-3">
                   {invoice.payments.map((payment) => (
                     <div
                       key={payment.id}
-                      className="flex items-center gap-4 rounded-lg border border-zinc-100 p-4"
+                      className="hover:bg-muted/40 flex items-center gap-4 rounded-xl border p-4 transition-colors"
                     >
                       <div
-                        className={`flex size-8 items-center justify-center rounded-full ${
+                        className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${
                           payment.status === "COMPLETED"
-                            ? "bg-emerald-100"
+                            ? "bg-success/12 text-success"
                             : payment.status === "FAILED"
-                            ? "bg-red-100"
-                            : "bg-zinc-100"
+                              ? "bg-destructive/12 text-destructive"
+                              : "bg-muted text-muted-foreground"
                         }`}
                       >
                         {payment.status === "COMPLETED" ? (
-                          <CheckCircle2 className="size-4 text-emerald-600" />
+                          <CheckCircle2 className="size-4" />
                         ) : payment.status === "FAILED" ? (
-                          <AlertCircle className="size-4 text-red-600" />
+                          <AlertCircle className="size-4" />
                         ) : (
-                          <Clock className="size-4 text-zinc-400" />
+                          <Clock className="size-4" />
                         )}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium text-foreground">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="numeric text-foreground text-sm font-semibold">
                             {formatINR(payment.amount)}
                           </p>
                           <StatusBadge
@@ -413,28 +413,30 @@ export default async function PortalInvoiceDetailPage({
                             className="text-[10px]"
                           />
                         </div>
-                        <p className="text-xs text-zinc-500">
+                        <p className="text-muted-foreground mt-0.5 text-xs">
                           {payment.method.replace(/_/g, " ")}
                           {payment.receiptNumber && (
-                            <> &middot; {payment.receiptNumber}</>
+                            <>
+                              {" "}
+                              &middot;{" "}
+                              <span className="numeric">
+                                {payment.receiptNumber}
+                              </span>
+                            </>
                           )}
                           {payment.paidAt && (
                             <>
-                              {" "}&middot;{" "}
-                              {new Date(payment.paidAt).toLocaleDateString(
-                                "en-IN",
-                                {
-                                  month: "short",
-                                  day: "numeric",
-                                  year: "numeric",
-                                }
-                              )}
+                              {" "}
+                              &middot;{" "}
+                              <span className="numeric">
+                                {shortDate(payment.paidAt)}
+                              </span>
                             </>
                           )}
                         </p>
                       </div>
                       {payment.transactionId && (
-                        <span className="hidden text-xs text-zinc-400 sm:inline">
+                        <span className="numeric text-muted-foreground/60 hidden text-xs sm:inline">
                           {payment.transactionId}
                         </span>
                       )}
@@ -450,21 +452,21 @@ export default async function PortalInvoiceDetailPage({
         <div className="space-y-6">
           {/* Payment CTA */}
           {isPayable && (
-            <Card className="border-indigo-200 bg-gradient-to-br from-white to-indigo-50/50 shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
-                  <IndianRupee className="size-4 text-indigo-500" />
-                  Make a Payment
+            <Card className="shadow-card border-primary/20 bg-primary/[0.04] rounded-2xl py-0">
+              <CardHeader className="px-6 pb-4 pt-6">
+                <CardTitle className="flex items-center gap-2.5">
+                  <IndianRupee className="text-primary size-4" />
+                  <span className="font-editorial text-foreground text-[20px] font-semibold">
+                    Settle your balance
+                  </span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="mb-4 space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-zinc-500">Amount Due</span>
-                    <span className="text-lg font-bold text-red-600">
-                      {formatINRRound(invoice.balanceDue)}
-                    </span>
-                  </div>
+              <CardContent className="px-6 pb-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <span className={LABEL}>Amount due</span>
+                  <span className="numeric text-destructive text-[19px] font-semibold">
+                    {formatINRRound(invoice.balanceDue)}
+                  </span>
                 </div>
                 <RazorpayCheckout
                   invoiceId={invoice.id}
@@ -486,16 +488,18 @@ export default async function PortalInvoiceDetailPage({
             </Card>
           )}
 
-          {/* Paid Badge */}
+          {/* Paid in full */}
           {invoice.status === "PAID" && (
-            <Card className="border-emerald-200 bg-emerald-50 shadow-sm">
-              <CardContent className="flex flex-col items-center justify-center p-6 text-center">
-                <CheckCircle2 className="size-12 text-emerald-600" />
-                <h3 className="mt-3 text-base font-semibold text-emerald-900">
-                  Fully Paid
+            <Card className="shadow-card border-success/25 bg-success/[0.06] rounded-2xl py-0">
+              <CardContent className="flex flex-col items-center p-6 text-center">
+                <div className="bg-success/12 flex size-14 items-center justify-center rounded-2xl">
+                  <CheckCircle2 className="text-success size-7" />
+                </div>
+                <h3 className="font-editorial text-foreground mt-4 text-[20px] font-semibold">
+                  Paid in full
                 </h3>
-                <p className="mt-1 text-sm text-emerald-700">
-                  This invoice has been paid in full. Thank you!
+                <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
+                  Nothing left to settle on this invoice — thank you.
                 </p>
               </CardContent>
             </Card>
@@ -503,13 +507,13 @@ export default async function PortalInvoiceDetailPage({
 
           {/* Installment Schedule */}
           {invoice.installments.length > 0 && (
-            <Card className="border-zinc-200/80 shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold text-foreground">
-                  Payment Schedule
+            <Card className="shadow-card rounded-2xl py-0">
+              <CardHeader className="px-6 pb-4 pt-6">
+                <CardTitle className="font-editorial text-foreground text-[20px] font-semibold">
+                  Payment schedule
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-6 pb-6">
                 <div className="space-y-3">
                   {invoice.installments.map((inst, idx) => {
                     const isPaid = inst.status === "COMPLETED";
@@ -518,68 +522,61 @@ export default async function PortalInvoiceDetailPage({
                     return (
                       <div
                         key={inst.id}
-                        className={`rounded-lg border p-3 ${
+                        className={`rounded-xl border p-3.5 ${
                           isPaid
-                            ? "border-emerald-200 bg-emerald-50/50"
+                            ? "border-success/25 bg-success/[0.06]"
                             : isOverdue
-                            ? "border-red-200 bg-red-50/50"
-                            : "border-zinc-100"
+                              ? "border-destructive/25 bg-destructive/[0.06]"
+                              : "bg-muted/30"
                         }`}
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex min-w-0 items-center gap-2.5">
                             <div
-                              className={`flex size-6 items-center justify-center rounded-full text-xs font-bold ${
+                              className={`numeric flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
                                 isPaid
-                                  ? "bg-emerald-100 text-emerald-700"
+                                  ? "bg-success/15 text-success"
                                   : isOverdue
-                                  ? "bg-red-100 text-red-700"
-                                  : "bg-zinc-100 text-zinc-500"
+                                    ? "bg-destructive/15 text-destructive"
+                                    : "bg-muted text-muted-foreground"
                               }`}
                             >
                               {idx + 1}
                             </div>
-                            <span className="text-sm font-medium text-foreground">
+                            <span className="text-foreground truncate text-sm font-medium">
                               {inst.label}
                             </span>
                           </div>
-                          <span className="text-sm font-semibold text-foreground">
+                          <span className="numeric text-foreground shrink-0 text-sm font-semibold">
                             {formatINRRound(inst.amount)}
                           </span>
                         </div>
-                        <div className="mt-1.5 flex items-center justify-between pl-8">
+                        <div className="mt-2 flex items-center justify-between gap-2 pl-[34px]">
                           <span
-                            className={`text-xs ${
-                              isOverdue ? "text-red-600 font-medium" : "text-zinc-400"
+                            className={`numeric text-xs ${
+                              isOverdue
+                                ? "text-destructive font-medium"
+                                : "text-muted-foreground"
                             }`}
                           >
-                            Due:{" "}
-                            {new Date(inst.dueDate).toLocaleDateString("en-IN", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
+                            Due {shortDate(inst.dueDate)}
                           </span>
                           {isPaid && (
-                            <span className="flex items-center gap-1 text-xs font-medium text-emerald-600">
+                            <span className="text-success flex items-center gap-1 text-xs font-medium">
                               <CheckCircle2 className="size-3" />
                               Paid
                               {inst.paidAt && (
-                                <>
-                                  {" "}
+                                <span className="numeric">
                                   {new Date(inst.paidAt).toLocaleDateString(
                                     "en-IN",
-                                    {
-                                      month: "short",
-                                      day: "numeric",
-                                    }
+                                    { month: "short", day: "numeric" }
                                   )}
-                                </>
+                                </span>
                               )}
                             </span>
                           )}
                           {isOverdue && (
-                            <span className="text-xs font-semibold text-red-600">
+                            <span className="text-destructive text-xs font-semibold">
                               Overdue
                             </span>
                           )}
@@ -592,38 +589,42 @@ export default async function PortalInvoiceDetailPage({
             </Card>
           )}
 
-          {/* Quick Info */}
-          <Card className="border-zinc-200/80 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold text-foreground">
-                Invoice Summary
+          {/* At a glance */}
+          <Card className="shadow-card rounded-2xl py-0">
+            <CardHeader className="px-6 pb-4 pt-6">
+              <CardTitle className="font-editorial text-foreground text-[20px] font-semibold">
+                At a glance
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-500">Invoice #</span>
-                  <span className="font-medium text-foreground">
+            <CardContent className="px-6 pb-6">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-muted-foreground">Invoice</span>
+                  <span className="numeric text-foreground font-medium">
                     {invoice.invoiceNumber}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-500">Line Items</span>
-                  <span className="font-medium text-foreground">
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-muted-foreground">Line items</span>
+                  <span className="numeric text-foreground font-medium">
                     {invoice.lineItems.length}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-500">Payments</span>
-                  <span className="font-medium text-foreground">
-                    {invoice.payments.filter((p) => p.status === "COMPLETED")
-                      .length}
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-muted-foreground">
+                    Payments received
+                  </span>
+                  <span className="numeric text-foreground font-medium">
+                    {
+                      invoice.payments.filter((p) => p.status === "COMPLETED")
+                        .length
+                    }
                   </span>
                 </div>
                 {invoice.sacCode && (
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-zinc-500">SAC Code</span>
-                    <span className="font-medium text-foreground">
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="text-muted-foreground">SAC code</span>
+                    <span className="numeric text-foreground font-medium">
                       {invoice.sacCode}
                     </span>
                   </div>

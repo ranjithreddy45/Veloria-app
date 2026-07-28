@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { RepeatIcon } from "lucide-react";
 import { getCadences } from "@/actions/cadence.actions";
+import { PageHeader } from "@/components/layout/page-header";
 import { PageHelp } from "@/lib/page-help";
 import { CadencesTable } from "./_components/cadences-table";
 
@@ -11,16 +13,15 @@ export default async function CadencesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold tracking-tight">Sales Cadences</h1>
-          <PageHelp id="cadences" />
-        </div>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Create and manage automated outreach sequences for leads and contacts.
-        </p>
-      </div>
+      <PageHeader
+        aura
+        icon={RepeatIcon}
+        accent="violet"
+        eyebrow="CRM"
+        title="Sales Cadences"
+        description="Create and manage automated outreach sequences for leads and contacts."
+        help={<PageHelp id="cadences" />}
+      />
 
       {/* Cadences Table */}
       <CadencesTable cadences={cadences} />

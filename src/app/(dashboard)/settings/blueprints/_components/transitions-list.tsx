@@ -15,15 +15,10 @@ import {
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
+import { StatusPill } from "@/components/shared/status-pill";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Switch } from "@/components/ui/switch";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -200,13 +195,16 @@ export function TransitionsList({
   };
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Transitions</CardTitle>
-          <CardDescription>
-            Define allowed status changes and their requirements.
-          </CardDescription>
+    <section className="rounded-2xl border bg-card shadow-card">
+      <div className="flex flex-row items-start justify-between gap-3 border-b px-5 py-4">
+        <div className="min-w-0">
+          <h3 className="text-[15px] font-semibold tracking-[-0.01em]">
+            Transitions
+          </h3>
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            Which status changes are legal, who may make them, and what has to
+            be filled in first.
+          </p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
@@ -227,25 +225,24 @@ export function TransitionsList({
             />
           </DialogContent>
         </Dialog>
-      </CardHeader>
-      <CardContent>
+      </div>
+      <div>
         {transitions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <p className="text-muted-foreground text-sm">
-              No transitions defined. Add transitions to define your process
-              flow.
-            </p>
-          </div>
+          <EmptyState
+            icon={<ArrowRightIcon />}
+            title="No transitions defined"
+            description="Without transitions this blueprint doesn't constrain anything — every status change is allowed. Add the first legal move to start shaping the process."
+          />
         ) : (
-          <div className="rounded-md border">
+          <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Transition</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Requirements</TableHead>
-                  <TableHead>Roles</TableHead>
-                  <TableHead>Active</TableHead>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-[11px] uppercase tracking-wide text-muted-foreground">Transition</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide text-muted-foreground">Name</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide text-muted-foreground">Requirements</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide text-muted-foreground">Roles</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide text-muted-foreground">Active</TableHead>
                   <TableHead className="w-[50px]" />
                 </TableRow>
               </TableHeader>
@@ -273,7 +270,9 @@ export function TransitionsList({
                       {/* Name */}
                       <TableCell>
                         <span className="text-sm">
-                          {transition.name || "--"}
+                          {transition.name || (
+                            <span className="text-muted-foreground">—</span>
+                          )}
                         </span>
                       </TableCell>
 
@@ -338,16 +337,11 @@ export function TransitionsList({
 
                       {/* Active */}
                       <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={
-                            transition.isActive
-                              ? "bg-green-50 text-green-700 border-green-200"
-                              : "bg-gray-50 text-gray-500 border-gray-200"
-                          }
-                        >
-                          {transition.isActive ? "Active" : "Inactive"}
-                        </Badge>
+                        <StatusPill
+                          label={transition.isActive ? "Active" : "Inactive"}
+                          hue={transition.isActive ? "emerald" : "slate"}
+                          size="xs"
+                        />
                       </TableCell>
 
                       {/* Actions */}
@@ -422,7 +416,7 @@ export function TransitionsList({
             </Table>
           </div>
         )}
-      </CardContent>
+      </div>
 
       {/* Edit Transition Dialog */}
       <Dialog
@@ -458,6 +452,6 @@ export function TransitionsList({
           )}
         </DialogContent>
       </Dialog>
-    </Card>
+    </section>
   );
 }

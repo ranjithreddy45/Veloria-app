@@ -51,7 +51,7 @@ export default async function PortalContractDetailPage({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
-            Your account
+            Your agreement
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="large-title text-foreground text-[28px] leading-tight sm:text-[32px]">
@@ -106,9 +106,7 @@ export default async function PortalContractDetailPage({
                   </p>
                   <p
                     className={`numeric mt-1.5 text-sm font-medium ${
-                      isExpired
-                        ? "text-red-600 dark:text-red-400"
-                        : "text-foreground"
+                      isExpired ? "text-destructive" : "text-foreground"
                     }`}
                   >
                     {new Date(contract.expiresAt).toLocaleDateString("en-IN", {
@@ -173,10 +171,10 @@ export default async function PortalContractDetailPage({
 
           {/* Expired Notice */}
           {isExpired && contract.status !== "SIGNED" && (
-            <Card className="shadow-card rounded-2xl border-red-500/25 bg-red-500/[0.06] py-0">
+            <Card className="shadow-card border-destructive/25 bg-destructive/[0.06] rounded-2xl py-0">
               <CardContent className="flex flex-col items-center p-6 text-center">
-                <div className="flex size-14 items-center justify-center rounded-2xl bg-red-500/10">
-                  <Clock className="size-7 text-red-600 dark:text-red-400" />
+                <div className="bg-destructive/12 flex size-14 items-center justify-center rounded-2xl">
+                  <Clock className="text-destructive size-7" />
                 </div>
                 <h3 className="font-editorial text-foreground mt-4 text-[20px] font-semibold">
                   This one has expired
@@ -191,10 +189,10 @@ export default async function PortalContractDetailPage({
 
           {/* Signed Badge */}
           {contract.status === "SIGNED" && (
-            <Card className="shadow-card rounded-2xl border-emerald-500/25 bg-emerald-500/[0.06] py-0">
+            <Card className="shadow-card border-success/25 bg-success/[0.06] rounded-2xl py-0">
               <CardContent className="flex flex-col items-center p-6 text-center">
-                <div className="flex size-14 items-center justify-center rounded-2xl bg-emerald-500/10">
-                  <CheckCircle2 className="size-7 text-emerald-600 dark:text-emerald-400" />
+                <div className="bg-success/12 flex size-14 items-center justify-center rounded-2xl">
+                  <CheckCircle2 className="text-success size-7" />
                 </div>
                 <h3 className="font-editorial text-foreground mt-4 text-[20px] font-semibold">
                   Signed and settled
@@ -212,7 +210,7 @@ export default async function PortalContractDetailPage({
                   </span>
                 </p>
                 {contract.signatureData && (
-                  <div className="bg-card mt-4 w-full rounded-xl border border-emerald-500/20 p-4">
+                  <div className="bg-card border-success/20 mt-4 w-full rounded-xl border p-4">
                     <p className="text-muted-foreground/70 mb-1 text-[10px] font-semibold uppercase tracking-[0.14em]">
                       Signature
                     </p>

@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, ShieldCheckIcon } from "lucide-react";
 
 import { getApprovalRules } from "@/actions/approval.actions";
+import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { PageHelp } from "@/lib/page-help";
 import { ApprovalRulesTable } from "./_components/approval-rules-table";
@@ -15,27 +16,21 @@ export default async function ApprovalRulesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight">Approval Rules</h1>
-            <PageHelp id="approval-rules" />
-          </div>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Configure approval workflows for quotes, deals, and bookings.
-            Requests matching rule conditions will be routed through an
-            approval chain before proceeding.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 mt-4 sm:mt-0">
-          <Button asChild>
-            <Link href="/settings/approval-rules/new">
-              <PlusIcon className="mr-2 size-4" />
-              New Rule
-            </Link>
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Settings · Governance"
+        icon={ShieldCheckIcon}
+        accent="emerald"
+        title="Approval Rules"
+        description="Decide what needs a sign-off before it moves. Quotes, deals and bookings matching a rule's conditions are routed through its approval chain first."
+        help={<PageHelp id="approval-rules" />}
+      >
+        <Button asChild>
+          <Link href="/settings/approval-rules/new">
+            <PlusIcon className="mr-2 size-4" />
+            New Rule
+          </Link>
+        </Button>
+      </PageHeader>
 
       <ApprovalRulesTable initialRules={rules} />
     </div>

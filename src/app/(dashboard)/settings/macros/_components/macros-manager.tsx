@@ -7,6 +7,7 @@ import {
   ZapIcon,
   Loader2Icon,
   PlayIcon,
+  ChevronRightIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -16,9 +17,10 @@ import {
   deleteMacro,
   type MacroData,
 } from "@/actions/macro.actions";
-import { Badge } from "@/components/ui/badge";
+import { StatusPill, type Hue } from "@/components/shared/status-pill";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -53,7 +55,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { cn } from "@/lib/utils";
 
 // ============================================================
 // Action type labels
@@ -73,11 +74,11 @@ const ENTITY_TYPE_LABELS: Record<string, string> = {
   BOOKING: "Bookings",
 };
 
-const ENTITY_COLORS: Record<string, string> = {
-  LEAD: "border-blue-200 bg-blue-50 text-blue-700",
-  CONTACT: "border-purple-200 bg-purple-50 text-purple-700",
-  DEAL: "border-indigo-200 bg-indigo-50 text-indigo-700",
-  BOOKING: "border-amber-200 bg-amber-50 text-amber-700",
+const ENTITY_HUE: Record<string, Hue> = {
+  LEAD: "blue",
+  CONTACT: "purple",
+  DEAL: "indigo",
+  BOOKING: "amber",
 };
 
 // ============================================================
@@ -154,8 +155,12 @@ export function MacrosManager() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16 text-zinc-500">
-        <Loader2Icon className="mr-2 size-5 animate-spin" /> Loading macros...
+      <div className="rounded-2xl border bg-card p-4 shadow-card">
+        <div className="space-y-3">
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-20 w-full rounded-xl" />
+          <Skeleton className="h-20 w-full rounded-xl" />
+        </div>
       </div>
     );
   }
@@ -171,9 +176,12 @@ export function MacrosManager() {
 
   return (
     <>
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-zinc-500">
-          {macros.length} macro{macros.length !== 1 ? "s" : ""} configured
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-[13px] text-muted-foreground">
+          <span className="numeric font-medium text-foreground">
+            {macros.length}
+          </span>{" "}
+          macro{macros.length !== 1 ? "s" : ""} configured
         </p>
         <Button onClick={() => setDialogOpen(true)}>
           <PlusIcon className="mr-2 size-4" />
@@ -182,15 +190,19 @@ export function MacrosManager() {
       </div>
 
       {macros.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="py-12 text-center">
-            <ZapIcon className="mx-auto mb-3 size-10 text-zinc-300" />
-            <p className="text-sm text-zinc-500">
-              No macros yet. Create your first macro to automate repetitive CRM
-              actions.
-            </p>
-          </CardContent>
-        </Card>
+        <div className="rounded-2xl border border-dashed bg-card shadow-card">
+          <EmptyState
+            icon={<ZapIcon />}
+            title="No macros yet"
+            description="Think of the three-step routine your team does on every new enquiry. Turn it into a macro and it becomes a single click."
+            action={
+              <Button onClick={() => setDialogOpen(true)}>
+                <PlusIcon className="mr-2 size-4" />
+                Create first macro
+              </Button>
+            }
+          />
+        </div>
       ) : (
         <Tabs defaultValue="LEAD">
           <TabsList>
@@ -203,61 +215,81 @@ export function MacrosManager() {
           {entityTypes.map((et) => (
             <TabsContent key={et} value={et} className="mt-4">
               {macrosByEntity[et].length === 0 ? (
-                <p className="py-8 text-center text-sm text-zinc-400">
-                  No macros for {ENTITY_TYPE_LABELS[et].toLowerCase()}
-                </p>
+                <div className="rounded-2xl border border-dashed bg-card shadow-card">
+                  <EmptyState
+                    icon={<ZapIcon />}
+                    title={`No macros for ${ENTITY_TYPE_LABELS[et].toLowerCase()}`}
+                    description="Macros are scoped to one record type. Add one here and it shows up as a one-click action on every record of this kind."
+                  />
+                </div>
               ) : (
                 <div className="space-y-3">
                   {macrosByEntity[et].map((macro) => {
                     const actions = macro.actions as Array<{ type: string; config: Record<string, unknown> }>;
                     return (
-                      <Card
+                      <div
                         key={macro.id}
-                        className="border-zinc-200/80 shadow-sm"
+                        className="rounded-2xl border bg-card shadow-card transition-shadow hover:shadow-card-hover"
                       >
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between gap-4">
+                        <div className="p-4 sm:p-5">
+                          <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className="flex size-8 items-center justify-center rounded-lg"
-                                  style={{ backgroundColor: macro.color + "20", color: macro.color }}
+                              <div className="flex flex-wrap items-center gap-2.5">
+                                <span
+                                  className="flex size-9 shrink-0 items-center justify-center rounded-xl"
+                                  style={{ backgroundColor: macro.color + "1f", color: macro.color }}
+                                  aria-hidden
                                 >
                                   <ZapIcon className="size-4" />
-                                </div>
-                                <div>
-                                  <h3 className="font-medium">{macro.name}</h3>
-                                  {macro.description && (
-                                    <p className="text-xs text-zinc-500">
-                                      {macro.description}
-                                    </p>
-                                  )}
-                                </div>
-                                <Badge
-                                  variant="outline"
-                                  className={cn("text-xs", ENTITY_COLORS[macro.entityType])}
-                                >
-                                  {macro.entityType}
-                                </Badge>
+                                </span>
+                                <h3 className="text-[15px] font-semibold tracking-[-0.01em]">
+                                  {macro.name}
+                                </h3>
+                                <StatusPill
+                                  label={macro.entityType}
+                                  hue={ENTITY_HUE[macro.entityType] ?? "neutral"}
+                                  size="xs"
+                                />
                                 {macro.isShared && (
-                                  <Badge variant="outline" className="text-xs">
-                                    Shared
-                                  </Badge>
+                                  <StatusPill label="Shared" hue="slate" size="xs" />
                                 )}
                               </div>
-                              <div className="mt-2 flex flex-wrap gap-1.5">
+
+                              {macro.description && (
+                                <p className="mt-1.5 text-[13px] text-muted-foreground">
+                                  {macro.description}
+                                </p>
+                              )}
+
+                              {/* Step chain */}
+                              <div className="mt-3 flex flex-wrap items-center gap-x-1.5 gap-y-1.5">
                                 {actions.map((a, i) => (
-                                  <Badge key={i} variant="secondary" className="text-xs">
-                                    <PlayIcon className="mr-1 size-2.5" />
-                                    {ACTION_TYPE_LABELS[a.type] || a.type}
-                                  </Badge>
+                                  <React.Fragment key={`${macro.id}-step-${i}`}>
+                                    {i > 0 && (
+                                      <ChevronRightIcon
+                                        className="size-3.5 shrink-0 text-muted-foreground"
+                                        aria-hidden
+                                      />
+                                    )}
+                                    <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 text-[12.5px] font-medium">
+                                      <PlayIcon className="size-2.5 text-muted-foreground" />
+                                      {ACTION_TYPE_LABELS[a.type] || a.type}
+                                    </span>
+                                  </React.Fragment>
                                 ))}
                               </div>
+
+                              <p className="mt-2.5 text-[11px] uppercase tracking-wide text-muted-foreground">
+                                <span className="numeric font-medium text-foreground">
+                                  {actions.length}
+                                </span>{" "}
+                                step{actions.length !== 1 ? "s" : ""} · one click
+                              </p>
                             </div>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="sm">
-                                  <TrashIcon className="size-4 text-red-500" />
+                                <Button variant="ghost" size="sm" title="Delete macro">
+                                  <TrashIcon className="size-4 text-destructive" />
                                 </Button>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
@@ -279,8 +311,8 @@ export function MacrosManager() {
                               </AlertDialogContent>
                             </AlertDialog>
                           </div>
-                        </CardContent>
-                      </Card>
+                        </div>
+                      </div>
                     );
                   })}
                 </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import type * as React from "react";
 import {
   PencilIcon,
   ExternalLinkIcon,
@@ -12,12 +13,8 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { cn } from "@/lib/utils";
 import { WebformForm } from "./webform-form";
 import { FormPreview } from "./form-preview";
 import { SubmissionsTable } from "./submissions-table";
@@ -68,6 +65,41 @@ interface WebformDetailTabsProps {
 }
 
 // ============================================================
+// Section — the settings surface used across /settings
+// ============================================================
+
+function Section({
+  icon,
+  title,
+  description,
+  children,
+  className,
+}: {
+  icon?: React.ReactNode;
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <section
+      className={cn("rounded-2xl border bg-card shadow-card", className)}
+    >
+      <div className="border-b px-5 py-4">
+        <h3 className="flex items-center gap-2 text-[15px] font-semibold tracking-[-0.01em]">
+          {icon}
+          {title}
+        </h3>
+        {description && (
+          <p className="mt-1 text-[13px] text-muted-foreground">{description}</p>
+        )}
+      </div>
+      <div className="px-5 py-5">{children}</div>
+    </section>
+  );
+}
+
+// ============================================================
 // Webform Detail Tabs (Client Component)
 // ============================================================
 
@@ -95,15 +127,12 @@ export function WebformDetailTabs({
 
       {/* Configuration Tab */}
       <TabsContent value="configuration">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <PencilIcon className="size-4" />
-              Edit Webform
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <WebformForm
+        <Section
+          icon={<PencilIcon className="size-4 text-muted-foreground" />}
+          title="Form Configuration"
+          description="Fields, routing and the thank-you experience. Changes go live on the public form immediately."
+        >
+          <WebformForm
               mode="edit"
               webformId={webform.id}
               defaultValues={{
@@ -120,20 +149,17 @@ export function WebformDetailTabs({
                 isActive: webform.isActive,
               }}
             />
-          </CardContent>
-        </Card>
+        </Section>
       </TabsContent>
 
       {/* Preview Tab */}
       <TabsContent value="preview">
-        <Card>
-          <CardHeader>
-            <CardTitle>Form Preview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <FormPreview fields={webform.fields} />
-          </CardContent>
-        </Card>
+        <Section
+          title="Form Preview"
+          description="Exactly what a visitor sees at your public form URL."
+        >
+          <FormPreview fields={webform.fields} />
+        </Section>
       </TabsContent>
 
       {/* Embed Code Tab */}
@@ -141,94 +167,75 @@ export function WebformDetailTabs({
         <div className="space-y-4">
           {embedData && (
             <>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <ExternalLinkIcon className="size-4" />
-                    Direct Link
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 overflow-x-auto rounded-lg border bg-zinc-50 p-3 text-sm dark:bg-zinc-900">
-                      {embedData.formUrl}
-                    </code>
-                    <CopyButtonClient text={embedData.formUrl} />
-                  </div>
-                </CardContent>
-              </Card>
+              <Section
+                icon={<ExternalLinkIcon className="size-4 text-muted-foreground" />}
+                title="Direct Link"
+                description="Share this URL anywhere — no code required."
+              >
+                <div className="flex items-center gap-2">
+                  <code className="numeric flex-1 overflow-x-auto rounded-lg border bg-muted/40 p-3 text-sm">
+                    {embedData.formUrl}
+                  </code>
+                  <CopyButtonClient text={embedData.formUrl} />
+                </div>
+              </Section>
 
               {embedData.nativeHtml && (
-                <Card className="border-emerald-300 dark:border-emerald-800">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <CodeIcon className="size-4" />
-                      Native form — your own design (best for a landing page)
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground mb-2 text-sm">
-                      Real HTML on your page — no iframe — so you can restyle it to
-                      match your landing page exactly (every class is prefixed{" "}
-                      <code>vg-</code>). Leads still land in this app, and Google
-                      click ids are read straight from the landing-page URL. To fire
-                      a Google Ads conversion, put your ID in the{" "}
-                      <code>ADS_CONVERSION</code> line at the top of the script.
-                    </p>
-                    <pre className="max-h-80 overflow-auto rounded-lg border bg-zinc-50 p-3 text-xs dark:bg-zinc-900">
-                      {embedData.nativeHtml}
-                    </pre>
-                    <div className="mt-2 flex justify-end">
-                      <CopyButtonClient text={embedData.nativeHtml} />
-                    </div>
-                  </CardContent>
-                </Card>
+                <Section
+                  icon={<CodeIcon className="size-4 text-muted-foreground" />}
+                  title="Native form — your own design"
+                  description="Best for a landing page: real HTML you can restyle to match your brand."
+                >
+                  <p className="mb-3 text-[13px] leading-relaxed text-muted-foreground">
+                    No iframe, so every element is yours to style (each class is
+                    prefixed <code>vg-</code>). Leads still land in this app and
+                    Google click ids are read straight from the landing-page URL.
+                    To fire a Google Ads conversion, put your ID in the{" "}
+                    <code>ADS_CONVERSION</code> line at the top of the script.
+                  </p>
+                  <pre className="numeric max-h-80 overflow-auto rounded-lg border bg-muted/40 p-3 text-xs">
+                    {embedData.nativeHtml}
+                  </pre>
+                  <div className="mt-3 flex justify-end">
+                    <CopyButtonClient text={embedData.nativeHtml} />
+                  </div>
+                </Section>
               )}
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CodeIcon className="size-4" />
-                    Iframe Embed (simple fallback)
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground mb-2 text-sm">
-                    Plain iframe. Does not forward ad click ids from the
-                    landing page — use the JavaScript embed for Google Ads.
-                  </p>
-                  <pre className="overflow-x-auto rounded-lg border bg-zinc-50 p-3 text-xs dark:bg-zinc-900">
-                    {embedData.iframe}
-                  </pre>
-                  <div className="mt-2 flex justify-end">
-                    <CopyButtonClient text={embedData.iframe} />
-                  </div>
-                </CardContent>
-              </Card>
+              <Section
+                icon={<CodeIcon className="size-4 text-muted-foreground" />}
+                title="JavaScript Embed"
+                description="Recommended for ad traffic — carries attribution through to the lead."
+              >
+                <p className="mb-3 text-[13px] leading-relaxed text-muted-foreground">
+                  Forwards gclid / gbraid / wbraid / fbclid and UTM params from
+                  the landing page into the form, auto-sizes the iframe, and can
+                  fire a Google Ads conversion on submit.
+                </p>
+                <JsEmbedPanel jsEmbed={embedData.jsEmbed} />
+              </Section>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CodeIcon className="size-4" />
-                    JavaScript Embed (recommended)
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground mb-3 text-sm">
-                    Forwards gclid/gbraid/wbraid/fbclid + UTM params from the
-                    landing page into the form, auto-sizes the iframe, and can
-                    fire a Google Ads conversion on submit.
-                  </p>
-                  <JsEmbedPanel jsEmbed={embedData.jsEmbed} />
-                </CardContent>
-              </Card>
+              <Section
+                icon={<CodeIcon className="size-4 text-muted-foreground" />}
+                title="Iframe Embed"
+                description="Simple fallback — does not forward ad click ids, so prefer the JavaScript embed for paid traffic."
+              >
+                <pre className="numeric overflow-x-auto rounded-lg border bg-muted/40 p-3 text-xs">
+                  {embedData.iframe}
+                </pre>
+                <div className="mt-3 flex justify-end">
+                  <CopyButtonClient text={embedData.iframe} />
+                </div>
+              </Section>
             </>
           )}
           {!embedData && (
-            <div className="rounded-lg border border-dashed p-8 text-center">
-              <p className="text-muted-foreground text-sm">
-                Embed code could not be generated.
-              </p>
+            <div className="rounded-2xl border border-dashed bg-card shadow-card">
+              <EmptyState
+                icon={<CodeIcon />}
+                title="Embed code unavailable"
+                description="We couldn't generate embed snippets for this form. Check that it has a slug and try reloading."
+              />
             </div>
           )}
         </div>

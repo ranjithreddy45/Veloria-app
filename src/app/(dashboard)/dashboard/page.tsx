@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type React from "react";
 import Link from "next/link";
 import { auth } from "@/../auth";
 import { CalendarDays, IndianRupee, ListChecks, Trophy, UserPlus, CalendarPlus } from "lucide-react";
@@ -32,6 +33,25 @@ function getGreeting(): string {
   if (hour < 12) return "Good morning";
   if (hour < 17) return "Good afternoon";
   return "Good evening";
+}
+
+// ============================================================
+// SectionLabel — the small gradient eyebrow that separates each band of the
+// dashboard. One definition so every section reads identically.
+// ============================================================
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span
+        aria-hidden
+        className="h-3.5 w-[3px] rounded-full bg-gradient-to-b from-violet-500 to-violet-400"
+      />
+      <h2 className="text-brand-gradient text-[11px] font-semibold uppercase tracking-[0.12em]">
+        {children}
+      </h2>
+    </div>
+  );
 }
 
 // ============================================================
@@ -71,10 +91,22 @@ export default async function DashboardPage() {
   // A live one-line briefing — the reason to open this every morning.
   const eventsToday = stats.upcomingEvents?.length ?? 0;
   const paymentsDue = stats.overduePayments?.length ?? 0;
-  const briefing: { icon: typeof CalendarDays; text: string }[] = [
-    { icon: CalendarDays, text: `${eventsToday} upcoming ${eventsToday === 1 ? "event" : "events"}` },
-    { icon: IndianRupee, text: `${paymentsDue} ${paymentsDue === 1 ? "payment" : "payments"} to collect` },
-    { icon: ListChecks, text: `${stats.tasks.pending} open ${stats.tasks.pending === 1 ? "task" : "tasks"}` },
+  const briefing: { icon: typeof CalendarDays; value: number; label: string }[] = [
+    {
+      icon: CalendarDays,
+      value: eventsToday,
+      label: `upcoming ${eventsToday === 1 ? "event" : "events"}`,
+    },
+    {
+      icon: IndianRupee,
+      value: paymentsDue,
+      label: `${paymentsDue === 1 ? "payment" : "payments"} to collect`,
+    },
+    {
+      icon: ListChecks,
+      value: stats.tasks.pending,
+      label: `open ${stats.tasks.pending === 1 ? "task" : "tasks"}`,
+    },
   ];
 
   // Format today's date for the contextual eyebrow
@@ -124,7 +156,12 @@ export default async function DashboardPage() {
                   className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/70 px-2.5 py-1 text-[12.5px] backdrop-blur-sm"
                 >
                   <b.icon className="size-3.5 text-violet-500/80" strokeWidth={2} />
-                  <span className="text-foreground/80">{b.text}</span>
+                  <span className="text-foreground/80">
+                    <span className="numeric font-semibold text-foreground">
+                      {b.value}
+                    </span>{" "}
+                    {b.label}
+                  </span>
                 </span>
               ))}
               {velos && velos.players > 0 && (
@@ -149,35 +186,34 @@ export default async function DashboardPage() {
       )}
 
       {/* ============================================================
-          KPI cockpit
+          KPI cockpit + pipeline intake
           ============================================================ */}
-      <KpiCards
-        revenue={stats.revenue}
-        bookings={stats.bookings}
-        leads={stats.leads}
-        tasks={stats.tasks}
-        revenueHistory={stats.monthlyRevenue.map((m) => m.revenue)}
-      />
-
-      {/* ============================================================
-          Leads created — all-time pipeline volume + this-month intake
-          ============================================================ */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 animate-rise-in animate-stagger-2">
-        <StatTile
-          label="Leads created"
-          value={leadsAllTime}
-          accent="teal"
-          icon={<UserPlus className="size-4" />}
-          sub="All-time leads in the pipeline"
+      <section className="space-y-3">
+        <SectionLabel>Today at a glance</SectionLabel>
+        <KpiCards
+          revenue={stats.revenue}
+          bookings={stats.bookings}
+          leads={stats.leads}
+          tasks={stats.tasks}
+          revenueHistory={stats.monthlyRevenue.map((m) => m.revenue)}
         />
-        <StatTile
-          label="Leads created this month"
-          value={leadsThisMonth}
-          accent="violet"
-          icon={<CalendarPlus className="size-4" />}
-          sub={`New leads in ${monthLabel}`}
-        />
-      </div>
+        <div className="animate-rise-in animate-stagger-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <StatTile
+            label="Leads created"
+            value={leadsAllTime}
+            accent="teal"
+            icon={<UserPlus className="size-4" />}
+            sub="All-time leads in the pipeline"
+          />
+          <StatTile
+            label="Leads created this month"
+            value={leadsThisMonth}
+            accent="violet"
+            icon={<CalendarPlus className="size-4" />}
+            sub={`New leads in ${monthLabel}`}
+          />
+        </div>
+      </section>
 
       <div className="divider-fade" aria-hidden />
 
@@ -185,12 +221,7 @@ export default async function DashboardPage() {
           Performance — Revenue trend (8/12) + Bookings by type (4/12)
           ============================================================ */}
       <section className="animate-fade-in-up space-y-3" style={{ animationDelay: "120ms" }}>
-        <div className="flex items-center gap-2">
-          <span aria-hidden className="h-3.5 w-[3px] rounded-full bg-gradient-to-b from-violet-500 to-violet-400" />
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-gradient">
-            Performance
-          </h2>
-        </div>
+        <SectionLabel>Performance</SectionLabel>
         <div className="grid gap-4 lg:grid-cols-12">
           <div className="lg:col-span-8">
             <RevenueChart data={stats.monthlyRevenue} />
@@ -207,12 +238,7 @@ export default async function DashboardPage() {
           What needs me — Upcoming events + Overdue items
           ============================================================ */}
       <section className="animate-fade-in-up space-y-3" style={{ animationDelay: "180ms" }}>
-        <div className="flex items-center gap-2">
-          <span aria-hidden className="h-3.5 w-[3px] rounded-full bg-gradient-to-b from-violet-500 to-violet-400" />
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-gradient">
-            What needs me
-          </h2>
-        </div>
+        <SectionLabel>What needs me</SectionLabel>
         <div className="grid gap-4 lg:grid-cols-2">
           <UpcomingEvents events={stats.upcomingEvents} />
           <OverdueItems
@@ -228,12 +254,7 @@ export default async function DashboardPage() {
           Live team activity — keeps the dashboard feeling current
           ============================================================ */}
       <section className="animate-fade-in-up space-y-3" style={{ animationDelay: "240ms" }}>
-        <div className="flex items-center gap-2">
-          <span aria-hidden className="h-3.5 w-[3px] rounded-full bg-gradient-to-b from-violet-500 to-violet-400" />
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-gradient">
-            Team pulse
-          </h2>
-        </div>
+        <SectionLabel>Team pulse</SectionLabel>
         <ActivityFeed />
       </section>
     </div>

@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { PencilIcon } from "lucide-react";
+import { ChevronRightIcon, PencilIcon, TruckIcon } from "lucide-react";
 
 import { getRentalItem } from "@/actions/rental.actions";
+import { PageHeader } from "@/components/layout/page-header";
+import { StatusPill } from "@/components/shared/status-pill";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { RentalDetail } from "../_components/rental-detail";
 
 export const metadata: Metadata = { title: "Rental Item Details" };
@@ -32,26 +33,32 @@ export default async function RentalItemDetailPage({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight">{item.name}</h1>
-            <Badge variant="secondary">{item.category}</Badge>
-          </div>
-          <p className="text-muted-foreground mt-1 text-sm">
-            {item.availableQty} of {item.quantity} available
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" asChild>
-            <Link href={`/rentals/${item.id}/edit`}>
-              <PencilIcon className="mr-2 size-4" />
-              Edit
+      <PageHeader
+        icon={TruckIcon}
+        accent="cyan"
+        title={item.name}
+        eyebrow={
+          <span className="flex items-center gap-1.5">
+            <Link href="/rentals" className="transition-colors hover:text-foreground">
+              Rentals
             </Link>
-          </Button>
-        </div>
-      </div>
+            <ChevronRightIcon className="size-3 opacity-50" />
+            <span>{item.category}</span>
+          </span>
+        }
+        description={`${item.availableQty} of ${item.quantity} units available`}
+      >
+        <StatusPill
+          label={item.availableQty > 0 ? "Available" : "Fully booked"}
+          hue={item.availableQty > 0 ? "emerald" : "amber"}
+        />
+        <Button variant="outline" asChild>
+          <Link href={`/rentals/${item.id}/edit`}>
+            <PencilIcon className="mr-2 size-4" />
+            Edit
+          </Link>
+        </Button>
+      </PageHeader>
 
       {/* Detail Tabs */}
       <RentalDetail item={item} />
