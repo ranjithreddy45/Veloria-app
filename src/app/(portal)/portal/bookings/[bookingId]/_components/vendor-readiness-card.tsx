@@ -15,20 +15,20 @@ export function VendorReadinessCard({ confirmed, total }: VendorReadinessCardPro
   const percent = Math.round((confirmed / total) * 100);
 
   return (
-    <Card className="border-zinc-200/80 shadow-sm">
+    <Card className="border-border/80 shadow-sm">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base font-semibold text-zinc-900 dark:text-zinc-100">
-          <Users className="size-4 text-indigo-500" />
+        <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+          <Users className="size-4 text-primary" />
           Vendor Readiness
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-zinc-600 dark:text-zinc-400">
+            <span className="text-sm text-muted-foreground">
               {confirmed} of {total} vendors confirmed
             </span>
-            <span className="text-sm font-semibold tabular-nums text-zinc-800 dark:text-zinc-200">
+            <span className="text-sm font-semibold tabular-nums text-foreground">
               {percent}%
             </span>
           </div>

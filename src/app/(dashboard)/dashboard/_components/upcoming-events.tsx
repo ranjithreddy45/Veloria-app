@@ -145,7 +145,7 @@ export function UpcomingEvents({ events }: UpcomingEventsProps) {
                         daysRemaining <= 0
                           ? "text-destructive"
                           : daysRemaining <= 2
-                            ? "text-amber-600 dark:text-amber-400"
+                            ? "text-warning"
                             : "text-muted-foreground"
                       )}
                     >

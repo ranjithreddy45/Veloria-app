@@ -88,7 +88,7 @@ export function TaskColumn({ status, tasks }: TaskColumnProps) {
             className="size-2 rounded-full"
             style={{ backgroundColor: config.color }}
           />
-          <h3 className="text-sm font-semibold text-zinc-800">
+          <h3 className="text-sm font-semibold text-foreground">
             {config.label}
           </h3>
           <Badge
@@ -115,15 +115,15 @@ export function TaskColumn({ status, tasks }: TaskColumnProps) {
           <div
             className={cn(
               "flex flex-1 flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed py-10 text-center transition-colors",
-              isOver ? "border-indigo-300 bg-indigo-50/60" : "border-zinc-200/80"
+              isOver ? "border-indigo-300 bg-indigo-50/60" : "border-border"
             )}
           >
             <span
               className="size-2 rounded-full"
               style={{ backgroundColor: config.color, opacity: 0.5 }}
             />
-            <p className="text-xs font-medium text-zinc-400">No tasks</p>
-            <p className="text-[11px] text-zinc-300">Drag a card here</p>
+            <p className="text-xs font-medium text-muted-foreground">No tasks</p>
+            <p className="text-[11px] text-muted-foreground">Drag a card here</p>
           </div>
         )}
       </div>

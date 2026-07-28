@@ -18,8 +18,8 @@ export default function PortalError({
 
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center px-6 py-16 text-center">
-      <div className="flex size-16 items-center justify-center rounded-2xl bg-amber-500/10">
-        <AlertTriangle className="size-8 text-amber-600 dark:text-amber-400" />
+      <div className="flex size-16 items-center justify-center rounded-2xl bg-warning/10">
+        <AlertTriangle className="size-8 text-warning" />
       </div>
       <h2 className="font-editorial text-foreground mt-5 text-[22px] font-semibold">
         This page didn&apos;t load

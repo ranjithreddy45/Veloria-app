@@ -72,7 +72,7 @@ export function VendorConfirm({ token }: { token: string }) {
         <Button
           onClick={() => submit("DECLINE")}
           disabled={pending}
-          className="w-full bg-rose-600 hover:bg-rose-700"
+          className="w-full bg-destructive hover:bg-destructive/90"
         >
           {pending ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
           Confirm decline
@@ -112,7 +112,7 @@ export function VendorConfirm({ token }: { token: string }) {
           <div className="space-y-4">
             {VENDOR_TERMS.map((section) => (
               <div key={section.heading}>
-                <p className="text-xs font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-400">
+                <p className="text-xs font-semibold uppercase tracking-wide text-primary">
                   {section.heading}
                 </p>
                 <ul className="mt-1.5 space-y-1.5">
@@ -148,7 +148,7 @@ export function VendorConfirm({ token }: { token: string }) {
         <Button
           onClick={() => submit("CONFIRM")}
           disabled={pending || !termsAccepted}
-          className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+          className="flex-1 bg-success hover:bg-success/90"
         >
           {pending ? (
             <Loader2 className="mr-2 size-4 animate-spin" />
@@ -161,7 +161,7 @@ export function VendorConfirm({ token }: { token: string }) {
           variant="outline"
           onClick={() => setMode("declining")}
           disabled={pending}
-          className="flex-1 text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-950/30"
+          className="flex-1 text-destructive hover:bg-destructive/10"
         >
           Can&apos;t make it
         </Button>

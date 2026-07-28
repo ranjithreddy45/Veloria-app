@@ -131,8 +131,8 @@ export default async function IncentivesPage() {
                       variant={incentive.isAwarded ? "default" : "outline"}
                       className={
                         incentive.isAwarded
-                          ? "shrink-0 border-transparent bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"
-                          : "shrink-0 border-amber-300/60 text-amber-700 dark:text-amber-300"
+                          ? "shrink-0 border-transparent bg-success/15 text-success"
+                          : "shrink-0 border-amber-300/60 text-warning"
                       }
                     >
                       {incentive.isAwarded ? "Awarded" : "Pending"}
@@ -156,7 +156,7 @@ export default async function IncentivesPage() {
                     )}
                     {incentive.bonusAmount != null &&
                       Number(incentive.bonusAmount) > 0 && (
-                        <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                        <span className="font-medium text-success">
                           {Number(incentive.bonusAmount).toLocaleString(
                             "en-IN",
                             {

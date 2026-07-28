@@ -53,14 +53,14 @@ const FILTER_OPTIONS: SegmentOption<StatusParam>[] = [
 ];
 
 const SEVERITY_PILL: Record<Severity, string> = {
-  HIGH: "bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300",
-  MEDIUM: "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300",
-  LOW: "bg-slate-100 text-slate-600 dark:bg-slate-800/60 dark:text-slate-300",
+  HIGH: "bg-destructive/12 text-destructive",
+  MEDIUM: "bg-warning/15 text-warning",
+  LOW: "bg-muted text-muted-foreground",
 };
 
 const STATUS_PILL: Record<string, string> = {
-  OPEN: "bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-300",
-  RESOLVED: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-300",
+  OPEN: "bg-destructive/10 text-destructive",
+  RESOLVED: "bg-success/12 text-success",
   IGNORED: "bg-muted text-muted-foreground",
 };
 

@@ -85,7 +85,7 @@ export default async function VendorPerformanceDetailPage({
 
       {/* KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Overall Score
@@ -98,7 +98,7 @@ export default async function VendorPerformanceDetailPage({
           </CardContent>
         </Card>
 
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               On-Time Rate
@@ -111,7 +111,7 @@ export default async function VendorPerformanceDetailPage({
           </CardContent>
         </Card>
 
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Quality Score
@@ -124,7 +124,7 @@ export default async function VendorPerformanceDetailPage({
           </CardContent>
         </Card>
 
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Tasks Completed
@@ -138,7 +138,7 @@ export default async function VendorPerformanceDetailPage({
       </div>
 
       {/* Score History */}
-      <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader>
           <CardTitle>Score History (Last 12 Months)</CardTitle>
         </CardHeader>
@@ -206,7 +206,7 @@ export default async function VendorPerformanceDetailPage({
           <h2 className="text-lg font-semibold">Badges Earned</h2>
         </div>
         {badges.length === 0 ? (
-          <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+          <Card className="border-border shadow-sm">
             <CardContent className="py-8 text-center text-muted-foreground">
               No badges earned yet.
             </CardContent>
@@ -217,12 +217,12 @@ export default async function VendorPerformanceDetailPage({
             {badges.map((badge: any) => (
               <Card
                 key={badge.id}
-                className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm"
+                className="border-border shadow-sm"
               >
                 <CardContent className="pt-6">
                   <div className="flex items-start gap-3">
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
-                      <AwardIcon className="size-5 text-amber-600 dark:text-amber-400" />
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-warning/15">
+                      <AwardIcon className="size-5 text-warning" />
                     </div>
                     <div className="min-w-0">
                       <p className="font-medium">{badge.title}</p>
@@ -260,7 +260,7 @@ export default async function VendorPerformanceDetailPage({
           <h2 className="text-lg font-semibold">Incentives</h2>
         </div>
         {incentives.length === 0 ? (
-          <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+          <Card className="border-border shadow-sm">
             <CardContent className="py-8 text-center text-muted-foreground">
               No incentives assigned yet.
             </CardContent>
@@ -271,7 +271,7 @@ export default async function VendorPerformanceDetailPage({
             {incentives.map((incentive: any) => (
               <Card
                 key={incentive.id}
-                className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm"
+                className="border-border shadow-sm"
               >
                 <CardContent className="pt-6">
                   <div className="flex items-start justify-between">
@@ -295,7 +295,7 @@ export default async function VendorPerformanceDetailPage({
                     )}
                     {incentive.bonusAmount != null &&
                       Number(incentive.bonusAmount) > 0 && (
-                        <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                        <span className="font-medium text-success">
                           +{Number(incentive.bonusAmount).toLocaleString("en-IN", {
                             style: "currency",
                             currency: "INR",

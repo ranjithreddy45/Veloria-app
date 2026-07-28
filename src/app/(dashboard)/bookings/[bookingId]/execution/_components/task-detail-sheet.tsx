@@ -242,7 +242,7 @@ export function TaskDetailSheet({
               {task.priority}
             </Badge>
             {task.isMandatory && (
-              <Badge variant="outline" className="text-amber-600 border-amber-300">
+              <Badge variant="outline" className="text-warning border-warning/20">
                 <AlertTriangleIcon className="mr-1 size-3" />
                 Mandatory
               </Badge>
@@ -291,11 +291,11 @@ export function TaskDetailSheet({
           {/* Delay Reason */}
           {(task.status === "BLOCKED" || task.status === "DELAYED") &&
             task.delayReason && (
-              <div className="rounded-md bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 p-3">
-                <h4 className="text-sm font-medium text-red-700 dark:text-red-400 mb-1">
+              <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3">
+                <h4 className="text-sm font-medium text-destructive mb-1">
                   {task.status === "BLOCKED" ? "Block" : "Delay"} Reason
                 </h4>
-                <p className="text-sm text-red-600 dark:text-red-300">
+                <p className="text-sm text-destructive">
                   {task.delayReason}
                 </p>
               </div>
@@ -452,7 +452,7 @@ export function TaskDetailSheet({
                 {proofs.map((proof: any) => (
                   <div
                     key={proof.id}
-                    className="rounded-md border border-zinc-200/80 dark:border-zinc-700/80 p-2 text-sm"
+                    className="rounded-md border border-border p-2 text-sm"
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <Badge variant="secondary" className="text-[10px]">
@@ -475,7 +475,7 @@ export function TaskDetailSheet({
                 ))}
               </div>
             )}
-            <div className="space-y-2 rounded-md border border-zinc-200/80 dark:border-zinc-700/80 p-3">
+            <div className="space-y-2 rounded-md border border-border p-3">
               <div className="flex gap-2">
                 <Select value={proofType} onValueChange={setProofType}>
                   <SelectTrigger className="w-32">
@@ -530,8 +530,8 @@ export function TaskDetailSheet({
               <div>
                 <h4 className="text-sm font-medium mb-2">Approval</h4>
                 {task.isApproved ? (
-                  <div className="rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 p-3 text-sm">
-                    <CheckCircle2Icon className="inline mr-1 size-4 text-emerald-600" />
+                  <div className="rounded-md bg-success/10 border border-success/20 p-3 text-sm">
+                    <CheckCircle2Icon className="inline mr-1 size-4 text-success" />
                     Approved
                     {task.approvedAt && (
                       <span className="text-muted-foreground ml-2">
@@ -545,7 +545,7 @@ export function TaskDetailSheet({
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <p className="text-sm text-amber-600 dark:text-amber-400">
+                    <p className="text-sm text-warning">
                       Awaiting approval.
                     </p>
                     <Button
@@ -579,7 +579,7 @@ export function TaskDetailSheet({
                   {escalations.map((esc: any) => (
                     <div
                       key={esc.id}
-                      className="rounded-md border border-zinc-200/80 dark:border-zinc-700/80 p-2 text-sm"
+                      className="rounded-md border border-border p-2 text-sm"
                     >
                       <div className="flex items-center gap-2 mb-1">
                         <Badge
@@ -596,7 +596,7 @@ export function TaskDetailSheet({
                         {esc.reason}
                       </p>
                       {esc.delayMinutes != null && (
-                        <p className="text-xs text-red-500 mt-0.5">
+                        <p className="text-xs text-destructive mt-0.5">
                           Delay: {esc.delayMinutes} minutes
                         </p>
                       )}

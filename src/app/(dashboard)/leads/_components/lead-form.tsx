@@ -668,9 +668,9 @@ function SlotAvailabilityHint({
   if (!state) return null;
   if (state.loading) return <p className="mt-1 text-xs text-muted-foreground">Checking availability…</p>;
   if (state.available)
-    return <p className="mt-1 text-xs text-emerald-600">✓ {slot} slot looks available on this date.</p>;
+    return <p className="text-success mt-1 text-xs">✓ {slot} slot looks available on this date.</p>;
   return (
-    <p className="mt-1 text-xs text-amber-600">
+    <p className="text-warning mt-1 text-xs">
       This slot may be taken{state.reason ? ` (${state.reason})` : ""}.
       {state.alternates.length ? ` Free: ${state.alternates.join(", ")}.` : " No slots free that day."}
     </p>

@@ -89,12 +89,12 @@ export function ReferralIntakeForm({ code, utm }: ReferralIntakeFormProps) {
 
   if (done) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-8 text-center dark:border-emerald-900/50 dark:bg-emerald-950/30">
-        <CheckCircle2 className="size-10 text-emerald-600" />
-        <p className="text-lg font-semibold text-emerald-800 dark:text-emerald-200">
+      <div className="flex flex-col items-center gap-3 rounded-xl border border-success/20 bg-success/10 p-8 text-center">
+        <CheckCircle2 className="size-10 text-success" />
+        <p className="text-lg font-semibold text-success">
           Thank you — our team will reach out
         </p>
-        <p className="text-sm text-emerald-700 dark:text-emerald-300">
+        <p className="text-sm text-success">
           We’ve received your details and a Veloria Grand event consultant will
           be in touch shortly to help plan your celebration.
         </p>
@@ -203,7 +203,7 @@ export function ReferralIntakeForm({ code, utm }: ReferralIntakeFormProps) {
       </div>
 
       {error && (
-        <p className="flex items-center gap-1.5 text-sm text-rose-600">
+        <p className="flex items-center gap-1.5 text-sm text-destructive">
           <AlertCircle className="size-4" /> {error}
         </p>
       )}

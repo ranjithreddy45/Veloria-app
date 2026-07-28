@@ -149,11 +149,11 @@ export function IncidentList({ incidents, protocols }: IncidentListProps) {
     <>
       <div className="space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+          <h2 className="text-lg font-semibold text-foreground">
             Emergency Incidents
           </h2>
           <div className="flex items-center gap-2">
-            <FilterIcon className="size-4 text-zinc-400" />
+            <FilterIcon className="size-4 text-muted-foreground" />
             <Select value={filterStatus} onValueChange={setFilterStatus}>
               <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="All Statuses" />
@@ -197,7 +197,7 @@ export function IncidentList({ incidents, protocols }: IncidentListProps) {
                     <div className="flex-1 min-w-0">
                       <CardTitle className="text-sm flex items-center gap-2">
                         {incident.status === "OPEN" && (
-                          <AlertTriangleIcon className="size-4 text-red-500 flex-shrink-0" />
+                          <AlertTriangleIcon className="size-4 text-destructive flex-shrink-0" />
                         )}
                         {incident.status === "RESPONDING" && (
                           <ClockIcon className="size-4 text-amber-500 flex-shrink-0" />
@@ -229,14 +229,14 @@ export function IncidentList({ incidents, protocols }: IncidentListProps) {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <p className="text-sm text-zinc-700 dark:text-zinc-300">
+                  <p className="text-sm text-muted-foreground">
                     {incident.description}
                   </p>
 
                   {incident.notes && (
-                    <div className="rounded bg-zinc-50 p-2 dark:bg-zinc-800">
-                      <p className="text-xs font-medium text-zinc-500">Resolution Notes</p>
-                      <p className="text-xs text-zinc-700 dark:text-zinc-300">
+                    <div className="rounded bg-muted p-2">
+                      <p className="text-xs font-medium text-muted-foreground">Resolution Notes</p>
+                      <p className="text-xs text-muted-foreground">
                         {incident.notes}
                       </p>
                     </div>

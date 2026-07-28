@@ -88,14 +88,14 @@ export function ProofUpload({ taskId, existingProofs = [] }: ProofUploadProps) {
           {existingProofs.map((proof) => (
             <div
               key={proof.id}
-              className="flex items-start gap-2 rounded-md border border-zinc-200/60 dark:border-zinc-700/60 p-2 text-sm"
+              className="flex items-start gap-2 rounded-md border border-border p-2 text-sm"
             >
               <span className="shrink-0 mt-0.5">
                 {proof.type === "PHOTO" && (
                   <CameraIcon className="size-3.5 text-blue-500" />
                 )}
                 {proof.type === "NOTE" && (
-                  <FileTextIcon className="size-3.5 text-emerald-500" />
+                  <FileTextIcon className="size-3.5 text-success" />
                 )}
                 {proof.type === "SIGN_OFF" && (
                   <ShieldCheckIcon className="size-3.5 text-violet-500" />
@@ -169,7 +169,7 @@ export function ProofUpload({ taskId, existingProofs = [] }: ProofUploadProps) {
                   : proofType === "NOTE"
                     ? "Note Content"
                     : "Sign-off Details"}
-                <span className="text-red-500 ml-0.5">*</span>
+                <span className="text-destructive ml-0.5">*</span>
               </label>
               {proofType === "PHOTO" ? (
                 <Input

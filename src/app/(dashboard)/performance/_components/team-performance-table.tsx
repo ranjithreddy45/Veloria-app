@@ -184,11 +184,11 @@ export function TeamPerformanceTable({ data }: TeamPerformanceTableProps) {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-zinc-200 dark:border-zinc-800">
-                  <th className="px-3 py-3 text-left font-medium text-zinc-500 dark:text-zinc-400">
+                <tr className="border-b border-border">
+                  <th className="px-3 py-3 text-left font-medium text-muted-foreground">
                     Member
                   </th>
-                  <th className="px-3 py-3 text-left font-medium text-zinc-500 dark:text-zinc-400">
+                  <th className="px-3 py-3 text-left font-medium text-muted-foreground">
                     Role
                   </th>
                   <th className="px-3 py-3 text-right">
@@ -243,7 +243,7 @@ export function TeamPerformanceTable({ data }: TeamPerformanceTableProps) {
                   <tr>
                     <td
                       colSpan={7}
-                      className="px-3 py-12 text-center text-zinc-500 dark:text-zinc-400"
+                      className="px-3 py-12 text-center text-muted-foreground"
                     >
                       No team performance data available.
                     </td>
@@ -252,7 +252,7 @@ export function TeamPerformanceTable({ data }: TeamPerformanceTableProps) {
                   sorted.map((member) => (
                     <tr
                       key={member.userId}
-                      className="border-b border-zinc-100 last:border-0 dark:border-zinc-800/50"
+                      className="border-b border-border last:border-0"
                     >
                       <td className="px-3 py-3">
                         <div className="flex items-center gap-3">
@@ -260,7 +260,7 @@ export function TeamPerformanceTable({ data }: TeamPerformanceTableProps) {
                           <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
                             {getInitials(member.userName)}
                           </div>
-                          <span className="font-medium text-zinc-900 dark:text-zinc-100">
+                          <span className="font-medium text-foreground">
                             {member.userName}
                           </span>
                         </div>
@@ -277,11 +277,11 @@ export function TeamPerformanceTable({ data }: TeamPerformanceTableProps) {
                       </td>
                       <td className="px-3 py-3 text-right">
                         <div className="flex flex-col items-end gap-1">
-                          <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                          <span className="font-semibold text-foreground">
                             {formatINR(member.revenueGenerated)}
                           </span>
                           {/* Mini bar */}
-                          <div className="h-1.5 w-20 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+                          <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted">
                             <div
                               className="h-full rounded-full bg-indigo-500 transition-all"
                               style={{
@@ -292,17 +292,17 @@ export function TeamPerformanceTable({ data }: TeamPerformanceTableProps) {
                         </div>
                       </td>
                       <td className="hidden px-3 py-3 text-right sm:table-cell">
-                        <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                        <span className="font-medium text-muted-foreground">
                           {member.bookingsWon.toLocaleString("en-IN")}
                         </span>
                       </td>
                       <td className="hidden px-3 py-3 text-right md:table-cell">
-                        <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                        <span className="font-medium text-muted-foreground">
                           {member.leadsConverted.toLocaleString("en-IN")}
                         </span>
                       </td>
                       <td className="hidden px-3 py-3 text-right lg:table-cell">
-                        <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                        <span className="font-medium text-muted-foreground">
                           {formatINR(member.avgDealSize)}
                         </span>
                       </td>
@@ -340,7 +340,7 @@ function SortButton({
     <Button
       variant="ghost"
       size="sm"
-      className="-mr-2 h-auto gap-1 px-2 py-1 text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+      className="-mr-2 h-auto gap-1 px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
       onClick={onClick}
     >
       {children}
@@ -357,10 +357,10 @@ function SortButton({
 function ConversionBadge({ rate }: { rate: number }) {
   const color =
     rate >= 60
-      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+      ? "bg-success/15 text-success"
       : rate >= 30
-        ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-        : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400";
+        ? "bg-warning/15 text-warning"
+        : "bg-muted text-muted-foreground";
 
   return (
     <Badge variant="secondary" className={color}>

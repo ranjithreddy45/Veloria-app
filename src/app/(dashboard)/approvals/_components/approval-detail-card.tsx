@@ -60,7 +60,7 @@ export function ApprovalDetailCard({ request }: ApprovalDetailCardProps) {
                     <p className="text-xs text-muted-foreground capitalize">
                       {key.replace(/([A-Z])/g, " $1").trim()}
                     </p>
-                    <p className="text-zinc-700 truncate">
+                    <p className="text-foreground truncate">
                       {value === null || value === undefined
                         ? "--"
                         : typeof value === "object"
@@ -71,7 +71,7 @@ export function ApprovalDetailCard({ request }: ApprovalDetailCardProps) {
                 ))}
             </div>
           ) : (
-            <p className="text-sm text-zinc-400">No metadata snapshot available.</p>
+            <p className="text-sm text-muted-foreground">No metadata snapshot available.</p>
           )}
         </CardContent>
       </Card>
@@ -92,13 +92,13 @@ export function ApprovalDetailCard({ request }: ApprovalDetailCardProps) {
               const isRejected = request.status === "REJECTED" && isCurrent;
               const isApproved = request.status === "APPROVED";
 
-              let stepColor = "bg-zinc-200 text-zinc-600";
+              let stepColor = "bg-muted text-muted-foreground";
               if (isCompleted || (isApproved && step.order <= request.currentStep)) {
-                stepColor = "bg-green-500 text-white";
+                stepColor = "bg-success text-white";
               } else if (isRejected) {
-                stepColor = "bg-red-500 text-white";
+                stepColor = "bg-destructive text-white";
               } else if (isCurrent && request.status === "PENDING_APPROVAL") {
-                stepColor = "bg-amber-500 text-white";
+                stepColor = "bg-warning text-white";
               }
 
               return (
@@ -113,16 +113,16 @@ export function ApprovalDetailCard({ request }: ApprovalDetailCardProps) {
                       {step.order + 1}
                     </div>
                     <div className="text-center max-w-20">
-                      <p className="text-[10px] text-zinc-500 leading-tight">
+                      <p className="text-[10px] text-muted-foreground leading-tight">
                         {step.approverType === "USER" ? "User" : "Role"}
                       </p>
-                      <p className="text-[10px] font-medium text-zinc-700 truncate">
+                      <p className="text-[10px] font-medium text-foreground truncate">
                         {step.approverId}
                       </p>
                       {step.isOptional && (
                         <Badge
                           variant="outline"
-                          className="text-[8px] px-1 py-0 mt-0.5 border-zinc-200"
+                          className="text-[8px] px-1 py-0 mt-0.5 border-border"
                         >
                           Optional
                         </Badge>
@@ -130,7 +130,7 @@ export function ApprovalDetailCard({ request }: ApprovalDetailCardProps) {
                     </div>
                   </div>
                   {index < chain.length - 1 && (
-                    <div className="h-px w-6 bg-zinc-300" />
+                    <div className="h-px w-6 bg-border" />
                   )}
                 </div>
               );
@@ -146,7 +146,7 @@ export function ApprovalDetailCard({ request }: ApprovalDetailCardProps) {
         </CardHeader>
         <CardContent>
           {request.decisions.length === 0 ? (
-            <div className="flex items-center justify-center py-8 text-zinc-400">
+            <div className="flex items-center justify-center py-8 text-muted-foreground">
               <ClockIcon className="mr-2 size-4" />
               <p className="text-sm">No decisions yet. Awaiting review.</p>
             </div>
@@ -155,18 +155,18 @@ export function ApprovalDetailCard({ request }: ApprovalDetailCardProps) {
               {request.decisions.map((decision, index) => {
                 const actionIcon =
                   decision.action === "APPROVE" ? (
-                    <CheckCircle2Icon className="size-4 text-green-600" />
+                    <CheckCircle2Icon className="size-4 text-success" />
                   ) : decision.action === "REJECT" ? (
-                    <XCircleIcon className="size-4 text-red-600" />
+                    <XCircleIcon className="size-4 text-destructive" />
                   ) : (
                     <ArrowRightCircleIcon className="size-4 text-blue-600" />
                   );
 
                 const actionColor =
                   decision.action === "APPROVE"
-                    ? "border-green-200 bg-green-50"
+                    ? "border-success/20 bg-success/10"
                     : decision.action === "REJECT"
-                      ? "border-red-200 bg-red-50"
+                      ? "border-destructive/20 bg-destructive/10"
                       : "border-blue-200 bg-blue-50";
 
                 return (
@@ -191,16 +191,16 @@ export function ApprovalDetailCard({ request }: ApprovalDetailCardProps) {
                             className={cn(
                               "text-xs border font-medium",
                               decision.action === "APPROVE"
-                                ? "bg-green-100 text-green-700 border-green-200"
+                                ? "bg-success/10 text-success border-success/20"
                                 : decision.action === "REJECT"
-                                  ? "bg-red-100 text-red-700 border-red-200"
+                                  ? "bg-destructive/10 text-destructive border-destructive/20"
                                   : "bg-blue-100 text-blue-700 border-blue-200"
                             )}
                           >
                             {decision.action}
                           </Badge>
                         </div>
-                        <div className="mt-1 flex items-center gap-2 text-xs text-zinc-500">
+                        <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                           <UserIcon className="size-3" />
                           <span>
                             {decision.decidedBy?.name ?? decision.decidedBy?.email ?? "Unknown"}
@@ -210,7 +210,7 @@ export function ApprovalDetailCard({ request }: ApprovalDetailCardProps) {
                           </span>
                         </div>
                         {decision.comment && (
-                          <p className="mt-1.5 text-sm text-zinc-600 bg-zinc-50 rounded-md px-3 py-2">
+                          <p className="mt-1.5 text-sm text-muted-foreground bg-muted rounded-md px-3 py-2">
                             {decision.comment}
                           </p>
                         )}

@@ -108,7 +108,7 @@ export function TaskCard({ task, isOverlay = false }: TaskCardProps) {
         {/* Drag Handle */}
         <div className="flex items-start pt-3 pl-1">
           <button
-            className="shrink-0 cursor-grab touch-none rounded p-0.5 text-zinc-300 opacity-100 transition-opacity hover:text-zinc-500 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 active:cursor-grabbing"
+            className="shrink-0 cursor-grab touch-none rounded p-0.5 text-muted-foreground opacity-100 transition-opacity hover:text-foreground [@media(hover:hover)]:opacity-0 group-hover:opacity-100 active:cursor-grabbing"
             {...attributes}
             {...listeners}
           >
@@ -122,7 +122,7 @@ export function TaskCard({ task, isOverlay = false }: TaskCardProps) {
         >
           {/* Title + Priority */}
           <div className="flex items-start justify-between gap-2">
-            <h4 className="text-sm font-medium leading-tight text-zinc-800 line-clamp-2">
+            <h4 className="text-sm font-medium leading-tight text-foreground line-clamp-2">
               {task.title}
             </h4>
             <Badge
@@ -138,7 +138,7 @@ export function TaskCard({ task, isOverlay = false }: TaskCardProps) {
 
           {/* Booking name */}
           {task.booking && (
-            <p className="mt-1 text-xs text-zinc-400 truncate">
+            <p className="mt-1 text-xs text-muted-foreground truncate">
               {task.booking.eventName}
             </p>
           )}
@@ -151,7 +151,7 @@ export function TaskCard({ task, isOverlay = false }: TaskCardProps) {
                 <div
                   className={cn(
                     "flex items-center gap-1",
-                    overdue ? "text-red-500" : "text-zinc-400"
+                    overdue ? "text-destructive" : "text-muted-foreground"
                   )}
                 >
                   <CalendarIcon className="size-3" />
@@ -168,20 +168,20 @@ export function TaskCard({ task, isOverlay = false }: TaskCardProps) {
                     className={cn(
                       "size-3",
                       completedChecklist === totalChecklist
-                        ? "text-green-500"
-                        : "text-zinc-400"
+                        ? "text-success"
+                        : "text-muted-foreground"
                     )}
                   />
-                  <span className="text-[11px] text-zinc-500">
+                  <span className="text-[11px] text-muted-foreground">
                     {completedChecklist}/{totalChecklist}
                   </span>
                   {/* Mini progress bar */}
-                  <div className="h-1 w-8 rounded-full bg-zinc-200">
+                  <div className="h-1 w-8 rounded-full bg-muted">
                     <div
                       className={cn(
                         "h-1 rounded-full transition-all",
                         completedChecklist === totalChecklist
-                          ? "bg-green-500"
+                          ? "bg-success"
                           : "bg-blue-500"
                       )}
                       style={{ width: `${checklistProgress}%` }}
@@ -192,7 +192,7 @@ export function TaskCard({ task, isOverlay = false }: TaskCardProps) {
 
               {/* Subtask count */}
               {task._count.subtasks > 0 && (
-                <div className="flex items-center gap-1 text-zinc-400">
+                <div className="flex items-center gap-1 text-muted-foreground">
                   <GitBranchIcon className="size-3" />
                   <span className="text-[11px]">
                     {task._count.subtasks}

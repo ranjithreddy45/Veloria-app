@@ -112,7 +112,7 @@ export function SOPTemplateForm({ initialData, templateId }: SOPTemplateFormProp
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardHeader>
             <CardTitle>Template Details</CardTitle>
           </CardHeader>

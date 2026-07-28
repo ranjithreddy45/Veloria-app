@@ -38,9 +38,9 @@ interface RequestRow {
 function PunctualityBadge({ onTime }: { onTime: boolean | null }) {
   if (onTime == null) return null;
   return onTime ? (
-    <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">On time</span>
+    <span className="inline-flex items-center rounded-full bg-success/10 px-2 py-0.5 text-[11px] font-medium text-success">On time</span>
   ) : (
-    <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-medium text-red-700 dark:bg-red-950/50 dark:text-red-300">Late</span>
+    <span className="inline-flex items-center rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">Late</span>
   );
 }
 interface HolidayItem { id: string; name: string; date: string }
@@ -110,7 +110,7 @@ export function LeaveHome({
                 </div>
                 <div className="mt-1.5 flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
                   <span>{b.used} booked</span>
-                  {b.pending > 0 && <span className="text-amber-600 dark:text-amber-400">· {b.pending} pending</span>}
+                  {b.pending > 0 && <span className="text-warning">· {b.pending} pending</span>}
                 </div>
               </div>
             </div>
@@ -209,7 +209,7 @@ function CancelButton({ id }: { id: string }) {
   const [busy, setBusy] = React.useState(false);
   return (
     <Button
-      variant="ghost" size="sm" className="h-7 gap-1 text-muted-foreground hover:text-red-600"
+      variant="ghost" size="sm" className="h-7 gap-1 text-muted-foreground hover:text-destructive"
       disabled={busy}
       onClick={async () => { setBusy(true); await cancelLeave(id); setBusy(false); router.refresh(); }}
     >
@@ -324,7 +324,7 @@ function ApplyLeaveDialog({
             <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Family function, travel…" />
           </div>
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancel</Button>
           <Button onClick={submit} disabled={saving} className="gap-1.5">

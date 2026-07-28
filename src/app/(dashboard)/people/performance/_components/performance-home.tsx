@@ -99,7 +99,7 @@ export function PerformanceHome({
                 <span className="ml-2 text-[12px] text-muted-foreground">{r.empCode}</span>
               </div>
               {r.reviewed
-                ? <span className="inline-flex items-center gap-1 text-[13px] font-medium text-emerald-600"><CheckCircle2 className="size-4" /> Reviewed</span>
+                ? <span className="inline-flex items-center gap-1 text-[13px] font-medium text-success"><CheckCircle2 className="size-4" /> Reviewed</span>
                 : <ManagerReviewDialog cycleId={reviewCycleId} employee={r} ratingMax={ratingMax} />}
             </div>
           ))
@@ -151,7 +151,7 @@ function GoalRow({ goal, ratingMax, canSelfRate }: { goal: Goal; ratingMax: numb
       )}
       <StatusPill label={GOAL_STATUS_LABEL[goal.status]} hue={GOAL_STATUS_HUE[goal.status]} size="xs" />
       <Button
-        variant="ghost" size="icon" className="size-7 text-muted-foreground hover:text-red-600" disabled={busy}
+        variant="ghost" size="icon" className="size-7 text-muted-foreground hover:text-destructive" disabled={busy}
         onClick={async () => { setBusy(true); await deleteGoal(goal.id); setBusy(false); router.refresh(); }}
         title="Delete goal"
       >
@@ -190,7 +190,7 @@ function AddGoalDialog({ employeeId, cycleId }: { employeeId: string; cycleId: s
           <div className="space-y-1.5"><Label className="text-[12.5px]">Description</Label><Input value={description} onChange={(e) => setDescription(e.target.value)} /></div>
           <div className="space-y-1.5"><Label className="text-[12.5px]">Weight (%)</Label><Input type="number" value={weight} onChange={(e) => setWeight(e.target.value)} /></div>
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
           <Button onClick={save} disabled={saving} className="gap-1.5">{saving && <Loader2 className="size-4 animate-spin" />} Add</Button>
@@ -306,7 +306,7 @@ function CreateCycleDialog() {
             <div className="space-y-1.5"><Label className="text-[12.5px]">End</Label><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></div>
           </div>
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>Cancel</Button>
           <Button onClick={() => { setBusy(true); save().finally(() => setBusy(false)); }} disabled={busy} className="gap-1.5">{busy && <Loader2 className="size-4 animate-spin" />} Create</Button>

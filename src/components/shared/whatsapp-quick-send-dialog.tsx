@@ -120,7 +120,7 @@ export function WhatsAppQuickSendDialog({
         <Button
           variant="outline"
           size="sm"
-          className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950/30"
+          className="border-success/20 text-success hover:bg-success/10"
         >
           <MessageCircle className="mr-1.5 size-4" />
           WhatsApp
@@ -129,7 +129,7 @@ export function WhatsAppQuickSendDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <MessageCircle className="size-5 text-emerald-600" />
+            <MessageCircle className="size-5 text-success" />
             Send WhatsApp
           </DialogTitle>
           <DialogDescription>
@@ -142,7 +142,7 @@ export function WhatsAppQuickSendDialog({
         </DialogHeader>
 
         {!contactPhone ? (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300">
+          <div className="rounded-lg border border-warning/20 bg-warning/10 p-4 text-sm text-warning">
             This contact does not have a phone number. Please add a phone number first.
           </div>
         ) : (
@@ -186,7 +186,7 @@ export function WhatsAppQuickSendDialog({
                     {templates.map((t) => (
                       <SelectItem key={t.name} value={t.name}>
                         <div className="flex items-center gap-2">
-                          <FileText className="size-3.5 text-emerald-600" />
+                          <FileText className="size-3.5 text-success" />
                           {t.label}
                         </div>
                       </SelectItem>
@@ -250,7 +250,7 @@ export function WhatsAppQuickSendDialog({
           <Button
             onClick={handleSend}
             disabled={!canSend || sending || !contactPhone}
-            className="bg-emerald-600 hover:bg-emerald-700"
+            className="bg-success hover:bg-success/90"
           >
             <Send className="mr-1.5 size-3.5" />
             {sending ? "Sending..." : "Send Message"}

@@ -45,7 +45,7 @@ export function ShareClientPlan({ bookingId }: { bookingId: string }) {
       <Button variant="outline" size="sm" className="gap-1.5" onClick={() => {
         navigator.clipboard?.writeText(url).then(() => { setCopied(true); toast.success("Copied"); setTimeout(() => setCopied(false), 1800); });
       }}>
-        {copied ? <Check className="size-3.5 text-emerald-600" /> : <Copy className="size-3.5" />}
+        {copied ? <Check className="size-3.5 text-success" /> : <Copy className="size-3.5" />}
         {copied ? "Copied" : "Copy client link"}
       </Button>
       <Button asChild variant="ghost" size="icon" className="size-8" title="Open client plan">

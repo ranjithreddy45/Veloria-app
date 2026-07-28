@@ -47,12 +47,12 @@ interface IndividualPerformanceProps {
 function TrendIndicator({ value, suffix = "" }: { value: number; suffix?: string }) {
   if (value === 0) {
     return (
-      <span className="text-xs text-zinc-400 dark:text-zinc-500">--</span>
+      <span className="text-xs text-muted-foreground">--</span>
     );
   }
 
   return (
-    <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
+    <span className="text-xs font-medium text-success">
       {value.toLocaleString("en-IN")}
       {suffix}
     </span>
@@ -142,7 +142,7 @@ export function IndividualPerformance({
           <CardContent className="flex items-center justify-center py-16">
             <div className="text-center">
               <UserIcon className="mx-auto size-10 text-zinc-300 dark:text-zinc-600" />
-              <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
+              <p className="mt-3 text-sm text-muted-foreground">
                 Select a team member above to view their performance.
               </p>
             </div>
@@ -159,10 +159,10 @@ export function IndividualPerformance({
               {getInitials(selectedMember.name ?? "U")}
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+              <h3 className="text-lg font-semibold text-foreground">
                 {selectedMember.name}
               </h3>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              <p className="text-sm text-muted-foreground">
                 {formatRole(selectedMember.role)}
               </p>
             </div>
@@ -204,7 +204,7 @@ export function IndividualPerformance({
               label="Leads Assigned"
               value={metrics.leadsAssigned.toLocaleString("en-IN")}
               detail={
-                <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                <span className="text-xs text-muted-foreground">
                   {metrics.leadsConverted.toLocaleString("en-IN")} converted
                 </span>
               }
@@ -216,7 +216,7 @@ export function IndividualPerformance({
               label="Conversion Rate"
               value={`${metrics.conversionRate}%`}
               detail={
-                <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+                <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
                   <div
                     className={`h-full rounded-full transition-all ${
                       metrics.conversionRate >= 60
@@ -241,7 +241,7 @@ export function IndividualPerformance({
                   : "--"
               }
               detail={
-                <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                <span className="text-xs text-muted-foreground">
                   {metrics.avgResponseTime > 0
                     ? metrics.avgResponseTime <= 24
                       ? "Within 24 hours"
@@ -277,7 +277,7 @@ export function IndividualPerformance({
                     ))}
                   </div>
                 ) : (
-                  <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                  <span className="text-xs text-muted-foreground">
                     No reviews yet
                   </span>
                 )
@@ -310,11 +310,11 @@ function MetricCard({
       <CardContent className="pt-6">
         <div className="flex items-center gap-2">
           {icon}
-          <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+          <span className="text-xs font-medium text-muted-foreground">
             {label}
           </span>
         </div>
-        <div className="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+        <div className="mt-2 text-2xl font-bold text-foreground">
           {value}
         </div>
         {detail && <div className="mt-1">{detail}</div>}

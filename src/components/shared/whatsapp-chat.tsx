@@ -137,7 +137,7 @@ export function WhatsAppChat({ contactId, contactPhone }: WhatsAppChatProps) {
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
-            <MessageSquare className="size-5 text-emerald-600" />
+            <MessageSquare className="size-5 text-success" />
             WhatsApp
           </CardTitle>
           {contactPhone && (
@@ -149,7 +149,7 @@ export function WhatsAppChat({ contactId, contactPhone }: WhatsAppChatProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Message List */}
-        <div className="flex max-h-80 min-h-[160px] flex-col-reverse gap-2 overflow-y-auto rounded-lg border bg-zinc-50 p-3 dark:bg-zinc-900">
+        <div className="flex max-h-80 min-h-[160px] flex-col-reverse gap-2 overflow-y-auto rounded-lg border bg-muted p-3">
           {loading ? (
             <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
               <Loader2 className="mr-2 size-4 animate-spin" />
@@ -175,8 +175,8 @@ export function WhatsAppChat({ contactId, contactPhone }: WhatsAppChatProps) {
                   className={cn(
                     "rounded-lg px-3 py-2 text-sm",
                     msg.direction === "OUTBOUND"
-                      ? "bg-emerald-600 text-white"
-                      : "bg-white text-zinc-900 border dark:bg-zinc-800 dark:text-zinc-100"
+                      ? "bg-success text-white"
+                      : "bg-card text-foreground border"
                   )}
                 >
                   {msg.content}
@@ -279,7 +279,7 @@ export function WhatsAppChat({ contactId, contactPhone }: WhatsAppChatProps) {
           )}
 
           {error && (
-            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            <p className="text-sm text-destructive">{error}</p>
           )}
 
           <Button

@@ -282,7 +282,7 @@ export function SignaturePanel({ bookingId, canRequest }: Props) {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="text-rose-600 hover:text-rose-700"
+                          className="text-destructive hover:text-destructive"
                           disabled={isPending && busyId === r.id}
                           onClick={() => handleVoid(r.id)}
                         >

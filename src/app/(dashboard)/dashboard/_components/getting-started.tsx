@@ -62,7 +62,7 @@ export function GettingStarted({ steps, doneCount, total }: { steps: OnboardingS
                 {doneCount === total
                   ? "You're all set — nicely done!"
                   : total - doneCount === 1
-                  ? <span className="font-medium text-amber-600 dark:text-amber-400">🔥 Just 1 step left — you're almost there!</span>
+                  ? <span className="font-medium text-warning">🔥 Just 1 step left — you're almost there!</span>
                   : total - doneCount === 2
                   ? `${doneCount} of ${total} done · only 2 to go`
                   : `${doneCount} of ${total} done · a few steps to go`}

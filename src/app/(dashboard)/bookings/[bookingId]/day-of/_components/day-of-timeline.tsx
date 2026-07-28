@@ -274,11 +274,11 @@ export function DayOfTimeline({
       case "IN_PROGRESS":
         return <CircleDotIcon className="size-5 text-blue-600" />;
       case "DONE":
-        return <CheckCircle2Icon className="size-5 text-emerald-600" />;
+        return <CheckCircle2Icon className="size-5 text-success" />;
       case "SKIPPED":
         return <SkipForwardIcon className="size-5 text-orange-600" />;
       default:
-        return <ClockIcon className="size-5 text-zinc-400" />;
+        return <ClockIcon className="size-5 text-muted-foreground" />;
     }
   }
 
@@ -289,13 +289,13 @@ export function DayOfTimeline({
   return (
     <div className="space-y-6">
       {/* Live Clock & Status Bar */}
-      <Card className="border-2 border-zinc-200">
+      <Card className="border-2 border-border">
         <CardContent className="p-4 sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             {/* Clock */}
             <div className="flex items-center gap-4">
-              <div className="flex size-14 items-center justify-center rounded-full bg-zinc-100">
-                <ClockIcon className="size-7 text-zinc-600" />
+              <div className="flex size-14 items-center justify-center rounded-full bg-muted">
+                <ClockIcon className="size-7 text-muted-foreground" />
               </div>
               <div>
                 <p className="text-2xl font-bold tabular-nums tracking-tight">
@@ -317,8 +317,8 @@ export function DayOfTimeline({
                 />
                 {timeline.status === "LIVE" && (
                   <span className="relative flex size-3">
-                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex size-3 rounded-full bg-emerald-500" />
+                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-success opacity-75" />
+                    <span className="relative inline-flex size-3 rounded-full bg-success" />
                   </span>
                 )}
               </div>
@@ -327,9 +327,9 @@ export function DayOfTimeline({
                   <span className="text-muted-foreground">
                     {completedCount}/{totalCount} completed
                   </span>
-                  <div className="h-2 w-24 rounded-full bg-zinc-100">
+                  <div className="h-2 w-24 rounded-full bg-muted">
                     <div
-                      className="h-2 rounded-full bg-emerald-500 transition-all"
+                      className="h-2 rounded-full bg-success transition-all"
                       style={{ width: `${progressPercent}%` }}
                     />
                   </div>
@@ -356,7 +356,7 @@ export function DayOfTimeline({
           <Button
             onClick={() => handleTimelineStatusChange("LIVE")}
             disabled={isPending}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            className="bg-success hover:bg-success text-white"
             size="lg"
           >
             {isPending ? (
@@ -621,10 +621,10 @@ function TimelineItemCard({
   const cardBorderClass = isInProgress
     ? "border-blue-300 bg-blue-50/30"
     : isDone
-      ? "border-emerald-200 bg-emerald-50/20"
+      ? "border-success/20 bg-success/10"
       : isSkipped
         ? "border-orange-200 bg-orange-50/20"
-        : "border-zinc-200";
+        : "border-border";
 
   return (
     <Card className={`transition-colors ${cardBorderClass}`}>
@@ -709,16 +709,16 @@ function TimelineItemCard({
               <button
                 onClick={() => onMove(item.id, "up")}
                 disabled={index === 0 || isPending}
-                className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 disabled:opacity-30 disabled:cursor-not-allowed touch-manipulation"
+                className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed touch-manipulation"
                 aria-label="Move up"
               >
                 <ChevronUpIcon className="size-5" />
               </button>
-              <GripVerticalIcon className="size-4 text-zinc-300" />
+              <GripVerticalIcon className="size-4 text-muted-foreground" />
               <button
                 onClick={() => onMove(item.id, "down")}
                 disabled={index === totalItems - 1 || isPending}
-                className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 disabled:opacity-30 disabled:cursor-not-allowed touch-manipulation"
+                className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed touch-manipulation"
                 aria-label="Move down"
               >
                 <ChevronDownIcon className="size-5" />
@@ -733,8 +733,8 @@ function TimelineItemCard({
               <p
                 className={`text-lg sm:text-xl font-bold tabular-nums leading-tight text-center ${
                   isDone || isSkipped
-                    ? "text-zinc-400 line-through"
-                    : "text-zinc-900"
+                    ? "text-muted-foreground line-through"
+                    : "text-foreground"
                 }`}
               >
                 {displayTime(item.time)}
@@ -747,8 +747,8 @@ function TimelineItemCard({
                 <p
                   className={`text-base sm:text-lg font-medium ${
                     isDone || isSkipped
-                      ? "text-zinc-400 line-through"
-                      : "text-zinc-900"
+                      ? "text-muted-foreground line-through"
+                      : "text-foreground"
                   }`}
                 >
                   {item.activity}
@@ -761,7 +761,7 @@ function TimelineItemCard({
 
               {/* Assignee */}
               {item.assignee && (
-                <div className="mt-1.5 flex items-center gap-1.5 text-sm text-zinc-500">
+                <div className="mt-1.5 flex items-center gap-1.5 text-sm text-muted-foreground">
                   <UserIcon className="size-3.5" />
                   <span>{item.assignee.name || item.assignee.email}</span>
                 </div>
@@ -769,7 +769,7 @@ function TimelineItemCard({
 
               {/* Notes */}
               {item.notes && (
-                <div className="mt-1.5 flex items-start gap-1.5 text-sm text-zinc-500">
+                <div className="mt-1.5 flex items-start gap-1.5 text-sm text-muted-foreground">
                   <StickyNoteIcon className="size-3.5 mt-0.5 shrink-0" />
                   <span className="whitespace-pre-wrap">{item.notes}</span>
                 </div>
@@ -777,7 +777,7 @@ function TimelineItemCard({
 
               {/* Completed timestamp */}
               {item.completedAt && (
-                <p className="mt-1 text-xs text-emerald-600">
+                <p className="mt-1 text-xs text-success">
                   Completed at{" "}
                   {new Date(item.completedAt).toLocaleTimeString("en-IN", {
                     hour: "2-digit",
@@ -808,7 +808,7 @@ function TimelineItemCard({
                       disabled={isPending}
                       size="sm"
                       variant="outline"
-                      className="h-10 min-w-[100px] touch-manipulation text-emerald-700 hover:bg-emerald-50"
+                      className="h-10 min-w-[100px] touch-manipulation text-success hover:bg-success/10"
                     >
                       <CheckCircle2Icon className="mr-1.5 size-4" />
                       Done
@@ -831,7 +831,7 @@ function TimelineItemCard({
                       onClick={() => onStatusChange(item.id, "DONE")}
                       disabled={isPending}
                       size="sm"
-                      className="h-10 min-w-[120px] bg-emerald-600 hover:bg-emerald-700 text-white touch-manipulation"
+                      className="h-10 min-w-[120px] bg-success hover:bg-success text-white touch-manipulation"
                     >
                       <CheckCircle2Icon className="mr-1.5 size-4" />
                       Mark Done
@@ -854,7 +854,7 @@ function TimelineItemCard({
                     disabled={isPending}
                     size="sm"
                     variant="ghost"
-                    className="h-10 touch-manipulation text-zinc-500"
+                    className="h-10 touch-manipulation text-muted-foreground"
                   >
                     <ClockIcon className="mr-1.5 size-4" />
                     Reset
@@ -876,7 +876,7 @@ function TimelineItemCard({
                     disabled={isPending}
                     size="sm"
                     variant="ghost"
-                    className="h-10 touch-manipulation text-red-600 hover:bg-red-50 hover:text-red-700"
+                    className="h-10 touch-manipulation text-destructive hover:bg-destructive/10 hover:text-destructive"
                   >
                     <TrashIcon className="size-4" />
                   </Button>
@@ -899,10 +899,10 @@ function getStatusIcon(status: string) {
     case "IN_PROGRESS":
       return <CircleDotIcon className="size-5 text-blue-600" />;
     case "DONE":
-      return <CheckCircle2Icon className="size-5 text-emerald-600" />;
+      return <CheckCircle2Icon className="size-5 text-success" />;
     case "SKIPPED":
       return <SkipForwardIcon className="size-5 text-orange-600" />;
     default:
-      return <ClockIcon className="size-5 text-zinc-400" />;
+      return <ClockIcon className="size-5 text-muted-foreground" />;
   }
 }

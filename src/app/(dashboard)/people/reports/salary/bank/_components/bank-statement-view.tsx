@@ -63,7 +63,7 @@ export function BankStatementView({
       />
 
       {(data?.runExists && !data?.draftHidden) && (
-        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12.5px] text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200">
+        <div className="flex items-start gap-2 rounded-lg border border-warning/20 bg-warning/10 px-3 py-2 text-[12.5px] text-warning">
           <AlertTriangle className="mt-0.5 size-4 shrink-0" />
           <span>On-hold salaries are excluded from this bank advice. {heldNote}</span>
         </div>

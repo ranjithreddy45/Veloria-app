@@ -166,7 +166,7 @@ export function ServiceConfirmationCard({ bookingId, data }: ServiceConfirmation
         {/* F&B — link to existing menu builder */}
         <section className="flex items-center justify-between rounded-lg border bg-muted/30 p-3">
           <div className="flex items-center gap-2.5">
-            <UtensilsCrossedIcon className="size-4 text-amber-600" />
+            <UtensilsCrossedIcon className="size-4 text-warning" />
             <div>
               <p className="text-sm font-medium">Food &amp; Beverage</p>
               <p className="text-xs text-muted-foreground">Build the menu in the dedicated F&amp;B menu builder.</p>
@@ -257,7 +257,7 @@ export function ServiceConfirmationCard({ bookingId, data }: ServiceConfirmation
         {/* Add-on services */}
         <section className="space-y-3">
           <div className="flex items-center gap-2">
-            <PlusIcon className="size-4 text-emerald-600" />
+            <PlusIcon className="size-4 text-success" />
             <h3 className="text-sm font-semibold">Other add-on services</h3>
           </div>
           <div className="divide-y rounded-lg border">

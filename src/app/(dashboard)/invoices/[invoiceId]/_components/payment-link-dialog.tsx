@@ -269,13 +269,13 @@ export function PaymentLinkDialog({
           /* Link Generated */
           <div className="space-y-4">
             {/* Success banner */}
-            <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-800 dark:bg-emerald-950/30">
-              <Check className="size-5 text-emerald-600" />
+            <div className="flex items-center gap-3 rounded-xl border border-success/20 bg-success/10 p-3">
+              <Check className="size-5 text-success" />
               <div>
-                <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                <p className="text-sm font-medium text-success">
                   Payment link ready!
                 </p>
-                <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                <p className="text-xs text-success">
                   Customer pays securely via Razorpay on the portal
                 </p>
               </div>
@@ -295,7 +295,7 @@ export function PaymentLinkDialog({
                 className="shrink-0"
               >
                 {copied ? (
-                  <Check className="size-4 text-emerald-600" />
+                  <Check className="size-4 text-success" />
                 ) : (
                   <Copy className="size-4" />
                 )}

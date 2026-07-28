@@ -142,7 +142,7 @@ export function EscalationRuleForm({ initialData }: EscalationRuleFormProps) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         {/* Basic Information */}
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardHeader>
             <CardTitle>Rule Details</CardTitle>
           </CardHeader>
@@ -277,7 +277,7 @@ export function EscalationRuleForm({ initialData }: EscalationRuleFormProps) {
         </Card>
 
         {/* Notification Settings */}
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardHeader>
             <CardTitle>Notification Settings</CardTitle>
           </CardHeader>
@@ -344,7 +344,7 @@ export function EscalationRuleForm({ initialData }: EscalationRuleFormProps) {
 
         {/* Active Toggle (edit only) */}
         {isEditing && (
-          <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+          <Card className="border-border shadow-sm">
             <CardHeader>
               <CardTitle>Status</CardTitle>
             </CardHeader>

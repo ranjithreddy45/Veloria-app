@@ -94,12 +94,12 @@ export function InvitationDialog({
         <div className="space-y-4 py-2">
           {/* Eligible guests summary */}
           {mode === "bulk" && (
-            <div className="rounded-lg border border-zinc-100 bg-zinc-50/50 p-3 text-sm dark:border-zinc-800 dark:bg-zinc-900/50">
-              <p className="font-medium text-zinc-700 dark:text-zinc-300">
+            <div className="rounded-lg border border-border bg-muted p-3 text-sm">
+              <p className="font-medium text-foreground">
                 {eligibleGuests.length} guests will receive invitations
               </p>
               {noPhoneGuests.length > 0 && (
-                <p className="mt-1 text-xs text-amber-600">
+                <p className="mt-1 text-xs text-warning">
                   {noPhoneGuests.length} guests skipped (no phone number)
                 </p>
               )}
@@ -108,7 +108,7 @@ export function InvitationDialog({
 
           {/* Custom message */}
           <div>
-            <Label className="text-sm text-zinc-600">
+            <Label className="text-sm text-muted-foreground">
               <MessageSquare className="mr-1 inline size-3.5" />
               Custom Message (optional)
             </Label>
@@ -120,7 +120,7 @@ export function InvitationDialog({
               placeholder="Add a personal note to the invitation..."
               maxLength={2000}
             />
-            <p className="mt-1 text-right text-xs text-zinc-400">
+            <p className="mt-1 text-right text-xs text-muted-foreground">
               {customMessage.length}/2000
             </p>
           </div>

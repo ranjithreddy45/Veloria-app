@@ -208,14 +208,14 @@ export function VenuesList({ venues }: VenuesListProps) {
                     {venue.isActive ? (
                       <Badge
                         variant="outline"
-                        className="bg-green-100 text-green-700 border-green-200 text-[10px]"
+                        className="bg-success/15 text-success border-success/20 text-[10px]"
                       >
                         Active
                       </Badge>
                     ) : (
                       <Badge
                         variant="outline"
-                        className="bg-gray-100 text-gray-500 border-gray-200 text-[10px]"
+                        className="bg-muted text-muted-foreground border-border text-[10px]"
                       >
                         Inactive
                       </Badge>
@@ -272,7 +272,7 @@ export function VenuesList({ venues }: VenuesListProps) {
                       checked={venue.isActive}
                       onCheckedChange={() => handleToggleActive(venue)}
                     />
-                    <span className="text-xs text-zinc-500">
+                    <span className="text-xs text-muted-foreground">
                       {venue.isActive ? "Active" : "Inactive"}
                     </span>
                   </div>

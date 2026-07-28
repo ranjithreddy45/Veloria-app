@@ -282,7 +282,7 @@ export function SeedBuilder({
   }
 
   return (
-    <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+    <Card className="border-border shadow-sm">
       <CardHeader>
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -329,7 +329,7 @@ export function SeedBuilder({
               {kitchen.map((row, i) => (
                 <div
                   key={i}
-                  className="grid grid-cols-1 gap-2 rounded-lg border border-zinc-200/70 dark:border-zinc-700/70 p-3 sm:grid-cols-[2fr_1.2fr_0.8fr_0.8fr_1fr_auto]"
+                  className="grid grid-cols-1 gap-2 rounded-lg border border-border p-3 sm:grid-cols-[2fr_1.2fr_0.8fr_0.8fr_1fr_auto]"
                 >
                   <Input
                     placeholder="Item name *"
@@ -436,7 +436,7 @@ export function SeedBuilder({
               {procurement.map((req, i) => (
                 <div
                   key={i}
-                  className="space-y-3 rounded-lg border border-zinc-200/70 dark:border-zinc-700/70 p-3"
+                  className="space-y-3 rounded-lg border border-border p-3"
                 >
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-[2fr_1.2fr_1fr_auto]">
                     <Input
@@ -488,7 +488,7 @@ export function SeedBuilder({
                     </Button>
                   </div>
 
-                  <div className="space-y-2 pl-3 border-l-2 border-zinc-200/70 dark:border-zinc-700/70">
+                  <div className="space-y-2 pl-3 border-l-2 border-border">
                     <Label className="text-xs text-muted-foreground">
                       Line items
                     </Label>
@@ -664,7 +664,7 @@ export function SeedBuilder({
               {dispatch.map((d, i) => (
                 <div
                   key={i}
-                  className="space-y-3 rounded-lg border border-zinc-200/70 dark:border-zinc-700/70 p-3"
+                  className="space-y-3 rounded-lg border border-border p-3"
                 >
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto]">
                     <Input
@@ -701,7 +701,7 @@ export function SeedBuilder({
                     </Button>
                   </div>
 
-                  <div className="space-y-2 pl-3 border-l-2 border-zinc-200/70 dark:border-zinc-700/70">
+                  <div className="space-y-2 pl-3 border-l-2 border-border">
                     <Label className="text-xs text-muted-foreground">
                       Items
                     </Label>

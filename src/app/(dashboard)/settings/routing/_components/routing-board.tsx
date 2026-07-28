@@ -37,7 +37,7 @@ type Status = "ONLINE" | "BUSY" | "AWAY" | "OFFLINE";
 const STATUS_DOT: Record<string, string> = {
   ONLINE: "fill-emerald-500 text-emerald-500",
   BUSY: "fill-amber-500 text-amber-500",
-  AWAY: "fill-slate-400 text-slate-400",
+  AWAY: "fill-slate-400 text-muted-foreground",
   OFFLINE: "fill-muted-foreground text-muted-foreground",
 };
 

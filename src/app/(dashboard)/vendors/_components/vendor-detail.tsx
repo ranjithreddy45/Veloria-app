@@ -49,7 +49,7 @@ import { AssignVendorDialog } from "./assign-vendor-dialog";
 const PACKAGE_STATUS_COLORS: Record<string, string> = {
   DRAFT: "bg-muted text-muted-foreground border-border",
   ACTIVE:
-    "bg-emerald-500/12 text-emerald-700 border-emerald-500/25 dark:text-emerald-300",
+    "bg-success/12 text-success border-success/25",
   ARCHIVED:
     "bg-slate-500/12 text-slate-600 border-slate-500/20 dark:text-slate-300",
 };

@@ -51,7 +51,7 @@ export default async function RsvpPage({
   if (!invitation) {
     return (
       <div className="bg-card shadow-card mx-auto max-w-lg rounded-2xl border p-10 text-center">
-        <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-amber-500/12 text-amber-600 dark:text-amber-400">
+        <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-warning/12 text-warning">
           <AlertTriangle className="size-6" />
         </div>
         <h1 className="text-foreground mt-5 text-[24px]">
@@ -177,7 +177,7 @@ export default async function RsvpPage({
           <CardContent className="py-10 text-center">
             {isAccepted ? (
               <>
-                <CheckCircle2 className="mx-auto size-11 text-emerald-500" />
+                <CheckCircle2 className="mx-auto size-11 text-success" />
                 <h2 className="font-editorial text-foreground mt-4 text-[24px] font-semibold">
                   Thank you for accepting
                 </h2>

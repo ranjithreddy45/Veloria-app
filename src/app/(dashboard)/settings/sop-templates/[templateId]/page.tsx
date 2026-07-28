@@ -69,7 +69,7 @@ export default async function SOPTemplateDetailPage({
       </PageHeader>
 
       {/* Template Info Card */}
-      <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader>
           <CardTitle className="text-base">Template Information</CardTitle>
         </CardHeader>
@@ -82,8 +82,8 @@ export default async function SOPTemplateDetailPage({
               variant="outline"
               className={
                 template.isActive
-                  ? "bg-emerald-50 text-emerald-700 border-emerald-200/60 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/40"
-                  : "bg-zinc-50 text-zinc-600 border-zinc-200/60 dark:bg-zinc-800/30 dark:text-zinc-400 dark:border-zinc-700/40"
+                  ? "bg-success/10 text-success border-success/20"
+                  : "bg-muted text-muted-foreground border-border"
               }
             >
               {template.isActive ? "Active" : "Inactive"}
@@ -91,7 +91,7 @@ export default async function SOPTemplateDetailPage({
             {template.isDefault && (
               <Badge
                 variant="outline"
-                className="bg-amber-50 text-amber-700 border-amber-200/60 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/40"
+                className="bg-warning/10 text-warning border-warning/20"
               >
                 Default
               </Badge>
@@ -128,7 +128,7 @@ export default async function SOPTemplateDetailPage({
       <div className="space-y-4">
         <h2 className="text-lg font-semibold">Phases & Task Definitions</h2>
         {phases.length === 0 ? (
-          <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+          <Card className="border-border shadow-sm">
             <CardContent className="py-8 text-center text-muted-foreground">
               No phases defined yet. Edit this template to add phases.
             </CardContent>
@@ -139,7 +139,7 @@ export default async function SOPTemplateDetailPage({
             return (
               <Card
                 key={phase.id as string}
-                className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm"
+                className="border-border shadow-sm"
               >
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -171,7 +171,7 @@ export default async function SOPTemplateDetailPage({
                         (task: Record<string, unknown>, taskIdx: number) => (
                           <div
                             key={task.id as string}
-                            className="flex items-start gap-3 rounded-lg border border-zinc-200/60 dark:border-zinc-700/60 p-3"
+                            className="flex items-start gap-3 rounded-lg border border-border p-3"
                           >
                             <span className="text-xs font-medium text-muted-foreground mt-0.5">
                               {taskIdx + 1}.

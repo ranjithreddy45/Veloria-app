@@ -80,10 +80,10 @@ export function BulkActionBar({
         <span className="flex size-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
           {selectedCount}
         </span>
-        <span className="text-sm font-medium text-zinc-700">selected</span>
+        <span className="text-sm font-medium text-muted-foreground">selected</span>
       </div>
 
-      <div className="mx-1 h-6 w-px bg-zinc-200" />
+      <div className="mx-1 h-6 w-px bg-border" />
 
       <div className="flex items-center gap-1.5">
         {actions.map((action) => {
@@ -150,13 +150,13 @@ export function BulkActionBar({
         })}
       </div>
 
-      <div className="mx-1 h-6 w-px bg-zinc-200" />
+      <div className="mx-1 h-6 w-px bg-border" />
 
       <Button
         variant="ghost"
         size="sm"
         onClick={onClearSelection}
-        className="text-zinc-500"
+        className="text-muted-foreground"
       >
         <XIcon className="mr-1 size-3.5" />
         Clear

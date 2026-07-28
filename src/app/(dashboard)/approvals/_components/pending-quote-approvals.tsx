@@ -102,7 +102,7 @@ export function PendingQuoteApprovals({ quotes: initial }: Props) {
           return (
             <div
               key={q.id}
-              className="flex items-center justify-between gap-4 rounded-lg border border-zinc-200/80 p-3"
+              className="flex items-center justify-between gap-4 rounded-lg border border-border p-3"
             >
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
@@ -120,9 +120,9 @@ export function PendingQuoteApprovals({ quotes: initial }: Props) {
                     {q.clientName ? ` — ${q.clientName}` : ""}
                   </Link>
                 </div>
-                <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-zinc-500">
+                <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                   {q.occasion && <span>{q.occasion}</span>}
-                  <span className="font-medium text-zinc-700">{formatINR(q.grandTotal)}</span>
+                  <span className="font-medium text-foreground">{formatINR(q.grandTotal)}</span>
                   <span>
                     By:{" "}
                     <span className="font-medium">{q.submittedByName ?? "Unknown"}</span>
@@ -140,7 +140,7 @@ export function PendingQuoteApprovals({ quotes: initial }: Props) {
                   onClick={() => handleApprove(q.id)}
                   disabled={isLoading}
                   title="Approve"
-                  className="text-green-600 hover:bg-green-50 hover:text-green-700"
+                  className="text-success hover:bg-success/10 hover:text-success"
                 >
                   {isLoading ? (
                     <Loader2Icon className="size-4 animate-spin" />
@@ -156,7 +156,7 @@ export function PendingQuoteApprovals({ quotes: initial }: Props) {
                       size="sm"
                       disabled={isLoading}
                       title="Return for changes"
-                      className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                     >
                       <XCircleIcon className="size-4" />
                     </Button>

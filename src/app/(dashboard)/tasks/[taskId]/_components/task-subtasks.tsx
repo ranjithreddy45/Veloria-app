@@ -112,7 +112,7 @@ export function TaskSubtasks({ taskId, subtasks }: TaskSubtasksProps) {
               <Link
                 key={subtask.id}
                 href={`/tasks/${subtask.id}`}
-                className="flex items-center justify-between rounded-md border px-3 py-2 hover:bg-zinc-50 transition-colors"
+                className="flex items-center justify-between rounded-md border px-3 py-2 hover:bg-muted transition-colors"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div
@@ -131,8 +131,8 @@ export function TaskSubtasks({ taskId, subtasks }: TaskSubtasksProps) {
                     className={cn(
                       "text-sm truncate",
                       subtask.status === "DONE"
-                        ? "text-zinc-400 line-through"
-                        : "text-zinc-700"
+                        ? "text-muted-foreground line-through"
+                        : "text-foreground"
                     )}
                   >
                     {subtask.title}
@@ -161,7 +161,7 @@ export function TaskSubtasks({ taskId, subtasks }: TaskSubtasksProps) {
                     <span
                       className={cn(
                         "text-[11px]",
-                        isOverdue ? "text-red-500 font-medium" : "text-zinc-400"
+                        isOverdue ? "text-destructive font-medium" : "text-muted-foreground"
                       )}
                     >
                       {new Intl.DateTimeFormat("en-IN", {
@@ -179,7 +179,7 @@ export function TaskSubtasks({ taskId, subtasks }: TaskSubtasksProps) {
 
       {/* Empty state */}
       {subtasks.length === 0 && !showForm && (
-        <p className="text-sm text-zinc-400 py-2">
+        <p className="text-sm text-muted-foreground py-2">
           No subtasks yet.
         </p>
       )}
@@ -227,7 +227,7 @@ export function TaskSubtasks({ taskId, subtasks }: TaskSubtasksProps) {
           type="button"
           variant="ghost"
           size="sm"
-          className="w-full justify-start gap-2 text-zinc-500 hover:text-indigo-600 mt-1"
+          className="w-full justify-start gap-2 text-muted-foreground hover:text-indigo-600 mt-1"
           onClick={() => setShowForm(true)}
         >
           <PlusIcon className="size-4" />

@@ -299,16 +299,16 @@ export default async function GuestConfirmPage({
       )}
 
       {alreadyConfirmed ? (
-        <div className="flex flex-col items-center gap-2 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.07] p-8 text-center">
-          <CheckCircle2 className="size-8 text-emerald-600 dark:text-emerald-400" />
-          <p className="font-editorial mt-1 text-[19px] font-semibold text-emerald-900 dark:text-emerald-200">
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-success/25 bg-success/[0.07] p-8 text-center">
+          <CheckCircle2 className="size-8 text-success" />
+          <p className="font-editorial mt-1 text-[19px] font-semibold text-success">
             Thank you — everything is set
           </p>
-          <p className="text-sm text-emerald-800/85 dark:text-emerald-300/85">
+          <p className="text-sm text-success/85">
             Confirmed on {fmtDate(data.guestConfirmedAt)}
             {data.guestConfirmedName ? ` by ${data.guestConfirmedName}` : ""}.
           </p>
-          <p className="text-xs text-emerald-700/75 dark:text-emerald-400/70">
+          <p className="text-xs text-success/75">
             Your services and terms are locked in. We look forward to hosting
             you.
           </p>

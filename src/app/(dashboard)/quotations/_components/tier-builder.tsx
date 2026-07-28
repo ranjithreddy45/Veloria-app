@@ -172,14 +172,14 @@ export function TierBuilder({ baseQuotationId, baseInput, status, canBuild }: Pr
       <CardContent className="space-y-4">
         {published ? (
           <div className="space-y-2">
-            <p className="text-sm text-emerald-700 dark:text-emerald-400">
+            <p className="text-success text-sm">
               Published — share this one link; the customer compares all tiers and pays the one they pick.
             </p>
             <div className="flex items-center gap-2 rounded-xl border bg-muted/40 px-3 py-2">
               <Link2 className="size-4 shrink-0 text-indigo-600" />
               <span className="flex-1 truncate font-mono text-xs text-muted-foreground">{published.url}</span>
               <Button size="sm" variant="ghost" className="h-7 gap-1.5 px-2" onClick={copyLink}>
-                {copied ? <Check className="size-3.5 text-emerald-600" /> : <Copy className="size-3.5" />}
+                {copied ? <Check className="text-success size-3.5" /> : <Copy className="size-3.5" />}
                 {copied ? "Copied" : "Copy"}
               </Button>
             </div>

@@ -27,9 +27,9 @@ interface SlaCountdownProps {
 }
 
 const BAND_TEXT: Record<LiveRiskBand, string> = {
-  OK: "text-emerald-600 dark:text-emerald-400",
-  WARN: "text-amber-600 dark:text-amber-400",
-  BREACHED: "text-rose-600 dark:text-rose-400",
+  OK: "text-success",
+  WARN: "text-warning",
+  BREACHED: "text-destructive",
 };
 
 function computeBand(remainingMs: number, warnMs: number): LiveRiskBand {

@@ -424,8 +424,8 @@ export function GuestManager({ bookingId, guestList }: GuestManagerProps) {
                   {stats.rsvpPercent}% response rate
                 </p>
               </div>
-              <div className="rounded-full bg-emerald-100 p-3 dark:bg-emerald-900/30">
-                <MailCheckIcon className="size-5 text-emerald-600 dark:text-emerald-400" />
+              <div className="rounded-full bg-success/10 p-3">
+                <MailCheckIcon className="size-5 text-success" />
               </div>
             </div>
           </CardContent>
@@ -549,7 +549,7 @@ export function GuestManager({ bookingId, guestList }: GuestManagerProps) {
         <CardContent className="p-0">
           {filteredGuests.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16">
-              <UsersIcon className="size-8 text-zinc-300" />
+              <UsersIcon className="size-8 text-muted-foreground" />
               <p className="mt-3 text-sm text-muted-foreground">
                 {guests.length === 0
                   ? "No guests added yet. Start by adding a guest."
@@ -578,7 +578,7 @@ export function GuestManager({ bookingId, guestList }: GuestManagerProps) {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {guest.isCheckedIn && (
-                            <CheckCircle2Icon className="size-4 shrink-0 text-emerald-500" />
+                            <CheckCircle2Icon className="size-4 shrink-0 text-success" />
                           )}
                           <div>
                             <p className="font-medium">{guest.name}</p>
@@ -656,8 +656,8 @@ export function GuestManager({ bookingId, guestList }: GuestManagerProps) {
                           disabled={isPending}
                           className={`inline-flex h-10 w-10 items-center justify-center rounded-lg border-2 transition-colors ${
                             guest.isCheckedIn
-                              ? "border-emerald-500 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/30"
-                              : "border-zinc-200 bg-white text-zinc-400 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-emerald-600"
+                              ? "border-success bg-success/10 text-success hover:bg-success/10"
+                              : "border-border bg-card text-muted-foreground hover:border-success hover:bg-success/10 hover:text-success"
                           }`}
                           title={
                             guest.isCheckedIn
@@ -696,7 +696,7 @@ export function GuestManager({ bookingId, guestList }: GuestManagerProps) {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="size-8 text-red-500 hover:text-red-600"
+                            className="size-8 text-destructive hover:text-destructive"
                             onClick={() => handleDeleteClick(guest)}
                           >
                             <TrashIcon className="size-3.5" />
@@ -800,7 +800,7 @@ export function GuestManager({ bookingId, guestList }: GuestManagerProps) {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="rounded-lg border bg-zinc-50 p-3 dark:bg-zinc-900">
+            <div className="rounded-lg border bg-muted p-3">
               <p className="text-xs font-medium text-muted-foreground">
                 Example format:
               </p>

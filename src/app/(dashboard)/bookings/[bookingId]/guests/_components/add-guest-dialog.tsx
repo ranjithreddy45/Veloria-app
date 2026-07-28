@@ -170,7 +170,7 @@ export function AddGuestDialog({
           {/* Name */}
           <div className="space-y-2">
             <Label htmlFor="guest-name" className="text-sm font-medium">
-              Name <span className="text-red-500">*</span>
+              Name <span className="text-destructive">*</span>
             </Label>
             <Input
               id="guest-name"

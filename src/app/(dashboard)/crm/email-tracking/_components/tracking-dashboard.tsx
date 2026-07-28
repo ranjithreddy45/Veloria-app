@@ -183,7 +183,7 @@ export function TrackingDashboard({
       {/* Stats Cards Row */}
       <div className="grid gap-4 md:grid-cols-5">
         {statCards.map((c) => (
-          <Card key={c.label} className="border-zinc-200/80 shadow-sm">
+          <Card key={c.label} className="border-border shadow-sm">
             <CardContent className="p-5">
               <div className="flex items-center gap-3">
                 <div
@@ -192,12 +192,12 @@ export function TrackingDashboard({
                   <c.icon className={`size-5 ${c.iconColor}`} />
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-zinc-500">{c.label}</p>
+                  <p className="text-muted-foreground text-xs font-medium">{c.label}</p>
                   <p className={`text-2xl font-bold ${c.valueColor}`}>
                     {c.value}
                   </p>
                   {c.hint && (
-                    <p className="mt-0.5 text-[10px] text-zinc-400">{c.hint}</p>
+                    <p className="text-muted-foreground mt-0.5 text-[10px]">{c.hint}</p>
                   )}
                 </div>
               </div>
@@ -221,14 +221,14 @@ export function TrackingDashboard({
             <CardContent>
               {events.length === 0 && (stats?.totalTracked ?? 0) > 0 ? (
                 <div className="py-10 text-center">
-                  <EyeIcon className="mx-auto mb-3 size-10 text-zinc-300" />
-                  <p className="text-sm text-zinc-500">
+                  <EyeIcon className="text-muted-foreground/50 mx-auto mb-3 size-10" />
+                  <p className="text-muted-foreground text-sm">
                     {stats?.totalTracked} email
                     {stats?.totalTracked === 1 ? "" : "s"} tracked ·{" "}
                     {stats?.totalOpens ?? 0} open
                     {(stats?.totalOpens ?? 0) === 1 ? "" : "s"} so far.
                   </p>
-                  <p className="mt-1 text-xs text-zinc-400">
+                  <p className="text-muted-foreground mt-1 text-xs">
                     No opens or clicks recorded yet — events show up here as
                     recipients engage.
                   </p>

@@ -142,7 +142,7 @@ export default async function CampaignDetailPage({
           <p className="mt-0.5 text-[13px] text-muted-foreground">
             Exactly what recipients will see in their inbox.
           </p>
-          <div className="mt-5 max-h-[400px] overflow-auto rounded-xl border bg-white p-4 dark:bg-background">
+          <div className="bg-card mt-5 max-h-[400px] overflow-auto rounded-xl border p-4">
             {/* Sandboxed iframe prevents XSS — no scripts can execute */}
             <iframe
               srcDoc={campaign.htmlContent}

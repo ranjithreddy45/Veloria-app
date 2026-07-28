@@ -134,7 +134,7 @@ function StartOnboardingDialog({ employees }: { employees: EmpLite[] }) {
           <div className="space-y-1.5"><Label className="text-[12.5px]">Joining date</Label>
             <Input type="date" value={joiningDate} onChange={(e) => setJoiningDate(e.target.value)} /></div>
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
           <Button onClick={go} disabled={saving} className="gap-1.5">{saving && <Loader2 className="size-4 animate-spin" />} Start</Button>
@@ -188,7 +188,7 @@ function StartOffboardingDialog({ employees }: { employees: EmpLite[] }) {
           <div className="space-y-1.5"><Label className="text-[12.5px]">Reason (optional)</Label>
             <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Resignation, end of contract…" /></div>
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
           <Button onClick={go} disabled={saving} className="gap-1.5">{saving && <Loader2 className="size-4 animate-spin" />} Initiate</Button>

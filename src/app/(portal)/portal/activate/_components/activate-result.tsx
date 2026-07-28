@@ -17,13 +17,13 @@ export function ActivateResult({ ok, message }: ActivateResultProps) {
         <CardContent className="flex flex-col items-center px-6 py-14 text-center">
           <div
             className={`flex size-16 items-center justify-center rounded-2xl ${
-              ok ? "bg-emerald-500/10" : "bg-red-500/10"
+              ok ? "bg-success/10" : "bg-destructive/10"
             }`}
           >
             {ok ? (
-              <CheckCircle2 className="size-8 text-emerald-600 dark:text-emerald-400" />
+              <CheckCircle2 className="size-8 text-success" />
             ) : (
-              <XCircle className="size-8 text-red-600 dark:text-red-400" />
+              <XCircle className="size-8 text-destructive" />
             )}
           </div>
           <p className="text-muted-foreground mt-5 text-[11px] font-semibold uppercase tracking-[0.14em]">

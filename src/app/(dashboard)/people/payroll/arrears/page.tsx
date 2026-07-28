@@ -86,7 +86,7 @@ export default async function ArrearsPage() {
         />
       </div>
 
-      <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-[13px] text-amber-700 dark:text-amber-300">
+      <div className="rounded-xl border border-warning/30 bg-warning/5 px-4 py-3 text-[13px] text-warning">
         A pending arrear is paid — with its statutory deductions — the next time you process payroll
         for its pay month. Once paid it is locked and can no longer be edited or cancelled here.
       </div>

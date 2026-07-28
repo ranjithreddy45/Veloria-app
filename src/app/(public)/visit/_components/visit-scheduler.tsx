@@ -136,18 +136,18 @@ export function VisitScheduler({ venues, kinds }: Props) {
               onClick={() => setKind(k.kind)}
               className={`rounded-2xl border p-4 text-left transition ${
                 active
-                  ? "border-violet-500 bg-violet-50 ring-1 ring-violet-500 dark:border-violet-500 dark:bg-violet-950/30"
-                  : "border-zinc-200 bg-white hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900"
+                  ? "border-primary bg-primary/10 ring-1 ring-primary"
+                  : "border-border bg-card"
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                  <Sparkles className="size-4 text-violet-600" />
+                <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <Sparkles className="size-4 text-primary" />
                   {k.label}
                 </span>
-                {active && <Check className="size-4 text-violet-600" />}
+                {active && <Check className="size-4 text-primary" />}
               </div>
-              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{k.tagline}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{k.tagline}</p>
             </button>
           );
         })}
@@ -160,7 +160,7 @@ export function VisitScheduler({ venues, kinds }: Props) {
             <select
               value={venueId}
               onChange={(e) => setVenueId(e.target.value)}
-              className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-violet-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
+              className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
             >
               <option value="">Any venue</option>
               {venues.map((v) => (
@@ -178,22 +178,22 @@ export function VisitScheduler({ venues, kinds }: Props) {
             min={todayISO()}
             max={maxISO()}
             onChange={(e) => setDateISO(e.target.value)}
-            className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-violet-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
+            className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
           />
         </Field>
       </div>
 
       {/* Slots */}
       <div>
-        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Choose a time
         </p>
         {loadingSlots ? (
-          <div className="flex items-center gap-2 py-4 text-sm text-zinc-500">
+          <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
             <Loader2 className="size-4 animate-spin" /> Loading times…
           </div>
         ) : slots.length === 0 ? (
-          <p className="py-3 text-sm text-zinc-500">
+          <p className="py-3 text-sm text-muted-foreground">
             No times available on this date — please pick another day.
           </p>
         ) : (
@@ -208,10 +208,10 @@ export function VisitScheduler({ venues, kinds }: Props) {
                   onClick={() => setSlotIso(s.iso)}
                   className={`rounded-xl border px-2 py-2 text-sm font-medium transition ${
                     active
-                      ? "border-violet-500 bg-violet-600 text-white"
+                      ? "border-primary bg-primary text-white"
                       : s.available
-                        ? "border-zinc-200 bg-white text-zinc-700 hover:border-violet-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
-                        : "cursor-not-allowed border-zinc-100 bg-zinc-50 text-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-700"
+                        ? "border-border bg-card text-muted-foreground hover:border-primary"
+                        : "cursor-not-allowed border-border bg-muted text-muted-foreground/60"
                   }`}
                 >
                   {s.label}
@@ -223,7 +223,7 @@ export function VisitScheduler({ venues, kinds }: Props) {
       </div>
 
       {/* Details */}
-      <div className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="space-y-4 rounded-2xl border border-border bg-card p-5">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Your name *">
             <TextInput value={name} onChange={setName} placeholder="Full name" />
@@ -248,7 +248,7 @@ export function VisitScheduler({ venues, kinds }: Props) {
             rows={2}
             maxLength={1000}
             placeholder="Preferences, accessibility needs, questions…"
-            className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-violet-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
+            className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
           />
         </Field>
       </div>
@@ -256,7 +256,7 @@ export function VisitScheduler({ venues, kinds }: Props) {
       <Button
         onClick={handleSubmit}
         disabled={!canSubmit || pending}
-        className="w-full bg-violet-600 py-6 text-base hover:bg-violet-700"
+        className="w-full bg-primary py-6 text-base hover:bg-primary/90"
       >
         {pending ? (
           <>
@@ -266,7 +266,7 @@ export function VisitScheduler({ venues, kinds }: Props) {
           "Book my visit"
         )}
       </Button>
-      <p className="text-center text-xs text-zinc-400">
+      <p className="text-center text-xs text-muted-foreground">
         No payment needed. We&apos;ll confirm your slot by WhatsApp.
       </p>
     </div>
@@ -284,7 +284,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 flex items-center gap-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-300">
+      <span className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
         {icon}
         {label}
       </span>
@@ -310,7 +310,7 @@ function TextInput({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-violet-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
+      className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
     />
   );
 }

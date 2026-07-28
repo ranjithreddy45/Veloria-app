@@ -39,12 +39,12 @@ export default async function ReviewGatePage({
   // Already rated / routed — thank-you state.
   if (req.alreadyRated) {
     return (
-      <div className="flex flex-col items-center gap-2 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.07] p-10 text-center">
-        <CheckCircle2 className="size-9 text-emerald-600 dark:text-emerald-400" />
-        <p className="font-editorial mt-2 text-[24px] font-semibold text-emerald-900 dark:text-emerald-200">
+      <div className="flex flex-col items-center gap-2 rounded-2xl border border-success/25 bg-success/[0.07] p-10 text-center">
+        <CheckCircle2 className="size-9 text-success" />
+        <p className="font-editorial mt-2 text-[24px] font-semibold text-success">
           Thank you{req.customerFirstName ? `, ${req.customerFirstName}` : ""}
         </p>
-        <p className="mx-auto max-w-sm text-sm leading-relaxed text-emerald-800/85 dark:text-emerald-300/85">
+        <p className="mx-auto max-w-sm text-sm leading-relaxed text-success/85">
           We’ve received your feedback for {req.eventName}, and we truly
           appreciate you taking the time.
         </p>
@@ -55,7 +55,7 @@ export default async function ReviewGatePage({
   return (
     <div className="bg-card shadow-card rounded-2xl border p-8 sm:p-10">
       <div className="mb-8 flex flex-col items-center text-center">
-        <div className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-amber-500/12 text-amber-600 dark:text-amber-400">
+        <div className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-warning/12 text-warning">
           <Star className="size-6" />
         </div>
         <h1 className="text-foreground text-[28px] sm:text-[32px]">

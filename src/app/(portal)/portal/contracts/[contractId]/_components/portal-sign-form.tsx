@@ -48,15 +48,15 @@ export function PortalSignForm({ contractId, userId }: PortalSignFormProps) {
   };
 
   return (
-    <Card className="border-indigo-200 bg-gradient-to-br from-white to-indigo-50/50 shadow-sm">
+    <Card className="border-primary/20 bg-gradient-to-br from-white to-indigo-50/50 shadow-sm">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base font-semibold text-zinc-900">
-          <PenTool className="size-4 text-indigo-500" />
+        <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+          <PenTool className="size-4 text-primary" />
           Sign Contract
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-muted-foreground">
           By signing below, you agree to the terms outlined in this contract.
         </p>
         <div>
@@ -72,9 +72,9 @@ export function PortalSignForm({ contractId, userId }: PortalSignFormProps) {
           />
         </div>
         {signatureName && (
-          <div className="rounded-lg border border-indigo-200 bg-white p-4 text-center">
-            <p className="text-xs text-zinc-400 mb-1">Signature preview</p>
-            <p className="text-2xl italic text-zinc-900 font-serif">
+          <div className="rounded-lg border border-primary/20 bg-white p-4 text-center">
+            <p className="text-xs text-muted-foreground mb-1">Signature preview</p>
+            <p className="text-2xl italic text-foreground font-serif">
               {signatureName}
             </p>
           </div>

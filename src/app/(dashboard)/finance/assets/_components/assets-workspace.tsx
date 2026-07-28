@@ -111,7 +111,7 @@ export function AssetsWorkspace({
                       <TableCell className="font-medium">{a.name}</TableCell>
                       <TableCell className="text-muted-foreground">{a.category ?? "—"}</TableCell>
                       <TableCell className="text-right numeric">{formatINR(a.cost)}</TableCell>
-                      <TableCell className="text-right numeric text-rose-600 dark:text-rose-400">{formatINR(a.accumulatedDep)}</TableCell>
+                      <TableCell className="text-right numeric text-destructive">{formatINR(a.accumulatedDep)}</TableCell>
                       <TableCell className="text-right font-medium numeric">{formatINR(a.netBookValue)}</TableCell>
                       <TableCell><StatusPill label={statusLabel(a.status)} hue={statusHue(a.status)} size="xs" /></TableCell>
                       {canWrite && (
@@ -181,9 +181,9 @@ function PnlTable({
             {rows.map((r) => (
               <TableRow key={r.key}>
                 <TableCell className="numeric text-[12.5px] text-muted-foreground">{r.key}</TableCell>
-                <TableCell className="text-right numeric text-emerald-600 dark:text-emerald-400">{formatINR(r.income)}</TableCell>
-                <TableCell className="text-right numeric text-rose-600 dark:text-rose-400">{formatINR(r.expense)}</TableCell>
-                <TableCell className={cn("text-right font-medium numeric", r.net >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>{formatINR(r.net)}</TableCell>
+                <TableCell className="text-right numeric text-success">{formatINR(r.income)}</TableCell>
+                <TableCell className="text-right numeric text-destructive">{formatINR(r.expense)}</TableCell>
+                <TableCell className={cn("text-right font-medium numeric", r.net >= 0 ? "text-success" : "text-destructive")}>{formatINR(r.net)}</TableCell>
               </TableRow>
             ))}
           </TableBody>

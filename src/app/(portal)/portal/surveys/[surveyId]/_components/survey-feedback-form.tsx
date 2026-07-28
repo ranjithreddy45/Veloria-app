@@ -63,13 +63,13 @@ function StarRatingInput({
             className={`size-7 transition-colors ${
               star <= (hover || value)
                 ? "fill-amber-400 text-amber-400"
-                : "text-zinc-300"
+                : "text-muted-foreground/60"
             }`}
           />
         </button>
       ))}
       {value > 0 && (
-        <span className="ml-2 text-sm font-medium text-zinc-600">
+        <span className="ml-2 text-sm font-medium text-muted-foreground">
           {value}/5
         </span>
       )}
@@ -90,7 +90,7 @@ function NpsScoreInput({
 }) {
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between text-xs text-zinc-400">
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>Not at all likely</span>
         <span>Extremely likely</span>
       </div>
@@ -102,11 +102,11 @@ function NpsScoreInput({
             className={`flex-1 rounded-md border py-2 text-sm font-medium transition-all ${
               value === score
                 ? score <= 6
-                  ? "border-red-300 bg-red-100 text-red-700"
+                  ? "border-destructive/20 bg-destructive/10 text-destructive"
                   : score <= 8
-                    ? "border-amber-300 bg-amber-100 text-amber-700"
-                    : "border-emerald-300 bg-emerald-100 text-emerald-700"
-                : "border-zinc-200 bg-white dark:bg-card text-zinc-600 hover:border-indigo-200 hover:bg-indigo-50"
+                    ? "border-warning/20 bg-warning/10 text-warning"
+                    : "border-success/20 bg-success/10 text-success"
+                : "border-border bg-card text-muted-foreground hover:border-primary/20 hover:bg-primary/10"
             }`}
             onClick={() => onChange(score)}
           >
@@ -200,13 +200,13 @@ export function SurveyFeedbackForm({
   // Success state
   if (submitted) {
     return (
-      <Card className="border-emerald-200 bg-emerald-50 shadow-sm">
+      <Card className="border-success/20 bg-success/10 shadow-sm">
         <CardContent className="flex flex-col items-center py-12 text-center">
-          <CheckCircle2 className="size-16 text-emerald-600" />
-          <h2 className="mt-4 text-xl font-bold text-emerald-900">
+          <CheckCircle2 className="size-16 text-success" />
+          <h2 className="mt-4 text-xl font-bold text-success">
             Thank You!
           </h2>
-          <p className="mt-2 text-sm text-emerald-700 max-w-md">
+          <p className="mt-2 text-sm text-success max-w-md">
             Your feedback has been submitted successfully. We appreciate you
             taking the time to help us improve our services.
           </p>
@@ -218,7 +218,7 @@ export function SurveyFeedbackForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Survey Header */}
-      <Card className="border-zinc-200/80 shadow-sm overflow-hidden">
+      <Card className="border-border/80 shadow-sm overflow-hidden">
         <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-8 text-white">
           <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
           {description && (
@@ -233,23 +233,23 @@ export function SurveyFeedbackForm({
 
       {/* Error Banner */}
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {error}
         </div>
       )}
 
       {/* Questions */}
       {questions.map((question, index) => (
-        <Card key={question.id} className="border-zinc-200/80 shadow-sm">
+        <Card key={question.id} className="border-border/80 shadow-sm">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold text-zinc-900">
-              <span className="text-indigo-600 mr-1.5">Q{index + 1}.</span>
+            <CardTitle className="text-sm font-semibold text-foreground">
+              <span className="text-primary mr-1.5">Q{index + 1}.</span>
               {question.question}
               {question.isRequired && (
-                <span className="text-red-500 ml-1">*</span>
+                <span className="text-destructive ml-1">*</span>
               )}
             </CardTitle>
-            <p className="text-xs text-zinc-400">
+            <p className="text-xs text-muted-foreground">
               {SURVEY_QUESTION_TYPE_LABELS[question.type]}
             </p>
           </CardHeader>
@@ -287,12 +287,12 @@ export function SurveyFeedbackForm({
                     {(question.options as string[]).map((option) => (
                       <div
                         key={option}
-                        className="flex items-center gap-3 rounded-lg border border-zinc-100 bg-zinc-50/50 px-4 py-3 transition-colors hover:bg-zinc-50"
+                        className="flex items-center gap-3 rounded-lg border border-border bg-muted/50 px-4 py-3 transition-colors hover:bg-muted"
                       >
                         <RadioGroupItem value={option} id={`${question.id}-${option}`} />
                         <Label
                           htmlFor={`${question.id}-${option}`}
-                          className="cursor-pointer text-sm text-zinc-700 flex-1"
+                          className="cursor-pointer text-sm text-muted-foreground flex-1"
                         >
                           {option}
                         </Label>

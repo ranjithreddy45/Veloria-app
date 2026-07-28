@@ -29,9 +29,9 @@ function statusBadge(status: Status) {
     case "SUBMITTED":
       return <Badge className="border-transparent bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">Submitted</Badge>;
     case "APPROVED":
-      return <Badge className="border-transparent bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">Approved</Badge>;
+      return <Badge className="border-transparent bg-success/10 text-success">Approved</Badge>;
     case "REJECTED":
-      return <Badge className="border-transparent bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300">Rejected</Badge>;
+      return <Badge className="border-transparent bg-destructive/10 text-destructive">Rejected</Badge>;
     default:
       return <Badge variant="outline">Draft</Badge>;
   }
@@ -306,7 +306,7 @@ export function TimesheetGrid({
               <p
                 className={`text-[12px] ${
                   filledDays >= 6
-                    ? "font-medium text-emerald-600"
+                    ? "font-medium text-success"
                     : "text-muted-foreground"
                 }`}
               >

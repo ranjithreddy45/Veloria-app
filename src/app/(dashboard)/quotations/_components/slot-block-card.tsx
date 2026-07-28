@@ -62,9 +62,9 @@ export function SlotBlockCard({ quotationId, venues, defaultVenueId, defaultDate
 
   if (blocked) {
     return (
-      <Card className="border-emerald-200 bg-emerald-50/40">
+      <Card className="border-success/20 bg-success/5">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base text-emerald-700">
+          <CardTitle className="text-success flex items-center gap-2 text-base">
             <Lock className="h-4 w-4" /> Slot Blocked
           </CardTitle>
         </CardHeader>
@@ -144,12 +144,12 @@ export function SlotBlockCard({ quotationId, venues, defaultVenueId, defaultDate
               Generate proforma invoice (20% advance)
             </Button>
           ) : advancePaid ? (
-            <p className="flex items-center gap-1.5 text-sm text-emerald-600">
+            <p className="text-success flex items-center gap-1.5 text-sm">
               <CheckCircle2 className="h-4 w-4" /> Advance received — block the slot below.
             </p>
           ) : (
             <div className="space-y-1.5">
-              <p className="text-xs text-amber-600">
+              <p className="text-warning text-xs">
                 Advance pending. Record the 20% advance to unlock slot booking.
               </p>
               <Button asChild variant="outline" size="sm" className="w-full">
@@ -206,14 +206,14 @@ export function SlotBlockCard({ quotationId, venues, defaultVenueId, defaultDate
               >
                 <span>{SLOT_LABEL[a.slot]}</span>
                 {a.available ? (
-                  <span className="flex items-center gap-1 text-emerald-600"><CheckCircle2 className="h-3.5 w-3.5" /> Free</span>
+                  <span className="text-success flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> Free</span>
                 ) : (
-                  <span className="text-rose-600 text-xs">{a.reason || "Taken"}</span>
+                  <span className="text-destructive text-xs">{a.reason || "Taken"}</span>
                 )}
               </button>
             ))}
             {selectedAvail && !selectedAvail.available && (
-              <p className="px-2 pt-1 text-xs text-amber-600">
+              <p className="text-warning px-2 pt-1 text-xs">
                 The selected slot is taken — pick one of the free slots above.
               </p>
             )}

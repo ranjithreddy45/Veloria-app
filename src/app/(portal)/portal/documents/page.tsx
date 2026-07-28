@@ -48,9 +48,9 @@ export default async function PortalDocumentsPage() {
 
       {/* Unverified account notice (C9) */}
       {!docs.verified && (
-        <Card className="shadow-card rounded-2xl border-amber-500/25 bg-amber-500/[0.06] py-0">
+        <Card className="shadow-card rounded-2xl border-warning/25 bg-warning/[0.06] py-0">
           <CardContent className="flex items-start gap-3.5 p-6">
-            <ShieldAlert className="mt-0.5 size-5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+            <ShieldAlert className="mt-0.5 size-5 flex-shrink-0 text-warning" />
             <div>
               <h3 className="font-editorial text-foreground text-[20px] font-semibold">
                 One quick step first
@@ -103,11 +103,11 @@ export default async function PortalDocumentsPage() {
                     <CardContent className="flex items-center gap-4 p-5">
                       <div
                         className={`flex size-10 flex-shrink-0 items-center justify-center rounded-xl ${
-                          isSigned ? "bg-emerald-500/10" : "bg-primary/10"
+                          isSigned ? "bg-success/10" : "bg-primary/10"
                         }`}
                       >
                         {isSigned ? (
-                          <CheckCircle2 className="size-5 text-emerald-600 dark:text-emerald-400" />
+                          <CheckCircle2 className="size-5 text-success" />
                         ) : (
                           <FileSignature className="text-primary size-5" />
                         )}

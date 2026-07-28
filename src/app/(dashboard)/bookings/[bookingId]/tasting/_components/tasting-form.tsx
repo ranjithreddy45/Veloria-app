@@ -230,7 +230,7 @@ export function TastingForm({
           {/* Date Picker */}
           <div className="space-y-2">
             <Label>
-              Date <span className="text-red-500">*</span>
+              Date <span className="text-destructive">*</span>
             </Label>
             <Popover>
               <PopoverTrigger asChild>
@@ -260,7 +260,7 @@ export function TastingForm({
           {/* Time Select */}
           <div className="space-y-2">
             <Label>
-              Time <span className="text-red-500">*</span>
+              Time <span className="text-destructive">*</span>
             </Label>
             <Select value={time} onValueChange={setTime}>
               <SelectTrigger>
@@ -353,7 +353,7 @@ export function TastingForm({
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="size-8 text-red-500 hover:text-red-700"
+                    className="size-8 text-destructive hover:text-destructive"
                     onClick={() => removeItem(index)}
                   >
                     <TrashIcon className="size-4" />

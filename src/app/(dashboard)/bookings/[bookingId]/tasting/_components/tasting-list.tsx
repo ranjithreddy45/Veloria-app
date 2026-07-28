@@ -293,7 +293,7 @@ export function TastingList({
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
-                        className="text-red-600"
+                        className="text-destructive"
                         onClick={() => setDeletingTasting(tasting)}
                       >
                         <TrashIcon className="mr-2 size-4" />
@@ -343,12 +343,12 @@ export function TastingList({
 
               {/* Feedback (for completed tastings) */}
               {tasting.feedback && (
-                <div className="rounded-lg bg-green-50 border border-green-200 p-3">
-                  <p className="text-xs font-medium text-green-800 mb-1 uppercase tracking-wide flex items-center gap-1.5">
+                <div className="rounded-lg bg-success/10 border border-success/20 p-3">
+                  <p className="text-xs font-medium text-success mb-1 uppercase tracking-wide flex items-center gap-1.5">
                     <MessageSquareIcon className="size-3.5" />
                     Feedback
                   </p>
-                  <p className="text-sm text-green-900 whitespace-pre-wrap">
+                  <p className="text-sm text-success whitespace-pre-wrap">
                     {tasting.feedback}
                   </p>
                 </div>
@@ -420,7 +420,7 @@ export function TastingList({
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <AlertTriangleIcon className="size-5 text-amber-500" />
+              <AlertTriangleIcon className="size-5 text-warning" />
               Cancel Tasting
             </DialogTitle>
             <DialogDescription>
@@ -474,7 +474,7 @@ export function TastingList({
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <AlertTriangleIcon className="size-5 text-red-500" />
+              <AlertTriangleIcon className="size-5 text-destructive" />
               Delete Tasting
             </DialogTitle>
             <DialogDescription>

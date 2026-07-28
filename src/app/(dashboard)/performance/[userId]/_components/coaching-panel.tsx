@@ -167,7 +167,7 @@ export function CoachingPanel({ userId, notes, canCoach }: { userId: string; not
                         <Button variant="ghost" size="sm" className="h-6 shrink-0 px-2 text-[11px]" onClick={() => markDone(n.id)}>Mark done</Button>
                       )}
                       {n.status === "DONE" && (
-                        <Badge className="shrink-0 border-transparent bg-emerald-100 text-[10px] text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">Done</Badge>
+                        <Badge className="shrink-0 border-transparent bg-success/15 text-[10px] text-success">Done</Badge>
                       )}
                     </p>
                   )}

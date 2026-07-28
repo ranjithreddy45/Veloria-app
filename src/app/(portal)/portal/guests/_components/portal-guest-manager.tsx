@@ -134,9 +134,9 @@ export function PortalGuestManager({
       </div>
 
       {/* Add + import */}
-      <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="flex items-center gap-2 text-sm font-semibold"><UserPlus className="size-4 text-indigo-600" /> Add a guest</h2>
+          <h2 className="flex items-center gap-2 text-sm font-semibold"><UserPlus className="size-4 text-primary" /> Add a guest</h2>
           <Button variant="ghost" size="sm" onClick={() => setShowImport((s) => !s)} className="gap-1.5 text-xs">
             <Upload className="size-3.5" /> Bulk paste
           </Button>
@@ -157,8 +157,8 @@ export function PortalGuestManager({
           </div>
         </div>
         {showImport && (
-          <div className="mt-3 space-y-2 border-t border-zinc-100 pt-3 dark:border-zinc-800">
-            <Label className="text-xs text-zinc-500">One guest per line — <code>Name, phone, email</code> (phone &amp; email optional)</Label>
+          <div className="mt-3 space-y-2 border-t border-border pt-3">
+            <Label className="text-xs text-muted-foreground">One guest per line — <code>Name, phone, email</code> (phone &amp; email optional)</Label>
             <Textarea rows={4} value={importText} onChange={(e) => setImportText(e.target.value)} placeholder={"Aarav Sharma, 98765 43210, aarav@example.com\nPriya Nair, 99887 76655"} />
             <Button size="sm" onClick={doImport} disabled={pending} className="gap-1.5">
               {pending ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />} Import guests
@@ -168,26 +168,26 @@ export function PortalGuestManager({
       </div>
 
       {/* Guest list */}
-      <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="flex items-center justify-between border-b border-zinc-100 p-4 dark:border-zinc-800">
-          <h2 className="text-sm font-semibold">Guests <span className="text-zinc-400">({stats.total})</span></h2>
+      <div className="rounded-2xl border border-border bg-card shadow-sm">
+        <div className="flex items-center justify-between border-b border-border p-4">
+          <h2 className="text-sm font-semibold">Guests <span className="text-muted-foreground">({stats.total})</span></h2>
           {unsent > 0 && (
-            <Button size="sm" onClick={sendAll} disabled={pending} className="gap-1.5 bg-emerald-600 hover:bg-emerald-700">
+            <Button size="sm" onClick={sendAll} disabled={pending} className="gap-1.5 bg-success hover:bg-success/90">
               {pending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />} Send all invitations ({unsent})
             </Button>
           )}
         </div>
         {guests.length === 0 ? (
-          <p className="p-8 text-center text-sm text-zinc-500">No guests yet — add your first above.</p>
+          <p className="p-8 text-center text-sm text-muted-foreground">No guests yet — add your first above.</p>
         ) : (
-          <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
+          <ul className="divide-y divide-border">
             {guests.map((g) => (
               <li key={g.id} className="flex flex-wrap items-center gap-3 p-3 sm:px-4">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                    {g.name}{g.plusOnes > 0 && <span className="ml-1 text-xs text-zinc-400">+{g.plusOnes}</span>}
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {g.name}{g.plusOnes > 0 && <span className="ml-1 text-xs text-muted-foreground">+{g.plusOnes}</span>}
                   </p>
-                  <p className="truncate text-xs text-zinc-500">{[g.phone, g.email].filter(Boolean).join(" · ") || "No contact info"}</p>
+                  <p className="truncate text-xs text-muted-foreground">{[g.phone, g.email].filter(Boolean).join(" · ") || "No contact info"}</p>
                 </div>
                 <RsvpBadge status={g.rsvpStatus} />
                 <InviteBadge status={g.invitation?.invitationStatus ?? "NOT_SENT"} />
@@ -197,11 +197,11 @@ export function PortalGuestManager({
                       {busyId === g.id ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />} Invite
                     </Button>
                   ) : (
-                    <Button size="sm" variant="ghost" disabled={pending} onClick={() => sendOne(g)} className="h-8 gap-1.5 text-xs text-zinc-500" title="Resend invitation">
+                    <Button size="sm" variant="ghost" disabled={pending} onClick={() => sendOne(g)} className="h-8 gap-1.5 text-xs text-muted-foreground" title="Resend invitation">
                       Resend
                     </Button>
                   )}
-                  <Button size="icon" variant="ghost" disabled={pending} onClick={() => remove(g)} className="size-8 text-zinc-400 hover:text-red-600">
+                  <Button size="icon" variant="ghost" disabled={pending} onClick={() => remove(g)} className="size-8 text-muted-foreground hover:text-destructive">
                     <Trash2 className="size-4" />
                   </Button>
                 </div>
@@ -216,28 +216,28 @@ export function PortalGuestManager({
 
 function Stat({ label, value, tone, icon }: { label: string; value: number; tone: string; icon: React.ReactNode }) {
   const tones: Record<string, string> = {
-    zinc: "text-zinc-600 dark:text-zinc-300", emerald: "text-emerald-600", rose: "text-rose-600",
-    amber: "text-amber-600", indigo: "text-indigo-600",
+    zinc: "text-muted-foreground", emerald: "text-success", rose: "text-destructive",
+    amber: "text-warning", indigo: "text-primary",
   };
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="rounded-xl border border-border bg-card p-3">
       <div className={`flex items-center gap-1.5 text-xs font-medium ${tones[tone]}`}>{icon}{label}</div>
-      <p className="mt-1 text-2xl font-bold tabular-nums text-zinc-900 dark:text-zinc-100">{value}</p>
+      <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{value}</p>
     </div>
   );
 }
 
 function RsvpBadge({ status }: { status: Rsvp }) {
   const map: Record<Rsvp, { label: string; cls: string }> = {
-    ACCEPTED: { label: "Accepted", cls: "border-emerald-200 bg-emerald-50 text-emerald-700" },
-    DECLINED: { label: "Declined", cls: "border-rose-200 bg-rose-50 text-rose-700" },
-    PENDING: { label: "Awaiting RSVP", cls: "border-amber-200 bg-amber-50 text-amber-700" },
+    ACCEPTED: { label: "Accepted", cls: "border-success/20 bg-success/10 text-success" },
+    DECLINED: { label: "Declined", cls: "border-destructive/20 bg-destructive/10 text-destructive" },
+    PENDING: { label: "Awaiting RSVP", cls: "border-warning/20 bg-warning/10 text-warning" },
   };
   const m = map[status];
   return <Badge variant="outline" className={`hidden sm:inline-flex ${m.cls}`}>{m.label}</Badge>;
 }
 
 function InviteBadge({ status }: { status: InviteStatus }) {
-  if (status === "NOT_SENT") return <Badge variant="outline" className="border-zinc-200 bg-zinc-50 text-zinc-500">Not invited</Badge>;
-  return <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-700">Invited</Badge>;
+  if (status === "NOT_SENT") return <Badge variant="outline" className="border-border bg-muted text-muted-foreground">Not invited</Badge>;
+  return <Badge variant="outline" className="border-primary/20 bg-primary/10 text-primary">Invited</Badge>;
 }

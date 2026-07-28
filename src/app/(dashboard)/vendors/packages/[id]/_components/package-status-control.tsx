@@ -61,7 +61,7 @@ export function PackageStatusControl({
         {currentStatus !== "ACTIVE" && currentStatus !== "ARCHIVED" && (
           <Button
             size="sm"
-            className="h-8 w-full text-[12px] bg-emerald-600 hover:bg-emerald-700 text-white"
+            className="h-8 w-full text-[12px] bg-success hover:bg-success/90 text-white"
             onClick={() => handleTransition("ACTIVE")}
             disabled={isPending}
           >

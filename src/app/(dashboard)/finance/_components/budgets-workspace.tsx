@@ -136,7 +136,7 @@ export function BudgetsWorkspace({
           label="Variance"
           accent={totalFavorable ? "emerald" : "rose"}
           icon={<Scale className="size-4" />}
-          value={<span className={cn(totalFavorable ? "text-emerald-600" : "text-rose-600")}>{totals.variance > 0 ? "+" : ""}{formatINR(totals.variance)}</span>}
+          value={<span className={cn(totalFavorable ? "text-success" : "text-destructive")}>{totals.variance > 0 ? "+" : ""}{formatINR(totals.variance)}</span>}
           sub={totalFavorable ? "Under / over plan favorably" : "Over plan"}
         />
         <StatTile
@@ -183,7 +183,7 @@ export function BudgetsWorkspace({
                     </TableCell>
                     <TableCell className="text-right numeric">{formatINR(r.budget)}</TableCell>
                     <TableCell className="text-right numeric">{formatINR(r.actual)}</TableCell>
-                    <TableCell className={cn("text-right numeric font-medium", fav ? "text-emerald-600" : "text-rose-600")}>
+                    <TableCell className={cn("text-right numeric font-medium", fav ? "text-success" : "text-destructive")}>
                       {r.variance > 0 ? "+" : ""}{formatINR(r.variance)}
                     </TableCell>
                     <TableCell>
@@ -191,7 +191,7 @@ export function BudgetsWorkspace({
                         <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                           <span
                             aria-hidden
-                            className={cn("block h-full rounded-full", fav ? "bg-emerald-500" : "bg-rose-500")}
+                            className={cn("block h-full rounded-full", fav ? "bg-success" : "bg-destructive")}
                             style={{ width: `${barPct}%` }}
                           />
                         </div>
@@ -207,7 +207,7 @@ export function BudgetsWorkspace({
                 <td className="px-4 py-2">Total</td>
                 <td className="px-4 py-2 text-right numeric">{formatINR(totals.budget)}</td>
                 <td className="px-4 py-2 text-right numeric">{formatINR(totals.actual)}</td>
-                <td className={cn("px-4 py-2 text-right numeric", totalFavorable ? "text-emerald-600" : "text-rose-600")}>
+                <td className={cn("px-4 py-2 text-right numeric", totalFavorable ? "text-success" : "text-destructive")}>
                   {totals.variance > 0 ? "+" : ""}{formatINR(totals.variance)}
                 </td>
                 <td className="px-4 py-2">
@@ -407,7 +407,7 @@ function DeleteLineButton({ id, onDone }: { id: string; onDone: () => void }) {
     });
   }
   return (
-    <Button variant="ghost" size="icon" className="size-7 text-muted-foreground hover:text-rose-600" onClick={remove} disabled={pending} aria-label="Delete line">
+    <Button variant="ghost" size="icon" className="size-7 text-muted-foreground hover:text-destructive" onClick={remove} disabled={pending} aria-label="Delete line">
       {pending ? <Loader2 className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}
     </Button>
   );

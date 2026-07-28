@@ -144,7 +144,7 @@ function TaskRow({
       <span
         className={cn(
           "absolute inset-y-0 left-0 w-1",
-          isDone ? "bg-emerald-500" : overdue ? "bg-red-500" : style.rail
+          isDone ? "bg-success" : overdue ? "bg-destructive" : style.rail
         )}
         aria-hidden
       />
@@ -154,7 +154,7 @@ function TaskRow({
         <div
           className={cn(
             "numeric text-sm font-semibold",
-            overdue ? "text-red-600 dark:text-red-400" : "text-foreground"
+            overdue ? "text-destructive" : "text-foreground"
           )}
         >
           {format(due, "h:mm")}
@@ -177,12 +177,12 @@ function TaskRow({
             {style.label}
           </span>
           {overdue && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-red-500/12 px-2 py-0.5 text-[11px] font-semibold text-red-600 ring-1 ring-inset ring-red-500/25 dark:text-red-400">
+            <span className="inline-flex items-center gap-1 rounded-full bg-destructive/12 px-2 py-0.5 text-[11px] font-semibold text-destructive ring-1 ring-inset ring-destructive/25">
               Overdue
             </span>
           )}
           {isDone && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/12 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 ring-1 ring-inset ring-emerald-500/25 dark:text-emerald-400">
+            <span className="inline-flex items-center gap-1 rounded-full bg-success/12 px-2 py-0.5 text-[11px] font-semibold text-success ring-1 ring-inset ring-success/25">
               <CheckCircle2 className="size-3" />
               Done
             </span>
@@ -314,7 +314,7 @@ export function MyCalendar({
             <span className="numeric font-semibold text-foreground">{pendingCount}</span> pending
           </span>
           {overdueCount > 0 && (
-            <span className="font-semibold text-red-600 dark:text-red-400">
+            <span className="font-semibold text-destructive">
               <span className="numeric">{overdueCount}</span> overdue
             </span>
           )}

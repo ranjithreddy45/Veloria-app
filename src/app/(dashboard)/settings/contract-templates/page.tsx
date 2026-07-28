@@ -32,15 +32,15 @@ export default async function ContractTemplatesPage() {
       </PageHeader>
 
       {templates.length === 0 ? (
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="flex size-16 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
-              <FileTextIcon className="size-8 text-zinc-400" />
+            <div className="flex size-16 items-center justify-center rounded-full bg-muted">
+              <FileTextIcon className="size-8 text-muted-foreground" />
             </div>
-            <h3 className="mt-4 text-base font-semibold text-zinc-900 dark:text-zinc-100">
+            <h3 className="mt-4 text-base font-semibold text-foreground">
               No templates yet
             </h3>
-            <p className="mt-1 max-w-sm text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="mt-1 max-w-sm text-sm text-muted-foreground">
               Create your first contract template to streamline contract
               creation.
             </p>
@@ -57,20 +57,20 @@ export default async function ContractTemplatesPage() {
           {templates.map((template) => (
             <Card
               key={template.id}
-              className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm transition-all hover:shadow-md"
+              className="border-border shadow-sm transition-all hover:shadow-md"
             >
               <CardContent className="p-5">
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 truncate">
+                      <h3 className="font-semibold text-sm text-foreground truncate">
                         {template.name}
                       </h3>
                       <Badge
                         variant="outline"
                         className={
                           template.isActive
-                            ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700"
+                            ? "bg-success/15 text-success border-success/20"
                             : "bg-muted text-foreground border-border"
                         }
                       >
@@ -78,7 +78,7 @@ export default async function ContractTemplatesPage() {
                       </Badge>
                     </div>
                     {template.description && (
-                      <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2">
+                      <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
                         {template.description}
                       </p>
                     )}
@@ -107,8 +107,8 @@ export default async function ContractTemplatesPage() {
                   )}
                 </div>
 
-                <div className="mt-3 flex items-center justify-between border-t border-zinc-100 dark:border-zinc-700 pt-3">
-                  <span className="text-xs text-zinc-400 dark:text-zinc-500">
+                <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
+                  <span className="text-xs text-muted-foreground">
                     {template._count?.contracts ?? 0} contract(s)
                   </span>
                   <div className="flex items-center gap-1">

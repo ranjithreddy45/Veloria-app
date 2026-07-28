@@ -112,7 +112,7 @@ export function ExecutionTaskCard({ task, bookingId }: ExecutionTaskCardProps) {
       const hours = Math.floor(overdueMins / 60);
       const mins = overdueMins % 60;
       return (
-        <span className="text-xs font-medium text-red-600 dark:text-red-400">
+        <span className="text-xs font-medium text-destructive">
           OVERDUE {hours > 0 ? `${hours}h ` : ""}{mins}m
         </span>
       );
@@ -132,7 +132,7 @@ export function ExecutionTaskCard({ task, bookingId }: ExecutionTaskCardProps) {
   return (
     <>
       <div
-        className="group rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 p-3 hover:bg-accent/50 transition-colors cursor-pointer"
+        className="group rounded-lg border border-border p-3 hover:bg-accent/50 transition-colors cursor-pointer"
         onClick={() => setSheetOpen(true)}
       >
         <div className="flex items-start justify-between gap-2">
@@ -142,7 +142,7 @@ export function ExecutionTaskCard({ task, bookingId }: ExecutionTaskCardProps) {
                 {task.title}
               </span>
               {task.isMandatory && (
-                <span className="text-amber-500 text-xs" title="Mandatory">
+                <span className="text-warning text-xs" title="Mandatory">
                   <AlertTriangleIcon className="inline size-3.5" />
                 </span>
               )}
@@ -190,7 +190,7 @@ export function ExecutionTaskCard({ task, bookingId }: ExecutionTaskCardProps) {
                   {task.assignee.name ?? task.assignee.email}
                 </span>
               ) : (
-                <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                <span className="flex items-center gap-1 text-warning">
                   <UserIcon className="size-3" />
                   Unassigned
                 </span>
@@ -231,7 +231,7 @@ export function ExecutionTaskCard({ task, bookingId }: ExecutionTaskCardProps) {
                   size="sm"
                   onClick={handleComplete}
                   disabled={isPending}
-                  className="h-7 px-2 text-xs text-emerald-600"
+                  className="h-7 px-2 text-xs text-success"
                 >
                   {isPending ? (
                     <Loader2Icon className="size-3 animate-spin" />
@@ -245,7 +245,7 @@ export function ExecutionTaskCard({ task, bookingId }: ExecutionTaskCardProps) {
                   size="sm"
                   onClick={() => setBlockDialogOpen(true)}
                   disabled={isPending}
-                  className="h-7 px-2 text-xs text-red-600"
+                  className="h-7 px-2 text-xs text-destructive"
                 >
                   <OctagonIcon className="mr-0.5 size-3" />
                   Block

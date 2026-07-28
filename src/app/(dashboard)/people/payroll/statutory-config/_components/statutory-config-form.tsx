@@ -298,8 +298,8 @@ export function StatutoryConfigForm({
   return (
     <div className="space-y-5">
       {/* Prominent, always-on explainer. */}
-      <div className="flex gap-3 rounded-xl border border-amber-500/25 bg-amber-500/[0.06] p-4 text-[13px] leading-relaxed text-amber-800 dark:text-amber-200">
-        <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+      <div className="flex gap-3 rounded-xl border border-warning/25 bg-warning/[0.06] p-4 text-[13px] leading-relaxed text-warning">
+        <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" />
         <p>
           These values drive every payslip&apos;s statutory maths. Changing them affects the{" "}
           <span className="font-semibold">next</span> payroll run — already-finalised payslips are
@@ -342,8 +342,8 @@ export function StatutoryConfigForm({
       {entityId && !loading && (
         <>
           {!hasConfig && (
-            <div className="flex gap-3 rounded-xl border border-amber-500/30 bg-amber-500/[0.08] p-4 text-[13px] leading-relaxed text-amber-800 dark:text-amber-200">
-              <Info className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <div className="flex gap-3 rounded-xl border border-warning/30 bg-warning/[0.08] p-4 text-[13px] leading-relaxed text-warning">
+              <Info className="mt-0.5 size-4 shrink-0 text-warning" />
               <p>
                 This entity has no saved statutory configuration — payroll is using the built-in
                 statutory defaults. {canEdit ? "Review the values below and save to override them." : ""}
@@ -444,7 +444,7 @@ export function StatutoryConfigForm({
                           className={cn(
                             "rounded-lg border px-2.5 py-1.5 text-[12.5px] font-medium transition-colors",
                             on
-                              ? "border-emerald-500/40 bg-emerald-500/12 text-emerald-700 dark:text-emerald-300"
+                              ? "border-success/40 bg-success/12 text-success"
                               : "border-border bg-card text-muted-foreground hover:text-foreground",
                             disabled && "cursor-not-allowed opacity-60"
                           )}

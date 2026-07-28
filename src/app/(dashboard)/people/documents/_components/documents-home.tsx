@@ -147,7 +147,7 @@ function OrgDocCard({ doc, canRead, totalActive }: { doc: OrgDoc; canRead: boole
           )}
           {doc.requiresAck && (
             acked ? (
-              <span className="inline-flex items-center gap-1 text-[13px] font-medium text-emerald-600"><CheckCheck className="size-4" /> Acknowledged</span>
+              <span className="inline-flex items-center gap-1 text-[13px] font-medium text-success"><CheckCheck className="size-4" /> Acknowledged</span>
             ) : (
               <Button size="sm" className="gap-1.5" disabled={busy} onClick={ack}>
                 {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />} Acknowledge
@@ -189,7 +189,7 @@ function ExpiringSection({ expiring }: { expiring: ExpiringDoc[] }) {
         return (
           <div key={d.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4">
             <div className="flex items-start gap-3">
-              <Clock className={`mt-0.5 size-4 ${expired ? "text-red-500" : left <= 14 ? "text-amber-500" : "text-muted-foreground"}`} />
+              <Clock className={`mt-0.5 size-4 ${expired ? "text-destructive" : left <= 14 ? "text-warning" : "text-muted-foreground"}`} />
               <div>
                 <div className="font-medium">{d.title}</div>
                 <div className="mt-0.5 text-[12px] text-muted-foreground">
@@ -259,7 +259,7 @@ function AckCoverageDialog({
             </div>
 
             <div className="space-y-1.5">
-              <div className="flex items-center gap-1.5 text-[12px] font-medium text-emerald-600">
+              <div className="flex items-center gap-1.5 text-[12px] font-medium text-success">
                 <CheckCheck className="size-3.5" /> Acknowledged
               </div>
               {data.acked.length === 0 ? (
@@ -277,7 +277,7 @@ function AckCoverageDialog({
             </div>
 
             <div className="space-y-1.5">
-              <div className="flex items-center gap-1.5 text-[12px] font-medium text-amber-600">
+              <div className="flex items-center gap-1.5 text-[12px] font-medium text-warning">
                 <Clock className="size-3.5" /> Pending
               </div>
               {data.pending.length === 0 ? (
@@ -383,7 +383,7 @@ export function AddDocDialog({
             </label>
           )}
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
           <Button onClick={save} disabled={saving} className="gap-1.5">
@@ -428,7 +428,7 @@ function TemplateDialog({ existing }: { existing?: Template }) {
           <div className="space-y-1.5"><Label className="text-[12.5px]">Body</Label>
             <textarea value={body} onChange={(e) => setBody(e.target.value)} className="h-52 w-full resize-y rounded-lg border bg-background p-3 text-[13px] outline-none focus:ring-2 focus:ring-ring" /></div>
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
           <Button onClick={save} disabled={saving} className="gap-1.5">

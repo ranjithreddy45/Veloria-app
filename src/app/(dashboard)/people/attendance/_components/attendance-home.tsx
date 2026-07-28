@@ -246,7 +246,7 @@ function CheckInCard({ today }: { today: Rec | null }) {
               onUploaded={(dataUrl) => setSelfieUrl(dataUrl)}
             />
             {selfieUrl
-              ? <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">Selfie attached ✓</span>
+              ? <span className="text-[11px] font-medium text-success">Selfie attached ✓</span>
               : <span className="text-[11px] text-muted-foreground">Optional</span>}
           </div>
         </div>
@@ -261,7 +261,7 @@ function CheckInCard({ today }: { today: Rec | null }) {
             {busy ? <Loader2 className="size-4 animate-spin" /> : <LogOut className="size-4" />} Check out
           </Button>
         ) : (
-          <div className="rounded-lg bg-emerald-50 py-2 text-center text-[13px] font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
+          <div className="rounded-lg bg-success/10 py-2 text-center text-[13px] font-medium text-success">
             All done for today ✓
           </div>
         )}
@@ -276,7 +276,7 @@ function CheckInCard({ today }: { today: Rec | null }) {
         </p>
       )}
       {needsGps && !done && pos?.accuracyM != null && (
-        <p className={`mt-1 text-[11.5px] ${poorFix ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}>
+        <p className={`mt-1 text-[11.5px] ${poorFix ? "text-warning" : "text-muted-foreground"}`}>
           Location accuracy: ±{Math.round(pos.accuracyM)}m
           {poorFix && ` — this punch will be flagged for review.`}
         </p>
@@ -339,7 +339,7 @@ function RegularizeDialog() {
           <div className="space-y-1.5"><Label className="text-[12.5px]">Reason</Label>
             <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Client visit, system down…" /></div>
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
           <Button onClick={submit} disabled={saving} className="gap-1.5">
@@ -410,7 +410,7 @@ function MarkManuallyDialog({ employees }: { employees: EmployeeOption[] }) {
           <div className="space-y-1.5"><Label className="text-[12.5px]">Note (optional)</Label>
             <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Manual entry reason…" /></div>
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
           <Button onClick={submit} disabled={saving} className="gap-1.5">

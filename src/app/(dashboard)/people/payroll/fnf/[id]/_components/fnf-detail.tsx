@@ -114,7 +114,7 @@ export function FnfDetail({ fnf }: { fnf: Fnf }) {
             </Button>
           )}
           {fnf.status === "PAID" && (
-            <p className="rounded-lg bg-emerald-50 px-3 py-2 text-[12.5px] text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+            <p className="rounded-lg bg-success/10 px-3 py-2 text-[12.5px] text-success">
               This settlement has been paid.
             </p>
           )}

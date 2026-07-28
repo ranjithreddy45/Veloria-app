@@ -74,7 +74,7 @@ export default async function BadgesPage() {
       </PageHeader>
 
       {badges.length === 0 ? (
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <AwardIcon className="mb-4 size-12 text-muted-foreground/40" />
             <p className="text-lg font-medium text-muted-foreground">
@@ -98,12 +98,12 @@ export default async function BadgesPage() {
               <AwardIcon className="size-5 text-muted-foreground" />
             );
             const bgColor =
-              BADGE_BG_COLORS[badge.type] || "bg-zinc-100 dark:bg-zinc-800/30";
+              BADGE_BG_COLORS[badge.type] || "bg-muted";
 
             return (
               <Card
                 key={badge.id}
-                className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm"
+                className="border-border shadow-sm"
               >
                 <CardContent className="pt-6">
                   <div className="flex flex-col items-center text-center">

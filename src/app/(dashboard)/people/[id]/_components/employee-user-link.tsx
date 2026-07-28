@@ -92,7 +92,7 @@ export function EmployeeUserLink({ employeeId, employeeName, linkedUser, canAdmi
         </div>
       ) : (
         <div className="space-y-2.5">
-          <div className="flex items-start gap-2 rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-[12px] text-amber-800 dark:border-amber-800/40 dark:bg-amber-950/30 dark:text-amber-300">
+          <div className="flex items-start gap-2 rounded-lg border border-warning/25 bg-warning/10 px-3 py-2 text-[12px] text-warning">
             <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
             <span>No login linked — this employee can&rsquo;t check in, apply for leave, or see payslips.</span>
           </div>

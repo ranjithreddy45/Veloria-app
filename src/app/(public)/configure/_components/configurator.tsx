@@ -393,7 +393,7 @@ export function Configurator({ catalog, venues, initialVenueId, resume }: Props)
                               {pkg.name}
                             </span>
                             {pkg.badge && (
-                              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-amber-700 dark:bg-amber-950 dark:text-amber-400">
+                              <span className="rounded-full bg-warning/10 px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-warning">
                                 {pkg.badge}
                               </span>
                             )}
@@ -418,7 +418,7 @@ export function Configurator({ catalog, venues, initialVenueId, resume }: Props)
                             key={i}
                             className="flex items-center gap-2 text-[12.5px] text-foreground"
                           >
-                            <Check className="size-3.5 shrink-0 text-emerald-600" /> {h}
+                            <Check className="size-3.5 shrink-0 text-success" /> {h}
                           </li>
                         ))}
                       </ul>

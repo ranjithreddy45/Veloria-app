@@ -8,9 +8,9 @@ import { cn } from "@/lib/utils";
 // ============================================================
 
 const APPROVAL_STATUS_COLORS: Record<string, string> = {
-  PENDING_APPROVAL: "bg-amber-100 text-amber-800 border-amber-200",
-  APPROVED: "bg-green-100 text-green-800 border-green-200",
-  REJECTED: "bg-red-100 text-red-800 border-red-200",
+  PENDING_APPROVAL: "bg-warning/10 text-warning border-warning/20",
+  APPROVED: "bg-success/10 text-success border-success/20",
+  REJECTED: "bg-destructive/10 text-destructive border-destructive/20",
   DELEGATED: "bg-blue-100 text-blue-800 border-blue-200",
   CANCELLED: "bg-muted text-foreground border-border",
 };

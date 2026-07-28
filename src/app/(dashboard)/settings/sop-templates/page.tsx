@@ -51,7 +51,7 @@ export default async function SOPTemplatesPage() {
       </PageHeader>
 
       {templates.length === 0 ? (
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <div className="rounded-full bg-muted p-4 mb-4">
               <ClipboardListIcon className="size-8 text-muted-foreground" />
@@ -83,7 +83,7 @@ export default async function SOPTemplatesPage() {
             return (
               <Card
                 key={template.id}
-                className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm flex flex-col"
+                className="border-border shadow-sm flex flex-col"
               >
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">
@@ -92,7 +92,7 @@ export default async function SOPTemplatesPage() {
                       {template.isDefault && (
                         <Badge
                           variant="outline"
-                          className="bg-amber-50 text-amber-700 border-amber-200/60 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/40"
+                          className="bg-warning/10 text-warning border-warning/20"
                         >
                           <StarIcon className="size-3" />
                           Default
@@ -102,8 +102,8 @@ export default async function SOPTemplatesPage() {
                         variant="outline"
                         className={
                           template.isActive
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200/60 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/40"
-                            : "bg-zinc-50 text-zinc-600 border-zinc-200/60 dark:bg-zinc-800/30 dark:text-zinc-400 dark:border-zinc-700/40"
+                            ? "bg-success/10 text-success border-success/20"
+                            : "bg-muted text-muted-foreground border-border"
                         }
                       >
                         {template.isActive ? "Active" : "Inactive"}

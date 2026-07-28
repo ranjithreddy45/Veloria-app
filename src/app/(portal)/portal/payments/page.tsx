@@ -75,8 +75,8 @@ export default async function PortalPaymentsPage() {
         <Card className="shadow-card rounded-2xl py-0">
           <CardContent className="p-6">
             <div className="flex items-center gap-3.5">
-              <div className="flex size-11 items-center justify-center rounded-xl bg-emerald-500/10">
-                <CheckCircle2 className="size-5 text-emerald-600 dark:text-emerald-400" />
+              <div className="flex size-11 items-center justify-center rounded-xl bg-success/10">
+                <CheckCircle2 className="size-5 text-success" />
               </div>
               <div>
                 <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
@@ -109,8 +109,8 @@ export default async function PortalPaymentsPage() {
         <Card className="shadow-card rounded-2xl py-0">
           <CardContent className="p-6">
             <div className="flex items-center gap-3.5">
-              <div className="flex size-11 items-center justify-center rounded-xl bg-amber-500/10">
-                <Clock className="size-5 text-amber-600 dark:text-amber-400" />
+              <div className="flex size-11 items-center justify-center rounded-xl bg-warning/10">
+                <Clock className="size-5 text-warning" />
               </div>
               <div>
                 <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
@@ -271,16 +271,16 @@ export default async function PortalPaymentsPage() {
                         <div
                           className={`flex size-9 items-center justify-center rounded-xl ${
                             payment.status === "COMPLETED"
-                              ? "bg-emerald-500/10"
+                              ? "bg-success/10"
                               : payment.status === "FAILED"
-                              ? "bg-red-500/10"
+                              ? "bg-destructive/10"
                               : "bg-muted"
                           }`}
                         >
                           {payment.status === "COMPLETED" ? (
-                            <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
+                            <CheckCircle2 className="size-4 text-success" />
                           ) : payment.status === "FAILED" ? (
-                            <AlertCircle className="size-4 text-red-600 dark:text-red-400" />
+                            <AlertCircle className="size-4 text-destructive" />
                           ) : (
                             <Clock className="text-muted-foreground/60 size-4" />
                           )}

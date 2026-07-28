@@ -293,8 +293,8 @@ export function AnomalyCard({ anomaly, onUpdate }: AnomalyCardProps) {
                 <span
                   className={`numeric font-medium ${
                     anomaly.deviationPercent < 0
-                      ? "text-rose-600 dark:text-rose-400"
-                      : "text-emerald-600 dark:text-emerald-400"
+                      ? "text-destructive"
+                      : "text-success"
                   }`}
                 >
                   {anomaly.deviationPercent > 0 ? "+" : ""}

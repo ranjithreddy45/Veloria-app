@@ -101,8 +101,8 @@ export function TelephonyConfigForm({ initialConfig }: Props) {
               variant="outline"
               className={
                 isConnected
-                  ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-                  : "bg-zinc-100 text-zinc-500 border-zinc-200"
+                  ? "bg-success/15 text-success border-success/20"
+                  : "bg-muted text-muted-foreground border-border"
               }
             >
               {isConnected ? (

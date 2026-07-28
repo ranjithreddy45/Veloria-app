@@ -139,7 +139,7 @@ export function PaymentRowActions({
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                className="text-red-600 focus:text-red-700"
+                className="text-destructive focus:text-destructive"
                 onSelect={(e) => {
                   e.preventDefault();
                   setDialogOpen(true);
@@ -155,7 +155,7 @@ export function PaymentRowActions({
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                className="text-red-600 focus:text-red-700"
+                className="text-destructive focus:text-destructive"
                 onSelect={(e) => {
                   e.preventDefault();
                   setRefundOpen(true);
@@ -171,7 +171,7 @@ export function PaymentRowActions({
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                className="text-red-600 focus:text-red-700"
+                className="text-destructive focus:text-destructive"
                 onSelect={(e) => {
                   e.preventDefault();
                   review("approve");
@@ -218,7 +218,7 @@ export function PaymentRowActions({
             <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={isPending}>
               Close
             </Button>
-            <Button onClick={submitRequest} disabled={isPending} className="bg-red-600 hover:bg-red-700">
+            <Button onClick={submitRequest} disabled={isPending} className="bg-destructive text-white hover:brightness-105">
               {isPending ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
               {isManager ? "Cancel payment" : "Submit request"}
             </Button>
@@ -250,7 +250,7 @@ export function PaymentRowActions({
             <Button variant="outline" onClick={() => setRefundOpen(false)} disabled={isPending}>
               Close
             </Button>
-            <Button onClick={submitRefund} disabled={isPending} className="bg-red-600 hover:bg-red-700">
+            <Button onClick={submitRefund} disabled={isPending} className="bg-destructive text-white hover:brightness-105">
               {isPending ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
               Refund payment
             </Button>

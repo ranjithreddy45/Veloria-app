@@ -44,15 +44,15 @@ export function HoldPayPanel({
     // Clean confirmation — no countdown, no release link, no contradiction.
     return (
       <div className="animate-rise-in space-y-3">
-        <div className="flex flex-col items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center dark:border-emerald-900 dark:bg-emerald-950/30">
-          <CheckCircle2 className="size-10 text-emerald-600" />
-          <p className="text-lg font-semibold text-emerald-800 dark:text-emerald-300">
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-success/20 bg-success/10 p-6 text-center">
+          <CheckCircle2 className="size-10 text-success" />
+          <p className="text-lg font-semibold text-success">
             Payment received — your date is secured
           </p>
-          <p className="text-sm text-emerald-700 dark:text-emerald-400">
+          <p className="text-sm text-success">
             Payment of {inr(tokenAmount)} received — this date is now blocked for you.
           </p>
-          <p className="mt-1 flex items-center justify-center gap-1.5 text-[12.5px] font-medium text-emerald-800 dark:text-emerald-300">
+          <p className="mt-1 flex items-center justify-center gap-1.5 text-[12.5px] font-medium text-success">
             <PhoneCall className="size-3.5" /> Your coordinator will call you within 24 hours.
           </p>
         </div>
@@ -65,7 +65,7 @@ export function HoldPayPanel({
     <div className="space-y-4">
       {/* Countdown */}
       {expiresAt && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-center text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
+        <div className="rounded-xl border border-warning/20 bg-warning/10 p-3 text-center text-sm text-warning">
           <HoldCountdown expiresAt={expiresAt} />
         </div>
       )}
@@ -74,10 +74,10 @@ export function HoldPayPanel({
       {socialProof}
 
       {/* Pay token */}
-      <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
+      <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+        <p className="text-sm text-muted-foreground">
           Pay a token of{" "}
-          <span className="font-semibold text-zinc-900 dark:text-zinc-100">{inr(tokenAmount)}</span>{" "}
+          <span className="font-semibold text-foreground">{inr(tokenAmount)}</span>{" "}
           to confirm and secure this date.
         </p>
         <div className="mt-4">
@@ -95,7 +95,7 @@ export function HoldPayPanel({
             />
           ) : (
             <div className="space-y-2">
-              <p className="text-sm text-red-600">
+              <p className="text-sm text-destructive">
                 Payment isn&apos;t available for this hold. Please contact us.
               </p>
               <HelpChip />

@@ -179,7 +179,7 @@ export function BlackoutManager({ blackouts, venues }: BlackoutManagerProps) {
                       {deletingId === b.id ? (
                         <Loader2 className="size-3.5 animate-spin" />
                       ) : (
-                        <Trash2 className="size-3.5 text-red-600" />
+                        <Trash2 className="size-3.5 text-destructive" />
                       )}
                     </Button>
                   </td>
@@ -201,7 +201,7 @@ export function BlackoutManager({ blackouts, venues }: BlackoutManagerProps) {
 
         <div className="grid gap-1.5">
           <Label className="text-[12px] text-muted-foreground">
-            Venue <span className="text-red-500">*</span>
+            Venue <span className="text-destructive">*</span>
           </Label>
           <Select value={venueId || undefined} onValueChange={setVenueId}>
             <SelectTrigger className="w-full">
@@ -219,7 +219,7 @@ export function BlackoutManager({ blackouts, venues }: BlackoutManagerProps) {
 
         <div className="grid gap-1.5">
           <Label className="text-[12px] text-muted-foreground">
-            Date <span className="text-red-500">*</span>
+            Date <span className="text-destructive">*</span>
           </Label>
           <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
             <PopoverTrigger asChild>

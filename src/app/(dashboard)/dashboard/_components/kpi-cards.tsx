@@ -125,8 +125,8 @@ function DeltaChip({
         className={cn(
           "numeric inline-flex items-center gap-0.5 font-medium",
           flat && "text-muted-foreground",
-          !flat && up && "text-emerald-600 dark:text-emerald-400",
-          !flat && !up && "text-rose-600 dark:text-rose-400"
+          !flat && up && "text-success",
+          !flat && !up && "text-destructive"
         )}
       >
         {!flat && <TrendIcon className="size-3" strokeWidth={2.5} />}
@@ -254,8 +254,8 @@ export function KpiCards({
           tint={cn(
             "group-hover:bg-muted",
             tasks.overdue > 0
-              ? "text-rose-600 dark:text-rose-400 group-hover:bg-rose-500/10"
-              : "text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-500/10"
+              ? "text-destructive group-hover:bg-rose-500/10"
+              : "text-success group-hover:bg-emerald-500/10"
           )}
         />
         <div className="mt-2 flex items-end justify-between gap-2">

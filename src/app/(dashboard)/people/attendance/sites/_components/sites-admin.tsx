@@ -129,7 +129,7 @@ function SiteDialog({ existing }: { existing?: Site }) {
           <div className="space-y-1.5"><Label className="text-[12.5px]">Allowed office IPs (comma-separated, optional)</Label>
             <Input value={ips} onChange={(e) => setIps(e.target.value)} placeholder="203.0.113.5, 203.0.113.6" /></div>
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
           <Button onClick={save} disabled={saving} className="gap-1.5">

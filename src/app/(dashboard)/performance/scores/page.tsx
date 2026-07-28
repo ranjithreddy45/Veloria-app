@@ -48,7 +48,7 @@ export default async function PerformanceScoresPage() {
 
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-4">
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Total Records
@@ -58,7 +58,7 @@ export default async function PerformanceScoresPage() {
             <p className="text-2xl font-bold">{scores.length}</p>
           </CardContent>
         </Card>
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Staff Scores
@@ -70,7 +70,7 @@ export default async function PerformanceScoresPage() {
             </p>
           </CardContent>
         </Card>
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Vendor Scores
@@ -82,7 +82,7 @@ export default async function PerformanceScoresPage() {
             </p>
           </CardContent>
         </Card>
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Avg Score
@@ -105,7 +105,7 @@ export default async function PerformanceScoresPage() {
       </div>
 
       {/* Scores Table */}
-      <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardContent className="p-0">
           {scores.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">

@@ -59,9 +59,9 @@ export function KPIGrid({ items, columns = 4, className }: KPIGridProps) {
               className={cn(
                 "numeric mt-2.5 text-[12px] font-medium",
                 kpi.change > 0
-                  ? "text-emerald-600 dark:text-emerald-400"
+                  ? "text-success"
                   : kpi.change < 0
-                    ? "text-rose-600 dark:text-rose-400"
+                    ? "text-destructive"
                     : "text-muted-foreground"
               )}
             >

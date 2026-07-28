@@ -37,11 +37,11 @@ export function FinancialsPanel({ fin }: { fin: EventOpsFinancials }) {
           </CardTitle>
 
           {marginPositive ? (
-            <Badge className="w-fit border-emerald-200 bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
+            <Badge className="w-fit border-success/20 bg-success/10 text-success hover:bg-success/10">
               {fin.grossMarginPct}% margin
             </Badge>
           ) : (
-            <Badge className="w-fit border-rose-200 bg-rose-100 text-rose-700 hover:bg-rose-100">
+            <Badge className="w-fit border-destructive/20 bg-destructive/10 text-destructive hover:bg-destructive/10">
               Running at a loss
             </Badge>
           )}
@@ -114,7 +114,7 @@ export function FinancialsPanel({ fin }: { fin: EventOpsFinancials }) {
               <AlertTriangleIcon
                 className={cn(
                   "size-4",
-                  redCount > 0 ? "text-rose-600" : "text-amber-600"
+                  redCount > 0 ? "text-destructive" : "text-warning"
                 )}
               />
               Concerns
@@ -129,8 +129,8 @@ export function FinancialsPanel({ fin }: { fin: EventOpsFinancials }) {
                   className={cn(
                     "rounded-lg border px-3 py-2",
                     v.level === "red"
-                      ? "border-rose-200 bg-rose-50"
-                      : "border-amber-200 bg-amber-50"
+                      ? "border-destructive/20 bg-destructive/10"
+                      : "border-warning/20 bg-warning/10"
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -139,8 +139,8 @@ export function FinancialsPanel({ fin }: { fin: EventOpsFinancials }) {
                         className={cn(
                           "text-sm font-medium leading-tight",
                           v.level === "red"
-                            ? "text-rose-800"
-                            : "text-amber-800"
+                            ? "text-destructive"
+                            : "text-warning"
                         )}
                       >
                         {v.label}
@@ -149,8 +149,8 @@ export function FinancialsPanel({ fin }: { fin: EventOpsFinancials }) {
                         className={cn(
                           "text-xs",
                           v.level === "red"
-                            ? "text-rose-700"
-                            : "text-amber-700"
+                            ? "text-destructive"
+                            : "text-warning"
                         )}
                       >
                         {v.detail}
@@ -161,8 +161,8 @@ export function FinancialsPanel({ fin }: { fin: EventOpsFinancials }) {
                       className={cn(
                         "shrink-0 text-xs capitalize",
                         v.level === "red"
-                          ? "border-rose-200 bg-white text-rose-700"
-                          : "border-amber-200 bg-white text-amber-700"
+                          ? "border-destructive/20 bg-card text-destructive"
+                          : "border-warning/20 bg-card text-warning"
                       )}
                     >
                       {v.level === "red" ? "High" : "Watch"}
@@ -195,9 +195,9 @@ function Figure({
 }) {
   const toneClass =
     tone === "positive"
-      ? "text-emerald-600"
+      ? "text-success"
       : tone === "negative"
-        ? "text-rose-600"
+        ? "text-destructive"
         : tone === "muted"
           ? "text-foreground/80"
           : "text-foreground";
@@ -319,7 +319,7 @@ function RatioBar({
         <span
           className={cn(
             "font-semibold tabular-nums",
-            over ? "text-rose-600" : "text-emerald-600"
+            over ? "text-destructive" : "text-success"
           )}
         >
           {pct}%
@@ -329,7 +329,7 @@ function RatioBar({
         <div
           className={cn(
             "h-full rounded-full",
-            over ? "bg-rose-500" : "bg-emerald-500"
+            over ? "bg-destructive" : "bg-success"
           )}
           style={{ width: fillWidth }}
         />

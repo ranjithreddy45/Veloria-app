@@ -138,7 +138,7 @@ function ToggleActiveButton({ id, isActive, name }: { id: string; isActive: bool
   return (
     <Button
       variant="ghost" size="icon"
-      className={cn("size-8 text-muted-foreground", isActive ? "hover:text-red-600" : "hover:text-emerald-600")}
+      className={cn("size-8 text-muted-foreground", isActive ? "hover:text-destructive" : "hover:text-success")}
       title={isActive ? `Deactivate ${name}` : `Activate ${name}`}
       disabled={busy}
       onClick={async () => {
@@ -281,7 +281,7 @@ function LeaveTypeDialog({ existing, nextOrder }: { existing?: LeaveTypeRow; nex
             <ToggleRow label="Allow negative" hint="Balance can go below zero (LOP)" checked={allowNegative} onChange={setAllowNegative} />
           </div>
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
           <Button onClick={save} disabled={saving} className="gap-1.5">

@@ -62,7 +62,7 @@ export function JourneyDetail({ journey, canWrite }: { journey: Journey; canWrit
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4">
         <div className="text-[13px] text-muted-foreground">
           {closed
-            ? <span className="inline-flex items-center gap-1.5 font-medium text-emerald-600"><CheckCircle2 className="size-4" /> {isOnboarding ? "Onboarding completed — employee is active." : "Offboarding completed — access revoked."}</span>
+            ? <span className="inline-flex items-center gap-1.5 font-medium text-success"><CheckCircle2 className="size-4" /> {isOnboarding ? "Onboarding completed — employee is active." : "Offboarding completed — access revoked."}</span>
             : isOnboarding
               ? "Complete all blocking tasks, then finish onboarding to activate the employee."
               : "Complete all clearance tasks, then finish offboarding to revoke access."}
@@ -74,7 +74,7 @@ export function JourneyDetail({ journey, canWrite }: { journey: Journey; canWrit
           </Button>
         )}
       </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   );
 }

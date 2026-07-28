@@ -109,15 +109,15 @@ export function SalesSignalsFeed() {
   }
 
   return (
-    <Card className="border-zinc-200/80 shadow-sm">
+    <Card className="border-border shadow-sm">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <HistoryIcon className="size-5 text-zinc-500" />
+            <HistoryIcon className="text-muted-foreground size-5" />
             <CardTitle className="text-base">Activity Feed</CardTitle>
-            <span className="text-xs text-zinc-400">Last 72 hours</span>
+            <span className="text-muted-foreground text-xs">Last 72 hours</span>
           </div>
-          <span className="text-xs text-zinc-500">{total} signals</span>
+          <span className="text-muted-foreground text-xs">{total} signals</span>
         </div>
 
         {/* Category Tabs */}
@@ -127,8 +127,8 @@ export function SalesSignalsFeed() {
             className={cn(
               "rounded-full border px-3 py-1 text-xs font-medium transition-all",
               activeCategory === null
-                ? "border-zinc-800 bg-zinc-800 text-white"
-                : "border-zinc-200 bg-zinc-50 text-zinc-500 hover:bg-zinc-100"
+                ? "border-foreground bg-foreground text-background"
+                : "border-border bg-muted text-muted-foreground hover:bg-accent"
             )}
           >
             All
@@ -143,7 +143,7 @@ export function SalesSignalsFeed() {
                   "rounded-full border px-3 py-1 text-xs font-medium transition-all",
                   activeCategory === cat
                     ? config.badgeColor
-                    : "border-zinc-200 bg-zinc-50 text-zinc-500 hover:bg-zinc-100"
+                    : "border-border bg-muted text-muted-foreground hover:bg-accent"
                 )}
               >
                 {config.label}
@@ -175,7 +175,7 @@ export function SalesSignalsFeed() {
               return (
                 <div
                   key={`${signal.id}-${i}`}
-                  className="flex items-start gap-3 rounded-lg border border-zinc-100 p-3 transition-colors hover:bg-zinc-50/50"
+                  className="border-border hover:bg-muted/50 flex items-start gap-3 rounded-lg border p-3 transition-colors"
                 >
                   <div
                     className={cn(

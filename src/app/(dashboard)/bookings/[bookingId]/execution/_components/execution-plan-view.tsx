@@ -148,7 +148,7 @@ export function ExecutionPlanView({ plan, bookingId }: ExecutionPlanViewProps) {
   return (
     <div className="space-y-6">
       {/* Plan Summary Card */}
-      <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1">
@@ -286,7 +286,7 @@ export function ExecutionPlanView({ plan, bookingId }: ExecutionPlanViewProps) {
               <div className="space-y-4 py-2">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">
-                    Phase Name <span className="text-red-500">*</span>
+                    Phase Name <span className="text-destructive">*</span>
                   </label>
                   <Input
                     placeholder="e.g. Stage Setup"
@@ -296,7 +296,7 @@ export function ExecutionPlanView({ plan, bookingId }: ExecutionPlanViewProps) {
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">
-                    Phase Type <span className="text-red-500">*</span>
+                    Phase Type <span className="text-destructive">*</span>
                   </label>
                   <Select value={phaseType} onValueChange={setPhaseType}>
                     <SelectTrigger>
@@ -340,7 +340,7 @@ export function ExecutionPlanView({ plan, bookingId }: ExecutionPlanViewProps) {
         </div>
 
         {phases.length === 0 ? (
-          <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+          <Card className="border-border shadow-sm">
             <CardContent className="py-10 text-center">
               <AlertTriangleIcon className="mx-auto size-10 text-muted-foreground/40 mb-2" />
               <p className="text-sm text-muted-foreground">

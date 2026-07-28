@@ -79,11 +79,11 @@ export function LeaveCalendar({
           const holiday = holidayByDay.get(iso);
           const onLeave = leavesOn(iso);
           return (
-            <div key={i} className={cn("min-h-24 border-b border-r p-1.5", isWeekend && "bg-muted/30", holiday && "bg-amber-50")}>
+            <div key={i} className={cn("min-h-24 border-b border-r p-1.5", isWeekend && "bg-muted/30", holiday && "bg-warning/10")}>
               <div className="flex items-center justify-between">
                 <span className={cn("text-[12px] font-medium", isWeekend && "text-muted-foreground")}>{d}</span>
               </div>
-              {holiday && <div className="mt-0.5 truncate text-[10px] font-medium text-amber-700" title={holiday}>{holiday}</div>}
+              {holiday && <div className="mt-0.5 truncate text-[10px] font-medium text-warning" title={holiday}>{holiday}</div>}
               <div className="mt-1 space-y-0.5">
                 {onLeave.slice(0, 3).map((l) => (
                   <div key={l.id} className="flex items-center gap-1 truncate text-[10.5px]" title={`${l.employee.firstName} ${l.employee.lastName} · ${l.leaveType.code}`}>

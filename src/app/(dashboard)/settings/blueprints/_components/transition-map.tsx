@@ -388,7 +388,7 @@ function TransitionLabel({ transitions }: { transitions: Transition[] }) {
       )}
       <div className="flex items-center gap-1">
         {reqFields.length > 0 && (
-          <span className="flex items-center gap-0.5 text-[10px] text-amber-600">
+          <span className="flex items-center gap-0.5 text-[10px] text-warning">
             <FileTextIcon className="size-2.5" />
             {reqFields.length}
           </span>
@@ -401,7 +401,7 @@ function TransitionLabel({ transitions }: { transitions: Transition[] }) {
         )}
       </div>
       {!t.isActive && (
-        <span className="text-[9px] text-red-500 font-medium">INACTIVE</span>
+        <span className="text-[9px] text-destructive font-medium">INACTIVE</span>
       )}
     </div>
   );

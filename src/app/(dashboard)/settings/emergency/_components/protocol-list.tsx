@@ -171,11 +171,11 @@ export function ProtocolList({ protocols, venues }: ProtocolListProps) {
     <>
       <div className="space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+          <h2 className="text-lg font-semibold text-foreground">
             Emergency Protocols
           </h2>
           <div className="flex items-center gap-2">
-            <FilterIcon className="size-4 text-zinc-400" />
+            <FilterIcon className="size-4 text-muted-foreground" />
             <Select value={filterVenue} onValueChange={setFilterVenue}>
               <SelectTrigger className="w-[160px]">
                 <SelectValue placeholder="All Venues" />
@@ -255,7 +255,7 @@ export function ProtocolList({ protocols, venues }: ProtocolListProps) {
                   {Array.isArray(protocol.contactNumbers) &&
                     protocol.contactNumbers.length > 0 && (
                       <div className="space-y-1">
-                        <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-1">
+                        <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                           <PhoneIcon className="size-3" />
                           Contacts ({protocol.contactNumbers.length})
                         </p>
@@ -289,7 +289,7 @@ export function ProtocolList({ protocols, venues }: ProtocolListProps) {
                         checked={protocol.isActive}
                         onCheckedChange={() => handleToggleActive(protocol)}
                       />
-                      <span className="text-xs text-zinc-500">
+                      <span className="text-xs text-muted-foreground">
                         {protocol.isActive ? "Active" : "Inactive"}
                       </span>
                     </div>
@@ -305,7 +305,7 @@ export function ProtocolList({ protocols, venues }: ProtocolListProps) {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-red-600 hover:text-red-700"
+                        className="text-destructive hover:text-destructive"
                         onClick={() => setDeleteId(protocol.id)}
                       >
                         <TrashIcon className="size-3" />

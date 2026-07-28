@@ -90,7 +90,7 @@ function EditCustomFields({
         <div className="space-y-3 py-2">
           {defs.map((d) => (
             <div key={d.key} className="space-y-1.5">
-              <Label className="text-[12.5px]">{d.label}{d.required && <span className="text-red-500"> *</span>}</Label>
+              <Label className="text-[12.5px]">{d.label}{d.required && <span className="text-destructive"> *</span>}</Label>
               {d.type === "SELECT" ? (
                 <Select value={state[d.key] || ""} onValueChange={(v) => setState((s) => ({ ...s, [d.key]: v }))}>
                   <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
@@ -174,7 +174,7 @@ export function RequestEditButton({
           <div className="space-y-1.5"><Label className="text-[12.5px]">Note (optional)</Label>
             <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Why this change?" /></div>
         </div>
-        {msg && <p className="text-sm text-red-600">{msg}</p>}
+        {msg && <p className="text-sm text-destructive">{msg}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
           <Button onClick={submit} disabled={saving} className="gap-1.5">

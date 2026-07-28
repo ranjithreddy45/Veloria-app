@@ -68,7 +68,7 @@ export function SummaryView({ rows, year }: { rows: SummaryRow[]; year: number }
                   <td className="px-4 py-2.5 text-right tabular-nums">{r.totalCarried}</td>
                   <td className="px-4 py-2.5 text-right tabular-nums">{r.totalAllotted}</td>
                   <td className="px-4 py-2.5 text-right tabular-nums">{r.totalUsed}</td>
-                  <td className="px-4 py-2.5 text-right tabular-nums text-amber-600 dark:text-amber-400">{r.totalPending}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums text-warning">{r.totalPending}</td>
                   <td className="px-4 py-2.5 text-right font-semibold tabular-nums">{r.utilisationPct}%</td>
                 </tr>
               ))}

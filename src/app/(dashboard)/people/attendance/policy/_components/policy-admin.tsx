@@ -44,7 +44,7 @@ function WeeklyOffChips({ offs }: { offs: number[] }) {
       {DAYS.filter((d) => set.has(d.value)).map((d) => (
         <span
           key={d.value}
-          className="rounded-md bg-amber-500/12 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300"
+          className="rounded-md bg-warning/12 px-1.5 py-0.5 text-[11px] font-medium text-warning"
         >
           {d.label}
         </span>
@@ -160,7 +160,7 @@ export function PolicyAdmin({ policies }: { policies: AttendancePolicyDto[] }) {
                           <AlertDialogTrigger asChild>
                             <Button
                               variant="ghost" size="icon"
-                              className="size-8 text-muted-foreground hover:text-red-600"
+                              className="size-8 text-muted-foreground hover:text-destructive"
                               title="Delete" disabled={busy || p.isDefault}
                             >
                               <Trash2 className="size-4" />
@@ -177,7 +177,7 @@ export function PolicyAdmin({ policies }: { policies: AttendancePolicyDto[] }) {
                               <AlertDialogCancel>Cancel</AlertDialogCancel>
                               <AlertDialogAction
                                 onClick={() => onDelete(p.id)}
-                                className="bg-red-600 text-white hover:bg-red-700"
+                                className="bg-destructive text-white hover:bg-destructive/90"
                               >
                                 Delete
                               </AlertDialogAction>
@@ -264,7 +264,7 @@ function PolicyDialog({ existing }: { existing?: AttendancePolicyDto }) {
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <CalendarClock className="size-4 text-amber-600" />
+            <CalendarClock className="size-4 text-warning" />
             {existing ? "Edit policy" : "New attendance policy"}
           </DialogTitle>
         </DialogHeader>
@@ -311,7 +311,7 @@ function PolicyDialog({ existing }: { existing?: AttendancePolicyDto }) {
                     className={cn(
                       "rounded-lg border px-2.5 py-1 text-[12.5px] font-medium transition-colors",
                       on
-                        ? "border-amber-500/40 bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                        ? "border-warning/40 bg-warning/15 text-warning"
                         : "border-border text-muted-foreground hover:bg-muted"
                     )}
                   >

@@ -19,7 +19,7 @@ export default async function HostActivatePage({
   if (!preview.valid) {
     return (
       <div className="bg-card shadow-card mx-auto max-w-md rounded-2xl border p-10 text-center">
-        <ShieldAlert className="mx-auto size-8 text-amber-500" />
+        <ShieldAlert className="mx-auto size-8 text-warning" />
         <h1 className="text-foreground mt-4 text-[24px]">
           {preview.reason === "expired"
             ? "This link has expired"

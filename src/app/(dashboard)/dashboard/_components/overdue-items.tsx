@@ -155,7 +155,7 @@ export function OverdueItems({ tasks, payments }: OverdueItemsProps) {
                       </span>
                     </div>
                   </div>
-                  <span className="numeric shrink-0 text-[11px] font-medium text-amber-700 dark:text-amber-400">
+                  <span className="numeric shrink-0 text-[11px] font-medium text-warning">
                     {daysOverdue}d
                   </span>
                 </div>

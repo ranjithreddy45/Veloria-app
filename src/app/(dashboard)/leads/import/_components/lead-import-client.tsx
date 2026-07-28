@@ -87,7 +87,7 @@ export function LeadImportClient() {
             </p>
           )}
           {rows.length > 0 && (
-            <p className="text-sm text-emerald-600">
+            <p className="text-success text-sm">
               ✓ Parsed <span className="font-semibold">{rows.length}</span> leads from{" "}
               <span className="font-medium">{fileName}</span>.
             </p>
@@ -159,8 +159,8 @@ export function LeadImportClient() {
             </label>
 
             {replaceExisting && (
-              <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/30">
-                <p className="mb-2 text-xs text-amber-800 dark:text-amber-300">
+              <div className="border-warning/30 bg-warning/10 rounded-xl border p-4">
+                <p className="text-warning mb-2 text-xs">
                   This will remove all current leads. Type <strong>REPLACE</strong> to confirm.
                 </p>
                 <input
@@ -178,8 +178,8 @@ export function LeadImportClient() {
             </Button>
 
             {result && (
-              <div className="rounded-xl border bg-emerald-50 p-4 text-[13px] dark:bg-emerald-950/30">
-                <p className="flex items-center gap-1.5 font-medium text-emerald-700 dark:text-emerald-400">
+              <div className="bg-success/10 rounded-xl border p-4 text-[13px]">
+                <p className="text-success flex items-center gap-1.5 font-medium">
                   <CheckCircle2 className="size-4" /> Import complete
                 </p>
                 <ul className="text-muted-foreground mt-1.5 space-y-0.5 text-xs">
@@ -187,7 +187,7 @@ export function LeadImportClient() {
                   <li>New contacts: {result.contactsCreated} · reused: {result.contactsReused}</li>
                   {result.replaced > 0 && <li>Existing leads replaced: {result.replaced}</li>}
                   {result.skipped.length > 0 && (
-                    <li className="text-amber-600">
+                    <li className="text-warning">
                       Skipped {result.skipped.length}:{" "}
                       {result.skipped.map((s) => `row ${s.row} (${s.reason})`).join(", ")}
                     </li>

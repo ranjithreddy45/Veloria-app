@@ -33,7 +33,7 @@ function SummaryRow({ label, value, hint, strong, tone }: { label: string; value
         {label}
         {hint && <span className="ml-2 text-[11px] text-muted-foreground">{hint}</span>}
       </TableCell>
-      <TableCell className={`text-right numeric ${tone === "emerald" ? "text-emerald-600" : tone === "rose" ? "text-rose-600" : ""}`}>
+      <TableCell className={`text-right numeric ${tone === "emerald" ? "text-success" : tone === "rose" ? "text-destructive" : ""}`}>
         {formatINR(value)}
       </TableCell>
     </TableRow>

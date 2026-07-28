@@ -271,18 +271,18 @@ export function PublicForm({
   // Success state
   if (isSubmitted) {
     return (
-      <div className="rounded-xl border border-zinc-200/80 bg-white p-8 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-        <CheckCircle2 className="mx-auto size-12 text-emerald-500" />
-        <h2 className="mt-4 text-xl font-bold text-zinc-900 dark:text-zinc-100">
+      <div className="rounded-xl border border-border/80 bg-card p-8 text-center shadow-sm">
+        <CheckCircle2 className="mx-auto size-12 text-success" />
+        <h2 className="mt-4 text-xl font-bold text-foreground">
           Thank You!
         </h2>
-        <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="mt-2 text-sm text-muted-foreground">
           {thankYouMessage || "Your submission has been received. We will get back to you soon."}
         </p>
         {thankYouUrl && (
           <a
             href={thankYouUrl}
-            className="mt-4 inline-block text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
+            className="mt-4 inline-block text-sm font-medium text-primary hover:text-primary/80"
           >
             Continue
           </a>
@@ -294,7 +294,7 @@ export function PublicForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="rounded-xl border border-zinc-200/80 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
+      className="rounded-xl border border-border/80 bg-card p-6 shadow-sm"
       noValidate
     >
       <div className="space-y-5">
@@ -302,11 +302,11 @@ export function PublicForm({
           <div key={field.name}>
             <label
               htmlFor={field.name}
-              className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+              className="mb-1.5 block text-sm font-medium text-muted-foreground"
             >
               {field.label}
               {field.required && (
-                <span className="ml-0.5 text-red-500">*</span>
+                <span className="ml-0.5 text-destructive">*</span>
               )}
             </label>
 
@@ -319,10 +319,10 @@ export function PublicForm({
                 value={formData[field.name] || ""}
                 onChange={(e) => handleChange(field.name, e.target.value)}
                 rows={4}
-                className={`w-full rounded-lg border px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/50 dark:bg-zinc-800 dark:text-zinc-100 ${
+                className={`w-full rounded-lg border px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 dark:bg-zinc-800 dark:text-zinc-100 ${
                   errors[field.name]
-                    ? "border-red-300 focus:border-red-500 dark:border-red-700"
-                    : "border-zinc-300 focus:border-indigo-500 dark:border-zinc-700"
+                    ? "border-destructive/20 focus:border-destructive"
+                    : "border-border focus:border-primary"
                 }`}
               />
             ) : field.type === "SELECT" ? (
@@ -332,10 +332,10 @@ export function PublicForm({
                 required={field.required}
                 value={formData[field.name] || ""}
                 onChange={(e) => handleChange(field.name, e.target.value)}
-                className={`w-full rounded-lg border px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/50 dark:bg-zinc-800 dark:text-zinc-100 ${
+                className={`w-full rounded-lg border px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 dark:bg-zinc-800 dark:text-zinc-100 ${
                   errors[field.name]
-                    ? "border-red-300 focus:border-red-500 dark:border-red-700"
-                    : "border-zinc-300 focus:border-indigo-500 dark:border-zinc-700"
+                    ? "border-destructive/20 focus:border-destructive"
+                    : "border-border focus:border-primary"
                 }`}
               >
                 <option value="">
@@ -366,16 +366,16 @@ export function PublicForm({
                 required={field.required}
                 value={formData[field.name] || ""}
                 onChange={(e) => handleChange(field.name, e.target.value)}
-                className={`w-full rounded-lg border px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/50 dark:bg-zinc-800 dark:text-zinc-100 ${
+                className={`w-full rounded-lg border px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 dark:bg-zinc-800 dark:text-zinc-100 ${
                   errors[field.name]
-                    ? "border-red-300 focus:border-red-500 dark:border-red-700"
-                    : "border-zinc-300 focus:border-indigo-500 dark:border-zinc-700"
+                    ? "border-destructive/20 focus:border-destructive"
+                    : "border-border focus:border-primary"
                 }`}
               />
             )}
 
             {errors[field.name] && (
-              <p className="mt-1 text-xs text-red-500">{errors[field.name]}</p>
+              <p className="mt-1 text-xs text-destructive">{errors[field.name]}</p>
             )}
           </div>
         ))}
@@ -395,7 +395,7 @@ export function PublicForm({
 
       {/* Error message */}
       {submitError && (
-        <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600 dark:border-red-900 dark:bg-red-950/50 dark:text-red-400">
+        <div className="mt-4 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
           {submitError}
         </div>
       )}
@@ -404,7 +404,7 @@ export function PublicForm({
       <button
         type="submit"
         disabled={isSubmitting}
-        className="mt-6 flex w-full items-center justify-center rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+        className="mt-6 flex w-full items-center justify-center rounded-lg bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-colors hover:bg-foreground/90 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {isSubmitting ? (
           <>

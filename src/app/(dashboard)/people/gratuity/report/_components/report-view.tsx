@@ -151,7 +151,7 @@ export function GratuityReportView({ rows }: { rows: GratuityRow[] }) {
                         {gap == null ? (
                           <span className="font-normal text-muted-foreground">—</span>
                         ) : (
-                          <span className={gap > 0 ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"}>
+                          <span className={gap > 0 ? "text-destructive" : "text-success"}>
                             {gap > 0 ? formatInr(gap) : `(${formatInr(Math.abs(gap))})`}
                           </span>
                         )}
@@ -168,7 +168,7 @@ export function GratuityReportView({ rows }: { rows: GratuityRow[] }) {
                   <td className="px-3 py-3 text-right">{formatInr(totalProjected)}</td>
                   <td className="px-3 py-3 text-right">{formatInr(totalAccrued)}</td>
                   <td className="px-5 py-3 text-right">
-                    <span className={netGap > 0 ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"}>
+                    <span className={netGap > 0 ? "text-destructive" : "text-success"}>
                       {netGap > 0 ? formatInr(netGap) : `(${formatInr(Math.abs(netGap))})`}
                     </span>
                   </td>

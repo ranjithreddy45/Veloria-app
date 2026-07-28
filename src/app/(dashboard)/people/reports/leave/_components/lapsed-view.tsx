@@ -24,12 +24,12 @@ export function LapsedView({ rows, year }: { rows: LapsedRow[]; year: number }) 
     <div className="space-y-5">
       {/* Honesty note — the schema does not model a year-end rollover event, so
           this is a forward-looking projection, not a booked lapse. */}
-      <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/8 px-4 py-3 text-[12.5px] text-amber-700 dark:text-amber-300">
+      <div className="flex items-start gap-2.5 rounded-xl border border-warning/30 bg-warning/8 px-4 py-3 text-[12.5px] text-warning">
         <AlertTriangle className="mt-0.5 size-4 shrink-0" />
         <p>
           <span className="font-semibold">Projected lapse, not a booked lapse.</span> Year-end rollover
           isn&apos;t recorded in the system, so this projects what <em>would</em> lapse at the end of {year} if
-          balances stayed as they are today: <code className="rounded bg-amber-500/15 px-1">max(0, available − carry-forward max)</code>.
+          balances stayed as they are today: <code className="rounded bg-warning/15 px-1">max(0, available − carry-forward max)</code>.
         </p>
       </div>
 
@@ -68,7 +68,7 @@ export function LapsedView({ rows, year }: { rows: LapsedRow[]; year: number }) 
                   <td className="px-4 py-2.5"><TypeChip code={r.leaveTypeCode} color={r.color} /></td>
                   <td className="px-4 py-2.5 text-right tabular-nums">{r.available}</td>
                   <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">{r.carryForwardMax}</td>
-                  <td className="px-4 py-2.5 text-right font-semibold tabular-nums text-rose-600 dark:text-rose-400">{r.projectedLapse}</td>
+                  <td className="px-4 py-2.5 text-right font-semibold tabular-nums text-destructive">{r.projectedLapse}</td>
                 </tr>
               ))}
             </tbody>

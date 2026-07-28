@@ -199,7 +199,7 @@ export function CadencesTable({ cadences }: CadencesTableProps) {
                     <TableCell>
                       <Link
                         href={`/crm/cadences/${cadence.id}`}
-                        className="font-medium text-blue-600 hover:underline"
+                        className="text-primary font-medium hover:underline"
                       >
                         {cadence.name}
                       </Link>

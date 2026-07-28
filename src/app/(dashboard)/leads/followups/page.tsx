@@ -24,7 +24,7 @@ interface FollowupLead {
 const inr = (n: string | number | null) => (n == null ? "" : "₹" + Math.round(Number(n)).toLocaleString("en-IN"));
 
 function Bucket({ title, hue, icon: Icon, leads }: { title: string; hue: "rose" | "amber" | "slate"; icon: React.ComponentType<{ className?: string }>; leads: FollowupLead[] }) {
-  const ring = hue === "rose" ? "text-rose-600" : hue === "amber" ? "text-amber-600" : "text-muted-foreground";
+  const ring = hue === "rose" ? "text-destructive" : hue === "amber" ? "text-warning" : "text-muted-foreground";
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -59,7 +59,7 @@ function Bucket({ title, hue, icon: Icon, leads }: { title: string; hue: "rose" 
               </div>
               <div className="shrink-0 space-y-1 text-right">
                 <StatusPill label={l.status} hue="blue" size="xs" />
-                <div className={`numeric text-[11.5px] ${hue === "rose" ? "text-rose-600" : "text-muted-foreground"}`}>{formatDate(l.followUpDate)}</div>
+                <div className={`numeric text-[11.5px] ${hue === "rose" ? "text-destructive" : "text-muted-foreground"}`}>{formatDate(l.followUpDate)}</div>
               </div>
             </Link>
           ))

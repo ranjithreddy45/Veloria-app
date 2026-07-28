@@ -86,7 +86,7 @@ export function LeaveBalancesAdmin({
                     const low = c.available <= 0;
                     return (
                       <td key={t.id} className="px-3 py-2.5 text-center">
-                        <div className={cn("font-semibold tabular-nums", low && "text-red-600 dark:text-red-400")}>
+                        <div className={cn("font-semibold tabular-nums", low && "text-destructive")}>
                           {c.available}
                           <span className="font-normal text-muted-foreground"> / {c.entitled}</span>
                         </div>
@@ -94,7 +94,7 @@ export function LeaveBalancesAdmin({
                           <div className="text-[11px] text-muted-foreground">
                             {c.used > 0 && <span>{c.used} used</span>}
                             {c.used > 0 && c.pending > 0 && <span> · </span>}
-                            {c.pending > 0 && <span className="text-amber-600 dark:text-amber-400">{c.pending} pending</span>}
+                            {c.pending > 0 && <span className="text-warning">{c.pending} pending</span>}
                           </div>
                         )}
                       </td>

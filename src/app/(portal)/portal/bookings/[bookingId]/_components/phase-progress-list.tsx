@@ -38,9 +38,9 @@ export function PhaseProgressList({ phases }: PhaseProgressListProps) {
   if (phases.length === 0) return null;
 
   return (
-    <Card className="border-zinc-200/80 shadow-sm">
+    <Card className="border-border/80 shadow-sm">
       <CardHeader className="pb-3">
-        <CardTitle className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+        <CardTitle className="text-base font-semibold text-foreground">
           Preparation Phases
         </CardTitle>
       </CardHeader>
@@ -51,21 +51,21 @@ export function PhaseProgressList({ phases }: PhaseProgressListProps) {
             const label = PHASE_LABELS[phase.phaseType] || phase.phaseName;
             const progressColor =
               phase.progressPercent >= 100
-                ? "bg-emerald-600"
+                ? "bg-success"
                 : phase.progressPercent >= 50
-                ? "bg-indigo-600"
-                : "bg-amber-600";
+                ? "bg-primary"
+                : "bg-warning";
 
             return (
               <div key={phase.phaseType} className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-sm">{icon}</span>
-                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <span className="text-sm font-medium text-muted-foreground">
                       {label}
                     </span>
                   </div>
-                  <span className="text-xs font-medium tabular-nums text-zinc-500">
+                  <span className="text-xs font-medium tabular-nums text-muted-foreground">
                     {phase.progressPercent}%
                   </span>
                 </div>

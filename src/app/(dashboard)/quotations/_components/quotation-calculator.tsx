@@ -647,7 +647,7 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
                                   {adjusted ? (
                                     <>
                                       Catalog <span className="line-through">{inr(line.unitPrice)}</span>
-                                      <span className="ml-1 font-medium text-amber-600">
+                                      <span className="text-warning ml-1 font-medium">
                                         · adjusted {revised > line.unitPrice ? "up" : "down"}
                                       </span>
                                     </>
@@ -775,7 +775,7 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
             <div className="border-t pt-3 space-y-1.5 text-sm">
               <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="numeric">{inr(result.subtotal)}</span></div>
               {result.discountAmount > 0 && (
-                <div className="flex justify-between text-emerald-600"><span>Discount ({result.discountPct}%)</span><span className="numeric">− {inr(result.discountAmount)}</span></div>
+                <div className="text-success flex justify-between"><span>Discount ({result.discountPct}%)</span><span className="numeric">− {inr(result.discountAmount)}</span></div>
               )}
               <div className="flex justify-between"><span className="text-muted-foreground">Tax (5%)</span><span className="numeric">{inr(result.tax)}</span></div>
               <div className="mt-1 flex items-baseline justify-between gap-4 border-t pt-3">

@@ -82,7 +82,7 @@ function LeaderboardEntry({
         className={`flex items-center gap-4 rounded-lg border p-4 transition-colors hover:bg-muted/50 ${
           isTopThree && rankStyle
             ? rankStyle.bg
-            : "border-zinc-200/80 dark:border-zinc-700/80"
+            : "border-border"
         }`}
       >
         {/* Rank */}
@@ -192,7 +192,7 @@ export default async function PerformanceLeaderboardPage() {
         {/* Staff Tab */}
         <TabsContent value="staff" className="mt-4">
           {staffScores.length === 0 ? (
-            <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+            <Card className="border-border shadow-sm">
               <CardContent className="flex flex-col items-center justify-center py-16">
                 <TrophyIcon className="mb-4 size-12 text-muted-foreground/40" />
                 <p className="text-lg font-medium text-muted-foreground">
@@ -220,7 +220,7 @@ export default async function PerformanceLeaderboardPage() {
         {/* Vendors Tab */}
         <TabsContent value="vendors" className="mt-4">
           {vendorScores.length === 0 ? (
-            <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+            <Card className="border-border shadow-sm">
               <CardContent className="flex flex-col items-center justify-center py-16">
                 <TrophyIcon className="mb-4 size-12 text-muted-foreground/40" />
                 <p className="text-lg font-medium text-muted-foreground">

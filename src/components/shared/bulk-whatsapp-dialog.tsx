@@ -135,7 +135,7 @@ export function BulkWhatsAppDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <MessageCircle className="size-5 text-emerald-600" />
+            <MessageCircle className="size-5 text-success" />
             Bulk WhatsApp
           </DialogTitle>
           <DialogDescription>
@@ -148,7 +148,7 @@ export function BulkWhatsAppDialog({
         {step === "template" && (
           <div className="space-y-4">
             <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3">
-              <Users className="size-5 text-emerald-600" />
+              <Users className="size-5 text-success" />
               <div>
                 <p className="text-sm font-medium">
                   {selectedContactIds.length} contacts selected
@@ -175,7 +175,7 @@ export function BulkWhatsAppDialog({
                   {templates.map((t) => (
                     <SelectItem key={t.name} value={t.name}>
                       <div className="flex items-center gap-2">
-                        <FileText className="size-3.5 text-emerald-600" />
+                        <FileText className="size-3.5 text-success" />
                         {t.label}
                       </div>
                     </SelectItem>
@@ -205,7 +205,7 @@ export function BulkWhatsAppDialog({
         {step === "params" && currentTemplate && (
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <FileText className="size-4 text-emerald-600" />
+              <FileText className="size-4 text-success" />
               Template: <span className="font-medium text-foreground">{currentTemplate.label}</span>
             </div>
 
@@ -244,7 +244,7 @@ export function BulkWhatsAppDialog({
         {step === "sending" && (
           <div className="space-y-4 py-4">
             <div className="flex flex-col items-center gap-3 text-center">
-              <div className="size-8 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
+              <div className="size-8 animate-spin rounded-full border-2 border-success border-t-transparent" />
               <p className="text-sm font-medium">
                 Sending to {selectedContactIds.length} contacts...
               </p>
@@ -257,37 +257,37 @@ export function BulkWhatsAppDialog({
         {step === "done" && result && (
           <div className="space-y-4">
             <div className="flex flex-col items-center gap-3 py-2 text-center">
-              <CheckCircle2 className="size-12 text-emerald-600" />
+              <CheckCircle2 className="size-12 text-success" />
               <p className="text-lg font-semibold">Messages Sent!</p>
             </div>
 
             <div className="grid grid-cols-3 gap-3">
-              <div className="rounded-lg border bg-emerald-50 p-3 text-center dark:bg-emerald-950/30">
-                <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">
+              <div className="rounded-lg border bg-success/10 p-3 text-center">
+                <p className="text-2xl font-bold text-success">
                   {result.sent}
                 </p>
-                <p className="text-xs text-emerald-600 dark:text-emerald-500">Sent</p>
+                <p className="text-xs text-success">Sent</p>
               </div>
-              <div className="rounded-lg border bg-red-50 p-3 text-center dark:bg-red-950/30">
-                <p className="text-2xl font-bold text-red-700 dark:text-red-400">
+              <div className="rounded-lg border bg-destructive/10 p-3 text-center">
+                <p className="text-2xl font-bold text-destructive">
                   {result.failed}
                 </p>
-                <p className="text-xs text-red-600 dark:text-red-500">Failed</p>
+                <p className="text-xs text-destructive">Failed</p>
               </div>
-              <div className="rounded-lg border bg-zinc-50 p-3 text-center dark:bg-zinc-800">
+              <div className="rounded-lg border bg-muted p-3 text-center">
                 <p className="text-2xl font-bold">{result.total}</p>
                 <p className="text-xs text-muted-foreground">Total</p>
               </div>
             </div>
 
             {result.skippedNoPhone.length > 0 && (
-              <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950">
-                <AlertCircle className="mt-0.5 size-4 shrink-0 text-amber-600" />
+              <div className="flex items-start gap-2 rounded-lg border border-warning/20 bg-warning/10 p-3">
+                <AlertCircle className="mt-0.5 size-4 shrink-0 text-warning" />
                 <div>
-                  <p className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                  <p className="text-xs font-medium text-warning">
                     Skipped (no phone number):
                   </p>
-                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                  <p className="text-xs text-warning">
                     {result.skippedNoPhone.join(", ")}
                   </p>
                 </div>
@@ -305,7 +305,7 @@ export function BulkWhatsAppDialog({
               <Button
                 onClick={() => setStep(hasParams ? "params" : "params")}
                 disabled={!selectedTemplate}
-                className="bg-emerald-600 hover:bg-emerald-700"
+                className="bg-success hover:bg-success/90"
               >
                 {hasParams ? "Next: Fill Params" : "Next: Confirm"}
               </Button>
@@ -318,7 +318,7 @@ export function BulkWhatsAppDialog({
               </Button>
               <Button
                 onClick={handleSend}
-                className="bg-emerald-600 hover:bg-emerald-700"
+                className="bg-success hover:bg-success/90"
               >
                 <Send className="mr-1.5 size-3.5" />
                 Send to {selectedContactIds.length} Contacts

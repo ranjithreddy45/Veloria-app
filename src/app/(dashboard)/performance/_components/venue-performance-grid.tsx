@@ -34,21 +34,21 @@ function getUtilizationColor(rate: number) {
   if (rate >= 70) {
     return {
       bar: "bg-emerald-500",
-      text: "text-emerald-700 dark:text-emerald-400",
-      bg: "bg-emerald-100 dark:bg-emerald-900/30",
+      text: "text-success",
+      bg: "bg-success/15",
     };
   }
   if (rate >= 40) {
     return {
       bar: "bg-amber-500",
-      text: "text-amber-700 dark:text-amber-400",
-      bg: "bg-amber-100 dark:bg-amber-900/30",
+      text: "text-warning",
+      bg: "bg-warning/15",
     };
   }
   return {
     bar: "bg-red-500",
-    text: "text-red-700 dark:text-red-400",
-    bg: "bg-red-100 dark:bg-red-900/30",
+    text: "text-destructive",
+    bg: "bg-destructive/15",
   };
 }
 
@@ -86,7 +86,7 @@ function MiniStarRating({ rating }: { rating: number }) {
           />
         ))}
       </div>
-      <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">
+      <span className="text-xs font-semibold text-muted-foreground">
         {rating > 0 ? rating.toFixed(1) : "N/A"}
       </span>
     </div>
@@ -104,7 +104,7 @@ export function VenuePerformanceGrid({ data }: VenuePerformanceGridProps) {
         <CardContent className="flex items-center justify-center py-16">
           <div className="text-center">
             <BuildingIcon className="mx-auto size-10 text-zinc-300 dark:text-zinc-600" />
-            <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="mt-3 text-sm text-muted-foreground">
               No venue performance data available.
             </p>
           </div>
@@ -222,14 +222,14 @@ export function VenuePerformanceGrid({ data }: VenuePerformanceGridProps) {
                 {/* Utilization bar */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-medium text-zinc-600 dark:text-zinc-400">
+                    <span className="font-medium text-muted-foreground">
                       Utilization Rate
                     </span>
                     <span className={`font-semibold ${utilColor.text}`}>
                       {venue.utilizationRate}%
                     </span>
                   </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                     <div
                       className={`h-full rounded-full transition-all ${utilColor.bar}`}
                       style={{ width: `${venue.utilizationRate}%` }}
@@ -238,8 +238,8 @@ export function VenuePerformanceGrid({ data }: VenuePerformanceGridProps) {
                 </div>
 
                 {/* Rating */}
-                <div className="flex items-center justify-between border-t border-zinc-100 pt-3 dark:border-zinc-800">
-                  <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                <div className="flex items-center justify-between border-t border-border pt-3">
+                  <span className="text-xs font-medium text-muted-foreground">
                     Avg Rating
                   </span>
                   <MiniStarRating rating={venue.averageRating} />
@@ -260,8 +260,8 @@ export function VenuePerformanceGrid({ data }: VenuePerformanceGridProps) {
 function MetricItem({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs text-zinc-500 dark:text-zinc-400">{label}</p>
-      <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-sm font-semibold text-foreground truncate">
         {value}
       </p>
     </div>

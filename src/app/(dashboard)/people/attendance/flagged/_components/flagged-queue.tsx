@@ -97,7 +97,7 @@ function FlaggedCard({ punch, canClear }: { punch: FlaggedPunch; canClear: boole
           </div>
 
           {/* Why it's flagged — the headline of the card. */}
-          <div className="flex items-start gap-2 rounded-lg bg-amber-50 px-2.5 py-1.5 text-[13px] text-amber-800 ring-1 ring-inset ring-amber-200/80 dark:bg-amber-950/40 dark:text-amber-200 dark:ring-amber-900/50">
+          <div className="flex items-start gap-2 rounded-lg bg-warning/10 px-2.5 py-1.5 text-[13px] text-warning ring-1 ring-inset ring-warning/20">
             <ShieldAlert className="mt-0.5 size-4 shrink-0" />
             <span>{punch.flagReason ?? "Needs review."}</span>
           </div>
@@ -116,7 +116,7 @@ function FlaggedCard({ punch, canClear }: { punch: FlaggedPunch; canClear: boole
                 className={cn(
                   "inline-flex items-center rounded-full px-2 py-0.5 text-[11.5px] font-medium ring-1 ring-inset",
                   accuracyHigh
-                    ? "bg-amber-50 text-amber-700 ring-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:ring-amber-900/50"
+                    ? "bg-warning/10 text-warning ring-warning/20"
                     : "bg-muted text-muted-foreground ring-border"
                 )}
               >

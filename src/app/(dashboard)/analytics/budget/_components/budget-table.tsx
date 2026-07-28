@@ -156,7 +156,7 @@ const columns: ColumnDef<BudgetItem>[] = [
       <DataTableColumnHeader column={column} title="Revenue" />
     ),
     cell: ({ row }) => (
-      <span className="numeric font-medium text-emerald-700 dark:text-emerald-400">
+      <span className="numeric font-medium text-success">
         {formatINR(row.getValue("revenue"))}
       </span>
     ),
@@ -167,7 +167,7 @@ const columns: ColumnDef<BudgetItem>[] = [
       <DataTableColumnHeader column={column} title="Expenses" />
     ),
     cell: ({ row }) => (
-      <span className="numeric font-medium text-rose-700 dark:text-rose-400">
+      <span className="numeric font-medium text-destructive">
         {formatINR(row.getValue("expenses"))}
       </span>
     ),
@@ -183,8 +183,8 @@ const columns: ColumnDef<BudgetItem>[] = [
         <span
           className={`numeric font-medium ${
             profit >= 0
-              ? "text-emerald-700 dark:text-emerald-400"
-              : "text-rose-700 dark:text-rose-400"
+              ? "text-success"
+              : "text-destructive"
           }`}
         >
           {formatINR(profit)}

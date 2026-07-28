@@ -32,7 +32,7 @@ export function ProfileDetailsPanel({
       {/* Emergency contacts */}
       <Section
         title="Emergency contacts"
-        icon={<HeartPulse className="size-4 text-rose-500" />}
+        icon={<HeartPulse className="size-4 text-destructive" />}
         addLabel="Add contact"
         canWrite={canWrite}
         renderDialog={(props) => <EmergencyContactDialog employeeId={employeeId} {...props} />}
@@ -77,7 +77,7 @@ export function ProfileDetailsPanel({
       {/* Work history */}
       <Section
         title="Work history"
-        icon={<Building2 className="size-4 text-emerald-600" />}
+        icon={<Building2 className="size-4 text-success" />}
         addLabel="Add experience"
         canWrite={canWrite}
         renderDialog={(props) => <WorkHistoryDialog employeeId={employeeId} {...props} />}
@@ -192,7 +192,7 @@ function RowLine({
           {editDialog({ open: editOpen, onOpenChange: setEditOpen })}
           <Button
             variant="ghost" size="icon"
-            className="size-8 text-muted-foreground hover:text-red-600"
+            className="size-8 text-muted-foreground hover:text-destructive"
             onClick={handleDelete} disabled={deleting}
           >
             {deleting ? <Loader2 className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}
@@ -215,7 +215,7 @@ function EF({
   return (
     <div className="space-y-1.5">
       <Label className="text-[12.5px]">
-        {label}{required && <span className="text-red-500"> *</span>}
+        {label}{required && <span className="text-destructive"> *</span>}
       </Label>
       <Input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
     </div>
@@ -233,7 +233,7 @@ function DialogShell({
       <DialogContent className="sm:max-w-md">
         <DialogHeader><DialogTitle>{title}</DialogTitle></DialogHeader>
         <div className="grid gap-3 py-2">{children}</div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancel</Button>
           <Button onClick={onSave} disabled={saving} className="gap-1.5">

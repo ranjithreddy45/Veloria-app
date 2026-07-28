@@ -200,10 +200,10 @@ export function MultiVenueSelector({
         <CardContent className="py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <NetworkIcon className="size-5 text-zinc-400" />
+              <NetworkIcon className="size-5 text-muted-foreground" />
               <div>
                 <p className="text-sm font-medium">Multi-Venue Event</p>
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-muted-foreground">
                   Enable to book multiple venues for this event
                 </p>
               </div>
@@ -247,7 +247,7 @@ export function MultiVenueSelector({
                     "flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors",
                     isSelected
                       ? "border-indigo-300 bg-indigo-50"
-                      : "hover:border-zinc-300"
+                      : "hover:border-border"
                   )}
                   onClick={() => handleVenueToggle(venue.id, !isSelected)}
                 >
@@ -259,7 +259,7 @@ export function MultiVenueSelector({
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{venue.name}</p>
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-xs text-muted-foreground">
                       Capacity: {venue.capacity}
                     </p>
                   </div>
@@ -271,7 +271,7 @@ export function MultiVenueSelector({
             })}
           </div>
           {selectedVenueIds.length > 0 && selectedVenueIds.length < 2 && (
-            <p className="text-xs text-amber-600">
+            <p className="text-xs text-warning">
               Select at least 2 venues for a multi-venue event.
             </p>
           )}
@@ -363,7 +363,7 @@ export function MultiVenueSelector({
 
                 {/* Per-venue breakdown */}
                 <div className="space-y-2">
-                  <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Per-Venue Breakdown
                   </p>
                   {schedule.map((venueSchedule) => (
@@ -372,11 +372,11 @@ export function MultiVenueSelector({
                       className="rounded-lg border p-3"
                     >
                       <div className="flex items-center gap-2 mb-2">
-                        <BuildingIcon className="size-4 text-zinc-500" />
+                        <BuildingIcon className="size-4 text-muted-foreground" />
                         <p className="text-sm font-medium">
                           {venueSchedule.venueName}
                         </p>
-                        <span className="text-xs text-zinc-400">
+                        <span className="text-xs text-muted-foreground">
                           Cap: {venueSchedule.capacity}
                         </span>
                       </div>
@@ -419,9 +419,9 @@ export function MultiVenueSelector({
         {/* Group ID Display */}
         {selectedVenueIds.length >= 2 && venueGroupId && (
           <div className="border-t pt-3">
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-muted-foreground">
               Venue Group ID:{" "}
-              <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-mono">
+              <code className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono">
                 {venueGroupId}
               </code>
             </p>

@@ -27,7 +27,7 @@ export function CompensationPanel({
       <div className="rounded-2xl border bg-card p-5 shadow-card">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <Wallet className="size-4 text-emerald-600" />
+            <Wallet className="size-4 text-success" />
             <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Current compensation</h3>
           </div>
           {canWrite && (
@@ -195,7 +195,7 @@ function ReviseDialog({ employeeId, current }: { employeeId: string; current: Sa
             <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Annual increment, promotion, ..." />
           </div>
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
           <Button onClick={save} disabled={saving} className="gap-1.5">
@@ -253,7 +253,7 @@ function IncrementDialog({ employeeId, current }: { employeeId: string; current:
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="gap-1.5">
-          <TrendingUp className="size-3.5 text-emerald-600" /> Apply increment
+          <TrendingUp className="size-3.5 text-success" /> Apply increment
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
@@ -271,14 +271,14 @@ function IncrementDialog({ employeeId, current }: { employeeId: string; current:
               <button
                 type="button"
                 onClick={() => setMode("PCT")}
-                className={`flex-1 rounded px-3 py-1.5 text-[12.5px] font-medium transition ${mode === "PCT" ? "bg-emerald-600 text-white" : "text-muted-foreground hover:bg-muted"}`}
+                className={`flex-1 rounded px-3 py-1.5 text-[12.5px] font-medium transition ${mode === "PCT" ? "bg-success text-white" : "text-muted-foreground hover:bg-muted"}`}
               >
                 % raise
               </button>
               <button
                 type="button"
                 onClick={() => setMode("AMOUNT")}
-                className={`flex-1 rounded px-3 py-1.5 text-[12.5px] font-medium transition ${mode === "AMOUNT" ? "bg-emerald-600 text-white" : "text-muted-foreground hover:bg-muted"}`}
+                className={`flex-1 rounded px-3 py-1.5 text-[12.5px] font-medium transition ${mode === "AMOUNT" ? "bg-success text-white" : "text-muted-foreground hover:bg-muted"}`}
               >
                 New amount
               </button>
@@ -307,7 +307,7 @@ function IncrementDialog({ employeeId, current }: { employeeId: string; current:
             <div className="flex h-9 items-center justify-between rounded-md border bg-muted/40 px-3 text-[13px] font-medium tabular-nums">
               <span>{previewCtc > 0 ? formatINR(previewCtc) : "—"}</span>
               {previewCtc > 0 && delta !== 0 && (
-                <span className={delta > 0 ? "text-emerald-600" : "text-red-600"}>
+                <span className={delta > 0 ? "text-success" : "text-destructive"}>
                   {delta > 0 ? "+" : ""}{formatINR(delta)}
                 </span>
               )}
@@ -323,7 +323,7 @@ function IncrementDialog({ employeeId, current }: { employeeId: string; current:
           </div>
         </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
           <Button onClick={save} disabled={saving || previewCtc <= 0} className="gap-1.5">

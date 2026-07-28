@@ -60,7 +60,7 @@ export function CompOffHome({
       {/* Summary + grant */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px]">
-          <span className="text-muted-foreground">Available <span className="font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">{counts.available}</span></span>
+          <span className="text-muted-foreground">Available <span className="font-semibold tabular-nums text-success">{counts.available}</span></span>
           <span className="h-3 w-px bg-border" />
           <span className="text-muted-foreground">Used <span className="font-semibold tabular-nums text-foreground">{counts.used}</span></span>
           <span className="h-3 w-px bg-border" />
@@ -165,8 +165,8 @@ export function CompOffHome({
 
 function BalanceTile({ label, value, hue }: { label: string; value: number; hue: "emerald" | "slate" | "red" }) {
   const tone =
-    hue === "emerald" ? "text-emerald-600 dark:text-emerald-400"
-    : hue === "red" ? "text-red-600 dark:text-red-400"
+    hue === "emerald" ? "text-success"
+    : hue === "red" ? "text-destructive"
     : "text-foreground";
   return (
     <div className="rounded-xl border border-border/70 bg-card p-4 shadow-card">
@@ -195,7 +195,7 @@ function RedeemButton({ id, label = "Use" }: { id: string; label?: string }) {
       >
         {busy ? <Loader2 className="size-3.5 animate-spin" /> : <CalendarCheck2 className="size-3.5" />} {label}
       </Button>
-      {error && <span className="text-[11px] text-red-600">{error}</span>}
+      {error && <span className="text-[11px] text-destructive">{error}</span>}
     </div>
   );
 }
@@ -266,7 +266,7 @@ function GrantDialog({ employees }: { employees: EmpLite[] }) {
             <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Diwali event coverage, weekend go-live…" />
           </div>
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
           <Button onClick={submit} disabled={saving} className="gap-1.5">

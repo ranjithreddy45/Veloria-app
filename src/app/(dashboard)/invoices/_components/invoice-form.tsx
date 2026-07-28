@@ -823,7 +823,7 @@ export function InvoiceForm({
                       <span className="numeric">{formatINR(calculations.subtotal)}</span>
                     </div>
                     {calculations.discountAmount > 0 && (
-                      <div className="flex justify-between text-red-600">
+                      <div className="flex justify-between text-destructive">
                         <span>
                           Discount ({watchedDiscount}%)
                         </span>

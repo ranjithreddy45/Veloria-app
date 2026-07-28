@@ -21,9 +21,9 @@ interface Row {
 function PunctualityBadge({ onTime }: { onTime: boolean | null }) {
   if (onTime == null) return null;
   return onTime ? (
-    <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">On time</span>
+    <span className="inline-flex items-center rounded-full bg-success/10 px-2 py-0.5 text-[11px] font-medium text-success">On time</span>
   ) : (
-    <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-medium text-red-700 dark:bg-red-950/50 dark:text-red-300">Late</span>
+    <span className="inline-flex items-center rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">Late</span>
   );
 }
 

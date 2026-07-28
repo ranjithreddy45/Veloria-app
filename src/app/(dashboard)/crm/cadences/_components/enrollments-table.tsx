@@ -225,7 +225,7 @@ export function EnrollmentsTable({
                           <div>
                             <a
                               href={entity.link}
-                              className="font-medium text-blue-600 hover:underline"
+                              className="text-primary font-medium hover:underline"
                             >
                               {entity.name}
                             </a>

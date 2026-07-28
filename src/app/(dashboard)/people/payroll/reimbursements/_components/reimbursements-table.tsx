@@ -138,7 +138,7 @@ export function ReimbursementsTable({ rows }: { rows: ReimbursementRow[] }) {
                   <TableCell>
                     <div className="text-[13px]">{r.title}</div>
                     {r.taxable && (
-                      <div className="text-[11px] font-medium text-amber-600 dark:text-amber-500">
+                      <div className="text-[11px] font-medium text-warning">
                         Taxable
                       </div>
                     )}
@@ -165,7 +165,7 @@ export function ReimbursementsTable({ rows }: { rows: ReimbursementRow[] }) {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-8 gap-1 text-rose-600 hover:text-rose-600 dark:text-rose-500"
+                          className="h-8 gap-1 text-destructive hover:text-destructive"
                           onClick={() => decide(r, "REJECTED")}
                         >
                           <X className="size-4" /> Reject

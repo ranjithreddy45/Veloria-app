@@ -203,7 +203,7 @@ export function PipelineStageSettings({
             key={stage.id}
             className={`flex items-center gap-3 px-4 py-3 ${
               index !== stages.length - 1
-                ? "border-b border-zinc-100"
+                ? "border-b border-border"
                 : ""
             }`}
           >
@@ -219,17 +219,17 @@ export function PipelineStageSettings({
             {/* Stage Name */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-zinc-800 truncate">
+                <span className="text-sm font-medium text-foreground truncate">
                   {stage.name}
                 </span>
                 {stage.isWonStage && (
-                  <Badge className="bg-green-100 text-green-800 text-[10px] gap-1">
+                  <Badge className="bg-success/15 text-success text-[10px] gap-1">
                     <Trophy className="size-2.5" />
                     Won Stage
                   </Badge>
                 )}
                 {stage.isLostStage && (
-                  <Badge className="bg-red-100 text-red-800 text-[10px] gap-1">
+                  <Badge className="bg-destructive/15 text-destructive text-[10px] gap-1">
                     <XCircle className="size-2.5" />
                     Lost Stage
                   </Badge>
@@ -243,7 +243,7 @@ export function PipelineStageSettings({
             </div>
 
             {/* Deal Count */}
-            <span className="text-xs text-zinc-400 shrink-0">
+            <span className="text-xs text-muted-foreground shrink-0">
               {stage.dealCount} {stage.dealCount === 1 ? "deal" : "deals"}
             </span>
 
@@ -252,7 +252,7 @@ export function PipelineStageSettings({
               <Button
                 size="icon-xs"
                 variant="ghost"
-                className="text-zinc-400 hover:text-zinc-700"
+                className="text-muted-foreground hover:text-muted-foreground"
                 onClick={() => openEditDialog(stage)}
               >
                 <Pencil className="size-3.5" />
@@ -274,7 +274,7 @@ export function PipelineStageSettings({
                     <Button
                       size="icon-xs"
                       variant="ghost"
-                      className="text-zinc-400 hover:text-red-600"
+                      className="text-muted-foreground hover:text-destructive"
                       disabled={stage.dealCount > 0}
                       title={
                         stage.dealCount > 0
@@ -316,7 +316,7 @@ export function PipelineStageSettings({
 
         {stages.length === 0 && (
           <div className="flex items-center justify-center py-12">
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-muted-foreground">
               No pipeline stages configured yet.
             </p>
           </div>
@@ -364,7 +364,7 @@ export function PipelineStageSettings({
                     className={`size-7 rounded-full border-2 transition-all ${
                       newStageColor === color
                         ? "border-zinc-900 scale-110"
-                        : "border-transparent hover:border-zinc-300"
+                        : "border-transparent hover:border-border"
                     }`}
                     style={{ backgroundColor: color }}
                     onClick={() => setNewStageColor(color)}
@@ -372,7 +372,7 @@ export function PipelineStageSettings({
                 ))}
               </div>
               <div className="flex items-center gap-2 mt-2">
-                <Label htmlFor="custom-color" className="text-xs text-zinc-500">
+                <Label htmlFor="custom-color" className="text-xs text-muted-foreground">
                   Custom:
                 </Label>
                 <Input
@@ -382,7 +382,7 @@ export function PipelineStageSettings({
                   onChange={(e) => setNewStageColor(e.target.value)}
                   className="h-8 w-16 p-1"
                 />
-                <span className="text-xs text-zinc-400">{newStageColor}</span>
+                <span className="text-xs text-muted-foreground">{newStageColor}</span>
               </div>
             </div>
           </div>
@@ -442,7 +442,7 @@ export function PipelineStageSettings({
                     className={`size-7 rounded-full border-2 transition-all ${
                       editColor === color
                         ? "border-zinc-900 scale-110"
-                        : "border-transparent hover:border-zinc-300"
+                        : "border-transparent hover:border-border"
                     }`}
                     style={{ backgroundColor: color }}
                     onClick={() => setEditColor(color)}
@@ -452,7 +452,7 @@ export function PipelineStageSettings({
               <div className="flex items-center gap-2 mt-2">
                 <Label
                   htmlFor="edit-custom-color"
-                  className="text-xs text-zinc-500"
+                  className="text-xs text-muted-foreground"
                 >
                   Custom:
                 </Label>
@@ -463,7 +463,7 @@ export function PipelineStageSettings({
                   onChange={(e) => setEditColor(e.target.value)}
                   className="h-8 w-16 p-1"
                 />
-                <span className="text-xs text-zinc-400">{editColor}</span>
+                <span className="text-xs text-muted-foreground">{editColor}</span>
               </div>
             </div>
           </div>

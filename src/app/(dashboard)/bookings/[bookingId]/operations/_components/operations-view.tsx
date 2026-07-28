@@ -526,7 +526,7 @@ function RunOfShowTab({
                     variant="ghost"
                     size="sm"
                     onClick={() => removeItem(index)}
-                    className="text-red-500 hover:text-red-700"
+                    className="text-destructive hover:text-destructive"
                   >
                     <Trash2Icon className="size-4" />
                   </Button>
@@ -769,7 +769,7 @@ function StaffTab({
                     size="sm"
                     onClick={() => handleRemove(assignment.id)}
                     disabled={isPending}
-                    className="text-red-500 hover:text-red-700"
+                    className="text-destructive hover:text-destructive"
                   >
                     <Trash2Icon className="size-4" />
                   </Button>
@@ -1056,7 +1056,7 @@ function VendorsTab({
                       <span>Phone: {assignment.bookingVendor.vendor.phone}</span>
                       <a
                         href={`tel:${assignment.bookingVendor.vendor.phone}`}
-                        className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-medium text-emerald-600 transition-colors hover:bg-emerald-50 hover:text-emerald-700"
+                        className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-medium text-success transition-colors hover:bg-success/10 hover:text-success"
                       >
                         <PhoneIcon className="size-3" />
                         Call
@@ -1077,7 +1077,7 @@ function VendorsTab({
                         size="sm"
                         onClick={() => handleConfirm(assignment.id)}
                         disabled={isPending}
-                        className="text-emerald-600 hover:text-emerald-700"
+                        className="text-success hover:text-success"
                       >
                         <CheckIcon className="mr-1.5 size-4" />
                         Confirm
@@ -1087,7 +1087,7 @@ function VendorsTab({
                         size="sm"
                         onClick={() => handleDecline(assignment.id)}
                         disabled={isPending}
-                        className="text-red-500 hover:text-red-700"
+                        className="text-destructive hover:text-destructive"
                       >
                         <XIcon className="mr-1.5 size-4" />
                         Decline
@@ -1118,7 +1118,7 @@ function VendorsTab({
                     size="sm"
                     onClick={() => handleRemove(assignment.id)}
                     disabled={isPending}
-                    className="text-red-500 hover:text-red-700"
+                    className="text-destructive hover:text-destructive"
                   >
                     <Trash2Icon className="size-4" />
                   </Button>

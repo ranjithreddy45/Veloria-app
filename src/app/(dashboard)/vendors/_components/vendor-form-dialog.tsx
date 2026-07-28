@@ -393,8 +393,8 @@ export function VendorFormDialog({ vendor, categories, venues, trigger }: Vendor
                 className={cn(
                   "rounded-full border px-3 py-1 text-[12px] font-medium transition-colors",
                   allVenues
-                    ? "border-violet-400 bg-violet-100 text-violet-700 dark:border-violet-600 dark:bg-violet-950/60 dark:text-violet-300"
-                    : "border-border bg-muted/50 text-muted-foreground hover:border-violet-300"
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border bg-muted/50 text-muted-foreground hover:border-primary/20"
                 )}
               >
                 All venues
@@ -405,8 +405,8 @@ export function VendorFormDialog({ vendor, categories, venues, trigger }: Vendor
                 className={cn(
                   "rounded-full border px-3 py-1 text-[12px] font-medium transition-colors",
                   !allVenues
-                    ? "border-violet-400 bg-violet-100 text-violet-700 dark:border-violet-600 dark:bg-violet-950/60 dark:text-violet-300"
-                    : "border-border bg-muted/50 text-muted-foreground hover:border-violet-300"
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border bg-muted/50 text-muted-foreground hover:border-primary/20"
                 )}
               >
                 Specific venues

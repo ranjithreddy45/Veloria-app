@@ -72,7 +72,7 @@ export default async function TasksPage() {
             {overdueCount > 0 && (
               <>
                 <span className="h-3 w-px bg-border" />
-                <span className="text-rose-600">
+                <span className="text-destructive">
                   <span className="font-semibold tabular-nums">{overdueCount}</span> overdue
                 </span>
               </>

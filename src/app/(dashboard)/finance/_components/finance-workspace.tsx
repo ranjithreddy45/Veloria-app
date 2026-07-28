@@ -229,7 +229,7 @@ function NewJournalDialog({ accounts }: { accounts: Account[] }) {
             {balanced ? <StatusPill label="Balanced" hue="emerald" size="sm" /> : <StatusPill label="Not balanced" hue="amber" size="sm" />}
           </div>
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>Cancel</Button>
           <Button onClick={save} disabled={busy || !balanced} className="gap-1.5">{busy && <Loader2 className="size-4 animate-spin" />} Post entry</Button>

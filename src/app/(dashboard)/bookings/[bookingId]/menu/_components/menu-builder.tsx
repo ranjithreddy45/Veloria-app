@@ -274,7 +274,7 @@ export function MenuBuilder({
                           className={`rounded-lg border p-3 transition-colors ${
                             isSelected
                               ? "border-primary/50 bg-primary/5"
-                              : "hover:border-zinc-300"
+                              : "hover:border-border"
                           }`}
                         >
                           <div className="flex items-start justify-between gap-2">

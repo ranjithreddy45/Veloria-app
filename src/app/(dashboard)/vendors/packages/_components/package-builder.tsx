@@ -1285,12 +1285,12 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
           <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
             {isReady ? (
               <>
-                <CheckIcon className="size-4 text-emerald-600" />
-                <span className="text-emerald-700 font-medium">Ready to save.</span>
+                <CheckIcon className="size-4 text-success" />
+                <span className="text-success font-medium">Ready to save.</span>
               </>
             ) : (
               <>
-                <AlertCircleIcon className="size-4 text-amber-500" />
+                <AlertCircleIcon className="size-4 text-warning" />
                 <span>
                   To save: {readinessHints.join(", ")}.
                 </span>

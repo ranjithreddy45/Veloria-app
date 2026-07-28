@@ -170,8 +170,8 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
               variant="outline"
               className={
                 isConfigured
-                  ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-                  : "bg-zinc-100 text-zinc-600 border-zinc-200"
+                  ? "bg-success/15 text-success border-success/20"
+                  : "bg-muted text-muted-foreground border-border"
               }
             >
               {isConfigured ? "Configured" : "Not Configured"}
@@ -276,9 +276,9 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
 
           {/* Connection Status */}
           {connected && connectionInfo && (
-            <div className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-800 dark:bg-emerald-950">
-              <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-              <p className="text-sm text-emerald-700 dark:text-emerald-300">
+            <div className="flex items-start gap-3 rounded-lg border border-success/20 bg-success/10 p-3">
+              <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" />
+              <p className="text-sm text-success">
                 {connectionInfo}
               </p>
             </div>
@@ -515,9 +515,9 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
           </Accordion>
 
           {/* Important Notes */}
-          <div className="mt-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950">
-            <AlertCircle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
-            <div className="text-sm text-amber-700 dark:text-amber-300 space-y-1">
+          <div className="mt-4 flex items-start gap-3 rounded-lg border border-warning/20 bg-warning/10 p-3">
+            <AlertCircle className="mt-0.5 size-4 shrink-0 text-warning" />
+            <div className="text-sm text-warning space-y-1">
               <p>
                 <strong>Important:</strong> The test phone number from Meta
                 allows sending to up to 5 verified numbers. For production, you

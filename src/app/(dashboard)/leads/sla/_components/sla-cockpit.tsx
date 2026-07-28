@@ -138,7 +138,7 @@ export function SlaCockpit({ breaches, recent }: SlaCockpitProps) {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-sm">
-            <AlertTriangle className="size-4 text-rose-600" />
+            <AlertTriangle className="text-destructive size-4" />
             Breached first-contact SLA
             <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs numeric text-muted-foreground">
               {breaches.length}
@@ -181,7 +181,7 @@ export function SlaCockpit({ breaches, recent }: SlaCockpitProps) {
                       {b.assignedToName ?? "Unassigned"}
                     </TableCell>
                     <TableCell className="text-right">
-                      <span className="text-[13px] font-semibold numeric text-rose-600">
+                      <span className="numeric text-destructive text-[13px] font-semibold">
                         {formatOverdue(b.minutesOverdue)}
                       </span>
                     </TableCell>
@@ -197,7 +197,7 @@ export function SlaCockpit({ breaches, recent }: SlaCockpitProps) {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-sm">
-            <Zap className="size-4 text-emerald-600" />
+            <Zap className="text-success size-4" />
             Recent first-responses
             <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs numeric text-muted-foreground">
               {recent.length}

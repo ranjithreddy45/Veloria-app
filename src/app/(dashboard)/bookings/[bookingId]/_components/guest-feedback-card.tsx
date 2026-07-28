@@ -90,7 +90,7 @@ export function GuestFeedbackCard({
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
-            <MessageSquareHeartIcon className="size-4 text-rose-600" />
+            <MessageSquareHeartIcon className="size-4 text-destructive" />
             Guest Feedback
           </CardTitle>
         </CardHeader>
@@ -134,7 +134,7 @@ export function GuestFeedbackCard({
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
-          <MessageSquareHeartIcon className="size-4 text-rose-600" />
+          <MessageSquareHeartIcon className="size-4 text-destructive" />
           Guest Feedback
         </CardTitle>
       </CardHeader>
@@ -161,7 +161,7 @@ export function GuestFeedbackCard({
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="feedback-content" className="text-xs">
-            Feedback <span className="text-red-500">*</span>
+            Feedback <span className="text-destructive">*</span>
           </Label>
           <Textarea
             id="feedback-content"

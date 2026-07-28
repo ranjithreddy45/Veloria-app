@@ -238,7 +238,7 @@ export function WhiteLabelShell({
               />
             </div>
 
-            {error && <p className="text-sm text-rose-600">{error}</p>}
+            {error && <p className="text-sm text-destructive">{error}</p>}
 
             <button
               type="submit"

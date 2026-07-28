@@ -62,7 +62,7 @@ export function CancelInvoiceDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+        <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
           <BanIcon className="mr-2 size-4" />
           {label}
         </Button>
@@ -93,7 +93,7 @@ export function CancelInvoiceDialog({
           <Button
             onClick={handleSubmit}
             disabled={isPending}
-            className="bg-red-600 hover:bg-red-700"
+            className="bg-destructive text-white hover:brightness-105"
           >
             {isPending ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
             {isManager ? "Cancel invoice" : "Submit request"}
@@ -138,18 +138,18 @@ export function InvoiceCancellationBanner({
   }
 
   return (
-    <div className="rounded-lg border border-amber-300 bg-amber-50/60 p-4">
+    <div className="rounded-lg border border-warning/30 bg-warning/10 p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="text-sm">
-          <p className="font-semibold text-amber-800">Cancellation pending approval</p>
-          {reason && <p className="mt-1 text-amber-700">Reason: {reason}</p>}
+          <p className="font-semibold text-warning">Cancellation pending approval</p>
+          {reason && <p className="mt-1 text-warning">Reason: {reason}</p>}
           {requestedByName && (
-            <p className="mt-0.5 text-xs text-amber-600">Requested by {requestedByName}</p>
+            <p className="mt-0.5 text-xs text-warning">Requested by {requestedByName}</p>
           )}
         </div>
         {isManager && (
           <div className="flex gap-2">
-            <Button size="sm" onClick={() => act("approve")} disabled={isPending} className="bg-red-600 hover:bg-red-700">
+            <Button size="sm" onClick={() => act("approve")} disabled={isPending} className="bg-destructive text-white hover:brightness-105">
               {isPending ? <Loader2 className="mr-1 size-4 animate-spin" /> : <CheckCircle2 className="mr-1 size-4" />}
               Approve
             </Button>

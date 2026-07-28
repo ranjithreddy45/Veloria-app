@@ -195,20 +195,20 @@ export function VenueHierarchy({ venues }: VenueHierarchyProps) {
                     {parent.childVenues.map((child) => (
                       <div
                         key={child.id}
-                        className="flex items-center justify-between rounded-lg border p-3 bg-zinc-50"
+                        className="flex items-center justify-between rounded-lg border p-3 bg-muted"
                       >
                         <div className="flex items-center gap-3">
-                          <ChevronRightIcon className="size-4 text-zinc-400" />
+                          <ChevronRightIcon className="size-4 text-muted-foreground" />
                           <div>
                             <p className="text-sm font-medium">{child.name}</p>
-                            <p className="text-xs text-zinc-500">
+                            <p className="text-xs text-muted-foreground">
                               Capacity: {child.capacity}
                             </p>
                           </div>
                           {!child.isActive && (
                             <Badge
                               variant="outline"
-                              className="bg-gray-100 text-gray-500 border-gray-200 text-[10px]"
+                              className="bg-muted text-muted-foreground border-border text-[10px]"
                             >
                               Inactive
                             </Badge>
@@ -219,7 +219,7 @@ export function VenueHierarchy({ venues }: VenueHierarchyProps) {
                           size="sm"
                           onClick={() => handleDetach(child.id)}
                           disabled={detachingId === child.id}
-                          className="text-zinc-500 hover:text-red-600"
+                          className="text-muted-foreground hover:text-destructive"
                         >
                           {detachingId === child.id ? (
                             <Loader2Icon className="size-4 animate-spin" />
@@ -232,7 +232,7 @@ export function VenueHierarchy({ venues }: VenueHierarchyProps) {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-zinc-500 ml-6">
+                  <p className="text-sm text-muted-foreground ml-6">
                     No child venues assigned yet.
                   </p>
                 )}
@@ -244,7 +244,7 @@ export function VenueHierarchy({ venues }: VenueHierarchyProps) {
         <Card>
           <CardContent className="py-8 text-center">
             <NetworkIcon className="mx-auto mb-3 size-10 text-zinc-300" />
-            <p className="text-sm text-zinc-500">
+            <p className="text-sm text-muted-foreground">
               No venue groups configured yet. Assign child venues to parent
               venues to create a hierarchy.
             </p>
@@ -256,7 +256,7 @@ export function VenueHierarchy({ venues }: VenueHierarchyProps) {
       {childVenuesList.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-zinc-600">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Assigned Child Venues
             </CardTitle>
           </CardHeader>
@@ -268,10 +268,10 @@ export function VenueHierarchy({ venues }: VenueHierarchyProps) {
                   className="flex items-center justify-between rounded-lg border p-3"
                 >
                   <div className="flex items-center gap-3">
-                    <ChevronRightIcon className="size-4 text-zinc-400" />
+                    <ChevronRightIcon className="size-4 text-muted-foreground" />
                     <div>
                       <p className="text-sm font-medium">{venue.name}</p>
-                      <p className="text-xs text-zinc-500">
+                      <p className="text-xs text-muted-foreground">
                         Parent: {venue.parentVenue?.name || "Unknown"}
                       </p>
                     </div>
@@ -281,7 +281,7 @@ export function VenueHierarchy({ venues }: VenueHierarchyProps) {
                     size="sm"
                     onClick={() => handleDetach(venue.id)}
                     disabled={detachingId === venue.id}
-                    className="text-zinc-500 hover:text-red-600"
+                    className="text-muted-foreground hover:text-destructive"
                   >
                     {detachingId === venue.id ? (
                       <Loader2Icon className="size-4 animate-spin" />
@@ -301,7 +301,7 @@ export function VenueHierarchy({ venues }: VenueHierarchyProps) {
       {standaloneVenues.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-zinc-600">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Standalone Venues ({standaloneVenues.length})
             </CardTitle>
             <CardDescription>
@@ -319,7 +319,7 @@ export function VenueHierarchy({ venues }: VenueHierarchyProps) {
                   <BuildingIcon className="mr-1.5 size-3" />
                   {venue.name}
                   {!venue.isActive && (
-                    <span className="ml-1 text-zinc-400">(Inactive)</span>
+                    <span className="ml-1 text-muted-foreground">(Inactive)</span>
                   )}
                 </Badge>
               ))}

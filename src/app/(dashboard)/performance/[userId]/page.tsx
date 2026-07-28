@@ -190,7 +190,7 @@ export default async function IndividualPerformancePage({
       {/* Badges Section */}
       <div>
         <div className="mb-4 flex items-center gap-2">
-          <span className="flex size-7 items-center justify-center rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-950/50 dark:text-amber-300">
+          <span className="flex size-7 items-center justify-center rounded-lg bg-warning/15 text-warning">
             <AwardIcon className="size-4" />
           </span>
           <h2 className="text-[15px] font-semibold tracking-[-0.01em]">Badges Earned</h2>
@@ -208,8 +208,8 @@ export default async function IndividualPerformancePage({
               <Card key={badge.id} className="gap-0 py-0">
                 <CardContent className="px-5 py-5">
                   <div className="flex items-start gap-3">
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
-                      <AwardIcon className="size-5 text-amber-600 dark:text-amber-400" />
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-warning/15">
+                      <AwardIcon className="size-5 text-warning" />
                     </div>
                     <div className="min-w-0">
                       <p className="font-medium">{badge.title}</p>
@@ -243,7 +243,7 @@ export default async function IndividualPerformancePage({
       {/* Incentives Section */}
       <div>
         <div className="mb-4 flex items-center gap-2">
-          <span className="flex size-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-300">
+          <span className="flex size-7 items-center justify-center rounded-lg bg-success/15 text-success">
             <GiftIcon className="size-4" />
           </span>
           <h2 className="text-[15px] font-semibold tracking-[-0.01em]">Incentives</h2>
@@ -281,7 +281,7 @@ export default async function IndividualPerformancePage({
                     )}
                     {incentive.bonusAmount != null &&
                       Number(incentive.bonusAmount) > 0 && (
-                        <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                        <span className="font-medium text-success">
                           +{Number(incentive.bonusAmount).toLocaleString("en-IN", {
                             style: "currency",
                             currency: "INR",

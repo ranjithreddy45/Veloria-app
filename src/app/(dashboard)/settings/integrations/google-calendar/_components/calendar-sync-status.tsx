@@ -76,7 +76,7 @@ export function CalendarSyncStatus() {
               {log.status === "success" ? (
                 <CheckCircle2 className="size-4 shrink-0 text-emerald-500" />
               ) : (
-                <XCircle className="size-4 shrink-0 text-red-500" />
+                <XCircle className="size-4 shrink-0 text-destructive" />
               )}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">

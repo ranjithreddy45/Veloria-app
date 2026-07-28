@@ -107,16 +107,16 @@ export default async function HoldConfirmationPage({
 
       {paid ? (
         <div className="space-y-3">
-          <div className="flex flex-col items-center gap-2 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.07] p-8 text-center">
-            <CheckCircle2 className="size-9 text-emerald-600 dark:text-emerald-400" />
-            <p className="font-editorial mt-1 text-[22px] font-semibold text-emerald-900 dark:text-emerald-200">
+          <div className="flex flex-col items-center gap-2 rounded-2xl border border-success/25 bg-success/[0.07] p-8 text-center">
+            <CheckCircle2 className="size-9 text-success" />
+            <p className="font-editorial mt-1 text-[22px] font-semibold text-success">
               Your date is secured
             </p>
-            <p className="text-sm text-emerald-800/85 dark:text-emerald-300/85">
+            <p className="text-sm text-success/85">
               <span className="numeric">{inr(h.tokenAmount)}</span> received ·{" "}
               {dateLabel} · {h.slotLabel}
             </p>
-            <p className="mt-2 flex items-center justify-center gap-1.5 text-[12.5px] font-medium text-emerald-800 dark:text-emerald-300">
+            <p className="mt-2 flex items-center justify-center gap-1.5 text-[12.5px] font-medium text-success">
               <PhoneCall className="size-3.5" /> Your coordinator will call you
               within 24 hours.
             </p>

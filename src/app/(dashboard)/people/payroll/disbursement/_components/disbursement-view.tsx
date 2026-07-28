@@ -173,7 +173,7 @@ export function DisbursementView({
                 <Button size="sm" variant="outline" className="gap-1.5" onClick={exportBankAdvice}>
                   <Download className="size-4" /> Export bank advice (CSV)
                 </Button>
-                <p className="inline-flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400">
+                <p className="inline-flex items-center gap-1 text-[11px] text-warning">
                   <Info className="size-3" /> Held salaries are excluded from the bank advice.
                 </p>
               </div>
@@ -193,13 +193,13 @@ export function DisbursementView({
                 </TableHeader>
                 <TableBody>
                   {data.rows.map((r) => (
-                    <TableRow key={r.payslipId} className={r.onHold ? "bg-amber-50/40 dark:bg-amber-950/10" : undefined}>
+                    <TableRow key={r.payslipId} className={r.onHold ? "bg-warning/5" : undefined}>
                       <TableCell>
                         <div className="font-medium">{r.name}</div>
                         <div className="text-[11.5px] text-muted-foreground">{r.empCode}</div>
                       </TableCell>
                       <TableCell className="tabular-nums text-muted-foreground">
-                        {r.bankAccountMasked ?? <span className="text-rose-500">No bank a/c</span>}
+                        {r.bankAccountMasked ?? <span className="text-destructive">No bank a/c</span>}
                       </TableCell>
                       <TableCell className="tabular-nums text-muted-foreground">{r.bankIfsc ?? "—"}</TableCell>
                       <TableCell className="text-right font-semibold tabular-nums">{inr(r.net)}</TableCell>
@@ -233,7 +233,7 @@ export function DisbursementView({
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="gap-1.5 text-amber-600 hover:text-amber-700 dark:text-amber-400"
+                            className="gap-1.5 text-warning hover:text-warning/80"
                             disabled={busyId === r.payslipId || runStatus === "PAID"}
                             onClick={() => { setHoldTarget({ id: r.payslipId, name: r.name }); setReason(""); }}
                           >
@@ -259,7 +259,7 @@ export function DisbursementView({
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
-            <Label htmlFor="hold-reason">Reason <span className="text-rose-500">*</span></Label>
+            <Label htmlFor="hold-reason">Reason <span className="text-destructive">*</span></Label>
             <Textarea
               id="hold-reason"
               placeholder="e.g. Pending exit clearance, disputed attendance, bank details missing…"

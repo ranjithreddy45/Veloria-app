@@ -136,9 +136,9 @@ function ContractRow({ contract, showSignButton }: ContractRowProps) {
       <Card
         className={`group shadow-card hover:shadow-card-hover overflow-hidden rounded-2xl py-0 transition-all duration-200 ${
           isSigned
-            ? "border-emerald-500/25"
+            ? "border-success/25"
             : isExpired
-              ? "border-red-500/30"
+              ? "border-destructive/30"
               : ""
         }`}
       >
@@ -149,19 +149,19 @@ function ContractRow({ contract, showSignButton }: ContractRowProps) {
               <div
                 className={`flex size-10 flex-shrink-0 items-center justify-center rounded-xl ${
                   isSigned
-                    ? "bg-emerald-500/10"
+                    ? "bg-success/10"
                     : isExpired
-                      ? "bg-red-500/10"
+                      ? "bg-destructive/10"
                       : "bg-primary/10"
                 }`}
               >
                 {isSigned ? (
-                  <CheckCircle2 className="size-5 text-emerald-600 dark:text-emerald-400" />
+                  <CheckCircle2 className="size-5 text-success" />
                 ) : (
                   <FileText
                     className={`size-5 ${
                       isExpired
-                        ? "text-red-600 dark:text-red-400"
+                        ? "text-destructive"
                         : "text-primary"
                     }`}
                   />
@@ -227,9 +227,9 @@ function ContractRow({ contract, showSignButton }: ContractRowProps) {
           <div
             className={`flex items-center justify-between border-t px-5 py-2.5 text-xs ${
               isExpired
-                ? "border-red-500/20 bg-red-500/[0.06] text-red-600 dark:text-red-400"
+                ? "border-destructive/20 bg-destructive/[0.06] text-destructive"
                 : isSigned
-                  ? "border-emerald-500/20 bg-emerald-500/[0.06] text-emerald-600 dark:text-emerald-400"
+                  ? "border-success/20 bg-success/[0.06] text-success"
                   : "text-muted-foreground/70 bg-muted/25"
             }`}
           >

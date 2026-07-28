@@ -20,7 +20,7 @@ export default async function SignPage({
   if (!res.success) {
     return (
       <div className="bg-card shadow-card mx-auto max-w-lg rounded-2xl border p-10 text-center">
-        <FileWarning className="mx-auto size-9 text-amber-500" />
+        <FileWarning className="mx-auto size-9 text-warning" />
         <h1 className="text-foreground mt-5 text-[24px]">
           This signing link isn&apos;t valid
         </h1>
@@ -57,12 +57,12 @@ export default async function SignPage({
       </div>
 
       {alreadySigned ? (
-        <div className="flex flex-col items-center gap-2 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.07] p-8 text-center">
-          <CheckCircle2 className="size-8 text-emerald-600 dark:text-emerald-400" />
-          <p className="font-editorial mt-1 text-[20px] font-semibold text-emerald-900 dark:text-emerald-200">
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-success/25 bg-success/[0.07] p-8 text-center">
+          <CheckCircle2 className="size-8 text-success" />
+          <p className="font-editorial mt-1 text-[20px] font-semibold text-success">
             This document has been signed
           </p>
-          <p className="text-sm leading-relaxed text-emerald-800/85 dark:text-emerald-300/85">
+          <p className="text-sm leading-relaxed text-success/85">
             {doc.signerName ? `Signed by ${doc.signerName}` : "Signed"}
             {doc.signedAt
               ? ` on ${format(new Date(doc.signedAt), "d MMM yyyy, h:mm a")}`

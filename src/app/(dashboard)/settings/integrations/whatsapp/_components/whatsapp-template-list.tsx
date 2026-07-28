@@ -41,7 +41,7 @@ export function WhatsAppTemplateList({ templates }: WhatsAppTemplateListProps) {
               key={template.name}
               className="flex items-start gap-3 py-3 first:pt-0 last:pb-0"
             >
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-success/15 text-success">
                 <FileText className="size-4" />
               </div>
               <div className="min-w-0 flex-1">

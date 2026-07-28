@@ -180,7 +180,7 @@ export default async function EventPlanPage({
       {/* ---- What to expect ---- */}
       <section className="border-primary/25 bg-primary/[0.06] rounded-2xl border p-6">
         <h2 className="font-editorial text-foreground flex items-center gap-2.5 text-[20px] font-semibold">
-          <Heart className="size-4 text-rose-500" />
+          <Heart className="size-4 text-destructive" />
           What to expect next
         </h2>
         <p className="text-foreground/80 mt-3 text-sm leading-relaxed">

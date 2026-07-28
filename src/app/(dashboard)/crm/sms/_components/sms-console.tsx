@@ -53,15 +53,15 @@ const STAT_CARDS = [
     key: "delivered" as const,
     label: "Delivered",
     icon: CheckCheck,
-    color: "text-emerald-600 dark:text-emerald-400",
-    bg: "bg-emerald-50 dark:bg-emerald-950/40",
+    color: "text-success",
+    bg: "bg-success/10",
   },
   {
     key: "failed" as const,
     label: "Failed",
     icon: XCircle,
-    color: "text-red-600 dark:text-red-400",
-    bg: "bg-red-50 dark:bg-red-950/40",
+    color: "text-destructive",
+    bg: "bg-destructive/10",
   },
 ];
 
@@ -70,9 +70,9 @@ function statusBadge(status: SmsMessageRow["status"]) {
     case "SENT":
       return <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">Sent</Badge>;
     case "DELIVERED":
-      return <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">Delivered</Badge>;
+      return <Badge className="bg-success/10 text-success">Delivered</Badge>;
     case "QUEUED":
-      return <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300">Queued</Badge>;
+      return <Badge className="bg-warning/10 text-warning">Queued</Badge>;
     case "FAILED":
       return <Badge variant="destructive">Failed</Badge>;
     default:
@@ -168,11 +168,11 @@ export function SmsConsole({ initialMessages, initialStats }: SmsConsoleProps) {
 
       {/* Not-configured banner */}
       {!configured && (
-        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300">
+        <div className="border-warning/20 bg-warning/10 text-warning flex items-start gap-2 rounded-lg border p-3 text-sm">
           <AlertTriangle className="mt-0.5 size-4 shrink-0" />
           <div>
             <p className="font-medium">SMS provider not configured</p>
-            <p className="text-xs text-amber-700 dark:text-amber-400/90">
+            <p className="text-warning/90 text-xs">
               Set <code className="font-mono">SMS_PROVIDER</code> (MSG91 or TWILIO)
               and the matching provider keys in your environment. Until then,
               outgoing messages are recorded as failed with the reason shown on
@@ -361,7 +361,7 @@ export function SmsConsole({ initialMessages, initialStats }: SmsConsoleProps) {
                         <td className="max-w-xs py-2.5 pr-3">
                           <p className="truncate">{m.content}</p>
                           {m.status === "FAILED" && m.failureReason && (
-                            <p className="mt-0.5 truncate text-xs text-red-600 dark:text-red-400">
+                            <p className="text-destructive mt-0.5 truncate text-xs">
                               {m.failureReason}
                             </p>
                           )}

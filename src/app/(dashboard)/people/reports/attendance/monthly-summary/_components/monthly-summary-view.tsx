@@ -110,8 +110,8 @@ export function MonthlySummaryView({
                         {r.empCode}{r.department ? ` · ${r.department}` : ""}
                       </div>
                     </td>
-                    <td className="px-3 py-2.5 text-right tabular-nums font-medium text-emerald-600 dark:text-emerald-300">{r.present}</td>
-                    <td className="px-3 py-2.5 text-right tabular-nums text-rose-600 dark:text-rose-300">{r.absent || ""}</td>
+                    <td className="px-3 py-2.5 text-right tabular-nums font-medium text-success">{r.present}</td>
+                    <td className="px-3 py-2.5 text-right tabular-nums text-destructive">{r.absent || ""}</td>
                     <td className="px-3 py-2.5 text-right tabular-nums">{r.halfDay || ""}</td>
                     <td className="px-3 py-2.5 text-right tabular-nums">{r.wfh || ""}</td>
                     <td className="px-3 py-2.5 text-right tabular-nums">{r.onLeave || ""}</td>

@@ -161,7 +161,7 @@ function DeleteButton({ kind, id }: { kind: Kind; id: string }) {
   return (
     <Dialog open={!!error} onOpenChange={(o) => !o && setError(null)}>
       <Button
-        variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-red-600"
+        variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-destructive"
         disabled={busy}
         onClick={async () => {
           setBusy(true);
@@ -264,7 +264,7 @@ function ItemDialog({
             <Switch checked={isActive} onCheckedChange={setIsActive} />
           </label>
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
           <Button onClick={save} disabled={saving} className="gap-1.5">

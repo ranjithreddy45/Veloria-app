@@ -379,7 +379,7 @@ export function AppHeader() {
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              className="cursor-pointer text-red-600 focus:text-red-600"
+              className="cursor-pointer text-destructive focus:text-destructive"
               onClick={() => signOut({ callbackUrl: "/sign-in" })}
             >
               <LogOut className="mr-2 size-4" />

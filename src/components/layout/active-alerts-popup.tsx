@@ -221,8 +221,8 @@ export function ActiveAlertsPopup() {
         className={cn(
           "fixed bottom-4 right-4 z-[60] flex items-center gap-2 rounded-full border px-4 py-2.5 shadow-lg transition-transform hover:scale-105",
           overdueCount > 0
-            ? "border-red-300 bg-red-600 text-white"
-            : "border-amber-300 bg-amber-500 text-white"
+            ? "border-destructive/20 bg-destructive text-white"
+            : "border-warning/20 bg-warning text-white"
         )}
         aria-label={`${data.total} active alerts`}
       >
@@ -286,8 +286,8 @@ export function ActiveAlertsPopup() {
                 className={cn(
                   "mt-0.5 rounded-md p-1.5",
                   t.isOverdue
-                    ? "bg-red-50 text-red-600 dark:bg-red-950/40"
-                    : "bg-amber-50 text-amber-600 dark:bg-amber-950/40"
+                    ? "bg-destructive/10 text-destructive"
+                    : "bg-warning/10 text-warning"
                 )}
               >
                 <ListTodo className="h-4 w-4" />
@@ -300,7 +300,7 @@ export function ActiveAlertsPopup() {
                   className={cn(
                     "mt-0.5 flex items-center gap-1 text-xs",
                     t.isOverdue
-                      ? "text-red-600"
+                      ? "text-destructive"
                       : "text-muted-foreground"
                   )}
                 >
@@ -334,7 +334,7 @@ export function ActiveAlertsPopup() {
 
           {visibleSla.map((s) => (
             <div key={s.id} className="flex items-start gap-3 px-4 py-3">
-              <div className="mt-0.5 rounded-md bg-red-50 p-1.5 text-red-600 dark:bg-red-950/40">
+              <div className="mt-0.5 rounded-md bg-destructive/10 p-1.5 text-destructive">
                 <AlertTriangle className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">

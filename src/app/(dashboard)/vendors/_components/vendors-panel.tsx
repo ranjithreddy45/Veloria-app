@@ -47,10 +47,10 @@ import type { VendorRow, CategoryOption, VenueOption } from "./vendor-module";
 
 const EMPANELMENT_COLORS: Record<string, string> = {
   empanelled:
-    "bg-emerald-500/12 text-emerald-700 border-emerald-500/25 dark:text-emerald-300",
+    "bg-success/12 text-success border-success/25",
   probation:
-    "bg-amber-500/14 text-amber-700 border-amber-500/25 dark:text-amber-300",
-  suspended: "bg-rose-500/12 text-rose-700 border-rose-500/25 dark:text-rose-300",
+    "bg-warning/14 text-warning border-warning/25",
+  suspended: "bg-destructive/12 text-destructive border-destructive/25",
 };
 
 const EMPANELMENT_LABELS: Record<string, string> = {

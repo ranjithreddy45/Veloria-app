@@ -125,7 +125,7 @@ function HolidayDialog({ existing, defaultYear }: { existing?: Holiday; defaultY
             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </div>
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
           <Button onClick={save} disabled={saving} className="gap-1.5">
@@ -156,7 +156,7 @@ function DeleteHolidayButton({ id, name }: { id: string; name: string }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-red-600">
+        <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-destructive">
           <Trash2 className="size-4" />
         </Button>
       </DialogTrigger>
@@ -165,7 +165,7 @@ function DeleteHolidayButton({ id, name }: { id: string; name: string }) {
         <p className="text-sm text-muted-foreground">
           Remove <span className="font-medium text-foreground">{name}</span> from the holiday calendar? Leave already applied is not recalculated.
         </p>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>Cancel</Button>
           <Button variant="destructive" onClick={confirm} disabled={busy} className="gap-1.5">

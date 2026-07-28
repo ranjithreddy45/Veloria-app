@@ -130,7 +130,7 @@ export function TallySyncDashboard({
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
           <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex size-11 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
+            <div className="flex size-11 items-center justify-center rounded-lg bg-success/15 text-success">
               <CheckCircle2 className="size-5" />
             </div>
             <div>
@@ -154,7 +154,7 @@ export function TallySyncDashboard({
 
         <Card>
           <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex size-11 items-center justify-center rounded-lg bg-red-100 text-red-600 dark:bg-red-950 dark:text-red-400">
+            <div className="flex size-11 items-center justify-center rounded-lg bg-destructive/15 text-destructive">
               <AlertTriangle className="size-5" />
             </div>
             <div>
@@ -227,7 +227,7 @@ export function TallySyncDashboard({
                       <TableCell className="text-xs">
                         {log.syncedAt ? formatDate(log.syncedAt) : "--"}
                       </TableCell>
-                      <TableCell className="max-w-[200px] truncate text-xs text-red-600">
+                      <TableCell className="max-w-[200px] truncate text-xs text-destructive">
                         {log.error ?? "--"}
                       </TableCell>
                       <TableCell>

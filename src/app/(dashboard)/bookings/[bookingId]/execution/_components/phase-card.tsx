@@ -143,7 +143,7 @@ export function PhaseCard({ phase, planStatus, bookingId }: PhaseCardProps) {
   }
 
   return (
-    <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+    <Card className="border-border shadow-sm">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
@@ -232,7 +232,7 @@ export function PhaseCard({ phase, planStatus, bookingId }: PhaseCardProps) {
                   <div className="space-y-4 py-2 max-h-[60vh] overflow-y-auto">
                     <div className="space-y-2">
                       <label className="text-sm font-medium">
-                        Title <span className="text-red-500">*</span>
+                        Title <span className="text-destructive">*</span>
                       </label>
                       <Input
                         placeholder="e.g. Set up audio system"
@@ -305,7 +305,7 @@ export function PhaseCard({ phase, planStatus, bookingId }: PhaseCardProps) {
                           type="checkbox"
                           checked={taskIsMandatory}
                           onChange={(e) => setTaskIsMandatory(e.target.checked)}
-                          className="rounded border-zinc-300"
+                          className="rounded border-border"
                         />
                         Mandatory task
                       </label>
@@ -316,7 +316,7 @@ export function PhaseCard({ phase, planStatus, bookingId }: PhaseCardProps) {
                           onChange={(e) =>
                             setTaskRequiresApproval(e.target.checked)
                           }
-                          className="rounded border-zinc-300"
+                          className="rounded border-border"
                         />
                         Requires approval
                       </label>
@@ -327,7 +327,7 @@ export function PhaseCard({ phase, planStatus, bookingId }: PhaseCardProps) {
                           onChange={(e) =>
                             setTaskRequiresProof(e.target.checked)
                           }
-                          className="rounded border-zinc-300"
+                          className="rounded border-border"
                         />
                         Requires proof
                       </label>

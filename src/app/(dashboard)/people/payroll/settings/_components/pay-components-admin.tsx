@@ -221,7 +221,7 @@ function ComponentDialog({ existing }: { existing?: PayComponentRow }) {
             <Switch checked={partOfCtc} onCheckedChange={setPartOfCtc} /> Part of CTC
           </label>
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
           <Button onClick={save} disabled={saving} className="gap-1.5">

@@ -261,7 +261,7 @@ export function TemplateList({ templates }: TemplateListProps) {
                       {templateItems.length > 1 && (
                         <button
                           onClick={() => handleRemoveItem(index)}
-                          className="shrink-0 rounded p-1 text-zinc-400 hover:text-red-500"
+                          className="shrink-0 rounded p-1 text-muted-foreground hover:text-destructive"
                         >
                           <XIcon className="size-3.5" />
                         </button>
@@ -307,9 +307,9 @@ export function TemplateList({ templates }: TemplateListProps) {
       {templates.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <ClipboardListIcon className="size-12 text-zinc-300 mb-4" />
-            <p className="text-zinc-500 text-sm mb-2">No templates yet</p>
-            <p className="text-zinc-400 text-xs text-center max-w-sm">
+            <ClipboardListIcon className="size-12 text-muted-foreground mb-4" />
+            <p className="text-muted-foreground text-sm mb-2">No templates yet</p>
+            <p className="text-muted-foreground text-xs text-center max-w-sm">
               Create a template to quickly generate a set of tasks for common
               workflows like event setup, vendor coordination, etc.
             </p>
@@ -330,7 +330,7 @@ export function TemplateList({ templates }: TemplateListProps) {
                     </Badge>
                   </div>
                   {template.description && (
-                    <p className="text-xs text-zinc-500 line-clamp-2">
+                    <p className="text-xs text-muted-foreground line-clamp-2">
                       {template.description}
                     </p>
                   )}
@@ -341,14 +341,14 @@ export function TemplateList({ templates }: TemplateListProps) {
                     {items.slice(0, 4).map((item, i) => (
                       <div
                         key={i}
-                        className="flex items-center gap-2 text-xs text-zinc-600"
+                        className="flex items-center gap-2 text-xs text-muted-foreground"
                       >
                         <div className="size-1.5 rounded-full bg-zinc-300 shrink-0" />
                         <span className="truncate">{item.title}</span>
                       </div>
                     ))}
                     {items.length > 4 && (
-                      <p className="text-[11px] text-zinc-400 pl-3.5">
+                      <p className="text-[11px] text-muted-foreground pl-3.5">
                         +{items.length - 4} more tasks
                       </p>
                     )}
@@ -386,7 +386,7 @@ export function TemplateList({ templates }: TemplateListProps) {
                 Link to Booking (optional)
               </label>
               {isLoadingBookings ? (
-                <div className="flex items-center gap-2 text-sm text-zinc-400">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Loader2Icon className="size-3.5 animate-spin" />
                   Loading bookings...
                 </div>

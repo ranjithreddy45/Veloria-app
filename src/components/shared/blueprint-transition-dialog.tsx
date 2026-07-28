@@ -233,9 +233,9 @@ export function BlueprintTransitionDialog({
         {/* Allowed State */}
         {state === "allowed" && (
           <div className="flex flex-col items-center gap-3 py-4">
-            <CheckCircle2Icon className="size-10 text-green-500" />
+            <CheckCircle2Icon className="size-10 text-success" />
             <div className="text-center">
-              <p className="font-medium text-green-700">
+              <p className="font-medium text-success">
                 Transition Allowed
               </p>
               <p className="text-sm text-muted-foreground mt-1">
@@ -313,8 +313,8 @@ export function BlueprintTransitionDialog({
         {state === "error" && (
           <div className="space-y-3 py-4">
             <div className="flex items-center gap-2">
-              <AlertTriangleIcon className="size-5 text-amber-500" />
-              <p className="font-medium text-amber-700">Validation Error</p>
+              <AlertTriangleIcon className="size-5 text-warning" />
+              <p className="font-medium text-warning">Validation Error</p>
             </div>
             {errors.map((error, i) => (
               <p key={i} className="text-sm text-muted-foreground">

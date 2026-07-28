@@ -140,7 +140,7 @@ export function AutoIncentivePanel() {
                       <td className="px-2 py-2 text-right tabular-nums">{r.bookings}</td>
                       <td className="px-2 py-2 text-right tabular-nums">{inr(r.revenue)}</td>
                       <td className="px-2 py-2 text-right tabular-nums">{inr(r.upsell)}</td>
-                      <td className="px-2 py-2 text-right font-semibold tabular-nums text-emerald-600 dark:text-emerald-400" title={r.breakdown}>{inr(r.bonus)}</td>
+                      <td className="px-2 py-2 text-right font-semibold tabular-nums text-success" title={r.breakdown}>{inr(r.bonus)}</td>
                     </tr>
                   ))}
                 </tbody>

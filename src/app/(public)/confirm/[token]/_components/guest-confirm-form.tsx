@@ -71,12 +71,12 @@ export function GuestConfirmForm({
 
   if (confirmedName) {
     return (
-      <div className="flex flex-col items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center dark:border-emerald-900 dark:bg-emerald-950/30">
-        <CheckCircle2 className="size-8 text-emerald-600" />
-        <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
+      <div className="flex flex-col items-center gap-2 rounded-2xl border border-success/20 bg-success/10 p-6 text-center">
+        <CheckCircle2 className="size-8 text-success" />
+        <p className="text-sm font-semibold text-success">
           Thank you, {confirmedName}!
         </p>
-        <p className="text-xs text-emerald-700/80 dark:text-emerald-400/80">
+        <p className="text-xs text-success/80">
           Your event services and Terms &amp; Conditions are confirmed. Our team
           will be in touch with the final details.
         </p>
@@ -96,7 +96,7 @@ export function GuestConfirmForm({
       </div>
 
       {due && (
-        <div className="flex items-center gap-2 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
+        <div className="flex items-center gap-2 rounded-xl bg-warning/10 px-3 py-2 text-xs text-warning">
           <Clock className="size-3.5 shrink-0" />
           Please confirm by {due}.
         </div>
@@ -136,7 +136,7 @@ export function GuestConfirmForm({
       <Button
         onClick={submit}
         disabled={!canSubmit}
-        className="w-full bg-emerald-600 hover:bg-emerald-700"
+        className="w-full bg-success hover:bg-success/90"
       >
         {pending ? (
           <Loader2 className="mr-2 size-4 animate-spin" />

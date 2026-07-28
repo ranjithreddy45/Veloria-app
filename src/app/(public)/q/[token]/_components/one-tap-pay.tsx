@@ -206,22 +206,22 @@ export function OneTapPay({
   if (status === "success") {
     return (
       <div className="animate-rise-in space-y-3">
-        <div className="flex flex-col items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center dark:border-emerald-900 dark:bg-emerald-950/40">
-          <CheckCircle2 className="size-10 text-emerald-600 dark:text-emerald-400" />
-          <p className="text-lg font-semibold text-emerald-800 dark:text-emerald-300">
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-success/20 bg-success/10 p-6 text-center">
+          <CheckCircle2 className="size-10 text-success" />
+          <p className="text-lg font-semibold text-success">
             Your date is secured
           </p>
           {eventFacts && (
-            <p className="text-[12.5px] font-medium text-emerald-700 dark:text-emerald-400">
+            <p className="text-[12.5px] font-medium text-success">
               {eventFacts}
             </p>
           )}
-          <p className="text-sm text-emerald-700 dark:text-emerald-400">
+          <p className="text-sm text-success">
             {paidAmount != null
               ? `Payment of ${inr(paidAmount)} received — your date is now blocked for you.`
               : "Your booking advance is received and the date is now blocked for you."}
           </p>
-          <p className="mt-1 flex items-center justify-center gap-1.5 text-[12.5px] font-medium text-emerald-800 dark:text-emerald-300">
+          <p className="mt-1 flex items-center justify-center gap-1.5 text-[12.5px] font-medium text-success">
             <PhoneCall className="size-3.5" /> Your coordinator will call you within 24 hours.
           </p>
         </div>
@@ -234,17 +234,17 @@ export function OneTapPay({
   if (status === "slotTaken") {
     return (
       <div className="animate-rise-in space-y-3">
-        <div className="flex flex-col items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center dark:border-amber-900 dark:bg-amber-950/40">
-          <AlertCircle className="size-10 text-amber-600 dark:text-amber-400" />
-          <p className="text-lg font-semibold text-amber-800 dark:text-amber-300">
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-warning/20 bg-warning/10 p-6 text-center">
+          <AlertCircle className="size-10 text-warning" />
+          <p className="text-lg font-semibold text-warning">
             Payment received
           </p>
-          <p className="text-sm text-amber-700 dark:text-amber-400">
+          <p className="text-sm text-warning">
             {paidAmount != null ? `Your payment of ${inr(paidAmount)} came through` : "Your payment came through"}
             {" "}— but this slot was just taken. Our team will call you to sort it out or refund you in full.
           </p>
           {error && (
-            <p className="text-[12px] text-amber-600/80 dark:text-amber-400/80">{error}</p>
+            <p className="text-[12px] text-warning/80">{error}</p>
           )}
         </div>
         <HelpChip variant="banner" />
@@ -293,7 +293,7 @@ export function OneTapPay({
           <Lock className="size-3" /> Secured by Razorpay
         </span>
         <span className="flex items-center gap-1.5 rounded-full bg-muted/60 px-3 py-1 text-[11.5px] font-medium text-muted-foreground">
-          <ShieldCheck className="size-3 text-emerald-600 dark:text-emerald-400" /> UPI · Card · Net banking
+          <ShieldCheck className="size-3 text-success" /> UPI · Card · Net banking
         </span>
       </div>
     </div>

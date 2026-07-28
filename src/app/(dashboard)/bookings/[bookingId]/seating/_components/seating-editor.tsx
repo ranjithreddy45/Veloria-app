@@ -668,7 +668,7 @@ export function SeatingEditor({ bookingId, chart }: SeatingEditorProps) {
                         >
                           <ShapeIcon
                             shape={table.shape}
-                            className="size-4 text-zinc-500 dark:text-zinc-400"
+                            className="size-4 text-muted-foreground"
                           />
                           <span className="mt-0.5 text-xs font-semibold truncate max-w-full">
                             {table.label}
@@ -677,7 +677,7 @@ export function SeatingEditor({ bookingId, chart }: SeatingEditorProps) {
                             {table.guests.length}/{table.capacity}
                           </span>
                           {table.guests.length >= table.capacity && (
-                            <span className="absolute -top-1 -right-1 size-2.5 rounded-full bg-red-500" />
+                            <span className="absolute -top-1 -right-1 size-2.5 rounded-full bg-destructive" />
                           )}
                         </button>
                       );
@@ -687,7 +687,7 @@ export function SeatingEditor({ bookingId, chart }: SeatingEditorProps) {
                       <button
                         key={`${row}-${col}`}
                         onClick={() => openAddTableAtPosition(row, col)}
-                        className="flex items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50/50 text-zinc-300 transition-colors hover:border-indigo-300 hover:bg-indigo-50/50 hover:text-indigo-400 dark:border-zinc-800 dark:bg-zinc-900/30 dark:hover:border-indigo-700 dark:hover:bg-indigo-950/20"
+                        className="flex items-center justify-center rounded-lg border border-dashed border-border bg-muted text-muted-foreground transition-colors hover:border-indigo-300 hover:bg-indigo-50/50 hover:text-indigo-400 dark:hover:border-indigo-700 dark:hover:bg-indigo-950/20"
                         style={{
                           gridRow: row,
                           gridColumn: col,
@@ -732,7 +732,7 @@ export function SeatingEditor({ bookingId, chart }: SeatingEditorProps) {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="size-7 text-red-500 hover:text-red-600"
+                        className="size-7 text-destructive hover:text-destructive"
                         onClick={() => openDeleteTable(selectedTable.id)}
                         title="Delete table"
                       >
@@ -767,13 +767,13 @@ export function SeatingEditor({ bookingId, chart }: SeatingEditorProps) {
                       {selectedTable.notes}
                     </p>
                   )}
-                  <div className="flex items-center justify-between rounded-lg border bg-zinc-50 px-3 py-2 dark:bg-zinc-900">
+                  <div className="flex items-center justify-between rounded-lg border bg-muted px-3 py-2">
                     <span className="text-sm font-medium">
                       {selectedTable.guests.length} / {selectedTable.capacity}{" "}
                       seats filled
                     </span>
                     <div
-                      className="h-2 w-20 rounded-full bg-zinc-200 dark:bg-zinc-700"
+                      className="h-2 w-20 rounded-full bg-muted"
                     >
                       <div
                         className="h-2 rounded-full bg-indigo-500 transition-all"
@@ -815,7 +815,7 @@ export function SeatingEditor({ bookingId, chart }: SeatingEditorProps) {
                 <CardContent>
                   {selectedTable.guests.length === 0 ? (
                     <div className="flex flex-col items-center py-6 text-center">
-                      <UsersIcon className="size-6 text-zinc-300" />
+                      <UsersIcon className="size-6 text-muted-foreground" />
                       <p className="mt-2 text-xs text-muted-foreground">
                         No guests assigned yet
                       </p>
@@ -860,7 +860,7 @@ export function SeatingEditor({ bookingId, chart }: SeatingEditorProps) {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="size-7 text-red-500 hover:text-red-600"
+                              className="size-7 text-destructive hover:text-destructive"
                               onClick={() =>
                                 handleRemoveGuest(guest.id, guest.name)
                               }
@@ -880,7 +880,7 @@ export function SeatingEditor({ bookingId, chart }: SeatingEditorProps) {
           ) : (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
-                <LayoutGridIcon className="size-8 text-zinc-300" />
+                <LayoutGridIcon className="size-8 text-muted-foreground" />
                 <p className="mt-3 text-sm font-medium text-muted-foreground">
                   Select a table
                 </p>

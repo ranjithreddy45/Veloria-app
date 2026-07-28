@@ -50,24 +50,24 @@ function ExpandableRow({ submission }: { submission: Submission }) {
         )}
       </Button>
       {expanded && (
-        <div className="mt-2 rounded-lg border bg-zinc-50 p-3 dark:bg-zinc-900">
+        <div className="mt-2 rounded-lg border bg-muted p-3">
           <div className="space-y-1.5">
             {Object.entries(submission.data).map(([key, value]) => (
               <div key={key} className="flex gap-2 text-xs">
-                <span className="font-medium text-zinc-600 dark:text-zinc-400 min-w-[100px]">
+                <span className="font-medium text-muted-foreground min-w-[100px]">
                   {key}:
                 </span>
-                <span className="text-zinc-800 dark:text-zinc-200">
+                <span className="text-foreground">
                   {String(value ?? "--")}
                 </span>
               </div>
             ))}
             {submission.ipAddress && (
               <div className="flex gap-2 text-xs border-t pt-1.5 mt-1.5">
-                <span className="font-medium text-zinc-400 min-w-[100px]">
+                <span className="font-medium text-muted-foreground min-w-[100px]">
                   IP:
                 </span>
-                <span className="text-zinc-500">{submission.ipAddress}</span>
+                <span className="text-muted-foreground">{submission.ipAddress}</span>
               </div>
             )}
           </div>
@@ -145,7 +145,7 @@ export function SubmissionsTable({ data, fields }: SubmissionsTableProps) {
           return (
             <div className="space-y-0.5">
               {entries.map(([key, value]) => (
-                <div key={key} className="text-xs text-zinc-600 dark:text-zinc-400">
+                <div key={key} className="text-xs text-muted-foreground">
                   <span className="font-medium">{key}:</span>{" "}
                   {String(value ?? "").substring(0, 40)}
                   {String(value ?? "").length > 40 ? "..." : ""}

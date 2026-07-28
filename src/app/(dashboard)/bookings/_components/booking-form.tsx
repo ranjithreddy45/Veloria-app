@@ -447,7 +447,7 @@ export function BookingForm({
                     </SelectContent>
                   </Select>
                   {selectedVenue && (
-                    <p className="text-xs text-zinc-500 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       Capacity: {selectedVenue.capacity} guests | Price per slot:{" "}
                       {new Intl.NumberFormat("en-IN", {
                         style: "currency",
@@ -520,7 +520,7 @@ export function BookingForm({
                             "flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors",
                             field.value === key
                               ? "border-indigo-300 bg-indigo-50"
-                              : "hover:border-zinc-300"
+                              : "hover:border-border"
                           )}
                         >
                           <RadioGroupItem value={key} id={`slot-${key}`} />
@@ -543,17 +543,17 @@ export function BookingForm({
             {(availability.loading || availability.checked) && (
               <div className="sm:col-span-2">
                 {availability.loading ? (
-                  <div className="flex items-center gap-2 text-sm text-zinc-500">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Loader2Icon className="size-4 animate-spin" />
                     Checking availability...
                   </div>
                 ) : availability.available ? (
-                  <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                  <div className="flex items-center gap-2 text-sm text-success bg-success/10 border border-success/20 rounded-lg px-3 py-2">
                     <CheckCircle2Icon className="size-4" />
                     Slot is available
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">
                     <XCircleIcon className="size-4" />
                     {availability.reason || "Slot unavailable"}
                   </div>
@@ -636,7 +636,7 @@ export function BookingForm({
                                     <p className="text-sm font-medium truncate">
                                       {contact.firstName} {contact.lastName}
                                     </p>
-                                    <p className="text-xs text-zinc-500 truncate">
+                                    <p className="text-xs text-muted-foreground truncate">
                                       {[contact.email, contact.phone, contact.company]
                                         .filter(Boolean)
                                         .join(" | ")}
@@ -681,7 +681,7 @@ export function BookingForm({
                       <FormLabel>{f.label}</FormLabel>
                       <FormControl>
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
                             ₹
                           </span>
                           <Input
@@ -700,7 +700,7 @@ export function BookingForm({
                         </div>
                       </FormControl>
                       {"hint" in f && f.hint ? (
-                        <p className="text-xs text-zinc-500">{f.hint}</p>
+                        <p className="text-xs text-muted-foreground">{f.hint}</p>
                       ) : null}
                       <FormMessage />
                     </FormItem>
@@ -726,8 +726,8 @@ export function BookingForm({
                   maximumFractionDigits: 0,
                 }).format(n);
               return (
-                <div className="flex items-center justify-between rounded-lg border border-dashed border-zinc-300 bg-zinc-50 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900/40">
-                  <span className="text-zinc-600 dark:text-zinc-400">
+                <div className="flex items-center justify-between rounded-lg border border-dashed border-border bg-muted px-3 py-2 text-sm">
+                  <span className="text-muted-foreground">
                     Components total
                     {guests > 0 && plates > 0 ? ` (incl. ${guests} plates)` : ""}: {fmt(components)}
                   </span>
@@ -751,7 +751,7 @@ export function BookingForm({
                   <FormLabel>Total Amount (INR) *</FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
                         ₹
                       </span>
                       <Input
@@ -768,7 +768,7 @@ export function BookingForm({
                     </div>
                   </FormControl>
                   {field.value > 0 && (
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-xs text-muted-foreground">
                       {new Intl.NumberFormat("en-IN", {
                         style: "currency",
                         currency: "INR",

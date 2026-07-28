@@ -111,9 +111,9 @@ export function BookingReadinessCard({
           {rows.map((row) => (
             <li key={row.label} className="flex items-start gap-2.5">
               {row.ok ? (
-                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-green-600" />
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" />
               ) : (
-                <AlertCircle className="mt-0.5 size-4 shrink-0 text-amber-500" />
+                <AlertCircle className="mt-0.5 size-4 shrink-0 text-warning" />
               )}
               <div className="min-w-0">
                 <p className="text-sm font-medium leading-tight">{row.label}</p>

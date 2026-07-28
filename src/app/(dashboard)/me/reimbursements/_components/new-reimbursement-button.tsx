@@ -149,7 +149,7 @@ export function NewReimbursementButton({ categories }: { categories: readonly st
                 onUploaded={(dataUrl, file) => { setBillUrl(dataUrl); setBillName(file.name); }}
               />
               {billName && (
-                <span className="flex min-w-0 items-center gap-1 text-[12px] text-emerald-600 dark:text-emerald-400">
+                <span className="flex min-w-0 items-center gap-1 text-[12px] text-success">
                   <Check className="size-3.5 shrink-0" />
                   <span className="truncate">{billName}</span>
                 </span>
@@ -173,7 +173,7 @@ export function NewReimbursementButton({ categories }: { categories: readonly st
           </div>
         </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={pending}>Cancel</Button>

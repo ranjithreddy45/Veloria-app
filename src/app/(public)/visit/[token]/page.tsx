@@ -100,9 +100,9 @@ export default async function VisitManagePage({
       </header>
 
       {v.status === "CONFIRMED" && (
-        <div className="flex flex-col items-center gap-2 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.07] p-7 text-center">
-          <CheckCircle2 className="size-7 text-emerald-600 dark:text-emerald-400" />
-          <p className="text-sm font-medium text-emerald-800 dark:text-emerald-300">
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-success/25 bg-success/[0.07] p-7 text-center">
+          <CheckCircle2 className="size-7 text-success" />
+          <p className="text-sm font-medium text-success">
             {copy.line}
           </p>
         </div>

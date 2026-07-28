@@ -89,20 +89,20 @@ export function ReminderSchedule({ bookingId }: ReminderScheduleProps) {
   if (overall.total === 0) return null;
 
   return (
-    <Card className="border-zinc-200/80 shadow-sm">
+    <Card className="border-border shadow-sm">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+          <CardTitle className="text-base font-semibold text-foreground">
             Reminder Campaign
           </CardTitle>
-          <div className="flex items-center gap-2 text-xs text-zinc-500">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <span>{overall.sent} sent</span>
             <span>·</span>
             <span>{overall.pending} pending</span>
             {overall.failed > 0 && (
               <>
                 <span>·</span>
-                <span className="text-red-500">{overall.failed} failed</span>
+                <span className="text-destructive">{overall.failed} failed</span>
               </>
             )}
           </div>
@@ -141,21 +141,21 @@ export function ReminderSchedule({ bookingId }: ReminderScheduleProps) {
 
                 {/* Connector line */}
                 {idx < stages.length - 1 && (
-                  <div className="absolute ml-4 mt-10 h-3 w-px bg-zinc-200 dark:bg-zinc-700" />
+                  <div className="absolute ml-4 mt-10 h-3 w-px bg-border" />
                 )}
 
                 {/* Info */}
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <span className="text-sm font-medium text-foreground">
                       {label}
                     </span>
                     {STATUS_ICONS[statusLabel]}
                   </div>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-muted-foreground">
                     {stage.sent}/{stage.total} sent
                     {stage.failed > 0 && (
-                      <span className="text-red-500"> · {stage.failed} failed</span>
+                      <span className="text-destructive"> · {stage.failed} failed</span>
                     )}
                   </p>
                 </div>

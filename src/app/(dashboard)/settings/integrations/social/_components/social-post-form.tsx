@@ -108,9 +108,9 @@ export function SocialPostForm() {
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Error Message */}
           {error && (
-            <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-950">
-              <AlertCircle className="mt-0.5 size-4 shrink-0 text-red-600 dark:text-red-400" />
-              <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+            <div className="flex items-start gap-3 rounded-lg border border-destructive/20 bg-destructive/10 p-3">
+              <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
+              <p className="text-sm text-destructive">{error}</p>
             </div>
           )}
 
@@ -138,7 +138,7 @@ export function SocialPostForm() {
               <span
                 className={`text-xs ${
                   isOverLimit
-                    ? "font-medium text-red-600 dark:text-red-400"
+                    ? "font-medium text-destructive"
                     : "text-muted-foreground"
                 }`}
               >

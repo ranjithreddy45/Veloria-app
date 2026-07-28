@@ -278,7 +278,7 @@ function DraftActions({ bill }: { bill: BillRow }) {
       <Button
         size="sm"
         variant="outline"
-        className="h-8 gap-1.5 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 dark:border-emerald-900 dark:text-emerald-300"
+        className="h-8 gap-1.5 border-success/25 text-success hover:bg-success/10 hover:text-success"
         disabled={pending}
         onClick={onApprove}
       >
@@ -292,7 +292,7 @@ function DraftActions({ bill }: { bill: BillRow }) {
       <Button
         size="sm"
         variant="ghost"
-        className="h-8 gap-1.5 text-muted-foreground hover:text-rose-600"
+        className="h-8 gap-1.5 text-muted-foreground hover:text-destructive"
         disabled={pending}
         onClick={onCancel}
       >

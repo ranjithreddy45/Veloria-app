@@ -178,7 +178,7 @@ function NewSettlementDialog({ employees, initialEmployeeId }: { employees: EmpL
         </div>
 
         {preview && <PreviewCard b={preview} />}
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={runPreview} disabled={busy} className="gap-1.5">

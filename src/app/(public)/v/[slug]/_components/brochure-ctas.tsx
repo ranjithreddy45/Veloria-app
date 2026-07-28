@@ -76,7 +76,7 @@ export function BrochureCtas({
 
   return (
     <div
-      className="sticky bottom-0 z-20 -mx-4 border-t border-zinc-200/70 bg-white/90 px-4 py-3 backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/90"
+      className="sticky bottom-0 z-20 -mx-4 border-t border-border/70 bg-card/90 px-4 py-3 backdrop-blur"
       style={{ ["--brand" as string]: accent } as React.CSSProperties}
     >
       <div className="mx-auto flex max-w-2xl flex-wrap gap-2">
@@ -98,7 +98,7 @@ export function BrochureCtas({
               <button
                 key={cta}
                 onClick={handleBookVisit}
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border-2 px-4 py-3 text-sm font-semibold transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border-2 px-4 py-3 text-sm font-semibold transition-colors hover:bg-muted"
                 style={{ borderColor: "var(--brand)", color: "var(--brand)" }}
               >
                 <MapPin className="size-4" /> Book a visit
@@ -112,7 +112,7 @@ export function BrochureCtas({
                 onClick={() =>
                   navigate(`/configure?venueId=${encodeURIComponent(venueId as string)}`)
                 }
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border-2 px-4 py-3 text-sm font-semibold transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border-2 px-4 py-3 text-sm font-semibold transition-colors hover:bg-muted"
                 style={{ borderColor: "var(--brand)", color: "var(--brand)" }}
               >
                 <FileText className="size-4" /> Get a quote
@@ -126,7 +126,7 @@ export function BrochureCtas({
               href={whatsappHref(whatsappNumber as string, title)}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-success px-4 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
             >
               <MessageCircle className="size-4" /> WhatsApp us
             </a>
@@ -194,11 +194,11 @@ function VisitEnquiryFallback({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
-      <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl dark:bg-zinc-900">
+      <div className="w-full max-w-md rounded-2xl bg-card p-5 shadow-xl">
         {done ? (
           <div className="py-6 text-center">
-            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Thank you!</h3>
-            <p className="mt-1 text-sm text-zinc-500">We&apos;ll be in touch to schedule your visit.</p>
+            <h3 className="text-lg font-semibold text-foreground">Thank you!</h3>
+            <p className="mt-1 text-sm text-muted-foreground">We&apos;ll be in touch to schedule your visit.</p>
             <button
               onClick={onClose}
               className="mt-4 rounded-lg px-4 py-2 text-sm font-semibold text-white"
@@ -209,34 +209,34 @@ function VisitEnquiryFallback({
           </div>
         ) : (
           <form onSubmit={submit} className="space-y-3">
-            <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+            <h3 className="text-base font-semibold text-foreground">
               Book a visit
             </h3>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Your name"
-              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none dark:border-zinc-700 dark:bg-zinc-900"
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none"
             />
             <input
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="Phone number"
               type="tel"
-              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none dark:border-zinc-700 dark:bg-zinc-900"
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none"
             />
             <input
               value={date}
               onChange={(e) => setDate(e.target.value)}
               type="date"
-              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none dark:border-zinc-700 dark:bg-zinc-900"
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none"
             />
-            {error && <p className="text-sm text-rose-600">{error}</p>}
+            {error && <p className="text-sm text-destructive">{error}</p>}
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium dark:border-zinc-700"
+                className="flex-1 rounded-lg border border-border px-4 py-2 text-sm font-medium"
               >
                 Cancel
               </button>

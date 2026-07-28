@@ -36,14 +36,14 @@ export function SignOffPanel({ bookingId, initial, canManage }: { bookingId: str
   }
 
   return (
-    <Card className={s.signedOff ? "border-emerald-200/70 dark:border-emerald-900/50" : "border-amber-200/70 dark:border-amber-900/50"}>
+    <Card className={s.signedOff ? "border-success/20" : "border-warning/20"}>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
-          {s.signedOff ? <ShieldCheck className="size-4 text-emerald-600" /> : <ShieldAlert className="size-4 text-amber-600" />}
+          {s.signedOff ? <ShieldCheck className="size-4 text-success" /> : <ShieldAlert className="size-4 text-warning" />}
           Event sign-off
           {s.signedOff
-            ? <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">Cleared to go live</Badge>
-            : <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">Awaiting sign-off</Badge>}
+            ? <Badge variant="outline" className="border-success/20 bg-success/10 text-success">Cleared to go live</Badge>
+            : <Badge variant="outline" className="border-warning/20 bg-warning/10 text-warning">Awaiting sign-off</Badge>}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -69,7 +69,7 @@ export function SignOffPanel({ bookingId, initial, canManage }: { bookingId: str
             {!s.canSignOff && s.blockingGates.length > 0 && (
               <ul className="space-y-1 text-sm">
                 {s.blockingGates.map((g) => (
-                  <li key={g} className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400">
+                  <li key={g} className="flex items-center gap-1.5 text-warning">
                     <ShieldAlert className="size-3.5" /> {g}
                   </li>
                 ))}

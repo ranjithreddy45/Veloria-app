@@ -62,7 +62,7 @@ export default async function VendorPerformancePage() {
       </PageHeader>
 
       {uniqueVendors.length === 0 ? (
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <BuildingIcon className="mb-4 size-12 text-muted-foreground/40" />
             <p className="text-lg font-medium text-muted-foreground">
@@ -88,7 +88,7 @@ export default async function VendorPerformancePage() {
                 href={`/performance/vendors/${score.vendorId}`}
                 className="block"
               >
-                <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm transition-colors hover:bg-muted/50">
+                <Card className="border-border shadow-sm transition-colors hover:bg-muted/50">
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-2">

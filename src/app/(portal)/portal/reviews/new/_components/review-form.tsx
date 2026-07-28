@@ -109,23 +109,23 @@ export function ReviewForm({ bookings }: ReviewFormProps) {
           </SelectContent>
         </Select>
         {errors.bookingId && (
-          <p className="text-sm text-red-500">{errors.bookingId[0]}</p>
+          <p className="text-sm text-destructive">{errors.bookingId[0]}</p>
         )}
       </div>
 
       {/* Selected Booking Details */}
       {selectedBooking && (
-        <Card className="border-indigo-100 bg-indigo-50/30">
-          <CardContent className="flex flex-wrap items-center gap-4 p-4 text-sm text-zinc-600">
+        <Card className="border-primary/20 bg-primary/10">
+          <CardContent className="flex flex-wrap items-center gap-4 p-4 text-sm text-muted-foreground">
             <span className="flex items-center gap-1.5">
-              <CalendarCheck className="size-4 text-indigo-500" />
+              <CalendarCheck className="size-4 text-primary" />
               {formatDate(selectedBooking.date)}
             </span>
             <span className="flex items-center gap-1.5">
-              <MapPin className="size-4 text-indigo-500" />
+              <MapPin className="size-4 text-primary" />
               {selectedBooking.venueName}
             </span>
-            <span className="text-zinc-400">{selectedBooking.eventType}</span>
+            <span className="text-muted-foreground">{selectedBooking.eventType}</span>
           </CardContent>
         </Card>
       )}
@@ -140,7 +140,7 @@ export function ReviewForm({ bookings }: ReviewFormProps) {
           onRatingChange={setRating}
         />
         {rating > 0 && (
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-muted-foreground">
             {rating === 1 && "Poor"}
             {rating === 2 && "Fair"}
             {rating === 3 && "Good"}
@@ -149,7 +149,7 @@ export function ReviewForm({ bookings }: ReviewFormProps) {
           </p>
         )}
         {errors.rating && (
-          <p className="text-sm text-red-500">{errors.rating[0]}</p>
+          <p className="text-sm text-destructive">{errors.rating[0]}</p>
         )}
       </div>
 
@@ -157,7 +157,7 @@ export function ReviewForm({ bookings }: ReviewFormProps) {
       <div className="space-y-2">
         <Label htmlFor="title">
           Review Title{" "}
-          <span className="font-normal text-zinc-400">(optional)</span>
+          <span className="font-normal text-muted-foreground">(optional)</span>
         </Label>
         <Input
           id="title"
@@ -167,7 +167,7 @@ export function ReviewForm({ bookings }: ReviewFormProps) {
           maxLength={200}
         />
         {errors.title && (
-          <p className="text-sm text-red-500">{errors.title[0]}</p>
+          <p className="text-sm text-destructive">{errors.title[0]}</p>
         )}
       </div>
 
@@ -182,9 +182,9 @@ export function ReviewForm({ bookings }: ReviewFormProps) {
           rows={5}
           maxLength={5000}
         />
-        <p className="text-xs text-zinc-400">{content.length}/5000 characters</p>
+        <p className="text-xs text-muted-foreground">{content.length}/5000 characters</p>
         {errors.content && (
-          <p className="text-sm text-red-500">{errors.content[0]}</p>
+          <p className="text-sm text-destructive">{errors.content[0]}</p>
         )}
       </div>
 

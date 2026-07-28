@@ -196,7 +196,7 @@ export function QuoteRadarPanel({ quotationId, initial, canShare }: Props) {
           <Radar className="size-4 text-violet-600" />
           Quote radar
           {link?.openedButSilent && (
-            <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+            <Badge variant="outline" className="border-warning/30 bg-warning/10 text-warning">
               <Flame className="mr-1 size-3" /> Opened, gone quiet
             </Badge>
           )}
@@ -228,7 +228,7 @@ export function QuoteRadarPanel({ quotationId, initial, canShare }: Props) {
                 <Link2 className="size-4 shrink-0 text-violet-600" />
                 <span className="flex-1 truncate font-mono text-xs text-muted-foreground">{link.url}</span>
                 <Button size="sm" variant="ghost" className="h-7 gap-1.5 px-2" onClick={copyLink}>
-                  {copied ? <Check className="size-3.5 text-emerald-600" /> : <Copy className="size-3.5" />}
+                  {copied ? <Check className="text-success size-3.5" /> : <Copy className="size-3.5" />}
                   {copied ? "Copied" : "Copy"}
                 </Button>
               </div>
@@ -287,7 +287,7 @@ export function QuoteRadarPanel({ quotationId, initial, canShare }: Props) {
             {/* Radar stats */}
             <div className="grid grid-cols-3 gap-2">
               <Stat
-                icon={link.opened ? <Eye className="size-4 text-emerald-600" /> : <EyeOff className="size-4 text-muted-foreground" />}
+                icon={link.opened ? <Eye className="text-success size-4" /> : <EyeOff className="size-4 text-muted-foreground" />}
                 label={link.opened ? "Opened" : "Not opened yet"}
                 value={link.opened ? timeAgo(link.firstViewedAt) : "—"}
               />

@@ -168,11 +168,11 @@ export function VelosSurface({
                     <Avatar size="sm"><AvatarImage src={r.image || undefined} /><AvatarFallback className="bg-primary/10 text-[10px] text-primary">{r.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}</AvatarFallback></Avatar>
                     <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium">{r.name}{isMe && <span className="ml-1.5 text-[11px] text-muted-foreground">(you)</span>}</span>
                     {mostImproved && <StatusPill label="Most improved" hue="emerald" size="xs" />}
-                    {r.delta !== 0 && <span className={cn("inline-flex items-center gap-0.5 text-[11.5px]", r.delta > 0 ? "text-emerald-600" : "text-muted-foreground")}>{r.delta > 0 && <ArrowUp className="size-3" />}{r.delta > 0 ? `+${r.delta}` : r.delta}</span>}
+                    {r.delta !== 0 && <span className={cn("inline-flex items-center gap-0.5 text-[11.5px]", r.delta > 0 ? "text-success" : "text-muted-foreground")}>{r.delta > 0 && <ArrowUp className="size-3" />}{r.delta > 0 ? `+${r.delta}` : r.delta}</span>}
                     <span className="w-12 text-right text-[14px] font-semibold tabular-nums">{r.points}</span>
                   </div>
                   {chase && (
-                    <div className={cn("mt-0.5 pl-8 text-[11px] font-medium tabular-nums", chase.leading ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400")}>
+                    <div className={cn("mt-0.5 pl-8 text-[11px] font-medium tabular-nums", chase.leading ? "text-success" : "text-warning")}>
                       {chase.leading ? chase.text : <>▲ {chase.text}</>}
                     </div>
                   )}
@@ -213,7 +213,7 @@ function QuestsBoard({ quests, canManage, silverPlus, configMetrics }: { quests:
           {quests.map((q) => (
             <div key={q.id} className="px-4 py-3">
               <div className="flex items-center gap-2">
-                {q.isRecovery ? <LifeBuoy className="size-3.5 text-emerald-600" /> : q.scope === "TEAM" ? <UsersIcon className="size-3.5 text-muted-foreground" /> : <TargetIcon className="size-3.5 text-muted-foreground" />}
+                {q.isRecovery ? <LifeBuoy className="size-3.5 text-success" /> : q.scope === "TEAM" ? <UsersIcon className="size-3.5 text-muted-foreground" /> : <TargetIcon className="size-3.5 text-muted-foreground" />}
                 <span className="font-medium">{q.title}</span>
                 {q.scope === "TEAM" && <StatusPill label="Team" hue="violet" size="xs" />}
                 {q.isRecovery && <StatusPill label="Recovery" hue="emerald" size="xs" />}
@@ -232,7 +232,7 @@ function QuestsBoard({ quests, canManage, silverPlus, configMetrics }: { quests:
                     {busy === q.id ? <Loader2 className="size-3.5 animate-spin" /> : "Join"}
                   </Button>
                 )}
-                {q.joined && q.scope === "INDIVIDUAL" && <span className="text-[11.5px] text-emerald-600">Joined</span>}
+                {q.joined && q.scope === "INDIVIDUAL" && <span className="text-[11.5px] text-success">Joined</span>}
               </div>
             </div>
           ))}
@@ -297,7 +297,7 @@ function CreateQuestControls({ configMetrics, hasQuests }: { configMetrics: { ev
               <label className="flex items-center gap-2 text-[13px]"><input type="checkbox" checked={selfSel} onChange={(e) => setSelfSel(e.target.checked)} className="size-4" /> Self-selectable (Silver+ can opt in)</label>
             )}
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>Cancel</Button>
             <Button onClick={save} disabled={busy} className="gap-1.5">{busy && <Loader2 className="size-4 animate-spin" />} Create</Button>
@@ -370,7 +370,7 @@ function GiveKudosDialog({ remaining, teammates }: { remaining: number; teammate
           </Select>
           <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Saved the Sharma wedding setup…" />
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>Cancel</Button>
           <Button onClick={submit} disabled={busy} className="gap-1.5">{busy && <Loader2 className="size-4 animate-spin" />} Send</Button>

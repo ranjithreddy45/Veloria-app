@@ -387,7 +387,7 @@ export function ChainBuilder({
               </Button>
             </>
           ) : (
-            <p className="text-[12.5px] text-amber-600 dark:text-amber-400">
+            <p className="text-[12.5px] text-warning">
               Save the rule first, then this chain can be stored against it.
             </p>
           )}

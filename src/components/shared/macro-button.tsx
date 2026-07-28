@@ -89,7 +89,7 @@ export function MacroButton({ entityType, entityId }: MacroButtonProps) {
             <div className="min-w-0 flex-1">
               <span className="text-sm">{macro.name}</span>
               {macro.description && (
-                <p className="text-xs text-zinc-400 truncate">
+                <p className="text-xs text-muted-foreground truncate">
                   {macro.description}
                 </p>
               )}

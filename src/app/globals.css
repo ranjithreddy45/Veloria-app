@@ -32,10 +32,13 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -101,12 +104,21 @@
   --accent-foreground: oklch(0.235 0.005 286);
 
   --destructive: oklch(0.585 0.21 27);     /* Apple red #ff3b30 ballpark */
+  /* Was MISSING while 7 call sites (incl. the shared Badge primitive) already used
+   * `text-destructive-foreground` — the class resolved to nothing, so text on a red
+   * destructive surface inherited its colour and could fall to near-black on red.
+   * Red stays saturated in both themes, so white reads correctly in each. */
+  --destructive-foreground: oklch(0.99 0 0);
 
-  /* Semantic status — Apple green + orange */
+  /* Semantic status — Apple green + orange + blue */
   --success: oklch(0.66 0.16 150);         /* #34c759 */
   --success-foreground: oklch(0.99 0 0);
   --warning: oklch(0.78 0.16 70);          /* #ff9f0a */
   --warning-foreground: oklch(0.28 0.05 70);
+  /* Informational (neutral notices: "Sent via …", tips). Completes the status set —
+   * without it, info banners had no token and stayed hard-coded blue. */
+  --info: oklch(0.6 0.16 250);             /* #0a84ff — Apple blue */
+  --info-foreground: oklch(0.99 0 0);
 
   /* Hairline separators — cool, faint */
   --border: oklch(0.9 0.002 286);
@@ -151,11 +163,14 @@
   --accent-foreground: oklch(0.965 0.002 286);
 
   --destructive: oklch(0.66 0.2 27);       /* #ff453a */
+  --destructive-foreground: oklch(0.99 0 0);
 
   --success: oklch(0.72 0.16 150);         /* #30d158 */
   --success-foreground: oklch(0.16 0.003 286);
   --warning: oklch(0.81 0.15 70);          /* #ff9f0a */
   --warning-foreground: oklch(0.2 0.03 70);
+  --info: oklch(0.7 0.15 250);             /* #64d2ff-ish — brighter blue on dark */
+  --info-foreground: oklch(0.16 0.003 286);
 
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 14%);

@@ -148,7 +148,7 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, isSu
       <div className="space-y-6">
         <Header quote={quote} />
         {quote.rejectedReason && (
-          <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-[13px] text-rose-700">
+          <div className="border-destructive/20 bg-destructive/10 text-destructive rounded-xl border p-4 text-[13px]">
             <strong>Returned for changes:</strong> {quote.rejectedReason}
           </div>
         )}
@@ -459,7 +459,7 @@ function Detail({ label, value, numeric }: { label: string; value: string; numer
 
 function Row({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
   return (
-    <div className={`flex items-baseline justify-between gap-4 ${muted ? "text-emerald-600" : ""}`}>
+    <div className={`flex items-baseline justify-between gap-4 ${muted ? "text-success" : ""}`}>
       <span className={muted ? "" : "text-muted-foreground"}>{label}</span>
       <span className="numeric">{value}</span>
     </div>

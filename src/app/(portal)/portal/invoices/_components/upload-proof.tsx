@@ -113,7 +113,7 @@ export function UploadProof({
         <Label className="text-xs">Screenshot / receipt</Label>
         <Input type="file" accept="image/*,application/pdf" onChange={onFile} />
         {fileName && (
-          <p className="flex items-center gap-1 text-xs text-emerald-600">
+          <p className="flex items-center gap-1 text-xs text-success">
             <CheckCircle2 className="h-3.5 w-3.5" /> {fileName} attached
           </p>
         )}

@@ -319,7 +319,7 @@ export function ProtocolFormDialog({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="text-red-500 hover:text-red-600"
+                  className="text-destructive hover:text-destructive"
                   onClick={() => removeContactRow(index)}
                 >
                   <XIcon className="size-4" />

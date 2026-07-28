@@ -57,7 +57,7 @@ export function TaskDeleteButton({ taskId, taskTitle }: TaskDeleteButtonProps) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant="outline" className="text-red-600 hover:text-red-700">
+        <Button variant="outline" className="text-destructive hover:text-destructive">
           <TrashIcon className="mr-2 size-4" />
           Delete
         </Button>
@@ -75,7 +75,7 @@ export function TaskDeleteButton({ taskId, taskTitle }: TaskDeleteButtonProps) {
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction
             onClick={handleDelete}
-            className="bg-red-600 hover:bg-red-700"
+            className="bg-destructive hover:bg-destructive"
             disabled={isPending}
           >
             {isPending && <Loader2Icon className="mr-2 size-4 animate-spin" />}

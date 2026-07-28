@@ -78,14 +78,14 @@ export function ReviewCard({
               {review.isApproved ? (
                 <Badge
                   variant="outline"
-                  className="border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950/50 dark:text-green-400 text-xs"
+                  className="border-success/20 bg-success/10 text-success text-xs"
                 >
                   Approved
                 </Badge>
               ) : (
                 <Badge
                   variant="outline"
-                  className="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-400 text-xs"
+                  className="border-warning/20 bg-warning/10 text-warning text-xs"
                 >
                   Pending
                 </Badge>

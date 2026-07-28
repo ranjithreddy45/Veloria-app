@@ -187,7 +187,7 @@ export function Contact360Timeline({ contactId }: Contact360TimelineProps) {
                   "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-all",
                   isActive
                     ? config.color
-                    : "border-zinc-200 bg-zinc-50 text-zinc-400"
+                    : "border-border bg-muted text-muted-foreground"
                 )}
               >
                 <config.icon className="size-3" />
@@ -198,7 +198,7 @@ export function Contact360Timeline({ contactId }: Contact360TimelineProps) {
           {activeFilters.length > 0 && (
             <button
               onClick={clearFilters}
-              className="inline-flex items-center rounded-full border border-zinc-200 px-2.5 py-1 text-xs font-medium text-zinc-500 hover:bg-zinc-100 transition-colors"
+              className="border-border text-muted-foreground hover:bg-accent inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium transition-colors"
             >
               Clear all
             </button>

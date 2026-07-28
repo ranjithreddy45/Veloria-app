@@ -103,7 +103,7 @@ export function CreatePlanDialog({
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
-      <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <PlusCircleIcon className="size-5 text-blue-600" />
@@ -128,7 +128,7 @@ export function CreatePlanDialog({
               <div className="space-y-4 py-2">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">
-                    Event Date <span className="text-red-500">*</span>
+                    Event Date <span className="text-destructive">*</span>
                   </label>
                   <Input
                     type="date"
@@ -184,7 +184,7 @@ export function CreatePlanDialog({
         </CardContent>
       </Card>
 
-      <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileTextIcon className="size-5 text-violet-600" />
@@ -217,7 +217,7 @@ export function CreatePlanDialog({
                 <div className="space-y-4 py-2">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">
-                      Select Template <span className="text-red-500">*</span>
+                      Select Template <span className="text-destructive">*</span>
                     </label>
                     <Select
                       value={selectedTemplateId}
@@ -240,7 +240,7 @@ export function CreatePlanDialog({
                     </Select>
                   </div>
                   {selectedTemplateId && (
-                    <div className="rounded-md border border-zinc-200/80 dark:border-zinc-700/80 p-3 text-sm">
+                    <div className="rounded-md border border-border p-3 text-sm">
                       {(() => {
                         const selected = templates.find(
                           (t) => t.id === selectedTemplateId

@@ -252,7 +252,7 @@ export function FieldBuilder({ fields, onChange }: FieldBuilderProps) {
                         }
                         placeholder={`Option 1\nOption 2\nOption 3`}
                         rows={3}
-                        className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 dark:border-zinc-700 dark:bg-zinc-800"
+                        className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 dark:bg-zinc-800"
                       />
                     </div>
                   )}

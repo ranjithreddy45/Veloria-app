@@ -103,14 +103,14 @@ export function TaskTimer({
 
       {/* Progress Bar */}
       {isRunning && estimatedSeconds > 0 && (
-        <div className="h-1 w-full rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
+        <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
           <div
             className={cn(
               "h-full rounded-full transition-all duration-1000",
               progress >= 100
-                ? "bg-red-500"
+                ? "bg-destructive"
                 : progress >= 75
-                  ? "bg-amber-500"
+                  ? "bg-warning"
                   : "bg-blue-500"
             )}
             style={{ width: `${Math.min(100, progress)}%` }}
@@ -124,12 +124,12 @@ export function TaskTimer({
           className={cn(
             "flex items-center gap-1.5",
             sla.isOverdue
-              ? "text-red-600 dark:text-red-400 font-medium"
+              ? "text-destructive font-medium"
               : "text-muted-foreground"
           )}
         >
           {sla.isOverdue ? (
-            <AlertTriangleIcon className="size-3.5 text-red-500" />
+            <AlertTriangleIcon className="size-3.5 text-destructive" />
           ) : (
             <ClockIcon className="size-3.5" />
           )}

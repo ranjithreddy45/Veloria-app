@@ -201,7 +201,7 @@ export function WarRoomBoard({ rows, warnMinutes, generatedAt }: WarRoomBoardPro
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-sm">
-          <Siren className="size-4 text-rose-600" />
+          <Siren className="text-destructive size-4" />
           Live SLA board
           <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs numeric text-muted-foreground">
             {visible.length}

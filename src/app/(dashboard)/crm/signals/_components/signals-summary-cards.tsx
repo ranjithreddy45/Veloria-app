@@ -28,7 +28,7 @@ export function SignalsSummaryCards() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8 text-zinc-500">
+      <div className="text-muted-foreground flex items-center justify-center py-8">
         <Loader2Icon className="mr-2 size-5 animate-spin" /> Loading summary...
       </div>
     );
@@ -74,7 +74,7 @@ export function SignalsSummaryCards() {
   return (
     <div className="grid gap-4 md:grid-cols-4">
       {cards.map((c) => (
-        <Card key={c.label} className="border-zinc-200/80 shadow-sm">
+        <Card key={c.label} className="border-border shadow-sm">
           <CardContent className="p-5">
             <div className="flex items-center gap-3">
               <div
@@ -83,7 +83,7 @@ export function SignalsSummaryCards() {
                 <c.icon className={`size-5 ${c.iconColor}`} />
               </div>
               <div>
-                <p className="text-xs font-medium text-zinc-500">{c.label}</p>
+                <p className="text-muted-foreground text-xs font-medium">{c.label}</p>
                 <p className={`text-2xl font-bold ${c.valueColor}`}>
                   {c.value}
                 </p>

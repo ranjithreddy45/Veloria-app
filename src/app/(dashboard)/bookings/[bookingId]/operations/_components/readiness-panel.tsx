@@ -36,19 +36,19 @@ export function ReadinessPanel({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
             {canGoLive ? (
-              <RocketIcon className="size-5 text-emerald-600" />
+              <RocketIcon className="size-5 text-success" />
             ) : (
-              <ShieldAlertIcon className="size-5 text-amber-600" />
+              <ShieldAlertIcon className="size-5 text-warning" />
             )}
             Operations Readiness
           </CardTitle>
 
           {canGoLive ? (
-            <Badge className="w-fit border-emerald-200 bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
+            <Badge className="w-fit border-success/20 bg-success/10 text-success hover:bg-success/10">
               Ready to go live
             </Badge>
           ) : (
-            <Badge className="w-fit border-amber-200 bg-amber-100 text-amber-700 hover:bg-amber-100">
+            <Badge className="w-fit border-warning/20 bg-warning/10 text-warning hover:bg-warning/10">
               {blocking} {blocking === 1 ? "gate" : "gates"} blocking
             </Badge>
           )}
@@ -65,7 +65,7 @@ export function ReadinessPanel({
             <span
               className={cn(
                 "text-lg font-semibold tabular-nums",
-                canGoLive ? "text-emerald-600" : "text-amber-600"
+                canGoLive ? "text-success" : "text-warning"
               )}
             >
               {readyPct}%
@@ -75,7 +75,7 @@ export function ReadinessPanel({
             value={readyPct}
             className={cn(
               "h-2.5",
-              canGoLive ? "[&>*]:bg-emerald-500" : "[&>*]:bg-amber-500"
+              canGoLive ? "[&>*]:bg-success" : "[&>*]:bg-warning"
             )}
           />
         </div>
@@ -89,12 +89,12 @@ export function ReadinessPanel({
             >
               <div className="flex items-center gap-2.5">
                 {gate.ready ? (
-                  <CheckCircle2Icon className="size-4 shrink-0 text-emerald-600" />
+                  <CheckCircle2Icon className="size-4 shrink-0 text-success" />
                 ) : (
                   <AlertCircleIcon
                     className={cn(
                       "size-4 shrink-0",
-                      gate.required ? "text-amber-600" : "text-muted-foreground"
+                      gate.required ? "text-warning" : "text-muted-foreground"
                     )}
                   />
                 )}
@@ -120,9 +120,9 @@ export function ReadinessPanel({
                 className={cn(
                   "shrink-0 text-xs",
                   gate.ready
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    ? "border-success/20 bg-success/10 text-success"
                     : gate.required
-                      ? "border-amber-200 bg-amber-50 text-amber-700"
+                      ? "border-warning/20 bg-warning/10 text-warning"
                       : "text-muted-foreground"
                 )}
               >

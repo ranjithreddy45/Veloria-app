@@ -34,7 +34,7 @@ export function EventPipelineTracker({ stages }: { stages: PipelineStage[] }) {
   const completed = stages.filter((s) => s.status === "COMPLETED").length;
   const health = Math.round((completed / stages.length) * 100);
   const healthColor =
-    health >= 80 ? "text-emerald-600" : health >= 40 ? "text-amber-600" : "text-zinc-500";
+    health >= 80 ? "text-success" : health >= 40 ? "text-warning" : "text-muted-foreground";
 
   return (
     <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-premium">

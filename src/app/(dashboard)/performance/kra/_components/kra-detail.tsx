@@ -332,8 +332,8 @@ function GateBanner({
       className={cn(
         "rounded-xl border p-4",
         passed
-          ? "border-emerald-200 bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/30"
-          : "border-rose-200 bg-rose-50 dark:border-rose-900/50 dark:bg-rose-950/30",
+          ? "border-success/20 bg-success/10"
+          : "border-destructive/20 bg-destructive/10",
       )}
     >
       <div className="flex items-center gap-3">
@@ -341,8 +341,8 @@ function GateBanner({
           className={cn(
             "flex size-10 shrink-0 items-center justify-center rounded-lg",
             passed
-              ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-300"
-              : "bg-rose-100 text-rose-600 dark:bg-rose-900/50 dark:text-rose-300",
+              ? "bg-success/15 text-success"
+              : "bg-destructive/15 text-destructive",
           )}
         >
           {passed ? <ShieldCheck className="size-5" /> : <ShieldAlert className="size-5" />}
@@ -351,7 +351,7 @@ function GateBanner({
           <p
             className={cn(
               "text-lg font-bold leading-none",
-              passed ? "text-emerald-700 dark:text-emerald-300" : "text-rose-700 dark:text-rose-300",
+              passed ? "text-success" : "text-destructive",
             )}
           >
             Incentive gate {passed ? "PASSED" : "NOT MET"}
@@ -371,9 +371,9 @@ function GateBanner({
                 <span className="font-medium">{fmtUnit(req.value, req.unit)}</span>
                 <span className="text-muted-foreground">/ {fmtUnit(req.threshold, req.unit)}</span>
                 {req.met ? (
-                  <Check className="size-4 text-emerald-600" />
+                  <Check className="size-4 text-success" />
                 ) : (
-                  <X className="size-4 text-rose-600" />
+                  <X className="size-4 text-destructive" />
                 )}
               </span>
             </li>
@@ -438,11 +438,11 @@ function ScoreSummary({
             <Zap className="size-3.5" /> Final payout (of pool)
           </p>
           {gatePassed ? (
-            <p className="text-2xl font-semibold tabular-nums leading-none text-emerald-600">
+            <p className="text-2xl font-semibold tabular-nums leading-none text-success">
               {finalPayoutPctDisplay}%
             </p>
           ) : (
-            <p className="text-sm font-medium text-rose-600">0% — gate not met</p>
+            <p className="text-sm font-medium text-destructive">0% — gate not met</p>
           )}
         </div>
       </CardContent>
@@ -523,7 +523,7 @@ function AutoValue({
     return <span className="text-xs text-muted-foreground">—</span>;
   }
   if (value === null) {
-    return <span className="text-xs text-amber-600">unavailable</span>;
+    return <span className="text-xs text-warning">unavailable</span>;
   }
   return (
     <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-1 text-xs">

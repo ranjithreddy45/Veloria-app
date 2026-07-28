@@ -60,7 +60,7 @@ export function RsvpForm({ token, guestName }: RsvpFormProps) {
       <div className="py-8 text-center">
         {response === "ACCEPTED" ? (
           <>
-            <CheckCircle2 className="mx-auto size-11 text-emerald-500" />
+            <CheckCircle2 className="mx-auto size-11 text-success" />
             <h3 className="font-editorial text-foreground mt-4 text-[22px] font-semibold">
               Thank you, {guestName}
             </h3>
@@ -138,7 +138,7 @@ export function RsvpForm({ token, guestName }: RsvpFormProps) {
       {/* Action Buttons */}
       <div className="flex gap-3">
         <Button
-          className="flex-1 rounded-full bg-emerald-600 hover:bg-emerald-700"
+          className="flex-1 rounded-full bg-success hover:bg-success/90"
           size="lg"
           disabled={isPending}
           onClick={() => handleSubmit("ACCEPTED")}

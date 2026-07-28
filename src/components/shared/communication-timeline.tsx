@@ -160,7 +160,7 @@ export function CommunicationTimeline({
             {communications.map((comm, index) => {
               const Icon = TYPE_ICONS[comm.type] ?? MessageSquareIcon;
               const colorClass =
-                COMMUNICATION_TYPE_COLORS[comm.type] ?? "bg-zinc-100 text-zinc-700";
+                COMMUNICATION_TYPE_COLORS[comm.type] ?? "bg-muted text-muted-foreground";
               const isLast = index === communications.length - 1;
 
               return (

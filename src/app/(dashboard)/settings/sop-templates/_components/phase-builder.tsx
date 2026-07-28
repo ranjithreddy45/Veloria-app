@@ -356,7 +356,7 @@ export function PhaseBuilder({ templateId, initialPhases }: PhaseBuilderProps) {
       </div>
 
       {phases.length === 0 ? (
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <div className="rounded-full bg-muted p-3 mb-3">
               <ListChecksIcon className="size-6 text-muted-foreground" />
@@ -387,7 +387,7 @@ export function PhaseBuilder({ templateId, initialPhases }: PhaseBuilderProps) {
             return (
               <Card
                 key={phase.id}
-                className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm"
+                className="border-border shadow-sm"
               >
                 <CardHeader className="pb-0">
                   <div className="flex items-center justify-between gap-2">
@@ -455,7 +455,7 @@ export function PhaseBuilder({ templateId, initialPhases }: PhaseBuilderProps) {
                         {phase.taskDefinitions.map((task, idx) => (
                           <div
                             key={task.id}
-                            className="flex items-start gap-3 rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 p-3"
+                            className="flex items-start gap-3 rounded-lg border border-border p-3"
                           >
                             <span className="text-xs text-muted-foreground font-mono mt-0.5 shrink-0 w-5 text-center">
                               {idx + 1}
@@ -491,7 +491,7 @@ export function PhaseBuilder({ templateId, initialPhases }: PhaseBuilderProps) {
                                   </span>
                                 )}
                                 {task.isMandatory && (
-                                  <span className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+                                  <span className="flex items-center gap-1 text-xs text-warning">
                                     <AlertTriangleIcon className="size-3" />
                                     Mandatory
                                   </span>

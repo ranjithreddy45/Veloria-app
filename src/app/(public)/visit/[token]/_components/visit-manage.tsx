@@ -99,15 +99,15 @@ export function VisitManage({
 
   if (mode === "reschedule") {
     return (
-      <div className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="space-y-4 rounded-2xl border border-border bg-card p-5">
         <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+          <p className="text-sm font-semibold text-foreground">
             Pick a new time
           </p>
           <button
             type="button"
             onClick={() => setMode("idle")}
-            className="text-zinc-400 hover:text-zinc-600"
+            className="text-muted-foreground hover:text-foreground"
           >
             <X className="size-4" />
           </button>
@@ -119,15 +119,15 @@ export function VisitManage({
           min={isoToDate(new Date().toISOString())}
           max={maxISO()}
           onChange={(e) => setDateISO(e.target.value)}
-          className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-violet-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
+          className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
         />
 
         {loadingSlots ? (
-          <div className="flex items-center gap-2 py-3 text-sm text-zinc-500">
+          <div className="flex items-center gap-2 py-3 text-sm text-muted-foreground">
             <Loader2 className="size-4 animate-spin" /> Loading times…
           </div>
         ) : slots.length === 0 ? (
-          <p className="py-2 text-sm text-zinc-500">No times on this date.</p>
+          <p className="py-2 text-sm text-muted-foreground">No times on this date.</p>
         ) : (
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
             {slots.map((s) => {
@@ -140,10 +140,10 @@ export function VisitManage({
                   onClick={() => setSlotIso(s.iso)}
                   className={`rounded-xl border px-2 py-2 text-sm font-medium transition ${
                     active
-                      ? "border-violet-500 bg-violet-600 text-white"
+                      ? "border-primary bg-primary text-white"
                       : s.available
-                        ? "border-zinc-200 bg-white text-zinc-700 hover:border-violet-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
-                        : "cursor-not-allowed border-zinc-100 bg-zinc-50 text-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-700"
+                        ? "border-border bg-card text-muted-foreground hover:border-primary"
+                        : "cursor-not-allowed border-border bg-muted text-muted-foreground/60"
                   }`}
                 >
                   {s.label}
@@ -156,7 +156,7 @@ export function VisitManage({
         <Button
           onClick={handleReschedule}
           disabled={!slotIso || pending}
-          className="w-full bg-violet-600 hover:bg-violet-700"
+          className="w-full bg-primary hover:bg-primary/90"
         >
           {pending ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
           Confirm new time
@@ -179,7 +179,7 @@ export function VisitManage({
         variant="ghost"
         onClick={handleCancel}
         disabled={pending}
-        className="flex-1 text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-950/30"
+        className="flex-1 text-destructive hover:bg-destructive/10"
       >
         Cancel visit
       </Button>

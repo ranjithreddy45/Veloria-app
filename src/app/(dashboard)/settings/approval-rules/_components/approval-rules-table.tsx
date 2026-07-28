@@ -257,7 +257,7 @@ export function ApprovalRulesTable({ initialRules }: ApprovalRulesTableProps) {
                     {isToggling ? (
                       <Loader2Icon className="size-4 animate-spin" />
                     ) : rule.isActive ? (
-                      <ToggleRightIcon className="size-4 text-emerald-600" />
+                      <ToggleRightIcon className="size-4 text-success" />
                     ) : (
                       <ToggleLeftIcon className="size-4 text-muted-foreground" />
                     )}

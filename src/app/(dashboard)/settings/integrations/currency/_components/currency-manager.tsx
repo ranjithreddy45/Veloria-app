@@ -277,7 +277,7 @@ export function CurrencyManager({ currencies }: CurrencyManagerProps) {
                         key={currency.id}
                         className={
                           isBase
-                            ? "bg-amber-50/50 dark:bg-amber-950/20"
+                            ? "bg-warning/10"
                             : undefined
                         }
                       >
@@ -290,7 +290,7 @@ export function CurrencyManager({ currencies }: CurrencyManagerProps) {
                             {isBase && (
                               <Badge
                                 variant="outline"
-                                className="text-xs font-normal border-amber-300 text-amber-700 dark:border-amber-600 dark:text-amber-400"
+                                className="text-xs font-normal border-warning/20 text-warning"
                               >
                                 Base Currency
                               </Badge>

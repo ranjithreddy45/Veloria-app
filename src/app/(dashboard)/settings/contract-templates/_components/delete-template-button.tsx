@@ -51,7 +51,7 @@ export function DeleteTemplateButton({ id, name }: DeleteTemplateButtonProps) {
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
         <Button variant="ghost" size="icon-xs" aria-label="Delete template">
-          <Trash2Icon className="size-3.5 text-red-600" />
+          <Trash2Icon className="size-3.5 text-destructive" />
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>

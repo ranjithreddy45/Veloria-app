@@ -48,7 +48,7 @@ const columns: ColumnDef<ForecastEntry>[] = [
       <DataTableColumnHeader column={column} title="Predicted Revenue" />
     ),
     cell: ({ row }) => (
-      <span className="numeric font-medium text-emerald-700 dark:text-emerald-400">
+      <span className="numeric font-medium text-success">
         {formatINR(row.getValue("predictedRevenue"))}
       </span>
     ),
@@ -75,10 +75,10 @@ const columns: ColumnDef<ForecastEntry>[] = [
           variant="secondary"
           className={
             percent >= 80
-              ? "numeric bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"
+              ? "numeric bg-success/15 text-success"
               : percent >= 50
-                ? "numeric bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300"
-                : "numeric bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300"
+                ? "numeric bg-warning/15 text-warning"
+                : "numeric bg-destructive/15 text-destructive"
           }
         >
           {percent}%

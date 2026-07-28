@@ -26,11 +26,11 @@ const STATUSES: Status[] = ["ONLINE", "BUSY", "AWAY", "OFFLINE"];
 
 const STATUS_STYLES: Record<Status, string> = {
   ONLINE:
-    "bg-emerald-50 text-emerald-700 border-emerald-200/60 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/40",
-  BUSY: "bg-amber-50 text-amber-700 border-amber-200/60 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/40",
-  AWAY: "bg-slate-50 text-slate-700 border-slate-200/60 dark:bg-slate-800/30 dark:text-slate-300 dark:border-slate-700/40",
+    "bg-success/10 text-success border-success/20",
+  BUSY: "bg-warning/10 text-warning border-warning/20",
+  AWAY: "bg-muted text-muted-foreground border-border",
   OFFLINE:
-    "bg-slate-50 text-slate-500 border-slate-200/60 dark:bg-slate-900/30 dark:text-slate-500 dark:border-slate-800/40",
+    "bg-muted text-muted-foreground border-border",
 };
 
 interface AvailabilityBoardProps {

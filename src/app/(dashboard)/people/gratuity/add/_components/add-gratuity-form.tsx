@@ -165,7 +165,7 @@ export function AddGratuityForm({ rows }: { rows: GratuityRow[] }) {
               </div>
             </dl>
             {selected.lastBasic == null && (
-              <p className="mt-2 text-[11.5px] text-amber-600 dark:text-amber-400">
+              <p className="mt-2 text-[11.5px] text-warning">
                 No current salary structure — projection unavailable. You can still record a manual
                 amount.
               </p>

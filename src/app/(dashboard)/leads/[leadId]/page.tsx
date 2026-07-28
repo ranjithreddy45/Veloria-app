@@ -105,17 +105,17 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
 
   const scoreColor =
     scoreBreakdown.total >= 70
-      ? "text-green-600"
+      ? "text-success"
       : scoreBreakdown.total >= 40
-        ? "text-yellow-600"
-        : "text-red-600";
+        ? "text-warning"
+        : "text-destructive";
 
   const progressColor =
     scoreBreakdown.total >= 70
-      ? "[&>div]:bg-green-500"
+      ? "[&>div]:bg-success"
       : scoreBreakdown.total >= 40
-        ? "[&>div]:bg-yellow-500"
-        : "[&>div]:bg-red-500";
+        ? "[&>div]:bg-warning"
+        : "[&>div]:bg-destructive";
 
   return (
     <div className="space-y-6">
@@ -541,8 +541,8 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                         "numeric font-medium",
                         factor.applied
                           ? factor.points > 0
-                            ? "text-green-600"
-                            : "text-red-600"
+                            ? "text-success"
+                            : "text-destructive"
                           : "text-muted-foreground"
                       )}
                     >

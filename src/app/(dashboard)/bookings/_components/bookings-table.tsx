@@ -286,7 +286,7 @@ export function BookingsTable({ data }: BookingsTableProps) {
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    className="text-red-600 focus:text-red-600"
+                    className="text-destructive focus:text-destructive"
                     onClick={() => handleCancel(booking.id)}
                     disabled={isCancelling}
                   >

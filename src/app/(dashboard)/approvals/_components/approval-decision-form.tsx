@@ -143,8 +143,8 @@ export function ApprovalDecisionForm({ requestId }: ApprovalDecisionFormProps) {
             onClick={() => setAction("APPROVE")}
             className={
               action === "APPROVE"
-                ? "bg-green-600 hover:bg-green-700 text-white"
-                : "text-green-600 border-green-200 hover:bg-green-50"
+                ? "bg-success hover:bg-success text-white"
+                : "text-success border-success/20 hover:bg-success/10"
             }
           >
             <CheckCircle2Icon className="mr-2 size-4" />
@@ -155,8 +155,8 @@ export function ApprovalDecisionForm({ requestId }: ApprovalDecisionFormProps) {
             onClick={() => setAction("REJECT")}
             className={
               action === "REJECT"
-                ? "bg-red-600 hover:bg-red-700 text-white"
-                : "text-red-600 border-red-200 hover:bg-red-50"
+                ? "bg-destructive hover:bg-destructive text-white"
+                : "text-destructive border-destructive/20 hover:bg-destructive/10"
             }
           >
             <XCircleIcon className="mr-2 size-4" />
@@ -199,7 +199,7 @@ export function ApprovalDecisionForm({ requestId }: ApprovalDecisionFormProps) {
         {action && (
           <div className="space-y-2">
             <Label>
-              Comment{action === "REJECT" && <span className="text-red-500"> *</span>}
+              Comment{action === "REJECT" && <span className="text-destructive"> *</span>}
             </Label>
             <Textarea
               placeholder={

@@ -106,7 +106,7 @@ export function PortalNav({ userName, contractsAwaiting = 0 }: PortalNavProps) {
           <Button
             variant="ghost"
             size="sm"
-            className="text-muted-foreground gap-2 hover:text-red-600"
+            className="text-muted-foreground gap-2 hover:text-destructive"
             onClick={() => signOut({ callbackUrl: "/sign-in" })}
           >
             <LogOut className="size-4" />

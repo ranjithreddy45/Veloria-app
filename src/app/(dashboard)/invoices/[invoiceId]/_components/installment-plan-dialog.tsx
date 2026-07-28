@@ -200,10 +200,10 @@ export function InstallmentPlanDialog({
                 className={cn(
                   "font-medium",
                   Math.abs(remaining) < 0.01
-                    ? "text-green-600"
+                    ? "text-success"
                     : remaining > 0
-                      ? "text-amber-600"
-                      : "text-red-600"
+                      ? "text-warning"
+                      : "text-destructive"
                 )}
               >
                 {Math.abs(remaining) < 0.01

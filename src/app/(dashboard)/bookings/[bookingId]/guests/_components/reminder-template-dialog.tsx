@@ -117,7 +117,7 @@ export function ReminderTemplateDialog({
 
         <div className="space-y-4 py-2">
           <div>
-            <Label className="text-sm text-zinc-600">Subject</Label>
+            <Label className="text-sm text-muted-foreground">Subject</Label>
             <Input
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
@@ -127,7 +127,7 @@ export function ReminderTemplateDialog({
           </div>
 
           <div>
-            <Label className="text-sm text-zinc-600">Message Template</Label>
+            <Label className="text-sm text-muted-foreground">Message Template</Label>
             <Textarea
               value={messageTemplate}
               onChange={(e) => setMessageTemplate(e.target.value)}
@@ -135,15 +135,15 @@ export function ReminderTemplateDialog({
               rows={8}
               maxLength={4096}
             />
-            <p className="mt-1 text-right text-xs text-zinc-400">
+            <p className="mt-1 text-right text-xs text-muted-foreground">
               {messageTemplate.length}/4096
             </p>
           </div>
 
           {showPreview && preview && (
-            <div className="rounded-lg border border-zinc-100 bg-zinc-50/50 p-3 dark:border-zinc-800 dark:bg-zinc-900/50">
-              <p className="mb-1 text-xs font-medium text-zinc-500">Preview:</p>
-              <pre className="whitespace-pre-wrap text-xs text-zinc-700 dark:text-zinc-300">
+            <div className="rounded-lg border border-border bg-muted p-3">
+              <p className="mb-1 text-xs font-medium text-muted-foreground">Preview:</p>
+              <pre className="whitespace-pre-wrap text-xs text-foreground">
                 {preview}
               </pre>
             </div>

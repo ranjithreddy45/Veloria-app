@@ -409,14 +409,14 @@ export function ScoringRulesManager({ ruleSet: initialRuleSet }: Props) {
             </Button>
           </div>
           {ruleSet.description && (
-            <p className="text-sm text-zinc-500 mt-1">{ruleSet.description}</p>
+            <p className="text-sm text-muted-foreground mt-1">{ruleSet.description}</p>
           )}
         </CardHeader>
       </Card>
 
       {/* Rules List */}
       <div className="flex items-center justify-between">
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-muted-foreground">
           {rules.length} rule{rules.length !== 1 ? "s" : ""} in this set
         </p>
         <Button onClick={openCreateDialog}>
@@ -426,14 +426,14 @@ export function ScoringRulesManager({ ruleSet: initialRuleSet }: Props) {
       </div>
 
       {loading && rules.length === 0 ? (
-        <div className="flex items-center justify-center py-16 text-zinc-500">
+        <div className="flex items-center justify-center py-16 text-muted-foreground">
           <Loader2Icon className="mr-2 size-5 animate-spin" /> Loading rules...
         </div>
       ) : rules.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="py-12 text-center">
             <TargetIcon className="mx-auto mb-3 size-10 text-zinc-300" />
-            <p className="text-sm text-zinc-500">
+            <p className="text-sm text-muted-foreground">
               No rules yet. Add your first scoring rule to start evaluating{" "}
               {ruleSet.entityType.toLowerCase()}s.
             </p>
@@ -457,7 +457,7 @@ export function ScoringRulesManager({ ruleSet: initialRuleSet }: Props) {
                       <button
                         onClick={() => handleMoveRule(index, "up")}
                         disabled={index === 0}
-                        className="text-zinc-400 hover:text-zinc-600 disabled:opacity-30"
+                        className="text-muted-foreground hover:text-muted-foreground disabled:opacity-30"
                       >
                         <GripVerticalIcon className="size-4" />
                       </button>
@@ -475,14 +475,14 @@ export function ScoringRulesManager({ ruleSet: initialRuleSet }: Props) {
                         <span
                           className={cn(
                             "text-sm font-semibold",
-                            rule.points >= 0 ? "text-green-600" : "text-red-600"
+                            rule.points >= 0 ? "text-success" : "text-destructive"
                           )}
                         >
                           {rule.points >= 0 ? "+" : ""}
                           {rule.points} pts
                         </span>
                       </div>
-                      <p className="mt-1 text-xs text-zinc-500 truncate">
+                      <p className="mt-1 text-xs text-muted-foreground truncate">
                         {formatConditionsSummary(rule)}
                       </p>
                     </div>
@@ -495,12 +495,12 @@ export function ScoringRulesManager({ ruleSet: initialRuleSet }: Props) {
                       onClick={() => openEditDialog(rule)}
                       title="Edit rule"
                     >
-                      <PencilIcon className="size-4 text-zinc-500" />
+                      <PencilIcon className="size-4 text-muted-foreground" />
                     </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="ghost" size="sm">
-                          <TrashIcon className="size-4 text-red-500" />
+                          <TrashIcon className="size-4 text-destructive" />
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
@@ -583,7 +583,7 @@ export function ScoringRulesManager({ ruleSet: initialRuleSet }: Props) {
               <div className="space-y-2">
                 <Label>
                   Points{" "}
-                  <span className="text-xs text-zinc-400">
+                  <span className="text-xs text-muted-foreground">
                     ({formCategory === "DECAY" ? "negative per interval" : "awarded if matched"})
                   </span>
                 </Label>
@@ -596,8 +596,8 @@ export function ScoringRulesManager({ ruleSet: initialRuleSet }: Props) {
             </div>
 
             {/* Condition Builder - changes based on category */}
-            <div className="space-y-2 rounded-md border border-zinc-200 p-3">
-              <Label className="text-sm font-medium text-zinc-700">Conditions</Label>
+            <div className="space-y-2 rounded-md border border-border p-3">
+              <Label className="text-sm font-medium text-muted-foreground">Conditions</Label>
 
               {formCategory === "FIELD_BASED" && (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -637,7 +637,7 @@ export function ScoringRulesManager({ ruleSet: initialRuleSet }: Props) {
 
               {formCategory === "ACTIVITY_BASED" && (
                 <div className="space-y-2">
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-muted-foreground">
                     Award points if the entity has communication activity within
                     the specified number of days.
                   </p>
@@ -650,14 +650,14 @@ export function ScoringRulesManager({ ruleSet: initialRuleSet }: Props) {
                       value={activityWithinDays}
                       onChange={(e) => setActivityWithinDays(Number(e.target.value))}
                     />
-                    <span className="text-sm text-zinc-500">days</span>
+                    <span className="text-sm text-muted-foreground">days</span>
                   </div>
                 </div>
               )}
 
               {formCategory === "PROFILE_COMPLETENESS" && (
                 <div className="space-y-2">
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-muted-foreground">
                     Award proportional points based on how many of the selected
                     fields are filled in.
                   </p>
@@ -671,7 +671,7 @@ export function ScoringRulesManager({ ruleSet: initialRuleSet }: Props) {
                           "rounded-md border px-2.5 py-1 text-xs transition-colors",
                           profileFields.includes(field)
                             ? "border-purple-300 bg-purple-50 text-purple-700"
-                            : "border-border bg-card text-zinc-600 hover:bg-zinc-50"
+                            : "border-border bg-card text-muted-foreground hover:bg-muted"
                         )}
                       >
                         {field}
@@ -679,7 +679,7 @@ export function ScoringRulesManager({ ruleSet: initialRuleSet }: Props) {
                     ))}
                   </div>
                   {profileFields.length > 0 && (
-                    <p className="text-xs text-zinc-400">
+                    <p className="text-xs text-muted-foreground">
                       {profileFields.length} field{profileFields.length !== 1 ? "s" : ""} selected
                     </p>
                   )}
@@ -688,7 +688,7 @@ export function ScoringRulesManager({ ruleSet: initialRuleSet }: Props) {
 
               {formCategory === "DECAY" && (
                 <div className="space-y-3">
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-muted-foreground">
                     Deduct points for each interval that has passed since the
                     decay field&apos;s date. Set points to a negative number.
                   </p>

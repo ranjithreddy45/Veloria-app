@@ -12,16 +12,16 @@ interface EventProgressCardProps {
 export function EventProgressCard({ overallProgress, hasExecutionPlan }: EventProgressCardProps) {
   // Determine color based on progress
   const colorClass = overallProgress >= 80
-    ? "text-emerald-600"
+    ? "text-success"
     : overallProgress >= 50
-    ? "text-indigo-600"
-    : "text-amber-600";
+    ? "text-primary"
+    : "text-warning";
 
   const bgClass = overallProgress >= 80
-    ? "bg-emerald-600"
+    ? "bg-success"
     : overallProgress >= 50
-    ? "bg-indigo-600"
-    : "bg-amber-600";
+    ? "bg-primary"
+    : "bg-warning";
 
   const label = overallProgress >= 100
     ? "Everything is ready!"
@@ -34,13 +34,13 @@ export function EventProgressCard({ overallProgress, hasExecutionPlan }: EventPr
     : "Preparations starting soon";
 
   return (
-    <Card className="border-zinc-200/80 shadow-sm">
+    <Card className="border-border/80 shadow-sm">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base font-semibold text-zinc-900 dark:text-zinc-100">
+        <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
           {overallProgress >= 100 ? (
-            <CheckCircle2 className="size-4 text-emerald-500" />
+            <CheckCircle2 className="size-4 text-success" />
           ) : (
-            <Clock className="size-4 text-indigo-500" />
+            <Clock className="size-4 text-primary" />
           )}
           Event Preparation
         </CardTitle>
@@ -52,7 +52,7 @@ export function EventProgressCard({ overallProgress, hasExecutionPlan }: EventPr
             <span className={`text-4xl font-bold tabular-nums ${colorClass}`}>
               {overallProgress}%
             </span>
-            <span className="mt-1 text-xs text-zinc-500">Complete</span>
+            <span className="mt-1 text-xs text-muted-foreground">Complete</span>
           </div>
 
           {/* Progress Bar and Label */}
@@ -61,7 +61,7 @@ export function EventProgressCard({ overallProgress, hasExecutionPlan }: EventPr
               value={overallProgress}
               className={`h-3 [&>div]:${bgClass}`}
             />
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            <p className="text-sm text-muted-foreground">
               {label}
             </p>
           </div>

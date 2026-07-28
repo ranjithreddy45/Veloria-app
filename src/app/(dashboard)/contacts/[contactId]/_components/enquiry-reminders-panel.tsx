@@ -101,7 +101,7 @@ export function EnquiryRemindersPanel({ contactId }: { contactId: string }) {
                   key={t.id}
                   className={cn(
                     "flex items-start gap-3 rounded-xl border bg-card p-3 shadow-card",
-                    t.isOverdue && "border-red-500/40 bg-red-500/5"
+                    t.isOverdue && "border-destructive/40 bg-destructive/5"
                   )}
                 >
                   <div className="min-w-0 flex-1">
@@ -111,7 +111,7 @@ export function EnquiryRemindersPanel({ contactId }: { contactId: string }) {
                         {style.label}
                       </span>
                       {t.isOverdue && (
-                        <span className="inline-flex items-center rounded-full bg-red-500/12 px-2 py-0.5 text-[11px] font-semibold text-red-600 ring-1 ring-inset ring-red-500/25 dark:text-red-400">
+                        <span className="bg-destructive/12 text-destructive ring-destructive/25 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset">
                           Overdue
                         </span>
                       )}

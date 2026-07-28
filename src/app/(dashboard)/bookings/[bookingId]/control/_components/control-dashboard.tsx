@@ -66,7 +66,7 @@ export function ControlDashboard({
 
   if (!dashboard) {
     return (
-      <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardContent className="py-16 text-center">
           <ListChecksIcon className="mx-auto size-12 text-muted-foreground/40 mb-3" />
           <h3 className="text-lg font-semibold mb-1">No Execution Plan Found</h3>
@@ -178,17 +178,17 @@ export function ControlDashboard({
     <div className="space-y-6">
       {/* Alert Banner */}
       {escalations.length > 0 && (
-        <div className="rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 p-4 flex items-center gap-3">
-          <SirenIcon className="size-6 text-red-600 dark:text-red-400 shrink-0" />
+        <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-4 flex items-center gap-3">
+          <SirenIcon className="size-6 text-destructive shrink-0" />
           <div className="flex-1">
-            <p className="text-sm font-semibold text-red-700 dark:text-red-400">
+            <p className="text-sm font-semibold text-destructive">
               {escalations.length} Active Escalation{escalations.length > 1 ? "s" : ""}
             </p>
-            <p className="text-xs text-red-600 dark:text-red-300">
+            <p className="text-xs text-destructive">
               Immediate attention required. Review escalated tasks below.
             </p>
           </div>
-          <Badge variant="outline" className="bg-red-100 text-red-700 border-red-300 dark:bg-red-900/50 dark:text-red-300 dark:border-red-700">
+          <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">
             {escalations.length}
           </Badge>
         </div>
@@ -204,10 +204,10 @@ export function ControlDashboard({
           {planStatus}
         </Badge>
         {planStatus === "LIVE" && (
-          <span className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+          <span className="flex items-center gap-1 text-xs text-success">
             <span className="relative flex size-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full size-2 bg-emerald-500" />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
+              <span className="relative inline-flex rounded-full size-2 bg-success" />
             </span>
             Auto-refreshing
           </span>
@@ -216,17 +216,17 @@ export function ControlDashboard({
 
       {/* Live Readiness Header */}
       {readiness && (
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm overflow-hidden">
+        <Card className="border-border shadow-sm overflow-hidden">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
               <div className="relative shrink-0">
                 <GaugeIcon
                   className={`size-9 ${
                     readiness.canGoLive
-                      ? "text-emerald-500"
+                      ? "text-success"
                       : readiness.readyPct >= 60
-                      ? "text-amber-500"
-                      : "text-red-500"
+                      ? "text-warning"
+                      : "text-destructive"
                   }`}
                 />
               </div>
@@ -238,14 +238,14 @@ export function ControlDashboard({
                   {readiness.canGoLive ? (
                     <Badge
                       variant="outline"
-                      className="text-[10px] px-1.5 py-0 bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                      className="text-[10px] px-1.5 py-0 bg-success/10 text-success border-success/20"
                     >
                       Ready to go live
                     </Badge>
                   ) : (
                     <Badge
                       variant="outline"
-                      className="text-[10px] px-1.5 py-0 bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+                      className="text-[10px] px-1.5 py-0 bg-warning/10 text-warning border-warning/20"
                     >
                       Blocking gates open
                     </Badge>
@@ -255,10 +255,10 @@ export function ControlDashboard({
                   <p
                     className={`text-3xl font-bold ${
                       readiness.canGoLive
-                        ? "text-emerald-600"
+                        ? "text-success"
                         : readiness.readyPct >= 60
-                        ? "text-amber-600"
-                        : "text-red-600"
+                        ? "text-warning"
+                        : "text-destructive"
                     }`}
                   >
                     {readiness.readyPct}%
@@ -281,10 +281,10 @@ export function ControlDashboard({
                     title={g.detail ?? undefined}
                     className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] ${
                       g.ready
-                        ? "bg-emerald-50/60 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-300 dark:border-emerald-900"
+                        ? "bg-success/10 text-success border-success/20"
                         : g.required
-                        ? "bg-red-50/60 text-red-700 border-red-200 dark:bg-red-950/20 dark:text-red-300 dark:border-red-900"
-                        : "bg-zinc-50 text-zinc-600 border-zinc-200 dark:bg-zinc-900/40 dark:text-zinc-400 dark:border-zinc-700"
+                        ? "bg-destructive/10 text-destructive border-destructive/20"
+                        : "bg-muted text-muted-foreground border-border"
                     }`}
                   >
                     {g.ready ? (
@@ -306,7 +306,7 @@ export function ControlDashboard({
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
@@ -318,16 +318,16 @@ export function ControlDashboard({
           </CardContent>
         </Card>
 
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Completed</p>
-                <p className="text-2xl font-bold text-emerald-600">
+                <p className="text-2xl font-bold text-success">
                   {overallProgress}%
                 </p>
               </div>
-              <CheckCircle2Icon className="size-8 text-emerald-500/30" />
+              <CheckCircle2Icon className="size-8 text-success/30" />
             </div>
             <Progress value={overallProgress} className="h-1.5 mt-2" />
             <p className="text-xs text-muted-foreground mt-1">
@@ -336,7 +336,7 @@ export function ControlDashboard({
           </CardContent>
         </Card>
 
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
@@ -350,18 +350,18 @@ export function ControlDashboard({
           </CardContent>
         </Card>
 
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">
                   Blocked / Delayed
                 </p>
-                <p className="text-2xl font-bold text-red-600">
+                <p className="text-2xl font-bold text-destructive">
                   {blockedTasks + delayedTasks}
                 </p>
               </div>
-              <OctagonIcon className="size-8 text-red-500/30" />
+              <OctagonIcon className="size-8 text-destructive/30" />
             </div>
             {(blockedTasks > 0 || delayedTasks > 0) && (
               <p className="text-xs text-muted-foreground mt-1">
@@ -374,7 +374,7 @@ export function ControlDashboard({
 
       {/* Phase Progress */}
       {phaseProgress && phaseProgress.length > 0 && (
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardHeader>
             <CardTitle className="text-base">Phase Progress</CardTitle>
           </CardHeader>
@@ -397,7 +397,7 @@ export function ControlDashboard({
                       {phase.completedTasks}/{phase.totalTasks} ({phase.progress}%)
                     </span>
                   </div>
-                  <div className="relative h-3 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
+                  <div className="relative h-3 rounded-full bg-muted overflow-hidden">
                     <div
                       className="absolute inset-y-0 left-0 rounded-full transition-all duration-500"
                       style={{
@@ -423,10 +423,10 @@ export function ControlDashboard({
       {/* Critical Items */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Overdue Tasks */}
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <AlertTriangleIcon className="size-4 text-red-500" />
+              <AlertTriangleIcon className="size-4 text-destructive" />
               Overdue Tasks ({overdueTasks?.length ?? 0})
             </CardTitle>
           </CardHeader>
@@ -441,7 +441,7 @@ export function ControlDashboard({
                 {overdueTasks.map((task: any) => (
                   <div
                     key={task.id}
-                    className="rounded-lg bg-red-50/50 dark:bg-red-950/20 border border-red-200/60 dark:border-red-800/40 p-3"
+                    className="rounded-lg bg-destructive/10 border border-destructive/20 p-3"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="space-y-1 min-w-0">
@@ -466,7 +466,7 @@ export function ControlDashboard({
                           )}
                         </div>
                       </div>
-                      <span className="text-xs font-semibold text-red-600 dark:text-red-400 shrink-0">
+                      <span className="text-xs font-semibold text-destructive shrink-0">
                         {task.slaFinishBy && getOverdueTime(task.slaFinishBy)}
                       </span>
                     </div>
@@ -478,7 +478,7 @@ export function ControlDashboard({
         </Card>
 
         {/* Upcoming Tasks */}
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <TimerIcon className="size-4 text-blue-500" />
@@ -496,7 +496,7 @@ export function ControlDashboard({
                 {upcomingTasks.map((task: any) => (
                   <div
                     key={task.id}
-                    className="rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 p-3"
+                    className="rounded-lg border border-border p-3"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="space-y-1 min-w-0">
@@ -543,10 +543,10 @@ export function ControlDashboard({
 
       {/* Proof Needed */}
       {Array.isArray(proofNeeded) && proofNeeded.length > 0 && (
-        <Card className="border-amber-200/70 dark:border-amber-800/50 shadow-sm">
+        <Card className="border-warning/20 shadow-sm">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <CameraIcon className="size-4 text-amber-500" />
+              <CameraIcon className="size-4 text-warning" />
               Photo Proof Needed ({proofNeeded.length})
             </CardTitle>
           </CardHeader>
@@ -557,7 +557,7 @@ export function ControlDashboard({
                 <Link
                   key={task.id}
                   href={`/bookings/${bookingId}/execution`}
-                  className="flex items-center justify-between gap-2 rounded-lg bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-800/40 p-3 transition-colors hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                  className="flex items-center justify-between gap-2 rounded-lg bg-warning/10 border border-warning/20 p-3 transition-colors hover:bg-warning/10"
                 >
                   <div className="min-w-0 space-y-1">
                     <p className="text-sm font-medium truncate">{task.title}</p>
@@ -573,7 +573,7 @@ export function ControlDashboard({
                       )}
                     </div>
                   </div>
-                  <CameraIcon className="size-4 text-amber-500 shrink-0" />
+                  <CameraIcon className="size-4 text-warning shrink-0" />
                 </Link>
               ))}
             </div>
@@ -583,7 +583,7 @@ export function ControlDashboard({
 
       {/* Time-anchored Task Timeline */}
       {Array.isArray(phaseTimeline) && phaseTimeline.length > 0 && (
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <ListChecksIcon className="size-4 text-blue-500" />
@@ -610,7 +610,7 @@ export function ControlDashboard({
                       No tasks in this phase.
                     </p>
                   ) : (
-                    <div className="relative pl-4 space-y-1.5 before:absolute before:left-[5px] before:top-1 before:bottom-1 before:w-px before:bg-zinc-200 dark:before:bg-zinc-700">
+                    <div className="relative pl-4 space-y-1.5 before:absolute before:left-[5px] before:top-1 before:bottom-1 before:w-px before:bg-border">
                       {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                       {phase.tasks.map((task: any) => {
                         const isCurrent = task.id === currentTaskId;
@@ -627,7 +627,7 @@ export function ControlDashboard({
                                 ? "border-blue-300 dark:border-blue-700 bg-blue-50/60 dark:bg-blue-950/20 ring-1 ring-blue-300/50"
                                 : isNext
                                 ? "border-indigo-200 dark:border-indigo-800/60 bg-indigo-50/40 dark:bg-indigo-950/10"
-                                : "border-zinc-200/80 dark:border-zinc-700/80"
+                                : "border-border"
                             }`}
                           >
                             <span
@@ -653,7 +653,7 @@ export function ControlDashboard({
                                     </Badge>
                                   )}
                                   {task.requiresProof && (
-                                    <CameraIcon className="size-3 text-amber-500" />
+                                    <CameraIcon className="size-3 text-warning" />
                                   )}
                                 </div>
                                 <div className="flex items-center gap-2 flex-wrap text-[10px] text-muted-foreground">
@@ -684,14 +684,14 @@ export function ControlDashboard({
                                     </p>
                                   )}
                                 {overdue && task.slaFinishBy && (
-                                  <p className="text-[10px] text-red-600 dark:text-red-400 font-semibold">
+                                  <p className="text-[10px] text-destructive font-semibold">
                                     {getOverdueTime(task.slaFinishBy)}
                                   </p>
                                 )}
                                 {!overdue &&
                                   task.status === "IN_PROGRESS" &&
                                   task.slaFinishBy && (
-                                    <p className="text-[10px] text-amber-600 dark:text-amber-400">
+                                    <p className="text-[10px] text-warning">
                                       due {getCountdown(task.slaFinishBy)}
                                     </p>
                                   )}
@@ -711,10 +711,10 @@ export function ControlDashboard({
 
       {/* Active Escalations List */}
       {escalations.length > 0 && (
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <SirenIcon className="size-4 text-red-500" />
+              <SirenIcon className="size-4 text-destructive" />
               Active Escalations ({escalations.length})
             </CardTitle>
           </CardHeader>
@@ -724,7 +724,7 @@ export function ControlDashboard({
               {escalations.map((esc: any) => (
                 <div
                   key={esc.id}
-                  className="rounded-lg border border-red-200/60 dark:border-red-800/40 bg-red-50/30 dark:bg-red-950/10 p-4"
+                  className="rounded-lg border border-destructive/20 bg-destructive/10 p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-2 min-w-0 flex-1">
@@ -772,7 +772,7 @@ export function ControlDashboard({
                     </div>
                     <div className="text-right shrink-0">
                       {esc.delayMinutes != null && (
-                        <p className="text-sm font-semibold text-red-600 dark:text-red-400">
+                        <p className="text-sm font-semibold text-destructive">
                           {esc.delayMinutes}m delay
                         </p>
                       )}

@@ -32,7 +32,7 @@ export const metadata: Metadata = {
 function InvalidCard() {
   return (
     <div className="bg-card shadow-card mx-auto max-w-lg rounded-2xl border p-10 text-center">
-      <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-amber-500/12 text-amber-600 dark:text-amber-400">
+      <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-warning/12 text-warning">
         <AlertTriangle className="size-6" />
       </div>
       <p className="font-editorial text-foreground mt-5 text-[24px] font-semibold">

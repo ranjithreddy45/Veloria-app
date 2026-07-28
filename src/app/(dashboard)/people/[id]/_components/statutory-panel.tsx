@@ -27,7 +27,7 @@ export function StatutoryPanel({ employeeId, masked }: { employeeId: string; mas
     <div className="rounded-2xl border bg-card p-5 shadow-card">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <ShieldCheck className="size-4 text-emerald-600" />
+          <ShieldCheck className="size-4 text-success" />
           <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Statutory &amp; bank</h3>
         </div>
         <div className="flex gap-2">
@@ -130,7 +130,7 @@ function StatutoryEditDialog({
           <EF label="PF number" value={pfV} onChange={setPfV} />
           <EF label="PT" value={ptV} onChange={setPtV} />
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
           <Button onClick={save} disabled={saving} className="gap-1.5">

@@ -132,7 +132,7 @@ function InvoiceRow({ invoice, showPayButton }: InvoiceRowProps) {
     <Link href={`/portal/invoices/${invoice.id}`} className="block">
       <Card
         className={`group shadow-card hover:shadow-card-hover overflow-hidden rounded-2xl py-0 transition-all duration-200 ${
-          isOverdue ? "border-red-500/30" : ""
+          isOverdue ? "border-destructive/30" : ""
         }`}
       >
         <CardContent className="p-0">
@@ -141,13 +141,13 @@ function InvoiceRow({ invoice, showPayButton }: InvoiceRowProps) {
             <div className="flex min-w-0 flex-1 items-center gap-4">
               <div
                 className={`flex size-10 flex-shrink-0 items-center justify-center rounded-xl ${
-                  isOverdue ? "bg-red-500/10" : "bg-primary/10"
+                  isOverdue ? "bg-destructive/10" : "bg-primary/10"
                 }`}
               >
                 <FileText
                   className={`size-5 ${
                     isOverdue
-                      ? "text-red-600 dark:text-red-400"
+                      ? "text-destructive"
                       : "text-primary"
                   }`}
                 />
@@ -194,7 +194,7 @@ function InvoiceRow({ invoice, showPayButton }: InvoiceRowProps) {
                 <p className="text-muted-foreground/70 text-[10px] font-semibold uppercase tracking-[0.1em]">
                   Paid
                 </p>
-                <p className="numeric mt-0.5 text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                <p className="numeric mt-0.5 text-sm font-medium text-success">
                   {formatINR(invoice.paidAmount)}
                 </p>
               </div>
@@ -205,8 +205,8 @@ function InvoiceRow({ invoice, showPayButton }: InvoiceRowProps) {
                 <p
                   className={`numeric mt-0.5 text-sm font-semibold ${
                     invoice.balanceDue > 0
-                      ? "text-red-600 dark:text-red-400"
-                      : "text-emerald-600 dark:text-emerald-400"
+                      ? "text-destructive"
+                      : "text-success"
                   }`}
                 >
                   {formatINR(invoice.balanceDue)}
@@ -229,7 +229,7 @@ function InvoiceRow({ invoice, showPayButton }: InvoiceRowProps) {
           <div
             className={`flex items-center justify-between border-t px-5 py-2.5 text-xs ${
               isOverdue
-                ? "border-red-500/20 bg-red-500/[0.06] text-red-600 dark:text-red-400"
+                ? "border-destructive/20 bg-destructive/[0.06] text-destructive"
                 : "text-muted-foreground/70 bg-muted/25"
             }`}
           >

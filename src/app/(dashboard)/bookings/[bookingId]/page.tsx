@@ -326,21 +326,21 @@ export default async function BookingDetailPage({
           className={cn(
             "flex items-center gap-3 rounded-2xl border p-4 shadow-card",
             holdExpired
-              ? "border-red-200 bg-red-50"
-              : "border-amber-200 bg-amber-50"
+              ? "border-destructive/20 bg-destructive/10"
+              : "border-warning/20 bg-warning/10"
           )}
         >
           <ClockIcon
             className={cn(
               "size-5 shrink-0",
-              holdExpired ? "text-red-500" : "text-amber-500"
+              holdExpired ? "text-destructive" : "text-warning"
             )}
           />
           <div>
             <p
               className={cn(
                 "text-sm font-semibold",
-                holdExpired ? "text-red-800" : "text-amber-800"
+                holdExpired ? "text-destructive" : "text-warning"
               )}
             >
               {holdExpired ? "Hold has expired" : "Booking is on hold"}
@@ -348,7 +348,7 @@ export default async function BookingDetailPage({
             <p
               className={cn(
                 "text-[13px]",
-                holdExpired ? "text-red-600" : "text-amber-600"
+                holdExpired ? "text-destructive" : "text-warning"
               )}
             >
               {holdExpired
@@ -388,7 +388,7 @@ export default async function BookingDetailPage({
             <Card className="rounded-2xl shadow-card">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <IndianRupeeIcon className="size-4 text-emerald-600" /> Payment summary
+                  <IndianRupeeIcon className="size-4 text-success" /> Payment summary
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -399,11 +399,11 @@ export default async function BookingDetailPage({
                   </div>
                   <div>
                     <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Collected</p>
-                    <p className="numeric mt-1 text-lg font-semibold text-emerald-600">{formatINR(collected)}</p>
+                    <p className="numeric mt-1 text-lg font-semibold text-success">{formatINR(collected)}</p>
                   </div>
                   <div>
                     <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Pending</p>
-                    <p className={cn("numeric mt-1 text-lg font-semibold", pending > 0 ? "text-amber-600" : "text-muted-foreground")}>{formatINR(pending)}</p>
+                    <p className={cn("numeric mt-1 text-lg font-semibold", pending > 0 ? "text-warning" : "text-muted-foreground")}>{formatINR(pending)}</p>
                   </div>
                 </div>
                 <div className="mt-3">
@@ -416,7 +416,7 @@ export default async function BookingDetailPage({
                       className={cn(
                         "h-full rounded-full transition-all",
                         pending <= 0
-                          ? "bg-emerald-500"
+                          ? "bg-success"
                           : "bg-gradient-to-r from-violet-500 to-emerald-500"
                       )}
                       style={{ width: `${pct}%` }}
@@ -424,11 +424,11 @@ export default async function BookingDetailPage({
                   </div>
                   {/* Goal-gradient framing: show the small remaining gap */}
                   {pending <= 0 ? (
-                    <p className="mt-1.5 text-[12px] font-medium text-emerald-600">Fully paid 🎉</p>
+                    <p className="mt-1.5 text-[12px] font-medium text-success">Fully paid 🎉</p>
                   ) : pct >= 80 ? (
-                    <p className="mt-1.5 text-[12px] font-medium text-amber-600">
+                    <p className="mt-1.5 text-[12px] font-medium text-warning">
                       Almost there —{" "}
-                      <span className="tabular-nums text-emerald-700">
+                      <span className="tabular-nums text-success">
                         {"₹" + Math.round(pending).toLocaleString("en-IN")}
                       </span>{" "}
                       to go
@@ -712,7 +712,7 @@ export default async function BookingDetailPage({
                     <p className="text-muted-foreground text-xs mb-1">
                       Internal Notes
                     </p>
-                    <p className="text-sm whitespace-pre-wrap text-zinc-600">
+                    <p className="text-sm whitespace-pre-wrap text-muted-foreground">
                       {booking.internalNotes}
                     </p>
                   </div>
@@ -747,7 +747,7 @@ export default async function BookingDetailPage({
                     <p className="text-muted-foreground text-xs mb-1">
                       Description
                     </p>
-                    <p className="text-sm text-zinc-600">
+                    <p className="text-sm text-muted-foreground">
                       {booking.venue.description}
                     </p>
                   </div>

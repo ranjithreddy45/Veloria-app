@@ -27,13 +27,13 @@ export function VendorActivateForm({ vendorId, token, email }: { vendorId: strin
 
   if (done) {
     return (
-      <div className="flex flex-col items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center dark:border-emerald-900 dark:bg-emerald-950/30">
-        <CheckCircle2 className="size-8 text-emerald-600" />
-        <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">Account created</p>
-        <p className="text-xs text-emerald-700/80 dark:text-emerald-400/80">
+      <div className="flex flex-col items-center gap-2 rounded-2xl border border-success/20 bg-success/10 p-6 text-center">
+        <CheckCircle2 className="size-8 text-success" />
+        <p className="text-sm font-semibold text-success">Account created</p>
+        <p className="text-xs text-success/80">
           Sign in with <strong>{email}</strong> and your new password.
         </p>
-        <Button asChild className="mt-2 w-full bg-emerald-600 hover:bg-emerald-700">
+        <Button asChild className="mt-2 w-full bg-success hover:bg-success/90">
           <Link href="/sign-in">Go to sign in</Link>
         </Button>
       </div>

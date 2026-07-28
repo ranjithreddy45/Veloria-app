@@ -219,7 +219,7 @@ export function BookingActions({ bookingId, currentStatus, canOverride = false }
           )}
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            className="text-red-600 focus:text-red-600"
+            className="text-destructive focus:text-destructive"
             onClick={() => setCancelDialogOpen(true)}
           >
             <XCircleIcon className="mr-2 size-4" />
@@ -287,7 +287,7 @@ export function BookingActions({ bookingId, currentStatus, canOverride = false }
               value={holdHours}
               onChange={(e) => setHoldHours(parseInt(e.target.value) || 48)}
             />
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-muted-foreground">
               Hold will expire in {holdHours} hours (
               {Math.round((holdHours / 24) * 10) / 10} days)
             </p>
@@ -320,14 +320,14 @@ export function BookingActions({ bookingId, currentStatus, canOverride = false }
           </DialogHeader>
 
           {gateFailures.length > 0 ? (
-            <div className="space-y-3 rounded-xl border border-amber-300/60 bg-amber-50 p-3 dark:bg-amber-950/30">
-              <p className="flex items-center gap-2 text-sm font-medium text-amber-800 dark:text-amber-300">
+            <div className="space-y-3 rounded-xl border border-warning/20 bg-warning/10 p-3">
+              <p className="flex items-center gap-2 text-sm font-medium text-warning">
                 <AlertTriangleIcon className="size-4" />
                 Not ready to complete
               </p>
               <ul className="space-y-1.5">
                 {gateFailures.map((f) => (
-                  <li key={f} className="flex gap-2 text-[13px] text-amber-900 dark:text-amber-200">
+                  <li key={f} className="flex gap-2 text-[13px] text-warning">
                     <span aria-hidden className="mt-0.5">•</span>
                     <span>{f}</span>
                   </li>

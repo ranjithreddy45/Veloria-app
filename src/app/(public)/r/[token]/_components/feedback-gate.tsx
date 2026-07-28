@@ -101,14 +101,14 @@ export function FeedbackGate({
   // --- PUBLIC (happy) -------------------------------------------------------
   if (phase === "public") {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-center dark:border-emerald-900/50 dark:bg-emerald-950/30">
-        <CheckCircle2 className="size-9 text-emerald-600" />
-        <p className="text-lg font-semibold text-emerald-800 dark:text-emerald-200">
+      <div className="flex flex-col items-center gap-3 rounded-xl border border-success/20 bg-success/10 p-6 text-center">
+        <CheckCircle2 className="size-9 text-success" />
+        <p className="text-lg font-semibold text-success">
           Wonderful — thank you{customerFirstName ? `, ${customerFirstName}` : ""}!
         </p>
         {redirectUrl ? (
           <>
-            <p className="text-sm text-emerald-700 dark:text-emerald-300">
+            <p className="text-sm text-success">
               We’re taking you to Google so you can share the love. It only takes
               a moment.
             </p>
@@ -120,7 +120,7 @@ export function FeedbackGate({
             </Button>
           </>
         ) : (
-          <p className="text-sm text-emerald-700 dark:text-emerald-300">
+          <p className="text-sm text-success">
             We’re so glad you had a great experience. It was a pleasure hosting
             you!
           </p>
@@ -133,7 +133,7 @@ export function FeedbackGate({
   if (phase === "private") {
     return (
       <div className="space-y-4">
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200">
+        <div className="rounded-xl border border-warning/20 bg-warning/10 p-4 text-sm text-warning">
           We’re sorry it wasn’t perfect. Tell us what went wrong — this goes
           straight to our team so we can make it right.
         </div>
@@ -146,7 +146,7 @@ export function FeedbackGate({
           aria-label="Your feedback"
         />
         {error && (
-          <p className="flex items-center gap-1.5 text-sm text-rose-600">
+          <p className="flex items-center gap-1.5 text-sm text-destructive">
             <AlertCircle className="size-4" /> {error}
           </p>
         )}
@@ -167,7 +167,7 @@ export function FeedbackGate({
   if (phase === "done") {
     return (
       <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-muted/40 p-6 text-center">
-        <Heart className="size-9 text-rose-500" />
+        <Heart className="size-9 text-destructive" />
         <p className="text-lg font-semibold">Thank you — we’ll make it right</p>
         <p className="text-sm text-muted-foreground">
           Your feedback has reached our team and someone will follow up. We
@@ -180,9 +180,9 @@ export function FeedbackGate({
   // --- ERROR ----------------------------------------------------------------
   if (phase === "error") {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 p-6 text-center dark:border-rose-900/50 dark:bg-rose-950/30">
-        <AlertCircle className="size-9 text-rose-600" />
-        <p className="font-semibold text-rose-800 dark:text-rose-200">
+      <div className="flex flex-col items-center gap-3 rounded-xl border border-destructive/20 bg-destructive/10 p-6 text-center">
+        <AlertCircle className="size-9 text-destructive" />
+        <p className="font-semibold text-destructive">
           {error || "Something went wrong"}
         </p>
         <Button

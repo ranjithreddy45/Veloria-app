@@ -116,8 +116,8 @@ function MapLink({ lat, lng }: { lat: number; lng: number }) {
  */
 function GeoOffBanner({ canAdmin }: { canAdmin: boolean }) {
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-[13px] text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/40 dark:text-amber-200">
-      <ShieldOff className="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-400" />
+    <div className="flex items-start gap-3 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-[13px] text-warning">
+      <ShieldOff className="mt-0.5 size-5 shrink-0 text-warning" />
       <div className="space-y-0.5">
         <p className="font-semibold">Location verification is OFF</p>
         <p>

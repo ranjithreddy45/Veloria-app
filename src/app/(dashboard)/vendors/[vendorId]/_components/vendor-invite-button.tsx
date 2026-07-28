@@ -57,7 +57,7 @@ export function VendorInviteButton({ vendorId }: { vendorId: string }) {
           <div className="flex items-center gap-2">
             <Input readOnly value={url} className="text-xs" onFocus={(e) => e.currentTarget.select()} />
             <Button size="icon" variant="outline" onClick={copy} className="shrink-0">
-              {copied ? <Check className="size-4 text-emerald-600" /> : <Copy className="size-4" />}
+              {copied ? <Check className="size-4 text-success" /> : <Copy className="size-4" />}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">

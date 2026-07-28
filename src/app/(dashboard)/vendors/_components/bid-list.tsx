@@ -97,7 +97,7 @@ function BidActionButtons({ bidId }: { bidId: string }) {
       <Button
         size="sm"
         variant="outline"
-        className="h-7 border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950"
+        className="h-7 border-success/20 text-success hover:bg-success/10"
         onClick={handleAccept}
         disabled={isPending !== null}
       >
@@ -111,7 +111,7 @@ function BidActionButtons({ bidId }: { bidId: string }) {
       <Button
         size="sm"
         variant="outline"
-        className="h-7 border-red-200 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950"
+        className="h-7 border-destructive/20 text-destructive hover:bg-destructive/10"
         onClick={handleReject}
         disabled={isPending !== null}
       >

@@ -102,8 +102,8 @@ export function SocialAnalytics({ analytics }: SocialAnalyticsProps) {
 
         <Card>
           <CardContent className="flex items-center gap-3 p-4">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-950">
-              <TrendingUp className="size-5 text-emerald-600 dark:text-emerald-400" />
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-success/15">
+              <TrendingUp className="size-5 text-success" />
             </div>
             <div>
               <p className="text-2xl font-bold">{avgEngagement}%</p>
@@ -114,8 +114,8 @@ export function SocialAnalytics({ analytics }: SocialAnalyticsProps) {
 
         <Card>
           <CardContent className="flex items-center gap-3 p-4">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-950">
-              <Eye className="size-5 text-amber-600 dark:text-amber-400" />
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-warning/15">
+              <Eye className="size-5 text-warning" />
             </div>
             <div>
               <p className="text-2xl font-bold">
@@ -149,7 +149,7 @@ export function SocialAnalytics({ analytics }: SocialAnalyticsProps) {
             {analytics.map((item) => {
               const Icon = PLATFORM_ICONS[item.platform] ?? Instagram;
               const colorClass =
-                PLATFORM_COLORS[item.platform] ?? "text-zinc-600";
+                PLATFORM_COLORS[item.platform] ?? "text-muted-foreground";
               const label =
                 PLATFORM_LABELS[item.platform] ?? item.platform;
 

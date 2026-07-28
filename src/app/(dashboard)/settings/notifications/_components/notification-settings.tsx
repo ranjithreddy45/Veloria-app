@@ -101,13 +101,13 @@ export function NotificationSettings({
   return (
     <div className="space-y-6">
       {/* SMS Placeholder Notice */}
-      <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
-        <AlertCircle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+      <div className="flex items-start gap-3 rounded-lg border border-warning/20 bg-warning/10 p-4">
+        <AlertCircle className="mt-0.5 size-4 shrink-0 text-warning" />
         <div>
-          <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
+          <p className="text-sm font-medium text-warning">
             SMS is in placeholder mode
           </p>
-          <p className="mt-1 text-sm text-amber-600 dark:text-amber-400">
+          <p className="mt-1 text-sm text-warning">
             SMS messages are currently logged to the console. Connect a provider
             like Twilio to send real SMS notifications.
           </p>

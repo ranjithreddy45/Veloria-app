@@ -71,7 +71,7 @@ function DeleteButton({ id }: { id: string }) {
   const [busy, setBusy] = React.useState(false);
   return (
     <Button
-      variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-red-600"
+      variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-destructive"
       disabled={busy}
       onClick={async () => { setBusy(true); await deleteCustomFieldDef(id); setBusy(false); router.refresh(); }}
       title="Deactivate field"
@@ -141,7 +141,7 @@ function FieldDialog({ existing }: { existing?: FieldDef }) {
             Required field
           </label>
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
           <Button onClick={save} disabled={saving} className="gap-1.5">

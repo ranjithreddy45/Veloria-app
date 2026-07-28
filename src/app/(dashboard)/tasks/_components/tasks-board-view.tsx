@@ -142,9 +142,9 @@ export function TasksBoardView({ tasks }: TasksBoardViewProps) {
                   className={cn(
                     "inline-flex items-center gap-1 text-[11.5px] font-medium",
                     urgency === "overdue"
-                      ? "text-red-600 dark:text-red-400"
+                      ? "text-destructive"
                       : urgency === "soon"
-                        ? "text-amber-600 dark:text-amber-400"
+                        ? "text-warning"
                         : "text-muted-foreground"
                   )}
                 >

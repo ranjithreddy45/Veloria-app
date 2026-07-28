@@ -26,7 +26,7 @@ export const inr = (n: number) =>
 /** The mandatory "these are registers, not filed returns" banner. */
 export function NotFiledBanner() {
   return (
-    <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-[12.5px] leading-relaxed text-amber-800 dark:border-amber-400/25 dark:bg-amber-400/10 dark:text-amber-200">
+    <div className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-[12.5px] leading-relaxed text-warning">
       <strong className="font-semibold">These are reconciliation registers.</strong>{" "}
       Statutory RETURN files (PF ECR, ESI, PT challan, Form 24Q) are generated separately and are{" "}
       <strong className="font-semibold">not</strong> produced here. Use these to tie payroll out before filing.

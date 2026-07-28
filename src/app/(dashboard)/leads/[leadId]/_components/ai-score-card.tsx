@@ -62,17 +62,17 @@ export function AIScoreCard({
 
   const scoreColor =
     aiScore !== null && aiScore >= 70
-      ? "text-green-600"
+      ? "text-success"
       : aiScore !== null && aiScore >= 40
-        ? "text-yellow-600"
-        : "text-red-600";
+        ? "text-warning"
+        : "text-destructive";
 
   const badgeColor =
     aiScore !== null && aiScore >= 70
-      ? "bg-green-100 text-green-800 border-green-200"
+      ? "bg-success/10 text-success border-success/20"
       : aiScore !== null && aiScore >= 40
-        ? "bg-yellow-100 text-yellow-800 border-yellow-200"
-        : "bg-red-100 text-red-800 border-red-200";
+        ? "bg-warning/10 text-warning border-warning/20"
+        : "bg-destructive/10 text-destructive border-destructive/20";
 
   return (
     <Card>

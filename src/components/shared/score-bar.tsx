@@ -18,15 +18,15 @@ interface ScoreBarProps {
 }
 
 function scoreColor(pct: number): string {
-  if (pct >= 70) return "bg-emerald-500";
-  if (pct >= 40) return "bg-amber-500";
-  return "bg-rose-500";
+  if (pct >= 70) return "bg-success";
+  if (pct >= 40) return "bg-warning";
+  return "bg-destructive";
 }
 
 function scoreTextColor(pct: number): string {
-  if (pct >= 70) return "text-emerald-700 dark:text-emerald-400";
-  if (pct >= 40) return "text-amber-700 dark:text-amber-400";
-  return "text-rose-700 dark:text-rose-400";
+  if (pct >= 70) return "text-success";
+  if (pct >= 40) return "text-warning";
+  return "text-destructive";
 }
 
 export function ScoreBar({

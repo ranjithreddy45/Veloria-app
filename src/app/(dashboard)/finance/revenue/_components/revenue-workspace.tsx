@@ -228,10 +228,10 @@ function VendorRow({ v }: { v: PayoutStatement }) {
         <TableCell className="text-right font-medium numeric">
           {formatINR(v.total)}
         </TableCell>
-        <TableCell className="text-right numeric text-emerald-600 dark:text-emerald-400">
+        <TableCell className="text-right numeric text-success">
           {formatINR(v.paid)}
         </TableCell>
-        <TableCell className="text-right numeric text-amber-600 dark:text-amber-400">
+        <TableCell className="text-right numeric text-warning">
           {formatINR(v.pending)}
         </TableCell>
       </TableRow>

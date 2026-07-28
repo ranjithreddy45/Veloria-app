@@ -71,8 +71,8 @@ export function GoogleCalendarConfig() {
             variant="outline"
             className={
               connected
-                ? "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400"
-                : "bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400"
+                ? "bg-success/15 text-success border-success/20"
+                : "bg-muted text-muted-foreground border-border"
             }
           >
             {connected ? "Connected" : "Not Connected"}
@@ -113,7 +113,7 @@ export function GoogleCalendarConfig() {
           <div className="space-y-4">
             {/* Connected account */}
             <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3">
-              <CheckCircle2 className="size-5 text-emerald-600" />
+              <CheckCircle2 className="size-5 text-success" />
               <div className="flex-1">
                 <p className="text-sm font-medium">Connected</p>
                 <p className="text-xs text-muted-foreground">
@@ -124,7 +124,7 @@ export function GoogleCalendarConfig() {
                 variant="ghost"
                 size="sm"
                 onClick={handleDisconnect}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10"
               >
                 Disconnect
               </Button>

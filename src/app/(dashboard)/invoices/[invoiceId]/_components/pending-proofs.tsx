@@ -70,9 +70,9 @@ export function PendingProofs({ payments }: { payments: Proof[] }) {
   }
 
   return (
-    <Card className="border-amber-200 bg-amber-50/40">
+    <Card className="border-warning/25 bg-warning/10">
       <CardHeader>
-        <CardTitle className="text-base text-amber-700">
+        <CardTitle className="text-base text-warning">
           Payment proofs to verify ({proofs.length})
         </CardTitle>
       </CardHeader>

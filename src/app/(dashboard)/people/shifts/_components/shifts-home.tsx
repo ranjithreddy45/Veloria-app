@@ -237,7 +237,7 @@ function SwapDialog({ assignmentId, colleagues }: { assignmentId: string; collea
           </div>
           <div className="space-y-1.5"><Label className="text-[12.5px]">Reason (optional)</Label><Input value={reason} onChange={(e) => setReason(e.target.value)} /></div>
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>Cancel</Button>
           <Button onClick={submit} disabled={busy} className="gap-1.5">{busy && <Loader2 className="size-4 animate-spin" />} Request</Button>
@@ -270,7 +270,7 @@ function SwapRowCard({ row }: { row: SwapRow }) {
           <Button size="sm" className="gap-1.5" disabled={!!busy} onClick={() => decide("APPROVED")}>{busy === "APPROVED" ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />} Accept</Button>
         </div>
       </div>
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
     </div>
   );
 }
@@ -310,7 +310,7 @@ function ShiftTypeDialog({ existing }: { existing?: Shift }) {
             </Select>
           </div>
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>Cancel</Button>
           <Button onClick={save} disabled={busy} className="gap-1.5">{busy && <Loader2 className="size-4 animate-spin" />} Save</Button>

@@ -144,7 +144,7 @@ export function TaskChecklist({ taskId, items }: TaskChecklistProps) {
           {optimisticItems.map((item) => (
             <div
               key={item.id}
-              className="group flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-zinc-50 transition-colors"
+              className="group flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-muted transition-colors"
             >
               <Checkbox
                 checked={item.isCompleted}
@@ -156,8 +156,8 @@ export function TaskChecklist({ taskId, items }: TaskChecklistProps) {
                 className={cn(
                   "flex-1 text-sm transition-colors",
                   item.isCompleted
-                    ? "line-through text-zinc-400"
-                    : "text-zinc-700"
+                    ? "line-through text-muted-foreground"
+                    : "text-foreground"
                 )}
               >
                 {item.title}
@@ -165,7 +165,7 @@ export function TaskChecklist({ taskId, items }: TaskChecklistProps) {
               <button
                 onClick={() => handleDelete(item.id)}
                 disabled={deletingIds.has(item.id)}
-                className="shrink-0 rounded p-0.5 text-zinc-300 opacity-100 [@media(hover:hover)]:opacity-0 transition-opacity hover:text-red-500 group-hover:opacity-100 disabled:opacity-50"
+                className="shrink-0 rounded p-0.5 text-muted-foreground opacity-100 [@media(hover:hover)]:opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100 disabled:opacity-50"
               >
                 <XIcon className="size-3.5" />
               </button>
@@ -176,14 +176,14 @@ export function TaskChecklist({ taskId, items }: TaskChecklistProps) {
 
       {/* Empty state */}
       {optimisticItems.length === 0 && (
-        <p className="text-sm text-zinc-400 py-2">
+        <p className="text-sm text-muted-foreground py-2">
           No checklist items yet. Add your first item below.
         </p>
       )}
 
       {/* Add New Item */}
       <div className="flex items-center gap-2 pt-2">
-        <PlusIcon className="size-4 text-zinc-400 shrink-0" />
+        <PlusIcon className="size-4 text-muted-foreground shrink-0" />
         <Input
           placeholder="Add a checklist item..."
           value={newItemTitle}

@@ -195,7 +195,7 @@ export function SavedViewSelector({
           {/* System Views */}
           {systemViews.length > 0 && (
             <DropdownMenuGroup>
-              <DropdownMenuLabel className="text-xs text-zinc-400">
+              <DropdownMenuLabel className="text-xs text-muted-foreground">
                 System Views
               </DropdownMenuLabel>
               {systemViews.map((view) => (
@@ -204,7 +204,7 @@ export function SavedViewSelector({
                   onClick={() => handleSelect(view)}
                   className={cn(activeView?.id === view.id && "bg-accent")}
                 >
-                  <BookmarkIcon className="mr-2 size-3.5 text-zinc-400" />
+                  <BookmarkIcon className="mr-2 size-3.5 text-muted-foreground" />
                   <span className="flex-1">{view.name}</span>
                   {view.isDefault && (
                     <StarIcon className="ml-1 size-3 fill-amber-400 text-amber-400" />
@@ -219,7 +219,7 @@ export function SavedViewSelector({
             <>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
-                <DropdownMenuLabel className="text-xs text-zinc-400">
+                <DropdownMenuLabel className="text-xs text-muted-foreground">
                   My Views
                 </DropdownMenuLabel>
                 {myViews.map((view) => (
@@ -232,7 +232,7 @@ export function SavedViewSelector({
                     onClick={() => handleSelect(view)}
                   >
                     <span className="flex items-center gap-2">
-                      <BookmarkIcon className="size-3.5 text-zinc-400" />
+                      <BookmarkIcon className="size-3.5 text-muted-foreground" />
                       {view.name}
                     </span>
                     <span className="flex items-center gap-1 opacity-100 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 transition-opacity">
@@ -241,7 +241,7 @@ export function SavedViewSelector({
                           e.stopPropagation();
                           handleSetDefault(view.id);
                         }}
-                        className="p-0.5 hover:text-amber-500"
+                        className="p-0.5 hover:text-warning"
                         title="Set as default"
                       >
                         <StarIcon className={cn("size-3", view.isDefault && "fill-amber-400 text-amber-400")} />
@@ -251,7 +251,7 @@ export function SavedViewSelector({
                           e.stopPropagation();
                           handleDelete(view.id);
                         }}
-                        className="p-0.5 hover:text-red-500"
+                        className="p-0.5 hover:text-destructive"
                         title="Delete view"
                       >
                         <TrashIcon className="size-3" />
@@ -268,7 +268,7 @@ export function SavedViewSelector({
             <>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
-                <DropdownMenuLabel className="text-xs text-zinc-400">
+                <DropdownMenuLabel className="text-xs text-muted-foreground">
                   Shared Views
                 </DropdownMenuLabel>
                 {sharedViews.map((view) => (
@@ -277,7 +277,7 @@ export function SavedViewSelector({
                     onClick={() => handleSelect(view)}
                     className={cn(activeView?.id === view.id && "bg-accent")}
                   >
-                    <GlobeIcon className="mr-2 size-3.5 text-zinc-400" />
+                    <GlobeIcon className="mr-2 size-3.5 text-muted-foreground" />
                     {view.name}
                   </DropdownMenuItem>
                 ))}
@@ -320,7 +320,7 @@ export function SavedViewSelector({
                 id="shared"
                 checked={isShared}
                 onChange={(e) => setIsShared(e.target.checked)}
-                className="rounded border-zinc-300"
+                className="rounded border-border"
               />
               <Label htmlFor="shared" className="text-sm font-normal">
                 Share with team

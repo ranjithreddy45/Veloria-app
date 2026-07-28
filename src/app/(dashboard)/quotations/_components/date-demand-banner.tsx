@@ -45,36 +45,36 @@ export function DateDemandBanner({
     <div
       className={`space-y-2 rounded-xl border p-3 ${
         belowFloor || discountingPeak
-          ? "border-rose-300 bg-rose-50 dark:border-rose-900 dark:bg-rose-950/30"
-          : "border-amber-300 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30"
+          ? "border-destructive/30 bg-destructive/10"
+          : "border-warning/30 bg-warning/10"
       }`}
     >
       <div className="flex items-center gap-2">
         {hot ? <Flame className="size-4 text-rose-600" /> : <TrendingUp className="size-4 text-amber-600" />}
-        <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+        <p className="text-foreground text-sm font-semibold">
           {demand.label} — charge a +{demand.premiumPct}% premium
         </p>
       </div>
 
       <div className="grid grid-cols-2 gap-2 text-xs">
-        <div className="rounded-lg bg-white/60 px-2.5 py-1.5 dark:bg-black/20">
+        <div className="bg-card/60 rounded-lg px-2.5 py-1.5">
           <p className="text-muted-foreground">Recommended floor</p>
           <p className="font-semibold numeric">{inr(floor)} <span className="font-normal text-muted-foreground">+ taxes</span></p>
         </div>
-        <div className="rounded-lg bg-white/60 px-2.5 py-1.5 dark:bg-black/20">
+        <div className="bg-card/60 rounded-lg px-2.5 py-1.5">
           <p className="text-muted-foreground">Your price (pre-tax)</p>
-          <p className={`font-semibold numeric ${belowFloor ? "text-rose-600" : "text-emerald-600"}`}>{inr(taxableAmount)}</p>
+          <p className={`font-semibold numeric ${belowFloor ? "text-destructive" : "text-success"}`}>{inr(taxableAmount)}</p>
         </div>
       </div>
 
       {belowFloor && (
-        <p className="flex items-start gap-1.5 text-xs font-medium text-rose-700 dark:text-rose-300">
+        <p className="text-destructive flex items-start gap-1.5 text-xs font-medium">
           <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
           Below the recommended floor for this date — you're leaving about {inr(shortfall)} on the table. Raise the price.
         </p>
       )}
       {discountingPeak && (
-        <p className="flex items-start gap-1.5 text-xs font-medium text-rose-700 dark:text-rose-300">
+        <p className="text-destructive flex items-start gap-1.5 text-xs font-medium">
           <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
           You&apos;re applying a {discountPct}% discount on a high-demand date — remove it. Peak dates should not be discounted or early-birded.
         </p>

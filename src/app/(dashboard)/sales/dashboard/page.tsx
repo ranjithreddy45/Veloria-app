@@ -207,12 +207,12 @@ export default async function SalesDashboardPage({
                 {/* Goal-gradient: small remaining distance to beat last month's booked revenue */}
                 {a.lastMonthRevenue != null && a.lastMonthRevenue > 0 && (
                   t!.revenueBooked < a.lastMonthRevenue ? (
-                    <div className="numeric inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-[12px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200 dark:bg-amber-400/10 dark:text-amber-400 dark:ring-amber-400/25">
+                    <div className="numeric bg-warning/10 text-warning ring-warning/20 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-medium ring-1 ring-inset">
                       <TrendingUp className="size-3.5" aria-hidden />
                       {inr(a.lastMonthRevenue - t!.revenueBooked)} to beat last month
                     </div>
                   ) : (
-                    <div className="numeric inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-[12px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200 dark:bg-emerald-400/10 dark:text-emerald-400 dark:ring-emerald-400/25">
+                    <div className="numeric bg-success/10 text-success ring-success/20 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-medium ring-1 ring-inset">
                       🎉 Last month beaten by {inr(t!.revenueBooked - a.lastMonthRevenue)}
                     </div>
                   )
@@ -256,8 +256,8 @@ export default async function SalesDashboardPage({
                           <TableCell className="numeric px-3 py-2.5 text-right">{e.enquiriesTotal}</TableCell>
                           <TableCell className="numeric px-3 py-2.5 text-right">{e.siteVisits}</TableCell>
                           <TableCell className="numeric px-3 py-2.5 text-right">{e.quotationsSent}</TableCell>
-                          <TableCell className="numeric px-3 py-2.5 text-right text-emerald-600 dark:text-emerald-400">{e.bookingsConfirmed}</TableCell>
-                          <TableCell className="numeric px-3 py-2.5 text-right text-rose-600 dark:text-rose-400">{e.bookingsLost}</TableCell>
+                          <TableCell className="numeric text-success px-3 py-2.5 text-right">{e.bookingsConfirmed}</TableCell>
+                          <TableCell className="numeric text-destructive px-3 py-2.5 text-right">{e.bookingsLost}</TableCell>
                           <TableCell className="numeric px-3 py-2.5 text-right">{inr(e.advanceCollected)}</TableCell>
                           <TableCell className="numeric px-3 py-2.5 text-right">{inr(e.upsellValue)}</TableCell>
                           <TableCell className="numeric px-3 py-2.5 text-right">{inr(e.revenue)}</TableCell>

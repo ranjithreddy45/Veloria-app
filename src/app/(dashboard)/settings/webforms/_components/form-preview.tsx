@@ -26,10 +26,10 @@ export function FormPreview({ fields }: FormPreviewProps) {
       <div className="space-y-5">
         {fields.map((field, index) => (
           <div key={index}>
-            <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label className="mb-1.5 block text-sm font-medium text-muted-foreground">
               {field.label || "Untitled Field"}
               {field.required && (
-                <span className="ml-0.5 text-red-500">*</span>
+                <span className="ml-0.5 text-destructive">*</span>
               )}
             </label>
 
@@ -38,12 +38,12 @@ export function FormPreview({ fields }: FormPreviewProps) {
                 placeholder={field.placeholder || ""}
                 rows={4}
                 disabled
-                className="w-full rounded-lg border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500"
+                className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-muted-foreground"
               />
             ) : field.type === "SELECT" ? (
               <select
                 disabled
-                className="w-full rounded-lg border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500"
+                className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-muted-foreground"
               >
                 <option>
                   {field.placeholder || `Select ${field.label || "option"}`}
@@ -67,7 +67,7 @@ export function FormPreview({ fields }: FormPreviewProps) {
                 }
                 placeholder={field.placeholder || ""}
                 disabled
-                className="w-full rounded-lg border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500"
+                className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-muted-foreground"
               />
             )}
           </div>

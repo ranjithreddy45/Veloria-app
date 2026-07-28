@@ -53,7 +53,7 @@ function IrnCell({ irn }: { irn: string }) {
       className="inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 numeric text-[11.5px] text-muted-foreground transition-premium hover:bg-muted hover:text-foreground"
     >
       <span className="numeric">{irn.slice(0, 12)}…{irn.slice(-4)}</span>
-      {copied ? <Check className="size-3 text-emerald-600" /> : <Copy className="size-3" />}
+      {copied ? <Check className="size-3 text-success" /> : <Copy className="size-3" />}
     </button>
   );
 }
@@ -161,7 +161,7 @@ export function EInvoiceWorkspace({ rows, canWrite }: { rows: EInvoiceRow[]; can
                             {busy ? <Loader2 className="size-3.5 animate-spin" /> : "Generate"}
                           </Button>
                         ) : r.status === "GENERATED" ? (
-                          <Button size="sm" variant="ghost" disabled={busy} onClick={() => handleCancel(r.invoiceId)} className="text-rose-600 hover:text-rose-700">
+                          <Button size="sm" variant="ghost" disabled={busy} onClick={() => handleCancel(r.invoiceId)} className="text-destructive hover:text-destructive">
                             {busy ? <Loader2 className="size-3.5 animate-spin" /> : "Cancel"}
                           </Button>
                         ) : (

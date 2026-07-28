@@ -261,14 +261,14 @@ export function HandoverCard({
             <div className="flex flex-wrap items-center gap-2">
               <Badge
                 variant="outline"
-                className="border-amber-200 bg-amber-100 font-medium text-amber-800"
+                className="border-warning/20 bg-warning/10 font-medium text-warning"
               >
                 Awaiting schedule
               </Badge>
               {slaOverdue && (
                 <Badge
                   variant="outline"
-                  className="border-red-200 bg-red-100 font-medium text-red-800"
+                  className="border-destructive/20 bg-destructive/10 font-medium text-destructive"
                 >
                   SLA overdue
                 </Badge>
@@ -345,7 +345,7 @@ export function HandoverCard({
           <div className="flex flex-wrap items-center gap-2">
             <Badge
               variant="outline"
-              className="gap-1 border-emerald-200 bg-emerald-100 font-medium text-emerald-800"
+              className="gap-1 border-success/20 bg-success/10 font-medium text-success"
             >
               <CheckCircle2 className="size-3" />
               Completed
@@ -509,7 +509,7 @@ export function HandoverCard({
             {mode === "VIRTUAL" && (
               <div className="space-y-1.5">
                 <Label htmlFor="handover-url" className="text-xs">
-                  Meeting link <span className="text-red-500">*</span>
+                  Meeting link <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="handover-url"
@@ -524,7 +524,7 @@ export function HandoverCard({
             {mode === "PHYSICAL" && (
               <div className="space-y-1.5">
                 <Label htmlFor="handover-loc" className="text-xs">
-                  Location <span className="text-red-500">*</span>
+                  Location <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="handover-loc"
@@ -579,7 +579,7 @@ function GuestConfirmationIndicator({
       <div className="flex flex-wrap items-center gap-2">
         <Badge
           variant="outline"
-          className="gap-1 border-emerald-200 bg-emerald-100 font-medium text-emerald-800"
+          className="gap-1 border-success/20 bg-success/10 font-medium text-success"
         >
           <CheckCircle2 className="size-3" />
           Confirmed
@@ -603,7 +603,7 @@ function GuestConfirmationIndicator({
             className={cn(
               "font-medium",
               hoursLeft <= 12
-                ? "border-amber-200 bg-amber-100 text-amber-800"
+                ? "border-warning/20 bg-warning/10 text-warning"
                 : "border-sky-200 bg-sky-100 text-sky-800"
             )}
           >
@@ -619,7 +619,7 @@ function GuestConfirmationIndicator({
       <div className="flex flex-wrap items-center gap-2">
         <Badge
           variant="outline"
-          className="border-red-200 bg-red-100 font-medium text-red-800"
+          className="border-destructive/20 bg-destructive/10 font-medium text-destructive"
         >
           Confirmation overdue
         </Badge>

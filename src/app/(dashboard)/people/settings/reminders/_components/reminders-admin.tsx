@@ -138,7 +138,7 @@ function DeleteButton({ id }: { id: string }) {
   const [pending, startTransition] = React.useTransition();
   return (
     <Button
-      variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-red-600"
+      variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-destructive"
       disabled={pending}
       onClick={() => {
         startTransition(async () => {

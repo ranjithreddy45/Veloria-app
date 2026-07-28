@@ -151,7 +151,7 @@ export function ReferralRuleForm({ initialData }: ReferralRuleFormProps) {
   }
 
   return (
-    <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+    <Card className="border-border shadow-sm">
       <CardHeader>
         <CardTitle>
           {isEditing ? "Edit Rule" : "Create Rule"}
@@ -351,7 +351,7 @@ export function ReferralRuleForm({ initialData }: ReferralRuleFormProps) {
                 control={form.control}
                 name="isActive"
                 render={({ field }) => (
-                  <FormItem className="flex items-center justify-between rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 p-4">
+                  <FormItem className="flex items-center justify-between rounded-lg border border-border p-4">
                     <div>
                       <FormLabel className="text-base">Active</FormLabel>
                       <p className="text-sm text-muted-foreground">

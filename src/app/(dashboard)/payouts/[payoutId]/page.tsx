@@ -130,7 +130,7 @@ export default async function PayoutDetailPage({
             {payout.notes && (
               <div>
                 <p className="mb-1 text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">Notes</p>
-                <p className="text-sm whitespace-pre-wrap text-zinc-600">
+                <p className="text-sm whitespace-pre-wrap text-muted-foreground">
                   {payout.notes}
                 </p>
               </div>

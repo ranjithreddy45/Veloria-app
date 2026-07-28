@@ -24,7 +24,7 @@ export function StressToggle({ stress }: { stress: boolean }) {
     <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border bg-card px-3 py-1.5 shadow-card">
       <CloudRain
         className={
-          stress ? "size-4 text-rose-500" : "size-4 text-muted-foreground"
+          stress ? "size-4 text-destructive" : "size-4 text-muted-foreground"
         }
       />
       <span className="text-xs font-medium">Stress test</span>

@@ -46,9 +46,9 @@ export function SlotScarcity({
   if (!data || data.chips.length === 0) return null;
 
   return (
-    <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 dark:border-amber-900 dark:bg-amber-950/30">
+    <div className="rounded-2xl border border-warning/20 bg-warning/10 p-4">
       {data.message && (
-        <p className="flex items-center gap-1.5 text-[13px] font-semibold text-amber-800 dark:text-amber-300">
+        <p className="flex items-center gap-1.5 text-[13px] font-semibold text-warning">
           <Flame className="size-4" />
           {data.message}
         </p>
@@ -59,8 +59,8 @@ export function SlotScarcity({
             key={c.slot}
             className={
               c.free
-                ? "inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[12px] font-medium text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300"
-                : "inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-100 px-2.5 py-1 text-[12px] font-medium text-zinc-400 line-through dark:border-zinc-800 dark:bg-zinc-800/50"
+                ? "inline-flex items-center gap-1 rounded-full border border-success/20 bg-success/10 px-2.5 py-1 text-[12px] font-medium text-success"
+                : "inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2.5 py-1 text-[12px] font-medium text-muted-foreground line-through"
             }
           >
             {c.free ? <Check className="size-3" /> : <Lock className="size-3" />}

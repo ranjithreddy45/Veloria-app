@@ -285,7 +285,7 @@ export function AssignmentRulesManager() {
                         title={rule.isActive ? "Disable" : "Enable"}
                       >
                         {rule.isActive ? (
-                          <ToggleRightIcon className="size-4 text-emerald-600" />
+                          <ToggleRightIcon className="size-4 text-success" />
                         ) : (
                           <ToggleLeftIcon className="size-4 text-muted-foreground" />
                         )}

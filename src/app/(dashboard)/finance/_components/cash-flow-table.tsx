@@ -69,7 +69,7 @@ export function CashFlowTable({
                   </td>
                   <td className="px-4 py-2.5 text-right numeric">
                     {r.inflow > 0 ? (
-                      <span className="text-emerald-600 dark:text-emerald-400">
+                      <span className="text-success">
                         {formatINR(r.inflow)}
                       </span>
                     ) : (
@@ -78,7 +78,7 @@ export function CashFlowTable({
                   </td>
                   <td className="px-4 py-2.5 text-right numeric">
                     {r.outflow > 0 ? (
-                      <span className="text-rose-600 dark:text-rose-400">
+                      <span className="text-destructive">
                         ({formatINR(r.outflow)})
                       </span>
                     ) : (
@@ -88,7 +88,7 @@ export function CashFlowTable({
                   <td
                     className={cn(
                       "px-4 py-2.5 text-right numeric",
-                      r.net < 0 ? "text-rose-600 dark:text-rose-400" : "text-foreground",
+                      r.net < 0 ? "text-destructive" : "text-foreground",
                     )}
                   >
                     {r.net < 0 ? `(${formatINR(Math.abs(r.net))})` : formatINR(r.net)}
@@ -96,7 +96,7 @@ export function CashFlowTable({
                   <td
                     className={cn(
                       "px-4 py-2.5 text-right font-medium numeric",
-                      neg ? "text-rose-600 dark:text-rose-400" : "text-foreground",
+                      neg ? "text-destructive" : "text-foreground",
                     )}
                   >
                     {neg
@@ -108,7 +108,7 @@ export function CashFlowTable({
                       <div
                         className={cn(
                           "h-full rounded-full",
-                          neg ? "bg-rose-500" : "bg-emerald-500",
+                          neg ? "bg-destructive" : "bg-success",
                         )}
                         style={{ width: `${barPct}%` }}
                         aria-hidden

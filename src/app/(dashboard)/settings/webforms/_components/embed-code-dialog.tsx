@@ -118,7 +118,7 @@ export function JsEmbedPanel({ jsEmbed }: { jsEmbed: string }) {
           and the snippet simply skips conversion firing.
         </p>
       </div>
-      <pre className="overflow-x-auto rounded-lg border bg-zinc-50 p-3 text-xs dark:bg-zinc-900">
+      <pre className="overflow-x-auto rounded-lg border bg-muted p-3 text-xs">
         {snippet}
       </pre>
       <div className="flex justify-end">
@@ -168,7 +168,7 @@ export function EmbedCodeDialog({
               Share this link directly with your leads or link to it from your website.
             </p>
             <div className="flex items-center gap-2">
-              <code className="flex-1 overflow-x-auto rounded-lg border bg-zinc-50 p-3 text-sm dark:bg-zinc-900">
+              <code className="flex-1 overflow-x-auto rounded-lg border bg-muted p-3 text-sm">
                 {formUrl}
               </code>
               <CopyBtn text={formUrl} label="Copy Link" />
@@ -180,7 +180,7 @@ export function EmbedCodeDialog({
             <p className="text-muted-foreground text-sm">
               Paste this HTML snippet into your website to embed the form in an iframe.
             </p>
-            <pre className="overflow-x-auto rounded-lg border bg-zinc-50 p-3 text-xs dark:bg-zinc-900">
+            <pre className="overflow-x-auto rounded-lg border bg-muted p-3 text-xs">
               {iframe}
             </pre>
             <div className="flex justify-end">

@@ -150,7 +150,7 @@ function DeleteButton({ id, name }: { id: string; name: string }) {
         <Button
           variant="ghost"
           size="icon"
-          className="size-8 text-muted-foreground hover:text-red-600"
+          className="size-8 text-muted-foreground hover:text-destructive"
           title="Delete"
         >
           <Trash2 className="size-4" />

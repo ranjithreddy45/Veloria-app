@@ -67,7 +67,7 @@ function TierCard({
           {tier.lines.map((l) => (
             <li key={l.sl} className="flex items-start justify-between gap-3">
               <span className="text-muted-foreground flex items-start gap-2">
-                <Check className="mt-0.5 size-3.5 shrink-0 text-emerald-500" />
+                <Check className="mt-0.5 size-3.5 shrink-0 text-success" />
                 <span>
                   <span className="text-foreground font-medium">
                     {l.particulars}
@@ -93,7 +93,7 @@ function TierCard({
             <Row
               label="Discount"
               value={`− ${inr(tier.discountAmount)}`}
-              accent="text-emerald-600 dark:text-emerald-400"
+              accent="text-success"
             />
           )}
           <Row label="Taxes" value={inr(tier.tax)} />
@@ -257,7 +257,7 @@ export function PublicQuoteView({
       {/* Anchor hint for multi-tier */}
       {isMultiTier && (
         <p className="text-muted-foreground flex items-center justify-center gap-1.5 text-center text-[12.5px]">
-          <Sparkles className="size-3.5 text-amber-500" />
+          <Sparkles className="size-3.5 text-warning" />
           Choose the experience that fits you best — pay 20% to block your date instantly.
         </p>
       )}

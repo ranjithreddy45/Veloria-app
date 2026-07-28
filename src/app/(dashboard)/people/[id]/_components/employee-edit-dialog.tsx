@@ -220,7 +220,7 @@ export function EmployeeEditDialog({ employee, entities, verticals, departments,
           </F>
         </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
@@ -230,11 +230,11 @@ export function EmployeeEditDialog({ employee, entities, verticals, departments,
         </DialogFooter>
 
         {mayArchive && (
-          <div className="mt-2 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900/50 dark:bg-red-950/30">
+          <div className="mt-2 rounded-lg border border-destructive/20 bg-destructive/10 p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-medium text-red-700 dark:text-red-400">Archive employee</p>
-                <p className="text-[12.5px] text-red-600/80 dark:text-red-400/70">
+                <p className="text-sm font-medium text-destructive">Archive employee</p>
+                <p className="text-[12.5px] text-destructive/80">
                   Marks the record as exited and removes them from the directory. This can’t be undone here.
                 </p>
               </div>
@@ -252,13 +252,13 @@ export function EmployeeEditDialog({ employee, entities, verticals, departments,
                       approvals assigned to them to the HR queue. They will no longer appear in the directory.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
-                  {archiveError && <p className="text-sm text-red-600">{archiveError}</p>}
+                  {archiveError && <p className="text-sm text-destructive">{archiveError}</p>}
                   <AlertDialogFooter>
                     <AlertDialogCancel disabled={archiving}>Cancel</AlertDialogCancel>
                     <AlertDialogAction
                       onClick={(e) => { e.preventDefault(); handleArchive(); }}
                       disabled={archiving}
-                      className="gap-1.5 bg-red-600 text-white hover:bg-red-700 focus:ring-red-600"
+                      className="gap-1.5 bg-destructive text-white hover:bg-destructive/90 focus:ring-destructive"
                     >
                       {archiving && <Loader2 className="size-4 animate-spin" />} Archive employee
                     </AlertDialogAction>

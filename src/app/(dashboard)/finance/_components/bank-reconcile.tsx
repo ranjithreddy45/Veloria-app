@@ -143,8 +143,8 @@ export function BankReconcile({
                   <TableRow key={t.id}>
                     <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{formatDate(t.date)}</TableCell>
                     <TableCell className="max-w-[280px] truncate text-sm" title={t.description}>{t.description}</TableCell>
-                    <TableCell className="text-right numeric text-rose-600">{t.debit > 0 ? formatINR(t.debit) : "—"}</TableCell>
-                    <TableCell className="text-right numeric text-emerald-600">{t.credit > 0 ? formatINR(t.credit) : "—"}</TableCell>
+                    <TableCell className="text-right numeric text-destructive">{t.debit > 0 ? formatINR(t.debit) : "—"}</TableCell>
+                    <TableCell className="text-right numeric text-success">{t.credit > 0 ? formatINR(t.credit) : "—"}</TableCell>
                     <TableCell><StatusPill label={t.status.toLowerCase()} hue={STATUS_HUE[t.status]} size="xs" /></TableCell>
                     <TableCell className="text-right">
                       {t.status === "MATCHED" && (
@@ -165,7 +165,7 @@ export function BankReconcile({
                           <Button size="sm" variant="ghost" disabled={busy === t.id} onClick={() => run(t.id, () => setBankTxnStatus(t.id, "IGNORED"), () => "Ignored.")} title="Ignore">×</Button>
                         </div>
                       )}
-                      {t.status === "RECONCILED" && <span className="text-xs text-emerald-600">✓</span>}
+                      {t.status === "RECONCILED" && <span className="text-xs text-success">✓</span>}
                       {t.status === "IGNORED" && (
                         <Button size="sm" variant="ghost" disabled={busy === t.id} onClick={() => run(t.id, () => setBankTxnStatus(t.id, "UNMATCHED"), () => "Restored.")}>Restore</Button>
                       )}
@@ -186,7 +186,7 @@ function Stat({ label, value, sub, tone }: { label: string; value: string; sub?:
   return (
     <div className="rounded-xl border bg-card p-3 shadow-card">
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={`text-lg font-semibold numeric ${tone === "warn" ? "text-amber-600" : tone === "ok" ? "text-emerald-600" : ""}`}>{value}</p>
+      <p className={`text-lg font-semibold numeric ${tone === "warn" ? "text-warning" : tone === "ok" ? "text-success" : ""}`}>{value}</p>
       {sub && <p className="text-[11px] text-muted-foreground">{sub}</p>}
     </div>
   );

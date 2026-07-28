@@ -134,7 +134,7 @@ export function ApiKeyManager({ initialKeys }: Props) {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="flex items-start gap-2 rounded-md bg-amber-50 dark:bg-amber-950/30 p-3 text-sm text-amber-800 dark:text-amber-300">
+                  <div className="flex items-start gap-2 rounded-md bg-warning/10 p-3 text-sm text-warning">
                     <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
                     <span>
                       Copy this key now. It will <strong>not be shown again</strong>.
@@ -188,8 +188,8 @@ export function ApiKeyManager({ initialKeys }: Props) {
                     variant="outline"
                     className={
                       key.isActive
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                        : "bg-red-50 text-red-700 border-red-200"
+                        ? "bg-success/10 text-success border-success/20"
+                        : "bg-destructive/10 text-destructive border-destructive/20"
                     }
                   >
                     {key.isActive ? "Active" : "Revoked"}

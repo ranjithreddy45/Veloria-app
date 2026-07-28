@@ -117,18 +117,18 @@ export function Importer() {
           <Button onClick={runPreview} disabled={busy || !text.trim()} className="gap-1.5">
             {busy && !preview ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" />} Validate
           </Button>
-          {done && <span className="text-[13px] text-emerald-600">{done}</span>}
+          {done && <span className="text-[13px] text-success">{done}</span>}
         </div>
       </div>
 
       {preview && (
         <div className="rounded-xl border bg-card p-5">
           <div className="mb-3 flex flex-wrap items-center gap-3">
-            <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-emerald-600">
+            <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-success">
               <CheckCircle2 className="size-4" /> {preview.validCount} ready
             </span>
             {preview.invalidCount > 0 && (
-              <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-red-600">
+              <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-destructive">
                 <XCircle className="size-4" /> {preview.invalidCount} with errors
               </span>
             )}
@@ -159,17 +159,17 @@ export function Importer() {
                     <td className="px-3 py-2 font-medium">{r.name}</td>
                     <td className="px-3 py-2">
                       {r.ok ? (
-                        <span className="inline-flex items-center gap-1 text-emerald-600"><CheckCircle2 className="size-3.5" /> Ready</span>
+                        <span className="inline-flex items-center gap-1 text-success"><CheckCircle2 className="size-3.5" /> Ready</span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-red-600"><XCircle className="size-3.5" /> Error</span>
+                        <span className="inline-flex items-center gap-1 text-destructive"><XCircle className="size-3.5" /> Error</span>
                       )}
                     </td>
                     <td className="px-3 py-2 text-[12px] text-muted-foreground">
                       {r.errors.map((e, i) => (
-                        <div key={`e${i}`} className="text-red-600">{e}</div>
+                        <div key={`e${i}`} className="text-destructive">{e}</div>
                       ))}
                       {r.warnings.map((w, i) => (
-                        <div key={`w${i}`} className="inline-flex items-center gap-1 text-amber-600">
+                        <div key={`w${i}`} className="inline-flex items-center gap-1 text-warning">
                           <AlertTriangle className="size-3" /> {w}
                         </div>
                       ))}

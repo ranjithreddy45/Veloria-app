@@ -24,8 +24,8 @@ export default function VendorPortalError({
     <div className="flex min-h-[60vh] flex-col items-center justify-center px-4">
       <div className="flex max-w-md flex-col items-center gap-6 text-center">
         {/* Icon */}
-        <div className="flex size-16 items-center justify-center rounded-2xl bg-red-500/10">
-          <AlertTriangle className="size-8 text-red-600 dark:text-red-400" />
+        <div className="flex size-16 items-center justify-center rounded-2xl bg-destructive/10">
+          <AlertTriangle className="size-8 text-destructive" />
         </div>
 
         {/* Text */}

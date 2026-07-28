@@ -208,7 +208,7 @@ export function Leaderboard({ initialData }: LeaderboardProps) {
           <div className="flex items-center justify-center py-16">
             <div className="text-center">
               <TrophyIcon className="mx-auto size-10 text-zinc-300 dark:text-zinc-600" />
-              <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
+              <p className="mt-3 text-sm text-muted-foreground">
                 No leaderboard data for this period.
               </p>
             </div>
@@ -234,10 +234,10 @@ export function Leaderboard({ initialData }: LeaderboardProps) {
                       {getInitials(entry.userName)}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                      <p className="truncate text-sm font-semibold text-foreground">
                         {entry.userName}
                       </p>
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      <p className="text-xs text-muted-foreground">
                         {formatRole(entry.role)}
                       </p>
                     </div>
@@ -245,13 +245,13 @@ export function Leaderboard({ initialData }: LeaderboardProps) {
 
                   {/* Metric bar + value */}
                   <div className="flex items-center gap-3 shrink-0">
-                    <div className="hidden h-2 w-24 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800 sm:block">
+                    <div className="hidden h-2 w-24 overflow-hidden rounded-full bg-muted sm:block">
                       <div
                         className="h-full rounded-full bg-indigo-500 transition-all"
                         style={{ width: `${barWidth}%` }}
                       />
                     </div>
-                    <span className="min-w-[90px] text-right text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                    <span className="min-w-[90px] text-right text-sm font-bold text-foreground">
                       {formatMetricValue(entry.metricValue, metric)}
                     </span>
                   </div>

@@ -44,11 +44,11 @@ export function TicketDetail({
         </div>
 
         {comments.map((c) => (
-          <div key={c.id} className={cn("rounded-xl border p-4", c.isInternal ? "border-amber-200 bg-amber-50" : "bg-card")}>
+          <div key={c.id} className={cn("rounded-xl border p-4", c.isInternal ? "border-warning/20 bg-warning/10" : "bg-card")}>
             <div className="flex items-center gap-2">
               <Avatar size="sm"><AvatarImage src={c.author.image || undefined} /><AvatarFallback className="bg-primary/10 text-[10px] text-primary">{(c.author.name ?? "?").split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}</AvatarFallback></Avatar>
               <span className="text-[13px] font-medium">{c.author.name ?? "—"}</span>
-              {c.isInternal && <span className="inline-flex items-center gap-1 text-[11px] text-amber-700"><Lock className="size-3" /> Internal note</span>}
+              {c.isInternal && <span className="inline-flex items-center gap-1 text-[11px] text-warning"><Lock className="size-3" /> Internal note</span>}
               <span className="ml-auto text-[11.5px] text-muted-foreground">{formatDateTime(c.createdAt)}</span>
             </div>
             <p className="mt-2 whitespace-pre-wrap text-[13.5px]">{c.body}</p>

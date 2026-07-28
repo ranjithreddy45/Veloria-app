@@ -294,7 +294,7 @@ export function VendorWorkOrdersCard({ bookingId, workOrders, vendors }: Props) 
                         )}
                       </div>
                       <p className="text-muted-foreground mt-0.5 text-sm">{wo.serviceType}</p>
-                      {wo.scope && <p className="mt-1 text-xs text-zinc-600 whitespace-pre-wrap">{wo.scope}</p>}
+                      {wo.scope && <p className="mt-1 text-xs text-muted-foreground whitespace-pre-wrap">{wo.scope}</p>}
                       {wo.status === "DECLINED" && wo.declineReason && (
                         <p className="mt-1 text-xs text-rose-600">Declined: {wo.declineReason}</p>
                       )}
@@ -302,7 +302,7 @@ export function VendorWorkOrdersCard({ bookingId, workOrders, vendors }: Props) 
                         <p className="mt-1 text-xs text-emerald-700">Signed by {wo.signerName}</p>
                       )}
                       {wo.advanceReleasedAt && (
-                        <p className="mt-1 text-xs text-emerald-700">Advance release sent to Finance</p>
+                        <p className="mt-1 text-xs text-success">Advance release sent to Finance</p>
                       )}
                     </div>
                     {wo.advanceAmount != null && (
@@ -358,7 +358,7 @@ export function VendorWorkOrdersCard({ bookingId, workOrders, vendors }: Props) 
                       <Button
                         size="sm"
                         variant="outline"
-                        className="text-rose-600 hover:text-rose-700"
+                        className="text-destructive hover:text-destructive"
                         disabled={busy}
                         onClick={() => {
                           setDeclineTarget(wo);

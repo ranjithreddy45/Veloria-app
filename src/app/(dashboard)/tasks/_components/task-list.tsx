@@ -117,7 +117,7 @@ function getColumns(
       ),
       cell: ({ row }) => {
         const date = row.getValue("dueDate") as Date | null;
-        if (!date) return <span className="text-zinc-400">--</span>;
+        if (!date) return <span className="text-muted-foreground">--</span>;
 
         const isOverdue =
           new Date(date) < new Date() &&
@@ -127,7 +127,7 @@ function getColumns(
           <span
             className={cn(
               "text-sm",
-              isOverdue ? "text-red-600 font-medium" : "text-zinc-600"
+              isOverdue ? "text-destructive font-medium" : "text-muted-foreground"
             )}
           >
             {format(new Date(date), "dd MMM yyyy")}
@@ -140,7 +140,7 @@ function getColumns(
       header: "Assignee",
       cell: ({ row }) => {
         const assignee = row.original.assignee;
-        if (!assignee) return <span className="text-zinc-400">--</span>;
+        if (!assignee) return <span className="text-muted-foreground">--</span>;
 
         const initials = assignee.name
           ? assignee.name
@@ -159,7 +159,7 @@ function getColumns(
                 {initials}
               </AvatarFallback>
             </Avatar>
-            <span className="text-sm text-zinc-700 truncate max-w-[120px]">
+            <span className="text-sm text-foreground truncate max-w-[120px]">
               {assignee.name ?? assignee.email}
             </span>
           </div>
@@ -171,9 +171,9 @@ function getColumns(
       header: "Booking",
       cell: ({ row }) => {
         const booking = row.original.booking;
-        if (!booking) return <span className="text-zinc-400">--</span>;
+        if (!booking) return <span className="text-muted-foreground">--</span>;
         return (
-          <span className="text-sm text-zinc-600 truncate max-w-[150px] block">
+          <span className="text-sm text-muted-foreground truncate max-w-[150px] block">
             {booking.eventName}
           </span>
         );
@@ -185,7 +185,7 @@ function getColumns(
       cell: ({ row }) => {
         const items = row.original.checklistItems;
         if (!items || items.length === 0) {
-          return <span className="text-zinc-400">--</span>;
+          return <span className="text-muted-foreground">--</span>;
         }
         const completed = items.filter((i) => i.isCompleted).length;
         const total = items.length;
@@ -193,16 +193,16 @@ function getColumns(
 
         return (
           <div className="flex items-center gap-2">
-            <div className="h-1.5 w-12 rounded-full bg-zinc-200">
+            <div className="h-1.5 w-12 rounded-full bg-muted">
               <div
                 className={cn(
                   "h-1.5 rounded-full",
-                  completed === total ? "bg-green-500" : "bg-blue-500"
+                  completed === total ? "bg-success" : "bg-blue-500"
                 )}
                 style={{ width: `${pct}%` }}
               />
             </div>
-            <span className="text-xs text-zinc-500">
+            <span className="text-xs text-muted-foreground">
               {completed}/{total}
             </span>
           </div>
@@ -231,7 +231,7 @@ function getColumns(
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                className="text-red-600"
+                className="text-destructive"
                 onClick={() => onDelete(task.id)}
               >
                 <TrashIcon className="mr-2 size-4" />

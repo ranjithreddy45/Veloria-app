@@ -48,9 +48,9 @@ export default async function SocialIntegrationPage() {
       </PageHeader>
 
       {/* Placeholder Notice */}
-      <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950">
-        <AlertCircle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
-        <p className="text-sm text-amber-700 dark:text-amber-300">
+      <div className="flex items-start gap-3 rounded-lg border border-warning/20 bg-warning/10 p-3">
+        <AlertCircle className="mt-0.5 size-4 shrink-0 text-warning" />
+        <p className="text-sm text-warning">
           This is a placeholder integration. Real social media APIs (Meta Graph
           API, Twitter API, LinkedIn API) will be connected later.
         </p>

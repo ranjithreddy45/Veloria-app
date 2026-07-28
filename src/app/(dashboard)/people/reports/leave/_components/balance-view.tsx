@@ -95,8 +95,8 @@ export function BalanceView({
                   <td className="px-4 py-2.5 text-right tabular-nums">{r.entitled}</td>
                   <td className="px-4 py-2.5 text-right tabular-nums">{r.carriedForward}</td>
                   <td className="px-4 py-2.5 text-right tabular-nums">{r.used}</td>
-                  <td className="px-4 py-2.5 text-right tabular-nums text-amber-600 dark:text-amber-400">{r.pending}</td>
-                  <td className="px-4 py-2.5 text-right font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">{r.available}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums text-warning">{r.pending}</td>
+                  <td className="px-4 py-2.5 text-right font-semibold tabular-nums text-success">{r.available}</td>
                 </tr>
               ))}
             </tbody>

@@ -298,7 +298,7 @@ export function UsersList({ users }: UsersListProps) {
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-4">
         <div className="relative max-w-sm flex-1">
-          <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
+          <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search users..."
             value={search}
@@ -359,14 +359,14 @@ export function UsersList({ users }: UsersListProps) {
                   {user.isActive ? (
                     <Badge
                       variant="outline"
-                      className="bg-green-100 text-green-700 border-green-200 text-[10px] shrink-0"
+                      className="bg-success/15 text-success border-success/20 text-[10px] shrink-0"
                     >
                       Active
                     </Badge>
                   ) : (
                     <Badge
                       variant="outline"
-                      className="bg-gray-100 text-gray-500 border-gray-200 text-[10px] shrink-0"
+                      className="bg-muted text-muted-foreground border-border text-[10px] shrink-0"
                     >
                       Inactive
                     </Badge>
@@ -375,13 +375,13 @@ export function UsersList({ users }: UsersListProps) {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="space-y-1.5">
-                  <div className="flex items-center gap-2 text-sm text-zinc-600">
-                    <MailIcon className="size-3.5 text-zinc-400" />
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <MailIcon className="size-3.5 text-muted-foreground" />
                     <span className="truncate">{user.email}</span>
                   </div>
                   {user.phone && (
-                    <div className="flex items-center gap-2 text-sm text-zinc-600">
-                      <PhoneIcon className="size-3.5 text-zinc-400" />
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <PhoneIcon className="size-3.5 text-muted-foreground" />
                       <span>{user.phone}</span>
                     </div>
                   )}
@@ -393,7 +393,7 @@ export function UsersList({ users }: UsersListProps) {
                       checked={user.isActive}
                       onCheckedChange={() => handleToggleActive(user)}
                     />
-                    <span className="text-xs text-zinc-500">
+                    <span className="text-xs text-muted-foreground">
                       {user.isActive ? "Active" : "Inactive"}
                     </span>
                   </div>

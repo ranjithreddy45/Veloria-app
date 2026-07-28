@@ -147,7 +147,7 @@ export function ActivityLogList({
     <div className="space-y-4">
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-        <Filter className="size-4 text-zinc-400" />
+        <Filter className="size-4 text-muted-foreground" />
         <Select value={entityFilter} onValueChange={setEntityFilter}>
           <SelectTrigger className="w-[160px]">
             <SelectValue placeholder="Entity type" />
@@ -181,11 +181,11 @@ export function ActivityLogList({
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="flex items-center justify-center py-12 text-sm text-zinc-500">
+            <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
               Loading...
             </div>
           ) : logs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-zinc-400">
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <History className="mb-2 size-8" />
               <p className="text-sm font-medium">No activity yet</p>
               <p className="text-xs">Actions will appear here as they happen.</p>
@@ -208,7 +208,7 @@ export function ActivityLogList({
                 return (
                   <div
                     key={log.id}
-                    className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-zinc-50"
+                    className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-muted"
                   >
                     <Avatar className="mt-0.5 size-8">
                       <AvatarFallback className="bg-indigo-100 text-[10px] text-indigo-700">
@@ -230,7 +230,7 @@ export function ActivityLogList({
                         >
                           {log.entityType}
                         </Badge>
-                        <span className="text-xs text-zinc-400">
+                        <span className="text-xs text-muted-foreground">
                           {formatDistanceToNow(new Date(log.createdAt), {
                             addSuffix: true,
                           })}
@@ -246,7 +246,7 @@ export function ActivityLogList({
                       </Button>
                     )}
 
-                    <ActionIcon className="mt-1 size-4 shrink-0 text-zinc-400" />
+                    <ActionIcon className="mt-1 size-4 shrink-0 text-muted-foreground" />
                   </div>
                 );
               })}
@@ -258,7 +258,7 @@ export function ActivityLogList({
       {/* Pagination */}
       {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-muted-foreground">
             Page {pagination.page} of {pagination.totalPages} · {pagination.total} entries
           </p>
           <div className="flex items-center gap-2">

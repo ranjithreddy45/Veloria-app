@@ -195,12 +195,12 @@ export function RazorpayCheckout({
   // Success state
   if (status === "success") {
     return (
-      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-center">
-        <CheckCircle2 className="mx-auto size-10 text-emerald-600" />
-        <h3 className="mt-3 text-base font-semibold text-emerald-900">
+      <div className="rounded-xl border border-success/20 bg-success/10 p-6 text-center">
+        <CheckCircle2 className="mx-auto size-10 text-success" />
+        <h3 className="mt-3 text-base font-semibold text-success">
           Payment Successful!
         </h3>
-        <p className="mt-1 text-sm text-emerald-700">
+        <p className="mt-1 text-sm text-success">
           Your payment has been processed. This page will refresh shortly.
         </p>
       </div>
@@ -211,13 +211,13 @@ export function RazorpayCheckout({
     <div className="space-y-4">
       {/* Error Message */}
       {status === "error" && (
-        <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
-          <AlertCircle className="size-5 text-red-500 flex-shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 rounded-xl border border-destructive/20 bg-destructive/10 p-4">
+          <AlertCircle className="size-5 text-destructive flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-red-900">
+            <p className="text-sm font-semibold text-destructive">
               Payment Failed
             </p>
-            <p className="mt-0.5 text-sm text-red-700">{errorMessage}</p>
+            <p className="mt-0.5 text-sm text-destructive">{errorMessage}</p>
           </div>
         </div>
       )}
@@ -227,7 +227,7 @@ export function RazorpayCheckout({
         onClick={handlePayment}
         disabled={isLoading}
         size="lg"
-        className="w-full bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 text-base py-6 rounded-xl shadow-lg shadow-indigo-200 transition-all duration-200"
+        className="w-full bg-primary text-white hover:bg-primary/90 disabled:opacity-50 text-base py-6 rounded-xl shadow-lg shadow-primary/20 transition-all duration-200"
       >
         {isLoading ? (
           <>
@@ -248,7 +248,7 @@ export function RazorpayCheckout({
         )}
       </Button>
 
-      <p className="text-center text-xs text-zinc-400">
+      <p className="text-center text-xs text-muted-foreground">
         Secured by Razorpay. Your payment information is encrypted.
       </p>
     </div>

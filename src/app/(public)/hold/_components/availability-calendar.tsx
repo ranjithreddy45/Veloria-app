@@ -169,8 +169,8 @@ export function AvailabilityCalendar({ venues }: { venues: VenueLite[] }) {
   return (
     <div className="space-y-5">
       {/* Venue picker */}
-      <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-        <Label className="mb-2 block text-xs font-medium text-zinc-500">Venue</Label>
+      <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+        <Label className="mb-2 block text-xs font-medium text-muted-foreground">Venue</Label>
         <div className="flex flex-wrap gap-2">
           {venues.map((v) => (
             <button
@@ -179,36 +179,36 @@ export function AvailabilityCalendar({ venues }: { venues: VenueLite[] }) {
               onClick={() => setVenueId(v.id)}
               className={`rounded-xl border px-3 py-2 text-sm transition ${
                 v.id === venueId
-                  ? "border-violet-500 bg-violet-50 font-medium text-violet-700 dark:border-violet-400 dark:bg-violet-950/40 dark:text-violet-300"
-                  : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+                  ? "border-primary bg-primary/10 font-medium text-primary"
+                  : "border-border bg-card text-muted-foreground"
               }`}
             >
               {v.name}
-              <span className="ml-1 text-xs text-zinc-400">· up to {v.capacity}</span>
+              <span className="ml-1 text-xs text-muted-foreground">· up to {v.capacity}</span>
             </button>
           ))}
         </div>
       </div>
 
       {/* Month heatmap */}
-      <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
         <div className="mb-3 flex items-center justify-between">
           <button
             type="button"
             onClick={prevMonth}
             disabled={year === ty && month === tm}
-            className="rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-100 disabled:opacity-30 dark:hover:bg-zinc-800"
+            className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted disabled:opacity-30"
             aria-label="Previous month"
           >
             <ChevronLeft className="size-5" />
           </button>
-          <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+          <div className="text-sm font-semibold text-foreground">
             {MONTHS[month - 1]} {year}
           </div>
           <button
             type="button"
             onClick={nextMonth}
-            className="rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted"
             aria-label="Next month"
           >
             <ChevronRight className="size-5" />
@@ -216,12 +216,12 @@ export function AvailabilityCalendar({ venues }: { venues: VenueLite[] }) {
         </div>
 
         {loadingMonth ? (
-          <div className="flex h-48 items-center justify-center text-zinc-400">
+          <div className="flex h-48 items-center justify-center text-muted-foreground">
             <Loader2 className="size-5 animate-spin" />
           </div>
         ) : (
           <>
-            <div className="mb-1 grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-zinc-400">
+            <div className="mb-1 grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-muted-foreground">
               {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
                 <div key={i}>{d}</div>
               ))}
@@ -252,12 +252,12 @@ export function AvailabilityCalendar({ venues }: { venues: VenueLite[] }) {
                     }
                     className={`flex aspect-square items-center justify-center rounded-lg text-sm transition ${
                       selected
-                        ? "bg-violet-600 font-semibold text-white"
+                        ? "bg-primary font-semibold text-white"
                         : st === "free"
-                        ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300"
+                        ? "bg-success/10 text-success hover:bg-success/20"
                         : st === "busy"
-                        ? "bg-amber-50 text-amber-700 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300"
-                        : "cursor-not-allowed bg-zinc-100 text-zinc-300 dark:bg-zinc-800 dark:text-zinc-600"
+                        ? "bg-warning/10 text-warning hover:bg-warning/20"
+                        : "cursor-not-allowed bg-muted text-muted-foreground/60"
                     }`}
                   >
                     {day}
@@ -265,10 +265,10 @@ export function AvailabilityCalendar({ venues }: { venues: VenueLite[] }) {
                 );
               })}
             </div>
-            <div className="mt-3 flex flex-wrap gap-3 text-[11px] text-zinc-500">
-              <Legend className="bg-emerald-400" label="Open" />
-              <Legend className="bg-amber-400" label="Some slots taken" />
-              <Legend className="bg-zinc-300" label="Full / past" />
+            <div className="mt-3 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
+              <Legend className="bg-success" label="Open" />
+              <Legend className="bg-warning" label="Some slots taken" />
+              <Legend className="bg-muted-foreground/30" label="Full / past" />
             </div>
           </>
         )}
@@ -276,13 +276,13 @@ export function AvailabilityCalendar({ venues }: { venues: VenueLite[] }) {
 
       {/* Day slot grid */}
       {selectedDay && (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-            <CalendarDays className="size-4 text-violet-600" />
+        <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+          <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
+            <CalendarDays className="size-4 text-primary" />
             {selectedVenue?.name} · {MONTHS[month - 1]} {selectedDay}, {year}
           </div>
           {loadingDay ? (
-            <div className="flex h-20 items-center justify-center text-zinc-400">
+            <div className="flex h-20 items-center justify-center text-muted-foreground">
               <Loader2 className="size-5 animate-spin" />
             </div>
           ) : (
@@ -298,10 +298,10 @@ export function AvailabilityCalendar({ venues }: { venues: VenueLite[] }) {
                     onClick={() => setSelectedSlot(s.slot as SlotKey)}
                     className={`rounded-xl border px-3 py-3 text-center text-sm transition ${
                       isSel
-                        ? "border-violet-500 bg-violet-600 font-semibold text-white"
+                        ? "border-primary bg-primary font-semibold text-white"
                         : isFree
-                        ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-400 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300"
-                        : "cursor-not-allowed border-zinc-200 bg-zinc-50 text-zinc-300 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-600"
+                        ? "border-success/20 bg-success/10 text-success hover:border-success"
+                        : "cursor-not-allowed border-border bg-muted text-muted-foreground/60"
                     }`}
                   >
                     <span className="block font-medium">{SLOT_LABEL[s.slot as SlotKey]}</span>
@@ -404,15 +404,15 @@ function HoldForm({
   return (
     <form
       onSubmit={submit}
-      className="space-y-4 rounded-2xl border border-violet-200 bg-violet-50/40 p-5 shadow-sm dark:border-violet-900 dark:bg-violet-950/20"
+      className="space-y-4 rounded-2xl border border-primary/20 bg-primary/10 p-5 shadow-sm"
     >
       <div className="flex items-start gap-2">
-        <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-violet-600" />
+        <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-primary" />
         <div>
-          <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+          <p className="text-sm font-semibold text-foreground">
             Hold {venueName} · {SLOT_LABEL[slot]}
           </p>
-          <p className="text-xs text-zinc-500">{dateLabel}</p>
+          <p className="text-xs text-muted-foreground">{dateLabel}</p>
         </div>
       </div>
 
@@ -444,7 +444,7 @@ function HoldForm({
       </div>
 
       {error && (
-        <p className="flex items-center gap-1.5 text-sm text-red-600">
+        <p className="flex items-center gap-1.5 text-sm text-destructive">
           <AlertCircle className="size-4" /> {error}
         </p>
       )}
@@ -453,7 +453,7 @@ function HoldForm({
         {pending ? <Loader2 className="mr-2 size-5 animate-spin" /> : null}
         {pending ? "Holding your date…" : "Hold this date"}
       </Button>
-      <p className="text-center text-[11px] text-zinc-400">
+      <p className="text-center text-[11px] text-muted-foreground">
         Next, you&apos;ll pay a small token to secure the slot. Your date is held while
         you complete payment.
       </p>
@@ -515,11 +515,11 @@ export function ReleaseLink({ token }: { token: string }) {
         type="button"
         onClick={release}
         disabled={pending}
-        className="text-xs text-zinc-400 underline underline-offset-2 hover:text-zinc-600 disabled:opacity-50 dark:hover:text-zinc-300"
+        className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground disabled:opacity-50"
       >
         {pending ? "Releasing…" : "Changed your mind? Release this hold"}
       </button>
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
     </div>
   );
 }

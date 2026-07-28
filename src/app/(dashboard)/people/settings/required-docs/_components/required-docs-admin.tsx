@@ -171,7 +171,7 @@ function DeleteButton({ id, name }: { id: string; name: string }) {
     <Button
       variant="ghost"
       size="icon"
-      className="size-8 text-muted-foreground hover:text-red-600"
+      className="size-8 text-muted-foreground hover:text-destructive"
       disabled={pending}
       title="Delete document type"
       onClick={() =>
@@ -297,7 +297,7 @@ function DocTypeDialog({ existing }: { existing?: RequiredDocTypeRow }) {
             <Switch checked={mandatory} onCheckedChange={setMandatory} />
           </label>
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={pending}>
             Cancel

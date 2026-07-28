@@ -453,14 +453,14 @@ export default async function SalesReportsPage({
                               <span
                                 className={`block h-full rounded-full ${
                                   done
-                                    ? "bg-emerald-500"
-                                    : "bg-gradient-to-r from-violet-500 to-emerald-500"
+                                    ? "bg-success"
+                                    : "bg-gradient-to-r from-violet-500 to-success"
                                 }`}
                                 style={{ width: `${barPct}%` }}
                               />
                             </span>
                             <span
-                              className={`numeric w-9 text-right ${done ? "font-medium text-emerald-600 dark:text-emerald-400" : ""}`}
+                              className={`numeric w-9 text-right ${done ? "text-success font-medium" : ""}`}
                             >
                               {paidPct}%
                             </span>
@@ -581,7 +581,7 @@ export default async function SalesReportsPage({
               <li key={it.id} className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5 transition-colors hover:bg-muted/40">
                 <div className="flex items-center justify-between gap-2">
                   <span className="truncate text-[13px] font-medium text-foreground">{it.client || "—"}</span>
-                  <span className="numeric shrink-0 text-[12px] font-semibold text-red-600 dark:text-red-400">
+                  <span className="numeric text-destructive shrink-0 text-[12px] font-semibold">
                     {inr(it.amount)}
                   </span>
                 </div>
@@ -879,9 +879,9 @@ function AlertCard({
 }) {
   const headTone =
     tone === "red"
-      ? "text-red-600 dark:text-red-400"
+      ? "text-destructive"
       : tone === "amber"
-        ? "text-amber-600 dark:text-amber-400"
+        ? "text-warning"
         : "text-muted-foreground";
 
   return (

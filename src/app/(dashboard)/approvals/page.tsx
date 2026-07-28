@@ -43,7 +43,7 @@ export default async function ApprovalsPage() {
           <TabsTrigger value="pending" className="gap-1.5">
             Pending
             {pending.length + pendingQuotes.length > 0 && (
-              <span className="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold tabular-nums text-amber-700 dark:bg-amber-950/50 dark:text-amber-300">
+              <span className="ml-1 rounded-full bg-warning/10 px-2 py-0.5 text-xs font-semibold tabular-nums text-warning">
                 {pending.length + pendingQuotes.length}
               </span>
             )}
