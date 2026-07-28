@@ -31,17 +31,16 @@ export default async function MyHelpdeskPage() {
   ]);
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <PageHeader
-          icon={MessageCircle}
-          accent="cyan"
-          eyebrow="My space"
-          title="HR Help Desk"
-          description="Raise HR queries, track them to resolution with SLAs, and self-serve answers from the knowledge base."
-        />
+    <div className="space-y-6">
+      <PageHeader
+        icon={MessageCircle}
+        accent="cyan"
+        eyebrow="My space"
+        title="HR Help Desk"
+        description="Raise HR queries, track them to resolution with SLAs, and self-serve answers from the knowledge base."
+      >
         {canAdmin && categories.length === 0 && <SeedCategoriesButton />}
-      </div>
+      </PageHeader>
       <HelpdeskHome
         mine={my.mine as never}
         assigned={my.assigned as never}

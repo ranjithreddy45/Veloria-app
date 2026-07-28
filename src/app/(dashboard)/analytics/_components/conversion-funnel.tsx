@@ -28,13 +28,13 @@ interface ConversionFunnelProps {
 // ============================================================
 
 const STAGE_COLORS: Record<string, string> = {
-  NEW: "bg-blue-500 dark:bg-blue-600",
-  CONTACTED: "bg-sky-500 dark:bg-sky-600",
-  QUALIFIED: "bg-violet-500 dark:bg-violet-600",
-  PROPOSAL_SENT: "bg-amber-500 dark:bg-amber-600",
-  NEGOTIATION: "bg-orange-500 dark:bg-orange-600",
-  WON: "bg-emerald-500 dark:bg-emerald-600",
-  LOST: "bg-red-500 dark:bg-red-600",
+  NEW: "bg-blue-500",
+  CONTACTED: "bg-sky-500",
+  QUALIFIED: "bg-violet-500",
+  PROPOSAL_SENT: "bg-amber-500",
+  NEGOTIATION: "bg-orange-500",
+  WON: "bg-emerald-500",
+  LOST: "bg-rose-500",
 };
 
 const STAGE_LABELS: Record<string, string> = {
@@ -78,36 +78,30 @@ export function ConversionFunnel({ data, className }: ConversionFunnelProps) {
               : null;
 
           return (
-            <div key={stage.stage} className="space-y-1">
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-medium text-zinc-700 dark:text-zinc-300">
+            <div key={stage.stage} className="space-y-1.5">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-[13px] font-medium text-foreground">
                   {STAGE_LABELS[stage.stage] ?? stage.stage}
                 </span>
-                <div className="flex items-center gap-2">
+                <div className="flex items-baseline gap-2">
                   {conversionRate && (
-                    <span className="text-xs text-muted-foreground">
+                    <span className="numeric text-[11.5px] text-muted-foreground">
                       {conversionRate}% from prev
                     </span>
                   )}
-                  <span className="font-semibold text-zinc-900 dark:text-zinc-100 tabular-nums">
+                  <span className="numeric text-[13px] font-semibold text-foreground">
                     {stage.count.toLocaleString("en-IN")}
                   </span>
                 </div>
               </div>
-              <div className="h-8 w-full rounded-md bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
+              <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
                 <div
                   className={cn(
-                    "h-full rounded-md transition-all duration-500 ease-out flex items-center justify-end pr-2",
-                    STAGE_COLORS[stage.stage] ?? "bg-zinc-400"
+                    "h-full rounded-full transition-[width] duration-500 ease-out",
+                    STAGE_COLORS[stage.stage] ?? "bg-muted-foreground/40"
                   )}
                   style={{ width: `${widthPercent}%` }}
-                >
-                  {widthPercent > 15 && (
-                    <span className="text-xs font-medium text-white">
-                      {stage.count.toLocaleString("en-IN")}
-                    </span>
-                  )}
-                </div>
+                />
               </div>
             </div>
           );
@@ -115,40 +109,34 @@ export function ConversionFunnel({ data, className }: ConversionFunnelProps) {
 
         {/* Lost stage shown separately */}
         {lostStage && lostStage.count > 0 && (
-          <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-700 space-y-1">
-            <div className="flex items-center justify-between text-sm">
-              <span className="font-medium text-red-600 dark:text-red-400">
+          <div className="mt-4 space-y-1.5 border-t pt-4">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-[13px] font-medium text-rose-600 dark:text-rose-400">
                 Lost
               </span>
-              <span className="font-semibold text-zinc-900 dark:text-zinc-100 tabular-nums">
+              <span className="numeric text-[13px] font-semibold text-foreground">
                 {lostStage.count.toLocaleString("en-IN")}
               </span>
             </div>
-            <div className="h-8 w-full rounded-md bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
+            <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
               <div
-                className="h-full rounded-md bg-red-500 dark:bg-red-600 transition-all duration-500 ease-out flex items-center justify-end pr-2"
+                className="h-full rounded-full bg-rose-500 transition-[width] duration-500 ease-out"
                 style={{
                   width: `${Math.max((lostStage.count / maxCount) * 100, 4)}%`,
                 }}
-              >
-                {(lostStage.count / maxCount) * 100 > 15 && (
-                  <span className="text-xs font-medium text-white">
-                    {lostStage.count.toLocaleString("en-IN")}
-                  </span>
-                )}
-              </div>
+              />
             </div>
           </div>
         )}
 
         {/* Summary stats */}
         {funnelStages.length > 1 && (
-          <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-700">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">
-                Overall Conversion (New to Won)
+          <div className="mt-4 border-t pt-4">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-[13px] text-muted-foreground">
+                Overall conversion — New to Won
               </span>
-              <span className="font-bold text-emerald-600 dark:text-emerald-400">
+              <span className="numeric text-[17px] font-semibold text-emerald-600 dark:text-emerald-400">
                 {funnelStages[0].count > 0
                   ? (
                       ((funnelStages[funnelStages.length - 1]?.count ?? 0) /

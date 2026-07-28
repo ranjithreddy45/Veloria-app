@@ -191,18 +191,18 @@ export function MyMonthCalendar({
   const selectedRec = selected != null ? byDay.get(selected) ?? null : null;
 
   return (
-    <Card className="p-4 sm:p-5">
+    <Card className="gap-0 p-5 shadow-card">
       {/* Header + navigation */}
       <div className="mb-4 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <span className="grid size-8 place-items-center rounded-lg bg-violet-100 text-violet-600 dark:bg-violet-950/50 dark:text-violet-300">
+        <div className="flex items-center gap-2.5">
+          <span className="grid size-9 place-items-center rounded-xl bg-violet-100 text-violet-600 dark:bg-violet-950/50 dark:text-violet-300">
             <CalendarDays className="size-4" />
           </span>
           <div>
-            <h2 className="text-sm font-semibold leading-tight">
-              {MONTH_NAMES[month]} {year}
+            <h2 className="text-[15px] font-semibold leading-tight tracking-[-0.01em]">
+              {MONTH_NAMES[month]} <span className="numeric">{year}</span>
             </h2>
-            <p className="text-[11.5px] text-muted-foreground">My attendance calendar</p>
+            <p className="text-[13px] text-muted-foreground">My attendance calendar</p>
           </div>
           {pending && <Loader2 className="ml-1 size-4 animate-spin text-muted-foreground" />}
         </div>
@@ -252,7 +252,7 @@ export function MyMonthCalendar({
               title={title}
               onClick={() => setSelected(isSelected ? null : day)}
               className={cn(
-                "flex aspect-square flex-col items-center justify-center rounded-lg border text-sm transition",
+                "flex aspect-square flex-col items-center justify-center gap-0.5 rounded-xl border text-sm transition",
                 meta ? meta.cell : "bg-transparent text-muted-foreground",
                 meta ? "border-transparent" : "border-dashed border-border",
                 isFuture && !meta && "opacity-40",
@@ -261,11 +261,11 @@ export function MyMonthCalendar({
                 "hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
               )}
             >
-              <span className={cn("font-semibold tabular-nums", isToday && "underline underline-offset-2")}>
+              <span className={cn("numeric text-[15px] font-semibold", isToday && "underline underline-offset-2")}>
                 {day}
               </span>
               {rec && rec.workedMinutes > 0 && (
-                <span className="mt-0.5 hidden text-[9.5px] leading-none opacity-80 sm:block">
+                <span className="numeric hidden text-[10px] leading-none opacity-80 sm:block">
                   {workedLabel(rec.workedMinutes)}
                 </span>
               )}
@@ -276,7 +276,7 @@ export function MyMonthCalendar({
 
       {/* Selected-day detail line */}
       {selectedRec ? (
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border bg-muted/40 px-3 py-2 text-[12.5px]">
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl border bg-muted/40 px-3.5 py-2.5 text-[12.5px]">
           <span className="font-medium">
             {new Date(selectedRec.date).toLocaleDateString("en-IN", {
               weekday: "short", day: "numeric", month: "short", timeZone: "UTC",
@@ -286,13 +286,13 @@ export function MyMonthCalendar({
             {STATUS_META[selectedRec.status].label}
           </span>
           <span className="text-muted-foreground">
-            In: <span className="tabular-nums text-foreground">{selectedRec.checkInAt ? istTime(selectedRec.checkInAt) : "—"}</span>
+            In: <span className="numeric text-foreground">{selectedRec.checkInAt ? istTime(selectedRec.checkInAt) : "—"}</span>
           </span>
           <span className="text-muted-foreground">
-            Out: <span className="tabular-nums text-foreground">{selectedRec.checkOutAt ? istTime(selectedRec.checkOutAt) : "—"}</span>
+            Out: <span className="numeric text-foreground">{selectedRec.checkOutAt ? istTime(selectedRec.checkOutAt) : "—"}</span>
           </span>
           <span className="text-muted-foreground">
-            Worked: <span className="tabular-nums text-foreground">{workedLabel(selectedRec.workedMinutes)}</span>
+            Worked: <span className="numeric text-foreground">{workedLabel(selectedRec.workedMinutes)}</span>
           </span>
           {/* Geo-tag of the day's check-in. */}
           {selectedRec.visitType === "CLIENT" ? (
@@ -314,7 +314,7 @@ export function MyMonthCalendar({
                   className="inline-flex items-center gap-1 font-medium text-indigo-600 hover:underline dark:text-indigo-400"
                 >
                   <MapPin className="size-3.5" />
-                  <span className="tabular-nums">{selectedRec.lat.toFixed(5)}, {selectedRec.lng.toFixed(5)}</span>
+                  <span className="numeric">{selectedRec.lat.toFixed(5)}, {selectedRec.lng.toFixed(5)}</span>
                 </a>
               )}
             </>

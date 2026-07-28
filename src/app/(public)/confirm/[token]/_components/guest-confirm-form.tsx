@@ -85,12 +85,12 @@ export function GuestConfirmForm({
   }
 
   return (
-    <div className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="space-y-4 bg-card shadow-card rounded-2xl border p-6">
       <div>
-        <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+        <h2 className="font-editorial text-foreground text-[20px] font-semibold">
           Confirmation &amp; declaration
         </h2>
-        <p className="mt-1 text-sm text-zinc-500">
+        <p className="mt-1 text-muted-foreground text-sm">
           Please review your event services above, then confirm below.
         </p>
       </div>
@@ -117,7 +117,7 @@ export function GuestConfirmForm({
         />
       </div>
 
-      <div className="flex items-start gap-3 rounded-xl border border-zinc-100 bg-zinc-50/60 p-3 dark:border-zinc-800 dark:bg-zinc-950/40">
+      <div className="flex items-start gap-3 rounded-xl bg-muted/40 border p-3.5">
         <Checkbox
           id="accept-terms"
           checked={accepted}
@@ -127,7 +127,7 @@ export function GuestConfirmForm({
         />
         <Label
           htmlFor="accept-terms"
-          className="text-sm font-normal leading-relaxed text-zinc-700 dark:text-zinc-300"
+          className="text-sm font-normal leading-relaxed text-foreground/85"
         >
           I have reviewed my event services and accept the Terms &amp; Conditions.
         </Label>

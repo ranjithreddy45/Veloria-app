@@ -21,8 +21,10 @@ export default async function SlaWarRoomPage() {
 
   if (!boardRes.success) {
     return (
-      <div className="space-y-5">
+      <div className="space-y-6">
         <PageHeader
+          icon={ShieldAlert}
+          accent="rose"
           title="SLA War-Room"
           description="Live first-response countdown and tiered breach escalation across every open lead."
         />
@@ -39,9 +41,11 @@ export default async function SlaWarRoomPage() {
   const warnMinutes = configRes.success ? configRes.data.warnMinutes : 5;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
-        eyebrow="Sales CRM"
+        icon={ShieldAlert}
+        accent="rose"
+        eyebrow="Sales CRM · Escalation"
         title="SLA War-Room"
         description="Every open lead with a running first-response countdown, a live breach-risk band, and a tiered auto-escalation ladder (rep → manager → admin)."
       />

@@ -201,12 +201,12 @@ export function BookingCalendar({
   return (
     <div className="space-y-4">
       {/* Toolbar: month nav + view toggle + venue filter */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card p-3 shadow-card">
         <div className="flex items-center gap-2 sm:gap-3">
           <Button variant="outline" size="icon" onClick={() => navigateMonth("prev")} disabled={isLoading}>
             <ChevronLeftIcon className="size-4" />
           </Button>
-          <h2 className="min-w-[140px] text-center text-lg font-semibold sm:min-w-[180px]">
+          <h2 className="min-w-[140px] text-center text-[17px] font-semibold tracking-[-0.01em] tabular-nums sm:min-w-[180px]">
             {format(currentDate, "MMMM yyyy")}
           </h2>
           <Button variant="outline" size="icon" onClick={() => navigateMonth("next")} disabled={isLoading}>
@@ -256,7 +256,7 @@ export function BookingCalendar({
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center gap-4 text-[12px] text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-4 px-1 text-[13px] text-muted-foreground">
         <span className="inline-flex items-center gap-1.5">
           <span className="inline-block size-3 rounded border border-green-200 bg-green-100" /> Booked (confirmed event)
         </span>
@@ -267,10 +267,18 @@ export function BookingCalendar({
       </div>
 
       {/* Calendar Grid */}
-      <div className={cn("rounded-lg border bg-card", isLoading && "pointer-events-none opacity-60")}>
-        <div className="grid grid-cols-7 border-b">
+      <div
+        className={cn(
+          "overflow-hidden rounded-2xl border bg-card shadow-card",
+          isLoading && "pointer-events-none opacity-60"
+        )}
+      >
+        <div className="grid grid-cols-7 border-b bg-muted/30">
           {DAY_NAMES.map((day) => (
-            <div key={day} className="px-2 py-2.5 text-center text-xs font-medium uppercase tracking-wide text-zinc-500">
+            <div
+              key={day}
+              className="px-2 py-2.5 text-center text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground"
+            >
               {day}
             </div>
           ))}
@@ -293,7 +301,7 @@ export function BookingCalendar({
                 <div
                   key={`b-${b.id}`}
                   className={cn(
-                    "truncate rounded border px-1.5 py-0.5 text-[11px] font-medium leading-tight",
+                    "truncate rounded-md border px-1.5 py-[3px] text-[11.5px] font-medium leading-tight",
                     STATUS_PILL_COLORS[b.status] || "bg-muted text-muted-foreground"
                   )}
                   title={`Booking: ${b.eventName} (${b.venue.name})`}
@@ -306,7 +314,7 @@ export function BookingCalendar({
               pills.push(
                 <div
                   key={`l-${l.id}`}
-                  className="truncate rounded border border-dashed border-sky-300 bg-sky-50 px-1.5 py-0.5 text-[11px] font-medium leading-tight text-sky-700"
+                  className="truncate rounded-md border border-dashed border-sky-300 bg-sky-50 px-1.5 py-[3px] text-[11.5px] font-medium leading-tight text-sky-700"
                   title={`Lead: ${leadName(l)}${l.preferredVenue ? ` (${l.preferredVenue.name})` : ""}`}
                 >
                   ◦ {leadName(l)}
@@ -319,36 +327,41 @@ export function BookingCalendar({
               <div
                 key={i}
                 className={cn(
-                  "relative min-h-[110px] cursor-pointer border-b border-r p-1.5 transition-colors",
-                  !isCurrentMonth && "bg-zinc-50/50",
-                  isCurrentMonth && "hover:bg-zinc-50",
+                  "relative min-h-[124px] cursor-pointer border-b border-r p-2 transition-colors",
+                  !isCurrentMonth && "bg-muted/30",
+                  isCurrentMonth && "hover:bg-accent/40",
                   isSelected && "bg-indigo-50 ring-1 ring-inset ring-indigo-200",
                   hasBlackouts && isCurrentMonth && "bg-red-50/40",
                   (i + 1) % 7 === 0 && "border-r-0"
                 )}
                 onClick={() => handleDayClick(day)}
               >
-                <div className="mb-1 flex items-center justify-between">
+                <div className="mb-1.5 flex items-center justify-between">
                   <span
                     className={cn(
-                      "inline-flex items-center justify-center text-sm",
-                      !isCurrentMonth && "text-zinc-300",
-                      isCurrentMonth && "text-zinc-700",
-                      isTodayDate && "size-7 rounded-full bg-indigo-600 font-semibold text-white"
+                      "inline-flex size-7 items-center justify-center text-[13px] tabular-nums",
+                      !isCurrentMonth && "text-muted-foreground/40",
+                      isCurrentMonth && "font-medium text-foreground",
+                      isTodayDate &&
+                        "rounded-full bg-indigo-600 font-semibold text-white"
                     )}
                   >
                     {format(day, "d")}
                   </span>
                   {hasBlackouts && isCurrentMonth && (
-                    <span className="text-[10px] font-medium text-red-500">Blocked</span>
+                    <span className="text-[10.5px] font-semibold uppercase tracking-wide text-red-500">
+                      Blocked
+                    </span>
                   )}
                 </div>
 
                 {isCurrentMonth && (
-                  <div className="space-y-0.5">
+                  <div className="space-y-1">
                     {pills.slice(0, 3)}
                     {hiddenCount > 0 && (
-                      <div className="pl-1 text-[10px] font-medium text-zinc-400">+{hiddenCount} more</div>
+                      <div className="pl-1 text-[10.5px] font-medium text-muted-foreground">
+                        +{hiddenCount} more
+                      </div>
                     )}
                   </div>
                 )}

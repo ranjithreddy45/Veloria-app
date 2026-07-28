@@ -50,9 +50,9 @@ export function PerformanceHome({
       {/* MY APPRAISAL */}
       <TabsContent value="mine" className="space-y-4">
         {!cycle ? (
-          <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">No active appraisal cycle right now.</div>
+          <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground">No active appraisal cycle right now.</div>
         ) : !employeeId ? (
-          <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">Your account isn’t linked to an employee record.</div>
+          <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground">Your account isn’t linked to an employee record.</div>
         ) : (
           <>
             <div className="flex items-center justify-between">
@@ -88,9 +88,9 @@ export function PerformanceHome({
       {/* TEAM REVIEWS (manager) */}
       <TabsContent value="team" className="space-y-3">
         {!reviewCycleId ? (
-          <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">No active cycle.</div>
+          <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground">No active cycle.</div>
         ) : reviewQueue.length === 0 ? (
-          <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">You have no direct reports to review.</div>
+          <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground">You have no direct reports to review.</div>
         ) : (
           reviewQueue.map((r) => (
             <div key={r.id} className="flex items-center justify-between rounded-xl border bg-card p-4">
@@ -111,7 +111,7 @@ export function PerformanceHome({
         <TabsContent value="cycles" className="space-y-3">
           <div className="flex justify-end"><CreateCycleDialog /></div>
           {cycles.length === 0 ? (
-            <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">No appraisal cycles yet.</div>
+            <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground">No appraisal cycles yet.</div>
           ) : (
             <div className="space-y-2.5">
               {cycles.map((c) => <CycleRow key={c.id} cycle={c} />)}

@@ -21,9 +21,11 @@ export default async function MissedCallsPage() {
 
   if (!listRes.success || !statsRes.success) {
     return (
-      <div className="space-y-5">
+      <div className="space-y-6">
         <PageHeader
-          eyebrow="Sales CRM"
+          icon={PhoneMissed}
+          accent="rose"
+          eyebrow="Sales CRM · Rescue"
           title="Missed Calls"
           description="Every inbound ring auto-rescued into a tracked lead."
         />
@@ -40,9 +42,11 @@ export default async function MissedCallsPage() {
   const stats = statsRes.data;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
-        eyebrow="Sales CRM"
+        icon={PhoneMissed}
+        accent="rose"
+        eyebrow="Sales CRM · Rescue"
         title="Missed Calls"
         description="Every inbound / missed ring from an unknown number is minted into a scored, SLA-clocked lead and answered with an instant WhatsApp. Known callers are linked to their open lead so a human can call back."
       />

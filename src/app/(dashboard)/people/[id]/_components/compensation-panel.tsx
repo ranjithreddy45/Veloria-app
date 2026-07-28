@@ -10,6 +10,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { StatusPill } from "@/components/shared/status-pill";
+import { EmptyState } from "@/components/ui/empty-state";
 import { formatINR, formatDate } from "@/lib/utils";
 import { saveSalaryStructure, applyIncrement, type SalaryStructureRow } from "@/actions/hr-compensation.actions";
 
@@ -23,11 +24,11 @@ export function CompensationPanel({
 }) {
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border bg-card p-5">
+      <div className="rounded-2xl border bg-card p-5 shadow-card">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Wallet className="size-4 text-emerald-600" />
-            <h3 className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">Current compensation</h3>
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Current compensation</h3>
           </div>
           {canWrite && (
             <div className="flex items-center gap-2">
@@ -48,22 +49,22 @@ export function CompensationPanel({
               Effective {formatDate(current.effectiveFrom)}{current.note ? ` · ${current.note}` : ""}
             </p>
 
-            <div className="mt-4">
-              <h4 className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">Monthly breakdown</h4>
-              <div className="divide-y rounded-lg border">
+            <div className="mt-5">
+              <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Monthly breakdown</h4>
+              <div className="divide-y overflow-hidden rounded-xl border">
                 {current.lines.map((l) => (
-                  <div key={l.code} className="flex items-center justify-between gap-3 px-3 py-2 text-[13px]">
+                  <div key={l.code} className="flex items-center justify-between gap-3 px-3.5 py-2.5 text-[13px]">
                     <span className="inline-flex items-center gap-2">
                       {l.name}
                       {l.kind === "DEDUCTION" && <StatusPill label="Deduction" hue="rose" size="xs" />}
                       {!l.taxable && <StatusPill label="Tax-free" hue="slate" size="xs" />}
                     </span>
-                    <span className="font-medium tabular-nums">{formatINR(l.monthly)}</span>
+                    <span className="numeric font-medium">{formatINR(l.monthly)}</span>
                   </div>
                 ))}
-                <div className="flex items-center justify-between gap-3 bg-muted/40 px-3 py-2 text-[13px] font-semibold">
+                <div className="flex items-center justify-between gap-3 border-t-2 bg-muted/50 px-3.5 py-3 text-[13px] font-semibold">
                   <span>Total monthly CTC</span>
-                  <span className="tabular-nums">{formatINR(current.monthlyCtc)}</span>
+                  <span className="numeric text-[15px]">{formatINR(current.monthlyCtc)}</span>
                 </div>
               </div>
               <p className="mt-2 text-[12px] text-muted-foreground">
@@ -72,24 +73,31 @@ export function CompensationPanel({
             </div>
           </>
         ) : (
-          <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-            No salary structure on file yet.{canWrite ? " Use “Revise salary” to set one up." : ""}
-          </div>
+          <EmptyState
+            icon={<Wallet className="size-5" />}
+            title="No salary structure on file"
+            description={
+              canWrite
+                ? "Use “Revise salary” to set the annual CTC and basic split — payroll builds every payslip from it."
+                : "A salary structure hasn’t been recorded for this employee yet."
+            }
+            className="py-10"
+          />
         )}
       </div>
 
       {history.length > 0 && (
-        <div className="rounded-xl border bg-card p-5">
-          <div className="mb-3 flex items-center gap-2">
+        <div className="rounded-2xl border bg-card p-5 shadow-card">
+          <div className="mb-4 flex items-center gap-2">
             <History className="size-4 text-muted-foreground" />
-            <h3 className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">Revision history</h3>
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Revision history</h3>
           </div>
           <div className="divide-y">
             {history.map((h) => (
-              <div key={h.id} className="flex items-center justify-between gap-3 py-2.5 text-[13px] first:pt-0">
+              <div key={h.id} className="flex items-center justify-between gap-3 py-3 text-[13px] first:pt-0 last:pb-0">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium">{formatINR(h.annualCtc)}</span>
+                    <span className="numeric font-medium">{formatINR(h.annualCtc)}</span>
                     <span className="text-muted-foreground">/yr</span>
                     {h.isCurrent && <StatusPill label="Current" hue="emerald" size="xs" />}
                   </div>
@@ -97,7 +105,7 @@ export function CompensationPanel({
                     Effective {formatDate(h.effectiveFrom)} · Basic {h.basicPct}%{h.note ? ` · ${h.note}` : ""}
                   </span>
                 </div>
-                <span className="tabular-nums text-muted-foreground">{formatINR(h.monthlyCtc)}/mo</span>
+                <span className="numeric shrink-0 text-muted-foreground">{formatINR(h.monthlyCtc)}/mo</span>
               </div>
             ))}
           </div>
@@ -109,9 +117,9 @@ export function CompensationPanel({
 
 function Stat({ label, value, big }: { label: string; value: string; big?: boolean }) {
   return (
-    <div className="rounded-lg bg-muted/30 px-3 py-2.5">
-      <div className="text-[11.5px] uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className={`mt-0.5 font-semibold tabular-nums ${big ? "text-lg" : "text-[15px]"}`}>{value}</div>
+    <div className="rounded-xl border border-border/60 bg-muted/30 px-3.5 py-3">
+      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className={`numeric mt-1 font-semibold leading-none ${big ? "text-[22px]" : "text-[17px]"}`}>{value}</div>
     </div>
   );
 }

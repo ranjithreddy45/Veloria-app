@@ -92,7 +92,7 @@ export default async function VendorsPage() {
         accent="teal"
         title="Vendors & Packages"
         eyebrow={`Operations · Marketplace · ${vendorTotal} vendors · ${packageTotal} packages`}
-        description="Manage your empanelled vendor catalog, quality scores, and service packages."
+        description="Your empanelled bench and everything they sell — kept current so quotes never wait on a phone call."
       />
 
       <VendorModule

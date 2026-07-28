@@ -123,12 +123,14 @@ export function DateRangePicker({
   );
 
   return (
-    <Card className={cn("border-dashed", className)}>
-      <CardContent className="pt-4 pb-4 px-4">
+    <Card className={cn("rounded-2xl border bg-card py-0 shadow-card", className)}>
+      <CardContent className="px-4 py-3.5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap">
-          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <CalendarIcon className="size-4" />
-            <span className="font-medium">Period:</span>
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <CalendarIcon className="size-3.5" />
+            <span className="text-[11px] font-medium uppercase tracking-wide">
+              Period
+            </span>
           </div>
 
           <div className="flex flex-wrap gap-1.5">
@@ -137,7 +139,7 @@ export function DateRangePicker({
                 key={preset.key}
                 variant={activePreset === preset.key && !showCustom ? "default" : "outline"}
                 size="sm"
-                className="h-7 text-xs"
+                className="h-7 rounded-lg text-[12px]"
                 onClick={() => handlePreset(preset.key)}
               >
                 {preset.label}
@@ -146,7 +148,7 @@ export function DateRangePicker({
             <Button
               variant={showCustom ? "default" : "outline"}
               size="sm"
-              className="h-7 text-xs"
+              className="h-7 rounded-lg text-[12px]"
               onClick={() => setShowCustom((prev) => !prev)}
             >
               Custom
@@ -156,25 +158,25 @@ export function DateRangePicker({
           {showCustom && (
             <div className="flex items-end gap-2 mt-1 sm:mt-0">
               <div className="space-y-1">
-                <Label htmlFor="dr-start" className="text-xs">
+                <Label htmlFor="dr-start" className="text-[11px] uppercase tracking-wide text-muted-foreground">
                   From
                 </Label>
                 <Input
                   id="dr-start"
                   type="date"
-                  className="h-7 text-xs w-[140px]"
+                  className="numeric h-7 w-[140px] text-[12px]"
                   value={value.startDate ?? ""}
                   onChange={(e) => handleCustomChange("startDate", e.target.value)}
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="dr-end" className="text-xs">
+                <Label htmlFor="dr-end" className="text-[11px] uppercase tracking-wide text-muted-foreground">
                   To
                 </Label>
                 <Input
                   id="dr-end"
                   type="date"
-                  className="h-7 text-xs w-[140px]"
+                  className="numeric h-7 w-[140px] text-[12px]"
                   value={value.endDate ?? ""}
                   onChange={(e) => handleCustomChange("endDate", e.target.value)}
                 />

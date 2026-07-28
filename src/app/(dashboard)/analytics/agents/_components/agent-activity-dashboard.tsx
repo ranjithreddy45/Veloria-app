@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -82,52 +83,59 @@ export function AgentActivityDashboard({ initialData }: Props) {
       )}
 
       {/* Agent Ranking Table */}
-      <Card className="border-border/50">
+      <Card className="rounded-2xl border bg-card shadow-card">
         <CardHeader>
-          <CardTitle className="text-sm font-medium">Agent Rankings</CardTitle>
+          <CardTitle>Agent Rankings</CardTitle>
+          <p className="text-[13px] text-muted-foreground">
+            Calls, conversations and follow-through, ranked across the team.
+          </p>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/30">
-                <TableHead className="w-[50px]">#</TableHead>
-                <TableHead>Agent</TableHead>
-                <TableHead className="text-center">
-                  <Phone className="h-4 w-4 inline mr-1" />
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="h-9 text-[11px] font-medium uppercase tracking-wide text-muted-foreground w-[50px]">#</TableHead>
+                <TableHead className="h-9 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Agent</TableHead>
+                <TableHead className="h-9 text-[11px] font-medium uppercase tracking-wide text-muted-foreground text-right">
+                  <Phone className="mr-1 inline size-3.5" />
                   Calls
                 </TableHead>
-                <TableHead className="text-center">
-                  <MessageSquare className="h-4 w-4 inline mr-1" />
+                <TableHead className="h-9 text-[11px] font-medium uppercase tracking-wide text-muted-foreground text-right">
+                  <MessageSquare className="mr-1 inline size-3.5" />
                   Comms
                 </TableHead>
-                <TableHead className="text-center">
-                  <Users className="h-4 w-4 inline mr-1" />
+                <TableHead className="h-9 text-[11px] font-medium uppercase tracking-wide text-muted-foreground text-right">
+                  <Users className="mr-1 inline size-3.5" />
                   Leads
                 </TableHead>
-                <TableHead className="text-center">
-                  <CheckCircle className="h-4 w-4 inline mr-1" />
+                <TableHead className="h-9 text-[11px] font-medium uppercase tracking-wide text-muted-foreground text-right">
+                  <CheckCircle className="mr-1 inline size-3.5" />
                   Tasks
                 </TableHead>
-                <TableHead className="text-center">Total Talk Time</TableHead>
+                <TableHead className="h-9 text-[11px] font-medium uppercase tracking-wide text-muted-foreground text-right">Total Talk Time</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {initialData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground h-16">
-                    No agent data available
+                  <TableCell
+                    colSpan={7}
+                    className="h-24 text-center text-[13px] text-muted-foreground"
+                  >
+                    No agent activity recorded yet.
                   </TableCell>
                 </TableRow>
               ) : (
                 initialData.map((item, index) => (
                   <TableRow
                     key={item.agent.id}
-                    className={`hover:bg-muted/20 cursor-pointer ${
-                      selectedAgentId === item.agent.id ? "bg-muted/30" : ""
-                    }`}
+                    className={cn(
+                      "h-14 cursor-pointer transition-colors hover:bg-muted/40",
+                      selectedAgentId === item.agent.id && "bg-muted/50"
+                    )}
                     onClick={() => setSelectedAgentId(item.agent.id)}
                   >
-                    <TableCell className="font-medium text-muted-foreground">
+                    <TableCell className="numeric text-muted-foreground">
                       {index + 1}
                     </TableCell>
                     <TableCell>
@@ -144,28 +152,28 @@ export function AgentActivityDashboard({ initialData }: Props) {
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-medium text-sm">
+                          <p className="text-[13px] font-medium">
                             {item.agent.name || item.agent.email}
                           </p>
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                          <Badge variant="outline" className="px-1.5 py-0 text-[10px] font-normal text-muted-foreground">
                             {item.agent.role.replace("_", " ")}
                           </Badge>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-center font-medium">
+                    <TableCell className="numeric text-right font-medium">
                       {item.totalCalls}
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="numeric text-right text-muted-foreground">
                       {item.totalCommunications}
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="numeric text-right text-muted-foreground">
                       {item.assignedLeads}
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="numeric text-right text-muted-foreground">
                       {item.completedTasks}
                     </TableCell>
-                    <TableCell className="text-center font-mono text-sm">
+                    <TableCell className="numeric text-right">
                       {formatDuration(item.totalCallDuration)}
                     </TableCell>
                   </TableRow>

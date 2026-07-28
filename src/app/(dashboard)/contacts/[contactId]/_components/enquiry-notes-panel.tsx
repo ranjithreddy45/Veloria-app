@@ -12,6 +12,7 @@ import { StickyNote, Phone, Pencil, Trash2, Check, X, Plus, Loader2 } from "luci
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -102,7 +103,7 @@ export function EnquiryNotesPanel({ contactId }: { contactId: string }) {
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Composer */}
-        <div className="space-y-2 rounded-lg border bg-muted/30 p-2.5">
+        <div className="space-y-2 rounded-xl border bg-muted/30 p-3">
           <div className="flex items-center gap-2">
             <Button size="sm" variant={mode === "NOTE" ? "default" : "outline"} className="h-7 gap-1.5" onClick={() => setMode("NOTE")}>
               <StickyNote className="size-3.5" /> Note
@@ -132,15 +133,18 @@ export function EnquiryNotesPanel({ contactId }: { contactId: string }) {
 
         {/* Thread */}
         {loading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
+          <p className="text-[13px] text-muted-foreground">Loading…</p>
         ) : notes.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            No notes yet. Log every call and conversation here — it stays on the enquiry.
-          </p>
+          <EmptyState
+            className="py-8"
+            icon={<StickyNote />}
+            title="No notes yet"
+            description="Log every call and conversation here — it stays on the enquiry for whoever picks it up next."
+          />
         ) : (
           <ul className="space-y-2">
             {notes.map((n) => (
-              <li key={n.id} className="rounded-lg border p-2.5 text-sm">
+              <li key={n.id} className="rounded-xl border bg-card p-3 text-sm shadow-card">
                 <div className="mb-1 flex items-center gap-2 text-xs text-muted-foreground">
                   {n.kind === "CALL" ? <Phone className="size-3.5 text-blue-600" /> : <StickyNote className="size-3.5" />}
                   {n.kind === "CALL" && n.callOutcome && (

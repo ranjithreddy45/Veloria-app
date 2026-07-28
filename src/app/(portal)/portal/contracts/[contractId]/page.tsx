@@ -1,13 +1,6 @@
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
-import {
-  ArrowLeft,
-  FileText,
-  CheckCircle2,
-  Clock,
-  PenTool,
-  User,
-} from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock, User } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -44,21 +37,24 @@ export default async function PortalContractDetailPage({
     contract.expiresAt && new Date(contract.expiresAt) < new Date();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       {/* Back Button */}
       <Link
         href="/portal/contracts"
-        className="inline-flex items-center gap-2 text-sm text-zinc-500 transition-colors hover:text-zinc-700"
+        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-2 text-[13px] transition-colors"
       >
-        <ArrowLeft className="size-4" />
-        Back to Contracts
+        <ArrowLeft className="size-3.5" />
+        Back to contracts
       </Link>
 
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+        <div className="space-y-2">
+          <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
+            Your account
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="large-title text-foreground text-[28px] leading-tight sm:text-[32px]">
               {contract.title}
             </h1>
             <StatusBadge
@@ -67,10 +63,16 @@ export default async function PortalContractDetailPage({
             />
           </div>
           {contract.booking && (
-            <p className="mt-1 text-sm text-zinc-500">
+            <p className="text-muted-foreground text-[15px]">
               {contract.booking.eventName}
               {contract.booking.bookingNumber && (
-                <> &middot; Booking #{contract.booking.bookingNumber}</>
+                <>
+                  {" "}
+                  &middot; Booking{" "}
+                  <span className="numeric">
+                    {contract.booking.bookingNumber}
+                  </span>
+                </>
               )}
             </p>
           )}
@@ -80,46 +82,49 @@ export default async function PortalContractDetailPage({
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Left Column: Contract Content */}
         <div className="space-y-6 lg:col-span-2">
-          <Card className="border-zinc-200/80 shadow-sm overflow-hidden">
+          <Card className="shadow-card overflow-hidden rounded-2xl py-0">
             {/* Meta Info */}
-            <div className="grid grid-cols-2 gap-4 border-b border-zinc-100 bg-zinc-50/50 p-5 sm:grid-cols-3">
+            <div className="bg-muted/30 grid grid-cols-2 gap-4 border-b p-6 sm:grid-cols-3">
               <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">
-                  Sent Date
+                <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
+                  Sent
                 </p>
-                <p className="mt-1 text-sm font-medium text-foreground">
+                <p className="numeric text-foreground mt-1.5 text-sm font-medium">
                   {contract.sentAt
                     ? new Date(contract.sentAt).toLocaleDateString("en-IN", {
                         month: "short",
                         day: "numeric",
                         year: "numeric",
                       })
-                    : "N/A"}
+                    : "—"}
                 </p>
               </div>
               {contract.expiresAt && (
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">
+                  <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
                     Expires
                   </p>
                   <p
-                    className={`mt-1 text-sm font-medium ${
-                      isExpired ? "text-red-600" : "text-foreground"
+                    className={`numeric mt-1.5 text-sm font-medium ${
+                      isExpired
+                        ? "text-red-600 dark:text-red-400"
+                        : "text-foreground"
                     }`}
                   >
-                    {new Date(contract.expiresAt).toLocaleDateString(
-                      "en-IN",
-                      { month: "short", day: "numeric", year: "numeric" }
-                    )}
+                    {new Date(contract.expiresAt).toLocaleDateString("en-IN", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
                   </p>
                 </div>
               )}
               {contract.signerName && (
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">
+                  <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
                     Signer
                   </p>
-                  <p className="mt-1 text-sm font-medium text-foreground">
+                  <p className="text-foreground mt-1.5 text-sm font-medium">
                     {contract.signerName}
                   </p>
                 </div>
@@ -127,17 +132,17 @@ export default async function PortalContractDetailPage({
             </div>
 
             {/* Contact Info */}
-            <div className="border-b border-zinc-100 p-5">
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+            <div className="border-b p-6">
+              <div className="text-muted-foreground flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em]">
                 <User className="size-3.5" />
                 Parties
               </div>
-              <div className="mt-2">
-                <p className="text-sm font-medium text-foreground">
+              <div className="mt-2.5">
+                <p className="text-foreground text-sm font-medium">
                   {contract.contact.firstName} {contract.contact.lastName}
                 </p>
                 {contract.contact.company && (
-                  <p className="text-sm text-zinc-500">
+                  <p className="text-muted-foreground text-sm">
                     {contract.contact.company}
                   </p>
                 )}
@@ -145,11 +150,11 @@ export default async function PortalContractDetailPage({
             </div>
 
             {/* Contract Body */}
-            <div className="p-5">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-3">
-                Contract Content
+            <div className="p-6">
+              <h3 className="text-muted-foreground mb-3 text-[11px] font-semibold uppercase tracking-[0.14em]">
+                The agreement
               </h3>
-              <div className="prose prose-sm max-w-none whitespace-pre-wrap rounded-lg bg-zinc-50 p-6 border border-zinc-200 text-sm text-zinc-700 leading-relaxed">
+              <div className="bg-muted/40 text-foreground/80 max-w-none whitespace-pre-wrap rounded-xl border p-6 text-sm leading-relaxed">
                 {contract.content}
               </div>
             </div>
@@ -168,15 +173,17 @@ export default async function PortalContractDetailPage({
 
           {/* Expired Notice */}
           {isExpired && contract.status !== "SIGNED" && (
-            <Card className="border-red-200 bg-red-50 shadow-sm">
+            <Card className="shadow-card rounded-2xl border-red-500/25 bg-red-500/[0.06] py-0">
               <CardContent className="flex flex-col items-center p-6 text-center">
-                <Clock className="size-12 text-red-400" />
-                <h3 className="mt-3 text-base font-semibold text-red-900">
-                  Contract Expired
+                <div className="flex size-14 items-center justify-center rounded-2xl bg-red-500/10">
+                  <Clock className="size-7 text-red-600 dark:text-red-400" />
+                </div>
+                <h3 className="font-editorial text-foreground mt-4 text-[20px] font-semibold">
+                  This one has expired
                 </h3>
-                <p className="mt-1 text-sm text-red-700">
-                  This contract has expired and can no longer be signed.
-                  Please contact us for a new contract.
+                <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
+                  It can no longer be signed. Get in touch and we&apos;ll send a
+                  fresh agreement over straight away.
                 </p>
               </CardContent>
             </Card>
@@ -184,31 +191,32 @@ export default async function PortalContractDetailPage({
 
           {/* Signed Badge */}
           {contract.status === "SIGNED" && (
-            <Card className="border-emerald-200 bg-emerald-50 shadow-sm">
+            <Card className="shadow-card rounded-2xl border-emerald-500/25 bg-emerald-500/[0.06] py-0">
               <CardContent className="flex flex-col items-center p-6 text-center">
-                <CheckCircle2 className="size-12 text-emerald-600" />
-                <h3 className="mt-3 text-base font-semibold text-emerald-900">
-                  Contract Signed
+                <div className="flex size-14 items-center justify-center rounded-2xl bg-emerald-500/10">
+                  <CheckCircle2 className="size-7 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <h3 className="font-editorial text-foreground mt-4 text-[20px] font-semibold">
+                  Signed and settled
                 </h3>
-                <p className="mt-1 text-sm text-emerald-700">
+                <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
                   Signed on{" "}
-                  {contract.signedAt
-                    ? new Date(contract.signedAt).toLocaleDateString(
-                        "en-IN",
-                        {
+                  <span className="numeric">
+                    {contract.signedAt
+                      ? new Date(contract.signedAt).toLocaleDateString("en-IN", {
                           month: "short",
                           day: "numeric",
                           year: "numeric",
-                        }
-                      )
-                    : "N/A"}
+                        })
+                      : "—"}
+                  </span>
                 </p>
                 {contract.signatureData && (
-                  <div className="mt-3 rounded-lg border border-emerald-200 bg-white dark:bg-card p-3">
-                    <p className="text-xs text-zinc-400 mb-1">
+                  <div className="bg-card mt-4 w-full rounded-xl border border-emerald-500/20 p-4">
+                    <p className="text-muted-foreground/70 mb-1 text-[10px] font-semibold uppercase tracking-[0.14em]">
                       Signature
                     </p>
-                    <p className="text-xl italic text-foreground font-serif">
+                    <p className="font-editorial text-foreground text-xl italic">
                       {contract.signatureData}
                     </p>
                   </div>
@@ -218,16 +226,16 @@ export default async function PortalContractDetailPage({
           )}
 
           {/* Contract Summary */}
-          <Card className="border-zinc-200/80 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold text-foreground">
-                Contract Summary
+          <Card className="shadow-card rounded-2xl py-0">
+            <CardHeader className="px-6 pt-6 pb-4">
+              <CardTitle className="font-editorial text-foreground text-[20px] font-semibold">
+                At a glance
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-500">Status</span>
+            <CardContent className="px-6 pb-6">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-muted-foreground">Status</span>
                   <StatusBadge
                     status={contract.status}
                     colorMap={CONTRACT_STATUS_COLORS}
@@ -236,23 +244,23 @@ export default async function PortalContractDetailPage({
                 </div>
                 {contract.booking && (
                   <>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-zinc-500">Event</span>
-                      <span className="font-medium text-foreground">
+                    <div className="flex items-center justify-between gap-3 text-sm">
+                      <span className="text-muted-foreground">Event</span>
+                      <span className="text-foreground text-right font-medium">
                         {contract.booking.eventName}
                       </span>
                     </div>
                     {contract.booking.venueName && (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-zinc-500">Venue</span>
-                        <span className="font-medium text-foreground">
+                      <div className="flex items-center justify-between gap-3 text-sm">
+                        <span className="text-muted-foreground">Venue</span>
+                        <span className="text-foreground text-right font-medium">
                           {contract.booking.venueName}
                         </span>
                       </div>
                     )}
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-zinc-500">Event Date</span>
-                      <span className="font-medium text-foreground">
+                    <div className="flex items-center justify-between gap-3 text-sm">
+                      <span className="text-muted-foreground">Event date</span>
+                      <span className="numeric text-foreground font-medium">
                         {new Date(contract.booking.date).toLocaleDateString(
                           "en-IN",
                           {

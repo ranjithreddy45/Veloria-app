@@ -15,13 +15,14 @@ import {
   TrendingUpIcon,
   FileTextIcon,
   ImageIcon,
+  UserPlus as UserPlusIcon,
 } from "lucide-react";
 
 import { prisma } from "@/lib/prisma";
 import { getLead } from "@/actions/lead.actions";
 import { calculateLeadScoreWithBreakdown } from "@/lib/lead-scoring";
 import { StatusBadge } from "@/components/shared/status-badge";
-import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -31,6 +32,7 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   LEAD_STATUS_COLORS,
   LEAD_SOURCE_LABELS,
@@ -117,19 +119,29 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight">{lead.title}</h1>
-            <StatusBadge status={lead.status} colorMap={LEAD_STATUS_COLORS} />
+      {/* Header — PageHeader owns the editorial h1 + eyebrow. The status badge
+          rides the title-adjacent slot so it reads as part of the headline. */}
+      <PageHeader
+        icon={UserPlusIcon}
+        accent="blue"
+        eyebrow={
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>CRM · Lead</span>
+            <span className="h-3 w-px bg-border" />
+            <span className="text-foreground/80 numeric normal-case tracking-normal">
+              {format(new Date(lead.createdAt), "dd MMM yyyy")}
+            </span>
           </div>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Created {format(new Date(lead.createdAt), "dd MMM yyyy")}
-            {lead.createdBy && ` by ${lead.createdBy.name ?? lead.createdBy.email}`}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+        }
+        title={lead.title}
+        help={<StatusBadge status={lead.status} colorMap={LEAD_STATUS_COLORS} />}
+        description={
+          lead.createdBy
+            ? `Created by ${lead.createdBy.name ?? lead.createdBy.email}`
+            : undefined
+        }
+      >
+        <div className="flex flex-wrap items-center gap-2">
           <AIEmailComposer
             contactId={lead.contact.id}
             contactName={`${lead.contact.firstName} ${lead.contact.lastName}`}
@@ -166,7 +178,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
           <LeadStatusSelect leadId={lead.id} currentStatus={lead.status} />
           <LeadDeleteButton leadId={lead.id} leadTitle={lead.title} />
         </div>
-      </div>
+      </PageHeader>
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Left Column - Lead Details */}
@@ -177,11 +189,11 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
               <CardTitle className="text-base">Lead Information</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-5 sm:grid-cols-2">
                 <div className="flex items-start gap-3">
                   <TagIcon className="text-muted-foreground mt-0.5 size-4" />
-                  <div>
-                    <p className="text-muted-foreground text-xs">Source</p>
+                  <div className="space-y-1">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Source</p>
                     <StatusBadge
                       status={lead.source}
                       colorMap={{
@@ -203,8 +215,8 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                 {lead.eventType && (
                   <div className="flex items-start gap-3">
                     <CalendarIcon className="text-muted-foreground mt-0.5 size-4" />
-                    <div>
-                      <p className="text-muted-foreground text-xs">Event Type</p>
+                    <div className="space-y-1">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Event Type</p>
                       <p className="text-sm font-medium">{lead.eventType}</p>
                     </div>
                   </div>
@@ -212,9 +224,9 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                 {lead.eventDate && (
                   <div className="flex items-start gap-3">
                     <CalendarIcon className="text-muted-foreground mt-0.5 size-4" />
-                    <div>
-                      <p className="text-muted-foreground text-xs">Event Date</p>
-                      <p className="text-sm font-medium">
+                    <div className="space-y-1">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Event Date</p>
+                      <p className="numeric text-sm font-medium">
                         {format(new Date(lead.eventDate), "dd MMM yyyy")}
                       </p>
                     </div>
@@ -223,9 +235,9 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                 {lead.guestCount && (
                   <div className="flex items-start gap-3">
                     <UsersIcon className="text-muted-foreground mt-0.5 size-4" />
-                    <div>
-                      <p className="text-muted-foreground text-xs">Guest Count</p>
-                      <p className="text-sm font-medium">
+                    <div className="space-y-1">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Guest Count</p>
+                      <p className="numeric text-sm font-medium">
                         {lead.guestCount.toLocaleString("en-IN")}
                       </p>
                     </div>
@@ -234,11 +246,11 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                 {lead.estimatedValue && (
                   <div className="flex items-start gap-3">
                     <IndianRupeeIcon className="text-muted-foreground mt-0.5 size-4" />
-                    <div>
-                      <p className="text-muted-foreground text-xs">
+                    <div className="space-y-1">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
                         Estimated Value
                       </p>
-                      <p className="text-sm font-medium">
+                      <p className="numeric text-sm font-semibold">
                         {formatCurrency(lead.estimatedValue)}
                       </p>
                     </div>
@@ -247,9 +259,9 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                 {lead.followUpDate && (
                   <div className="flex items-start gap-3">
                     <ClockIcon className="text-muted-foreground mt-0.5 size-4" />
-                    <div>
-                      <p className="text-muted-foreground text-xs">Follow-up Date</p>
-                      <p className="text-sm font-medium">
+                    <div className="space-y-1">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Follow-up Date</p>
+                      <p className="numeric text-sm font-medium">
                         {format(new Date(lead.followUpDate), "dd MMM yyyy")}
                       </p>
                     </div>
@@ -260,7 +272,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
               {/* Inline (auto-save) editors — owner + next follow-up. Quick
                   edits without opening the full Edit form. */}
               <Separator className="my-4" />
-              <p className="text-muted-foreground mb-3 text-xs font-medium uppercase tracking-wide">
+              <p className="mb-3 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                 Quick edit
               </p>
               <LeadInlineFields
@@ -274,8 +286,8 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                 <>
                   <Separator className="my-4" />
                   <div>
-                    <p className="text-muted-foreground mb-2 text-xs">Description</p>
-                    <p className="text-sm whitespace-pre-wrap">
+                    <p className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">Description</p>
+                    <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-muted-foreground">
                       {lead.description}
                     </p>
                   </div>
@@ -299,14 +311,14 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                 <div className="bg-muted flex size-10 items-center justify-center rounded-full">
                   <UserIcon className="size-5" />
                 </div>
-                <div className="space-y-1">
-                  <p className="font-medium">
+                <div className="space-y-1.5">
+                  <p className="text-[15px] font-semibold tracking-[-0.01em]">
                     {lead.contact.firstName} {lead.contact.lastName}
                   </p>
                   {lead.contact.email && (
                     <div className="flex items-center gap-2">
                       <MailIcon className="text-muted-foreground size-3.5" />
-                      <span className="text-muted-foreground text-sm">
+                      <span className="text-[13px] text-muted-foreground">
                         {lead.contact.email}
                       </span>
                     </div>
@@ -314,13 +326,13 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                   {lead.contact.phone && (
                     <div className="flex items-center gap-2">
                       <PhoneIcon className="text-muted-foreground size-3.5" />
-                      <span className="text-muted-foreground text-sm">
+                      <span className="numeric text-[13px] text-muted-foreground">
                         {lead.contact.phone}
                       </span>
                     </div>
                   )}
                   {lead.contact.company && (
-                    <p className="text-muted-foreground text-sm">
+                    <p className="text-[13px] text-muted-foreground">
                       {lead.contact.designation
                         ? `${lead.contact.designation} at `
                         : ""}
@@ -356,10 +368,10 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                     <Link
                       key={q.id}
                       href={`/quotations/${q.id}`}
-                      className="hover:bg-muted/50 -mx-2 flex items-center justify-between gap-3 rounded px-2 py-2.5 transition-colors"
+                      className="-mx-2 flex items-center justify-between gap-3 rounded-xl px-2 py-3 transition-colors hover:bg-muted/50"
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">
+                        <p className="numeric truncate text-sm font-medium">
                           {q.quoteNumber}
                           {q.version > 1 && (
                             <span className="text-muted-foreground font-normal">
@@ -368,12 +380,12 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                             </span>
                           )}
                         </p>
-                        <p className="text-muted-foreground text-xs">
+                        <p className="text-[13px] text-muted-foreground numeric">
                           {format(new Date(q.createdAt), "dd MMM yyyy")}
                         </p>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="text-sm font-semibold">
+                        <span className="numeric text-sm font-semibold">
                           {formatCurrency(q.grandTotal)}
                         </span>
                         <StatusBadge
@@ -391,11 +403,12 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                   ))}
                 </div>
               ) : (
-                <p className="text-muted-foreground text-sm">
-                  No quotations yet. Once you&apos;ve collected the event details,
-                  click <span className="font-medium">New Quotation</span> to build
-                  one — the customer and event info will be pre-filled.
-                </p>
+                <EmptyState
+                  className="py-10"
+                  icon={<FileTextIcon />}
+                  title="No quotations yet"
+                  description="Once you've collected the event details, build one with the calculator — the customer and event info will be pre-filled."
+                />
               )}
             </CardContent>
           </Card>
@@ -417,7 +430,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                       href={src}
                       target="_blank"
                       rel="noreferrer"
-                      className="group relative aspect-square overflow-hidden rounded-md border bg-muted"
+                      className="group relative aspect-square overflow-hidden rounded-xl border bg-muted shadow-card transition-shadow hover:shadow-card-hover"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
@@ -429,12 +442,13 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                   ))}
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed py-8 text-center">
-                  <ImageIcon className="text-muted-foreground/50 size-8" />
-                  <p className="text-muted-foreground text-sm">No images yet</p>
-                  <p className="text-muted-foreground/70 max-w-xs text-xs">
-                    Add reference photos when creating or editing the lead.
-                  </p>
+                <div className="rounded-xl border border-dashed">
+                  <EmptyState
+                    className="py-10"
+                    icon={<ImageIcon />}
+                    title="No images yet"
+                    description="Add reference photos when creating or editing the lead."
+                  />
                 </div>
               )}
             </CardContent>
@@ -447,15 +461,15 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                 <CardTitle className="text-base">Converted Deal</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">{lead.deal.title}</p>
-                    <p className="text-muted-foreground text-sm">
-                      Stage: {lead.deal.stage.name} | Probability:{" "}
-                      {lead.deal.probability}%
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="truncate text-[15px] font-semibold tracking-[-0.01em]">{lead.deal.title}</p>
+                    <p className="text-[13px] text-muted-foreground">
+                      {lead.deal.stage.name} ·{" "}
+                      <span className="numeric">{lead.deal.probability}%</span> probability
                     </p>
                   </div>
-                  <p className="text-lg font-semibold">
+                  <p className="numeric shrink-0 text-lg font-semibold tracking-[-0.02em]">
                     {formatCurrency(lead.deal.value)}
                   </p>
                 </div>
@@ -491,11 +505,11 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-4">
-                <span className={cn("text-4xl font-bold", scoreColor)}>
+              <div className="flex items-baseline gap-2">
+                <span className={cn("numeric text-4xl font-bold tracking-[-0.03em]", scoreColor)}>
                   {scoreBreakdown.total}
                 </span>
-                <span className="text-muted-foreground text-sm">/ 100</span>
+                <span className="numeric text-sm text-muted-foreground">/ 100</span>
               </div>
               <Progress
                 value={scoreBreakdown.total}
@@ -505,7 +519,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
               <Separator className="my-4" />
 
               <div className="space-y-2">
-                <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                   Score Breakdown
                 </p>
                 {scoreBreakdown.factors.map((factor, index) => (
@@ -524,7 +538,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                     </span>
                     <span
                       className={cn(
-                        "font-medium",
+                        "numeric font-medium",
                         factor.applied
                           ? factor.points > 0
                             ? "text-green-600"
@@ -553,16 +567,16 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Created</span>
-                  <span>{format(new Date(lead.createdAt), "dd MMM yyyy")}</span>
+                  <span className="numeric">{format(new Date(lead.createdAt), "dd MMM yyyy")}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Last Updated</span>
-                  <span>{format(new Date(lead.updatedAt), "dd MMM yyyy")}</span>
+                  <span className="numeric">{format(new Date(lead.updatedAt), "dd MMM yyyy")}</span>
                 </div>
                 {lead.followUpDate && (
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Follow-up</span>
-                    <span>
+                    <span className="numeric">
                       {format(new Date(lead.followUpDate), "dd MMM yyyy")}
                     </span>
                   </div>
@@ -570,7 +584,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                 {lead.eventDate && (
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Event Date</span>
-                    <span>
+                    <span className="numeric">
                       {format(new Date(lead.eventDate), "dd MMM yyyy")}
                     </span>
                   </div>

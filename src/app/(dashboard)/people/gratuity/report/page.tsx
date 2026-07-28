@@ -20,7 +20,7 @@ export default async function GratuityReportPage() {
   const rows = await getGratuityLedger();
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         eyebrow="Payroll"
         icon={FileBarChart}

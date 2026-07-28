@@ -4,18 +4,20 @@ import Link from "next/link";
 import { format } from "date-fns";
 import {
   PencilIcon,
-  TrashIcon,
   MailIcon,
   PhoneIcon,
   BuildingIcon,
   MapPinIcon,
   CalendarIcon,
   UserIcon,
+  ContactIcon,
 } from "lucide-react";
 
 import { getContact } from "@/actions/contact.actions";
 import { StatusBadge } from "@/components/shared/status-badge";
+import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -86,23 +88,35 @@ export default async function ContactDetailPage({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight">
-              {contact.firstName} {contact.lastName}
-            </h1>
-            <StatusPill label={statusOption.label} hue={statusOption.hue} size="sm" />
-          </div>
-          <p className="text-muted-foreground mt-1 text-sm">
-            {contact.company ? `${contact.designation ? contact.designation + " at " : ""}${contact.company}` : contact.type === "CORPORATE" ? "Corporate Contact" : "Individual Contact"}
+      {/* Header — PageHeader owns the editorial h1; the enquiry-status pill
+          rides the title-adjacent slot so it reads as part of the headline. */}
+      <PageHeader
+        icon={ContactIcon}
+        accent="blue"
+        eyebrow={
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>CRM · Contact</span>
             {contact.enquiryStatusAt && (
-              <> · status updated {format(new Date(contact.enquiryStatusAt), "dd MMM yyyy")}</>
+              <>
+                <span className="h-3 w-px bg-border" />
+                <span className="numeric normal-case tracking-normal text-foreground/80">
+                  Updated {format(new Date(contact.enquiryStatusAt), "dd MMM yyyy")}
+                </span>
+              </>
             )}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+          </div>
+        }
+        title={`${contact.firstName} ${contact.lastName}`}
+        help={<StatusPill label={statusOption.label} hue={statusOption.hue} size="sm" />}
+        description={
+          contact.company
+            ? `${contact.designation ? contact.designation + " at " : ""}${contact.company}`
+            : contact.type === "CORPORATE"
+              ? "Corporate contact"
+              : "Individual contact"
+        }
+      >
+        <div className="flex flex-wrap items-center gap-2">
           <EnquiryStatusSelect
             contactId={contact.id}
             currentStatus={contact.enquiryStatus ?? null}
@@ -130,20 +144,20 @@ export default async function ContactDetailPage({
             contactName={`${contact.firstName} ${contact.lastName}`}
           />
         </div>
-      </div>
+      </PageHeader>
 
       {/* Tabs */}
       <Tabs defaultValue="overview">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="leads">
-            Leads ({contact.leads.length})
+            Leads <span className="numeric text-muted-foreground">{contact.leads.length}</span>
           </TabsTrigger>
           <TabsTrigger value="bookings">
-            Bookings ({contact.bookings.length})
+            Bookings <span className="numeric text-muted-foreground">{contact.bookings.length}</span>
           </TabsTrigger>
           <TabsTrigger value="invoices">
-            Invoices ({contact.invoices.length})
+            Invoices <span className="numeric text-muted-foreground">{contact.invoices.length}</span>
           </TabsTrigger>
           <TabsTrigger value="communications">
             Communications
@@ -165,7 +179,7 @@ export default async function ContactDetailPage({
                 <div className="flex items-center gap-3">
                   <UserIcon className="text-muted-foreground size-4" />
                   <div>
-                    <p className="text-muted-foreground text-xs">Type</p>
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Type</p>
                     <StatusBadge
                       status={contact.type}
                       colorMap={{
@@ -179,7 +193,7 @@ export default async function ContactDetailPage({
                   <div className="flex items-center gap-3">
                     <MailIcon className="text-muted-foreground size-4" />
                     <div>
-                      <p className="text-muted-foreground text-xs">Email</p>
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Email</p>
                       <p className="text-sm">{contact.email}</p>
                     </div>
                   </div>
@@ -188,8 +202,8 @@ export default async function ContactDetailPage({
                   <div className="flex items-center gap-3">
                     <PhoneIcon className="text-muted-foreground size-4" />
                     <div>
-                      <p className="text-muted-foreground text-xs">Phone</p>
-                      <p className="text-sm">{contact.phone}</p>
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Phone</p>
+                      <p className="numeric text-sm">{contact.phone}</p>
                     </div>
                   </div>
                 )}
@@ -197,7 +211,7 @@ export default async function ContactDetailPage({
                   <div className="flex items-center gap-3">
                     <BuildingIcon className="text-muted-foreground size-4" />
                     <div>
-                      <p className="text-muted-foreground text-xs">Company</p>
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Company</p>
                       <p className="text-sm">
                         {contact.company}
                         {contact.designation && ` (${contact.designation})`}
@@ -209,7 +223,7 @@ export default async function ContactDetailPage({
                   <div className="flex items-center gap-3">
                     <MapPinIcon className="text-muted-foreground size-4" />
                     <div>
-                      <p className="text-muted-foreground text-xs">Address</p>
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Address</p>
                       <p className="text-sm">
                         {[contact.address, contact.city, contact.state, contact.pincode]
                           .filter(Boolean)
@@ -221,8 +235,8 @@ export default async function ContactDetailPage({
                 <div className="flex items-center gap-3">
                   <CalendarIcon className="text-muted-foreground size-4" />
                   <div>
-                    <p className="text-muted-foreground text-xs">Created</p>
-                    <p className="text-sm">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Created</p>
+                    <p className="numeric text-sm">
                       {format(new Date(contact.createdAt), "dd MMM yyyy")}
                     </p>
                   </div>
@@ -237,7 +251,7 @@ export default async function ContactDetailPage({
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <p className="text-muted-foreground mb-2 text-xs">Tags</p>
+                  <p className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">Tags</p>
                   {contact.tags.length > 0 ? (
                     <div className="flex flex-wrap gap-1">
                       {contact.tags.map((tag: string) => (
@@ -247,13 +261,13 @@ export default async function ContactDetailPage({
                       ))}
                     </div>
                   ) : (
-                    <p className="text-muted-foreground text-sm">No tags</p>
+                    <p className="text-[13px] text-muted-foreground">No tags</p>
                   )}
                 </div>
                 <Separator />
                 <div>
-                  <p className="text-muted-foreground mb-2 text-xs">Notes</p>
-                  <p className="text-sm whitespace-pre-wrap">
+                  <p className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">Notes</p>
+                  <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-muted-foreground">
                     {contact.notes || "No notes"}
                   </p>
                 </div>
@@ -289,36 +303,39 @@ export default async function ContactDetailPage({
             </CardHeader>
             <CardContent>
               {contact.leads.length === 0 ? (
-                <p className="text-muted-foreground py-8 text-center text-sm">
-                  No leads associated with this contact yet.
-                </p>
+                <EmptyState
+                  className="py-10"
+                  icon={<UserIcon />}
+                  title="No leads yet"
+                  description="Every enquiry this person raises will be listed here. Add one to start tracking it."
+                />
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   {contact.leads.map((lead: { id: string; title: string; status: string; source: string; eventType: string | null; eventDate: Date | string | null; assignedTo: { name: string | null } | null }) => (
                     <div
                       key={lead.id}
-                      className="flex items-center justify-between rounded-lg border p-3"
+                      className="flex items-center justify-between gap-4 rounded-2xl border bg-card p-4 shadow-card transition-shadow hover:shadow-card-hover"
                     >
-                      <div>
+                      <div className="min-w-0">
                         <Link
                           href={`/leads/${lead.id}`}
-                          className="font-medium hover:underline"
+                          className="text-sm font-semibold tracking-[-0.01em] hover:underline"
                         >
                           {lead.title}
                         </Link>
-                        <div className="text-muted-foreground mt-1 flex items-center gap-2 text-xs">
+                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] text-muted-foreground">
                           {lead.eventType && <span>{lead.eventType}</span>}
                           {lead.eventDate && (
-                            <span>
+                            <span className="numeric">
                               {format(new Date(lead.eventDate), "dd MMM yyyy")}
                             </span>
                           )}
                           {lead.assignedTo && (
-                            <span>Assigned to: {lead.assignedTo.name}</span>
+                            <span>Assigned to {lead.assignedTo.name}</span>
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex shrink-0 items-center gap-2">
                         <StatusBadge
                           status={lead.source}
                           colorMap={{
@@ -356,29 +373,32 @@ export default async function ContactDetailPage({
             </CardHeader>
             <CardContent>
               {contact.bookings.length === 0 ? (
-                <p className="text-muted-foreground py-8 text-center text-sm">
-                  No bookings associated with this contact yet.
-                </p>
+                <EmptyState
+                  className="py-10"
+                  icon={<CalendarIcon />}
+                  title="No bookings yet"
+                  description="Confirmed events for this contact will appear here with their value and status."
+                />
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   {contact.bookings.map((booking: any) => (
                     <div
                       key={booking.id}
-                      className="flex items-center justify-between rounded-lg border p-3"
+                      className="flex items-center justify-between gap-4 rounded-2xl border bg-card p-4 shadow-card transition-shadow hover:shadow-card-hover"
                     >
-                      <div>
-                        <p className="font-medium">{booking.eventName}</p>
-                        <div className="text-muted-foreground mt-1 flex items-center gap-2 text-xs">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold tracking-[-0.01em]">{booking.eventName}</p>
+                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] text-muted-foreground">
                           <span>{booking.eventType}</span>
-                          <span>
+                          <span className="numeric">
                             {format(new Date(booking.date), "dd MMM yyyy")}
                           </span>
                           <span>{booking.venue.name}</span>
-                          <span>{booking.guestCount} guests</span>
+                          <span className="numeric">{booking.guestCount} guests</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">
+                      <div className="flex shrink-0 items-center gap-3">
+                        <span className="numeric text-sm font-semibold">
                           {formatCurrency(booking.totalAmount)}
                         </span>
                         <StatusBadge
@@ -402,32 +422,35 @@ export default async function ContactDetailPage({
             </CardHeader>
             <CardContent>
               {contact.invoices.length === 0 ? (
-                <p className="text-muted-foreground py-8 text-center text-sm">
-                  No invoices associated with this contact yet.
-                </p>
+                <EmptyState
+                  className="py-10"
+                  icon={<MailIcon />}
+                  title="No invoices yet"
+                  description="Invoices raised against this contact's bookings will be listed here."
+                />
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   {contact.invoices.map((invoice: any) => (
                     <div
                       key={invoice.id}
-                      className="flex items-center justify-between rounded-lg border p-3"
+                      className="flex items-center justify-between gap-4 rounded-2xl border bg-card p-4 shadow-card transition-shadow hover:shadow-card-hover"
                     >
-                      <div>
-                        <p className="font-medium">{invoice.invoiceNumber}</p>
-                        <div className="text-muted-foreground mt-1 text-xs">
-                          Issued: {format(new Date(invoice.issueDate), "dd MMM yyyy")}
-                          {" | "}
-                          Due: {format(new Date(invoice.dueDate), "dd MMM yyyy")}
+                      <div className="min-w-0">
+                        <p className="numeric text-sm font-semibold tracking-[-0.01em]">{invoice.invoiceNumber}</p>
+                        <div className="mt-1 text-[13px] text-muted-foreground">
+                          <span className="numeric">Issued {format(new Date(invoice.issueDate), "dd MMM yyyy")}</span>
+                          {" · "}
+                          <span className="numeric">Due {format(new Date(invoice.dueDate), "dd MMM yyyy")}</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex shrink-0 items-center gap-3">
                         <div className="text-right">
-                          <p className="text-sm font-medium">
+                          <p className="numeric text-sm font-semibold">
                             {formatCurrency(invoice.totalAmount)}
                           </p>
                           {Number(invoice.balanceDue) > 0 && (
-                            <p className="text-destructive text-xs">
-                              Due: {formatCurrency(invoice.balanceDue)}
+                            <p className="numeric text-[11.5px] text-destructive">
+                              {formatCurrency(invoice.balanceDue)} due
                             </p>
                           )}
                         </div>

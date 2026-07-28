@@ -18,27 +18,36 @@ export default async function HostActivatePage({
 
   if (!preview.valid) {
     return (
-      <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="bg-card shadow-card mx-auto max-w-md rounded-2xl border p-10 text-center">
         <ShieldAlert className="mx-auto size-8 text-amber-500" />
-        <h1 className="mt-3 text-base font-semibold text-zinc-900 dark:text-zinc-100">
-          {preview.reason === "expired" ? "This link has expired" : "This link is invalid"}
+        <h1 className="text-foreground mt-4 text-[24px]">
+          {preview.reason === "expired"
+            ? "This link has expired"
+            : "This link is invalid"}
         </h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          Please contact your Veloria Grand event manager for a fresh portal invite.
+        <p className="text-muted-foreground mx-auto mt-2 max-w-xs text-sm leading-relaxed">
+          Your Veloria Grand event manager can send you a fresh portal invite
+          right away.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-md space-y-5">
+    <div className="mx-auto max-w-md space-y-7">
       <header className="text-center">
-        <div className="mx-auto flex size-11 items-center justify-center rounded-xl bg-violet-600 text-white">
-          <PartyPopper className="size-5" />
+        <div className="bg-primary text-primary-foreground mx-auto flex size-12 items-center justify-center rounded-2xl">
+          <PartyPopper className="size-[22px]" />
         </div>
-        <h1 className="mt-3 text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">Activate your event portal</h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          Welcome, <strong>{preview.name}</strong>. Set a password to view your bookings, invoices, guest list, and more.
+        <p className="text-muted-foreground mt-5 text-[11px] font-semibold uppercase tracking-[0.18em]">
+          Welcome, {preview.name}
+        </p>
+        <h1 className="text-foreground mt-3 text-[30px] sm:text-[34px]">
+          Activate your event portal
+        </h1>
+        <p className="text-muted-foreground mx-auto mt-3 max-w-sm text-[15px] leading-relaxed">
+          Choose a password, and your bookings, invoices, guest list and
+          documents will all be waiting for you in one place.
         </p>
       </header>
       <HostActivateForm contactId={contactId} token={token} email={preview.email} />

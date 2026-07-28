@@ -264,7 +264,7 @@ function TypeTabs({
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-0.5 rounded-md border border-border bg-card p-0.5">
+    <div className="flex flex-wrap items-center gap-0.5 rounded-xl border border-border bg-card p-1 shadow-card">
       {TYPE_TABS.map((tab) => {
         const isActive = tab.id === active;
         return (
@@ -272,7 +272,7 @@ function TypeTabs({
             key={tab.id}
             onClick={() => onChange(tab.id)}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-[5px] px-2.5 py-1 text-[12.5px] font-medium transition-colors",
+              "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12.5px] font-medium transition-colors",
               isActive
                 ? "bg-muted text-foreground"
                 : "text-muted-foreground hover:bg-muted/60 hover:text-foreground/90"
@@ -281,7 +281,7 @@ function TypeTabs({
             {tab.label}
             <span
               className={cn(
-                "rounded px-1 text-[10.5px] tabular-nums",
+                "rounded px-1 text-[10.5px] numeric",
                 isActive
                   ? "bg-background text-foreground/70 ring-1 ring-border"
                   : "text-muted-foreground/70"
@@ -334,7 +334,7 @@ const columns: ColumnDef<Contact>[] = [
       const phone = row.original.phone;
       if (!phone) return <span className="text-muted-foreground/60 text-[12px]">—</span>;
       return (
-        <span className="text-[12.5px] text-muted-foreground tabular-nums">{phone}</span>
+        <span className="text-[12.5px] text-muted-foreground numeric">{phone}</span>
       );
     },
   },

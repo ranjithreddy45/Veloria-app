@@ -32,12 +32,13 @@ export default async function VendorConfirmPage({
 
   if (!res.success) {
     return (
-      <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center dark:border-zinc-800 dark:bg-zinc-900">
-        <p className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+      <div className="bg-card shadow-card mx-auto max-w-lg rounded-2xl border p-10 text-center">
+        <h1 className="text-foreground text-[24px]">
           We couldn&apos;t find this request
-        </p>
-        <p className="mt-1 text-sm text-zinc-500">
-          The link may have expired or is no longer valid.
+        </h1>
+        <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm leading-relaxed">
+          The link may have expired or is no longer valid. Your coordinator can
+          send a new one.
         </p>
       </div>
     );
@@ -46,30 +47,33 @@ export default async function VendorConfirmPage({
   const a = res.data;
 
   return (
-    <div className="space-y-5">
-      <header className="text-center">
-        <h1 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+    <div className="space-y-6">
+      <header className="pb-1 text-center">
+        <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.18em]">
+          For {a.vendorName}
+        </p>
+        <h1 className="text-foreground mt-3 text-[30px] sm:text-[34px]">
           {a.status === "CONFIRMED"
             ? "You're confirmed"
             : a.status === "DECLINED"
               ? "Request declined"
               : "Confirm your booking"}
         </h1>
-        <p className="mt-1 text-sm text-zinc-500">Hi {a.vendorName} 👋</p>
       </header>
 
       {a.status === "CONFIRMED" && (
-        <div className="flex flex-col items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center dark:border-emerald-900 dark:bg-emerald-950/30">
-          <CheckCircle2 className="size-7 text-emerald-600" />
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.07] p-7 text-center">
+          <CheckCircle2 className="size-7 text-emerald-600 dark:text-emerald-400" />
           <p className="text-sm font-medium text-emerald-800 dark:text-emerald-300">
-            Thank you — we&apos;ve recorded your confirmation. See you there!
+            Thank you — your confirmation is recorded. We look forward to
+            working with you.
           </p>
         </div>
       )}
 
       {a.status === "DECLINED" && (
-        <div className="flex flex-col items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 p-5 text-center dark:border-rose-900 dark:bg-rose-950/30">
-          <XCircle className="size-7 text-rose-600" />
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-rose-500/25 bg-rose-500/[0.07] p-7 text-center">
+          <XCircle className="size-7 text-rose-600 dark:text-rose-400" />
           <p className="text-sm font-medium text-rose-800 dark:text-rose-300">
             You&apos;ve declined this request. Our team has been notified.
           </p>
@@ -77,39 +81,39 @@ export default async function VendorConfirmPage({
       )}
 
       {/* Summary card — vendor's own details only */}
-      <div className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="bg-card shadow-card space-y-3.5 rounded-2xl border p-6">
         <Row
-          icon={<Sparkles className="size-4 text-violet-600" />}
+          icon={<Sparkles className="text-muted-foreground/60 size-4" />}
           label="Event"
           value={a.eventName}
         />
         {a.role && (
           <Row
-            icon={<Sparkles className="size-4 text-violet-600" />}
+            icon={<Sparkles className="text-muted-foreground/60 size-4" />}
             label="Your role"
             value={a.role}
           />
         )}
         {a.venueName && (
           <Row
-            icon={<MapPin className="size-4 text-violet-600" />}
+            icon={<MapPin className="text-muted-foreground/60 size-4" />}
             label="Venue"
             value={a.venueName}
           />
         )}
         <Row
-          icon={<CalendarDays className="size-4 text-violet-600" />}
+          icon={<CalendarDays className="text-muted-foreground/60 size-4" />}
           label="Date"
           value={a.dateLabel}
         />
         <Row
-          icon={<Clock className="size-4 text-violet-600" />}
+          icon={<Clock className="text-muted-foreground/60 size-4" />}
           label="Slot"
           value={a.slotLabel}
         />
         {a.arrivalTime && (
           <Row
-            icon={<Clock className="size-4 text-violet-600" />}
+            icon={<Clock className="text-muted-foreground/60 size-4" />}
             label="Arrival"
             value={a.arrivalTime}
           />
@@ -119,7 +123,7 @@ export default async function VendorConfirmPage({
       {a.actionable ? (
         <VendorConfirm token={a.token} />
       ) : (
-        <p className="text-center text-sm text-zinc-500">
+        <p className="text-muted-foreground text-center text-sm">
           This request has already been answered.
         </p>
       )}
@@ -138,11 +142,11 @@ function Row({
 }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <span className="flex items-center gap-2 text-sm text-zinc-500">
+      <span className="text-muted-foreground flex items-center gap-2 text-sm">
         {icon}
         {label}
       </span>
-      <span className="text-right text-sm font-medium text-zinc-900 dark:text-zinc-100">
+      <span className="text-foreground text-right text-sm font-medium">
         {value}
       </span>
     </div>

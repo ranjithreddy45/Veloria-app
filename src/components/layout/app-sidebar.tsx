@@ -483,7 +483,7 @@ export function AppSidebar() {
                     <Gem className="size-3.5" strokeWidth={2.5} />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[13.5px] font-semibold tracking-[-0.014em] text-ink-gradient">
+                    <span className="font-editorial text-[15px] font-semibold tracking-[-0.01em] text-ink-gradient">
                       Veloria Grand
                     </span>
                     <span className="text-[10.5px] font-medium tracking-wide text-sidebar-foreground/45">

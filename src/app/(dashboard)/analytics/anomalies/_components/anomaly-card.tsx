@@ -65,16 +65,16 @@ interface AnomalyCardProps {
 // ============================================================
 
 const SEVERITY_STYLES: Record<string, string> = {
-  CRITICAL: "bg-red-100 text-red-800 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800",
-  HIGH: "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-800",
-  MEDIUM: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950 dark:text-yellow-300 dark:border-yellow-800",
-  LOW: "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800",
+  CRITICAL: "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300",
+  HIGH: "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-900/60 dark:bg-orange-950/40 dark:text-orange-300",
+  MEDIUM: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300",
+  LOW: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300",
 };
 
 const SEVERITY_CARD_BORDER: Record<string, string> = {
-  CRITICAL: "border-l-4 border-l-red-500",
+  CRITICAL: "border-l-4 border-l-rose-500",
   HIGH: "border-l-4 border-l-orange-500",
-  MEDIUM: "border-l-4 border-l-yellow-500",
+  MEDIUM: "border-l-4 border-l-amber-500",
   LOW: "border-l-4 border-l-emerald-500",
 };
 
@@ -174,7 +174,7 @@ export function AnomalyCard({ anomaly, onUpdate }: AnomalyCardProps) {
   };
 
   return (
-    <Card className={cardBorder}>
+    <Card className={`rounded-2xl border bg-card shadow-card transition-shadow hover:shadow-card-hover ${cardBorder}`}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
@@ -183,15 +183,20 @@ export function AnomalyCard({ anomaly, onUpdate }: AnomalyCardProps) {
             </div>
             <div className="space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-semibold leading-none">{anomaly.title}</h3>
-                <Badge variant="outline" className={severityStyle}>
+                <h3 className="text-[14.5px] font-semibold leading-none tracking-[-0.01em]">
+                  {anomaly.title}
+                </h3>
+                <Badge
+                  variant="outline"
+                  className={`text-[11px] font-medium ${severityStyle}`}
+                >
                   {anomaly.severity}
                 </Badge>
-                <Badge variant="secondary" className="text-xs">
+                <Badge variant="secondary" className="text-[11px] font-medium">
                   {typeLabel}
                 </Badge>
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[12px] text-muted-foreground">
                 Detected{" "}
                 {formatDistanceToNow(new Date(anomaly.detectedAt), {
                   addSuffix: true,
@@ -265,30 +270,30 @@ export function AnomalyCard({ anomaly, onUpdate }: AnomalyCardProps) {
 
         {/* Metric Info */}
         {(anomaly.expectedValue !== null || anomaly.actualValue !== null) && (
-          <div className="flex flex-wrap gap-4 rounded-md bg-muted/50 p-3 text-sm">
+          <div className="flex flex-wrap gap-x-6 gap-y-2 rounded-xl bg-muted/50 p-3.5 text-[13px]">
             {anomaly.expectedValue !== null && (
               <div>
-                <span className="text-muted-foreground">Expected: </span>
-                <span className="font-medium">
+                <span className="text-muted-foreground">Expected </span>
+                <span className="numeric font-medium">
                   {formatMetricValue(anomaly.metric, anomaly.expectedValue)}
                 </span>
               </div>
             )}
             {anomaly.actualValue !== null && (
               <div>
-                <span className="text-muted-foreground">Actual: </span>
-                <span className="font-medium">
+                <span className="text-muted-foreground">Actual </span>
+                <span className="numeric font-medium">
                   {formatMetricValue(anomaly.metric, anomaly.actualValue)}
                 </span>
               </div>
             )}
             {anomaly.deviationPercent !== null && (
               <div>
-                <span className="text-muted-foreground">Deviation: </span>
+                <span className="text-muted-foreground">Deviation </span>
                 <span
-                  className={`font-medium ${
+                  className={`numeric font-medium ${
                     anomaly.deviationPercent < 0
-                      ? "text-red-600 dark:text-red-400"
+                      ? "text-rose-600 dark:text-rose-400"
                       : "text-emerald-600 dark:text-emerald-400"
                   }`}
                 >

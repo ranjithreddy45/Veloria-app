@@ -60,7 +60,13 @@ export default async function PaymentsPage() {
         aura
         icon={CreditCardIcon}
         accent="emerald"
-        eyebrow={`FINANCE · ${payments.length} payments · ${formatINR(collectedTotal)} collected`}
+        eyebrow={
+          <span>
+            FINANCE · <span className="numeric">{payments.length}</span> payment
+            {payments.length === 1 ? "" : "s"} ·{" "}
+            <span className="numeric">{formatINR(collectedTotal)}</span> collected
+          </span>
+        }
         title="Payments"
         help={<PageHelp id="payments" />}
         description="Track payment collections, pending and overdue amounts."
@@ -70,7 +76,7 @@ export default async function PaymentsPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatTile
           label="Collected"
-          value={formatINR(collectedTotal)}
+          value={<span className="numeric">{formatINR(collectedTotal)}</span>}
           accent="emerald"
           icon={<IndianRupeeIcon className="size-4" />}
           sub="Completed payments"
@@ -84,7 +90,7 @@ export default async function PaymentsPage() {
         />
         <StatTile
           label="This month"
-          value={formatINR(thisMonth)}
+          value={<span className="numeric">{formatINR(thisMonth)}</span>}
           accent="indigo"
           icon={<CalendarIcon className="size-4" />}
           sub="Collected since the 1st"

@@ -91,21 +91,24 @@ export default async function PortalBookingDetailPage({
   const isCancelled = booking.status === "CANCELLED";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       {/* Back Button */}
       <Link
         href="/portal/bookings"
-        className="inline-flex items-center gap-2 text-sm text-zinc-500 transition-colors hover:text-zinc-700"
+        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-2 text-[13px] transition-colors"
       >
-        <ArrowLeft className="size-4" />
-        Back to Bookings
+        <ArrowLeft className="size-3.5" />
+        Back to my bookings
       </Link>
 
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-2">
+          <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
+            Your account
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="large-title text-foreground text-[28px] leading-tight sm:text-[32px]">
               {booking.eventName}
             </h1>
             <StatusBadge
@@ -114,20 +117,23 @@ export default async function PortalBookingDetailPage({
               label={BOOKING_STATUS_CLIENT_LABELS[booking.status]}
             />
           </div>
-          <p className="mt-1 text-sm text-zinc-500">
-            {booking.eventType} &middot; Booking #{booking.bookingNumber}
+          <p className="text-muted-foreground text-[15px]">
+            {booking.eventType} &middot; Booking{" "}
+            <span className="numeric">{booking.bookingNumber}</span>
           </p>
         </div>
 
         {/* Countdown */}
         {!isCancelled && days >= 0 && booking.status !== "COMPLETED" && (
-          <div className="flex items-center gap-3 rounded-xl bg-indigo-50 px-5 py-3">
-            <Timer className="size-5 text-indigo-600" />
+          <div className="bg-primary/[0.06] border-primary/15 flex flex-shrink-0 items-center gap-3.5 rounded-2xl border px-5 py-4">
+            <Timer className="text-primary size-5" />
             <div>
-              <p className="text-lg font-bold text-indigo-700">
+              <p className="numeric text-foreground text-[20px] font-semibold leading-none">
                 {days} day{days !== 1 ? "s" : ""}
               </p>
-              <p className="text-xs text-indigo-500">until your event</p>
+              <p className="text-muted-foreground mt-1 text-[11px] font-semibold uppercase tracking-[0.12em]">
+                Until your event
+              </p>
             </div>
           </div>
         )}
@@ -135,7 +141,7 @@ export default async function PortalBookingDetailPage({
 
       {/* Progress Timeline */}
       {!isCancelled && (
-        <Card className="border-zinc-200/80 shadow-sm">
+        <Card className="shadow-card rounded-2xl py-0">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               {PROGRESS_STEPS.map((step, idx) => {
@@ -143,13 +149,13 @@ export default async function PortalBookingDetailPage({
                 const isCurrent = idx === progressIndex;
                 return (
                   <div key={step.key} className="flex flex-1 items-center">
-                    <div className="flex flex-col items-center gap-1.5">
+                    <div className="flex flex-col items-center gap-2">
                       <div
                         className={`flex size-8 items-center justify-center rounded-full transition-colors ${
                           isCompleted
-                            ? "bg-indigo-600 text-white"
-                            : "bg-zinc-100 text-zinc-400"
-                        } ${isCurrent ? "ring-4 ring-indigo-100" : ""}`}
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground/50"
+                        } ${isCurrent ? "ring-primary/15 ring-4" : ""}`}
                       >
                         {isCompleted ? (
                           <CheckCircle2 className="size-4" />
@@ -158,8 +164,10 @@ export default async function PortalBookingDetailPage({
                         )}
                       </div>
                       <span
-                        className={`text-xs font-medium ${
-                          isCompleted ? "text-indigo-600" : "text-zinc-400"
+                        className={`text-center text-[11px] font-semibold uppercase tracking-[0.1em] ${
+                          isCompleted
+                            ? "text-primary"
+                            : "text-muted-foreground/60"
                         }`}
                       >
                         {step.label}
@@ -167,8 +175,8 @@ export default async function PortalBookingDetailPage({
                     </div>
                     {idx < PROGRESS_STEPS.length - 1 && (
                       <div
-                        className={`mx-2 h-0.5 flex-1 rounded ${
-                          idx < progressIndex ? "bg-indigo-600" : "bg-zinc-200"
+                        className={`mx-2 mb-6 h-0.5 flex-1 rounded-full ${
+                          idx < progressIndex ? "bg-primary" : "bg-border"
                         }`}
                       />
                     )}
@@ -184,20 +192,22 @@ export default async function PortalBookingDetailPage({
         {/* Left Column: Main Info */}
         <div className="space-y-6 lg:col-span-2">
           {/* Event Details */}
-          <Card className="border-zinc-200/80 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
-                <CalendarCheck className="size-4 text-indigo-500" />
-                Event Details
+          <Card className="shadow-card rounded-2xl py-0">
+            <CardHeader className="px-6 pt-6 pb-4">
+              <CardTitle className="flex items-center gap-2.5">
+                <CalendarCheck className="text-primary size-4" />
+                <span className="font-editorial text-foreground text-[20px] font-semibold">
+                  Your day, in detail
+                </span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">
+            <CardContent className="px-6 pb-6">
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
                     Date
                   </p>
-                  <p className="text-sm font-medium text-foreground">
+                  <p className="numeric text-foreground text-sm font-medium">
                     {eventDate.toLocaleDateString("en-IN", {
                       weekday: "long",
                       day: "numeric",
@@ -206,41 +216,41 @@ export default async function PortalBookingDetailPage({
                     })}
                   </p>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">
-                    Time Slot
+                <div className="space-y-1.5">
+                  <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
+                    Time slot
                   </p>
-                  <p className="text-sm font-medium text-foreground">
+                  <p className="text-foreground text-sm font-medium">
                     {TIME_SLOT_LABELS[booking.timeSlot] || booking.timeSlot}
                   </p>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">
-                    Guest Count
+                <div className="space-y-1.5">
+                  <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
+                    Guests
                   </p>
-                  <p className="text-sm font-medium text-foreground">
-                    {booking.guestCount} guests
+                  <p className="text-foreground text-sm font-medium">
+                    <span className="numeric">{booking.guestCount}</span> guests
                   </p>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">
-                    Total Amount
+                <div className="space-y-1.5">
+                  <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
+                    Total
                   </p>
-                  <p className="text-sm font-bold text-foreground">
+                  <p className="numeric text-foreground text-sm font-semibold">
                     {formatINR(booking.totalAmount)}
                   </p>
                 </div>
               </div>
 
               {booking.specialRequests && (
-                <div className="mt-5 rounded-lg bg-amber-50 p-4">
+                <div className="mt-6 rounded-xl border border-amber-500/25 bg-amber-500/[0.07] p-4">
                   <div className="flex items-center gap-2">
-                    <MessageSquare className="size-4 text-amber-600" />
-                    <p className="text-xs font-semibold uppercase tracking-wider text-amber-700">
-                      Special Requests
+                    <MessageSquare className="size-3.5 text-amber-600 dark:text-amber-400" />
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-400">
+                      What you asked us for
                     </p>
                   </div>
-                  <p className="mt-1.5 text-sm text-amber-800">
+                  <p className="text-foreground/80 mt-2 text-sm leading-relaxed">
                     {booking.specialRequests}
                   </p>
                 </div>
@@ -249,29 +259,34 @@ export default async function PortalBookingDetailPage({
           </Card>
 
           {/* Venue Info */}
-          <Card className="border-zinc-200/80 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
-                <MapPin className="size-4 text-indigo-500" />
-                Venue
+          <Card className="shadow-card rounded-2xl py-0">
+            <CardHeader className="px-6 pt-6 pb-4">
+              <CardTitle className="flex items-center gap-2.5">
+                <MapPin className="text-primary size-4" />
+                <span className="font-editorial text-foreground text-[20px] font-semibold">
+                  Where it happens
+                </span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
+            <CardContent className="px-6 pb-6">
+              <div className="space-y-4">
                 <div>
-                  <h3 className="text-sm font-semibold text-foreground">
+                  <h3 className="text-foreground text-sm font-semibold">
                     {booking.venue.name}
                   </h3>
                   {booking.venue.description && (
-                    <p className="mt-1 text-sm text-zinc-500">
+                    <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
                       {booking.venue.description}
                     </p>
                   )}
                 </div>
-                <div className="flex flex-wrap gap-4 text-sm text-zinc-600">
+                <div className="text-muted-foreground flex flex-wrap gap-4 text-sm">
                   <div className="flex items-center gap-1.5">
-                    <Users className="size-3.5 text-zinc-400" />
-                    <span>Capacity: {booking.venue.capacity}</span>
+                    <Users className="text-muted-foreground/50 size-3.5" />
+                    <span>
+                      Seats up to{" "}
+                      <span className="numeric">{booking.venue.capacity}</span>
+                    </span>
                   </div>
                 </div>
                 {booking.venue.amenities.length > 0 && (
@@ -279,9 +294,9 @@ export default async function PortalBookingDetailPage({
                     {booking.venue.amenities.map((amenity) => (
                       <span
                         key={amenity}
-                        className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-600"
+                        className="bg-muted text-muted-foreground inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
                       >
-                        <Sparkles className="size-3 text-zinc-400" />
+                        <Sparkles className="text-muted-foreground/50 size-3" />
                         {amenity}
                       </span>
                     ))}
@@ -308,14 +323,16 @@ export default async function PortalBookingDetailPage({
 
           {/* Linked Invoices */}
           {booking.invoices.length > 0 && (
-            <Card className="border-zinc-200/80 shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
-                  <FileText className="size-4 text-indigo-500" />
-                  Invoices
+            <Card className="shadow-card rounded-2xl py-0">
+              <CardHeader className="px-6 pt-6 pb-4">
+                <CardTitle className="flex items-center gap-2.5">
+                  <FileText className="text-primary size-4" />
+                  <span className="font-editorial text-foreground text-[20px] font-semibold">
+                    Invoices
+                  </span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-6 pb-6">
                 <div className="space-y-3">
                   {booking.invoices.map((inv) => (
                     <Link
@@ -323,30 +340,35 @@ export default async function PortalBookingDetailPage({
                       href={`/portal/invoices/${inv.id}`}
                       className="block"
                     >
-                      <div className="flex items-center gap-4 rounded-lg border border-zinc-100 p-4 transition-colors hover:bg-zinc-50 hover:border-indigo-100">
-                        <div className="flex size-10 items-center justify-center rounded-lg bg-zinc-100">
-                          <FileText className="size-5 text-zinc-500" />
+                      <div className="hover:bg-muted/60 flex items-center gap-4 rounded-xl border p-4 transition-colors">
+                        <div className="bg-muted flex size-10 flex-shrink-0 items-center justify-center rounded-xl">
+                          <FileText className="text-muted-foreground/70 size-5" />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground">
+                        <div className="min-w-0 flex-1">
+                          <p className="numeric text-foreground text-sm font-medium">
                             {inv.invoiceNumber}
                           </p>
-                          <p className="text-xs text-zinc-500">
-                            Due:{" "}
-                            {new Date(inv.dueDate).toLocaleDateString("en-IN", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
+                          <p className="text-muted-foreground text-xs">
+                            Due{" "}
+                            <span className="numeric">
+                              {new Date(inv.dueDate).toLocaleDateString(
+                                "en-IN",
+                                {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                }
+                              )}
+                            </span>
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-semibold text-foreground">
+                          <p className="numeric text-foreground text-sm font-semibold">
                             {formatINR(inv.totalAmount)}
                           </p>
                           {inv.balanceDue > 0 && (
-                            <p className="text-xs text-red-600 font-medium">
-                              Due: {formatINR(inv.balanceDue)}
+                            <p className="numeric text-xs font-medium text-red-600 dark:text-red-400">
+                              {formatINR(inv.balanceDue)} due
                             </p>
                           )}
                         </div>

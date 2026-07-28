@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
+import { UserPlus as UserPlusIcon } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { LeadForm } from "../_components/lead-form";
 
@@ -42,8 +43,11 @@ export default async function NewLeadPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        icon={UserPlusIcon}
+        accent="blue"
+        eyebrow="CRM · Lead"
         title="New Lead"
-        description="Create a new sales lead."
+        description="Capture a new enquiry — the event, the budget and who owns it."
       />
       <div className="mx-auto max-w-3xl">
         <LeadForm contacts={contacts} venues={venues} users={users} />

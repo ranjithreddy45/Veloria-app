@@ -67,16 +67,17 @@ export default async function VisitManagePage({
 
   if (!res.success) {
     return (
-      <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center dark:border-zinc-800 dark:bg-zinc-900">
-        <p className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+      <div className="bg-card shadow-card mx-auto max-w-lg rounded-2xl border p-10 text-center">
+        <h1 className="text-foreground text-[24px]">
           We couldn&apos;t find this visit
-        </p>
-        <p className="mt-1 text-sm text-zinc-500">
-          The link may have expired. Please book your visit again.
+        </h1>
+        <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm leading-relaxed">
+          The link may have expired — but we&apos;d still love to show you
+          around.
         </p>
         <a
           href="/visit"
-          className="mt-4 inline-block rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white dark:bg-zinc-100 dark:text-zinc-900"
+          className="bg-primary text-primary-foreground mt-6 inline-block rounded-full px-5 py-2.5 text-sm font-medium transition-opacity hover:opacity-90"
         >
           Book a visit
         </a>
@@ -88,17 +89,19 @@ export default async function VisitManagePage({
   const copy = STATUS_COPY[v.status] ?? STATUS_COPY.REQUESTED;
 
   return (
-    <div className="space-y-5">
-      <header className="text-center">
-        <h1 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+    <div className="space-y-6">
+      <header className="pb-1 text-center">
+        <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.18em]">
+          For {v.customerFirstName}
+        </p>
+        <h1 className="text-foreground mt-3 text-[30px] sm:text-[34px]">
           {copy.title}
         </h1>
-        <p className="mt-1 text-sm text-zinc-500">Hi {v.customerFirstName} 👋</p>
       </header>
 
       {v.status === "CONFIRMED" && (
-        <div className="flex flex-col items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center dark:border-emerald-900 dark:bg-emerald-950/30">
-          <CheckCircle2 className="size-7 text-emerald-600" />
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.07] p-7 text-center">
+          <CheckCircle2 className="size-7 text-emerald-600 dark:text-emerald-400" />
           <p className="text-sm font-medium text-emerald-800 dark:text-emerald-300">
             {copy.line}
           </p>
@@ -106,33 +109,33 @@ export default async function VisitManagePage({
       )}
 
       {/* Summary card — prospect's own details only */}
-      <div className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="bg-card shadow-card space-y-3.5 rounded-2xl border p-6">
         <Row
-          icon={<Sparkles className="size-4 text-violet-600" />}
+          icon={<Sparkles className="text-muted-foreground/60 size-4" />}
           label="Visit"
           value={v.kindLabel}
         />
         {v.venueName && (
           <Row
-            icon={<MapPin className="size-4 text-violet-600" />}
+            icon={<MapPin className="text-muted-foreground/60 size-4" />}
             label="Venue"
             value={v.venueName}
           />
         )}
         <Row
-          icon={<CalendarDays className="size-4 text-violet-600" />}
+          icon={<CalendarDays className="text-muted-foreground/60 size-4" />}
           label="Date"
           value={v.dateLabel}
         />
         <Row
-          icon={<Clock className="size-4 text-violet-600" />}
+          icon={<Clock className="text-muted-foreground/60 size-4" />}
           label="Time"
           value={v.timeLabel}
         />
       </div>
 
       {v.status !== "CONFIRMED" && (
-        <p className="text-center text-sm text-zinc-500">{copy.line}</p>
+        <p className="text-muted-foreground text-center text-sm">{copy.line}</p>
       )}
 
       {v.manageable && (
@@ -153,11 +156,11 @@ function Row({
 }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <span className="flex items-center gap-2 text-sm text-zinc-500">
+      <span className="text-muted-foreground flex items-center gap-2 text-sm">
         {icon}
         {label}
       </span>
-      <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+      <span className="text-foreground text-right text-sm font-medium">
         {value}
       </span>
     </div>

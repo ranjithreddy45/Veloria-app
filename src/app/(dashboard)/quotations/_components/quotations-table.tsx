@@ -41,7 +41,7 @@ export interface QuotationListRow {
 export function QuotationsTable({ rows }: { rows: QuotationListRow[] }) {
   if (rows.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed bg-card shadow-premium">
+      <div className="rounded-2xl border border-dashed bg-card shadow-card">
         <EmptyState
           icon={<FileTextIcon />}
           title="No quotations yet"
@@ -52,7 +52,7 @@ export function QuotationsTable({ rows }: { rows: QuotationListRow[] }) {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border bg-card shadow-premium">
+    <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/40 hover:bg-muted/40">
@@ -73,14 +73,14 @@ export function QuotationsTable({ rows }: { rows: QuotationListRow[] }) {
               "—";
             return (
               <TableRow key={r.id} className="cursor-pointer transition-colors hover:bg-muted/50">
-                <TableCell className="font-medium">
+                <TableCell className="numeric font-medium">
                   <Link href={`/quotations/${r.id}`} className="hover:underline">
                     {r.quoteNumber}
                   </Link>
                 </TableCell>
-                <TableCell>{client}</TableCell>
-                <TableCell>{r.occasion || "—"}</TableCell>
-                <TableCell>
+                <TableCell className="font-medium">{client}</TableCell>
+                <TableCell className="text-[13px] text-muted-foreground">{r.occasion || "—"}</TableCell>
+                <TableCell className="numeric text-[13px] text-muted-foreground">
                   {r.eventDate
                     ? new Date(r.eventDate).toLocaleDateString("en-IN", {
                         day: "numeric",
@@ -89,8 +89,8 @@ export function QuotationsTable({ rows }: { rows: QuotationListRow[] }) {
                       })
                     : "—"}
                 </TableCell>
-                <TableCell className="text-right tabular-nums">{r.guestCount || "—"}</TableCell>
-                <TableCell className="text-right tabular-nums font-medium">
+                <TableCell className="numeric text-right text-muted-foreground">{r.guestCount || "—"}</TableCell>
+                <TableCell className="numeric text-right font-semibold">
                   {inr(Number(r.grandTotal))}
                 </TableCell>
                 <TableCell>

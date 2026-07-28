@@ -21,6 +21,7 @@ import { StatTile } from "@/components/ui/stat-tile";
 import { Donut } from "@/components/ui/donut";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusPill } from "@/components/shared/status-pill";
+import { TargetIcon } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { PageHelp } from "@/lib/page-help";
 import { formatINR, cn } from "@/lib/utils";
@@ -66,7 +67,7 @@ export function BudgetsWorkspace({
   );
 
   const header = (
-    <PageHeader eyebrow="Finance · Budgets" title="Budgets" help={<PageHelp id="budget" />} description="Plan figures by account and track budget-vs-actual variance for the year.">
+    <PageHeader icon={TargetIcon} accent="blue" eyebrow="Finance · Budgets" title="Budgets" help={<PageHelp id="budget" />} description="Plan figures by account and track budget-vs-actual variance for the year.">
       {canManage && <NewBudgetDialog onDone={() => router.refresh()} />}
     </PageHeader>
   );
@@ -175,14 +176,14 @@ export function BudgetsWorkspace({
                   <TableRow key={r.accountCode}>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-[12px] text-muted-foreground">{r.accountCode}</span>
+                        <span className="numeric text-[12px] text-muted-foreground">{r.accountCode}</span>
                         <span>{r.accountName}</span>
                         <StatusPill label={r.type === "INCOME" ? "Income" : "Expense"} hue={r.type === "INCOME" ? "emerald" : "amber"} size="xs" />
                       </div>
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">{formatINR(r.budget)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatINR(r.actual)}</TableCell>
-                    <TableCell className={cn("text-right tabular-nums font-medium", fav ? "text-emerald-600" : "text-rose-600")}>
+                    <TableCell className="text-right numeric">{formatINR(r.budget)}</TableCell>
+                    <TableCell className="text-right numeric">{formatINR(r.actual)}</TableCell>
+                    <TableCell className={cn("text-right numeric font-medium", fav ? "text-emerald-600" : "text-rose-600")}>
                       {r.variance > 0 ? "+" : ""}{formatINR(r.variance)}
                     </TableCell>
                     <TableCell>
@@ -194,7 +195,7 @@ export function BudgetsWorkspace({
                             style={{ width: `${barPct}%` }}
                           />
                         </div>
-                        <span className="w-9 shrink-0 text-right text-[11px] tabular-nums text-muted-foreground">{barPct}%</span>
+                        <span className="w-9 shrink-0 text-right text-[11px] numeric text-muted-foreground">{barPct}%</span>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -204,9 +205,9 @@ export function BudgetsWorkspace({
             <tfoot>
               <tr className="border-t font-semibold">
                 <td className="px-4 py-2">Total</td>
-                <td className="px-4 py-2 text-right tabular-nums">{formatINR(totals.budget)}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{formatINR(totals.actual)}</td>
-                <td className={cn("px-4 py-2 text-right tabular-nums", totalFavorable ? "text-emerald-600" : "text-rose-600")}>
+                <td className="px-4 py-2 text-right numeric">{formatINR(totals.budget)}</td>
+                <td className="px-4 py-2 text-right numeric">{formatINR(totals.actual)}</td>
+                <td className={cn("px-4 py-2 text-right numeric", totalFavorable ? "text-emerald-600" : "text-rose-600")}>
                   {totals.variance > 0 ? "+" : ""}{formatINR(totals.variance)}
                 </td>
                 <td className="px-4 py-2">
@@ -235,11 +236,11 @@ export function BudgetsWorkspace({
               {activeLines.map((l) => (
                 <TableRow key={l.id}>
                   <TableCell>
-                    <span className="font-mono text-[12px] text-muted-foreground">{l.accountCode}</span>
+                    <span className="numeric text-[12px] text-muted-foreground">{l.accountCode}</span>
                     <span className="ml-2">{accountName.get(l.accountCode) ?? ""}</span>
                   </TableCell>
                   <TableCell className="text-[13px] text-muted-foreground">{PERIOD_LABELS[l.period] ?? `P${l.period}`}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatINR(l.amount)}</TableCell>
+                  <TableCell className="text-right numeric">{formatINR(l.amount)}</TableCell>
                   <TableCell>
                     <DeleteLineButton id={l.id} onDone={() => router.refresh()} />
                   </TableCell>
@@ -354,7 +355,7 @@ function AddLineDialog({ budgetId, accounts, onDone }: { budgetId: string; accou
               <SelectContent>
                 {accounts.map((a) => (
                   <SelectItem key={a.code} value={a.code}>
-                    <span className="font-mono text-[12px] text-muted-foreground">{a.code}</span> {a.name}
+                    <span className="numeric text-[12px] text-muted-foreground">{a.code}</span> {a.name}
                   </SelectItem>
                 ))}
               </SelectContent>

@@ -41,7 +41,7 @@ export default async function QuotationsPage() {
             <span>Sales · Pricing</span>
             <span className="h-3 w-px bg-border" />
             <span className="text-foreground/80">
-              <span className="font-semibold tabular-nums">{total}</span> quotation{total === 1 ? "" : "s"}
+              <span className="font-semibold numeric">{total}</span> quotation{total === 1 ? "" : "s"}
             </span>
           </div>
         }

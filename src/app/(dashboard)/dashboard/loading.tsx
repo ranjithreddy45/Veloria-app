@@ -8,9 +8,9 @@ export default function DashboardLoading() {
       <Skeleton className="h-[140px] w-full rounded-2xl" />
 
       {/* KPI Cards Skeleton */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Card key={i}>
+          <Card key={i} className="rounded-2xl border bg-card shadow-card">
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
                 <div className="space-y-3">
@@ -26,9 +26,9 @@ export default function DashboardLoading() {
       </div>
 
       {/* Charts Skeleton */}
-      <div className="grid gap-6 lg:grid-cols-12">
+      <div className="grid gap-4 lg:grid-cols-12">
         <div className="lg:col-span-8">
-          <Card>
+          <Card className="rounded-2xl border bg-card shadow-card">
             <CardHeader className="pb-2">
               <Skeleton className="h-5 w-40" />
               <Skeleton className="h-3 w-56" />
@@ -39,7 +39,7 @@ export default function DashboardLoading() {
           </Card>
         </div>
         <div className="lg:col-span-4">
-          <Card>
+          <Card className="rounded-2xl border bg-card shadow-card">
             <CardHeader className="pb-2">
               <Skeleton className="h-5 w-32" />
               <Skeleton className="h-3 w-48" />
@@ -52,9 +52,9 @@ export default function DashboardLoading() {
       </div>
 
       {/* Bottom Section Skeleton */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2">
         {Array.from({ length: 2 }).map((_, i) => (
-          <Card key={i}>
+          <Card key={i} className="rounded-2xl border bg-card shadow-card">
             <CardHeader className="pb-2">
               <Skeleton className="h-5 w-36" />
               <Skeleton className="h-3 w-28" />

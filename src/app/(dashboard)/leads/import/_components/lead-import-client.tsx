@@ -71,7 +71,7 @@ export function LeadImportClient() {
           <CardTitle className="text-base">1. Upload the sales-leads file (.csv)</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <label className="border-muted-foreground/30 hover:bg-muted/40 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-8 text-center transition-colors">
+          <label className="border-muted-foreground/30 hover:bg-muted/40 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed p-10 text-center transition-colors">
             <UploadCloud className="text-muted-foreground size-7" />
             <span className="text-sm font-medium">
               {fileName || "Click to choose your CSV file"}
@@ -159,7 +159,7 @@ export function LeadImportClient() {
             </label>
 
             {replaceExisting && (
-              <div className="rounded-md border border-amber-300 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950/30">
+              <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/30">
                 <p className="mb-2 text-xs text-amber-800 dark:text-amber-300">
                   This will remove all current leads. Type <strong>REPLACE</strong> to confirm.
                 </p>
@@ -178,7 +178,7 @@ export function LeadImportClient() {
             </Button>
 
             {result && (
-              <div className="rounded-md border bg-emerald-50 p-3 text-sm dark:bg-emerald-950/30">
+              <div className="rounded-xl border bg-emerald-50 p-4 text-[13px] dark:bg-emerald-950/30">
                 <p className="flex items-center gap-1.5 font-medium text-emerald-700 dark:text-emerald-400">
                   <CheckCircle2 className="size-4" /> Import complete
                 </p>

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   listCrmTasksFor, updateCrmTaskStatus, type CrmEntityTaskDTO,
 } from "@/actions/crm-task.actions";
@@ -81,12 +82,14 @@ export function EnquiryRemindersPanel({ contactId }: { contactId: string }) {
       </CardHeader>
       <CardContent>
         {loading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
+          <p className="text-[13px] text-muted-foreground">Loading…</p>
         ) : tasks.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Nothing scheduled. Click <span className="font-medium">Schedule</span> to book a
-            meeting, call or follow-up — it lands on the assignee&rsquo;s calendar and notifies them.
-          </p>
+          <EmptyState
+            className="py-8"
+            icon={<CalendarDays />}
+            title="Nothing scheduled"
+            description="Book a meeting, call or follow-up — it lands on the assignee's calendar and notifies them."
+          />
         ) : (
           <ul className="space-y-2">
             {tasks.map((t) => {
@@ -97,7 +100,7 @@ export function EnquiryRemindersPanel({ contactId }: { contactId: string }) {
                 <li
                   key={t.id}
                   className={cn(
-                    "flex items-start gap-3 rounded-lg border p-2.5",
+                    "flex items-start gap-3 rounded-xl border bg-card p-3 shadow-card",
                     t.isOverdue && "border-red-500/40 bg-red-500/5"
                   )}
                 >

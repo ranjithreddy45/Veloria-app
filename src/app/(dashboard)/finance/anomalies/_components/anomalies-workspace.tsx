@@ -4,7 +4,7 @@
 // Anomalies workspace — the interactive shell for Finance · Anomalies.
 // Stat tiles, a status filter (segmented), the review table, and an admin
 // "Run detection" button. Resolving / ignoring posts a server action and
-// refreshes the route. Money is shown with tabular-nums + formatINR.
+// refreshes the route. Money is shown with numeric + formatINR.
 // ============================================================
 
 import * as React from "react";
@@ -22,6 +22,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { formatINR, cn } from "@/lib/utils";
+import { ShieldAlertIcon } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { StatTile } from "@/components/ui/stat-tile";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -135,6 +136,8 @@ export function AnomaliesWorkspace({ canWrite, anomalies, stats, filter }: Props
   return (
     <div className="space-y-6">
       <PageHeader
+        icon={ShieldAlertIcon}
+        accent="rose"
         eyebrow="Finance · Anomalies"
         title="Anomalies"
         description="Automated fraud and irregularity checks across payments and the ledger, with a simple review queue."
@@ -244,10 +247,10 @@ export function AnomaliesWorkspace({ canWrite, anomalies, stats, filter }: Props
                     <TableCell className="max-w-[420px] text-sm text-muted-foreground">
                       {a.message}
                     </TableCell>
-                    <TableCell className="text-right text-sm tabular-nums">
+                    <TableCell className="text-right text-sm numeric">
                       {a.amount === null ? "—" : formatINR(a.amount)}
                     </TableCell>
-                    <TableCell className="text-sm tabular-nums text-muted-foreground">
+                    <TableCell className="text-sm numeric text-muted-foreground">
                       {fmtDate(a.detectedAt)}
                     </TableCell>
                     <TableCell>

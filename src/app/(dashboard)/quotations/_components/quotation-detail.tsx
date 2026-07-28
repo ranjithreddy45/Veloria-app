@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Copy,
   Download,
+  FileText,
   Loader2,
   Mail,
   MessageCircle,
@@ -28,6 +29,7 @@ import {
 } from "@/actions/sales-quotation.actions";
 
 import { StatusPill } from "@/components/shared/status-pill";
+import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -143,10 +145,10 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, isSu
       },
     };
     return (
-      <div className="space-y-4">
+      <div className="space-y-6">
         <Header quote={quote} />
         {quote.rejectedReason && (
-          <div className="rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+          <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-[13px] text-rose-700">
             <strong>Returned for changes:</strong> {quote.rejectedReason}
           </div>
         )}
@@ -161,7 +163,7 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, isSu
     "—";
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <Header quote={quote} />
 
       {/* Action bar */}
@@ -224,7 +226,7 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, isSu
       </div>
 
       {quote.sentAt && (
-        <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700">
+        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-[13px] text-blue-700">
           Sent via {quote.sentChannel} {quote.sentTo ? `to ${quote.sentTo}` : ""} on{" "}
           {formatDateTime(quote.sentAt)}.
         </div>
@@ -235,31 +237,31 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, isSu
         <Card>
           <CardHeader><CardTitle className="text-base">Quotation</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm sm:grid-cols-3">
               <Detail label="Client" value={client} />
-              <Detail label="Phone" value={quote.clientPhone || "—"} />
+              <Detail label="Phone" value={quote.clientPhone || "—"} numeric />
               <Detail label="Occasion" value={quote.occasion || "—"} />
-              <Detail label="Event Date" value={quote.eventDate ? formatDate(quote.eventDate) : "—"} />
+              <Detail label="Event Date" value={quote.eventDate ? formatDate(quote.eventDate) : "—"} numeric />
               <Detail label="Time Slot" value={quote.timeSlot || "—"} />
               <Detail label="Hall" value={quote.venue?.name || "—"} />
-              <Detail label="Guests" value={String(quote.guestCount || "—")} />
+              <Detail label="Guests" value={String(quote.guestCount || "—")} numeric />
             </div>
 
-            <div className="overflow-hidden rounded-lg border">
+            <div className="overflow-hidden rounded-xl border">
               <table className="w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="px-3 py-2 text-left font-medium">Particulars</th>
-                    <th className="px-3 py-2 text-left font-medium">Plan</th>
-                    <th className="px-3 py-2 text-right font-medium">Amount</th>
+                <thead>
+                  <tr className="bg-muted/30">
+                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Particulars</th>
+                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Plan</th>
+                    <th className="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Amount</th>
                   </tr>
                 </thead>
                 <tbody>
                   {result.lines.map((l) => (
-                    <tr key={l.sl} className="border-t">
-                      <td className="px-3 py-2">{l.particulars}</td>
-                      <td className="px-3 py-2 text-muted-foreground">{l.plan}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">{inr(l.amount)}</td>
+                    <tr key={l.sl} className="border-t transition-colors hover:bg-muted/40">
+                      <td className="px-4 py-2.5">{l.particulars}</td>
+                      <td className="px-4 py-2.5 text-[13px] text-muted-foreground">{l.plan}</td>
+                      <td className="numeric px-4 py-2.5 text-right font-medium">{inr(l.amount)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -267,7 +269,10 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, isSu
             </div>
 
             {quote.notes && (
-              <p className="text-sm text-muted-foreground"><strong>Remarks:</strong> {quote.notes}</p>
+              <div className="rounded-xl border bg-muted/30 p-4">
+                <p className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">Remarks</p>
+                <p className="text-[13px] leading-relaxed text-muted-foreground">{quote.notes}</p>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -302,8 +307,9 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, isSu
                 }%)`}
                 value={inr(result.tax)}
               />
-              <div className="flex justify-between border-t pt-2 text-base font-bold">
-                <span>Grand Total</span><span className="tabular-nums">{inr(result.grandTotal)}</span>
+              <div className="mt-2 flex items-baseline justify-between gap-4 border-t pt-3">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Grand Total</span>
+                <span className="numeric text-lg font-bold tracking-[-0.02em]">{inr(result.grandTotal)}</span>
               </div>
             </CardContent>
           </Card>
@@ -312,12 +318,14 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, isSu
             <CardHeader><CardTitle className="text-base">Payment Schedule</CardTitle></CardHeader>
             <CardContent className="space-y-2 text-sm">
               {result.paymentSchedule.map((p, i) => (
-                <div key={i} className="flex justify-between gap-2">
-                  <div>
-                    <div>{p.label} ({p.pct}%)</div>
-                    <div className="text-xs text-muted-foreground">{p.dueHint}</div>
+                <div key={i} className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="font-medium">
+                      {p.label} <span className="numeric text-muted-foreground">({p.pct}%)</span>
+                    </div>
+                    <div className="text-[13px] text-muted-foreground">{p.dueHint}</div>
                   </div>
-                  <span className="tabular-nums font-medium">{inr(p.amount)}</span>
+                  <span className="numeric shrink-0 font-semibold">{inr(p.amount)}</span>
                 </div>
               ))}
             </CardContent>
@@ -326,15 +334,15 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, isSu
           {quote.transitions && quote.transitions.length > 0 && (
             <Card>
               <CardHeader><CardTitle className="text-base">History</CardTitle></CardHeader>
-              <CardContent className="space-y-2 text-xs">
+              <CardContent className="space-y-2.5 text-[13px]">
                 {quote.transitions.map((t) => (
-                  <div key={t.id} className="flex justify-between gap-2">
-                    <span>
-                      {statusMeta(t.toStatus).label}
+                  <div key={t.id} className="flex justify-between gap-3">
+                    <span className="min-w-0">
+                      <span className="font-medium">{statusMeta(t.toStatus).label}</span>
                       {t.note ? <span className="text-muted-foreground"> — {t.note}</span> : null}
                     </span>
-                    <span className="text-muted-foreground whitespace-nowrap">
-                      {t.actor?.name ?? "—"} · {formatDate(t.createdAt)}
+                    <span className="shrink-0 whitespace-nowrap text-muted-foreground">
+                      {t.actor?.name ?? "—"} · <span className="numeric">{formatDate(t.createdAt)}</span>
                     </span>
                   </div>
                 ))}
@@ -419,34 +427,41 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, isSu
 
 function Header({ quote }: { quote: QuoteRow }) {
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <Button asChild variant="ghost" size="sm">
-          <a href="/quotations"><ArrowLeft className="h-4 w-4" /> Quotations</a>
-        </Button>
-        <div>
-          <h1 className="text-lg font-semibold">{quote.quoteNumber} · v{quote.version}</h1>
+    <PageHeader
+      icon={FileText}
+      accent="blue"
+      eyebrow={
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span>Sales · Quotation</span>
+          <span className="h-3 w-px bg-border" />
+          <span className="numeric text-foreground/80">v{quote.version}</span>
         </div>
-      </div>
-      <StatusPill {...statusMeta(quote.status)} size="sm" />
-    </div>
+      }
+      title={quote.quoteNumber}
+      help={<StatusPill {...statusMeta(quote.status)} size="sm" />}
+    >
+      <Button asChild variant="outline" size="sm">
+        <a href="/quotations"><ArrowLeft className="h-4 w-4" /> All quotations</a>
+      </Button>
+    </PageHeader>
   );
 }
 
-function Detail({ label, value }: { label: string; value: string }) {
+/** Quiet uppercase micro-label over a confident value — the module's field anatomy. */
+function Detail({ label, value, numeric }: { label: string; value: string; numeric?: boolean }) {
   return (
-    <div>
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="font-medium">{value}</div>
+    <div className="space-y-1">
+      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className={numeric ? "numeric font-medium" : "font-medium"}>{value}</div>
     </div>
   );
 }
 
 function Row({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
   return (
-    <div className={`flex justify-between ${muted ? "text-emerald-600" : ""}`}>
+    <div className={`flex items-baseline justify-between gap-4 ${muted ? "text-emerald-600" : ""}`}>
       <span className={muted ? "" : "text-muted-foreground"}>{label}</span>
-      <span className="tabular-nums">{value}</span>
+      <span className="numeric">{value}</span>
     </div>
   );
 }

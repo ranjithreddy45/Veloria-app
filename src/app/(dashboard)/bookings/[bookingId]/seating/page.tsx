@@ -8,6 +8,7 @@ import { getChart, createChart } from "@/actions/seating.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { SeatingEditor } from "./_components/seating-editor";
 import { CreateChartButton } from "./_components/seating-editor";
 
@@ -50,24 +51,30 @@ export default async function SeatingPage({ params }: SeatingPageProps) {
       </div>
 
       <PageHeader
+        icon={LayoutGridIcon}
+        accent="amber"
+        eyebrow={
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>Floor plan</span>
+            <span className="h-3 w-px bg-border" />
+            <span className="numeric text-foreground/80">{booking.bookingNumber}</span>
+          </div>
+        }
         title="Seating Chart"
-        description={`${booking.eventName} - ${booking.bookingNumber}`}
+        description={`${booking.eventName} — tables, zones and who sits where.`}
       />
 
       {chart ? (
         <SeatingEditor bookingId={bookingId} chart={chart} />
       ) : (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="rounded-full bg-zinc-100 p-4 dark:bg-zinc-800">
-              <LayoutGridIcon className="size-8 text-zinc-400" />
-            </div>
-            <h3 className="mt-4 text-lg font-semibold">No Seating Chart Yet</h3>
-            <p className="mt-1 max-w-sm text-center text-sm text-muted-foreground">
-              Create a seating chart to start arranging tables and assigning
-              guests for this event.
-            </p>
-            <CreateChartButton bookingId={bookingId} />
+        <Card className="rounded-2xl shadow-card">
+          <CardContent className="p-0">
+            <EmptyState
+              icon={<LayoutGridIcon className="size-6" />}
+              title="No seating chart yet"
+              description="Lay out tables and zones, then assign guests so the floor team knows exactly where everyone sits."
+              action={<CreateChartButton bookingId={bookingId} />}
+            />
           </CardContent>
         </Card>
       )}

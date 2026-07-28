@@ -19,7 +19,7 @@ export default async function RegularizationsPage() {
   const { rows } = await getRegularizationQueue();
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <Link href="/people/attendance" className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-3.5" /> Back to attendance
       </Link>

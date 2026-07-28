@@ -4,8 +4,10 @@ export default function PortalLoading() {
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
       <div className="flex flex-col items-center gap-3">
-        <Loader2 className="size-8 animate-spin text-indigo-600 dark:text-indigo-400" />
-        <p className="text-sm text-muted-foreground">Loading...</p>
+        <Loader2 className="text-primary size-7 animate-spin" />
+        <p className="text-muted-foreground text-[13px]">
+          Just a moment&hellip;
+        </p>
       </div>
     </div>
   );

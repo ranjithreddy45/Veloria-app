@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Upload, SearchX, UserPlus2, Users } from "lucide-react";
+import { Upload, SearchX, UserPlus2, Users, Building2 } from "lucide-react";
 import { auth } from "@/../auth";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -55,7 +55,7 @@ export default async function PeoplePage({ searchParams }: PageProps) {
   const needsSeed = lookups.entities.length === 0;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         aura
         icon={Users}
@@ -85,8 +85,12 @@ export default async function PeoplePage({ searchParams }: PageProps) {
         canAdmin ? (
           <SeedFoundation />
         ) : (
-          <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
-            The organisation hasn’t been set up yet. Ask an HR Manager or Admin to initialise entities and departments.
+          <div className="rounded-2xl border border-dashed bg-card">
+            <EmptyState
+              icon={<Building2 className="size-5" />}
+              title="The organisation isn’t set up yet"
+              description="Legal entities, departments and designations need to exist before people can be added. Ask an HR Manager or Admin to initialise them."
+            />
           </div>
         )
       ) : (
@@ -109,7 +113,7 @@ export default async function PeoplePage({ searchParams }: PageProps) {
           />
 
           {list.rows.length === 0 ? (
-            <div className="rounded-xl border border-dashed bg-card">
+            <div className="rounded-2xl border border-dashed bg-card">
               {sp.q || sp.entity || sp.vertical || sp.dept || sp.desig || sp.status ? (
                 <EmptyState
                   icon={<SearchX className="size-5" />}

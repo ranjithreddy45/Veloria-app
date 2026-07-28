@@ -25,11 +25,18 @@ export default async function PortalGuestBookingPage({ params }: { params: Promi
   const when = new Date(booking.date).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
 
   return (
-    <div className="space-y-6">
-      <Link href="/portal/guests" className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground">
+    <div className="space-y-10">
+      <Link
+        href="/portal/guests"
+        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-[13px] transition-colors"
+      >
         <ArrowLeft className="size-3.5" /> All events
       </Link>
-      <PageHeader title={`Guests — ${booking.eventName}`} description={`${booking.venueName} · ${when}`} />
+      <PageHeader
+        eyebrow="Your account"
+        title={`Guests — ${booking.eventName}`}
+        description={`${booking.venueName} · ${when}. Invite the people you love and watch the replies come in.`}
+      />
       <PortalGuestManager bookingId={booking.id} eventName={booking.eventName} guests={guests} stats={stats} />
     </div>
   );

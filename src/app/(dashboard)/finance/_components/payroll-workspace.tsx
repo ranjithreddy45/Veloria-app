@@ -24,6 +24,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { StatTile } from "@/components/ui/stat-tile";
 import { StatusPill, type Hue } from "@/components/shared/status-pill";
 import { EmptyState } from "@/components/ui/empty-state";
+import { UsersIcon } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { formatINR } from "@/lib/utils";
 import { createEmployee, createPayrollRun, postPayrollRun } from "@/actions/finance-payroll.actions";
@@ -96,6 +97,8 @@ export function PayrollWorkspace({
   return (
     <div className="space-y-6">
       <PageHeader
+        icon={UsersIcon}
+        accent="violet"
         eyebrow="Finance · Payroll"
         title="Payroll"
         description="Maintain the salaried roster, run monthly payroll, and post a balanced salary journal to the ledger."
@@ -152,8 +155,8 @@ export function PayrollWorkspace({
                       <TableCell className="font-medium">{e.name}</TableCell>
                       <TableCell className="text-muted-foreground">{e.designation ?? "—"}</TableCell>
                       <TableCell className="text-muted-foreground">{e.department ?? "—"}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatINR(e.ctcMonthly)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{e.basicPct}%</TableCell>
+                      <TableCell className="text-right numeric">{formatINR(e.ctcMonthly)}</TableCell>
+                      <TableCell className="text-right numeric">{e.basicPct}%</TableCell>
                       <TableCell>
                         <StatusPill label={e.isActive ? "Active" : "Inactive"} hue={e.isActive ? "emerald" : "slate"} size="xs" />
                       </TableCell>
@@ -207,9 +210,9 @@ export function PayrollWorkspace({
                           {r.fy} · P{r.period} · {r.payslipCount} payslip{r.payslipCount === 1 ? "" : "s"}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right tabular-nums">{formatINR(r.totalGross)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatINR(r.totalDeductions)}</TableCell>
-                      <TableCell className="text-right font-medium tabular-nums">{formatINR(r.totalNet)}</TableCell>
+                      <TableCell className="text-right numeric">{formatINR(r.totalGross)}</TableCell>
+                      <TableCell className="text-right numeric">{formatINR(r.totalDeductions)}</TableCell>
+                      <TableCell className="text-right font-medium numeric">{formatINR(r.totalNet)}</TableCell>
                       <TableCell>
                         <StatusPill label={r.status} hue={STATUS_HUE[r.status] ?? "slate"} size="xs" />
                       </TableCell>

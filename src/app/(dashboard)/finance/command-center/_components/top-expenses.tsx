@@ -39,10 +39,10 @@ export function TopExpenses({ fy, rows }: TopExpensesProps) {
               <li key={r.code}>
                 <div className="flex items-baseline justify-between gap-3">
                   <span className="truncate text-sm font-medium">
-                    <span className="text-muted-foreground tabular-nums">{r.code}</span>{" "}
+                    <span className="text-muted-foreground numeric">{r.code}</span>{" "}
                     {r.name}
                   </span>
-                  <span className="shrink-0 text-sm font-semibold tabular-nums">
+                  <span className="shrink-0 text-sm font-semibold numeric">
                     {formatINR(r.amount)}
                   </span>
                 </div>

@@ -115,17 +115,17 @@ export function RevenueWorkspace({
                     <TableRow key={b.id}>
                       <TableCell>
                         <div className="font-medium">{b.eventName}</div>
-                        <div className="text-[11px] text-muted-foreground tabular-nums">
+                        <div className="text-[11px] text-muted-foreground numeric">
                           {b.bookingNumber}
                         </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {b.contact}
                       </TableCell>
-                      <TableCell className="tabular-nums text-muted-foreground">
+                      <TableCell className="numeric text-muted-foreground">
                         {fmtDate(b.date)}
                       </TableCell>
-                      <TableCell className="text-right font-medium tabular-nums">
+                      <TableCell className="text-right font-medium numeric">
                         {formatINR(b.amount)}
                       </TableCell>
                       <TableCell className="text-right">
@@ -221,17 +221,17 @@ function VendorRow({ v }: { v: PayoutStatement }) {
         </TableCell>
         <TableCell>
           <div className="font-medium">{v.vendor}</div>
-          <div className="text-[11px] text-muted-foreground tabular-nums">
+          <div className="text-[11px] text-muted-foreground numeric">
             {v.count} payout{v.count === 1 ? "" : "s"}
           </div>
         </TableCell>
-        <TableCell className="text-right font-medium tabular-nums">
+        <TableCell className="text-right font-medium numeric">
           {formatINR(v.total)}
         </TableCell>
-        <TableCell className="text-right tabular-nums text-emerald-600 dark:text-emerald-400">
+        <TableCell className="text-right numeric text-emerald-600 dark:text-emerald-400">
           {formatINR(v.paid)}
         </TableCell>
-        <TableCell className="text-right tabular-nums text-amber-600 dark:text-amber-400">
+        <TableCell className="text-right numeric text-amber-600 dark:text-amber-400">
           {formatINR(v.pending)}
         </TableCell>
       </TableRow>
@@ -254,7 +254,7 @@ function VendorRow({ v }: { v: PayoutStatement }) {
                       <TableCell className="text-muted-foreground">
                         {p.description ?? "—"}
                       </TableCell>
-                      <TableCell className="tabular-nums text-muted-foreground">
+                      <TableCell className="numeric text-muted-foreground">
                         {fmtDate(p.createdAt)}
                       </TableCell>
                       <TableCell>
@@ -264,7 +264,7 @@ function VendorRow({ v }: { v: PayoutStatement }) {
                           size="xs"
                         />
                       </TableCell>
-                      <TableCell className="text-right font-medium tabular-nums">
+                      <TableCell className="text-right font-medium numeric">
                         {formatINR(p.amount)}
                       </TableCell>
                     </TableRow>

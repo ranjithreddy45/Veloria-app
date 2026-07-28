@@ -85,12 +85,12 @@ export function SlaCountdown({
   }, [band, onBandChange]);
 
   if (targetMs == null) {
-    return <span className={cn("tabular-nums text-muted-foreground", className)}>—</span>;
+    return <span className={cn("numeric text-muted-foreground", className)}>—</span>;
   }
 
   return (
     <span
-      className={cn("font-semibold tabular-nums", BAND_TEXT[band], className)}
+      className={cn("font-semibold numeric", BAND_TEXT[band], className)}
       title={band === "BREACHED" ? "Past first-contact SLA" : "Time to first-contact SLA"}
     >
       {formatRemaining(remainingMs)}

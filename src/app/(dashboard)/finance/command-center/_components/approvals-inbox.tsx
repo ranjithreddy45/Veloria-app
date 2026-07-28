@@ -28,7 +28,7 @@ export function ApprovalsInbox({ approvals, count }: ApprovalsInboxProps) {
           Approvals inbox
         </CardTitle>
         {count > 0 && (
-          <Badge variant="secondary" className="tabular-nums">
+          <Badge variant="secondary" className="numeric">
             {count} pending
           </Badge>
         )}
@@ -59,7 +59,7 @@ export function ApprovalsInbox({ approvals, count }: ApprovalsInboxProps) {
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
-                    <span className="text-sm font-semibold tabular-nums">{formatINR(a.total)}</span>
+                    <span className="text-sm font-semibold numeric">{formatINR(a.total)}</span>
                     <ChevronRight className="size-4 text-muted-foreground transition-premium group-hover:translate-x-0.5" />
                   </div>
                 </Link>

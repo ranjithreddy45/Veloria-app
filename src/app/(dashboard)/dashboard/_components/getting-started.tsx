@@ -47,7 +47,7 @@ export function GettingStarted({ steps, doneCount, total }: { steps: OnboardingS
   };
 
   return (
-    <Card className="relative overflow-hidden border-primary/20 bg-gradient-to-br from-primary/[0.06] via-card to-card">
+    <Card className="relative overflow-hidden rounded-2xl border-primary/20 bg-gradient-to-br from-primary/[0.06] via-card to-card shadow-card">
       <div className="pointer-events-none absolute -right-16 -top-16 size-52 rounded-full bg-primary/10 blur-3xl" />
       <CardContent className="relative space-y-5 px-5 py-5">
         <div className="flex items-start justify-between gap-3">
@@ -58,7 +58,7 @@ export function GettingStarted({ steps, doneCount, total }: { steps: OnboardingS
             <div>
               <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-foreground">Getting started</h2>
               {/* Goal-gradient: as the gap shrinks, name the small remainder to pull it closed. */}
-              <p className="text-[12.5px] text-muted-foreground">
+              <p className="text-[13px] text-muted-foreground">
                 {doneCount === total
                   ? "You're all set — nicely done!"
                   : total - doneCount === 1
@@ -85,7 +85,7 @@ export function GettingStarted({ steps, doneCount, total }: { steps: OnboardingS
             <div className="h-full rounded-full bg-gradient-to-r from-primary to-violet-500 transition-all duration-500" style={{ width: `${pct}%` }} />
           </div>
           <div className="flex justify-between text-[11px] text-muted-foreground">
-            <span>{pct}% complete</span>
+            <span className="numeric">{pct}% complete</span>
             {nextStep && <span>Next: {nextStep.label}</span>}
           </div>
         </div>

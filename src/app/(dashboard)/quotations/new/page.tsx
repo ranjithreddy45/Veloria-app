@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
+import { FileTextIcon } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { QuotationCalculator } from "../_components/quotation-calculator";
 
@@ -84,7 +85,13 @@ export default async function NewQuotationPage({
 
   return (
     <div className="space-y-6">
-      <PageHeader title="New Quotation" description="Build an event quotation with the calculator." />
+      <PageHeader
+        icon={FileTextIcon}
+        accent="blue"
+        eyebrow="Sales · Pricing"
+        title="New Quotation"
+        description="Build an event quotation with the calculator, then submit it for approval."
+      />
       <QuotationCalculator leads={leads} venues={venues} initial={initial} />
     </div>
   );

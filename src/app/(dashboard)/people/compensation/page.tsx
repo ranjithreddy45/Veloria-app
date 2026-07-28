@@ -26,7 +26,7 @@ export default async function CompensationPage() {
   const totalMonthly = rows.reduce((sum, r) => sum + (r.monthlyCtc ?? 0), 0);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title="Compensation"
         description="Company-wide view of current CTC by employee. Open a profile to revise a salary structure — revisions keep full history."

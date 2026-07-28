@@ -65,7 +65,7 @@ export default async function AttendanceReportsIndex() {
   if (!hasPermission(role, "hr:read")) redirect("/people");
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         icon={Clock}
         accent="amber"

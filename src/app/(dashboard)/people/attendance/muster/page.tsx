@@ -39,7 +39,7 @@ export default async function AttendanceMusterPage() {
   const initial = await getDailyMuster({ date });
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         eyebrow="Attendance"
         title="Muster / Register"

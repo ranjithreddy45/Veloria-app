@@ -21,7 +21,7 @@ export default async function ExceptionsPage() {
   const initial = await getExceptions({ from, to });
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         icon={ShieldAlert}
         accent="amber"

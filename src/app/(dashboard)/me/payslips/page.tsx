@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { StatusPill } from "@/components/shared/status-pill";
 
 export const metadata: Metadata = { title: "My Payslips" };
 
@@ -60,24 +61,22 @@ export default async function MyPayslipsPage() {
     : [];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         icon={Receipt}
         accent="emerald"
         eyebrow="My space"
         title="My Payslips"
         description="Your finalised payslips. Download any month as a print-ready PDF."
-      />
-
-      {employee && (
-        <div className="flex justify-end">
-          <Button asChild variant="outline" size="sm" className="gap-1.5">
+      >
+        {employee && (
+          <Button asChild variant="outline" className="gap-1.5">
             <a href={`/api/hr/form16/${employee.id}`} target="_blank" rel="noopener noreferrer">
               <FileText className="size-4" /> Download Form-16
             </a>
           </Button>
-        </div>
-      )}
+        )}
+      </PageHeader>
 
       {!employee ? (
         <Card>
@@ -96,27 +95,31 @@ export default async function MyPayslipsPage() {
           />
         </Card>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {payslips.map((p) => {
             const label = p.run.label || `${MONTHS[(p.run.month - 1 + 12) % 12]} ${p.run.fy}`;
             return (
-              <Card key={p.id} className="flex flex-col gap-3 p-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="text-sm font-semibold">{label}</div>
-                    <div className="text-xs text-muted-foreground">FY {p.run.fy}</div>
+              <Card key={p.id} className="gap-4 p-5 shadow-card transition-shadow hover:shadow-card-hover">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="truncate text-[15px] font-semibold tracking-[-0.01em]">{label}</div>
+                    <div className="numeric mt-0.5 text-[12px] text-muted-foreground">FY {p.run.fy}</div>
                   </div>
-                  <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
-                    {p.run.status === "PAID" ? "Paid" : "Finalised"}
-                  </span>
+                  <StatusPill
+                    label={p.run.status === "PAID" ? "Paid" : "Finalised"}
+                    hue={p.run.status === "PAID" ? "emerald" : "teal"}
+                    size="xs"
+                  />
                 </div>
                 <div className="mt-auto">
-                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Net Pay</div>
-                  <div className="text-xl font-bold tabular-nums">{inr.format(Number(p.net))}</div>
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Net pay</div>
+                  <div className="numeric mt-1 text-[26px] font-semibold leading-none">
+                    {inr.format(Number(p.net))}
+                  </div>
                 </div>
                 <Button asChild variant="outline" size="sm" className="w-full gap-1.5">
                   <a href={`/api/hr/payslips/${p.id}/pdf`} target="_blank" rel="noopener noreferrer">
-                    <Download className="size-4" /> Download
+                    <Download className="size-4" /> Download PDF
                   </a>
                 </Button>
               </Card>

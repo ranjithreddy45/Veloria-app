@@ -136,7 +136,7 @@ export function SlotBlockCard({ quotationId, venues, defaultVenueId, defaultDate
       <CardContent className="space-y-3">
         {/* Step 1 — proforma invoice + advance. The slot is ONLY blocked after
             the 20% advance is paid (blocking then auto-confirms the booking). */}
-        <div className="space-y-2 rounded-md border bg-muted/30 p-3">
+        <div className="space-y-2 rounded-xl border bg-muted/30 p-3.5">
           <p className="text-sm font-medium">Step 1 — Collect the 20% advance</p>
           {!invoiceId ? (
             <Button size="sm" className="w-full" onClick={genInvoice} disabled={invoicing}>
@@ -193,7 +193,7 @@ export function SlotBlockCard({ quotationId, venues, defaultVenueId, defaultDate
         </Button>
 
         {avail && (
-          <div className="space-y-1 rounded-md border p-2 text-sm">
+          <div className="space-y-1 rounded-xl border p-3 text-sm">
             {avail.map((a) => (
               <button
                 key={a.slot}

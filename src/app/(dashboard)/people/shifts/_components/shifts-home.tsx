@@ -50,7 +50,7 @@ export function ShiftsHome({
       {/* MY SHIFTS */}
       <TabsContent value="mine" className="space-y-3">
         {myShifts.length === 0 ? (
-          <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">No upcoming shifts assigned.</div>
+          <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground">No upcoming shifts assigned.</div>
         ) : (
           <div className="space-y-2.5">
             {myShifts.map((s) => (
@@ -77,7 +77,7 @@ export function ShiftsHome({
       {/* SWAPS */}
       <TabsContent value="swaps" className="space-y-3">
         {swaps.length === 0 ? (
-          <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">No pending swap requests.</div>
+          <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground">No pending swap requests.</div>
         ) : (
           swaps.map((s) => <SwapRowCard key={s.id} row={s} />)
         )}
@@ -88,7 +88,7 @@ export function ShiftsHome({
         <TabsContent value="types" className="space-y-3">
           <div className="flex justify-end"><ShiftTypeDialog /></div>
           {shifts.length === 0 ? (
-            <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">No shift types yet. Add Morning, General, Night…</div>
+            <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground">No shift types yet. Add Morning, General, Night…</div>
           ) : (
             <div className="space-y-2.5">
               {shifts.map((sh) => (

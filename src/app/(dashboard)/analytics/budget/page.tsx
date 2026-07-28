@@ -52,6 +52,8 @@ export default async function BudgetPage({ searchParams }: BudgetPageProps) {
       <PageHeader
         aura
         eyebrow="Analytics · Budgets"
+        icon={IndianRupeeIcon}
+        accent="amber"
         title="Budgets"
         help={<PageHelp id="budget" />}
         description="Manage budget entries and track financial performance."

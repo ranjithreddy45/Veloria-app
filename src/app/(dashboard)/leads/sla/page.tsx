@@ -21,8 +21,10 @@ export default async function SpeedToLeadPage() {
 
   if (!res.success) {
     return (
-      <div className="space-y-5">
+      <div className="space-y-6">
         <PageHeader
+          icon={Gauge}
+          accent="amber"
           title="Speed-to-Lead"
           description="Instant automated first-response and first-contact SLA tracking."
         />
@@ -38,9 +40,11 @@ export default async function SpeedToLeadPage() {
   const { summary, breaches, recent } = res.data;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
-        eyebrow="Sales CRM"
+        icon={Gauge}
+        accent="amber"
+        eyebrow="Sales CRM · SLA"
         title="Speed-to-Lead"
         description="Every new lead gets an instant WhatsApp first-response and round-robin assignment. Track the sub-60-second send metric and surface breached first-contact SLAs."
       />

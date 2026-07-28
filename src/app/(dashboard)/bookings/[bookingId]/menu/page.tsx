@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeftIcon } from "lucide-react";
+import { ArrowLeftIcon, UtensilsCrossedIcon } from "lucide-react";
 
 import { getBookingMenu, getMenuItems } from "@/actions/menu.actions";
 import { getBooking } from "@/actions/booking.actions";
@@ -42,8 +42,17 @@ export default async function BookingMenuPage({
   return (
     <div className="space-y-6">
       <PageHeader
+        icon={UtensilsCrossedIcon}
+        accent="emerald"
+        eyebrow={
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>Food & beverage</span>
+            <span className="h-3 w-px bg-border" />
+            <span className="numeric text-foreground/80">{booking.bookingNumber}</span>
+          </div>
+        }
         title="Menu Builder"
-        description={`${booking.eventName} - ${booking.bookingNumber}`}
+        description={`${booking.eventName} — courses, counts and per-plate commercials.`}
       >
         <Button variant="outline" asChild>
           <Link href={`/bookings/${bookingId}`}>

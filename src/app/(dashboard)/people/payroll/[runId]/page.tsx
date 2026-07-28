@@ -47,7 +47,7 @@ export default async function PayrollRunPage({ params }: { params: Promise<{ run
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <Link href="/people/payroll" className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-3.5" /> Back to payroll
       </Link>

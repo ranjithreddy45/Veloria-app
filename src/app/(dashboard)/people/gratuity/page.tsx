@@ -33,7 +33,7 @@ export default async function GratuityLedgerPage() {
   const noStructureCount = rows.filter((r) => r.projectedPayout == null).length;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         eyebrow="Payroll"
         icon={Coins}

@@ -9,12 +9,9 @@ import {
   FilterIcon,
 } from "lucide-react";
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { StatTile } from "@/components/ui/stat-tile";
 import {
   Tabs,
   TabsContent,
@@ -114,60 +111,35 @@ export function AnomalyDashboard({ anomalies, stats }: AnomalyDashboardProps) {
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Alerts</CardTitle>
-            <AlertTriangleIcon className="size-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.total ?? 0}</div>
-            <p className="text-xs text-muted-foreground">All time anomalies detected</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active</CardTitle>
-            <ShieldAlertIcon className="size-4 text-destructive" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-destructive">
-              {stats?.active ?? 0}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Require attention
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Acknowledged</CardTitle>
-            <ShieldCheckIcon className="size-4 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-amber-500">
-              {stats?.acknowledged ?? 0}
-            </div>
-            <p className="text-xs text-muted-foreground">Being investigated</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Resolved</CardTitle>
-            <CheckCircle2Icon className="size-4 text-emerald-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-emerald-500">
-              {stats?.resolved ?? 0}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Successfully addressed
-            </p>
-          </CardContent>
-        </Card>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <StatTile
+          label="Total alerts"
+          value={stats?.total ?? 0}
+          accent="indigo"
+          icon={<AlertTriangleIcon className="size-4" />}
+          sub="All-time anomalies detected"
+        />
+        <StatTile
+          label="Active"
+          value={stats?.active ?? 0}
+          accent="red"
+          icon={<ShieldAlertIcon className="size-4" />}
+          sub="Require attention"
+        />
+        <StatTile
+          label="Acknowledged"
+          value={stats?.acknowledged ?? 0}
+          accent="amber"
+          icon={<ShieldCheckIcon className="size-4" />}
+          sub="Being investigated"
+        />
+        <StatTile
+          label="Resolved"
+          value={stats?.resolved ?? 0}
+          accent="emerald"
+          icon={<CheckCircle2Icon className="size-4" />}
+          sub="Successfully addressed"
+        />
       </div>
 
       {/* Filters */}
@@ -179,23 +151,23 @@ export function AnomalyDashboard({ anomalies, stats }: AnomalyDashboardProps) {
         >
           <TabsList>
             <TabsTrigger value="ALL">All</TabsTrigger>
-            <TabsTrigger value="CRITICAL" className="text-red-600">
+            <TabsTrigger value="CRITICAL" className="text-rose-600 dark:text-rose-400">
               Critical
               {stats?.bySeverity.CRITICAL
                 ? ` (${stats.bySeverity.CRITICAL})`
                 : ""}
             </TabsTrigger>
-            <TabsTrigger value="HIGH" className="text-orange-600">
+            <TabsTrigger value="HIGH" className="text-orange-600 dark:text-orange-400">
               High
               {stats?.bySeverity.HIGH ? ` (${stats.bySeverity.HIGH})` : ""}
             </TabsTrigger>
-            <TabsTrigger value="MEDIUM" className="text-yellow-600">
+            <TabsTrigger value="MEDIUM" className="text-amber-600 dark:text-amber-400">
               Medium
               {stats?.bySeverity.MEDIUM
                 ? ` (${stats.bySeverity.MEDIUM})`
                 : ""}
             </TabsTrigger>
-            <TabsTrigger value="LOW" className="text-emerald-600">
+            <TabsTrigger value="LOW" className="text-emerald-600 dark:text-emerald-400">
               Low
               {stats?.bySeverity.LOW ? ` (${stats.bySeverity.LOW})` : ""}
             </TabsTrigger>
@@ -221,15 +193,22 @@ export function AnomalyDashboard({ anomalies, stats }: AnomalyDashboardProps) {
 
       {/* Alert List */}
       {filteredAnomalies.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <ShieldCheckIcon className="size-12 text-muted-foreground/50" />
-            <h3 className="mt-4 text-lg font-semibold">No Anomalies Found</h3>
-            <p className="mt-2 text-sm text-muted-foreground text-center max-w-sm">
-              {alertList.length === 0
-                ? "No anomalies have been detected yet. The detection engine runs periodically to monitor your business metrics."
-                : "No anomalies match the current filters. Try adjusting the severity or type filters."}
-            </p>
+        <Card className="rounded-2xl border bg-card shadow-card">
+          <CardContent>
+            <EmptyState
+              icon={<ShieldCheckIcon />}
+              tone="success"
+              title={
+                alertList.length === 0
+                  ? "All clear — no anomalies"
+                  : "Nothing matches these filters"
+              }
+              description={
+                alertList.length === 0
+                  ? "The detection engine runs periodically and will flag unusual movement in revenue, leads, cancellations and payments here."
+                  : "Try widening the severity or type filter to see more alerts."
+              }
+            />
           </CardContent>
         </Card>
       ) : (

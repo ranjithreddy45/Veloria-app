@@ -32,7 +32,7 @@ export default async function JourneyPage({ params }: { params: Promise<{ id: st
   const pct = total ? Math.round((done / total) * 100) : 0;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <Link href="/people/lifecycle" className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-3.5" /> Joining & Exits
       </Link>

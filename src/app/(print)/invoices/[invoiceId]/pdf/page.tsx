@@ -177,13 +177,19 @@ export default async function InvoicePdfPage({ params }: InvoicePdfPageProps) {
           {/* Header */}
           <div className="header">
             <div className="company">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/logo.png"
-                alt="Veloria Grand"
-                className="brand-logo"
-                style={{ height: "48px", width: "auto", marginBottom: "8px", display: "block" }}
-              />
+              {/* Only render artwork when a logo is actually configured. Hardcoding
+                  /logo.png printed a BROKEN IMAGE on every customer invoice, since
+                  that file isn't in public/. Set NEXT_PUBLIC_BRAND_LOGO_URL to use
+                  real artwork; otherwise the wordmark below carries the brand. */}
+              {process.env.NEXT_PUBLIC_BRAND_LOGO_URL ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={process.env.NEXT_PUBLIC_BRAND_LOGO_URL}
+                  alt="Veloria Grand"
+                  className="brand-logo"
+                  style={{ height: "48px", width: "auto", marginBottom: "8px", display: "block" }}
+                />
+              ) : null}
               <h1>Veloria Grand</h1>
               <p style={{ fontWeight: 600, color: "#3f3f46" }}>{COMPANY_LEGAL_LINE}</p>
               <p>Premium Event & Banquet Services</p>

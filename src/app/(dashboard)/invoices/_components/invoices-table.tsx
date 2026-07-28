@@ -122,7 +122,7 @@ function useColumns(): ColumnDef<InvoiceRow, unknown>[] {
       cell: ({ row }) => (
         <Link
           href={`/invoices/${row.original.id}`}
-          className="font-medium text-blue-600 hover:underline"
+          className="numeric text-[13px] font-medium text-foreground underline-offset-4 hover:text-primary hover:underline"
         >
           {row.original.invoiceNumber}
         </Link>
@@ -134,12 +134,14 @@ function useColumns(): ColumnDef<InvoiceRow, unknown>[] {
       cell: ({ row }) => {
         const c = row.original.contact;
         return (
-          <div>
-            <div className="font-medium">
+          <div className="min-w-0">
+            <div className="truncate text-[13px] font-medium">
               {c.firstName} {c.lastName}
             </div>
             {c.company && (
-              <div className="text-xs text-muted-foreground">{c.company}</div>
+              <div className="truncate text-[12px] text-muted-foreground">
+                {c.company}
+              </div>
             )}
           </div>
         );
@@ -150,11 +152,13 @@ function useColumns(): ColumnDef<InvoiceRow, unknown>[] {
       header: "Booking",
       cell: ({ row }) => {
         const b = row.original.booking;
-        if (!b) return <span className="text-muted-foreground">--</span>;
+        if (!b) return <span className="text-muted-foreground">—</span>;
         return (
-          <div>
-            <div className="text-sm">{b.bookingNumber}</div>
-            <div className="text-xs text-muted-foreground">{b.eventName}</div>
+          <div className="min-w-0">
+            <div className="numeric text-[12.5px]">{b.bookingNumber}</div>
+            <div className="truncate text-[12px] text-muted-foreground">
+              {b.eventName}
+            </div>
           </div>
         );
       },
@@ -164,52 +168,73 @@ function useColumns(): ColumnDef<InvoiceRow, unknown>[] {
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Issue Date" />
       ),
-      cell: ({ row }) =>
-        row.original.issueDate ? format(new Date(row.original.issueDate), "dd MMM yyyy") : "—",
+      cell: ({ row }) => (
+        <span className="numeric text-[12.5px] text-muted-foreground">
+          {row.original.issueDate
+            ? format(new Date(row.original.issueDate), "dd MMM yyyy")
+            : "—"}
+        </span>
+      ),
     },
     {
       accessorKey: "dueDate",
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Due Date" />
       ),
-      cell: ({ row }) =>
-        row.original.dueDate ? format(new Date(row.original.dueDate), "dd MMM yyyy") : "—",
+      cell: ({ row }) => (
+        <span className="numeric text-[12.5px] text-muted-foreground">
+          {row.original.dueDate
+            ? format(new Date(row.original.dueDate), "dd MMM yyyy")
+            : "—"}
+        </span>
+      ),
     },
     {
       accessorKey: "totalAmount",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Total" />
+        <div className="flex justify-end">
+          <DataTableColumnHeader column={column} title="Total" />
+        </div>
       ),
       cell: ({ row }) => (
-        <span className="font-medium tabular-nums">
+        <div className="numeric text-right text-[13px] font-semibold text-foreground">
           {formatINR(row.original.totalAmount)}
-        </span>
+        </div>
       ),
     },
     {
       accessorKey: "paidAmount",
-      header: "Paid",
-      cell: ({ row }) => (
-        <span className="tabular-nums text-emerald-700 dark:text-emerald-400">
-          {formatINR(row.original.paidAmount)}
-        </span>
-      ),
+      header: () => <div className="text-right">Paid</div>,
+      cell: ({ row }) => {
+        const paid = Number(row.original.paidAmount?.toString() ?? 0);
+        return (
+          <div
+            className={
+              paid > 0
+                ? "numeric text-right text-[13px] text-success"
+                : "numeric text-right text-[13px] text-muted-foreground"
+            }
+          >
+            {formatINR(row.original.paidAmount)}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "balanceDue",
-      header: "Balance",
+      header: () => <div className="text-right">Balance</div>,
       cell: ({ row }) => {
         const balance = Number(row.original.balanceDue?.toString() ?? 0);
         return (
-          <span
+          <div
             className={
               balance > 0
-                ? "font-medium tabular-nums text-rose-600 dark:text-rose-400"
-                : "tabular-nums text-muted-foreground"
+                ? "numeric text-right text-[13px] font-semibold text-destructive"
+                : "numeric text-right text-[13px] text-muted-foreground"
             }
           >
             {formatINR(row.original.balanceDue)}
-          </span>
+          </div>
         );
       },
     },
@@ -260,7 +285,7 @@ function useColumns(): ColumnDef<InvoiceRow, unknown>[] {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={() => handleDelete(invoice.id)}
-                    className="text-red-600"
+                    className="text-destructive focus:text-destructive"
                   >
                     <Trash2Icon className="mr-2 size-4" />
                     Delete
@@ -317,7 +342,7 @@ export function InvoicesTable({ data }: InvoicesTableProps) {
 
   if (data.length === 0) {
     return (
-      <div className="rounded-xl border bg-card shadow-card">
+      <div className="rounded-2xl border bg-card shadow-card">
         <EmptyState
           icon={<FileTextIcon className="size-5" />}
           title="No invoices found"

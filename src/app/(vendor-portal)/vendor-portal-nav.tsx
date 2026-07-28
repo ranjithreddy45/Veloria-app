@@ -53,10 +53,10 @@ export function VendorPortalNav({ userName }: VendorPortalNavProps) {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
+                  "flex items-center gap-2 rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors duration-200",
                   isActive
-                    ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
-                    : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                    ? "bg-teal-500/12 text-teal-700 dark:text-teal-300"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
                 <Icon className="size-4" />
@@ -77,14 +77,14 @@ export function VendorPortalNav({ userName }: VendorPortalNavProps) {
           {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
         </Button>
 
-        <div className="ml-3 flex items-center gap-2 border-l pl-3 dark:border-zinc-700">
-          <span className="hidden text-sm text-zinc-600 dark:text-zinc-400 sm:inline">
+        <div className="ml-3 flex items-center gap-2 border-l pl-3">
+          <span className="hidden text-[13px] text-muted-foreground sm:inline">
             {userName}
           </span>
           <Button
             variant="ghost"
             size="sm"
-            className="gap-2 text-zinc-500 hover:text-red-600"
+            className="gap-2 text-muted-foreground hover:text-foreground"
             onClick={() => signOut({ callbackUrl: "/sign-in" })}
           >
             <LogOut className="size-4" />
@@ -95,7 +95,7 @@ export function VendorPortalNav({ userName }: VendorPortalNavProps) {
 
       {/* Mobile dropdown navigation */}
       {mobileOpen && (
-        <div className="absolute left-0 right-0 top-full z-50 border-b bg-white shadow-lg md:hidden dark:border-zinc-700 dark:bg-zinc-900">
+        <div className="absolute left-0 right-0 top-full z-50 border-b bg-background shadow-card-hover md:hidden">
           <nav className="flex flex-col p-2">
             {vendorPortalLinks.map((link) => {
               const Icon = link.icon;
@@ -109,10 +109,10 @@ export function VendorPortalNav({ userName }: VendorPortalNavProps) {
                   key={link.href}
                   href={link.href}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all",
+                    "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors",
                     isActive
-                      ? "bg-violet-50 text-violet-700 dark:bg-violet-950 dark:text-violet-300"
-                      : "text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                      ? "bg-teal-500/12 text-teal-700 dark:text-teal-300"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   )}
                 >
                   <Icon className="size-5" />

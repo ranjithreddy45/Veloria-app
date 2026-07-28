@@ -117,31 +117,31 @@ export function WhiteLabelShell({
             {(brandName || venue.name).charAt(0).toUpperCase()}
           </div>
         )}
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+        <h1 className="text-foreground text-[30px] sm:text-[36px]">
           {brandName || venue.name}
         </h1>
         {venue.description && (
-          <p className="mt-2 max-w-md text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="text-muted-foreground mt-3 max-w-md text-[15px] leading-relaxed">
             {venue.description}
           </p>
         )}
       </div>
 
       {/* Venue card */}
-      <div className="rounded-2xl border border-zinc-200/70 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="bg-card shadow-card rounded-2xl border p-6">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+            <p className="font-editorial text-foreground text-[18px] font-semibold">
               {venue.name}
             </p>
-            <p className="mt-1 flex items-center gap-1 text-xs text-zinc-500">
+            <p className="text-muted-foreground mt-1.5 flex items-center gap-1.5 text-xs">
               <Users className="size-3.5" /> Up to {venue.capacity} guests
             </p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-zinc-500">From</p>
+            <p className="text-muted-foreground/80 text-[10px] font-semibold uppercase tracking-[0.14em]">From</p>
             <p
-              className="text-lg font-bold tabular-nums"
+              className="numeric mt-1 text-[18px] font-semibold"
               style={{ color: "var(--brand)" }}
             >
               {formatINR(venue.pricePerSlot)}
@@ -153,7 +153,7 @@ export function WhiteLabelShell({
             {venue.amenities.map((a) => (
               <span
                 key={a}
-                className="rounded-full bg-zinc-100 px-2.5 py-1 text-[11px] text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+                className="bg-muted text-muted-foreground rounded-full px-2.5 py-1 text-[11px]"
               >
                 {a}
               </span>
@@ -170,23 +170,23 @@ export function WhiteLabelShell({
       />
 
       {/* Enquiry */}
-      <div className="rounded-2xl border border-zinc-200/70 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="bg-card shadow-card rounded-2xl border p-6">
         {submitted ? (
           <div className="flex flex-col items-center py-8 text-center">
             <CheckCircle2
               className="mb-3 size-12"
               style={{ color: "var(--brand)" }}
             />
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-              Thank you!
+            <h2 className="font-editorial text-foreground text-[22px] font-semibold">
+              Thank you
             </h2>
-            <p className="mt-1 text-sm text-zinc-500">
+            <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
               We&apos;ve received your enquiry and will be in touch shortly.
             </p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
-            <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+            <h2 className="font-editorial text-foreground text-[20px] font-semibold">
               Enquire now
             </h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -225,7 +225,7 @@ export function WhiteLabelShell({
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <label className="text-muted-foreground text-[13px] font-medium">
                 Message
               </label>
               <textarea
@@ -233,7 +233,7 @@ export function WhiteLabelShell({
                 onChange={(e) => setMessage(e.target.value)}
                 rows={3}
                 placeholder="Tell us about your event…"
-                className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 dark:border-zinc-700 dark:bg-zinc-900"
+                className="bg-card text-foreground w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2"
                 style={{ ["--tw-ring-color" as string]: "var(--brand)" } as React.CSSProperties}
               />
             </div>
@@ -243,7 +243,7 @@ export function WhiteLabelShell({
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex w-full items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+              className="inline-flex w-full items-center justify-center rounded-full px-4 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
               style={{ backgroundColor: "var(--brand)" }}
             >
               {submitting && <Loader2 className="mr-2 size-4 animate-spin" />}
@@ -271,7 +271,7 @@ function LabeledInput({
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+      <label className="text-muted-foreground text-[13px] font-medium">
         {label}
       </label>
       <input
@@ -279,7 +279,7 @@ function LabeledInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 dark:border-zinc-700 dark:bg-zinc-900"
+        className="bg-card text-foreground w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2"
         style={{ ["--tw-ring-color" as string]: "var(--brand)" } as React.CSSProperties}
       />
     </div>

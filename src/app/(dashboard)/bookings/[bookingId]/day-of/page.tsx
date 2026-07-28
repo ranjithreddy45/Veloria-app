@@ -8,6 +8,7 @@ import { getTimeline, createTimeline, getStaffForAssignment } from "@/actions/ev
 import { PageHeader } from "@/components/layout/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { BOOKING_STATUS_COLORS } from "@/lib/constants";
 import { serialize } from "@/lib/utils";
 import { DayOfTimeline } from "./_components/day-of-timeline";
@@ -43,17 +44,28 @@ export default async function DayOfPage({ params }: DayOfPageProps) {
   return (
     <div className="space-y-6">
       {/* Back Link */}
-      <Button variant="ghost" size="sm" asChild>
+      <Button variant="ghost" size="sm" className="-ml-2" asChild>
         <Link href={`/bookings/${bookingId}`}>
           <ArrowLeftIcon className="mr-2 size-4" />
-          Back to Booking
+          Back to booking
         </Link>
       </Button>
 
       {/* Header */}
       <PageHeader
+        icon={CalendarClockIcon}
+        accent="violet"
         title="Day-of Timeline"
-        description={`${booking.eventName} | ${booking.bookingNumber}`}
+        eyebrow={
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>Event day</span>
+            <span className="h-3 w-px bg-border" />
+            <span className="numeric text-foreground/80">
+              {booking.bookingNumber}
+            </span>
+          </div>
+        }
+        description={`${booking.eventName} — the minute-by-minute run of show for the crew.`}
       >
         <StatusBadge
           status={booking.status}
@@ -71,14 +83,13 @@ export default async function DayOfPage({ params }: DayOfPageProps) {
           staff={serialize(staff)}
         />
       ) : (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12">
-          <CalendarClockIcon className="text-muted-foreground mb-4 size-12" />
-          <h2 className="text-lg font-semibold">No Timeline Yet</h2>
-          <p className="text-muted-foreground mt-1 mb-6 text-sm text-center max-w-md">
-            Create a day-of timeline to plan and manage event activities in
-            real-time on the day of the event.
-          </p>
-          <CreateTimelineButton bookingId={bookingId} />
+        <div className="rounded-2xl border border-dashed bg-card shadow-card">
+          <EmptyState
+            icon={<CalendarClockIcon className="size-6" />}
+            title="No run of show yet"
+            description="Build a day-of timeline so the crew can follow — and tick off — every activity in real time on event day."
+            action={<CreateTimelineButton bookingId={bookingId} />}
+          />
         </div>
       )}
     </div>

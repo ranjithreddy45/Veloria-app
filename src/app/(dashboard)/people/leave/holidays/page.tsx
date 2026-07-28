@@ -35,7 +35,7 @@ export default async function HolidaysPage({
   }));
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <Link
         href="/people/leave"
         className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground"

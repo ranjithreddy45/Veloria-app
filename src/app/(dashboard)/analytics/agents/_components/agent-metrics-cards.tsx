@@ -1,7 +1,8 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Phone, Clock, Users, CheckCircle } from "lucide-react";
+
+import { cn } from "@/lib/utils";
 
 interface AgentStat {
   totalCalls: number;
@@ -55,21 +56,29 @@ export function AgentMetricsCards({ stats }: Props) {
   ];
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       {cards.map((card) => (
-        <Card key={card.title} className="border-border/50">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+        <div
+          key={card.title}
+          className="rounded-2xl border bg-card p-5 shadow-card transition-shadow hover:shadow-card-hover"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
               {card.title}
-            </CardTitle>
-            <div className={`p-2 rounded-lg ${card.bg}`}>
-              <card.icon className={`h-4 w-4 ${card.color}`} />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{card.value}</div>
-          </CardContent>
-        </Card>
+            </p>
+            <span
+              className={cn(
+                "flex size-8 shrink-0 items-center justify-center rounded-xl",
+                card.bg
+              )}
+            >
+              <card.icon className={cn("size-4", card.color)} />
+            </span>
+          </div>
+          <div className="numeric mt-3 text-[26px] font-semibold leading-none">
+            {card.value}
+          </div>
+        </div>
       ))}
     </div>
   );

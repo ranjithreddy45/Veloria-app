@@ -35,7 +35,7 @@ export function FinanceWorkspace({
 }) {
   if (!seeded) {
     return canAdmin ? <SetupPanel /> : (
-      <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">Finance hasn’t been set up yet. Ask an admin to initialise the chart of accounts.</div>
+      <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground">Finance hasn’t been set up yet. Ask an admin to initialise the chart of accounts.</div>
     );
   }
 
@@ -43,7 +43,8 @@ export function FinanceWorkspace({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="text-[13px] text-muted-foreground">
-          FY <span className="font-medium text-foreground">{period?.fy}</span> · Period {period?.period}
+          FY <span className="numeric font-medium text-foreground">{period?.fy}</span> · Period{" "}
+          <span className="numeric text-foreground">{period?.period}</span>
           <StatusPill label={period?.status ?? "OPEN"} hue={period?.status === "OPEN" ? "emerald" : "amber"} size="xs" className="ml-2" />
         </div>
         <NewJournalDialog accounts={accounts} />
@@ -57,27 +58,34 @@ export function FinanceWorkspace({
         </TabsList>
 
         <TabsContent value="tb">
-          <div className="overflow-hidden rounded-xl border bg-card">
+          <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
             <Table>
-              <TableHeader><TableRow><TableHead>Code</TableHead><TableHead>Account</TableHead><TableHead className="text-right">Debit</TableHead><TableHead className="text-right">Credit</TableHead></TableRow></TableHeader>
+              <TableHeader>
+                <TableRow className="bg-muted/30 hover:bg-muted/30 [&>th]:h-9 [&>th]:text-[11px] [&>th]:font-medium [&>th]:uppercase [&>th]:tracking-[0.05em] [&>th]:text-muted-foreground">
+                  <TableHead className="w-24">Code</TableHead>
+                  <TableHead>Account</TableHead>
+                  <TableHead className="w-40 text-right">Debit</TableHead>
+                  <TableHead className="w-40 text-right">Credit</TableHead>
+                </TableRow>
+              </TableHeader>
               <TableBody>
                 {trialBalance.rows.length === 0 ? (
                   <TableRow><TableCell colSpan={4} className="py-8 text-center text-sm text-muted-foreground">No postings yet. Create a journal entry to see the trial balance.</TableCell></TableRow>
                 ) : trialBalance.rows.map((r) => (
                   <TableRow key={r.code}>
-                    <TableCell className="font-mono text-[12px] text-muted-foreground">{r.code}</TableCell>
-                    <TableCell>{r.name}</TableCell>
-                    <TableCell className="text-right tabular-nums">{r.debit ? formatINR(r.debit) : ""}</TableCell>
-                    <TableCell className="text-right tabular-nums">{r.credit ? formatINR(r.credit) : ""}</TableCell>
+                    <TableCell className="numeric text-[12px] text-muted-foreground">{r.code}</TableCell>
+                    <TableCell className="text-[13px]">{r.name}</TableCell>
+                    <TableCell className="numeric text-right text-[13px]">{r.debit ? formatINR(r.debit) : ""}</TableCell>
+                    <TableCell className="numeric text-right text-[13px]">{r.credit ? formatINR(r.credit) : ""}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
               {trialBalance.rows.length > 0 && (
                 <tfoot>
-                  <tr className="border-t font-semibold">
-                    <td className="px-4 py-2" colSpan={2}>Total {trialBalance.balanced ? <StatusPill label="Balanced ✓" hue="emerald" size="xs" className="ml-2" /> : <StatusPill label="OUT OF BALANCE" hue="red" size="xs" className="ml-2" />}</td>
-                    <td className="px-4 py-2 text-right tabular-nums">{formatINR(trialBalance.totalDebit)}</td>
-                    <td className="px-4 py-2 text-right tabular-nums">{formatINR(trialBalance.totalCredit)}</td>
+                  <tr className="border-t-2 bg-muted/20 text-[13px] font-semibold">
+                    <td className="px-4 py-2.5" colSpan={2}>Total {trialBalance.balanced ? <StatusPill label="Balanced" hue="emerald" size="xs" className="ml-2" /> : <StatusPill label="OUT OF BALANCE" hue="red" size="xs" className="ml-2" />}</td>
+                    <td className="numeric px-4 py-2.5 text-right">{formatINR(trialBalance.totalDebit)}</td>
+                    <td className="numeric px-4 py-2.5 text-right">{formatINR(trialBalance.totalCredit)}</td>
                   </tr>
                 </tfoot>
               )}
@@ -87,19 +95,25 @@ export function FinanceWorkspace({
 
         <TabsContent value="journal" className="space-y-2.5">
           {entries.length === 0 ? (
-            <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">No journal entries yet.</div>
+            <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground">No journal entries yet.</div>
           ) : entries.map((e) => <EntryCard key={e.id} entry={e} />)}
         </TabsContent>
 
         <TabsContent value="coa">
-          <div className="overflow-hidden rounded-xl border bg-card">
+          <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
             <Table>
-              <TableHeader><TableRow><TableHead>Code</TableHead><TableHead>Account</TableHead><TableHead>Type</TableHead></TableRow></TableHeader>
+              <TableHeader>
+                <TableRow className="bg-muted/30 hover:bg-muted/30 [&>th]:h-9 [&>th]:text-[11px] [&>th]:font-medium [&>th]:uppercase [&>th]:tracking-[0.05em] [&>th]:text-muted-foreground">
+                  <TableHead className="w-24">Code</TableHead>
+                  <TableHead>Account</TableHead>
+                  <TableHead className="w-32">Type</TableHead>
+                </TableRow>
+              </TableHeader>
               <TableBody>
                 {accounts.map((a) => (
                   <TableRow key={a.id}>
-                    <TableCell className="font-mono text-[12px] text-muted-foreground">{a.code}</TableCell>
-                    <TableCell>{a.name}</TableCell>
+                    <TableCell className="numeric text-[12px] text-muted-foreground">{a.code}</TableCell>
+                    <TableCell className="text-[13px]">{a.name}</TableCell>
                     <TableCell><StatusPill label={a.type[0] + a.type.slice(1).toLowerCase()} hue="slate" size="xs" /></TableCell>
                   </TableRow>
                 ))}
@@ -121,25 +135,25 @@ function EntryCard({ entry }: { entry: Entry }) {
     setBusy(true); await reverseEntry(entry.id, reason); setBusy(false); router.refresh();
   }
   return (
-    <div className="rounded-xl border bg-card p-4">
+    <div className="rounded-2xl border bg-card p-5 shadow-card transition-shadow hover:shadow-card-hover">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="font-mono text-[12px] text-muted-foreground">{entry.entryNo}</span>
+          <span className="numeric text-[12px] text-muted-foreground">{entry.entryNo}</span>
           <span className="text-[13px] font-medium">{entry.narration ?? "—"}</span>
           <StatusPill label={entry.status[0] + entry.status.slice(1).toLowerCase()} hue={entry.status === "POSTED" ? "emerald" : entry.status === "REVERSED" ? "slate" : "amber"} size="xs" />
           <StatusPill label={entry.sourceModule[0] + entry.sourceModule.slice(1).toLowerCase()} hue="violet" size="xs" />
         </div>
         <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
-          {formatDate(entry.date)}
+          <span className="numeric">{formatDate(entry.date)}</span>
           {entry.status === "POSTED" && <Button variant="ghost" size="sm" className="h-7 gap-1 text-muted-foreground hover:text-foreground" disabled={busy} onClick={reverse}>{busy ? <Loader2 className="size-3.5 animate-spin" /> : <RotateCcw className="size-3.5" />} Reverse</Button>}
         </div>
       </div>
-      <div className="mt-2 space-y-0.5">
+      <div className="mt-3 space-y-1 border-t pt-2.5">
         {entry.lines.map((l, i) => (
           <div key={i} className="flex items-center gap-3 text-[12.5px]">
             <span className="min-w-0 flex-1 truncate text-muted-foreground">{l.account}</span>
-            <span className="w-28 text-right tabular-nums">{l.debit ? formatINR(l.debit) : ""}</span>
-            <span className="w-28 text-right tabular-nums">{l.credit ? formatINR(l.credit) : ""}</span>
+            <span className="numeric w-28 text-right">{l.debit ? formatINR(l.debit) : ""}</span>
+            <span className="numeric w-28 text-right">{l.credit ? formatINR(l.credit) : ""}</span>
           </div>
         ))}
       </div>
@@ -202,17 +216,17 @@ function NewJournalDialog({ accounts }: { accounts: Account[] }) {
                   <SelectTrigger className="h-8 flex-1"><SelectValue placeholder="Account" /></SelectTrigger>
                   <SelectContent>{accounts.map((a) => <SelectItem key={a.id} value={a.id}>{a.code} · {a.name}</SelectItem>)}</SelectContent>
                 </Select>
-                <Input value={r.debit} onChange={(e) => setRow(i, { debit: e.target.value, credit: "" })} placeholder="Debit" className="h-8 w-28 text-right" />
-                <Input value={r.credit} onChange={(e) => setRow(i, { credit: e.target.value, debit: "" })} placeholder="Credit" className="h-8 w-28 text-right" />
+                <Input value={r.debit} onChange={(e) => setRow(i, { debit: e.target.value, credit: "" })} placeholder="Debit" className="numeric h-8 w-28 text-right" />
+                <Input value={r.credit} onChange={(e) => setRow(i, { credit: e.target.value, debit: "" })} placeholder="Credit" className="numeric h-8 w-28 text-right" />
                 <Button variant="ghost" size="icon" className="size-7 text-muted-foreground" onClick={() => setRows((rs) => rs.length > 2 ? rs.filter((_, idx) => idx !== i) : rs)}><Trash2 className="size-3.5" /></Button>
               </div>
             ))}
             <Button variant="ghost" size="sm" className="gap-1" onClick={() => setRows((rs) => [...rs, { accountId: "", debit: "", credit: "" }])}><Plus className="size-3.5" /> Add line</Button>
           </div>
           <div className="flex items-center justify-end gap-6 border-t pt-2 text-[13px]">
-            <span className="text-muted-foreground">Debits <span className="font-semibold tabular-nums text-foreground">{formatINR(drTotal)}</span></span>
-            <span className="text-muted-foreground">Credits <span className="font-semibold tabular-nums text-foreground">{formatINR(crTotal)}</span></span>
-            {balanced ? <StatusPill label="Balanced ✓" hue="emerald" size="sm" /> : <StatusPill label="Not balanced" hue="amber" size="sm" />}
+            <span className="text-muted-foreground">Debits <span className="numeric font-semibold text-foreground">{formatINR(drTotal)}</span></span>
+            <span className="text-muted-foreground">Credits <span className="numeric font-semibold text-foreground">{formatINR(crTotal)}</span></span>
+            {balanced ? <StatusPill label="Balanced" hue="emerald" size="sm" /> : <StatusPill label="Not balanced" hue="amber" size="sm" />}
           </div>
         </div>
         {error && <p className="text-sm text-red-600">{error}</p>}

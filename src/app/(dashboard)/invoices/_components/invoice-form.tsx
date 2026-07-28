@@ -539,7 +539,7 @@ export function InvoiceForm({
                           />
                         </div>
                         <div className="flex items-center justify-end sm:col-span-2">
-                          <span className="font-medium text-sm">
+                          <span className="numeric text-[13px] font-semibold">
                             {formatINR(lineAmount)}
                           </span>
                         </div>
@@ -806,7 +806,7 @@ export function InvoiceForm({
                           <span className="truncate max-w-[140px]">
                             {item.description || "Item " + (i + 1)}
                           </span>
-                          <span className="font-medium">
+                          <span className="numeric font-medium">
                             {formatINR(qty * price)}
                           </span>
                         </div>
@@ -820,14 +820,14 @@ export function InvoiceForm({
                   <div className="space-y-1">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Subtotal</span>
-                      <span>{formatINR(calculations.subtotal)}</span>
+                      <span className="numeric">{formatINR(calculations.subtotal)}</span>
                     </div>
                     {calculations.discountAmount > 0 && (
                       <div className="flex justify-between text-red-600">
                         <span>
                           Discount ({watchedDiscount}%)
                         </span>
-                        <span>-{formatINR(calculations.discountAmount)}</span>
+                        <span className="numeric">-{formatINR(calculations.discountAmount)}</span>
                       </div>
                     )}
                     {!isInterstate ? (
@@ -836,13 +836,13 @@ export function InvoiceForm({
                           <span className="text-muted-foreground">
                             CGST ({watchedCgstRate}%)
                           </span>
-                          <span>{formatINR(calculations.cgstAmount)}</span>
+                          <span className="numeric">{formatINR(calculations.cgstAmount)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">
                             SGST ({watchedSgstRate}%)
                           </span>
-                          <span>{formatINR(calculations.sgstAmount)}</span>
+                          <span className="numeric">{formatINR(calculations.sgstAmount)}</span>
                         </div>
                       </>
                     ) : (
@@ -850,13 +850,12 @@ export function InvoiceForm({
                         <span className="text-muted-foreground">
                           IGST ({watchedIgstRate}%)
                         </span>
-                        <span>{formatINR(calculations.igstAmount)}</span>
+                        <span className="numeric">{formatINR(calculations.igstAmount)}</span>
                       </div>
                     )}
-                    <Separator />
-                    <div className="flex justify-between text-base font-bold">
+                    <div className="mt-2 flex items-baseline justify-between border-t pt-2.5 text-[17px] font-bold">
                       <span>Total</span>
-                      <span>{formatINR(calculations.totalAmount)}</span>
+                      <span className="numeric">{formatINR(calculations.totalAmount)}</span>
                     </div>
                   </div>
                 </CardContent>

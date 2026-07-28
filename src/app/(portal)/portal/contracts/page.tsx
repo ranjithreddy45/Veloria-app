@@ -7,7 +7,6 @@ import {
   PenTool,
   FileX,
   CheckCircle2,
-  Clock,
 } from "lucide-react";
 import {
   Card,
@@ -39,23 +38,25 @@ export default async function PortalContractsPage() {
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <PageHeader
+        eyebrow="Your account"
         title="My Contracts"
-        description="View and sign your contracts."
+        description="Everything we've agreed, in writing — ready to read and sign whenever you are."
       />
 
       {contracts.length === 0 ? (
-        <Card className="border-zinc-200/80 shadow-sm">
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="flex size-16 items-center justify-center rounded-full bg-zinc-100">
-              <FileX className="size-8 text-zinc-400" />
+        <Card className="shadow-card rounded-2xl py-0">
+          <CardContent className="flex flex-col items-center justify-center px-6 py-20 text-center">
+            <div className="bg-muted flex size-16 items-center justify-center rounded-2xl">
+              <FileX className="text-muted-foreground/60 size-8" />
             </div>
-            <h3 className="mt-4 text-base font-semibold text-zinc-900">
-              No contracts yet
+            <h3 className="font-editorial text-foreground mt-5 text-xl font-semibold">
+              Nothing to sign today
             </h3>
-            <p className="mt-1 max-w-sm text-sm text-zinc-500">
-              Your contracts will appear here once they are sent to you.
+            <p className="text-muted-foreground mt-2 max-w-sm text-sm leading-relaxed">
+              When we send an agreement across, it will be right here — with a
+              signature line and no paperwork to print.
             </p>
           </CardContent>
         </Card>
@@ -63,9 +64,12 @@ export default async function PortalContractsPage() {
         <>
           {/* Pending Signature */}
           {pendingContracts.length > 0 && (
-            <div className="space-y-4">
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-500">
-                Awaiting Your Signature ({pendingContracts.length})
+            <section className="space-y-4">
+              <h2 className="text-muted-foreground flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em]">
+                Awaiting your signature
+                <span className="numeric text-muted-foreground/60">
+                  {pendingContracts.length}
+                </span>
               </h2>
               <div className="space-y-3">
                 {pendingContracts.map((contract) => (
@@ -76,24 +80,26 @@ export default async function PortalContractsPage() {
                   />
                 ))}
               </div>
-            </div>
+            </section>
           )}
 
           {/* Other Contracts */}
           {otherContracts.length > 0 && (
-            <div className="space-y-4">
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-500">
+            <section className="space-y-4">
+              <h2 className="text-muted-foreground flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em]">
                 {pendingContracts.length > 0
-                  ? "Other Contracts"
-                  : "All Contracts"}{" "}
-                ({otherContracts.length})
+                  ? "Other contracts"
+                  : "All contracts"}
+                <span className="numeric text-muted-foreground/60">
+                  {otherContracts.length}
+                </span>
               </h2>
               <div className="space-y-3">
                 {otherContracts.map((contract) => (
                   <ContractRow key={contract.id} contract={contract} />
                 ))}
               </div>
-            </div>
+            </section>
           )}
         </>
       )}
@@ -128,42 +134,42 @@ function ContractRow({ contract, showSignButton }: ContractRowProps) {
   return (
     <Link href={`/portal/contracts/${contract.id}`} className="block">
       <Card
-        className={`group border-zinc-200/80 shadow-sm transition-all duration-200 hover:shadow-md ${
+        className={`group shadow-card hover:shadow-card-hover overflow-hidden rounded-2xl py-0 transition-all duration-200 ${
           isSigned
-            ? "hover:border-green-200 border-green-100"
+            ? "border-emerald-500/25"
             : isExpired
-              ? "hover:border-red-200 border-red-100"
-              : "hover:border-indigo-200"
+              ? "border-red-500/30"
+              : ""
         }`}
       >
         <CardContent className="p-0">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-5">
+          <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
             {/* Icon + Contract Info */}
-            <div className="flex items-center gap-4 flex-1 min-w-0">
+            <div className="flex min-w-0 flex-1 items-center gap-4">
               <div
-                className={`flex size-10 items-center justify-center rounded-lg flex-shrink-0 ${
+                className={`flex size-10 flex-shrink-0 items-center justify-center rounded-xl ${
                   isSigned
-                    ? "bg-green-50"
+                    ? "bg-emerald-500/10"
                     : isExpired
-                      ? "bg-red-50"
-                      : "bg-indigo-50"
+                      ? "bg-red-500/10"
+                      : "bg-primary/10"
                 }`}
               >
                 {isSigned ? (
-                  <CheckCircle2
-                    className="size-5 text-green-500"
-                  />
+                  <CheckCircle2 className="size-5 text-emerald-600 dark:text-emerald-400" />
                 ) : (
                   <FileText
                     className={`size-5 ${
-                      isExpired ? "text-red-500" : "text-indigo-500"
+                      isExpired
+                        ? "text-red-600 dark:text-red-400"
+                        : "text-primary"
                     }`}
                   />
                 )}
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold text-zinc-900 truncate">
+                  <p className="text-foreground truncate text-sm font-semibold">
                     {contract.title}
                   </p>
                   <StatusBadge
@@ -172,7 +178,7 @@ function ContractRow({ contract, showSignButton }: ContractRowProps) {
                     className="text-[10px]"
                   />
                 </div>
-                <p className="mt-0.5 text-xs text-zinc-500 truncate">
+                <p className="text-muted-foreground mt-0.5 truncate text-xs">
                   {contract.eventName && (
                     <>
                       {contract.eventName}
@@ -180,58 +186,64 @@ function ContractRow({ contract, showSignButton }: ContractRowProps) {
                     </>
                   )}
                   Sent{" "}
-                  {contract.sentAt
-                    ? new Date(contract.sentAt).toLocaleDateString("en-IN", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })
-                    : "N/A"}
+                  <span className="numeric">
+                    {contract.sentAt
+                      ? new Date(contract.sentAt).toLocaleDateString("en-IN", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })
+                      : "—"}
+                  </span>
                 </p>
               </div>
             </div>
 
             {/* Sign Button or Arrow */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-5">
               {contract.signerName && (
                 <div className="text-right">
-                  <p className="text-xs text-zinc-400">Signer</p>
-                  <p className="text-sm font-medium text-zinc-900">
+                  <p className="text-muted-foreground/70 text-[10px] font-semibold uppercase tracking-[0.1em]">
+                    Signer
+                  </p>
+                  <p className="text-foreground mt-0.5 text-sm font-medium">
                     {contract.signerName}
                   </p>
                 </div>
               )}
 
               {showSignButton ? (
-                <span className="hidden sm:inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white transition-colors group-hover:bg-indigo-700">
+                <span className="bg-primary text-primary-foreground hidden items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition-opacity group-hover:opacity-90 sm:inline-flex">
                   <PenTool className="size-3.5" />
-                  Sign Now
+                  Sign now
                 </span>
               ) : (
-                <ArrowUpRight className="size-4 text-zinc-300 flex-shrink-0 transition-colors group-hover:text-indigo-500" />
+                <ArrowUpRight className="text-muted-foreground/40 group-hover:text-primary size-4 flex-shrink-0 transition-colors" />
               )}
             </div>
           </div>
 
           {/* Footer */}
           <div
-            className={`flex items-center justify-between border-t px-5 py-2 text-xs ${
+            className={`flex items-center justify-between border-t px-5 py-2.5 text-xs ${
               isExpired
-                ? "border-red-100 bg-red-50/50 text-red-600"
+                ? "border-red-500/20 bg-red-500/[0.06] text-red-600 dark:text-red-400"
                 : isSigned
-                  ? "border-green-100 bg-green-50/50 text-green-600"
-                  : "border-zinc-100 text-zinc-400"
+                  ? "border-emerald-500/20 bg-emerald-500/[0.06] text-emerald-600 dark:text-emerald-400"
+                  : "text-muted-foreground/70 bg-muted/25"
             }`}
           >
             <span>
               {contract.expiresAt && (
                 <>
-                  {isExpired ? "Expired: " : "Expires: "}
-                  {new Date(contract.expiresAt).toLocaleDateString("en-IN", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
+                  {isExpired ? "Expired " : "Expires "}
+                  <span className="numeric">
+                    {new Date(contract.expiresAt).toLocaleDateString("en-IN", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </span>
                 </>
               )}
               {!contract.expiresAt && "No expiry date"}
@@ -239,21 +251,21 @@ function ContractRow({ contract, showSignButton }: ContractRowProps) {
             {isSigned && contract.signedAt && (
               <span className="font-semibold">
                 Signed{" "}
-                {new Date(contract.signedAt).toLocaleDateString("en-IN", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
+                <span className="numeric">
+                  {new Date(contract.signedAt).toLocaleDateString("en-IN", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </span>
               </span>
             )}
-            {isExpired && (
-              <span className="font-semibold">Expired</span>
-            )}
+            {isExpired && <span className="font-semibold">Expired</span>}
             {/* Mobile Sign Button */}
             {showSignButton && (
-              <span className="inline-flex sm:hidden items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white">
+              <span className="bg-primary text-primary-foreground inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold sm:hidden">
                 <PenTool className="size-3" />
-                Sign Now
+                Sign now
               </span>
             )}
           </div>

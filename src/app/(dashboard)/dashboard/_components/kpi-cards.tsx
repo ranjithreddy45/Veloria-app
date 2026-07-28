@@ -93,7 +93,7 @@ function CardHead({
 }) {
   return (
     <div className="flex items-center justify-between">
-      <p className="text-[11.5px] font-medium uppercase tracking-[0.05em] text-muted-foreground">
+      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
         {title}
       </p>
       <span
@@ -123,7 +123,7 @@ function DeltaChip({
     <div className="mt-1.5 flex items-center justify-between border-t border-border/60 pt-2 text-[11.5px]">
       <span
         className={cn(
-          "inline-flex items-center gap-0.5 font-medium tabular-nums",
+          "numeric inline-flex items-center gap-0.5 font-medium",
           flat && "text-muted-foreground",
           !flat && up && "text-emerald-600 dark:text-emerald-400",
           !flat && !up && "text-rose-600 dark:text-rose-400"
@@ -168,10 +168,10 @@ export function KpiCards({
           Icon={IndianRupee}
           tint="text-violet-600 group-hover:bg-violet-500/10 dark:text-violet-400"
         />
-        <p className="mt-2 text-[26px] font-semibold leading-none tracking-[-0.02em] text-foreground tabular-nums">
+        <p className="numeric mt-2 text-[26px] font-semibold leading-none text-foreground">
           ₹{formatIndianCurrency(revenue.thisMonth)}
         </p>
-        <p className="mt-1.5 text-[11px] text-muted-foreground">
+        <p className="mt-1.5 text-[12px] text-muted-foreground">
           Cash collected — payments received
         </p>
         <div className="mt-3 -mx-1 h-9">
@@ -193,7 +193,7 @@ export function KpiCards({
           tint="text-sky-600 group-hover:bg-sky-500/10 dark:text-sky-400"
         />
         <div className="mt-2 flex items-end justify-between gap-2">
-          <p className="text-[26px] font-semibold leading-none tracking-[-0.02em] text-foreground tabular-nums">
+          <p className="numeric text-[26px] font-semibold leading-none text-foreground">
             {bookings.active}
           </p>
           {bookings.thisMonth > 0 && (
@@ -228,10 +228,10 @@ export function KpiCards({
         />
         <div className="mt-2 flex items-center justify-between gap-3">
           <div>
-            <p className="text-[26px] font-semibold leading-none tracking-[-0.02em] text-foreground tabular-nums">
+            <p className="numeric text-[26px] font-semibold leading-none text-foreground">
               {leads.newThisMonth}
             </p>
-            <p className="mt-2 text-[11.5px] text-muted-foreground">
+            <p className="mt-2 text-[12px] text-muted-foreground">
               conversion rate
             </p>
           </div>
@@ -259,7 +259,7 @@ export function KpiCards({
           )}
         />
         <div className="mt-2 flex items-end justify-between gap-2">
-          <p className="text-[26px] font-semibold leading-none tracking-[-0.02em] text-foreground tabular-nums">
+          <p className="numeric text-[26px] font-semibold leading-none text-foreground">
             {tasks.pending}
           </p>
           <StatusPill
@@ -273,7 +273,7 @@ export function KpiCards({
 
         {/* Completion bar — share of today's tasks already cleared */}
         <div className="mt-3.5">
-          <div className="flex items-center justify-between text-[11px] text-muted-foreground tabular-nums">
+          <div className="numeric flex items-center justify-between text-[11px] text-muted-foreground">
             <span>{completionPct}% complete</span>
             <span>
               {tasksDone}/{tasks.total}
@@ -291,7 +291,7 @@ export function KpiCards({
         </div>
 
         <div className="mt-2.5 border-t border-border/60 pt-2 text-[11.5px] text-muted-foreground">
-          {tasks.total} total tasks
+          <span className="numeric">{tasks.total}</span> total tasks
         </div>
       </CardShell>
     </div>

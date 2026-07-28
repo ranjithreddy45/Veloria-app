@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
 import {
   updateCrmTaskStatus,
@@ -135,8 +136,8 @@ function TaskRow({
   return (
     <div
       className={cn(
-        "group relative flex items-start gap-3 overflow-hidden rounded-xl border border-border/60 bg-card p-3 pl-4 transition-colors",
-        isDone ? "opacity-60" : "hover:border-border hover:bg-accent/30"
+        "group relative flex items-start gap-3 overflow-hidden rounded-xl border border-border/60 bg-card p-3 pl-4 shadow-card transition-[box-shadow,background-color,border-color]",
+        isDone ? "opacity-60" : "hover:border-border hover:bg-accent/30 hover:shadow-card-hover"
       )}
     >
       {/* Left accent rail */}
@@ -152,7 +153,7 @@ function TaskRow({
       <div className="w-14 shrink-0 pt-0.5 text-right">
         <div
           className={cn(
-            "text-sm font-semibold tabular-nums",
+            "numeric text-sm font-semibold",
             overdue ? "text-red-600 dark:text-red-400" : "text-foreground"
           )}
         >
@@ -283,12 +284,12 @@ export function MyCalendar({
   return (
     <div className="space-y-4">
       {/* Month toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card p-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card p-3 shadow-card">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={() => go(prev.m, prev.y)} aria-label="Previous month">
             <ChevronLeft className="size-4" />
           </Button>
-          <div className="min-w-[9.5rem] text-center text-base font-semibold tabular-nums">
+          <div className="min-w-[9.5rem] text-center text-[17px] font-semibold tracking-[-0.01em] tabular-nums">
             {monthLabel}
           </div>
           <Button variant="outline" size="icon" onClick={() => go(next.m, next.y)} aria-label="Next month">
@@ -308,13 +309,13 @@ export function MyCalendar({
             </Button>
           )}
         </div>
-        <div className="flex items-center gap-4 text-sm">
+        <div className="flex items-center gap-4 text-[13px]">
           <span className="text-muted-foreground">
-            <span className="font-semibold tabular-nums text-foreground">{pendingCount}</span> pending
+            <span className="numeric font-semibold text-foreground">{pendingCount}</span> pending
           </span>
           {overdueCount > 0 && (
-            <span className="font-semibold tabular-nums text-red-600 dark:text-red-400">
-              {overdueCount} overdue
+            <span className="font-semibold text-red-600 dark:text-red-400">
+              <span className="numeric">{overdueCount}</span> overdue
             </span>
           )}
         </div>
@@ -322,16 +323,12 @@ export function MyCalendar({
 
       {/* Agenda */}
       {groups.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border/70 bg-card/50 py-16 text-center">
-          <div className="flex size-12 items-center justify-center rounded-full bg-muted">
-            <CalendarX2 className="size-6 text-muted-foreground" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-foreground">No scheduled tasks</p>
-            <p className="text-sm text-muted-foreground">
-              Nothing on your calendar for {monthLabel}.
-            </p>
-          </div>
+        <div className="rounded-2xl border border-dashed border-border/70 bg-card/50 shadow-card">
+          <EmptyState
+            icon={<CalendarX2 className="size-6" />}
+            title="Your calendar is clear"
+            description={`Nothing scheduled for ${monthLabel}. Follow-ups, calls and show-arounds you book will land here.`}
+          />
         </div>
       ) : (
         <div className="space-y-6">
@@ -340,17 +337,17 @@ export function MyCalendar({
             const today = isToday(group.date);
             return (
               <div key={key} className="space-y-2">
-                <div className="flex items-center gap-2 px-1">
+                <div className="flex items-center gap-2.5 px-1">
                   <h2
                     className={cn(
-                      "text-sm font-semibold",
-                      today ? "text-primary" : "text-foreground"
+                      "text-[13px] font-semibold uppercase tracking-[0.06em]",
+                      today ? "text-primary" : "text-muted-foreground"
                     )}
                   >
                     {dayHeading(group.date)}
                   </h2>
                   <span className="h-px flex-1 bg-border/60" />
-                  <span className="text-xs text-muted-foreground tabular-nums">
+                  <span className="numeric text-[12px] text-muted-foreground">
                     {group.items.length}
                   </span>
                 </div>

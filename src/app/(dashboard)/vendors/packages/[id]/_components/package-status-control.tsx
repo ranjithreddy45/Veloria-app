@@ -52,8 +52,8 @@ export function PackageStatusControl({
   };
 
   return (
-    <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-card space-y-3">
-      <p className="text-[12px] font-medium uppercase tracking-wide text-muted-foreground">
+    <div className="space-y-3 rounded-2xl border bg-card p-4 shadow-card">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
         Status control
       </p>
 

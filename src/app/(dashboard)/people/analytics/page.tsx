@@ -22,7 +22,7 @@ export default async function HrAnalyticsPage({ searchParams }: PageProps) {
   if (!data) notFound();
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title="HR Analytics"
         description="The C-suite view — headcount, attrition, attendance, leave and appraisal completion across every legal entity and vertical."

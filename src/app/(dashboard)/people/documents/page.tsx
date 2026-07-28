@@ -31,7 +31,7 @@ export default async function DocumentsPage() {
   ]);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title="Documents"
         description="Company policies with read-acknowledgement tracking, employee documents, expiry reminders, and mail-merge letter templates."

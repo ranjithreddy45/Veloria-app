@@ -57,25 +57,25 @@ export function RsvpForm({ token, guestName }: RsvpFormProps) {
 
   if (submitted) {
     return (
-      <div className="py-6 text-center">
+      <div className="py-8 text-center">
         {response === "ACCEPTED" ? (
           <>
-            <CheckCircle2 className="mx-auto size-12 text-emerald-500" />
-            <h3 className="mt-3 text-lg font-bold text-zinc-900 dark:text-zinc-100">
-              Thank you, {guestName}!
+            <CheckCircle2 className="mx-auto size-11 text-emerald-500" />
+            <h3 className="font-editorial text-foreground mt-4 text-[22px] font-semibold">
+              Thank you, {guestName}
             </h3>
-            <p className="mt-1 text-sm text-zinc-500">
-              We&apos;re excited to see you there!
+            <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
+              We&apos;re delighted you&apos;ll be joining us.
             </p>
           </>
         ) : (
           <>
-            <XCircle className="mx-auto size-12 text-zinc-400" />
-            <h3 className="mt-3 text-lg font-bold text-zinc-900 dark:text-zinc-100">
+            <XCircle className="text-muted-foreground/50 mx-auto size-11" />
+            <h3 className="font-editorial text-foreground mt-4 text-[22px] font-semibold">
               Thank you for letting us know
             </h3>
-            <p className="mt-1 text-sm text-zinc-500">
-              We hope to see you at a future event.
+            <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
+              We hope to welcome you at a future occasion.
             </p>
           </>
         )}
@@ -88,8 +88,8 @@ export function RsvpForm({ token, guestName }: RsvpFormProps) {
       {/* Optional Details */}
       <div className="space-y-4">
         <div>
-          <Label htmlFor="plusOnes" className="text-sm text-zinc-600">
-            Additional Guests (Plus Ones)
+          <Label htmlFor="plusOnes" className="text-muted-foreground text-[13px] font-medium">
+            Anyone joining you?
           </Label>
           <Input
             id="plusOnes"
@@ -106,9 +106,9 @@ export function RsvpForm({ token, guestName }: RsvpFormProps) {
         <div>
           <Label
             htmlFor="dietaryRestrictions"
-            className="text-sm text-zinc-600"
+            className="text-muted-foreground text-[13px] font-medium"
           >
-            Dietary Restrictions (optional)
+            Dietary preferences (optional)
           </Label>
           <Textarea
             id="dietaryRestrictions"
@@ -121,8 +121,8 @@ export function RsvpForm({ token, guestName }: RsvpFormProps) {
         </div>
 
         <div>
-          <Label htmlFor="message" className="text-sm text-zinc-600">
-            Message for the Host (optional)
+          <Label htmlFor="message" className="text-muted-foreground text-[13px] font-medium">
+            A note for your hosts (optional)
           </Label>
           <Textarea
             id="message"
@@ -138,7 +138,7 @@ export function RsvpForm({ token, guestName }: RsvpFormProps) {
       {/* Action Buttons */}
       <div className="flex gap-3">
         <Button
-          className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+          className="flex-1 rounded-full bg-emerald-600 hover:bg-emerald-700"
           size="lg"
           disabled={isPending}
           onClick={() => handleSubmit("ACCEPTED")}
@@ -152,7 +152,7 @@ export function RsvpForm({ token, guestName }: RsvpFormProps) {
         </Button>
         <Button
           variant="outline"
-          className="flex-1"
+          className="flex-1 rounded-full"
           size="lg"
           disabled={isPending}
           onClick={() => handleSubmit("DECLINED")}

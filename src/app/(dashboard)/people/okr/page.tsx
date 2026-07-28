@@ -34,7 +34,7 @@ export default async function Page({
   const ownerName = objectives[0]?.ownerName ?? owners.find((o) => o.id === ownerId)?.name ?? "Teammate";
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         aura
         eyebrow="People · HR"

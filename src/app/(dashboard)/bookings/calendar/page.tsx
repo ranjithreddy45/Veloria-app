@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PlusIcon, ListIcon, BanIcon } from "lucide-react";
+import { PlusIcon, ListIcon, BanIcon, CalendarDaysIcon } from "lucide-react";
 
 import {
   getBookingsForCalendar,
@@ -42,6 +42,8 @@ export default async function CalendarPage() {
     <div className="space-y-6">
       <PageHeader
         aura
+        icon={CalendarDaysIcon}
+        accent="blue"
         eyebrow={
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <span>Bookings · Operations</span>
@@ -53,7 +55,7 @@ export default async function CalendarPage() {
         }
         title="Booking Calendar"
         help={<PageHelp id="bookings-calendar" />}
-        description="View and manage bookings in calendar format."
+        description="Confirmed events and open enquiries on one month grid. Click any day to see its slots and book straight from there."
       >
         <Button variant="outline" asChild>
           <Link href="/bookings">

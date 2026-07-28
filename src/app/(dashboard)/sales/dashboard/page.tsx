@@ -2,11 +2,16 @@ import type { Metadata } from "next";
 import {
   Users, MapPin, FileText, Link2, Wallet, CheckCircle2, XCircle,
   Sparkles, TrendingUp, Trophy, Flame, Megaphone, Inbox,
+  AlertTriangle, CalendarRange, Gauge, PieChart, ThumbsUp,
 } from "lucide-react";
 import { getSalesAnalytics, getSalesExecutives } from "@/actions/sales-analytics.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { StatTile, type Accent } from "@/components/ui/stat-tile";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
 import { BdFilterBar } from "@/app/(dashboard)/bd/_components/bd-filter-bar";
 import { SalesEmployeeChart, type SalesEmployeeRow } from "./_components/sales-employee-chart";
 
@@ -39,18 +44,23 @@ interface Analytics {
 const pct = (n: number) => `${Math.round((n || 0) * 100)}%`;
 const inr = (n: number) => "₹" + Math.round(n || 0).toLocaleString("en-IN");
 
+/** Quiet card heading, shared by every panel on this page. */
+const PANEL_TITLE = "text-[13px] font-semibold tracking-[-0.01em] text-foreground";
+/** Micro field label. */
+const MICRO_LABEL = "text-[11px] uppercase tracking-wide text-muted-foreground";
+
 function FunnelBar({ label, count, max, conv }: { label: string; count: number; max: number; conv: string | null }) {
   const w = max > 0 ? Math.min(100, Math.round((count / max) * 100)) : 0;
   return (
     <div className="flex items-center gap-3">
       <div className="w-28 shrink-0 truncate text-[13px] text-muted-foreground sm:w-36">{label}</div>
-      <div className="relative h-7 flex-1 overflow-hidden rounded-lg border border-border bg-muted/30">
-        <div className="h-full rounded-lg bg-gradient-to-r from-violet-500/30 to-violet-500/10" style={{ width: `${w}%` }} />
-        <div className="absolute inset-0 flex items-center px-3 text-[13px] font-medium tabular-nums text-foreground">
+      <div className="relative h-8 flex-1 overflow-hidden rounded-lg border border-border/70 bg-muted/25">
+        <div className="h-full bg-gradient-to-r from-violet-500/35 to-violet-500/10" style={{ width: `${w}%` }} />
+        <div className="numeric absolute inset-0 flex items-center px-3 text-[13px] font-medium text-foreground">
           {count.toLocaleString("en-IN")}
         </div>
       </div>
-      <div className="w-12 shrink-0 text-right text-[12px] tabular-nums text-muted-foreground">{conv ?? ""}</div>
+      <div className="numeric w-12 shrink-0 text-right text-[12px] text-muted-foreground">{conv ?? "—"}</div>
     </div>
   );
 }
@@ -98,22 +108,49 @@ export default async function SalesDashboardPage({
       ]
     : [];
 
+  // Ratio strip under the funnel — both ratios are computed off Lead rows, not
+  // Contact rows.
+  const funnelStats: { label: string; value: string }[] = a
+    ? [
+        { label: "Lead → booking", value: pct(a.conversion.enquiryToBooking) },
+        { label: "Win rate", value: pct(a.conversion.winRate) },
+        { label: "Avg lead → booking", value: a.avgDaysEnquiryToBooking != null ? `${a.avgDaysEnquiryToBooking} days` : "—" },
+        { label: "Avg upsell / booking", value: inr(a.avgUpsellPerBooking) },
+      ]
+    : [];
+
   return (
-    <div className="flex flex-col gap-6">
+    <div className="space-y-6">
       <PageHeader
         aura
         eyebrow="Sales · Bookings"
+        icon={Gauge}
+        accent="violet"
         title="Sales Dashboard"
         description="Employee-wise sales funnel, activity and leaderboard."
-      />
-
-      <div className="flex flex-wrap items-center justify-between gap-3">
+        help={
+          a ? (
+            <span className="numeric inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-muted/40 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+              <CalendarRange className="size-3.5" aria-hidden />
+              {a.range.label}
+            </span>
+          ) : undefined
+        }
+      >
         <BdFilterBar employees={execs} />
-        {a && <span className="text-[12px] text-muted-foreground">Showing: <b className="text-foreground">{a.range.label}</b></span>}
-      </div>
+      </PageHeader>
 
       {!a ? (
-        <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">Couldn&apos;t load analytics.</CardContent></Card>
+        <Card className="gap-0 py-0">
+          <CardContent className="px-5 py-5">
+            <EmptyState
+              icon={<AlertTriangle />}
+              tone="warning"
+              title="We couldn't load the sales analytics"
+              description="The report service didn't return data for this period. Try a different date range, or refresh the page in a moment."
+            />
+          </CardContent>
+        </Card>
       ) : (
         <>
           {/* KPI row */}
@@ -127,37 +164,55 @@ export default async function SalesDashboardPage({
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <Card className="gap-0 py-0 lg:col-span-2">
               <CardContent className="space-y-4 px-5 py-5">
-                <h2 className="text-[13px] font-semibold tracking-[-0.01em] text-foreground">Employee performance</h2>
+                <div className="flex items-baseline justify-between gap-3">
+                  <h2 className={PANEL_TITLE}>Employee performance</h2>
+                  <span className={MICRO_LABEL}>Top 12</span>
+                </div>
                 <SalesEmployeeChart employees={a.employees} />
               </CardContent>
             </Card>
 
             <Card className="gap-0 py-0">
               <CardContent className="space-y-4 px-5 py-5">
-                <h2 className="text-[13px] font-semibold tracking-[-0.01em] text-foreground">Funnel</h2>
-                <div className="space-y-2">
-                  {a.funnel.map((row, i) => {
-                    const prev = i > 0 ? a.funnel[i - 1].count : 0;
-                    const conv = i > 0 && prev > 0 ? pct(row.count / prev) : null;
-                    return <FunnelBar key={row.key} label={row.label} count={row.count} max={funnelMax} conv={conv} />;
-                  })}
+                <div className="flex items-baseline justify-between gap-3">
+                  <h2 className={PANEL_TITLE}>Funnel</h2>
+                  <span className={MICRO_LABEL}>Step conv.</span>
                 </div>
-                <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-[12px] text-muted-foreground">
-                  {/* Both ratios are computed off Lead rows, not Contact rows. */}
-                  <span>Lead→Booking <b className="text-foreground">{pct(a.conversion.enquiryToBooking)}</b></span>
-                  <span>Win rate <b className="text-foreground">{pct(a.conversion.winRate)}</b></span>
-                  <span>Avg lead→booking <b className="text-foreground">{a.avgDaysEnquiryToBooking ?? "—"} days</b></span>
-                  <span>Avg upsell/booking <b className="text-foreground">{inr(a.avgUpsellPerBooking)}</b></span>
+                {a.funnel.length === 0 ? (
+                  <EmptyState
+                    className="px-0 py-10"
+                    icon={<PieChart />}
+                    title="No funnel activity yet"
+                    description="Once leads move through site visits and quotations, the stage-by-stage drop-off shows up here."
+                  />
+                ) : (
+                  <div className="space-y-2">
+                    {a.funnel.map((row, i) => {
+                      const prev = i > 0 ? a.funnel[i - 1].count : 0;
+                      const conv = i > 0 && prev > 0 ? pct(row.count / prev) : null;
+                      return <FunnelBar key={row.key} label={row.label} count={row.count} max={funnelMax} conv={conv} />;
+                    })}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3 border-t border-border/60 pt-4">
+                  {funnelStats.map((s) => (
+                    <div key={s.label} className="space-y-1">
+                      <div className={MICRO_LABEL}>{s.label}</div>
+                      <div className="numeric text-[15px] font-semibold text-foreground">{s.value}</div>
+                    </div>
+                  ))}
                 </div>
+
                 {/* Goal-gradient: small remaining distance to beat last month's booked revenue */}
                 {a.lastMonthRevenue != null && a.lastMonthRevenue > 0 && (
                   t!.revenueBooked < a.lastMonthRevenue ? (
-                    <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-[12px] font-medium tabular-nums text-amber-700 ring-1 ring-inset ring-amber-200 dark:bg-amber-400/10 dark:text-amber-400 dark:ring-amber-400/25">
-                      <TrendingUp className="size-3.5" />
+                    <div className="numeric inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-[12px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200 dark:bg-amber-400/10 dark:text-amber-400 dark:ring-amber-400/25">
+                      <TrendingUp className="size-3.5" aria-hidden />
                       {inr(a.lastMonthRevenue - t!.revenueBooked)} to beat last month
                     </div>
                   ) : (
-                    <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-[12px] font-medium tabular-nums text-emerald-700 ring-1 ring-inset ring-emerald-200 dark:bg-emerald-400/10 dark:text-emerald-400 dark:ring-emerald-400/25">
+                    <div className="numeric inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-[12px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200 dark:bg-emerald-400/10 dark:text-emerald-400 dark:ring-emerald-400/25">
                       🎉 Last month beaten by {inr(t!.revenueBooked - a.lastMonthRevenue)}
                     </div>
                   )
@@ -170,72 +225,83 @@ export default async function SalesDashboardPage({
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <Card className="gap-0 py-0 lg:col-span-2">
               <CardContent className="space-y-3 px-5 py-5">
-                <h2 className="text-[13px] font-semibold tracking-[-0.01em] text-foreground">By employee</h2>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-[12.5px]">
-                    <thead>
-                      <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted-foreground">
-                        <th className="py-2 pr-3 font-medium">Employee</th>
-                        <th className="px-2 py-2 text-right font-medium">Leads</th>
-                        <th className="px-2 py-2 text-right font-medium">Site visits</th>
-                        <th className="px-2 py-2 text-right font-medium">Quotes</th>
-                        <th className="px-2 py-2 text-right font-medium">Confirmed</th>
-                        <th className="px-2 py-2 text-right font-medium">Lost</th>
-                        <th className="px-2 py-2 text-right font-medium">Advance ₹</th>
-                        <th className="px-2 py-2 text-right font-medium">Upsell ₹</th>
-                        <th className="px-2 py-2 text-right font-medium">Revenue ₹</th>
-                        <th className="pl-2 py-2 text-right font-medium">Score</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {a.employees.length === 0 ? (
-                        <tr><td colSpan={10} className="py-6 text-center text-muted-foreground">No activity in this period.</td></tr>
-                      ) : (
-                        a.employees.map((e) => (
-                          <tr key={e.userId} className="border-b border-border/60 last:border-0">
-                            <td className="py-2 pr-3 font-medium text-foreground">{e.name}</td>
-                            <td className="px-2 py-2 text-right tabular-nums">{e.enquiriesTotal}</td>
-                            <td className="px-2 py-2 text-right tabular-nums">{e.siteVisits}</td>
-                            <td className="px-2 py-2 text-right tabular-nums">{e.quotationsSent}</td>
-                            <td className="px-2 py-2 text-right tabular-nums text-emerald-600 dark:text-emerald-400">{e.bookingsConfirmed}</td>
-                            <td className="px-2 py-2 text-right tabular-nums text-rose-600 dark:text-rose-400">{e.bookingsLost}</td>
-                            <td className="px-2 py-2 text-right tabular-nums">{inr(e.advanceCollected)}</td>
-                            <td className="px-2 py-2 text-right tabular-nums">{inr(e.upsellValue)}</td>
-                            <td className="px-2 py-2 text-right tabular-nums">{inr(e.revenue)}</td>
-                            <td className="pl-2 py-2 text-right font-semibold tabular-nums">{e.salesScore}</td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                <h2 className={PANEL_TITLE}>By employee</h2>
+                {a.employees.length === 0 ? (
+                  <EmptyState
+                    className="px-0 py-12"
+                    icon={<Users />}
+                    title="No employee activity in this period"
+                    description="Widen the date range or clear the employee filter to see how the team performed."
+                  />
+                ) : (
+                  <Table className="text-[12.5px]">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="px-3">Employee</TableHead>
+                        <TableHead className="px-3 text-right">Leads</TableHead>
+                        <TableHead className="px-3 text-right">Site visits</TableHead>
+                        <TableHead className="px-3 text-right">Quotes</TableHead>
+                        <TableHead className="px-3 text-right">Confirmed</TableHead>
+                        <TableHead className="px-3 text-right">Lost</TableHead>
+                        <TableHead className="px-3 text-right">Advance ₹</TableHead>
+                        <TableHead className="px-3 text-right">Upsell ₹</TableHead>
+                        <TableHead className="px-3 text-right">Revenue ₹</TableHead>
+                        <TableHead className="px-3 text-right">Score</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {a.employees.map((e) => (
+                        <TableRow key={e.userId} className="border-border/60">
+                          <TableCell className="px-3 py-2.5 font-medium text-foreground">{e.name}</TableCell>
+                          <TableCell className="numeric px-3 py-2.5 text-right">{e.enquiriesTotal}</TableCell>
+                          <TableCell className="numeric px-3 py-2.5 text-right">{e.siteVisits}</TableCell>
+                          <TableCell className="numeric px-3 py-2.5 text-right">{e.quotationsSent}</TableCell>
+                          <TableCell className="numeric px-3 py-2.5 text-right text-emerald-600 dark:text-emerald-400">{e.bookingsConfirmed}</TableCell>
+                          <TableCell className="numeric px-3 py-2.5 text-right text-rose-600 dark:text-rose-400">{e.bookingsLost}</TableCell>
+                          <TableCell className="numeric px-3 py-2.5 text-right">{inr(e.advanceCollected)}</TableCell>
+                          <TableCell className="numeric px-3 py-2.5 text-right">{inr(e.upsellValue)}</TableCell>
+                          <TableCell className="numeric px-3 py-2.5 text-right">{inr(e.revenue)}</TableCell>
+                          <TableCell className="numeric px-3 py-2.5 text-right font-semibold text-foreground">{e.salesScore}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
             </Card>
 
             {/* Leaderboard */}
             <Card className="gap-0 py-0">
               <CardContent className="space-y-3 px-5 py-5">
-                <h2 className="flex items-center gap-1.5 text-[13px] font-semibold tracking-[-0.01em] text-foreground">
-                  <Trophy className="size-4 text-amber-500" /> Leaderboard · Sales score
+                <h2 className={`flex items-center gap-1.5 ${PANEL_TITLE}`}>
+                  <Trophy className="size-4 text-amber-500" aria-hidden /> Leaderboard · Sales score
                 </h2>
                 {a.leaderboard.filter((l) => l.salesScore !== 0).length === 0 ? (
-                  <p className="text-[13px] text-muted-foreground">No points awarded yet in this period.</p>
+                  <EmptyState
+                    className="px-0 py-10"
+                    icon={<Trophy />}
+                    title="No points awarded yet"
+                    description="Sales scores appear here as the team logs site visits, quotations and confirmed bookings."
+                  />
                 ) : (
-                  <ol className="space-y-1.5">
+                  <ol className="space-y-1">
                     {a.leaderboard.slice(0, 10).map((l, i, arr) => {
                       // Goal-gradient: surface the small remaining gap to the row above.
                       const chaseGap = i > 0 ? arr[i - 1].salesScore - l.salesScore + 1 : null;
                       return (
-                        <li key={l.userId} className="rounded-md px-2 py-1.5 text-[13px] odd:bg-muted/30">
+                        <li
+                          key={l.userId}
+                          className={`rounded-xl px-2.5 py-2 text-[13px] transition-colors hover:bg-muted/50 ${i === 0 ? "bg-amber-500/8" : "odd:bg-muted/25"}`}
+                        >
                           <div className="flex items-center justify-between gap-3">
-                            <span className="flex items-center gap-2 truncate">
-                              <span className="w-6 text-center tabular-nums">{MEDAL[i] ?? i + 1}</span>
-                              <span className="truncate text-foreground">{l.name}</span>
+                            <span className="flex min-w-0 items-center gap-2">
+                              <span className="numeric w-6 shrink-0 text-center text-muted-foreground">{MEDAL[i] ?? i + 1}</span>
+                              <span className="truncate font-medium text-foreground">{l.name}</span>
                             </span>
-                            <span className="font-semibold tabular-nums text-foreground">{l.salesScore.toLocaleString("en-IN")}</span>
+                            <span className="numeric shrink-0 font-semibold text-foreground">{l.salesScore.toLocaleString("en-IN")}</span>
                           </div>
                           {chaseGap !== null && (
-                            <div className="pl-8 text-[11px] tabular-nums text-muted-foreground">▲ {chaseGap.toLocaleString("en-IN")} pts to #{i}</div>
+                            <div className="numeric pl-8 text-[11px] text-muted-foreground">▲ {chaseGap.toLocaleString("en-IN")} pts to #{i}</div>
                           )}
                         </li>
                       );
@@ -249,24 +315,35 @@ export default async function SalesDashboardPage({
           {/* Source split + loss reasons */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <Card className="gap-0 py-0">
-              <CardContent className="space-y-3 px-5 py-5">
-                <h2 className="text-[13px] font-semibold tracking-[-0.01em] text-foreground">Leads by source</h2>
-                <div className="flex gap-3">
-                  <div className="flex-1 rounded-lg border border-border bg-muted/20 p-3">
-                    <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground"><Flame className="size-3.5 text-orange-500" /> Cold</div>
-                    <div className="text-[20px] font-semibold tabular-nums text-foreground">{t!.enquiriesCold}</div>
+              <CardContent className="space-y-4 px-5 py-5">
+                <h2 className={PANEL_TITLE}>Leads by source</h2>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl border border-border/70 bg-muted/20 p-3.5 transition-shadow hover:shadow-card-hover">
+                    <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                      <Flame className="size-3.5 text-orange-500" aria-hidden /> Cold
+                    </div>
+                    <div className="numeric mt-1.5 text-[22px] font-semibold leading-none text-foreground">{t!.enquiriesCold}</div>
                   </div>
-                  <div className="flex-1 rounded-lg border border-border bg-muted/20 p-3">
-                    <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground"><Megaphone className="size-3.5 text-indigo-500" /> Campaign</div>
-                    <div className="text-[20px] font-semibold tabular-nums text-foreground">{t!.enquiriesCampaign}</div>
+                  <div className="rounded-xl border border-border/70 bg-muted/20 p-3.5 transition-shadow hover:shadow-card-hover">
+                    <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                      <Megaphone className="size-3.5 text-indigo-500" aria-hidden /> Campaign
+                    </div>
+                    <div className="numeric mt-1.5 text-[22px] font-semibold leading-none text-foreground">{t!.enquiriesCampaign}</div>
                   </div>
                 </div>
-                {a.leadSources.length > 0 && (
-                  <ul className="space-y-1.5 pt-1">
+                {a.leadSources.length === 0 ? (
+                  <EmptyState
+                    className="px-0 py-8"
+                    icon={<Inbox />}
+                    title="No source breakdown yet"
+                    description="Tag incoming leads with a source to see which channels actually fill the funnel."
+                  />
+                ) : (
+                  <ul className="divide-y divide-border/50">
                     {a.leadSources.map((s) => (
-                      <li key={s.source} className="flex items-center justify-between gap-3 text-[13px]">
+                      <li key={s.source} className="flex items-center justify-between gap-3 py-2 text-[13px]">
                         <span className="truncate text-muted-foreground">{s.label}</span>
-                        <span className="font-medium tabular-nums text-foreground">{s.count}</span>
+                        <span className="numeric font-medium text-foreground">{s.count.toLocaleString("en-IN")}</span>
                       </li>
                     ))}
                   </ul>
@@ -276,15 +353,21 @@ export default async function SalesDashboardPage({
 
             <Card className="gap-0 py-0">
               <CardContent className="space-y-3 px-5 py-5">
-                <h2 className="text-[13px] font-semibold tracking-[-0.01em] text-foreground">Loss reasons</h2>
+                <h2 className={PANEL_TITLE}>Loss reasons</h2>
                 {a.lossReasons.length === 0 ? (
-                  <p className="text-[13px] text-muted-foreground">No lost bookings in this period.</p>
+                  <EmptyState
+                    className="px-0 py-10"
+                    icon={<ThumbsUp />}
+                    tone="success"
+                    title="No bookings lost in this period"
+                    description="Nothing slipped away — when a booking is marked lost, the reason and its value land here."
+                  />
                 ) : (
-                  <ul className="space-y-1.5">
+                  <ul className="divide-y divide-border/50">
                     {a.lossReasons.map((r) => (
-                      <li key={r.reason} className="flex items-center justify-between gap-3 text-[13px]">
+                      <li key={r.reason} className="flex items-center justify-between gap-3 py-2 text-[13px]">
                         <span className="truncate text-muted-foreground">{r.label}</span>
-                        <span className="font-medium tabular-nums text-foreground">{r.count} · {inr(r.value)}</span>
+                        <span className="numeric font-medium text-foreground">{r.count} · {inr(r.value)}</span>
                       </li>
                     ))}
                   </ul>

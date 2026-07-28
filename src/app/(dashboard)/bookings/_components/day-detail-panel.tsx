@@ -122,9 +122,9 @@ export function DayDetailPanel({
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
         <SheetHeader className="pb-4">
-          <SheetTitle className="flex items-center gap-2">
-            <CalendarIcon className="size-5 text-indigo-600" />
-            {selectedDay ? format(selectedDay, "EEEE, MMMM d, yyyy") : ""}
+          <SheetTitle className="flex items-center gap-2 tracking-[-0.01em]">
+            <CalendarIcon className="size-5 shrink-0 text-indigo-600" />
+            {selectedDay ? format(selectedDay, "EEEE, d MMMM yyyy") : ""}
           </SheetTitle>
           <SheetDescription>
             {bookings.length} booking{bookings.length !== 1 ? "s" : ""}
@@ -153,7 +153,7 @@ export function DayDetailPanel({
           {fullDayBooking && (
             <div className="rounded-lg border p-3 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-zinc-500 uppercase">
+                <span className="text-xs font-medium text-muted-foreground uppercase">
                   Full Day Booking
                 </span>
                 <StatusBadge
@@ -163,17 +163,17 @@ export function DayDetailPanel({
               </div>
               <Link
                 href={`/bookings/${fullDayBooking.id}`}
-                className="block hover:bg-zinc-50 -mx-1 px-1 rounded"
+                className="block hover:bg-accent/40 -mx-1 px-1 rounded"
               >
                 <p className="font-medium text-sm">{fullDayBooking.eventName}</p>
-                <div className="flex items-center gap-3 mt-1 text-xs text-zinc-500">
+                <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <MapPinIcon className="size-3" />
                     {fullDayBooking.venue.name}
                   </span>
                   <span className="flex items-center gap-1">
                     <UsersIcon className="size-3" />
-                    {fullDayBooking.guestCount} guests
+                    <span className="numeric">{fullDayBooking.guestCount}</span> guests
                   </span>
                 </div>
               </Link>
@@ -184,9 +184,14 @@ export function DayDetailPanel({
           {!fullDayBooking && (
             <>
               <Separator />
-              <h3 className="text-sm font-semibold text-zinc-700">
-                Time Slots
-              </h3>
+              <div>
+                <h3 className="text-[13px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+                  Time slots
+                </h3>
+                <p className="mt-0.5 text-[13px] text-muted-foreground">
+                  What is booked, blocked and still sellable on this date.
+                </p>
+              </div>
               <div className="space-y-3">
                 {DISPLAY_SLOTS.map((slot) => {
                   const booking = getBookingForSlot(slot.key);
@@ -205,7 +210,7 @@ export function DayDetailPanel({
                       <div className="flex items-center justify-between mb-1">
                         <div>
                           <span className="text-sm font-medium">{slot.label}</span>
-                          <span className="text-xs text-zinc-400 ml-2">
+                          <span className="text-xs text-muted-foreground/70 ml-2">
                             {slot.time}
                           </span>
                         </div>
@@ -242,16 +247,16 @@ export function DayDetailPanel({
                               className="text-[10px]"
                             />
                           </div>
-                          <div className="flex items-center gap-3 mt-1 text-xs text-zinc-500">
+                          <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <MapPinIcon className="size-3" />
                               {booking.venue.name}
                             </span>
                             <span className="flex items-center gap-1">
                               <UsersIcon className="size-3" />
-                              {booking.guestCount}
+                              <span className="numeric">{booking.guestCount}</span>
                             </span>
-                            <span className="text-zinc-400">
+                            <span className="numeric text-muted-foreground/70">
                               {booking.bookingNumber}
                             </span>
                           </div>
@@ -287,19 +292,19 @@ export function DayDetailPanel({
           {bookings.length > 0 && !fullDayBooking && (
             <>
               <Separator />
-              <h3 className="text-sm font-semibold text-zinc-700">
-                All Bookings ({bookings.length})
+              <h3 className="text-[13px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+                All bookings (<span className="numeric">{bookings.length}</span>)
               </h3>
               <div className="space-y-2">
                 {bookings.map((booking) => (
                   <Link
                     key={booking.id}
                     href={`/bookings/${booking.id}`}
-                    className="flex items-center justify-between rounded-lg border p-3 hover:bg-zinc-50 transition-colors"
+                    className="flex items-center justify-between rounded-lg border p-3 hover:bg-accent/40 transition-colors"
                   >
                     <div>
                       <p className="text-sm font-medium">{booking.eventName}</p>
-                      <div className="flex items-center gap-2 mt-0.5 text-xs text-zinc-500">
+                      <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
                         <ClockIcon className="size-3" />
                         <span>
                           {TIME_SLOT_LABELS[booking.timeSlot]
@@ -324,11 +329,11 @@ export function DayDetailPanel({
           {leads.length > 0 && (
             <>
               <Separator />
-              <h3 className="flex items-center gap-1.5 text-sm font-semibold text-sky-700">
+              <h3 className="flex items-center gap-1.5 text-[13px] font-semibold uppercase tracking-[0.06em] text-sky-700">
                 <InboxIcon className="size-4" />
-                Enquiries / leads ({leads.length})
+                Enquiries / leads (<span className="numeric">{leads.length}</span>)
               </h3>
-              <p className="-mt-1 text-xs text-muted-foreground">
+              <p className="-mt-1 text-[13px] text-muted-foreground">
                 Not booked yet — these customers have asked about this date.
               </p>
               <div className="space-y-2">

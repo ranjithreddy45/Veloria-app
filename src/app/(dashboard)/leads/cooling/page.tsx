@@ -75,7 +75,9 @@ export default async function CoolingLeadsPage() {
     <div className="space-y-6">
       <PageHeader
         aura
-        eyebrow="LEADS · COOLING RE-WARM"
+        icon={SnowflakeIcon}
+        accent="cyan"
+        eyebrow="Leads · Cooling re-warm"
         title="Cooling Leads"
         description={
           stats
@@ -147,13 +149,13 @@ export default async function CoolingLeadsPage() {
                 {targets.map((t) => (
                   <TableRow key={t.id}>
                     <TableCell className="font-medium">{t.leadTitle ?? "—"}</TableCell>
-                    <TableCell className="text-right tabular-nums">{t.score ?? "—"}</TableCell>
+                    <TableCell className="text-right numeric">{t.score ?? "—"}</TableCell>
                     <TableCell className="text-muted-foreground">{t.assigneeName ?? "Unassigned"}</TableCell>
                     <TableCell>
                       <Badge variant={STATUS_VARIANT[t.status]}>{t.status}</Badge>
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">{t.attempts}</TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="text-right numeric">{t.attempts}</TableCell>
+                    <TableCell className="numeric text-muted-foreground">
                       {new Date(t.createdAt).toLocaleDateString("en-IN", {
                         day: "numeric",
                         month: "short",

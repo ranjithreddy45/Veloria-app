@@ -21,7 +21,7 @@ export default async function AbsentPage() {
   const initial = await getAbsentReport({ from, to });
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         icon={UserX}
         accent="amber"

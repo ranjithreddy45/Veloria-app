@@ -24,11 +24,11 @@ export function StatutoryPanel({ employeeId, masked }: { employeeId: string; mas
   }
 
   return (
-    <div className="rounded-xl border bg-card p-5">
-      <div className="mb-4 flex items-center justify-between">
+    <div className="rounded-2xl border bg-card p-5 shadow-card">
+      <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <ShieldCheck className="size-4 text-emerald-600" />
-          <h3 className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">Statutory &amp; bank</h3>
+          <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Statutory &amp; bank</h3>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" className="gap-1.5" onClick={toggleReveal} disabled={revealing}>
@@ -39,7 +39,7 @@ export function StatutoryPanel({ employeeId, masked }: { employeeId: string; mas
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <dl className="grid gap-3 sm:grid-cols-2">
         <SField label="PAN" value={revealed ? revealed.pan : masked.panMasked} mono />
         <SField label="Aadhaar" value={revealed ? revealed.aadhaar : masked.aadhaarMasked} mono />
         <SField label="Bank account" value={revealed ? revealed.bankAccount : masked.bankAccountMasked} mono />
@@ -48,9 +48,9 @@ export function StatutoryPanel({ employeeId, masked }: { employeeId: string; mas
         <SField label="ESI" value={masked.esi} />
         <SField label="PF number" value={masked.pf} />
         <SField label="PT" value={masked.pt} />
-      </div>
+      </dl>
 
-      <p className="mt-4 text-[12px] text-muted-foreground">
+      <p className="mt-4 text-[13px] leading-relaxed text-muted-foreground">
         PAN, Aadhaar and bank account are encrypted at rest. Reveal and edit actions are recorded in the audit log.
       </p>
     </div>
@@ -59,11 +59,11 @@ export function StatutoryPanel({ employeeId, masked }: { employeeId: string; mas
 
 function SField({ label, value, mono }: { label: string; value: string | null; mono?: boolean }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg bg-muted/30 px-3 py-2">
-      <span className="text-[12.5px] text-muted-foreground">{label}</span>
-      <span className={`text-[13px] font-medium ${mono ? "font-mono tabular-nums" : ""}`}>
-        {value || <span className="text-muted-foreground/50">—</span>}
-      </span>
+    <div className="min-w-0 rounded-xl border border-border/60 bg-muted/30 px-3.5 py-2.5">
+      <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</dt>
+      <dd className={`mt-1 text-sm font-medium ${mono ? "numeric" : ""}`}>
+        {value || <span className="font-sans text-muted-foreground/50">—</span>}
+      </dd>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { Cell, Label, Pie, PieChart, Tooltip } from "recharts";
+import { PieChart as PieChartIcon } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -12,6 +13,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { BookingsByType } from "@/actions/dashboard.actions";
 
 // ============================================================
@@ -42,22 +44,26 @@ export function BookingsChart({ data }: BookingsChartProps) {
   );
 
   return (
-    <Card className="card-hover-tint border border-border bg-card shadow-none">
+    <Card className="card-hover-tint rounded-2xl border bg-card shadow-card transition-shadow hover:shadow-card-hover">
       <CardHeader className="pb-2">
-        <CardTitle className="text-[13px] font-medium uppercase tracking-[0.05em] text-muted-foreground">
+        <CardTitle className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
           Bookings by type
         </CardTitle>
-        <p className="mt-1 text-[12px] text-muted-foreground/80">
-          <span className="font-semibold text-foreground tabular-nums">{totalBookings}</span> total · distribution
+        <p className="mt-1 text-[13px] text-muted-foreground">
+          <span className="numeric font-semibold text-foreground">
+            {totalBookings}
+          </span>{" "}
+          total · distribution
         </p>
       </CardHeader>
       <CardContent className="pb-4">
         {totalBookings === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground/60">
-            <svg className="mb-2 size-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
-            <p className="text-sm font-medium">No bookings yet</p>
-            <p className="text-xs">Booking data will appear here</p>
-          </div>
+          <EmptyState
+            icon={<PieChartIcon />}
+            title="No bookings yet"
+            description="Once events are booked, the split by event type shows here."
+            className="py-14"
+          />
         ) : (
           <>
             <ChartContainer config={chartConfig} className="mx-auto h-[260px] w-full">
@@ -91,14 +97,14 @@ export function BookingsChart({ data }: BookingsChartProps) {
                             <tspan
                               x={viewBox.cx}
                               y={viewBox.cy}
-                              className="fill-foreground text-2xl font-bold"
+                              className="numeric fill-foreground text-2xl font-semibold"
                             >
                               {totalBookings}
                             </tspan>
                             <tspan
                               x={viewBox.cx}
                               y={(viewBox.cy || 0) + 20}
-                              className="fill-muted-foreground text-xs"
+                              className="fill-muted-foreground text-[11px] uppercase tracking-wide"
                             >
                               Total
                             </tspan>
@@ -119,10 +125,10 @@ export function BookingsChart({ data }: BookingsChartProps) {
                     className="size-2.5 shrink-0 rounded-full"
                     style={{ backgroundColor: item.fill }}
                   />
-                  <span className="truncate text-xs text-muted-foreground">
+                  <span className="truncate text-[12px] text-muted-foreground">
                     {item.type}
                   </span>
-                  <span className="ml-auto text-xs font-medium text-foreground">
+                  <span className="numeric ml-auto text-[12px] font-medium text-foreground">
                     {item.count}
                   </span>
                 </div>

@@ -224,7 +224,7 @@ export function QuoteRadarPanel({ quotationId, initial, canShare }: Props) {
           <>
             {/* Public link + share actions */}
             <div className="space-y-2">
-              <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2">
+              <div className="flex items-center gap-2 rounded-xl border bg-muted/40 px-3 py-2">
                 <Link2 className="size-4 shrink-0 text-violet-600" />
                 <span className="flex-1 truncate font-mono text-xs text-muted-foreground">{link.url}</span>
                 <Button size="sm" variant="ghost" className="h-7 gap-1.5 px-2" onClick={copyLink}>
@@ -248,7 +248,7 @@ export function QuoteRadarPanel({ quotationId, initial, canShare }: Props) {
 
             {/* AI WhatsApp caption — generate, edit, send the quote in one tap. */}
             {canShare && (
-              <div className="space-y-2 rounded-lg border bg-muted/20 p-2.5">
+              <div className="space-y-2 rounded-xl border bg-muted/20 p-3">
                 <div className="flex items-center justify-between">
                   <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                     <Sparkles className="size-3.5 text-violet-600" /> WhatsApp message
@@ -311,7 +311,7 @@ export function QuoteRadarPanel({ quotationId, initial, canShare }: Props) {
             )}
 
             {link.recentViews.length > 0 && (
-              <div className="rounded-lg border bg-muted/30 p-2.5">
+              <div className="rounded-xl border bg-muted/30 p-3">
                 <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Recent opens</p>
                 <ul className="space-y-1">
                   {link.recentViews.slice(0, 5).map((v, i) => (
@@ -334,10 +334,10 @@ export function QuoteRadarPanel({ quotationId, initial, canShare }: Props) {
 
 function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="rounded-lg border bg-card px-2.5 py-2 text-center">
+    <div className="rounded-xl border bg-card px-2.5 py-3 text-center shadow-card">
       <div className="flex justify-center">{icon}</div>
-      <p className="mt-1 truncate text-sm font-semibold">{value}</p>
-      <p className="truncate text-[11px] text-muted-foreground">{label}</p>
+      <p className="numeric mt-1.5 truncate text-sm font-semibold">{value}</p>
+      <p className="mt-0.5 truncate text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
     </div>
   );
 }

@@ -29,7 +29,7 @@ export default async function AddGratuityPage() {
   ]);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         eyebrow="Payroll"
         icon={PlusCircle}

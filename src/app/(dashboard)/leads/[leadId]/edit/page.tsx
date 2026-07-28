@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getLead } from "@/actions/lead.actions";
+import { PencilIcon } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { LeadForm } from "../../_components/lead-form";
 
@@ -55,6 +56,9 @@ export default async function EditLeadPage({ params }: EditLeadPageProps) {
   return (
     <div className="space-y-6">
       <PageHeader
+        icon={PencilIcon}
+        accent="blue"
+        eyebrow="CRM · Lead"
         title="Edit Lead"
         description={`Editing "${lead.title}"`}
       />

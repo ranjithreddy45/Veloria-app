@@ -65,12 +65,13 @@ export default async function GuestConfirmPage({
 
   if (!data) {
     return (
-      <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center dark:border-zinc-800 dark:bg-zinc-900">
-        <p className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-          This link is invalid or has expired
-        </p>
-        <p className="mt-1 text-sm text-zinc-500">
-          Please contact your event manager for a fresh confirmation link.
+      <div className="bg-card shadow-card rounded-2xl border p-10 text-center">
+        <h1 className="text-foreground text-[24px]">
+          This link is no longer active
+        </h1>
+        <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm leading-relaxed">
+          Your event manager can send you a fresh confirmation link in a moment
+          — just reach out.
         </p>
       </div>
     );
@@ -84,13 +85,13 @@ export default async function GuestConfirmPage({
     const push = (icon: React.ReactNode, label: string, value?: string | null) => {
       if (value && value.trim()) noteRows.push({ icon, label, value: value.trim() });
     };
-    push(<UtensilsCrossed className="size-4 text-violet-600" />, "Menu", services.menuNotes);
-    push(<Palette className="size-4 text-violet-600" />, "Décor", services.decorNotes);
-    push(<Music4 className="size-4 text-violet-600" />, "Audio / Visual", services.avNotes);
-    push(<LayoutGrid className="size-4 text-violet-600" />, "Floor plan", services.floorPlanNotes);
-    push(<UserCog className="size-4 text-violet-600" />, "Staffing", services.staffingNotes);
+    push(<UtensilsCrossed className="text-muted-foreground/60 size-4" />, "Menu", services.menuNotes);
+    push(<Palette className="text-muted-foreground/60 size-4" />, "Décor", services.decorNotes);
+    push(<Music4 className="text-muted-foreground/60 size-4" />, "Audio / Visual", services.avNotes);
+    push(<LayoutGrid className="text-muted-foreground/60 size-4" />, "Floor plan", services.floorPlanNotes);
+    push(<UserCog className="text-muted-foreground/60 size-4" />, "Staffing", services.staffingNotes);
     push(
-      <StickyNote className="size-4 text-violet-600" />,
+      <StickyNote className="text-muted-foreground/60 size-4" />,
       "Special instructions",
       services.specialInstructions,
     );
@@ -108,49 +109,54 @@ export default async function GuestConfirmPage({
     .trim();
 
   return (
-    <div className="space-y-5">
-      <header className="text-center">
-        <h1 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+    <div className="space-y-6">
+      <header className="pb-2 text-center">
+        <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.18em]">
+          {contactName ? `For ${contactName}` : "Your celebration"}
+        </p>
+        <h1 className="text-foreground mt-3 text-[30px] sm:text-[36px]">
           {alreadyConfirmed ? "Your event is confirmed" : "Confirm your event"}
         </h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          {contactName ? `Hi ${contactName} 👋` : "Welcome 👋"}
+        <p className="text-muted-foreground mx-auto mt-3 max-w-md text-[15px] leading-relaxed">
+          {alreadyConfirmed
+            ? "Everything below is locked in. We can't wait to host you."
+            : "Please take a moment to review the details below, then confirm — so we can begin preparing your day."}
         </p>
       </header>
 
       {/* Event summary */}
-      <div className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="bg-card shadow-card space-y-4 rounded-2xl border p-6">
         <div className="flex items-baseline justify-between gap-3">
-          <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+          <h2 className="font-editorial text-foreground text-[20px] font-semibold">
             {data.eventName || data.eventType || "Your event"}
           </h2>
-          <span className="shrink-0 rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+          <span className="bg-muted text-muted-foreground numeric shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium">
             {data.bookingNumber}
           </span>
         </div>
-        <div className="space-y-3 border-t border-zinc-100 pt-3 dark:border-zinc-800">
+        <div className="space-y-3 border-t pt-4">
           <Row
-            icon={<CalendarDays className="size-4 text-violet-600" />}
+            icon={<CalendarDays className="text-muted-foreground/60 size-4" />}
             label="Date"
             value={fmtDate(data.date)}
           />
           {data.timeSlot && (
             <Row
-              icon={<Clock className="size-4 text-violet-600" />}
+              icon={<Clock className="text-muted-foreground/60 size-4" />}
               label="Time slot"
               value={data.timeSlot}
             />
           )}
           {data.venue?.name && (
             <Row
-              icon={<MapPin className="size-4 text-violet-600" />}
+              icon={<MapPin className="text-muted-foreground/60 size-4" />}
               label="Venue"
               value={data.venue.name}
             />
           )}
           {typeof data.guestCount === "number" && data.guestCount > 0 && (
             <Row
-              icon={<Users className="size-4 text-violet-600" />}
+              icon={<Users className="text-muted-foreground/60 size-4" />}
               label="Guest count"
               value={String(data.guestCount)}
             />
@@ -160,23 +166,23 @@ export default async function GuestConfirmPage({
 
       {/* Your services */}
       {(noteRows.length > 0 || packages.length > 0) && (
-        <div className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="bg-card shadow-card space-y-5 rounded-2xl border p-6">
           <div className="flex items-center gap-2">
-            <Sparkles className="size-4 text-violet-600" />
-            <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+            <Sparkles className="text-muted-foreground/60 size-4" />
+            <h2 className="font-editorial text-foreground text-[20px] font-semibold">
               Your services
             </h2>
           </div>
 
           {noteRows.length > 0 && (
-            <div className="space-y-3 border-t border-zinc-100 pt-3 dark:border-zinc-800">
+            <div className="space-y-4 border-t pt-4">
               {noteRows.map((r) => (
-                <div key={r.label} className="flex flex-col gap-1">
-                  <span className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-zinc-500">
+                <div key={r.label} className="flex flex-col gap-1.5">
+                  <span className="text-muted-foreground flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em]">
                     {r.icon}
                     {r.label}
                   </span>
-                  <p className="whitespace-pre-wrap text-sm text-zinc-800 dark:text-zinc-200">
+                  <p className="text-foreground/90 whitespace-pre-wrap text-sm leading-relaxed">
                     {r.value}
                   </p>
                 </div>
@@ -185,42 +191,46 @@ export default async function GuestConfirmPage({
           )}
 
           {packages.length > 0 && (
-            <div className="space-y-3 border-t border-zinc-100 pt-3 dark:border-zinc-800">
+            <div className="space-y-3 border-t pt-4">
               {packages.map((pkg, i) => (
-                <div
-                  key={i}
-                  className="rounded-xl border border-zinc-100 bg-zinc-50/60 p-4 dark:border-zinc-800 dark:bg-zinc-950/40"
-                >
+                <div key={i} className="bg-muted/40 rounded-xl border p-4">
                   <div className="flex items-center gap-2">
-                    <Package className="size-4 text-violet-600" />
-                    <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                    <Package className="text-muted-foreground/60 size-4" />
+                    <p className="text-foreground text-sm font-semibold">
                       {[pkg.vendorName, pkg.name].filter(Boolean).join(" — ") ||
                         "Package"}
                     </p>
                   </div>
                   {Array.isArray(pkg.sections) && pkg.sections.length > 0 && (
-                    <div className="mt-3 space-y-2">
+                    <div className="mt-3 space-y-3">
                       {pkg.sections.map((s, si) => (
                         <div key={si}>
                           {s.title && (
-                            <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                            <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.12em]">
                               {s.title}
                             </p>
                           )}
                           {Array.isArray(s.items) && s.items.length > 0 && (
-                            <ul className="mt-1 space-y-0.5">
+                            <ul className="mt-1.5 space-y-1">
                               {s.items.map((it, ii) => (
                                 <li
                                   key={ii}
-                                  className="text-sm text-zinc-700 dark:text-zinc-300"
+                                  className="text-foreground/85 flex gap-2 text-sm leading-relaxed"
                                 >
-                                  {it.name}
-                                  {Array.isArray(it.chosen) && it.chosen.length > 0 && (
-                                    <span className="text-zinc-500">
-                                      {" "}
-                                      — {it.chosen.join(", ")}
-                                    </span>
-                                  )}
+                                  <span
+                                    aria-hidden
+                                    className="bg-muted-foreground/40 mt-[9px] size-1 shrink-0 rounded-full"
+                                  />
+                                  <span>
+                                    {it.name}
+                                    {Array.isArray(it.chosen) &&
+                                      it.chosen.length > 0 && (
+                                        <span className="text-muted-foreground">
+                                          {" "}
+                                          — {it.chosen.join(", ")}
+                                        </span>
+                                      )}
+                                  </span>
                                 </li>
                               ))}
                             </ul>
@@ -238,14 +248,14 @@ export default async function GuestConfirmPage({
 
       {/* Terms & Conditions */}
       {terms.length > 0 && (
-        <div className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="bg-card shadow-card space-y-5 rounded-2xl border p-6">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="size-4 text-violet-600" />
-            <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+            <ShieldCheck className="text-muted-foreground/60 size-4" />
+            <h2 className="font-editorial text-foreground text-[20px] font-semibold">
               Terms &amp; Conditions
             </h2>
           </div>
-          <div className="space-y-4 border-t border-zinc-100 pt-3 dark:border-zinc-800">
+          <div className="space-y-5 border-t pt-4">
             {terms.map((section, i) => {
               const heading =
                 (section as { title?: string; heading?: string }).title ??
@@ -259,17 +269,17 @@ export default async function GuestConfirmPage({
               return (
                 <div key={i}>
                   {heading && (
-                    <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                    <p className="text-foreground text-sm font-semibold">
                       {icon ? `${icon} ` : ""}
                       {heading}
                     </p>
                   )}
                   {points.length > 0 && (
-                    <ul className="mt-1.5 list-disc space-y-1 pl-5">
+                    <ul className="mt-2 list-disc space-y-1.5 pl-5">
                       {points.map((p, pi) => (
                         <li
                           key={pi}
-                          className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400"
+                          className="text-muted-foreground text-sm leading-relaxed"
                         >
                           {p}
                         </li>
@@ -281,7 +291,7 @@ export default async function GuestConfirmPage({
             })}
           </div>
           {data.termsVersion && (
-            <p className="text-right text-xs text-zinc-400">
+            <p className="text-muted-foreground/60 numeric text-right text-[11px]">
               Terms version {data.termsVersion}
             </p>
           )}
@@ -289,14 +299,18 @@ export default async function GuestConfirmPage({
       )}
 
       {alreadyConfirmed ? (
-        <div className="flex flex-col items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center dark:border-emerald-900 dark:bg-emerald-950/30">
-          <CheckCircle2 className="size-7 text-emerald-600" />
-          <p className="text-sm font-medium text-emerald-800 dark:text-emerald-300">
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.07] p-8 text-center">
+          <CheckCircle2 className="size-8 text-emerald-600 dark:text-emerald-400" />
+          <p className="font-editorial mt-1 text-[19px] font-semibold text-emerald-900 dark:text-emerald-200">
+            Thank you — everything is set
+          </p>
+          <p className="text-sm text-emerald-800/85 dark:text-emerald-300/85">
             Confirmed on {fmtDate(data.guestConfirmedAt)}
             {data.guestConfirmedName ? ` by ${data.guestConfirmedName}` : ""}.
           </p>
-          <p className="text-xs text-emerald-700/80 dark:text-emerald-400/80">
-            Thank you — your event services and terms are locked in. See you soon!
+          <p className="text-xs text-emerald-700/75 dark:text-emerald-400/70">
+            Your services and terms are locked in. We look forward to hosting
+            you.
           </p>
         </div>
       ) : (
@@ -317,11 +331,11 @@ function Row({
 }) {
   return (
     <div className="flex items-start justify-between gap-3">
-      <span className="flex items-center gap-2 text-sm text-zinc-500">
+      <span className="text-muted-foreground flex items-center gap-2 text-sm">
         {icon}
         {label}
       </span>
-      <span className="text-right text-sm font-medium text-zinc-900 dark:text-zinc-100">
+      <span className="text-foreground text-right text-sm font-medium">
         {value}
       </span>
     </div>

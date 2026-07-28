@@ -29,7 +29,7 @@ export default async function PayrollPage() {
   const draftCount = runs.filter((r) => r.status === "DRAFT").length;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title="Payroll"
         description="Run monthly payroll for the current-structure workforce, review the payslip register, then lock and mark paid."

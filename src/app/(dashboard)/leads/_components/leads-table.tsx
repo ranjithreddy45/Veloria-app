@@ -343,7 +343,7 @@ function StatusTabs({
 
   return (
     <div
-      className="flex flex-wrap items-center gap-0.5 rounded-md border border-border bg-card p-0.5"
+      className="flex flex-wrap items-center gap-0.5 rounded-xl border border-border bg-card p-1 shadow-card"
       role="tablist"
       aria-label="Lead status filter"
     >
@@ -357,7 +357,7 @@ function StatusTabs({
             aria-selected={isActive}
             onClick={() => onChange(tab.id)}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-[5px] px-2.5 py-1 text-[12.5px] font-medium transition-colors",
+              "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12.5px] font-medium transition-colors",
               isActive
                 ? "bg-muted text-foreground"
                 : "text-muted-foreground hover:bg-muted/60 hover:text-foreground/90"
@@ -366,7 +366,7 @@ function StatusTabs({
             {tab.label}
             <span
               className={cn(
-                "rounded px-1 text-[10.5px] font-medium tabular-nums",
+                "numeric rounded px-1 text-[10.5px] font-medium",
                 isActive
                   ? "bg-background text-foreground/70 ring-1 ring-border"
                   : "text-muted-foreground/70"
@@ -470,7 +470,7 @@ const columns: ColumnDef<LeadWithContact>[] = [
     cell: ({ row }) => {
       const date = row.getValue("eventDate");
       return (
-        <span className="text-[12px] text-foreground/85 tabular-nums">
+        <span className="numeric text-[12px] text-foreground/85">
           {date ? format(new Date(date as string), "MMM d, yyyy") : "—"}
         </span>
       );
@@ -484,7 +484,7 @@ const columns: ColumnDef<LeadWithContact>[] = [
     cell: ({ row }) => {
       const v = row.original.estimatedValue;
       return (
-        <span className="text-[12.5px] font-medium tabular-nums text-foreground/90">
+        <span className="numeric text-[12.5px] font-semibold text-foreground/90">
           {formatCurrency(v ? Number(v) : null)}
         </span>
       );

@@ -60,7 +60,7 @@ export default async function ClassificationReport({ searchParams }: PageProps) 
   );
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         icon={PieChart}
         accent="amber"

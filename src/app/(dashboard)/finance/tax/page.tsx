@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
+import { PercentIcon } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { getTaxSummary, getTaxFiscalYears } from "@/actions/finance-tax.actions";
 import { TaxWorkspace } from "../_components/tax-workspace";
@@ -21,6 +22,8 @@ export default async function FinanceTaxPage({ searchParams }: { searchParams: P
   return (
     <div className="space-y-6">
       <PageHeader
+        icon={PercentIcon}
+        accent="amber"
         aura
         eyebrow="Finance · Tax & Compliance"
         title="GST & TDS"

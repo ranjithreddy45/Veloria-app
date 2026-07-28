@@ -286,7 +286,7 @@ export function PaymentLinkDialog({
               <Input
                 value={linkData.shortUrl}
                 readOnly
-                className="text-xs font-mono"
+                className="text-xs numeric"
               />
               <Button
                 variant="outline"

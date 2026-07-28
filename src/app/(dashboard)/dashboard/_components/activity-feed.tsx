@@ -51,9 +51,9 @@ export function ActivityFeed() {
     data && data.success ? (data.data.logs as unknown as Log[]) : [];
 
   return (
-    <Card>
+    <Card className="rounded-2xl border bg-card shadow-card">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
+        <CardTitle className="flex items-center gap-2 text-[15px]">
           <span className="relative inline-flex size-1.5">
             <span className="absolute inset-0 animate-ping rounded-full bg-success/60 opacity-75" />
             <span className="relative size-1.5 rounded-full bg-success" />
@@ -104,7 +104,7 @@ export function ActivityFeed() {
                     </span>
                   </p>
                 </div>
-                <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                <span className="numeric shrink-0 text-[11px] text-muted-foreground">
                   {formatDistanceToNow(new Date(l.createdAt), { addSuffix: true })}
                 </span>
               </li>

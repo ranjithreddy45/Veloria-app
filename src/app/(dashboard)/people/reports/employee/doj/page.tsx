@@ -36,7 +36,7 @@ export default async function DojReport({ searchParams }: PageProps) {
   ]);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         icon={CalendarPlus}
         accent="emerald"

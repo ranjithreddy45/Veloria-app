@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/card";
 import { auth } from "@/../auth";
 import { getVendorDashboard } from "@/actions/vendor-portal.actions";
+import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/shared/status-badge";
 import {
   BOOKING_STATUS_COLORS,
@@ -41,11 +42,11 @@ export default async function VendorPortalPage() {
   if (!result.success) {
     return (
       <div className="space-y-4">
-        <div className="rounded-lg border border-red-200 bg-red-50 p-6 dark:border-red-900 dark:bg-red-950">
-          <h2 className="text-lg font-semibold text-red-800 dark:text-red-200">
-            Unable to load dashboard
+        <div className="rounded-2xl border border-red-500/25 bg-red-500/10 p-6">
+          <h2 className="text-lg font-semibold text-red-700 dark:text-red-300">
+            We couldn&apos;t load your dashboard
           </h2>
-          <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+          <p className="mt-1 text-sm text-red-600/90 dark:text-red-400">
             {result.error}
           </p>
         </div>
@@ -57,89 +58,86 @@ export default async function VendorPortalPage() {
 
   const summaryCards = [
     {
-      title: "Upcoming Events",
+      title: "Upcoming events",
       value: String(data.upcomingEvents),
-      description: data.upcomingEvents > 0 ? "Assigned to you" : "No upcoming events",
+      description:
+        data.upcomingEvents > 0 ? "On your calendar" : "Nothing on the calendar yet",
       icon: CalendarCheck,
-      color: "text-violet-600",
-      bgColor: "bg-violet-50",
+      chip: "bg-teal-500/12 text-teal-700 dark:text-teal-300",
       href: "/vendor-portal/events",
     },
     {
-      title: "Pending Bids",
+      title: "Pending bids",
       value: String(data.pendingBids),
-      description: data.pendingBids > 0 ? "Awaiting response" : "All bids responded",
+      description:
+        data.pendingBids > 0 ? "Awaiting our response" : "Everything has been answered",
       icon: Gavel,
-      color: "text-amber-600",
-      bgColor: "bg-amber-50",
+      chip: "bg-amber-500/14 text-amber-700 dark:text-amber-300",
       href: "/vendor-portal/bids",
     },
     {
-      title: "Total Payouts",
+      title: "Total payouts",
       value: formatINR(data.totalPayouts),
-      description: "Total paid to date",
+      description: "Paid to you to date",
       icon: Wallet,
-      color: "text-emerald-600",
-      bgColor: "bg-emerald-50",
+      chip: "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300",
       href: "/vendor-portal/payouts",
     },
     {
-      title: "Rating",
-      value: data.vendorRating > 0 ? `${data.vendorRating}/5` : "N/A",
-      description: data.vendorRating > 0 ? "Your current rating" : "Not yet rated",
+      title: "Your rating",
+      value: data.vendorRating > 0 ? `${data.vendorRating}/5` : "—",
+      description:
+        data.vendorRating > 0 ? "From the events team" : "Rated after your first event",
       icon: Star,
-      color: "text-yellow-600",
-      bgColor: "bg-yellow-50",
+      chip: "bg-violet-500/12 text-violet-700 dark:text-violet-300",
       href: "/vendor-portal",
     },
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       {/* Welcome Section */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-600 via-violet-700 to-purple-700 px-6 py-8 text-white shadow-lg sm:px-8 sm:py-10">
-        <div className="absolute -right-10 -top-10 size-40 rounded-full bg-white/10 blur-2xl" />
-        <div className="absolute -bottom-8 -left-8 size-32 rounded-full bg-white/5 blur-xl" />
-        <div className="relative">
-          <div className="flex items-center gap-2 text-violet-200">
-            <Sparkles className="size-4" />
-            <span className="text-sm font-medium">Vendor Dashboard</span>
-          </div>
-          <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
-            {data.vendorName}
-          </h1>
-          <p className="mt-1 text-sm text-violet-200">
+      <section className="space-y-3">
+        <div className="flex items-center gap-2 text-teal-700 dark:text-teal-300">
+          <Sparkles className="size-3.5" />
+          <span className="text-[11px] font-semibold uppercase tracking-[0.16em]">
             {VENDOR_CATEGORY_LABELS[data.vendorCategory] || data.vendorCategory}
-            {" "}&middot;{" "}
-            Welcome back, {session.user.name || "Vendor"}
-          </p>
+            {" "}Partner
+          </span>
         </div>
-      </div>
+        <h1 className="text-[30px] leading-tight tracking-[-0.01em] text-foreground sm:text-[38px]">
+          {data.vendorName}
+        </h1>
+        <p className="max-w-xl text-[15px] leading-relaxed text-muted-foreground">
+          Welcome back, {session.user.name || "partner"}. Here is where your
+          events, bids, and payments with Veloria Grand stand today.
+        </p>
+      </section>
 
       {/* Summary Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {summaryCards.map((card) => {
           const Icon = card.icon;
           return (
-            <Link key={card.title} href={card.href}>
-              <Card className="group border-zinc-200/80 shadow-sm transition-all duration-200 hover:shadow-md hover:border-violet-200 dark:border-zinc-800 dark:hover:border-violet-800">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+            <Link key={card.title} href={card.href} className="group block">
+              <Card className="h-full rounded-2xl border bg-card py-0 shadow-card transition-shadow duration-200 hover:shadow-card-hover">
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1.5">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
                         {card.title}
                       </p>
-                      <p className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+                      <p className="numeric text-[26px] font-semibold leading-none tracking-[-0.02em] text-foreground">
                         {card.value}
                       </p>
-                      <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                      <p className="text-[12px] leading-relaxed text-muted-foreground">
                         {card.description}
                       </p>
                     </div>
                     <div
-                      className={`flex size-10 items-center justify-center rounded-lg ${card.bgColor} transition-transform duration-200 group-hover:scale-110 dark:opacity-90`}
+                      className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${card.chip}`}
                     >
-                      <Icon className={`size-5 ${card.color}`} />
+                      <Icon className="size-[18px]" />
                     </div>
                   </div>
                 </CardContent>
@@ -150,14 +148,14 @@ export default async function VendorPortalPage() {
       </div>
 
       {/* Recent Assignments */}
-      <Card className="border-zinc-200/80 shadow-sm dark:border-zinc-800">
+      <Card className="rounded-2xl border bg-card shadow-card">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-            Recent Assignments
+          <CardTitle className="text-[15px] font-semibold">
+            Recent assignments
           </CardTitle>
           <Link
             href="/vendor-portal/events"
-            className="flex items-center gap-1 text-xs font-medium text-violet-600 transition-colors hover:text-violet-700 dark:text-violet-400"
+            className="flex items-center gap-1 text-xs font-medium text-teal-700 transition-colors hover:text-teal-600 dark:text-teal-300"
           >
             View all
             <ArrowUpRight className="size-3" />
@@ -165,15 +163,11 @@ export default async function VendorPortalPage() {
         </CardHeader>
         <CardContent>
           {data.recentAssignments.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <CalendarCheck className="size-10 text-zinc-300 dark:text-zinc-600" />
-              <p className="mt-3 text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                No assignments yet
-              </p>
-              <p className="text-xs text-zinc-400 dark:text-zinc-500">
-                You will see your assigned bookings here.
-              </p>
-            </div>
+            <EmptyState
+              icon={<CalendarCheck />}
+              title="Nothing booked with you just yet"
+              description="When our events team assigns you to a wedding or function, it lands here first."
+            />
           ) : (
             <div className="space-y-3">
               {data.recentAssignments.map((assignment: {
@@ -192,23 +186,23 @@ export default async function VendorPortalPage() {
               }) => (
                 <div
                   key={assignment.id}
-                  className="flex items-center gap-4 rounded-lg border border-zinc-100 bg-zinc-50/50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50"
+                  className="flex items-center gap-4 rounded-xl border bg-muted/30 p-4"
                 >
-                  <div className="flex size-10 items-center justify-center rounded-lg bg-violet-50 dark:bg-violet-950">
-                    <CalendarCheck className="size-5 text-violet-600 dark:text-violet-400" />
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-teal-500/12 text-teal-700 dark:text-teal-300">
+                    <CalendarCheck className="size-[18px]" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-zinc-900 truncate dark:text-zinc-100">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[14px] font-medium text-foreground">
                       {assignment.booking.eventName}
                     </p>
-                    <div className="mt-0.5 flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                    <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                       <Clock className="size-3 flex-shrink-0" />
-                      <span>{formatDate(assignment.booking.date)}</span>
-                      <span className="text-zinc-300 dark:text-zinc-600">|</span>
+                      <span className="numeric">{formatDate(assignment.booking.date)}</span>
+                      <span className="opacity-40">·</span>
                       <span className="truncate">{assignment.booking.venue.name}</span>
                       {assignment.role && (
                         <>
-                          <span className="text-zinc-300 dark:text-zinc-600">|</span>
+                          <span className="opacity-40">·</span>
                           <span className="truncate">{assignment.role}</span>
                         </>
                       )}
@@ -226,14 +220,12 @@ export default async function VendorPortalPage() {
       </Card>
 
       {/* Pending Bids */}
-      <Card className="border-zinc-200/80 shadow-sm dark:border-zinc-800">
+      <Card className="rounded-2xl border bg-card shadow-card">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-            Pending Bids
-          </CardTitle>
+          <CardTitle className="text-[15px] font-semibold">Pending bids</CardTitle>
           <Link
             href="/vendor-portal/bids"
-            className="flex items-center gap-1 text-xs font-medium text-violet-600 transition-colors hover:text-violet-700 dark:text-violet-400"
+            className="flex items-center gap-1 text-xs font-medium text-teal-700 transition-colors hover:text-teal-600 dark:text-teal-300"
           >
             View all
             <ArrowUpRight className="size-3" />
@@ -241,15 +233,11 @@ export default async function VendorPortalPage() {
         </CardHeader>
         <CardContent>
           {data.pendingBidsList.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <Gavel className="size-10 text-zinc-300 dark:text-zinc-600" />
-              <p className="mt-3 text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                No pending bids
-              </p>
-              <p className="text-xs text-zinc-400 dark:text-zinc-500">
-                Your submitted bids will appear here.
-              </p>
-            </div>
+            <EmptyState
+              icon={<Gavel />}
+              title="No bids waiting on us"
+              description="Quote an open event from the Bids tab and you'll be able to track it here."
+            />
           ) : (
             <div className="space-y-3">
               {data.pendingBidsList.map((bid: {
@@ -267,23 +255,23 @@ export default async function VendorPortalPage() {
               }) => (
                 <div
                   key={bid.id}
-                  className="flex items-center gap-4 rounded-lg border border-zinc-100 bg-zinc-50/50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50"
+                  className="flex items-center gap-4 rounded-xl border bg-muted/30 p-4"
                 >
-                  <div className="flex size-10 items-center justify-center rounded-lg bg-amber-50 dark:bg-amber-950">
-                    <Gavel className="size-5 text-amber-600 dark:text-amber-400" />
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/14 text-amber-700 dark:text-amber-300">
+                    <Gavel className="size-[18px]" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-zinc-900 truncate dark:text-zinc-100">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[14px] font-medium text-foreground">
                       {bid.booking.eventName}
                     </p>
-                    <div className="mt-0.5 flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
-                      <span>{bid.booking.bookingNumber}</span>
-                      <span className="text-zinc-300 dark:text-zinc-600">|</span>
-                      <span>{formatDate(bid.booking.date)}</span>
+                    <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                      <span className="numeric">{bid.booking.bookingNumber}</span>
+                      <span className="opacity-40">·</span>
+                      <span className="numeric">{formatDate(bid.booking.date)}</span>
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  <div className="flex flex-col items-end gap-1.5">
+                    <span className="numeric text-[15px] font-semibold text-foreground">
                       {formatINR(bid.amount)}
                     </span>
                     <StatusBadge

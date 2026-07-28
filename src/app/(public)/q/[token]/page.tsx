@@ -31,17 +31,18 @@ export const metadata: Metadata = {
 
 function InvalidCard() {
   return (
-    <div className="mx-auto max-w-lg rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-      <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400">
+    <div className="bg-card shadow-card mx-auto max-w-lg rounded-2xl border p-10 text-center">
+      <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-amber-500/12 text-amber-600 dark:text-amber-400">
         <AlertTriangle className="size-6" />
       </div>
-      <p className="mt-4 text-base font-semibold text-zinc-900 dark:text-zinc-100">
+      <p className="font-editorial text-foreground mt-5 text-[24px] font-semibold">
         This quote link isn&apos;t valid
       </p>
-      <p className="mt-1.5 text-sm text-zinc-500">
-        The link may have expired or been replaced. Please contact us for an updated quote.
+      <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm leading-relaxed">
+        It may have expired or been replaced by a newer version. Reach out and
+        we&apos;ll send you a fresh one.
       </p>
-      <HelpChip variant="banner" className="mt-5" />
+      <HelpChip variant="banner" className="mt-6" />
     </div>
   );
 }
@@ -94,25 +95,30 @@ export default async function PublicQuotePage({
 
 function BrandHero() {
   return (
-    <header className="mb-6 text-center">
+    <header className="mb-9 text-center">
       <div className="logo-chip mx-auto flex size-14 items-center justify-center rounded-2xl">
-        <span className="font-serif text-2xl font-semibold leading-none text-white drop-shadow-sm">
+        <span className="font-editorial text-2xl font-semibold leading-none text-white drop-shadow-sm">
           V
         </span>
       </div>
-      <h1 className="large-title mt-4 text-3xl text-ink-gradient">Veloria Grand</h1>
-      <p className="mt-1.5 text-xs text-muted-foreground">{COMPANY_LEGAL_LINE}</p>
+      {/* Visually a wordmark, not the page heading — the quote headline owns h1. */}
+      <p className="large-title text-foreground mt-4 text-[28px]">
+        Veloria Grand
+      </p>
+      <p className="text-muted-foreground/80 mt-2 text-[11px] uppercase tracking-[0.14em]">
+        {COMPANY_LEGAL_LINE}
+      </p>
     </header>
   );
 }
 
 function TrustFooter() {
   return (
-    <footer className="mt-8 space-y-2 text-center">
-      <p className="text-[11px] text-muted-foreground">
+    <footer className="mt-12 space-y-1.5 border-t pt-6 text-center">
+      <p className="text-muted-foreground text-[11px]">
         256-bit secure payment · powered by Razorpay
       </p>
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-muted-foreground/70 text-[11px]">
         Veloria Grand · A Unit of Billion Events Hospitality Services Pvt Ltd
       </p>
     </footer>

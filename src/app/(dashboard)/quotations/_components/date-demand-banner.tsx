@@ -28,7 +28,7 @@ export function DateDemandBanner({
   // Regular date — a gentle nudge that they can be flexible.
   if (demand.premiumPct <= 0) {
     return (
-      <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+      <div className="flex items-center gap-2 rounded-xl border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
         <CalendarDays className="size-3.5 shrink-0" />
         {demand.tier === "WEEKEND" ? "Weekend date" : "Standard date"} — no demand premium. Price competitively to win the booking.
       </div>
@@ -59,11 +59,11 @@ export function DateDemandBanner({
       <div className="grid grid-cols-2 gap-2 text-xs">
         <div className="rounded-lg bg-white/60 px-2.5 py-1.5 dark:bg-black/20">
           <p className="text-muted-foreground">Recommended floor</p>
-          <p className="font-semibold tabular-nums">{inr(floor)} <span className="font-normal text-muted-foreground">+ taxes</span></p>
+          <p className="font-semibold numeric">{inr(floor)} <span className="font-normal text-muted-foreground">+ taxes</span></p>
         </div>
         <div className="rounded-lg bg-white/60 px-2.5 py-1.5 dark:bg-black/20">
           <p className="text-muted-foreground">Your price (pre-tax)</p>
-          <p className={`font-semibold tabular-nums ${belowFloor ? "text-rose-600" : "text-emerald-600"}`}>{inr(taxableAmount)}</p>
+          <p className={`font-semibold numeric ${belowFloor ? "text-rose-600" : "text-emerald-600"}`}>{inr(taxableAmount)}</p>
         </div>
       </div>
 

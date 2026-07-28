@@ -22,7 +22,7 @@ export default async function LifecyclePage() {
   ]);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title="Joining & Exits"
         description="One command centre for onboarding and offboarding — Day-1 checklists, clearance, exit interviews, and automatic access provisioning/revocation."

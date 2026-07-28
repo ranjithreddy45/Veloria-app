@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { PencilIcon, PlusIcon } from "lucide-react";
+import { ChevronRightIcon, PencilIcon, PlusIcon, StoreIcon } from "lucide-react";
 
 import { getVendor } from "@/actions/vendor.actions";
 import { getCatalogVendor } from "@/actions/vendor-catalog.actions";
@@ -10,6 +10,7 @@ import { serialize } from "@/lib/utils";
 import { VENDOR_TYPE_LABELS } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/layout/page-header";
 import { VendorDetail } from "../_components/vendor-detail";
 import { VendorInviteButton } from "./_components/vendor-invite-button";
 
@@ -94,40 +95,44 @@ export default async function VendorDetailPage({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            {vendor.name}
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            {vendor.company
-              ? `${vendor.company}`
-              : "Vendor Details"}
-          </p>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <Badge variant="outline" className="text-[11px] font-medium">
-              {vendorTypeLabel}
-            </Badge>
-            <Badge variant="outline" className="text-[11px]" title={venueNames.join(", ")}>
-              {venueScopeLabel}
-            </Badge>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button asChild>
-            <Link href={`/vendors/packages/new?vendorId=${vendor.id}`}>
-              <PlusIcon className="mr-2 size-4" />
-              Add package
+      <PageHeader
+        icon={StoreIcon}
+        accent="teal"
+        title={vendor.name}
+        eyebrow={
+          <span className="flex items-center gap-1.5">
+            <Link href="/vendors" className="transition-colors hover:text-foreground">
+              Vendors &amp; Packages
             </Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href={`/vendors/${vendor.id}/edit`}>
-              <PencilIcon className="mr-2 size-4" />
-              Edit
-            </Link>
-          </Button>
-          {vendor.email && <VendorInviteButton vendorId={vendor.id} />}
-        </div>
+            <ChevronRightIcon className="size-3 opacity-50" />
+            <span>Partner</span>
+          </span>
+        }
+        description={vendor.company ?? undefined}
+      >
+        <Button asChild>
+          <Link href={`/vendors/packages/new?vendorId=${vendor.id}`}>
+            <PlusIcon className="mr-2 size-4" />
+            Add package
+          </Link>
+        </Button>
+        <Button variant="outline" asChild>
+          <Link href={`/vendors/${vendor.id}/edit`}>
+            <PencilIcon className="mr-2 size-4" />
+            Edit
+          </Link>
+        </Button>
+        {vendor.email && <VendorInviteButton vendorId={vendor.id} />}
+      </PageHeader>
+
+      {/* Type + venue scope */}
+      <div className="-mt-2 flex flex-wrap items-center gap-2">
+        <Badge variant="outline" className="text-[11px] font-medium">
+          {vendorTypeLabel}
+        </Badge>
+        <Badge variant="outline" className="text-[11px]" title={venueNames.join(", ")}>
+          {venueScopeLabel}
+        </Badge>
       </div>
 
       {/* Tabs */}

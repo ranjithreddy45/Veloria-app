@@ -33,7 +33,7 @@ function SummaryRow({ label, value, hint, strong, tone }: { label: string; value
         {label}
         {hint && <span className="ml-2 text-[11px] text-muted-foreground">{hint}</span>}
       </TableCell>
-      <TableCell className={`text-right tabular-nums ${tone === "emerald" ? "text-emerald-600" : tone === "rose" ? "text-rose-600" : ""}`}>
+      <TableCell className={`text-right numeric ${tone === "emerald" ? "text-emerald-600" : tone === "rose" ? "text-rose-600" : ""}`}>
         {formatINR(value)}
       </TableCell>
     </TableRow>
@@ -120,23 +120,23 @@ export function TaxWorkspace({ summary, fiscalYears }: { summary: TaxSummary; fi
                           <span className="text-[11px] text-muted-foreground">{new Date(inv.issueDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
                         </TableCell>
                         <TableCell className="text-sm">
-                          <div className="tabular-nums">{inv.gstin ?? <span className="text-muted-foreground">Unregistered</span>}</div>
+                          <div className="numeric">{inv.gstin ?? <span className="text-muted-foreground">Unregistered</span>}</div>
                           <span className="text-[11px] text-muted-foreground">{inv.placeOfSupply ?? "—"}</span>
                         </TableCell>
-                        <TableCell className="text-right tabular-nums">{formatINR(inv.taxable)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{inv.cgst ? formatINR(inv.cgst) : "—"}</TableCell>
-                        <TableCell className="text-right tabular-nums">{inv.sgst ? formatINR(inv.sgst) : "—"}</TableCell>
-                        <TableCell className="text-right tabular-nums">{inv.igst ? formatINR(inv.igst) : "—"}</TableCell>
-                        <TableCell className="text-right tabular-nums font-medium">{formatINR(inv.total)}</TableCell>
+                        <TableCell className="text-right numeric">{formatINR(inv.taxable)}</TableCell>
+                        <TableCell className="text-right numeric">{inv.cgst ? formatINR(inv.cgst) : "—"}</TableCell>
+                        <TableCell className="text-right numeric">{inv.sgst ? formatINR(inv.sgst) : "—"}</TableCell>
+                        <TableCell className="text-right numeric">{inv.igst ? formatINR(inv.igst) : "—"}</TableCell>
+                        <TableCell className="text-right numeric font-medium">{formatINR(inv.total)}</TableCell>
                       </TableRow>
                     ))}
                     <TableRow className="border-t-2 font-semibold">
                       <TableCell colSpan={2}>Total · {gstr1.totals.count} invoice{gstr1.totals.count === 1 ? "" : "s"}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatINR(gstr1.totals.taxable)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatINR(gstr1.totals.cgst)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatINR(gstr1.totals.sgst)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatINR(gstr1.totals.igst)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatINR(gstr1.totals.total)}</TableCell>
+                      <TableCell className="text-right numeric">{formatINR(gstr1.totals.taxable)}</TableCell>
+                      <TableCell className="text-right numeric">{formatINR(gstr1.totals.cgst)}</TableCell>
+                      <TableCell className="text-right numeric">{formatINR(gstr1.totals.sgst)}</TableCell>
+                      <TableCell className="text-right numeric">{formatINR(gstr1.totals.igst)}</TableCell>
+                      <TableCell className="text-right numeric">{formatINR(gstr1.totals.total)}</TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>

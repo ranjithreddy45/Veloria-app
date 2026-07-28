@@ -12,19 +12,30 @@ interface ActivateResultProps {
 
 export function ActivateResult({ ok, message }: ActivateResultProps) {
   return (
-    <div className="mx-auto max-w-md">
-      <Card className="border-zinc-200/80 shadow-sm">
-        <CardContent className="flex flex-col items-center py-12 text-center">
-          {ok ? (
-            <CheckCircle2 className="size-16 text-emerald-500" />
-          ) : (
-            <XCircle className="size-16 text-red-400" />
-          )}
-          <h1 className="mt-4 text-lg font-semibold text-foreground">
-            {ok ? "Portal activated" : "Couldn't activate"}
+    <div className="mx-auto max-w-md py-6">
+      <Card className="shadow-card rounded-2xl py-0">
+        <CardContent className="flex flex-col items-center px-6 py-14 text-center">
+          <div
+            className={`flex size-16 items-center justify-center rounded-2xl ${
+              ok ? "bg-emerald-500/10" : "bg-red-500/10"
+            }`}
+          >
+            {ok ? (
+              <CheckCircle2 className="size-8 text-emerald-600 dark:text-emerald-400" />
+            ) : (
+              <XCircle className="size-8 text-red-600 dark:text-red-400" />
+            )}
+          </div>
+          <p className="text-muted-foreground mt-5 text-[11px] font-semibold uppercase tracking-[0.14em]">
+            Your account
+          </p>
+          <h1 className="font-editorial text-foreground mt-2 text-[24px] font-semibold">
+            {ok ? "You're all set" : "We couldn't activate this"}
           </h1>
-          <p className="mt-2 max-w-sm text-sm text-muted-foreground">{message}</p>
-          <Button asChild className="mt-6">
+          <p className="text-muted-foreground mt-2.5 max-w-sm text-sm leading-relaxed">
+            {message}
+          </p>
+          <Button asChild className="mt-7 rounded-full px-6">
             <Link href="/portal">Go to my portal</Link>
           </Button>
         </CardContent>

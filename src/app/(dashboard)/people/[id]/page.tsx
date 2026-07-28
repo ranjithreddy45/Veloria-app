@@ -11,6 +11,7 @@ import { FEATURES } from "@/config/features";
 import { formatDate } from "@/lib/utils";
 import { StatusPill } from "@/components/shared/status-pill";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getEmployee, getHrLookups } from "@/actions/hr-employee.actions";
 import { getAttendanceSites } from "@/actions/hr-attendance.actions";
@@ -98,31 +99,34 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
   const initials = `${emp.firstName[0] ?? ""}${emp.lastName[0] ?? ""}`.toUpperCase();
 
   return (
-    <div className="space-y-5">
-      <Link href="/people" className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground">
+    <div className="space-y-6">
+      <Link href="/people" className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground">
         <ArrowLeft className="size-3.5" /> All people
       </Link>
 
       {/* Identity header */}
-      <div className="flex flex-wrap items-start gap-4 rounded-xl border bg-card p-5">
-        <Avatar size="lg" className="size-16">
+      <div className="flex flex-wrap items-start gap-5 rounded-2xl border bg-card p-5 shadow-card sm:p-6">
+        <Avatar size="lg" className="size-16 ring-1 ring-border/60 sm:size-20">
           <AvatarImage src={emp.photoUrl || undefined} alt={name} />
           <AvatarFallback className="bg-primary/10 text-lg font-semibold text-primary">{initials || "?"}</AvatarFallback>
         </Avatar>
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-xl font-semibold tracking-tight">{name}</h1>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            <span className="numeric tracking-[0.08em]">{emp.empCode}</span>
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-2.5">
+            <h1 className="text-[26px] leading-tight text-foreground sm:text-[30px]">{name}</h1>
             <StatusPill label={EMPLOYEE_STATUS_LABELS[emp.status]} hue={EMPLOYEE_STATUS_HUE[emp.status]} size="sm" />
           </div>
-          <p className="mt-0.5 text-[13px] text-muted-foreground">
-            {emp.empCode}
-            {emp.designation?.name ? ` · ${emp.designation.name}` : ""}
-            {emp.department?.name ? ` · ${emp.department.name}` : ""}
-          </p>
-          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[12.5px] text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5"><Building2 className="size-3.5" />{emp.legalEntity?.name ?? "—"}</span>
-            {emp.businessVertical && <span className="inline-flex items-center gap-1.5"><Briefcase className="size-3.5" />{emp.businessVertical.name}</span>}
-            {emp.workLocation && <span className="inline-flex items-center gap-1.5"><MapPin className="size-3.5" />{emp.workLocation}</span>}
+          {(emp.designation?.name || emp.department?.name) && (
+            <p className="mt-1.5 text-[15px] text-muted-foreground">
+              {[emp.designation?.name, emp.department?.name].filter(Boolean).join(" · ")}
+            </p>
+          )}
+          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-[13px] text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5"><Building2 className="size-3.5 shrink-0" />{emp.legalEntity?.name ?? "—"}</span>
+            {emp.businessVertical && <span className="inline-flex items-center gap-1.5"><Briefcase className="size-3.5 shrink-0" />{emp.businessVertical.name}</span>}
+            {emp.workLocation && <span className="inline-flex items-center gap-1.5"><MapPin className="size-3.5 shrink-0" />{emp.workLocation}</span>}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -167,8 +171,8 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
         </div>
       </div>
 
-      <Tabs defaultValue="overview">
-        <TabsList>
+      <Tabs defaultValue="overview" className="gap-5">
+        <TabsList className="max-w-full overflow-x-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="team">Team</TabsTrigger>
@@ -216,23 +220,25 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
                 href={emp.reportingManager ? `/people/${emp.reportingManager.id}` : undefined}
               />
             </InfoCard>
-            <InfoCard title="App access">
-              {emp.user ? (
-                <>
-                  <Row label="Login email" value={emp.user.email} />
-                  <Row label="Role" value={emp.user.role} />
-                  <Row label="Account" value={emp.user.isActive ? "Active" : "Disabled"} />
-                </>
-              ) : (
-                <p className="text-[13px] text-muted-foreground">
+            {emp.user ? (
+              <InfoCard title="App access">
+                <Row label="Login email" value={emp.user.email} />
+                <Row label="Role" value={emp.user.role} />
+                <Row label="Account" value={emp.user.isActive ? "Active" : "Disabled"} />
+              </InfoCard>
+            ) : (
+              <InfoCard title="App access" plain>
+                <p className="text-[13px] leading-relaxed text-muted-foreground">
                   No app login linked yet. App access &amp; role provisioning is set up during onboarding.
                 </p>
-              )}
-            </InfoCard>
+              </InfoCard>
+            )}
           </div>
           <CustomFieldsCard employeeId={emp.id} defs={activeDefs} values={customValues} canWrite={canWrite} />
           {emp.notes && (
-            <InfoCard title="Notes"><p className="text-[13px] text-muted-foreground">{emp.notes}</p></InfoCard>
+            <InfoCard title="Notes" plain>
+              <p className="whitespace-pre-line text-[13px] leading-relaxed text-muted-foreground">{emp.notes}</p>
+            </InfoCard>
           )}
         </TabsContent>
 
@@ -259,22 +265,27 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
 
         {/* Team */}
         <TabsContent value="team" className="space-y-4">
-          <InfoCard title={`Direct reports (${emp.reports.length})`}>
+          <InfoCard title={`Direct reports (${emp.reports.length})`} plain>
             {emp.reports.length === 0 ? (
-              <p className="text-[13px] text-muted-foreground">No direct reports.</p>
+              <EmptyState
+                icon={<Users className="size-5" />}
+                title="No direct reports"
+                description="Nobody reports into this employee yet. Set a reporting manager on a colleague's profile to build the line."
+                className="py-10"
+              />
             ) : (
               <div className="divide-y">
                 {emp.reports.map((r) => (
                   <Link key={r.id} href={`/people/${r.id}`}
-                    className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0 hover:opacity-80">
+                    className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-3 first:pt-0 last:pb-0 transition-colors hover:bg-muted/50">
                     <Avatar size="sm">
                       <AvatarFallback className="bg-primary/10 text-[10px] font-semibold text-primary">
                         {`${r.firstName[0] ?? ""}${r.lastName[0] ?? ""}`.toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-[13.5px] font-medium">{r.firstName} {r.lastName}</p>
-                      <p className="truncate text-[12px] text-muted-foreground">{r.empCode}</p>
+                      <p className="truncate text-sm font-medium">{r.firstName} {r.lastName}</p>
+                      <p className="numeric truncate text-[11.5px] text-muted-foreground">{r.empCode}</p>
                     </div>
                     <StatusPill label={EMPLOYEE_STATUS_LABELS[r.status]} hue={EMPLOYEE_STATUS_HUE[r.status]} size="xs" />
                   </Link>
@@ -291,31 +302,38 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
         {/* Employee documents */}
         {showDocs && (
           <TabsContent value="documents">
-            <div className="rounded-xl border bg-card p-5">
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">Documents</h3>
-                {canWrite && (
-                  <AddDocDialog categories={docCategories as never} employees={[]} forEmployeeId={emp.id} />
-                )}
-              </div>
+            <InfoCard
+              title="Documents"
+              plain
+              action={canWrite ? (
+                <AddDocDialog categories={docCategories as never} employees={[]} forEmployeeId={emp.id} />
+              ) : undefined}
+            >
               {empDocs.length === 0 ? (
-                <p className="text-[13px] text-muted-foreground">No documents on file. Offer letters, ID proofs and contracts appear here.</p>
+                <EmptyState
+                  icon={<FileText className="size-5" />}
+                  title="Nothing on file yet"
+                  description="Offer letters, ID proofs and signed contracts for this employee will be listed here."
+                  className="py-10"
+                />
               ) : (
                 <div className="divide-y">
                   {empDocs.map((d) => (
-                    <div key={d.id} className="flex items-center justify-between gap-3 py-2.5 first:pt-0">
-                      <div className="flex items-center gap-2">
-                        <FileText className="size-4 text-muted-foreground" />
-                        <div>
-                          <span className="text-[13.5px] font-medium">{d.title}</span>
-                          <div className="text-[12px] text-muted-foreground">
+                    <div key={d.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-muted text-muted-foreground">
+                          <FileText className="size-4" />
+                        </span>
+                        <div className="min-w-0">
+                          <span className="block truncate text-sm font-medium">{d.title}</span>
+                          <div className="truncate text-[13px] text-muted-foreground">
                             {d.category?.name ?? "Uncategorised"}{d.expiryDate ? ` · expires ${formatDate(d.expiryDate)}` : ""}
                           </div>
                         </div>
                       </div>
                       {d.fileUrl && (
                         <a href={d.fileUrl} target="_blank" rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-[13px] text-muted-foreground hover:text-foreground">
+                          className="inline-flex shrink-0 items-center gap-1 text-[13px] text-muted-foreground transition-colors hover:text-foreground">
                           <ExternalLink className="size-3.5" /> Open
                         </a>
                       )}
@@ -323,7 +341,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
                   ))}
                 </div>
               )}
-            </div>
+            </InfoCard>
           </TabsContent>
         )}
 
@@ -335,7 +353,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
                 href={`/api/hr/form16/${emp.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-[13px] font-medium text-muted-foreground hover:text-foreground"
+                className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-[13px] font-medium text-muted-foreground shadow-card transition-colors hover:text-foreground"
               >
                 <FileText className="size-3.5" /> Download Form-16
               </a>
@@ -361,13 +379,13 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
           {canStatutory && statutory ? (
             <StatutoryPanel employeeId={emp.id} masked={statutory} />
           ) : (
-            <InfoCard title="Statutory &amp; bank details">
-              <div className="flex items-start gap-3 rounded-lg bg-muted/40 p-4">
-                <div className="mt-0.5 text-muted-foreground"><Lock className="size-5" /></div>
-                <div className="text-[13px] text-muted-foreground">
-                  This section contains sensitive statutory PII and is restricted. You don’t have access to view it.
-                </div>
-              </div>
+            <InfoCard title="Statutory &amp; bank details" plain>
+              <EmptyState
+                icon={<Lock className="size-5" />}
+                title="Restricted section"
+                description="PAN, Aadhaar, PF/UAN and bank details are sensitive statutory PII. You don’t have access to view them."
+                className="py-10"
+              />
             </InfoCard>
           )}
         </TabsContent>
@@ -376,32 +394,46 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
   );
 }
 
-function InfoCard({ title, children }: { title: string; children: React.ReactNode }) {
+function InfoCard({
+  title, children, action, plain,
+}: {
+  title: string; children: React.ReactNode; action?: React.ReactNode;
+  /** Render children as free-form content instead of the definition-list grid. */
+  plain?: boolean;
+}) {
   return (
-    <div className="rounded-xl border bg-card p-5">
-      <h3 className="mb-3 text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">{title}</h3>
-      <div className="space-y-2.5">{children}</div>
+    <div className="rounded-2xl border bg-card p-5 shadow-card">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{title}</h3>
+        {action}
+      </div>
+      {plain ? children : <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">{children}</dl>}
     </div>
   );
 }
 
+/** One definition-list entry — quiet label above a solid value. */
 function Row({
   icon, label, value, href,
 }: {
   icon?: React.ReactNode; label: string; value?: string | null; href?: string;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 text-[13.5px]">
-      <span className="inline-flex items-center gap-1.5 text-muted-foreground">{icon}{label}</span>
-      {value ? (
-        href ? (
-          <Link href={href} className="font-medium hover:underline">{value}</Link>
+    <div className="min-w-0">
+      <dt className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-muted-foreground">
+        {icon}{label}
+      </dt>
+      <dd className="mt-1 text-sm">
+        {value ? (
+          href ? (
+            <Link href={href} className="font-medium text-foreground hover:underline">{value}</Link>
+          ) : (
+            <span className="break-words font-medium text-foreground">{value}</span>
+          )
         ) : (
-          <span className="text-right font-medium">{value}</span>
-        )
-      ) : (
-        <span className="text-muted-foreground/60">—</span>
-      )}
+          <span className="text-muted-foreground/60">—</span>
+        )}
+      </dd>
     </div>
   );
 }

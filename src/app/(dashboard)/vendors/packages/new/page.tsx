@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PackageIcon } from "lucide-react";
 
 import { listCatalogVendors } from "@/actions/vendor-catalog.actions";
 import { listVendorCategories } from "@/actions/vendor-category.actions";
@@ -29,9 +30,11 @@ export default async function NewPackagePage({
   return (
     <div className="space-y-6">
       <PageHeader
+        icon={PackageIcon}
+        accent="teal"
         title="New package"
         eyebrow="Vendors · Packages"
-        description="Define a vendor service package: sections, items, choices, and pricing."
+        description="Define what the client actually gets — sections, items, choices, and the price it sells at."
       />
 
       <PackageBuilder vendors={vendors} categories={categories} defaultVendorId={vendorId} />

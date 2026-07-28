@@ -16,6 +16,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { StatusPill } from "@/components/shared/status-pill";
+import { EmptyState } from "@/components/ui/empty-state";
 import { formatDate, cn } from "@/lib/utils";
 import { LEAVE_STATUS_HUE, LEAVE_STATUS_LABELS } from "@/lib/hr/constants";
 import { applyLeave, cancelLeave } from "@/actions/hr-leave.actions";
@@ -81,9 +82,9 @@ export function LeaveHome({
       {/* Summary line + apply */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px]">
-          <span className="text-muted-foreground">Booked this year <span className="font-semibold tabular-nums text-foreground">{bookedThisYear}</span></span>
+          <span className="text-muted-foreground">Booked this year <span className="numeric font-semibold text-foreground">{bookedThisYear}</span></span>
           <span className="h-3 w-px bg-border" />
-          <span className="text-muted-foreground">Pending <span className="font-semibold tabular-nums text-foreground">{pendingTotal}</span></span>
+          <span className="text-muted-foreground">Pending <span className="numeric font-semibold text-foreground">{pendingTotal}</span></span>
         </div>
         <Button className="gap-1.5" onClick={() => openApply()}><Plus className="size-4" /> Apply for leave</Button>
       </div>
@@ -94,7 +95,7 @@ export function LeaveHome({
           const total = b.entitled + b.carriedForward;
           const available = total - b.used - b.pending;
           return (
-            <div key={b.id} className="rounded-xl border border-border/70 bg-card p-4 shadow-card transition-shadow duration-200 hover:shadow-card-hover">
+            <div key={b.id} className="rounded-2xl border border-border/70 bg-card p-5 shadow-card transition-shadow duration-200 hover:shadow-card-hover">
               <div className="flex items-center justify-between">
                 <span className={cn("flex size-9 items-center justify-center rounded-lg", CHIP[b.leaveType.color] ?? CHIP.slate)}>
                   <CalendarDays className="size-4" />
@@ -104,7 +105,7 @@ export function LeaveHome({
               <div className="mt-2.5 truncate text-[12.5px] font-medium" title={b.leaveType.name}>{b.leaveType.name}</div>
               <div className="mt-1.5">
                 <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-semibold leading-none tabular-nums">{available}</span>
+                  <span className="numeric text-[26px] font-semibold leading-none">{available}</span>
                   <span className="text-[12.5px] text-muted-foreground">of {total} days left</span>
                 </div>
                 <div className="mt-1.5 flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
@@ -124,7 +125,7 @@ export function LeaveHome({
         </div>
 
         {holidays.length > 0 && (
-          <div className="rounded-xl border border-border/70 bg-card shadow-card">
+          <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-card">
             <div className="flex items-center gap-2 border-b px-4 py-3 text-[13px] font-semibold">
               <PartyPopper className="size-4 text-[#C9A96E]" /> Upcoming holidays
             </div>
@@ -152,13 +153,14 @@ export function LeaveHome({
         initialEnd={seed.end}
       />
 
-      <div className="rounded-xl border bg-card">
+      <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
         <div className="border-b px-4 py-3 text-[13px] font-semibold">My leave requests</div>
         {requests.length === 0 ? (
-          <div className="p-10 text-center text-sm text-muted-foreground">
-            <CalendarOff className="mx-auto size-7 text-muted-foreground/40" />
-            <p className="mt-2">No leave requests yet. Apply for your first leave above.</p>
-          </div>
+          <EmptyState
+            icon={<CalendarOff className="size-5" />}
+            title="No leave requests yet"
+            description="Apply for your first leave above — weekends and public holidays are excluded automatically."
+          />
         ) : (
           <Table>
             <TableHeader>
@@ -171,15 +173,15 @@ export function LeaveHome({
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody className="[&_td]:py-3.5">
               {requests.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell><StatusPill label={r.leaveType.code} hue={r.leaveType.color as never} size="xs" /></TableCell>
                   <TableCell className="text-[13px]">
-                    {formatDate(r.startDate)}{r.endDate !== r.startDate ? ` → ${formatDate(r.endDate)}` : ""}
+                    <span className="numeric text-[12.5px]">{formatDate(r.startDate)}</span>{r.endDate !== r.startDate ? ` → ${formatDate(r.endDate)}` : ""}
                     {r.reason && <div className="text-[12px] text-muted-foreground">{r.reason}</div>}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">{r.days}</TableCell>
+                  <TableCell className="numeric text-right font-medium">{r.days}</TableCell>
                   <TableCell className="text-[13px] text-muted-foreground">
                     {r.approver ? `${r.approver.firstName} ${r.approver.lastName}` : "HR"}
                   </TableCell>

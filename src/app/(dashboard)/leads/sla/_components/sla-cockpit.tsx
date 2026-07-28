@@ -21,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { EmptyState } from "@/components/ui/empty-state";
 import { StatusPill, type Hue } from "@/components/shared/status-pill";
 import { retrySpeedToLead } from "@/actions/speed-to-lead.actions";
 
@@ -139,16 +140,20 @@ export function SlaCockpit({ breaches, recent }: SlaCockpitProps) {
           <CardTitle className="flex items-center gap-2 text-sm">
             <AlertTriangle className="size-4 text-rose-600" />
             Breached first-contact SLA
-            <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums text-muted-foreground">
+            <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs numeric text-muted-foreground">
               {breaches.length}
             </span>
           </CardTitle>
         </CardHeader>
         <CardContent className="px-0 pb-0">
           {breaches.length === 0 ? (
-            <p className="px-6 py-8 text-center text-[13px] text-muted-foreground">
-              No breached leads. Every new enquiry has been responded to in time.
-            </p>
+            <EmptyState
+              className="py-10"
+              tone="success"
+              icon={<AlertTriangle />}
+              title="No breached SLAs"
+              description="Every new enquiry has been responded to inside its first-contact window."
+            />
           ) : (
             <Table>
               <TableHeader>
@@ -168,7 +173,7 @@ export function SlaCockpit({ breaches, recent }: SlaCockpitProps) {
                       >
                         {b.title}
                       </Link>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-[13px] text-muted-foreground">
                         {b.contactName}
                       </div>
                     </TableCell>
@@ -176,7 +181,7 @@ export function SlaCockpit({ breaches, recent }: SlaCockpitProps) {
                       {b.assignedToName ?? "Unassigned"}
                     </TableCell>
                     <TableCell className="text-right">
-                      <span className="text-[13px] font-semibold tabular-nums text-rose-600">
+                      <span className="text-[13px] font-semibold numeric text-rose-600">
                         {formatOverdue(b.minutesOverdue)}
                       </span>
                     </TableCell>
@@ -194,16 +199,19 @@ export function SlaCockpit({ breaches, recent }: SlaCockpitProps) {
           <CardTitle className="flex items-center gap-2 text-sm">
             <Zap className="size-4 text-emerald-600" />
             Recent first-responses
-            <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums text-muted-foreground">
+            <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs numeric text-muted-foreground">
               {recent.length}
             </span>
           </CardTitle>
         </CardHeader>
         <CardContent className="px-0 pb-0">
           {recent.length === 0 ? (
-            <p className="px-6 py-8 text-center text-[13px] text-muted-foreground">
-              No automated first-responses yet.
-            </p>
+            <EmptyState
+              className="py-10"
+              icon={<Zap />}
+              title="No first-responses yet"
+              description="Automated WhatsApp first-responses will be logged here as new leads arrive."
+            />
           ) : (
             <Table>
               <TableHeader>
@@ -240,10 +248,10 @@ export function SlaCockpit({ breaches, recent }: SlaCockpitProps) {
                           size="xs"
                         />
                       </TableCell>
-                      <TableCell className="text-right text-[13px] tabular-nums text-muted-foreground">
+                      <TableCell className="text-right text-[13px] numeric text-muted-foreground">
                         {formatLatency(r.latencyMs)}
                       </TableCell>
-                      <TableCell className="text-right text-[12px] text-muted-foreground">
+                      <TableCell className="numeric text-right text-[12px] text-muted-foreground">
                         {formatTime(r.sentAt)}
                       </TableCell>
                       <TableCell className="text-right">

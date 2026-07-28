@@ -49,7 +49,7 @@ export function HelpdeskHome({
         <div>
           {isAgent && <div className="mb-1.5 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">Raised by you</div>}
           {mine.length === 0 ? (
-            <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">No tickets yet. Raise one and HR will pick it up.</div>
+            <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground">No tickets yet. Raise one and HR will pick it up.</div>
           ) : <TicketList tickets={mine} />}
         </div>
       </TabsContent>
@@ -57,7 +57,7 @@ export function HelpdeskHome({
       {isAgent && (
         <TabsContent value="queue" className="space-y-3">
           {queue.length === 0 ? (
-            <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground"><Inbox className="mx-auto size-7 text-muted-foreground/40" /><p className="mt-2">Queue is clear 🎉</p></div>
+            <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground"><Inbox className="mx-auto size-7 text-muted-foreground/40" /><p className="mt-2">Queue is clear 🎉</p></div>
           ) : <TicketList tickets={queue} showRequester requesters={requesters} />}
         </TabsContent>
       )}
@@ -65,7 +65,7 @@ export function HelpdeskHome({
       <TabsContent value="kb" className="space-y-3">
         {canAdmin && <div className="flex justify-end"><Button variant="outline" size="sm" asChild><Link href="/people/helpdesk?kb=new">Manage articles</Link></Button></div>}
         {articles.length === 0 ? (
-          <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">No articles yet. {canAdmin ? "Publish FAQs so staff self-serve." : ""}</div>
+          <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground">No articles yet. {canAdmin ? "Publish FAQs so staff self-serve." : ""}</div>
         ) : (
           <div className="space-y-2.5">
             {articles.map((a) => (

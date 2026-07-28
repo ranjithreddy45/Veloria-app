@@ -1,4 +1,5 @@
 import { getAgentActivity } from "@/actions/agent-activity.actions";
+import { PageHeader } from "@/components/layout/page-header";
 import { AgentActivityDashboard } from "./_components/agent-activity-dashboard";
 import { UserCog } from "lucide-react";
 
@@ -11,16 +12,15 @@ export default async function AgentActivityPage() {
   const agents = result.success ? result.data : [];
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <UserCog className="h-6 w-6 text-primary" />
-          Agent Activity
-        </h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Monitor agent performance and call activity
-        </p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        aura
+        eyebrow="Analytics · Team"
+        icon={UserCog}
+        accent="blue"
+        title="Agent Activity"
+        description="Monitor agent performance and call activity across the sales floor."
+      />
 
       <AgentActivityDashboard initialData={agents} />
     </div>

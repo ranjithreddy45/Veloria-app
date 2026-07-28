@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { CalendarPlusIcon } from "lucide-react";
 import { getVenues } from "@/actions/booking.actions";
 import { getContacts } from "@/actions/contact.actions";
 import { PageHeader } from "@/components/layout/page-header";
@@ -32,8 +33,11 @@ export default async function NewBookingPage({
   return (
     <div className="space-y-6">
       <PageHeader
+        icon={CalendarPlusIcon}
+        accent="blue"
+        eyebrow="Bookings"
         title="New Booking"
-        description="Create a new event booking."
+        description="Lock a venue, date and slot for a client, with the guest count and commercials that drive everything downstream."
       />
       <div className="mx-auto max-w-3xl">
         <BookingForm

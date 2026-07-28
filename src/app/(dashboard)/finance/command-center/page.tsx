@@ -8,6 +8,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
+import { GaugeIcon } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { getCommandCenter } from "@/actions/finance-cockpit.actions";
 import { CockpitHero } from "./_components/cockpit-hero";
@@ -27,6 +28,8 @@ export default async function CommandCenterPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        icon={GaugeIcon}
+        accent="emerald"
         aura
         eyebrow="Finance · Command Center"
         title="Owner cockpit"

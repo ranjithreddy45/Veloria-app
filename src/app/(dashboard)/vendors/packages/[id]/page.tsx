@@ -7,6 +7,7 @@ import {
   CheckIcon,
   ChevronRightIcon,
   ListIcon,
+  PackageIcon,
 } from "lucide-react";
 
 import { getPackage } from "@/actions/vendor-catalog.actions";
@@ -44,30 +45,20 @@ export async function generateMetadata({
 // ============================================================
 
 const PACKAGE_STATUS_COLORS: Record<string, string> = {
-  DRAFT:
-    "bg-zinc-50 text-zinc-600 border-zinc-200/60 dark:bg-zinc-800/30 dark:text-zinc-400 dark:border-zinc-700/40",
+  DRAFT: "bg-muted text-muted-foreground border-border",
   ACTIVE:
-    "bg-emerald-50 text-emerald-700 border-emerald-200/60 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/40",
+    "bg-emerald-500/12 text-emerald-700 border-emerald-500/25 dark:text-emerald-300",
   ARCHIVED:
-    "bg-slate-50 text-slate-600 border-slate-200/60 dark:bg-slate-800/30 dark:text-slate-400 dark:border-slate-700/40",
+    "bg-slate-500/12 text-slate-600 border-slate-500/20 dark:text-slate-300",
 };
 
 const CATEGORY_HUE: Record<string, string> = {
-  decor: "bg-pink-50 text-pink-700 border-pink-200/80",
-  catering: "bg-amber-50 text-amber-700 border-amber-200/80",
-  emcee: "bg-violet-50 text-violet-700 border-violet-200/80",
-  photography: "bg-indigo-50 text-indigo-700 border-indigo-200/80",
-  av_lighting: "bg-orange-50 text-orange-700 border-orange-200/80",
-  entertainment: "bg-rose-50 text-rose-700 border-rose-200/80",
-};
-
-const COVER_GRADIENT: Record<string, string> = {
-  decor: "from-pink-400/80 to-rose-600/80",
-  catering: "from-amber-400/80 to-orange-600/80",
-  emcee: "from-violet-400/80 to-purple-600/80",
-  photography: "from-indigo-400/80 to-blue-600/80",
-  av_lighting: "from-orange-400/80 to-red-600/80",
-  entertainment: "from-rose-400/80 to-pink-600/80",
+  decor: "bg-pink-500/12 text-pink-700 border-pink-500/25 dark:text-pink-300",
+  catering: "bg-amber-500/14 text-amber-700 border-amber-500/25 dark:text-amber-300",
+  emcee: "bg-violet-500/12 text-violet-700 border-violet-500/25 dark:text-violet-300",
+  photography: "bg-indigo-500/12 text-indigo-700 border-indigo-500/25 dark:text-indigo-300",
+  av_lighting: "bg-orange-500/12 text-orange-700 border-orange-500/25 dark:text-orange-300",
+  entertainment: "bg-rose-500/12 text-rose-700 border-rose-500/25 dark:text-rose-300",
 };
 
 // ============================================================
@@ -94,9 +85,6 @@ export default async function PackageDetailPage({
     pkg.images[0] ??
     null;
 
-  const gradient =
-    COVER_GRADIENT[pkg.category] ?? "from-violet-400/80 to-indigo-600/80";
-
   const categoryLabel =
     VENDOR_MODULE_CATEGORY_LABELS[pkg.category] ?? pkg.category;
 
@@ -107,6 +95,8 @@ export default async function PackageDetailPage({
     <div className="space-y-6">
       {/* Header breadcrumb */}
       <PageHeader
+        icon={PackageIcon}
+        accent="teal"
         eyebrow={
           <span className="flex items-center gap-1">
             <Link
@@ -120,6 +110,7 @@ export default async function PackageDetailPage({
           </span>
         }
         title={pkg.name}
+        description={`Offered by ${pkg.vendor.name}`}
       >
         <Button asChild size="sm" className="h-9 gap-1.5 text-[13px]">
           <Link href={`/vendors/packages/${id}/edit`}>
@@ -133,48 +124,50 @@ export default async function PackageDetailPage({
         {/* ── Main content ── */}
         <div className="space-y-6">
           {/* Hero image */}
-          <div className="relative h-56 w-full overflow-hidden rounded-2xl border border-border/60 bg-muted sm:h-72">
+          <div className="relative h-56 w-full overflow-hidden rounded-2xl border bg-muted shadow-card sm:h-72">
             {coverImage ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={coverImage.url}
-                alt={pkg.name}
+                alt=""
                 className="h-full w-full object-cover"
               />
             ) : (
-              <div
-                className={cn(
-                  "flex h-full w-full items-center justify-center bg-gradient-to-br",
-                  gradient
-                )}
-              >
-                <ImageIcon className="size-14 text-white/50" />
+              <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-teal-500/10 via-muted to-muted">
+                <ImageIcon className="size-10 text-muted-foreground/50" />
+                <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground/60">
+                  No photos on this package yet
+                </span>
               </div>
             )}
 
-            {/* Scrim */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
+            {/* Scrim — only meaningful over a real photo */}
+            {coverImage && (
+              <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
+            )}
 
             {/* Category chip */}
             <span
               className={cn(
-                "absolute left-4 top-4 inline-flex items-center rounded-full border px-2.5 py-1 text-[12px] font-semibold backdrop-blur-sm",
+                "absolute left-4 top-4 inline-flex items-center rounded-full border px-2.5 py-1 text-[12px] font-semibold backdrop-blur-md",
                 CATEGORY_HUE[pkg.category] ??
-                  "bg-white/90 text-foreground border-border"
+                  "border-border bg-background/85 text-foreground"
               )}
             >
               {categoryLabel}
             </span>
 
-            {/* Price badge */}
-            <div className="absolute bottom-4 left-4">
-              <p className="text-[28px] font-bold tabular-nums leading-none text-white drop-shadow-md">
-                {formatINR(pkg.price)}
-              </p>
-              <p className="mt-0.5 text-[13px] font-medium text-white/80">
-                {priceUnitLabel}
-              </p>
-            </div>
+            {/* Price badge — over the photo only; the sidebar carries it otherwise */}
+            {coverImage && (
+              <div className="absolute bottom-4 left-4">
+                <p className="numeric text-[28px] font-semibold leading-none tracking-[-0.02em] text-white drop-shadow-md">
+                  {formatINR(pkg.price)}
+                </p>
+                <p className="mt-1 text-[13px] font-medium text-white/80">
+                  {priceUnitLabel}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Thumbnail strip */}
@@ -187,8 +180,8 @@ export default async function PackageDetailPage({
                     className={cn(
                       "relative h-16 w-24 shrink-0 overflow-hidden rounded-xl border bg-muted",
                       img.id === (coverImage?.id ?? null)
-                        ? "ring-2 ring-violet-500 border-violet-400"
-                        : "border-border/60"
+                        ? "border-teal-400 ring-2 ring-teal-500"
+                        : "border-border"
                     )}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -240,9 +233,15 @@ export default async function PackageDetailPage({
             </div>
 
             {pkg.sections.length === 0 ? (
-              <p className="text-[13px] text-muted-foreground">
-                No sections defined.
-              </p>
+              <div className="rounded-2xl border border-dashed bg-card/50 px-6 py-10 text-center">
+                <p className="text-[14px] font-medium text-foreground">
+                  Nothing spelled out yet
+                </p>
+                <p className="mx-auto mt-1.5 max-w-sm text-[13px] leading-relaxed text-muted-foreground">
+                  Clients buy what they can picture. Add sections and items so
+                  this package sells itself.
+                </p>
+              </div>
             ) : (
               pkg.sections.map(
                 (section: {
@@ -259,7 +258,7 @@ export default async function PackageDetailPage({
                 }) => (
                   <div
                     key={section.id}
-                    className="rounded-2xl border border-border/60 bg-card p-4 space-y-3"
+                    className="space-y-3 rounded-2xl border bg-card p-4 shadow-card"
                   >
                     <h3 className="text-[14px] font-semibold text-foreground">
                       {section.title}
@@ -269,7 +268,7 @@ export default async function PackageDetailPage({
                       {section.items.map((item) => (
                         <div key={item.id} className="space-y-1.5">
                           <div className="flex items-center gap-2">
-                            <CheckIcon className="size-3.5 text-violet-500 shrink-0" />
+                            <CheckIcon className="size-3.5 shrink-0 text-teal-600 dark:text-teal-400" />
                             <span className="text-[13px] font-medium text-foreground">
                               {item.name}
                             </span>
@@ -339,29 +338,27 @@ export default async function PackageDetailPage({
         {/* ── Sidebar ── */}
         <div className="space-y-4">
           {/* Price card */}
-          <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-card space-y-1">
-            <p className="text-[12px] font-medium uppercase tracking-wide text-muted-foreground">
+          <div className="space-y-1 rounded-2xl border bg-card p-5 shadow-card">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
               Package price
             </p>
-            <p className="text-[32px] font-bold tabular-nums leading-tight text-foreground">
+            <p className="numeric text-[32px] font-semibold leading-tight tracking-[-0.02em] text-foreground">
               {formatINR(pkg.price)}
             </p>
             <p className="text-[13px] text-muted-foreground">{priceUnitLabel}</p>
           </div>
 
           {/* Stats */}
-          <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-card">
+          <div className="rounded-2xl border bg-card p-4 shadow-card">
             <dl className="space-y-3 text-[13px]">
               <div className="flex items-center justify-between">
                 <dt className="text-muted-foreground">Sections</dt>
-                <dd className="font-medium tabular-nums">
-                  {pkg.sections.length}
-                </dd>
+                <dd className="numeric font-medium">{pkg.sections.length}</dd>
               </div>
               <Separator />
               <div className="flex items-center justify-between">
                 <dt className="text-muted-foreground">Items</dt>
-                <dd className="font-medium tabular-nums">
+                <dd className="numeric font-medium">
                   {pkg.sections.reduce(
                     (a: number, s: { items: unknown[] }) => a + s.items.length,
                     0
@@ -371,9 +368,7 @@ export default async function PackageDetailPage({
               <Separator />
               <div className="flex items-center justify-between">
                 <dt className="text-muted-foreground">Images</dt>
-                <dd className="font-medium tabular-nums">
-                  {pkg.images.length}
-                </dd>
+                <dd className="numeric font-medium">{pkg.images.length}</dd>
               </div>
             </dl>
           </div>

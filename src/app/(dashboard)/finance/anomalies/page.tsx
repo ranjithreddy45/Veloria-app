@@ -35,7 +35,7 @@ export default async function AnomaliesPage({
     await Promise.all([getAnomalies(STATUS_MAP[filter]), getAnomalyStats()]);
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       <AnomaliesWorkspace
         canWrite={canWrite}
         anomalies={anomalies}

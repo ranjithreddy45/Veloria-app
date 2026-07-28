@@ -32,6 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { EmptyState } from "@/components/ui/empty-state";
 import { StatusPill, type Hue } from "@/components/shared/status-pill";
 import { resolveSlaLead } from "@/actions/sla-warroom.actions";
 import { SlaCountdown, type LiveRiskBand } from "./sla-countdown";
@@ -202,23 +203,30 @@ export function WarRoomBoard({ rows, warnMinutes, generatedAt }: WarRoomBoardPro
         <CardTitle className="flex items-center gap-2 text-sm">
           <Siren className="size-4 text-rose-600" />
           Live SLA board
-          <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums text-muted-foreground">
+          <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs numeric text-muted-foreground">
             {visible.length}
           </span>
           <span className="ml-auto text-[11px] font-normal text-muted-foreground">
-            Snapshot {new Date(generatedAt).toLocaleTimeString("en-IN", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
+            Snapshot{" "}
+            <span className="numeric">
+              {new Date(generatedAt).toLocaleTimeString("en-IN", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
             {" · countdown live"}
           </span>
         </CardTitle>
       </CardHeader>
       <CardContent className="px-0 pb-0">
         {visible.length === 0 ? (
-          <p className="px-6 py-10 text-center text-[13px] text-muted-foreground">
-            No open leads on the SLA clock. Every enquiry has been responded to.
-          </p>
+          <EmptyState
+            className="py-12"
+            tone="success"
+            icon={<Siren />}
+            title="SLA board is clear"
+            description="No open leads on the clock — every enquiry has been responded to in time."
+          />
         ) : (
           <Table>
             <TableHeader>

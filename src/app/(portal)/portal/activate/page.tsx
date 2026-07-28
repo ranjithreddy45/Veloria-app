@@ -25,7 +25,7 @@ export default async function PortalActivatePage({
     return (
       <ActivateResult
         ok={false}
-        message="This activation link is incomplete. Please use the full link we sent you."
+        message="This activation link looks incomplete. Please open the full link exactly as we sent it to you."
       />
     );
   }
@@ -37,7 +37,7 @@ export default async function PortalActivatePage({
       ok={result.success}
       message={
         result.success
-          ? "Your portal is activated. You can now view your bookings, invoices, and documents."
+          ? "Your portal is live. Your bookings, invoices and documents are all waiting for you inside."
           : result.error
       }
     />

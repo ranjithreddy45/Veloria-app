@@ -20,7 +20,7 @@ export default async function PerformancePage() {
   const linked = mine && mine.linked !== false ? mine : null;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title="Performance"
         description="Goals & KRAs, self and manager appraisals, and calibration — all tied to the org chart, across the active cycle."

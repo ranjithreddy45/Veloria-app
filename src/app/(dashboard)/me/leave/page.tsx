@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { CalendarCheck } from "lucide-react";
+import { CalendarCheck, LogIn, UserX } from "lucide-react";
 import { auth } from "@/../auth";
 import { FEATURES } from "@/config/features";
 import { PageHeader } from "@/components/layout/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 import { getMyLeaveDashboard, getLeaveTypes, getHolidays } from "@/actions/hr-leave.actions";
 import { LeaveHome } from "@/app/(dashboard)/people/leave/_components/leave-home";
 
@@ -38,7 +39,7 @@ export default async function MyLeavePage() {
     .map((h) => ({ id: h.id, name: h.name, date: new Date(h.date).toISOString() }));
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         icon={CalendarCheck}
         accent="violet"
@@ -48,17 +49,28 @@ export default async function MyLeavePage() {
       />
 
       {types.length === 0 ? (
-        <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
-          Leave hasn&rsquo;t been set up yet. Ask an HR Manager to configure leave types.
+        <div className="rounded-2xl border border-dashed bg-card">
+          <EmptyState
+            icon={<CalendarCheck className="size-5" />}
+            title="Leave isn’t set up yet"
+            description="Leave types, balances and approval rules haven’t been configured. Ask an HR Manager to set them up."
+          />
         </div>
       ) : !dashboard ? (
-        <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
-          Please sign in.
+        <div className="rounded-2xl border border-dashed bg-card">
+          <EmptyState
+            icon={<LogIn className="size-5" />}
+            title="Please sign in"
+            description="Your balances are private to you, so we need an active session before they can be shown."
+          />
         </div>
       ) : dashboard.linked === false ? (
-        <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
-          Your account isn&rsquo;t linked to an employee record yet, so there&rsquo;s no leave balance to show. Ask HR
-          to connect your profile.
+        <div className="rounded-2xl border border-dashed bg-card">
+          <EmptyState
+            icon={<UserX className="size-5" />}
+            title="No employee profile linked"
+            description="Your login isn’t connected to an employee record yet, so there’s no leave balance to show. Ask HR to link your profile."
+          />
         </div>
       ) : (
         <LeaveHome

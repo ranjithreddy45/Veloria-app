@@ -27,24 +27,26 @@ export function CustomFieldsCard({
 }) {
   if (defs.length === 0) return null;
   return (
-    <div className="rounded-xl border bg-card p-5">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">Additional details</h3>
+    <div className="rounded-2xl border bg-card p-5 shadow-card">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Additional details</h3>
         {canWrite && <EditCustomFields employeeId={employeeId} defs={defs} values={values} />}
       </div>
-      <div className="grid gap-2.5 sm:grid-cols-2">
+      <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {defs.map((d) => {
           const v = values?.[d.key];
           const display =
             d.type === "BOOLEAN" ? (v ? "Yes" : v === false ? "No" : null) : v != null && v !== "" ? String(v) : null;
           return (
-            <div key={d.key} className="flex items-center justify-between gap-3 rounded-lg bg-muted/30 px-3 py-2 text-[13px]">
-              <span className="text-muted-foreground">{d.label}</span>
-              <span className="font-medium">{display || <span className="text-muted-foreground/50">—</span>}</span>
+            <div key={d.key} className="min-w-0 rounded-xl border border-border/60 bg-muted/30 px-3.5 py-2.5">
+              <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">{d.label}</dt>
+              <dd className={`mt-1 text-sm font-medium ${d.type === "NUMBER" ? "numeric" : ""}`}>
+                {display || <span className="font-sans text-muted-foreground/50">—</span>}
+              </dd>
             </div>
           );
         })}
-      </div>
+      </dl>
     </div>
   );
 }

@@ -65,7 +65,7 @@ export default async function EmployeeReportsIndex() {
   await guardEmployeeReports();
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         aura
         icon={Users}

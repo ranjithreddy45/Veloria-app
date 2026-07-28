@@ -1,5 +1,7 @@
 "use client";
 
+import { FlameIcon } from "lucide-react";
+
 import {
   Card,
   CardContent,
@@ -7,6 +9,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { cn } from "@/lib/utils";
 
 // ============================================================
 // Types
@@ -67,8 +71,8 @@ const DEMAND_COLORS: Record<
     label: "Medium",
   },
   low: {
-    bg: "bg-zinc-200 dark:bg-zinc-700",
-    text: "text-zinc-600 dark:text-zinc-300",
+    bg: "bg-muted",
+    text: "text-muted-foreground",
     label: "Low",
   },
 };
@@ -80,19 +84,21 @@ const DEMAND_COLORS: Record<
 export function DemandHeatmap({ data, year }: DemandHeatmapProps) {
   if (data.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Venue Demand Heatmap</CardTitle>
-          <CardDescription>
-            No active venues found. Add venues to see demand patterns.
-          </CardDescription>
-        </CardHeader>
+      <Card className="rounded-2xl border bg-card shadow-card">
+        <CardContent>
+          <EmptyState
+            icon={<FlameIcon />}
+            title="No demand pattern yet"
+            description="Add active venues to see which months run hot across the year."
+            className="py-10"
+          />
+        </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card>
+    <Card className="rounded-2xl border bg-card shadow-card">
       <CardHeader>
         <CardTitle>Venue Demand Heatmap</CardTitle>
         <CardDescription>
@@ -102,12 +108,14 @@ export function DemandHeatmap({ data, year }: DemandHeatmapProps) {
       </CardHeader>
       <CardContent>
         {/* Legend */}
-        <div className="mb-4 flex items-center gap-4 text-sm">
-          <span className="text-muted-foreground">Demand:</span>
+        <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12px]">
+          <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            Demand
+          </span>
           {(["high", "medium", "low"] as const).map((level) => (
             <div key={level} className="flex items-center gap-1.5">
-              <div
-                className={`size-3 rounded-sm ${DEMAND_COLORS[level].bg}`}
+              <span
+                className={cn("size-2.5 rounded-[3px]", DEMAND_COLORS[level].bg)}
               />
               <span className="text-muted-foreground">
                 {DEMAND_COLORS[level].label}
@@ -121,13 +129,13 @@ export function DemandHeatmap({ data, year }: DemandHeatmapProps) {
           <div className="min-w-[700px]">
             {/* Header Row - Month Labels */}
             <div className="grid grid-cols-[180px_repeat(12,1fr)] gap-1 mb-1">
-              <div className="text-xs font-medium text-muted-foreground px-2 py-1">
+              <div className="px-2 py-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                 Venue
               </div>
               {MONTH_LABELS.map((label) => (
                 <div
                   key={label}
-                  className="text-xs font-medium text-muted-foreground text-center py-1"
+                  className="py-1 text-center text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
                 >
                   {label}
                 </div>
@@ -141,7 +149,7 @@ export function DemandHeatmap({ data, year }: DemandHeatmapProps) {
                 className="grid grid-cols-[180px_repeat(12,1fr)] gap-1 mb-1"
               >
                 {/* Venue Name */}
-                <div className="text-sm font-medium truncate px-2 py-2 flex items-center">
+                <div className="flex items-center truncate px-2 py-2 text-[13px] font-medium">
                   {venue.venueName}
                 </div>
 
@@ -151,7 +159,11 @@ export function DemandHeatmap({ data, year }: DemandHeatmapProps) {
                   return (
                     <div
                       key={monthData.month}
-                      className={`rounded-md flex items-center justify-center py-2 text-xs font-medium transition-opacity hover:opacity-80 ${colors.bg} ${colors.text}`}
+                      className={cn(
+                        "numeric flex items-center justify-center rounded-md py-2 text-[11.5px] font-medium transition-opacity hover:opacity-80",
+                        colors.bg,
+                        colors.text
+                      )}
                       title={`${venue.venueName} - ${monthData.month}: ${monthData.bookings} booking${monthData.bookings !== 1 ? "s" : ""} (${colors.label} demand)`}
                     >
                       {monthData.bookings > 0 ? monthData.bookings : "-"}

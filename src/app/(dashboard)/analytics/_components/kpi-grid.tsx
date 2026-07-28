@@ -1,12 +1,6 @@
 "use client";
 
 import type React from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 // ============================================================
@@ -39,40 +33,46 @@ export function KPIGrid({ items, columns = 4, className }: KPIGridProps) {
   };
 
   return (
-    <div className={cn("grid gap-4", gridCols[columns], className)}>
+    <div className={cn("grid gap-3", gridCols[columns], className)}>
       {items.map((kpi) => (
-        <Card key={kpi.label}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+        <div
+          key={kpi.label}
+          className="rounded-2xl border bg-card p-5 shadow-card transition-shadow hover:shadow-card-hover"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
               {kpi.label}
-            </CardTitle>
+            </p>
             {kpi.icon && (
-              <div className="text-muted-foreground">{kpi.icon}</div>
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-muted/70 text-muted-foreground">
+                {kpi.icon}
+              </span>
             )}
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-              {typeof kpi.value === "number"
-                ? kpi.value.toLocaleString("en-IN")
-                : kpi.value}
-            </div>
-            {kpi.change !== undefined && (
-              <p
-                className={cn(
-                  "mt-1 text-xs font-medium",
-                  kpi.change > 0
-                    ? "text-emerald-600 dark:text-emerald-400"
-                    : kpi.change < 0
-                      ? "text-red-600 dark:text-red-400"
-                      : "text-muted-foreground"
-                )}
-              >
-                {kpi.change > 0 ? "+" : ""}
-                {kpi.change.toFixed(1)}% from last period
-              </p>
-            )}
-          </CardContent>
-        </Card>
+          </div>
+          <div className="numeric mt-3 truncate text-[26px] font-semibold leading-none text-foreground">
+            {typeof kpi.value === "number"
+              ? kpi.value.toLocaleString("en-IN")
+              : kpi.value}
+          </div>
+          {kpi.change !== undefined && (
+            <p
+              className={cn(
+                "numeric mt-2.5 text-[12px] font-medium",
+                kpi.change > 0
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : kpi.change < 0
+                    ? "text-rose-600 dark:text-rose-400"
+                    : "text-muted-foreground"
+              )}
+            >
+              {kpi.change > 0 ? "+" : ""}
+              {kpi.change.toFixed(1)}%{" "}
+              <span className="font-normal text-muted-foreground">
+                from last period
+              </span>
+            </p>
+          )}
+        </div>
       ))}
     </div>
   );

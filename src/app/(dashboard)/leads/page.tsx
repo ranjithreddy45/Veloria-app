@@ -80,7 +80,7 @@ export default async function LeadsPage({
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         aura
         icon={UserPlusIcon}
@@ -111,14 +111,14 @@ export default async function LeadsPage({
             <span>CRM · Pipeline</span>
             <span className="h-3 w-px bg-border" />
             <span className="text-foreground/80">
-              <span className="font-semibold tabular-nums">{totalLeads}</span>{" "}
+              <span className="font-semibold numeric">{totalLeads}</span>{" "}
               {scope === "all" ? "total" : "assigned to you"}
             </span>
             {pipelineValue > 0 && (
               <>
                 <span className="h-3 w-px bg-border" />
                 <span className="text-foreground/80">
-                  <span className="font-semibold tabular-nums">{fmtCurrency(pipelineValue)}</span> pipeline value
+                  <span className="font-semibold numeric">{fmtCurrency(pipelineValue)}</span> pipeline value
                 </span>
               </>
             )}
@@ -145,7 +145,7 @@ export default async function LeadsPage({
         <LeadsFilterBar canViewAll={canViewAll} scope={scope} />
 
         {leads.length === 0 ? (
-          <div className="rounded-xl border border-dashed bg-card shadow-premium">
+          <div className="rounded-2xl border border-dashed bg-card shadow-card">
             {filtersActive ? (
               <EmptyState
                 icon={<FilterXIcon className="size-6" />}

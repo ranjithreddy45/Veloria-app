@@ -305,7 +305,7 @@ const columns: ColumnDef<Vendor>[] = [
       const phone = row.original.phone;
       if (!phone) return <span className="text-muted-foreground/60 text-[12px]">—</span>;
       return (
-        <span className="text-[12.5px] tabular-nums text-muted-foreground">{phone}</span>
+        <span className="numeric text-[12.5px] text-muted-foreground">{phone}</span>
       );
     },
   },
@@ -315,7 +315,7 @@ const columns: ColumnDef<Vendor>[] = [
       <DataTableColumnHeader column={column} title="Bookings" />
     ),
     cell: ({ row }) => (
-      <span className="text-[12.5px] tabular-nums text-muted-foreground">
+      <span className="numeric text-[12.5px] text-muted-foreground">
         {row.original.totalBookings}
       </span>
     ),
@@ -364,11 +364,11 @@ export function VendorsTable({ data }: VendorsTableProps) {
 
   if (data.length === 0) {
     return (
-      <div className="rounded-xl border border-border/70 bg-card shadow-card">
+      <div className="rounded-2xl border bg-card shadow-card">
         <EmptyState
           icon={<StoreIcon className="size-5" />}
-          title="No vendors yet"
-          description="Add your first vendor to start building your marketplace."
+          title="Every great event runs on a good bench"
+          description="Add your first vendor and their packages, rates, and ratings all live here."
         />
       </div>
     );

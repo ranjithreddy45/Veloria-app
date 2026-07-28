@@ -108,7 +108,7 @@ export function BankReconcile({
           <div className="flex flex-wrap items-center gap-2">
             <input type="file" accept=".csv,text/csv" className="text-xs" onChange={(e) => { const f = e.target.files?.[0]; if (f) readFile(f); }} />
           </div>
-          <Textarea value={csv} onChange={(e) => setCsv(e.target.value)} rows={4} placeholder="Date,Narration,Debit,Credit,Ref&#10;01/04/2026,NEFT FROM ACME,,118000.00,UTR123" className="font-mono text-xs" />
+          <Textarea value={csv} onChange={(e) => setCsv(e.target.value)} rows={4} placeholder="Date,Narration,Debit,Credit,Ref&#10;01/04/2026,NEFT FROM ACME,,118000.00,UTR123" className="numeric text-xs" />
           <div className="flex gap-2">
             <Button disabled={!csv.trim() || busy === "import"} onClick={() => run("import", () => importBankCsv(active.id, csv), (d) => { const r = d as { imported: number; skipped: number; duplicates: number } | undefined; return `Imported ${r?.imported ?? 0} (${r?.duplicates ?? 0} dup, ${r?.skipped ?? 0} skipped).`; })}>
               {busy === "import" ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />} Import
@@ -143,8 +143,8 @@ export function BankReconcile({
                   <TableRow key={t.id}>
                     <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{formatDate(t.date)}</TableCell>
                     <TableCell className="max-w-[280px] truncate text-sm" title={t.description}>{t.description}</TableCell>
-                    <TableCell className="text-right tabular-nums text-rose-600">{t.debit > 0 ? formatINR(t.debit) : "—"}</TableCell>
-                    <TableCell className="text-right tabular-nums text-emerald-600">{t.credit > 0 ? formatINR(t.credit) : "—"}</TableCell>
+                    <TableCell className="text-right numeric text-rose-600">{t.debit > 0 ? formatINR(t.debit) : "—"}</TableCell>
+                    <TableCell className="text-right numeric text-emerald-600">{t.credit > 0 ? formatINR(t.credit) : "—"}</TableCell>
                     <TableCell><StatusPill label={t.status.toLowerCase()} hue={STATUS_HUE[t.status]} size="xs" /></TableCell>
                     <TableCell className="text-right">
                       {t.status === "MATCHED" && (
@@ -186,7 +186,7 @@ function Stat({ label, value, sub, tone }: { label: string; value: string; sub?:
   return (
     <div className="rounded-xl border bg-card p-3 shadow-card">
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={`text-lg font-semibold tabular-nums ${tone === "warn" ? "text-amber-600" : tone === "ok" ? "text-emerald-600" : ""}`}>{value}</p>
+      <p className={`text-lg font-semibold numeric ${tone === "warn" ? "text-amber-600" : tone === "ok" ? "text-emerald-600" : ""}`}>{value}</p>
       {sub && <p className="text-[11px] text-muted-foreground">{sub}</p>}
     </div>
   );

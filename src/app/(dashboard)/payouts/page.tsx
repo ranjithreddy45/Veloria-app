@@ -4,6 +4,7 @@ import {
   ClockIcon,
   CheckCircleIcon,
   PlusIcon,
+  WalletIcon,
 } from "lucide-react";
 
 import { getPayouts, getPayoutStats } from "@/actions/payout.actions";
@@ -50,12 +51,16 @@ export default async function PayoutsPage() {
     <div className="space-y-6">
       <PageHeader
         aura
+        icon={WalletIcon}
+        accent="teal"
         title="Payouts"
         help={<PageHelp id="payouts" />}
         eyebrow={
-          <span className="tabular-nums">
-            {totalCount} payout{totalCount === 1 ? "" : "s"} ·{" "}
-            {formatINR(totalAmount)} total · {formatINR(totalPending)} pending
+          <span>
+            FINANCE · <span className="numeric">{totalCount}</span> payout
+            {totalCount === 1 ? "" : "s"} ·{" "}
+            <span className="numeric">{formatINR(totalAmount)}</span> total ·{" "}
+            <span className="numeric">{formatINR(totalPending)}</span> pending
           </span>
         }
         description="Manage vendor payments, owner payouts, and commissions."
@@ -72,22 +77,22 @@ export default async function PayoutsPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatTile
           label="Total Payouts"
-          value={formatINR(totalAmount)}
-          accent="emerald"
+          value={<span className="numeric">{formatINR(totalAmount)}</span>}
+          accent="indigo"
           icon={<IndianRupeeIcon className="size-4" />}
           sub={`${totalCount} payout${totalCount === 1 ? "" : "s"}`}
         />
         <StatTile
           label="Pending"
-          value={formatINR(totalPending)}
+          value={<span className="numeric">{formatINR(totalPending)}</span>}
           accent="amber"
           icon={<ClockIcon className="size-4" />}
           sub={`${pendingCount} payout${pendingCount === 1 ? "" : "s"}`}
         />
         <StatTile
           label="Paid"
-          value={formatINR(totalPaid)}
-          accent="rose"
+          value={<span className="numeric">{formatINR(totalPaid)}</span>}
+          accent="emerald"
           icon={<CheckCircleIcon className="size-4" />}
           sub={`${paidCount} payout${paidCount === 1 ? "" : "s"}`}
         />

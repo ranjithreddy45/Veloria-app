@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, Plus, Save, Send, Trash2 } from "lucide-react";
+import { Calculator, Loader2, Plus, Save, Send, Trash2 } from "lucide-react";
 import { getDateDemand, type DateDemandResult } from "@/actions/date-demand.actions";
 import { DateDemandBanner } from "./date-demand-banner";
 
@@ -31,6 +31,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Select,
   SelectContent,
@@ -581,7 +582,7 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
                 return (
                   <div
                     key={line.id}
-                    className={`rounded-lg border p-3 space-y-3 ${isUnavailable ? "border-destructive" : ""}`}
+                    className={`rounded-xl border p-3.5 space-y-3 ${isUnavailable ? "border-destructive" : ""}`}
                   >
                     <div className="flex items-start gap-2">
                       <div className="flex-1 space-y-1.5">
@@ -755,24 +756,32 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
           <CardHeader><CardTitle className="text-base">Live Quotation</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {result.lines.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Add line items to see the quote.</p>
+              <EmptyState
+                className="py-8"
+                icon={<Calculator />}
+                title="Nothing quoted yet"
+                description="Add packages and line items on the left — the running total appears here as you build."
+              />
             ) : (
               <div className="space-y-1.5 text-sm">
                 {result.lines.map((l) => (
                   <div key={l.sl} className="flex justify-between gap-2">
                     <span className="text-muted-foreground">{l.particulars}</span>
-                    <span className="tabular-nums font-medium">{inr(l.amount)}</span>
+                    <span className="numeric font-medium">{inr(l.amount)}</span>
                   </div>
                 ))}
               </div>
             )}
             <div className="border-t pt-3 space-y-1.5 text-sm">
-              <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="tabular-nums">{inr(result.subtotal)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="numeric">{inr(result.subtotal)}</span></div>
               {result.discountAmount > 0 && (
-                <div className="flex justify-between text-emerald-600"><span>Discount ({result.discountPct}%)</span><span className="tabular-nums">− {inr(result.discountAmount)}</span></div>
+                <div className="flex justify-between text-emerald-600"><span>Discount ({result.discountPct}%)</span><span className="numeric">− {inr(result.discountAmount)}</span></div>
               )}
-              <div className="flex justify-between"><span className="text-muted-foreground">Tax (5%)</span><span className="tabular-nums">{inr(result.tax)}</span></div>
-              <div className="flex justify-between text-base font-bold pt-1"><span>Grand Total</span><span className="tabular-nums">{inr(result.grandTotal)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Tax (5%)</span><span className="numeric">{inr(result.tax)}</span></div>
+              <div className="mt-1 flex items-baseline justify-between gap-4 border-t pt-3">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Grand Total</span>
+                <span className="numeric text-lg font-bold tracking-[-0.02em]">{inr(result.grandTotal)}</span>
+              </div>
             </div>
             {result.grandTotal > 0 && (
               <div className="border-t pt-3 space-y-1.5">
@@ -780,7 +789,7 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
                 {result.paymentSchedule.map((p, i) => (
                   <div key={i} className="flex justify-between text-xs">
                     <span className="text-muted-foreground">{p.label} ({p.pct}%)</span>
-                    <span className="tabular-nums">{inr(p.amount)}</span>
+                    <span className="numeric">{inr(p.amount)}</span>
                   </div>
                 ))}
               </div>

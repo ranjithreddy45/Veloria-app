@@ -50,15 +50,15 @@ export default async function RsvpPage({
 
   if (!invitation) {
     return (
-      <div className="mx-auto max-w-lg rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400">
+      <div className="bg-card shadow-card mx-auto max-w-lg rounded-2xl border p-10 text-center">
+        <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-amber-500/12 text-amber-600 dark:text-amber-400">
           <AlertTriangle className="size-6" />
         </div>
-        <p className="mt-4 text-base font-semibold text-zinc-900 dark:text-zinc-100">
+        <h1 className="text-foreground mt-5 text-[24px]">
           This invitation link isn&apos;t valid
-        </p>
-        <p className="mt-1.5 text-sm text-zinc-500">
-          Please check with the couple for an updated invitation.
+        </h1>
+        <p className="text-muted-foreground mx-auto mt-2 max-w-xs text-sm leading-relaxed">
+          Do check with your hosts — they can send you a fresh invitation.
         </p>
       </div>
     );
@@ -93,67 +93,76 @@ export default async function RsvpPage({
   return (
     <div className="space-y-6">
       {/* Event Invitation Card */}
-      <Card className="overflow-hidden border-zinc-200/80 shadow-lg">
-        {/* Decorative Banner */}
-        <div className="relative bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 px-6 py-10 text-center text-white">
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItSDI0di0yaDEyem0wLTMwVjBoLTEydjRoMTJ6TTI0IDI0aDEydi0ySMjR2MnoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-30" />
-          <p className="relative text-sm font-medium uppercase tracking-widest text-white/80">
-            You are cordially invited to
-          </p>
-          <h1 className="relative mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
-            {booking.eventName}
-          </h1>
-          <p className="relative mt-2 text-sm text-white/70">
-            Hosted by {hostName}
-          </p>
+      <Card className="shadow-card overflow-hidden rounded-2xl py-0">
+        {/* Invitation plate — quiet ink, editorial type */}
+        <div className="relative overflow-hidden bg-zinc-950 px-6 py-14 text-center text-white">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-4 rounded-xl border border-white/12"
+          />
+          <div className="relative">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/55">
+              You are cordially invited to
+            </p>
+            <h1 className="mt-5 text-[32px] text-white sm:text-[40px]">
+              {booking.eventName}
+            </h1>
+            <div
+              aria-hidden
+              className="mx-auto mt-5 h-px w-14 bg-white/25"
+            />
+            <p className="mt-5 text-[13px] tracking-wide text-white/60">
+              Hosted by {hostName}
+            </p>
+          </div>
         </div>
 
-        <CardContent className="space-y-6 p-6">
+        <CardContent className="space-y-7 px-6 py-8">
           {/* Guest Greeting */}
           <div className="text-center">
-            <p className="text-lg text-zinc-700 dark:text-zinc-300">
-              Dear <span className="font-semibold">{guest.name}</span>,
+            <p className="font-editorial text-foreground text-[20px]">
+              Dear {guest.name},
             </p>
-            <p className="mt-1 text-sm text-zinc-500">
+            <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm leading-relaxed">
               We would be honoured by your presence at this special occasion.
             </p>
           </div>
 
           {/* Event Details */}
-          <div className="mx-auto grid max-w-sm gap-3">
-            <div className="flex items-center gap-3 rounded-lg border border-zinc-100 bg-zinc-50/50 p-3 dark:border-zinc-800 dark:bg-zinc-900/50">
-              <CalendarCheck className="size-5 flex-shrink-0 text-indigo-500" />
-              <div>
-                <p className="text-xs font-medium uppercase text-zinc-400">
+          <div className="mx-auto grid max-w-sm gap-2.5">
+            <div className="bg-muted/40 flex items-center gap-3.5 rounded-xl border p-3.5">
+              <CalendarCheck className="text-muted-foreground/60 size-5 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-muted-foreground/70 text-[10px] font-semibold uppercase tracking-[0.14em]">
                   Date
                 </p>
-                <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                <p className="text-foreground mt-0.5 text-sm font-semibold">
                   {formattedDate}
                 </p>
               </div>
             </div>
 
             {formattedTime && (
-              <div className="flex items-center gap-3 rounded-lg border border-zinc-100 bg-zinc-50/50 p-3 dark:border-zinc-800 dark:bg-zinc-900/50">
-                <Clock className="size-5 flex-shrink-0 text-indigo-500" />
-                <div>
-                  <p className="text-xs font-medium uppercase text-zinc-400">
+              <div className="bg-muted/40 flex items-center gap-3.5 rounded-xl border p-3.5">
+                <Clock className="text-muted-foreground/60 size-5 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-muted-foreground/70 text-[10px] font-semibold uppercase tracking-[0.14em]">
                     Time
                   </p>
-                  <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                  <p className="numeric text-foreground mt-0.5 text-sm font-semibold">
                     {formattedTime}
                   </p>
                 </div>
               </div>
             )}
 
-            <div className="flex items-center gap-3 rounded-lg border border-zinc-100 bg-zinc-50/50 p-3 dark:border-zinc-800 dark:bg-zinc-900/50">
-              <MapPin className="size-5 flex-shrink-0 text-indigo-500" />
-              <div>
-                <p className="text-xs font-medium uppercase text-zinc-400">
+            <div className="bg-muted/40 flex items-center gap-3.5 rounded-xl border p-3.5">
+              <MapPin className="text-muted-foreground/60 size-5 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-muted-foreground/70 text-[10px] font-semibold uppercase tracking-[0.14em]">
                   Venue
                 </p>
-                <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                <p className="text-foreground mt-0.5 text-sm font-semibold">
                   {booking.venue.name}
                 </p>
               </div>
@@ -164,38 +173,38 @@ export default async function RsvpPage({
 
       {/* RSVP Section */}
       {hasResponded ? (
-        <Card className="border-zinc-200/80 shadow-sm">
-          <CardContent className="py-8 text-center">
+        <Card className="shadow-card rounded-2xl">
+          <CardContent className="py-10 text-center">
             {isAccepted ? (
               <>
-                <CheckCircle2 className="mx-auto size-12 text-emerald-500" />
-                <h2 className="mt-3 text-xl font-bold text-zinc-900 dark:text-zinc-100">
-                  Thank you for accepting!
+                <CheckCircle2 className="mx-auto size-11 text-emerald-500" />
+                <h2 className="font-editorial text-foreground mt-4 text-[24px] font-semibold">
+                  Thank you for accepting
                 </h2>
-                <p className="mt-1 text-sm text-zinc-500">
-                  We&apos;re thrilled you&apos;ll be joining us. See you at{" "}
-                  {booking.eventName}!
+                <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm leading-relaxed">
+                  We&apos;re delighted you&apos;ll be joining us. See you at{" "}
+                  {booking.eventName}.
                 </p>
               </>
             ) : (
               <>
-                <XCircle className="mx-auto size-12 text-zinc-400" />
-                <h2 className="mt-3 text-xl font-bold text-zinc-900 dark:text-zinc-100">
-                  We&apos;ll miss you!
+                <XCircle className="text-muted-foreground/50 mx-auto size-11" />
+                <h2 className="font-editorial text-foreground mt-4 text-[24px] font-semibold">
+                  You&apos;ll be missed
                 </h2>
-                <p className="mt-1 text-sm text-zinc-500">
-                  Thank you for letting us know. We hope to see you at a future
-                  event.
+                <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm leading-relaxed">
+                  Thank you for letting us know — we hope to welcome you at a
+                  future occasion.
                 </p>
               </>
             )}
           </CardContent>
         </Card>
       ) : (
-        <Card className="border-zinc-200/80 shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-center text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-              Will you be attending?
+        <Card className="shadow-card rounded-2xl">
+          <CardHeader className="pb-2">
+            <CardTitle className="font-editorial text-foreground text-center text-[22px] font-semibold">
+              Will you be joining us?
             </CardTitle>
           </CardHeader>
           <CardContent>

@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/shared/status-badge";
+import { PageHeader } from "@/components/layout/page-header";
 import {
   LOYALTY_TIER_COLORS,
   LOYALTY_TRANSACTION_TYPE_LABELS,
@@ -67,23 +68,28 @@ function getTierProgress(tier: string, totalEarned: number) {
 function TransactionIcon({ type }: { type: string }) {
   switch (type) {
     case "EARNED":
-      return <ArrowUpIcon className="size-4 text-emerald-600" />;
+      return (
+        <ArrowUpIcon className="size-4 text-emerald-600 dark:text-emerald-400" />
+      );
     case "REDEEMED":
-      return <ArrowDownIcon className="size-4 text-purple-600" />;
+      return <ArrowDownIcon className="text-primary size-4" />;
     case "EXPIRED":
-      return <MinusIcon className="size-4 text-zinc-400" />;
+      return <MinusIcon className="text-muted-foreground/60 size-4" />;
     case "ADJUSTED":
-      return <SlidersHorizontalIcon className="size-4 text-blue-600" />;
+      return (
+        <SlidersHorizontalIcon className="size-4 text-blue-600 dark:text-blue-400" />
+      );
     default:
-      return <CoinsIcon className="size-4 text-zinc-400" />;
+      return <CoinsIcon className="text-muted-foreground/60 size-4" />;
   }
 }
 
 const TRANSACTION_TYPE_COLORS: Record<string, string> = {
-  EARNED: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  REDEEMED: "bg-purple-100 text-purple-700 border-purple-200",
-  EXPIRED: "bg-zinc-100 text-zinc-600 border-zinc-200",
-  ADJUSTED: "bg-blue-100 text-blue-700 border-blue-200",
+  EARNED:
+    "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
+  REDEEMED: "bg-primary/10 text-primary border-primary/25",
+  EXPIRED: "bg-muted text-muted-foreground border-border",
+  ADJUSTED: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/25",
 };
 
 // ============================================================
@@ -98,18 +104,23 @@ export default async function PortalLoyaltyPage() {
 
   if (!result.success) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
-          Loyalty & Rewards
-        </h1>
-        <Card className="border-zinc-200/80 shadow-sm">
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <AwardIcon className="size-12 text-zinc-300" />
-            <p className="mt-4 text-sm font-medium text-zinc-500">
-              Unable to load loyalty data
-            </p>
-            <p className="text-xs text-zinc-400">
-              Please try again later.
+      <div className="space-y-10">
+        <PageHeader
+          eyebrow="Your account"
+          title="Loyalty & Rewards"
+          description="Points you've collected with us, and what they unlock next."
+        />
+        <Card className="shadow-card rounded-2xl py-0">
+          <CardContent className="flex flex-col items-center justify-center px-6 py-20 text-center">
+            <div className="bg-muted flex size-16 items-center justify-center rounded-2xl">
+              <AwardIcon className="text-muted-foreground/60 size-8" />
+            </div>
+            <h3 className="font-editorial text-foreground mt-5 text-xl font-semibold">
+              We couldn&apos;t reach your rewards
+            </h3>
+            <p className="text-muted-foreground mt-2 max-w-sm text-sm leading-relaxed">
+              Nothing is lost — your points are safe. Please refresh in a moment
+              and they&apos;ll be back.
             </p>
           </CardContent>
         </Card>
@@ -122,19 +133,23 @@ export default async function PortalLoyaltyPage() {
   // No loyalty account yet
   if (!account) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
-          Loyalty & Rewards
-        </h1>
-        <Card className="border-zinc-200/80 shadow-sm">
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <AwardIcon className="size-12 text-zinc-300" />
-            <p className="mt-4 text-sm font-medium text-zinc-500">
-              No loyalty account yet
-            </p>
-            <p className="text-xs text-zinc-400 max-w-sm">
-              Your loyalty account will be activated when you start earning
-              points through bookings and referrals.
+      <div className="space-y-10">
+        <PageHeader
+          eyebrow="Your account"
+          title="Loyalty & Rewards"
+          description="Points you've collected with us, and what they unlock next."
+        />
+        <Card className="shadow-card rounded-2xl py-0">
+          <CardContent className="flex flex-col items-center justify-center px-6 py-20 text-center">
+            <div className="bg-muted flex size-16 items-center justify-center rounded-2xl">
+              <AwardIcon className="text-muted-foreground/60 size-8" />
+            </div>
+            <h3 className="font-editorial text-foreground mt-5 text-xl font-semibold">
+              Your first points are waiting
+            </h3>
+            <p className="text-muted-foreground mt-2 max-w-sm text-sm leading-relaxed">
+              Book with us or introduce a friend, and your rewards account opens
+              itself — nothing to sign up for.
             </p>
           </CardContent>
         </Card>
@@ -145,50 +160,50 @@ export default async function PortalLoyaltyPage() {
   const tierProgress = getTierProgress(account.tier, account.totalEarned);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       {/* Hero Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-500 via-amber-600 to-orange-600 px-6 py-8 text-white shadow-lg sm:px-8 sm:py-10">
-        <div className="absolute -right-10 -top-10 size-40 rounded-full bg-white/10 blur-2xl" />
-        <div className="absolute -bottom-8 -left-8 size-32 rounded-full bg-white/5 blur-xl" />
+      <div className="shadow-card relative overflow-hidden rounded-2xl border border-amber-500/20 bg-amber-500/[0.07] px-6 py-8 sm:px-8 sm:py-10">
+        <div className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full bg-amber-500/10 blur-3xl" />
         <div className="relative">
-          <div className="flex items-center gap-2 text-amber-200">
-            <Sparkles className="size-4" />
-            <span className="text-sm font-medium">Loyalty & Rewards</span>
+          <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+            <Sparkles className="size-3.5" />
+            <span className="text-[11px] font-semibold uppercase tracking-[0.14em]">
+              Your account
+            </span>
           </div>
-          <div className="mt-3 flex items-center gap-3">
-            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+          <h1 className="large-title text-foreground mt-2.5 text-[28px] leading-tight sm:text-[32px]">
+            Loyalty &amp; Rewards
+          </h1>
+          <div className="mt-3 flex items-baseline gap-2.5">
+            <span className="numeric text-foreground text-[40px] font-semibold leading-none sm:text-[48px]">
               {account.points.toLocaleString("en-IN")}
-            </h1>
-            <span className="text-lg text-amber-200">points</span>
+            </span>
+            <span className="text-muted-foreground text-base">
+              points to spend
+            </span>
           </div>
-          <div className="mt-2 flex items-center gap-2">
-            <StatusBadge
-              status={account.tier}
-              colorMap={{
-                BRONZE: "bg-white/20 text-white border-white/30",
-                SILVER: "bg-white/20 text-white border-white/30",
-                GOLD: "bg-white/20 text-white border-white/30",
-                PLATINUM: "bg-white/20 text-white border-white/30",
-              }}
-            />
+          <div className="mt-3.5 flex flex-wrap items-center gap-2.5">
+            <StatusBadge status={account.tier} colorMap={LOYALTY_TIER_COLORS} />
             {tierProgress.nextTierName && (
-              <span className="text-sm text-amber-200">
-                {tierProgress.pointsToNext.toLocaleString("en-IN")} pts to{" "}
-                {tierProgress.nextTierName}
+              <span className="text-muted-foreground text-sm">
+                <span className="numeric">
+                  {tierProgress.pointsToNext.toLocaleString("en-IN")}
+                </span>{" "}
+                more to {tierProgress.nextTierName.toLowerCase()}
               </span>
             )}
           </div>
 
           {/* Progress bar */}
           {tierProgress.nextTierName && (
-            <div className="mt-4 space-y-1">
-              <div className="h-2 w-full max-w-xs overflow-hidden rounded-full bg-white/20">
+            <div className="mt-5 space-y-1.5">
+              <div className="h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-amber-500/15">
                 <div
-                  className="h-full rounded-full bg-white transition-all duration-500"
+                  className="h-full rounded-full bg-amber-500 transition-all duration-500"
                   style={{ width: `${tierProgress.progress}%` }}
                 />
               </div>
-              <div className="flex max-w-xs justify-between text-xs text-amber-200">
+              <div className="text-muted-foreground/70 flex max-w-xs justify-between text-[10px] font-semibold uppercase tracking-[0.12em]">
                 <span>{account.tier}</span>
                 <span>{tierProgress.nextTierName}</span>
               </div>
@@ -198,56 +213,56 @@ export default async function PortalLoyaltyPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="border-zinc-200/80 shadow-sm">
+      <div className="grid gap-5 sm:grid-cols-3">
+        <Card className="shadow-card rounded-2xl py-0">
           <CardContent className="p-6">
-            <div className="flex items-start justify-between">
+            <div className="flex items-start justify-between gap-3">
               <div className="space-y-2">
-                <p className="text-sm font-medium text-zinc-500">
-                  Available Points
+                <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
+                  Available
                 </p>
-                <p className="text-2xl font-bold tracking-tight text-amber-700">
+                <p className="numeric text-foreground text-[26px] font-semibold leading-none">
                   {account.points.toLocaleString("en-IN")}
                 </p>
               </div>
-              <div className="flex size-10 items-center justify-center rounded-lg bg-amber-50">
-                <CoinsIcon className="size-5 text-amber-600" />
+              <div className="flex size-11 items-center justify-center rounded-xl bg-amber-500/10">
+                <CoinsIcon className="size-5 text-amber-600 dark:text-amber-400" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-zinc-200/80 shadow-sm">
+        <Card className="shadow-card rounded-2xl py-0">
           <CardContent className="p-6">
-            <div className="flex items-start justify-between">
+            <div className="flex items-start justify-between gap-3">
               <div className="space-y-2">
-                <p className="text-sm font-medium text-zinc-500">
-                  Total Earned
+                <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
+                  Earned to date
                 </p>
-                <p className="text-2xl font-bold tracking-tight text-emerald-700">
+                <p className="numeric text-foreground text-[26px] font-semibold leading-none">
                   {account.totalEarned.toLocaleString("en-IN")}
                 </p>
               </div>
-              <div className="flex size-10 items-center justify-center rounded-lg bg-emerald-50">
-                <TrendingUpIcon className="size-5 text-emerald-600" />
+              <div className="flex size-11 items-center justify-center rounded-xl bg-emerald-500/10">
+                <TrendingUpIcon className="size-5 text-emerald-600 dark:text-emerald-400" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-zinc-200/80 shadow-sm">
+        <Card className="shadow-card rounded-2xl py-0">
           <CardContent className="p-6">
-            <div className="flex items-start justify-between">
+            <div className="flex items-start justify-between gap-3">
               <div className="space-y-2">
-                <p className="text-sm font-medium text-zinc-500">
-                  Total Redeemed
+                <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
+                  Redeemed
                 </p>
-                <p className="text-2xl font-bold tracking-tight text-purple-700">
+                <p className="numeric text-foreground text-[26px] font-semibold leading-none">
                   {account.totalRedeemed.toLocaleString("en-IN")}
                 </p>
               </div>
-              <div className="flex size-10 items-center justify-center rounded-lg bg-purple-50">
-                <TrendingDownIcon className="size-5 text-purple-600" />
+              <div className="bg-primary/10 flex size-11 items-center justify-center rounded-xl">
+                <TrendingDownIcon className="text-primary size-5" />
               </div>
             </div>
           </CardContent>
@@ -255,37 +270,34 @@ export default async function PortalLoyaltyPage() {
       </div>
 
       {/* Tier Breakdown */}
-      <Card className="border-zinc-200/80 shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold text-zinc-900">
-            Tier Levels
+      <Card className="shadow-card rounded-2xl py-0">
+        <CardHeader className="px-6 pt-6 pb-4">
+          <CardTitle className="font-editorial text-foreground text-[20px] font-semibold">
+            How the tiers work
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-6 pb-6">
           <div className="grid gap-3 sm:grid-cols-4">
             {TIER_THRESHOLDS.map((t) => (
               <div
                 key={t.tier}
                 className={`flex flex-col items-center gap-2 rounded-xl border p-4 text-center transition-all ${
                   t.tier === account.tier
-                    ? "border-amber-200 bg-amber-50 ring-1 ring-amber-200"
-                    : "border-zinc-100 bg-zinc-50/50"
+                    ? "border-amber-500/30 bg-amber-500/[0.07]"
+                    : "bg-muted/30"
                 }`}
               >
-                <StatusBadge
-                  status={t.tier}
-                  colorMap={LOYALTY_TIER_COLORS}
-                />
-                <p className="text-xs text-muted-foreground">
+                <StatusBadge status={t.tier} colorMap={LOYALTY_TIER_COLORS} />
+                <p className="numeric text-muted-foreground text-xs">
                   {t.min === 0
-                    ? "0 - 499 pts"
+                    ? "0 – 499 pts"
                     : t.max === Infinity
                       ? `${t.min.toLocaleString("en-IN")}+ pts`
-                      : `${t.min.toLocaleString("en-IN")} - ${t.max.toLocaleString("en-IN")} pts`}
+                      : `${t.min.toLocaleString("en-IN")} – ${t.max.toLocaleString("en-IN")} pts`}
                 </p>
                 {t.tier === account.tier && (
-                  <span className="text-[10px] font-semibold uppercase text-amber-700">
-                    Current
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-700 dark:text-amber-400">
+                    You&apos;re here
                   </span>
                 )}
               </div>
@@ -295,21 +307,23 @@ export default async function PortalLoyaltyPage() {
       </Card>
 
       {/* Transaction History */}
-      <Card className="border-zinc-200/80 shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold text-zinc-900">
-            Recent Activity
+      <Card className="shadow-card rounded-2xl py-0">
+        <CardHeader className="px-6 pt-6 pb-4">
+          <CardTitle className="font-editorial text-foreground text-[20px] font-semibold">
+            Recent activity
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-6 pb-6">
           {account.transactions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <CoinsIcon className="size-10 text-zinc-300" />
-              <p className="mt-3 text-sm font-medium text-zinc-500">
-                No activity yet
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="bg-muted flex size-14 items-center justify-center rounded-2xl">
+                <CoinsIcon className="text-muted-foreground/60 size-7" />
+              </div>
+              <p className="font-editorial text-foreground mt-4 text-[18px] font-semibold">
+                The counting begins soon
               </p>
-              <p className="text-xs text-zinc-400">
-                Your points activity will appear here.
+              <p className="text-muted-foreground mt-1.5 max-w-sm text-sm leading-relaxed">
+                Every booking and every referral adds points here.
               </p>
             </div>
           ) : (
@@ -324,37 +338,37 @@ export default async function PortalLoyaltyPage() {
               }) => (
                 <div
                   key={tx.id}
-                  className="flex items-center gap-4 rounded-lg border border-zinc-100 bg-zinc-50/50 p-4 transition-colors hover:bg-zinc-50"
+                  className="hover:bg-muted/60 flex items-center gap-4 rounded-xl border p-4 transition-colors"
                 >
-                  <div className="flex size-10 items-center justify-center rounded-lg bg-white dark:bg-card border border-zinc-100">
+                  <div className="bg-muted flex size-10 flex-shrink-0 items-center justify-center rounded-xl">
                     <TransactionIcon type={tx.type} />
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-zinc-900 truncate">
+                      <p className="text-foreground truncate text-sm font-medium">
                         {tx.description}
                       </p>
                       <Badge
                         variant="outline"
-                        className={`border text-[10px] font-medium shrink-0 ${
+                        className={`shrink-0 border text-[10px] font-medium ${
                           TRANSACTION_TYPE_COLORS[tx.type] ?? ""
                         }`}
                       >
                         {LOYALTY_TRANSACTION_TYPE_LABELS[tx.type] ?? tx.type}
                       </Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <p className="numeric text-muted-foreground mt-0.5 text-xs">
                       {format(new Date(tx.createdAt), "dd MMM yyyy, hh:mm a")}
                     </p>
                   </div>
                   <div
-                    className={`text-sm font-bold shrink-0 ${
+                    className={`numeric shrink-0 text-sm font-semibold ${
                       tx.type === "EARNED" || (tx.type === "ADJUSTED" && tx.points > 0)
-                        ? "text-emerald-700"
+                        ? "text-emerald-600 dark:text-emerald-400"
                         : tx.type === "REDEEMED" ||
                             (tx.type === "ADJUSTED" && tx.points < 0)
-                          ? "text-red-600"
-                          : "text-zinc-500"
+                          ? "text-red-600 dark:text-red-400"
+                          : "text-muted-foreground"
                     }`}
                   >
                     {tx.type === "EARNED" || (tx.type === "ADJUSTED" && tx.points > 0)

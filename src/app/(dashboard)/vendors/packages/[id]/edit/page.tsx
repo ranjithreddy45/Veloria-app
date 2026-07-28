@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { PackageIcon } from "lucide-react";
 
 import { getPackage, listCatalogVendors } from "@/actions/vendor-catalog.actions";
 import { listVendorCategories } from "@/actions/vendor-category.actions";
@@ -37,6 +38,8 @@ export default async function EditPackagePage({ params }: EditPackagePageProps) 
   return (
     <div className="space-y-6">
       <PageHeader
+        icon={PackageIcon}
+        accent="teal"
         title={`Edit: ${pkg.name}`}
         eyebrow="Vendors · Packages"
         description="Update package details, sections, items, and images."

@@ -1,12 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import {
-  PencilIcon,
-  SendIcon,
-  CreditCardIcon,
-  CalendarClockIcon,
-  PrinterIcon,
-} from "lucide-react";
+import { PencilIcon, SendIcon, FileTextIcon } from "lucide-react";
 import { getInvoice, sendInvoice } from "@/actions/invoice.actions";
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
@@ -15,6 +9,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { INVOICE_STATUS_COLORS } from "@/lib/constants";
+import { formatINR } from "@/lib/utils";
 import { InvoicePreview } from "./_components/invoice-preview";
 import { RecordPaymentDialog } from "./_components/record-payment-dialog";
 import { PendingProofs } from "./_components/pending-proofs";
@@ -74,8 +69,18 @@ export default async function InvoiceDetailPage({
   return (
     <div className="space-y-6">
       <PageHeader
+        icon={FileTextIcon}
+        accent="emerald"
+        eyebrow={
+          <span>
+            INVOICE ·{" "}
+            <span className="numeric">{formatINR(invoice.totalAmount)}</span>{" "}
+            total ·{" "}
+            <span className="numeric">{formatINR(invoice.balanceDue)}</span> due
+          </span>
+        }
         title={`Invoice ${invoice.invoiceNumber}`}
-        description={`${invoice.contact.firstName} ${invoice.contact.lastName}${invoice.contact.company ? ` - ${invoice.contact.company}` : ""}`}
+        description={`${invoice.contact.firstName} ${invoice.contact.lastName}${invoice.contact.company ? ` — ${invoice.contact.company}` : ""}`}
       >
         <Badge variant="outline" className={`${statusColors} border text-sm`}>
           {invoice.status.replace("_", " ")}

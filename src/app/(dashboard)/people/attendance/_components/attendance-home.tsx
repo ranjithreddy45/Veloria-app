@@ -2,8 +2,9 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { MapPin, LogIn, LogOut, Loader2, Clock, CalendarPlus, UserCog } from "lucide-react";
+import { MapPin, LogIn, LogOut, Loader2, Clock, CalendarPlus, UserCog, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -57,8 +58,8 @@ export function AttendanceHome({
         </div>
       </div>
 
-      <div className="rounded-xl border bg-card">
-        <div className="flex items-center justify-between border-b px-4 py-3">
+      <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
+        <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
           <span className="text-[13px] font-semibold">This month</span>
           <div className="flex items-center gap-2">
             {canMarkManually && <MarkManuallyDialog employees={employees} />}
@@ -66,7 +67,11 @@ export function AttendanceHome({
           </div>
         </div>
         {records.length === 0 ? (
-          <div className="p-10 text-center text-sm text-muted-foreground">No attendance recorded this month yet.</div>
+          <EmptyState
+            icon={<CalendarClock className="size-5" />}
+            title="Nothing recorded this month"
+            description="Your check-ins and check-outs will appear here as soon as you punch in."
+          />
         ) : (
           <Table>
             <TableHeader>
@@ -78,13 +83,13 @@ export function AttendanceHome({
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody className="[&_td]:py-3.5">
               {records.map((r) => (
                 <TableRow key={r.id}>
-                  <TableCell className="text-[13px]">{formatDate(r.date)}</TableCell>
-                  <TableCell className="text-[13px] tabular-nums">{fmtTime(r.checkInAt)}</TableCell>
-                  <TableCell className="text-[13px] tabular-nums">{fmtTime(r.checkOutAt)}</TableCell>
-                  <TableCell className="text-right text-[13px] tabular-nums">{fmtDur(r.workedMinutes)}</TableCell>
+                  <TableCell className="numeric text-[12.5px] whitespace-nowrap">{formatDate(r.date)}</TableCell>
+                  <TableCell className="numeric text-[12.5px]">{fmtTime(r.checkInAt)}</TableCell>
+                  <TableCell className="numeric text-[12.5px]">{fmtTime(r.checkOutAt)}</TableCell>
+                  <TableCell className="numeric text-right text-[12.5px] font-medium">{fmtDur(r.workedMinutes)}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1.5">
                       <StatusPill label={ATTENDANCE_STATUS_LABELS[r.status]} hue={ATTENDANCE_STATUS_HUE[r.status] as never} size="xs" />
@@ -103,9 +108,9 @@ export function AttendanceHome({
 
 function Stat({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="rounded-xl border bg-card p-4">
-      <div className="text-[12px] font-medium text-muted-foreground">{label}</div>
-      <div className="mt-2 text-2xl font-semibold tabular-nums">{value}</div>
+    <div className="rounded-2xl border bg-card p-5 shadow-card">
+      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="numeric mt-2.5 text-[26px] font-semibold leading-none">{value}</div>
     </div>
   );
 }
@@ -203,18 +208,18 @@ function CheckInCard({ today }: { today: Rec | null }) {
   }
 
   return (
-    <div className="rounded-xl border bg-gradient-to-br from-card to-muted/30 p-5">
-      <div className="flex items-center gap-2 text-[13px] font-semibold text-muted-foreground">
-        <Clock className="size-4" /> Today
+    <div className="rounded-2xl border bg-gradient-to-br from-card to-muted/30 p-5 shadow-card">
+      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        <Clock className="size-3.5" /> Today
       </div>
-      <div className="mt-3 flex items-baseline gap-3">
+      <div className="mt-3 flex items-baseline gap-5">
         <div>
-          <div className="text-[11px] text-muted-foreground">Check-in</div>
-          <div className="text-lg font-semibold tabular-nums">{fmtTime(today?.checkInAt ?? null)}</div>
+          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Check-in</div>
+          <div className="numeric mt-1 text-[19px] font-semibold leading-none">{fmtTime(today?.checkInAt ?? null)}</div>
         </div>
         <div>
-          <div className="text-[11px] text-muted-foreground">Check-out</div>
-          <div className="text-lg font-semibold tabular-nums">{fmtTime(today?.checkOutAt ?? null)}</div>
+          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Check-out</div>
+          <div className="numeric mt-1 text-[19px] font-semibold leading-none">{fmtTime(today?.checkOutAt ?? null)}</div>
         </div>
         {today && (
           <div className="ml-auto">

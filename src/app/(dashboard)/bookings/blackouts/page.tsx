@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeftIcon } from "lucide-react";
+import { ArrowLeftIcon, BanIcon } from "lucide-react";
 
 import { getBlackoutDates, getVenues } from "@/actions/booking.actions";
 import { PageHeader } from "@/components/layout/page-header";
@@ -37,6 +37,8 @@ export default async function BlackoutsPage() {
     <div className="space-y-6">
       <PageHeader
         aura
+        icon={BanIcon}
+        accent="rose"
         eyebrow={
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <span>Bookings · Operations</span>
@@ -47,7 +49,7 @@ export default async function BlackoutsPage() {
           </div>
         }
         title="Blackout Dates"
-        description="Block venue dates so they can't be booked."
+        description="Dates and slots held back from sale — maintenance, private use or anything you never want auto-booked."
       >
         <Button variant="outline" asChild>
           <Link href="/bookings/calendar">

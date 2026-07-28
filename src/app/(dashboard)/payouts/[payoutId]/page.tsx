@@ -9,9 +9,11 @@ import {
   UserIcon,
   TagIcon,
   ArrowLeftIcon,
+  WalletIcon,
 } from "lucide-react";
 
 import { getPayoutById } from "@/actions/payout.actions";
+import { PageHeader } from "@/components/layout/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,27 +53,32 @@ export default async function PayoutDetailPage({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon-xs" asChild>
-              <Link href="/payouts">
-                <ArrowLeftIcon className="size-4" />
-              </Link>
-            </Button>
-            <h1 className="text-2xl font-bold tracking-tight">
-              {payout.referenceNumber || "Payout Details"}
-            </h1>
-            <StatusBadge
-              status={payout.status}
-              colorMap={PAYOUT_STATUS_COLORS}
-            />
-          </div>
-          <p className="text-muted-foreground mt-1 ml-10 text-sm">
-            {PAYOUT_TYPE_LABELS[payout.type] || payout.type}
-          </p>
-        </div>
-        <PayoutActions payoutId={payout.id} status={payout.status} />
+      <div className="space-y-3">
+        <Button
+          variant="ghost"
+          size="sm"
+          asChild
+          className="-ml-2 h-7 text-[13px] text-muted-foreground"
+        >
+          <Link href="/payouts">
+            <ArrowLeftIcon className="mr-1.5 size-3.5" />
+            All payouts
+          </Link>
+        </Button>
+        <PageHeader
+          icon={WalletIcon}
+          accent="teal"
+          eyebrow={
+            <span>
+              {PAYOUT_TYPE_LABELS[payout.type] || payout.type} ·{" "}
+              <span className="numeric">{formatINR(payout.amount)}</span>
+            </span>
+          }
+          title={payout.referenceNumber || "Payout Details"}
+        >
+          <StatusBadge status={payout.status} colorMap={PAYOUT_STATUS_COLORS} />
+          <PayoutActions payoutId={payout.id} status={payout.status} />
+        </PageHeader>
       </div>
 
       {/* Detail Cards */}
@@ -85,8 +92,8 @@ export default async function PayoutDetailPage({
             <div className="flex items-center gap-3">
               <IndianRupeeIcon className="text-muted-foreground size-4 shrink-0" />
               <div>
-                <p className="text-muted-foreground text-xs">Amount</p>
-                <p className="text-lg font-bold text-green-700">
+                <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">Amount</p>
+                <p className="numeric text-[22px] font-bold text-success">
                   {formatINR(payout.amount)}
                 </p>
               </div>
@@ -94,7 +101,7 @@ export default async function PayoutDetailPage({
             <div className="flex items-center gap-3">
               <TagIcon className="text-muted-foreground size-4 shrink-0" />
               <div>
-                <p className="text-muted-foreground text-xs">Type</p>
+                <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">Type</p>
                 <Badge variant="outline" className="mt-0.5">
                   {PAYOUT_TYPE_LABELS[payout.type] || payout.type}
                 </Badge>
@@ -103,8 +110,8 @@ export default async function PayoutDetailPage({
             <div className="flex items-center gap-3">
               <FileTextIcon className="text-muted-foreground size-4 shrink-0" />
               <div>
-                <p className="text-muted-foreground text-xs">Reference Number</p>
-                <p className="text-sm font-mono font-medium">
+                <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">Reference Number</p>
+                <p className="numeric text-[13px] font-medium">
                   {payout.referenceNumber || "--"}
                 </p>
               </div>
@@ -113,7 +120,7 @@ export default async function PayoutDetailPage({
               <>
                 <Separator />
                 <div>
-                  <p className="text-muted-foreground text-xs mb-1">
+                  <p className="mb-1 text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
                     Description
                   </p>
                   <p className="text-sm">{payout.description}</p>
@@ -122,7 +129,7 @@ export default async function PayoutDetailPage({
             )}
             {payout.notes && (
               <div>
-                <p className="text-muted-foreground text-xs mb-1">Notes</p>
+                <p className="mb-1 text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">Notes</p>
                 <p className="text-sm whitespace-pre-wrap text-zinc-600">
                   {payout.notes}
                 </p>
@@ -140,7 +147,7 @@ export default async function PayoutDetailPage({
             <div className="flex items-center gap-3">
               <div className="size-4 shrink-0" />
               <div>
-                <p className="text-muted-foreground text-xs">Status</p>
+                <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">Status</p>
                 <StatusBadge
                   status={payout.status}
                   colorMap={PAYOUT_STATUS_COLORS}
@@ -151,8 +158,8 @@ export default async function PayoutDetailPage({
             <div className="flex items-center gap-3">
               <CalendarIcon className="text-muted-foreground size-4 shrink-0" />
               <div>
-                <p className="text-muted-foreground text-xs">Created At</p>
-                <p className="text-sm">
+                <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">Created At</p>
+                <p className="numeric text-[13px]">
                   {format(new Date(payout.createdAt), "dd MMM yyyy, hh:mm a")}
                 </p>
               </div>
@@ -160,8 +167,8 @@ export default async function PayoutDetailPage({
             <div className="flex items-center gap-3">
               <CalendarIcon className="text-muted-foreground size-4 shrink-0" />
               <div>
-                <p className="text-muted-foreground text-xs">Last Updated</p>
-                <p className="text-sm">
+                <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">Last Updated</p>
+                <p className="numeric text-[13px]">
                   {format(new Date(payout.updatedAt), "dd MMM yyyy, hh:mm a")}
                 </p>
               </div>
@@ -170,8 +177,8 @@ export default async function PayoutDetailPage({
               <div className="flex items-center gap-3">
                 <CalendarIcon className="text-muted-foreground size-4 shrink-0" />
                 <div>
-                  <p className="text-muted-foreground text-xs">Paid At</p>
-                  <p className="text-sm font-medium text-emerald-700">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">Paid At</p>
+                  <p className="numeric text-[13px] font-medium text-success">
                     {format(new Date(payout.paidAt), "dd MMM yyyy, hh:mm a")}
                   </p>
                 </div>
@@ -181,7 +188,7 @@ export default async function PayoutDetailPage({
               <div className="flex items-center gap-3">
                 <UserIcon className="text-muted-foreground size-4 shrink-0" />
                 <div>
-                  <p className="text-muted-foreground text-xs">Approved By</p>
+                  <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">Approved By</p>
                   <p className="text-sm">{payout.approvedById}</p>
                 </div>
               </div>
@@ -204,24 +211,24 @@ export default async function PayoutDetailPage({
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <p className="text-muted-foreground text-xs">Name</p>
+                <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">Name</p>
                 <p className="text-sm font-medium">{payout.vendor.name}</p>
               </div>
               {payout.vendor.email && (
                 <div>
-                  <p className="text-muted-foreground text-xs">Email</p>
+                  <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">Email</p>
                   <p className="text-sm">{payout.vendor.email}</p>
                 </div>
               )}
               {payout.vendor.phone && (
                 <div>
-                  <p className="text-muted-foreground text-xs">Phone</p>
+                  <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">Phone</p>
                   <p className="text-sm">{payout.vendor.phone}</p>
                 </div>
               )}
               {payout.vendor.category && (
                 <div>
-                  <p className="text-muted-foreground text-xs">Category</p>
+                  <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">Category</p>
                   <p className="text-sm">{payout.vendor.category}</p>
                 </div>
               )}
@@ -244,27 +251,27 @@ export default async function PayoutDetailPage({
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <p className="text-muted-foreground text-xs">Booking Number</p>
-                <p className="text-sm font-mono font-medium">
+                <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">Booking Number</p>
+                <p className="numeric text-[13px] font-medium">
                   {payout.booking.bookingNumber}
                 </p>
               </div>
               <div>
-                <p className="text-muted-foreground text-xs">Event Name</p>
+                <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">Event Name</p>
                 <p className="text-sm font-medium">{payout.booking.eventName}</p>
               </div>
               {payout.booking.date && (
                 <div>
-                  <p className="text-muted-foreground text-xs">Event Date</p>
-                  <p className="text-sm">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">Event Date</p>
+                  <p className="numeric text-[13px]">
                     {format(new Date(payout.booking.date), "dd MMM yyyy")}
                   </p>
                 </div>
               )}
               {payout.booking.totalAmount != null && (
                 <div>
-                  <p className="text-muted-foreground text-xs">Booking Total</p>
-                  <p className="text-sm font-medium">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">Booking Total</p>
+                  <p className="numeric text-[13px] font-semibold">
                     {formatINR(payout.booking.totalAmount)}
                   </p>
                 </div>
@@ -286,19 +293,19 @@ export default async function PayoutDetailPage({
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <p className="text-muted-foreground text-xs">Bill Number</p>
-                <p className="text-sm font-mono font-medium">
+                <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">Bill Number</p>
+                <p className="numeric text-[13px] font-medium">
                   {payout.bill.billNumber}
                 </p>
               </div>
               <div>
-                <p className="text-muted-foreground text-xs">Bill Amount</p>
-                <p className="text-sm font-medium">
+                <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">Bill Amount</p>
+                <p className="numeric text-[13px] font-semibold">
                   {formatINR(payout.bill.amount)}
                 </p>
               </div>
               <div>
-                <p className="text-muted-foreground text-xs">Status</p>
+                <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">Status</p>
                 <Badge variant="outline" className="mt-0.5">
                   {payout.bill.status}
                 </Badge>

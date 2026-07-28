@@ -30,12 +30,14 @@ export default async function ReferralPortalPage({
   // Invalid / inactive code — friendly card, no internal leak.
   if (!partner.found) {
     return (
-      <div className="rounded-2xl border border-border bg-card p-8 text-center shadow-card">
-        <p className="text-base font-medium">This referral link isn’t active</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          The link may have expired or been deactivated. If a friend shared it
-          with you, ask them for an updated link — or reach out to Veloria Grand
-          directly and we’ll be glad to help plan your event.
+      <div className="bg-card shadow-card mx-auto max-w-lg rounded-2xl border p-10 text-center">
+        <h1 className="text-foreground text-[24px]">
+          This referral link isn’t active
+        </h1>
+        <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm leading-relaxed">
+          It may have expired or been deactivated. Ask your friend for a fresh
+          link — or reach out to us directly and we’ll be glad to help plan your
+          celebration.
         </p>
       </div>
     );
@@ -50,26 +52,26 @@ export default async function ReferralPortalPage({
   return (
     <div className="space-y-6">
       {/* Brand hero */}
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-violet-500/10 via-card to-pink-500/5 p-8 text-center shadow-card">
-        <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-600 dark:bg-violet-950/50 dark:text-violet-300">
+      <div className="bg-card shadow-card relative overflow-hidden rounded-2xl border px-8 py-12 text-center">
+        <div className="bg-primary/10 text-primary mx-auto mb-6 flex size-12 items-center justify-center rounded-2xl">
           <Gift className="size-6" />
         </div>
-        <p className="inline-flex items-center gap-1.5 rounded-full bg-violet-100/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-violet-700 dark:bg-violet-950/40 dark:text-violet-300">
+        <p className="text-muted-foreground inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em]">
           <Sparkles className="size-3" />
           Referred by {partner.referrerDisplayName}
         </p>
-        <h1 className="mt-3 text-2xl font-bold tracking-tight">
+        <h1 className="text-foreground mt-4 text-[30px] sm:text-[36px]">
           Plan your event at {partner.venueName}
         </h1>
-        <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+        <p className="text-muted-foreground mx-auto mt-4 max-w-md text-[15px] leading-relaxed">
           {partner.referrerDisplayName} thought you’d love Veloria Grand for your
-          celebration. Tell us a little about your event and our team will reach
-          out with bespoke options — no obligation.
+          celebration. Tell us a little about your day and our team will come
+          back with bespoke options — no obligation.
         </p>
       </div>
 
       {/* Intake form */}
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-card sm:p-8">
+      <div className="bg-card shadow-card rounded-2xl border p-6 sm:p-8">
         <ReferralIntakeForm code={code} utm={utm} />
       </div>
     </div>

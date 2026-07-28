@@ -44,6 +44,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/shared/status-badge";
 import {
   BOOKING_STATUS_COLORS,
@@ -60,9 +61,10 @@ import type { VendorAssignmentStatus } from "@prisma/client";
 
 // Operation-assignment status has no shared colorMap (NOTIFIED|CONFIRMED|DECLINED).
 const OP_ASSIGNMENT_STATUS_COLORS: Record<string, string> = {
-  NOTIFIED: "bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400",
-  CONFIRMED: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400",
-  DECLINED: "bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400",
+  NOTIFIED: "bg-amber-500/14 text-amber-700 border-amber-500/25 dark:text-amber-300",
+  CONFIRMED:
+    "bg-emerald-500/12 text-emerald-700 border-emerald-500/25 dark:text-emerald-300",
+  DECLINED: "bg-red-500/12 text-red-700 border-red-500/25 dark:text-red-300",
 };
 
 // ============================================================
@@ -223,22 +225,28 @@ export function VendorEventsClient({ initialData }: VendorEventsClientProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <CalendarCheck className="size-6 text-violet-600 dark:text-violet-400" />
-          <div>
-            <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-              My Events
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex items-start gap-3.5">
+          <span className="mt-0.5 hidden size-11 shrink-0 items-center justify-center rounded-2xl bg-teal-500/12 text-teal-700 sm:flex dark:text-teal-300">
+            <CalendarCheck className="size-[22px]" />
+          </span>
+          <div className="space-y-1.5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-teal-700 dark:text-teal-300">
+              Schedule
+            </p>
+            <h1 className="text-[28px] leading-tight text-foreground sm:text-[32px]">
+              Your events
             </h1>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              {data.total} event{data.total !== 1 ? "s" : ""} assigned to you
+            <p className="text-[14px] text-muted-foreground">
+              <span className="numeric">{data.total}</span> event
+              {data.total !== 1 ? "s" : ""} where our clients are counting on you.
             </p>
           </div>
         </div>
 
         {/* Filter */}
         <div className="flex items-center gap-2">
-          <Filter className="size-4 text-zinc-400" />
+          <Filter className="size-4 text-muted-foreground" />
           <Select value={statusFilter} onValueChange={handleStatusChange}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filter by status" />
@@ -255,34 +263,35 @@ export function VendorEventsClient({ initialData }: VendorEventsClientProps) {
 
       {/* Operation Assignments — per-operation confirm/decline */}
       {(opLoading || opAssignments.length > 0) && (
-        <Card className="border-zinc-200/80 shadow-sm dark:border-zinc-800">
+        <Card className="rounded-2xl border bg-card shadow-card">
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
-              <ClipboardList className="size-4 text-violet-600 dark:text-violet-400" />
-              <CardTitle className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-                Operation Assignments
+              <ClipboardList className="size-4 text-teal-700 dark:text-teal-300" />
+              <CardTitle className="text-[15px] font-semibold">
+                Needs your answer
               </CardTitle>
             </div>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              Confirm or decline the operations you have been requested for.
+            <p className="text-xs text-muted-foreground">
+              Confirm the dates you can cover — the sooner we know, the better we
+              plan around you.
             </p>
           </CardHeader>
           <CardContent>
             {opLoading ? (
-              <p className="py-6 text-center text-sm text-zinc-400 dark:text-zinc-500">
-                Loading assignments...
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                Loading your assignments…
               </p>
             ) : (
               <div className="space-y-3">
                 {opAssignments.map((a) => (
                   <div
                     key={a.id}
-                    className="rounded-lg border border-zinc-100 bg-zinc-50/50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50"
+                    className="rounded-xl border bg-muted/30 p-4"
                   >
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className="font-medium text-zinc-900 dark:text-zinc-100">
+                          <p className="font-medium text-foreground">
                             {a.booking.eventName}
                           </p>
                           <StatusBadge
@@ -290,13 +299,15 @@ export function VendorEventsClient({ initialData }: VendorEventsClientProps) {
                             colorMap={OP_ASSIGNMENT_STATUS_COLORS}
                           />
                         </div>
-                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                          {a.booking.bookingNumber} &middot; {a.booking.eventType}
+                        <p className="text-xs text-muted-foreground">
+                          <span className="numeric">{a.booking.bookingNumber}</span>
+                          {" · "}
+                          {a.booking.eventType}
                         </p>
-                        <div className="mt-2 flex flex-wrap gap-3 text-xs text-zinc-500 dark:text-zinc-400">
+                        <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Clock className="size-3" />
-                            {formatDate(a.booking.date)}
+                            <span className="numeric">{formatDate(a.booking.date)}</span>
                           </span>
                           {a.booking.venue && (
                             <span className="flex items-center gap-1">
@@ -327,7 +338,7 @@ export function VendorEventsClient({ initialData }: VendorEventsClientProps) {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="gap-1 border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/30"
+                            className="gap-1 border-red-500/30 text-red-600 hover:bg-red-500/10 dark:text-red-400"
                             disabled={pending && pendingId === a.id}
                             onClick={() => openDecline(a)}
                           >
@@ -346,77 +357,86 @@ export function VendorEventsClient({ initialData }: VendorEventsClientProps) {
       )}
 
       {/* Events Table */}
-      <Card className="border-zinc-200/80 shadow-sm dark:border-zinc-800">
+      <Card className="rounded-2xl border bg-card shadow-card">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-            Assigned Bookings
+          <CardTitle className="text-[15px] font-semibold">
+            Assigned bookings
           </CardTitle>
         </CardHeader>
         <CardContent>
           {data.data.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <CalendarCheck className="size-12 text-zinc-300 dark:text-zinc-600" />
-              <p className="mt-3 text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                No events found
-              </p>
-              <p className="text-xs text-zinc-400 dark:text-zinc-500">
-                {statusFilter !== "all"
-                  ? "Try changing the filter to see more events."
-                  : "You have not been assigned to any bookings yet."}
-              </p>
-            </div>
+            <EmptyState
+              icon={<CalendarCheck />}
+              title={
+                statusFilter !== "all"
+                  ? "Nothing under this filter"
+                  : "No dates on your calendar with us yet"
+              }
+              description={
+                statusFilter !== "all"
+                  ? "Switch back to all statuses to see every event you've been part of."
+                  : "Once our team books you onto an event, the date, venue, and your role all appear here."
+              }
+            />
           ) : (
             <>
               {/* Desktop table */}
               <div className="hidden md:block">
                 <Table>
                   <TableHeader>
-                    <TableRow>
+                    <TableRow className="[&>th]:text-[11px] [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-[0.1em] [&>th]:text-muted-foreground">
                       <TableHead>Event</TableHead>
                       <TableHead>Date</TableHead>
-                      <TableHead>Time Slot</TableHead>
+                      <TableHead>Time slot</TableHead>
                       <TableHead>Venue</TableHead>
-                      <TableHead>Guests</TableHead>
-                      <TableHead>Your Role</TableHead>
+                      <TableHead className="text-right">Guests</TableHead>
+                      <TableHead>Your role</TableHead>
                       <TableHead>Assignment</TableHead>
                       <TableHead>Booking</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {data.data.map((assignment) => (
-                      <TableRow key={assignment.id} className={loading ? "opacity-50" : ""}>
-                        <TableCell>
+                      <TableRow
+                        key={assignment.id}
+                        className={`transition-colors hover:bg-muted/40 ${loading ? "opacity-50" : ""}`}
+                      >
+                        <TableCell className="py-3.5">
                           <div>
-                            <p className="font-medium text-zinc-900 dark:text-zinc-100">
+                            <p className="font-medium text-foreground">
                               {assignment.booking.eventName}
                             </p>
-                            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                              {assignment.booking.bookingNumber} &middot; {assignment.booking.eventType}
+                            <p className="text-xs text-muted-foreground">
+                              <span className="numeric">
+                                {assignment.booking.bookingNumber}
+                              </span>
+                              {" · "}
+                              {assignment.booking.eventType}
                             </p>
                           </div>
                         </TableCell>
-                        <TableCell className="whitespace-nowrap text-sm text-zinc-600 dark:text-zinc-300">
+                        <TableCell className="numeric whitespace-nowrap py-3.5 text-sm text-muted-foreground">
                           {formatDate(assignment.booking.date)}
                         </TableCell>
-                        <TableCell className="text-sm text-zinc-600 dark:text-zinc-300">
+                        <TableCell className="py-3.5 text-sm text-muted-foreground">
                           {TIME_SLOT_LABELS[assignment.booking.timeSlot] || assignment.booking.timeSlot}
                         </TableCell>
-                        <TableCell className="text-sm text-zinc-600 dark:text-zinc-300">
+                        <TableCell className="py-3.5 text-sm text-muted-foreground">
                           {assignment.booking.venue.name}
                         </TableCell>
-                        <TableCell className="text-sm text-zinc-600 dark:text-zinc-300">
+                        <TableCell className="numeric py-3.5 text-right text-sm text-muted-foreground">
                           {assignment.booking.guestCount}
                         </TableCell>
-                        <TableCell className="text-sm text-zinc-600 dark:text-zinc-300">
-                          {assignment.role || "--"}
+                        <TableCell className="py-3.5 text-sm text-muted-foreground">
+                          {assignment.role || "—"}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-3.5">
                           <StatusBadge
                             status={assignment.status}
                             colorMap={VENDOR_ASSIGNMENT_STATUS_COLORS}
                           />
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-3.5">
                           <StatusBadge
                             status={assignment.booking.status}
                             colorMap={BOOKING_STATUS_COLORS}
@@ -433,17 +453,21 @@ export function VendorEventsClient({ initialData }: VendorEventsClientProps) {
                 {data.data.map((assignment) => (
                   <div
                     key={assignment.id}
-                    className={`rounded-lg border border-zinc-100 bg-zinc-50/50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50 ${
+                    className={`rounded-xl border bg-muted/30 p-4 ${
                       loading ? "opacity-50" : ""
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <p className="font-medium text-zinc-900 dark:text-zinc-100">
+                        <p className="font-medium text-foreground">
                           {assignment.booking.eventName}
                         </p>
-                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                          {assignment.booking.bookingNumber} &middot; {assignment.booking.eventType}
+                        <p className="text-xs text-muted-foreground">
+                          <span className="numeric">
+                            {assignment.booking.bookingNumber}
+                          </span>
+                          {" · "}
+                          {assignment.booking.eventType}
                         </p>
                       </div>
                       <StatusBadge
@@ -451,10 +475,10 @@ export function VendorEventsClient({ initialData }: VendorEventsClientProps) {
                         colorMap={VENDOR_ASSIGNMENT_STATUS_COLORS}
                       />
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-3 text-xs text-zinc-500 dark:text-zinc-400">
+                    <div className="mt-3 flex flex-wrap gap-3 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Clock className="size-3" />
-                        {formatDate(assignment.booking.date)}
+                        <span className="numeric">{formatDate(assignment.booking.date)}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <MapPin className="size-3" />
@@ -462,12 +486,13 @@ export function VendorEventsClient({ initialData }: VendorEventsClientProps) {
                       </div>
                       <div className="flex items-center gap-1">
                         <Users className="size-3" />
-                        {assignment.booking.guestCount} guests
+                        <span className="numeric">{assignment.booking.guestCount}</span>{" "}
+                        guests
                       </div>
                     </div>
                     {assignment.role && (
-                      <p className="mt-2 text-xs text-zinc-600 dark:text-zinc-300">
-                        Role: <span className="font-medium">{assignment.role}</span>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Role: <span className="font-medium text-foreground">{assignment.role}</span>
                       </p>
                     )}
                     <div className="mt-2">
@@ -482,9 +507,11 @@ export function VendorEventsClient({ initialData }: VendorEventsClientProps) {
 
               {/* Pagination */}
               {data.totalPages > 1 && (
-                <div className="mt-4 flex items-center justify-between">
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                    Page {data.page} of {data.totalPages} ({data.total} total)
+                <div className="mt-5 flex items-center justify-between border-t pt-4">
+                  <p className="text-sm text-muted-foreground">
+                    Page <span className="numeric">{data.page}</span> of{" "}
+                    <span className="numeric">{data.totalPages}</span> ·{" "}
+                    <span className="numeric">{data.total}</span> total
                   </p>
                   <div className="flex gap-2">
                     <Button
@@ -523,9 +550,11 @@ export function VendorEventsClient({ initialData }: VendorEventsClientProps) {
             <DialogTitle>Decline assignment</DialogTitle>
           </DialogHeader>
           <div className="space-y-2 pt-1">
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm text-muted-foreground">
               {declineTarget?.booking.eventName} &middot;{" "}
-              {declineTarget ? formatDate(declineTarget.booking.date) : ""}
+              <span className="numeric">
+                {declineTarget ? formatDate(declineTarget.booking.date) : ""}
+              </span>
             </p>
             <Label htmlFor="decline-reason">Reason (optional)</Label>
             <Textarea

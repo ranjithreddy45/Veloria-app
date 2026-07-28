@@ -43,7 +43,7 @@ export default async function ShiftsPage({ searchParams }: PageProps) {
   const myShifts = mine && mine.linked !== false ? mine.upcoming : [];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title="Shifts"
         description="Roster your team across the week, let staff swap shifts with approval, and keep everyone clear on when they’re working — essential for hotels and event crews."

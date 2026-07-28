@@ -16,6 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
 import { BOOKING_STATUS_COLORS } from "@/lib/constants";
 import type { UpcomingEvent } from "@/actions/dashboard.actions";
@@ -59,13 +60,13 @@ const TIME_SLOT_SHORT: Record<string, string> = {
 
 export function UpcomingEvents({ events }: UpcomingEventsProps) {
   return (
-    <Card className="card-hover-tint border border-border bg-card shadow-none">
+    <Card className="card-hover-tint rounded-2xl border bg-card shadow-card transition-shadow hover:shadow-card-hover">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div>
-          <CardTitle className="text-[13px] font-medium uppercase tracking-[0.05em] text-muted-foreground">
+          <CardTitle className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
             Upcoming events
           </CardTitle>
-          <p className="mt-1 text-[12px] text-muted-foreground/80">Next 7 days</p>
+          <p className="mt-1 text-[13px] text-muted-foreground">Next 7 days</p>
         </div>
         <Link
           href="/bookings"
@@ -77,31 +78,21 @@ export function UpcomingEvents({ events }: UpcomingEventsProps) {
       </CardHeader>
       <CardContent>
         {events.length === 0 ? (
-          <div className="relative flex flex-col items-center justify-center gap-2 py-12 text-center">
-            {/* Decorative empty-state illustration */}
-            <div className="relative mb-1">
-              <div className="absolute inset-0 -m-3 rounded-full bg-primary/5 blur-xl" aria-hidden />
-              <div className="relative flex size-11 items-center justify-center rounded-lg border border-border bg-background">
-                <CalendarCheck className="size-5 text-muted-foreground/70" strokeWidth={1.75} />
-              </div>
-              <span className="absolute -right-1 -top-1 inline-flex size-3.5 items-center justify-center rounded-full border border-border bg-card">
-                <span className="size-1.5 rounded-full bg-primary" />
-              </span>
-            </div>
-            <p className="text-[13.5px] font-medium tracking-tight text-foreground">
-              No upcoming events
-            </p>
-            <p className="max-w-[18rem] text-[12px] text-muted-foreground">
-              Confirmed bookings in the next 7 days will appear here.
-            </p>
-            <Link
-              href="/bookings/new"
-              className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-[12px] font-medium text-foreground transition-colors hover:bg-muted"
-            >
-              <CalendarCheck className="size-3.5" strokeWidth={2} />
-              New booking
-            </Link>
-          </div>
+          <EmptyState
+            icon={<CalendarCheck />}
+            title="Nothing on the calendar"
+            description="Confirmed bookings in the next 7 days will show up here."
+            className="py-12"
+            action={
+              <Link
+                href="/bookings/new"
+                className="inline-flex items-center gap-1.5 rounded-lg border bg-background px-3 py-1.5 text-[13px] font-medium text-foreground transition-colors hover:bg-muted"
+              >
+                <CalendarCheck className="size-3.5" strokeWidth={2} />
+                New booking
+              </Link>
+            }
+          />
         ) : (
           <div className="divide-y divide-border">
             {events.map((event) => {
@@ -112,13 +103,13 @@ export function UpcomingEvents({ events }: UpcomingEventsProps) {
               return (
                 <div
                   key={event.id}
-                  className="group flex items-start gap-3 py-3 first:pt-1 last:pb-1"
+                  className="group -mx-2 flex items-start gap-3 rounded-lg px-2 py-3 transition-colors first:pt-2 last:pb-2 hover:bg-muted/40"
                 >
                   <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-muted">
                     <CalendarCheck className="size-3.5 text-muted-foreground" strokeWidth={2} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13px] font-medium leading-tight text-foreground">
+                    <p className="truncate text-[13.5px] font-medium leading-tight text-foreground">
                       {event.eventName}
                     </p>
                     <div className="mt-1 flex items-center gap-1.5 text-[12px] text-muted-foreground">
@@ -150,7 +141,7 @@ export function UpcomingEvents({ events }: UpcomingEventsProps) {
                     </Badge>
                     <span
                       className={cn(
-                        "text-[10.5px] font-medium tabular-nums",
+                        "numeric text-[10.5px] font-medium",
                         daysRemaining <= 0
                           ? "text-destructive"
                           : daysRemaining <= 2

@@ -169,7 +169,7 @@ export function SignPad({ token, defaultSignerName }: SignPadProps) {
 
   return (
     <div className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
-      <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100">
+      <h2 className="font-editorial text-foreground text-[20px] font-semibold">
         Sign to confirm
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">
@@ -208,7 +208,7 @@ export function SignPad({ token, defaultSignerName }: SignPadProps) {
         <TabsContent value="TYPED" className="mt-4">
           <div className="rounded-xl border border-dashed border-border bg-muted/30 px-4 py-6 text-center">
             <span
-              className="text-2xl text-zinc-900 dark:text-zinc-100"
+              className="text-2xl text-foreground"
               style={{ fontFamily: "'Brush Script MT', cursive" }}
             >
               {signerName.trim() || "Your signature"}
@@ -220,7 +220,7 @@ export function SignPad({ token, defaultSignerName }: SignPadProps) {
         </TabsContent>
 
         <TabsContent value="DRAWN" className="mt-4">
-          <div className="overflow-hidden rounded-xl border border-border bg-white">
+          <div className="overflow-hidden rounded-xl border-border border bg-white">
             <canvas
               ref={canvasRef}
               width={CANVAS_W}
@@ -255,7 +255,7 @@ export function SignPad({ token, defaultSignerName }: SignPadProps) {
           onCheckedChange={(v) => setAgreed(v === true)}
           className="mt-0.5"
         />
-        <span className="text-sm text-zinc-700 dark:text-zinc-300">
+        <span className="text-sm text-foreground/85">
           I have read and agree to the Terms &amp; Conditions set out in this
           booking confirmation.
         </span>

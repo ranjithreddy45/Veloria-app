@@ -18,7 +18,7 @@ export default async function FinanceAssetsPage() {
   const [assets, pnl] = await Promise.all([getAssets(), getVenueEventPnl()]);
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       <AssetsWorkspace assets={assets} pnl={pnl} canWrite={canWrite} />
     </div>
   );

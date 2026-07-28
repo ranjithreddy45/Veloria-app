@@ -4,8 +4,8 @@ export default function VendorPortalLoading() {
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
       <div className="flex flex-col items-center gap-3">
-        <Loader2 className="size-8 animate-spin text-indigo-600 dark:text-indigo-400" />
-        <p className="text-sm text-muted-foreground">Loading...</p>
+        <Loader2 className="size-7 animate-spin text-teal-600 dark:text-teal-400" />
+        <p className="text-sm text-muted-foreground">One moment…</p>
       </div>
     </div>
   );

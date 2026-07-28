@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getExecutionPlan } from "@/actions/execution-plan.actions";
 import { getSOPTemplates } from "@/actions/sop-template.actions";
+import { PlayCircleIcon } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { ExecutionPlanView } from "./_components/execution-plan-view";
 import { CreatePlanDialog } from "./_components/create-plan-dialog";
@@ -26,8 +27,11 @@ export default async function ExecutionPlanPage({ params }: ExecutionPageProps) 
   return (
     <div className="space-y-6">
       <PageHeader
+        icon={PlayCircleIcon}
+        accent="violet"
+        eyebrow="Event delivery"
         title="Execution Plan"
-        description="Manage the execution plan for this event."
+        description="Every phase, task and proof needed to deliver this event — assigned and tracked."
       />
 
       {plan ? (

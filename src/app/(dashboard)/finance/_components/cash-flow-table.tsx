@@ -67,7 +67,7 @@ export function CashFlowTable({
                       {fmtWeek(r.weekStart)}
                     </span>
                   </td>
-                  <td className="px-4 py-2.5 text-right tabular-nums">
+                  <td className="px-4 py-2.5 text-right numeric">
                     {r.inflow > 0 ? (
                       <span className="text-emerald-600 dark:text-emerald-400">
                         {formatINR(r.inflow)}
@@ -76,7 +76,7 @@ export function CashFlowTable({
                       <span className="text-muted-foreground">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-2.5 text-right tabular-nums">
+                  <td className="px-4 py-2.5 text-right numeric">
                     {r.outflow > 0 ? (
                       <span className="text-rose-600 dark:text-rose-400">
                         ({formatINR(r.outflow)})
@@ -87,7 +87,7 @@ export function CashFlowTable({
                   </td>
                   <td
                     className={cn(
-                      "px-4 py-2.5 text-right tabular-nums",
+                      "px-4 py-2.5 text-right numeric",
                       r.net < 0 ? "text-rose-600 dark:text-rose-400" : "text-foreground",
                     )}
                   >
@@ -95,7 +95,7 @@ export function CashFlowTable({
                   </td>
                   <td
                     className={cn(
-                      "px-4 py-2.5 text-right font-medium tabular-nums",
+                      "px-4 py-2.5 text-right font-medium numeric",
                       neg ? "text-rose-600 dark:text-rose-400" : "text-foreground",
                     )}
                   >

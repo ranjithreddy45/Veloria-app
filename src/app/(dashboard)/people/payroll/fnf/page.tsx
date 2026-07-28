@@ -22,7 +22,7 @@ export default async function FnfPage({
   const [settlements, employees] = await Promise.all([listFnf(), listFnfEmployees()]);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         eyebrow="Payroll"
         title="Full & Final Settlements"

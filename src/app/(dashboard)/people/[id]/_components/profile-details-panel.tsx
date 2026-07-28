@@ -124,11 +124,11 @@ function Section<T>({
 }) {
   const [open, setOpen] = React.useState(false);
   return (
-    <div className="rounded-xl border bg-card p-5">
-      <div className="mb-3 flex items-center justify-between">
+    <div className="rounded-2xl border bg-card p-5 shadow-card">
+      <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           {icon}
-          <h3 className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">{title}</h3>
+          <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{title}</h3>
         </div>
         {canWrite && (
           <>
@@ -140,7 +140,7 @@ function Section<T>({
         )}
       </div>
       {items.length === 0 ? (
-        <p className="text-[13px] text-muted-foreground">{empty}</p>
+        <p className="rounded-xl border border-dashed px-4 py-6 text-center text-[13px] text-muted-foreground">{empty}</p>
       ) : (
         <div className="divide-y">{items.map((it) => renderItem(it, canWrite))}</div>
       )}

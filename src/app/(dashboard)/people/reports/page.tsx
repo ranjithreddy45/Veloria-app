@@ -32,7 +32,7 @@ export default async function HrReportsHubPage() {
   if (!hasPermission(role, "hr:read")) redirect("/people");
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         icon={BarChart3}
         accent="pink"

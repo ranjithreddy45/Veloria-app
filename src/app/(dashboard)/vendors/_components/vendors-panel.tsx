@@ -37,6 +37,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { VendorFormDialog } from "./vendor-form-dialog";
 import type { VendorRow, CategoryOption, VenueOption } from "./vendor-module";
 
@@ -45,9 +46,11 @@ import type { VendorRow, CategoryOption, VenueOption } from "./vendor-module";
 // ============================================================
 
 const EMPANELMENT_COLORS: Record<string, string> = {
-  empanelled: "bg-emerald-50 text-emerald-700 border-emerald-200/80",
-  probation: "bg-amber-50 text-amber-700 border-amber-200/80",
-  suspended: "bg-rose-50 text-rose-700 border-rose-200/80",
+  empanelled:
+    "bg-emerald-500/12 text-emerald-700 border-emerald-500/25 dark:text-emerald-300",
+  probation:
+    "bg-amber-500/14 text-amber-700 border-amber-500/25 dark:text-amber-300",
+  suspended: "bg-rose-500/12 text-rose-700 border-rose-500/25 dark:text-rose-300",
 };
 
 const EMPANELMENT_LABELS: Record<string, string> = {
@@ -61,12 +64,12 @@ const EMPANELMENT_LABELS: Record<string, string> = {
 // ============================================================
 
 const CATEGORY_HUE: Record<string, string> = {
-  decor: "bg-pink-50 text-pink-700 border-pink-200/80",
-  catering: "bg-amber-50 text-amber-700 border-amber-200/80",
-  emcee: "bg-violet-50 text-violet-700 border-violet-200/80",
-  photography: "bg-indigo-50 text-indigo-700 border-indigo-200/80",
-  av_lighting: "bg-orange-50 text-orange-700 border-orange-200/80",
-  entertainment: "bg-rose-50 text-rose-700 border-rose-200/80",
+  decor: "bg-pink-500/12 text-pink-700 border-pink-500/25 dark:text-pink-300",
+  catering: "bg-amber-500/14 text-amber-700 border-amber-500/25 dark:text-amber-300",
+  emcee: "bg-violet-500/12 text-violet-700 border-violet-500/25 dark:text-violet-300",
+  photography: "bg-indigo-500/12 text-indigo-700 border-indigo-500/25 dark:text-indigo-300",
+  av_lighting: "bg-orange-500/12 text-orange-700 border-orange-500/25 dark:text-orange-300",
+  entertainment: "bg-rose-500/12 text-rose-700 border-rose-500/25 dark:text-rose-300",
 };
 
 // ============================================================
@@ -121,7 +124,7 @@ function VendorCard({ vendor, categories, venues }: VendorCardProps) {
   return (
     <div
       className={cn(
-        "group relative flex flex-col gap-4 rounded-2xl border border-border/70 bg-card p-5 shadow-card transition-shadow duration-200 hover:shadow-card-hover",
+        "group relative flex flex-col gap-4 rounded-2xl border bg-card p-5 shadow-card transition-shadow duration-200 hover:shadow-card-hover",
         vendor.isArchived && "opacity-60"
       )}
     >
@@ -194,7 +197,7 @@ function VendorCard({ vendor, categories, venues }: VendorCardProps) {
           </a>
         )}
         {vendor.phone && (
-          <p className="flex items-center gap-1.5 text-[12px] tabular-nums text-muted-foreground">
+          <p className="numeric flex items-center gap-1.5 text-[12px] text-muted-foreground">
             <PhoneIcon className="size-3 shrink-0" />
             {vendor.phone}
           </p>
@@ -205,11 +208,11 @@ function VendorCard({ vendor, categories, venues }: VendorCardProps) {
       </div>
 
       {/* ── Footer: package count + quality score ── */}
-      <div className="flex items-center justify-between gap-2 border-t border-border/50 pt-3">
+      <div className="mt-auto flex items-center justify-between gap-2 border-t pt-3">
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1 text-[12px] text-muted-foreground">
             <PackageIcon className="size-3 shrink-0" />
-            <span className="tabular-nums font-medium text-foreground">{vendor.packageCount}</span>
+            <span className="numeric font-medium text-foreground">{vendor.packageCount}</span>
             {vendor.packageCount === 1 ? " package" : " packages"}
           </span>
         </div>
@@ -217,9 +220,9 @@ function VendorCard({ vendor, categories, venues }: VendorCardProps) {
         {vendor.qualityScore !== null && (
           <Badge
             variant="outline"
-            className="border-violet-200/80 bg-violet-50 text-[11px] font-semibold text-violet-700"
+            className="border-teal-500/25 bg-teal-500/12 text-[11px] font-semibold text-teal-700 dark:text-teal-300"
           >
-            QS {vendor.qualityScore}
+            QS <span className="numeric ml-1">{vendor.qualityScore}</span>
           </Badge>
         )}
       </div>
@@ -343,22 +346,19 @@ export function VendorsPanel({ vendors, search, category, categories, venues }: 
 
       {/* Grid */}
       {filtered.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border/70 bg-card/50 p-12 text-center">
-          <StoreIcon className="mx-auto mb-3 size-8 text-muted-foreground/40" />
+        <div className="rounded-2xl border border-dashed bg-card/50">
           {vendors.filter((v) => !v.isArchived).length === 0 ? (
-            <>
-              <p className="text-[15px] font-medium text-foreground">No vendors yet</p>
-              <p className="mt-1 text-[13px] text-muted-foreground">
-                Click "Add vendor" to add your first empanelled partner.
-              </p>
-            </>
+            <EmptyState
+              icon={<StoreIcon />}
+              title="Every great event runs on a good bench"
+              description="Add your first empanelled partner and their packages become quotable across the whole app."
+            />
           ) : (
-            <>
-              <p className="text-[15px] font-medium text-foreground">No vendors match</p>
-              <p className="mt-1 text-[13px] text-muted-foreground">
-                Try adjusting the search or category filter.
-              </p>
-            </>
+            <EmptyState
+              icon={<StoreIcon />}
+              title="No partners match that search"
+              description="Try a different name or city, or clear the category filter to see the full bench."
+            />
           )}
         </div>
       ) : (
@@ -380,7 +380,7 @@ export function VendorsPanelSkeleton() {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {Array.from({ length: 8 }).map((_, i) => (
-        <div key={i} className="rounded-2xl border border-border/70 bg-card p-5 shadow-card space-y-3">
+        <div key={i} className="space-y-3 rounded-2xl border bg-card p-5 shadow-card">
           <Skeleton className="h-5 w-3/4 rounded" />
           <Skeleton className="h-3.5 w-1/2 rounded" />
           <div className="flex gap-1.5">

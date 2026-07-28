@@ -38,7 +38,7 @@ export default async function LeaveAvailedReportPage({
   const rows = await getAvailedReport(fromIso, toIso);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         eyebrow="People · Reports"
         icon={CalendarCheck}

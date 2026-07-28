@@ -12,9 +12,12 @@ import {
   CalendarIcon,
   HashIcon,
   TagIcon,
+  PackageIcon,
+  CalendarCheckIcon,
 } from "lucide-react";
 
 import { StatusBadge } from "@/components/shared/status-badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -44,9 +47,11 @@ import { AssignVendorDialog } from "./assign-vendor-dialog";
 
 // Package status colors (mirrors the package detail page)
 const PACKAGE_STATUS_COLORS: Record<string, string> = {
-  DRAFT: "bg-zinc-50 text-zinc-600 border-zinc-200/60 dark:bg-zinc-800/30 dark:text-zinc-400 dark:border-zinc-700/40",
-  ACTIVE: "bg-emerald-50 text-emerald-700 border-emerald-200/60 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/40",
-  ARCHIVED: "bg-slate-50 text-slate-600 border-slate-200/60 dark:bg-slate-800/30 dark:text-slate-400 dark:border-slate-700/40",
+  DRAFT: "bg-muted text-muted-foreground border-border",
+  ACTIVE:
+    "bg-emerald-500/12 text-emerald-700 border-emerald-500/25 dark:text-emerald-300",
+  ARCHIVED:
+    "bg-slate-500/12 text-slate-600 border-slate-500/20 dark:text-slate-300",
 };
 
 interface VendorPackageRow {
@@ -157,32 +162,40 @@ export function VendorDetail({ vendor, availableBookings, packages = [] }: Vendo
           </CardHeader>
           <CardContent>
             {packages.length === 0 ? (
-              <p className="text-muted-foreground py-8 text-center text-sm">
-                No packages yet.
-              </p>
+              <EmptyState
+                icon={<PackageIcon />}
+                title="This partner has nothing to sell yet"
+                description="Add a package so your sales team can quote this vendor without a phone call."
+                action={
+                  <Button asChild size="sm">
+                    <Link href={`/vendors/packages/new?vendorId=${vendor.id}`}>
+                      Add the first package
+                    </Link>
+                  </Button>
+                }
+              />
             ) : (
-              <div className="space-y-3">
+              <div className="divide-y rounded-2xl border">
                 {packages.map((pkg) => (
                   <div
                     key={pkg.id}
-                    className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
+                    className="flex flex-col gap-3 p-4 transition-colors hover:bg-muted/40 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="min-w-0">
                       <Link
                         href={`/vendors/packages/${pkg.id}`}
-                        className="font-medium hover:underline"
+                        className="text-[14px] font-medium tracking-[-0.01em] hover:underline"
                       >
                         {pkg.name}
                       </Link>
-                      <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-2 text-xs">
-                        <span>
-                          {VENDOR_MODULE_CATEGORY_LABELS[pkg.category] ?? pkg.category}
-                        </span>
-                        <span>·</span>
-                        <span>{formatINR(pkg.customerPrice ?? pkg.price)}</span>
-                      </div>
+                      <p className="text-muted-foreground mt-0.5 text-[11px] font-semibold uppercase tracking-[0.1em]">
+                        {VENDOR_MODULE_CATEGORY_LABELS[pkg.category] ?? pkg.category}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
+                      <span className="numeric text-[14px] font-semibold text-foreground">
+                        {formatINR(pkg.customerPrice ?? pkg.price)}
+                      </span>
                       <StatusBadge status={pkg.status} colorMap={PACKAGE_STATUS_COLORS} />
                       <Button variant="outline" size="sm" asChild>
                         <Link href={`/vendors/packages/${pkg.id}`}>View</Link>
@@ -272,7 +285,7 @@ export function VendorDetail({ vendor, availableBookings, packages = [] }: Vendo
                       href={vendor.website}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:underline dark:text-blue-400"
+                      className="text-sm text-primary hover:underline"
                     >
                       {vendor.website}
                     </a>
@@ -284,7 +297,7 @@ export function VendorDetail({ vendor, availableBookings, packages = [] }: Vendo
                   <HashIcon className="text-muted-foreground size-4" />
                   <div>
                     <p className="text-muted-foreground text-xs">GSTIN</p>
-                    <p className="text-sm font-mono">{vendor.gstin}</p>
+                    <p className="numeric text-sm">{vendor.gstin}</p>
                   </div>
                 </div>
               )}
@@ -319,7 +332,9 @@ export function VendorDetail({ vendor, availableBookings, packages = [] }: Vendo
                 <p className="text-muted-foreground mb-2 text-xs">
                   Total Bookings
                 </p>
-                <p className="text-2xl font-bold">{vendor.totalBookings}</p>
+                <p className="numeric text-2xl font-semibold tracking-[-0.02em]">
+                  {vendor.totalBookings}
+                </p>
               </div>
               <Separator />
               <div>
@@ -354,25 +369,27 @@ export function VendorDetail({ vendor, availableBookings, packages = [] }: Vendo
           </CardHeader>
           <CardContent>
             {vendor.bookingVendors.length === 0 ? (
-              <p className="text-muted-foreground py-8 text-center text-sm">
-                No booking assignments yet.
-              </p>
+              <EmptyState
+                icon={<CalendarCheckIcon />}
+                title="Not on any event yet"
+                description="Assign this vendor to a booking and every event they work will be tracked here."
+              />
             ) : (
-              <div className="space-y-3">
+              <div className="divide-y rounded-2xl border">
                 {vendor.bookingVendors.map((bv) => (
                   <div
                     key={bv.id}
-                    className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
+                    className="flex flex-col gap-3 p-4 transition-colors hover:bg-muted/40 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div>
                       <Link
                         href={`/bookings/${bv.booking.id}`}
-                        className="font-medium hover:underline"
+                        className="text-[14px] font-medium tracking-[-0.01em] hover:underline"
                       >
-                        {bv.booking.bookingNumber} - {bv.booking.eventName}
+                        {bv.booking.bookingNumber} — {bv.booking.eventName}
                       </Link>
-                      <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-2 text-xs">
-                        <span>
+                      <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-2.5 text-xs">
+                        <span className="numeric">
                           {format(
                             new Date(bv.booking.date),
                             "dd MMM yyyy"
@@ -380,7 +397,12 @@ export function VendorDetail({ vendor, availableBookings, packages = [] }: Vendo
                         </span>
                         {bv.role && <span>Role: {bv.role}</span>}
                         {bv.agreedRate !== null && (
-                          <span>Rate: {formatINR(bv.agreedRate)}</span>
+                          <span>
+                            Rate{" "}
+                            <span className="numeric font-medium text-foreground">
+                              {formatINR(bv.agreedRate)}
+                            </span>
+                          </span>
                         )}
                       </div>
                     </div>

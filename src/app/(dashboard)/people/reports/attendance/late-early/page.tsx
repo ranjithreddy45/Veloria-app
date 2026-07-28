@@ -21,7 +21,7 @@ export default async function LateEarlyPage() {
   const initial = await getLateEarly({ from, to });
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         icon={Timer}
         accent="amber"

@@ -40,16 +40,16 @@ function occasionNoun(eventType: string): string {
 
 function NotFoundCard() {
   return (
-    <div className="mx-auto max-w-lg rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-      <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-violet-100 text-violet-600 dark:bg-violet-950 dark:text-violet-400">
+    <div className="bg-card shadow-card mx-auto max-w-lg rounded-2xl border p-10 text-center">
+      <div className="bg-primary/10 text-primary mx-auto flex size-12 items-center justify-center rounded-2xl">
         <Sparkles className="size-6" />
       </div>
-      <p className="mt-4 text-base font-semibold text-zinc-900 dark:text-zinc-100">
+      <h1 className="text-foreground mt-5 text-[24px]">
         We couldn&apos;t find this event
-      </p>
-      <p className="mt-1.5 text-sm text-zinc-500">
-        This link may have expired or isn&apos;t quite ready yet. Please reach
-        out to your event coordinator and they&apos;ll sort it out.
+      </h1>
+      <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm leading-relaxed">
+        This link may have expired or isn&apos;t quite ready yet. Your event
+        coordinator will sort it out in moments.
       </p>
     </div>
   );
@@ -71,22 +71,29 @@ export default async function EventPlanPage({
   return (
     <div className="space-y-6">
       {/* ---- Hero with countdown ---- */}
-      <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-violet-600 via-fuchsia-600 to-rose-500 p-7 text-center shadow-lg shadow-violet-500/20">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/70">
-          Hi {e.clientFirstName} 👋 — it&apos;s coming together
-        </p>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl">
-          {e.eventName}
-        </h1>
-        <div className="mt-5">
-          <EventCountdown eventAtISO={e.eventAtISO} occasion={occasion} />
+      <section className="relative overflow-hidden rounded-3xl bg-zinc-950 px-7 py-12 text-center">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-4 rounded-2xl border border-white/12"
+        />
+        <div className="relative">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-white/55">
+            {e.clientFirstName}, it&apos;s coming together
+          </p>
+          <h1 className="mt-4 text-[30px] text-white sm:text-[38px]">
+            {e.eventName}
+          </h1>
+          <div aria-hidden className="mx-auto mt-5 h-px w-14 bg-white/25" />
+          <div className="mt-6">
+            <EventCountdown eventAtISO={e.eventAtISO} occasion={occasion} />
+          </div>
         </div>
       </section>
 
       {/* ---- At-a-glance details ---- */}
       <section className="grid grid-cols-2 gap-3">
         <Detail
-          icon={<CalendarDays className="size-4 text-violet-600" />}
+          icon={<CalendarDays className="text-muted-foreground/60 size-4" />}
           label="Date"
           value={new Date(e.eventAtISO).toLocaleDateString(undefined, {
             weekday: "short",
@@ -97,19 +104,19 @@ export default async function EventPlanPage({
           })}
         />
         <Detail
-          icon={<Clock className="size-4 text-violet-600" />}
+          icon={<Clock className="text-muted-foreground/60 size-4" />}
           label="Time"
           value={e.slotLabel}
         />
         {e.venueName && (
           <Detail
-            icon={<MapPin className="size-4 text-violet-600" />}
+            icon={<MapPin className="text-muted-foreground/60 size-4" />}
             label="Venue"
             value={e.venueName}
           />
         )}
         <Detail
-          icon={<Users className="size-4 text-violet-600" />}
+          icon={<Users className="text-muted-foreground/60 size-4" />}
           label="Guests"
           value={`${e.guestCount}`}
         />
@@ -117,21 +124,21 @@ export default async function EventPlanPage({
 
       {/* ---- Confirmed menu ---- */}
       {e.menu.items.length > 0 && (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <h2 className="flex items-center gap-2 text-sm font-bold text-zinc-900 dark:text-zinc-100">
-            <UtensilsCrossed className="size-4 text-rose-500" />
+        <section className="bg-card shadow-card rounded-2xl border p-6">
+          <h2 className="font-editorial text-foreground flex items-center gap-2.5 text-[20px] font-semibold">
+            <UtensilsCrossed className="text-muted-foreground/60 size-4" />
             Your menu
           </h2>
           {e.menu.note && (
-            <p className="mt-1 text-xs text-zinc-500">{e.menu.note}</p>
+            <p className="text-muted-foreground mt-1.5 text-xs">{e.menu.note}</p>
           )}
-          <ul className="mt-4 space-y-3">
+          <ul className="mt-5 space-y-3 border-t pt-4">
             {e.menu.items.map((it, i) => (
               <li key={i} className="flex items-start justify-between gap-3">
-                <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                <span className="text-foreground text-sm font-medium">
                   {it.name}
                 </span>
-                <span className="shrink-0 text-xs text-zinc-400">
+                <span className="text-muted-foreground shrink-0 text-xs">
                   {it.detail}
                 </span>
               </li>
@@ -142,25 +149,25 @@ export default async function EventPlanPage({
 
       {/* ---- Run of show (time + activity only — no internal owners) ---- */}
       {e.timeline.length > 0 && (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <h2 className="flex items-center gap-2 text-sm font-bold text-zinc-900 dark:text-zinc-100">
-            <Clock className="size-4 text-violet-600" />
+        <section className="bg-card shadow-card rounded-2xl border p-6">
+          <h2 className="font-editorial text-foreground flex items-center gap-2.5 text-[20px] font-semibold">
+            <Clock className="text-muted-foreground/60 size-4" />
             How the day flows
           </h2>
-          <ol className="mt-4 space-y-0">
+          <ol className="mt-5 space-y-0 border-t pt-5">
             {e.timeline.map((row, i) => (
               <li key={i} className="flex gap-4">
                 <div className="flex flex-col items-center">
-                  <span className="mt-0.5 size-2.5 shrink-0 rounded-full bg-violet-500 ring-4 ring-violet-100 dark:ring-violet-950" />
+                  <span className="bg-primary ring-primary/15 mt-1 size-2 shrink-0 rounded-full ring-4" />
                   {i < e.timeline.length - 1 && (
-                    <span className="w-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+                    <span className="bg-border w-px flex-1" />
                   )}
                 </div>
                 <div className="pb-5">
-                  <p className="text-xs font-semibold tabular-nums text-violet-600 dark:text-violet-400">
+                  <p className="numeric text-primary text-xs font-semibold">
                     {row.time}
                   </p>
-                  <p className="text-sm text-zinc-800 dark:text-zinc-200">
+                  <p className="text-foreground/90 mt-0.5 text-sm">
                     {row.activity}
                   </p>
                 </div>
@@ -171,38 +178,40 @@ export default async function EventPlanPage({
       )}
 
       {/* ---- What to expect ---- */}
-      <section className="rounded-2xl border border-violet-200 bg-violet-50 p-5 dark:border-violet-900 dark:bg-violet-950/30">
-        <h2 className="flex items-center gap-2 text-sm font-bold text-violet-900 dark:text-violet-200">
+      <section className="border-primary/25 bg-primary/[0.06] rounded-2xl border p-6">
+        <h2 className="font-editorial text-foreground flex items-center gap-2.5 text-[20px] font-semibold">
           <Heart className="size-4 text-rose-500" />
           What to expect next
         </h2>
-        <p className="mt-2 text-sm leading-relaxed text-violet-900/80 dark:text-violet-200/80">
+        <p className="text-foreground/80 mt-3 text-sm leading-relaxed">
           Your date is locked in and our team is already preparing everything for
           your big day. We&apos;ll confirm the final details with you as we get
-          closer. If anything changes or you have a special request, your event
+          closer. If anything changes, or you have a special request, your event
           coordinator is just a message away.
         </p>
       </section>
 
       {/* ---- Point of contact ---- */}
       {(e.pointOfContact.name || e.pointOfContact.phone) && (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+        <section className="bg-card shadow-card rounded-2xl border p-6">
+          <p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.16em]">
             Your event coordinator
           </p>
-          <div className="mt-2 flex items-center justify-between gap-3">
+          <div className="mt-3 flex items-center justify-between gap-3">
             <div>
               {e.pointOfContact.name && (
-                <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                <p className="font-editorial text-foreground text-[18px] font-semibold">
                   {e.pointOfContact.name}
                 </p>
               )}
-              <p className="text-xs text-zinc-500">Here to help, any time</p>
+              <p className="text-muted-foreground text-xs">
+                Here to help, any time
+              </p>
             </div>
             {e.pointOfContact.phone && (
               <a
                 href={`tel:${e.pointOfContact.phone}`}
-                className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-violet-700"
+                className="bg-primary text-primary-foreground inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium transition-opacity hover:opacity-90"
               >
                 <Phone className="size-4" />
                 Call
@@ -225,14 +234,12 @@ function Detail({
   value: string;
 }) {
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-      <span className="flex items-center gap-1.5 text-xs font-medium text-zinc-500">
+    <div className="bg-card shadow-card rounded-2xl border p-4">
+      <span className="text-muted-foreground/80 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em]">
         {icon}
         {label}
       </span>
-      <p className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-        {value}
-      </p>
+      <p className="text-foreground mt-1.5 text-sm font-semibold">{value}</p>
     </div>
   );
 }

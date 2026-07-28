@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { getBooking, getVenues } from "@/actions/booking.actions";
 import { getContacts } from "@/actions/contact.actions";
+import { PencilIcon } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { BookingForm } from "../../_components/booking-form";
 
@@ -40,8 +41,11 @@ export default async function EditBookingPage({
   return (
     <div className="space-y-6">
       <PageHeader
+        icon={PencilIcon}
+        accent="slate"
+        eyebrow="Bookings"
         title="Edit Booking"
-        description={`Editing ${booking.bookingNumber} - ${booking.eventName}`}
+        description={`Editing ${booking.bookingNumber} — ${booking.eventName}`}
       />
       <div className="mx-auto max-w-3xl">
         <BookingForm

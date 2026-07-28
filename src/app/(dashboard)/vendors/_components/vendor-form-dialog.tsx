@@ -347,8 +347,8 @@ export function VendorFormDialog({ vendor, categories, venues, trigger }: Vendor
                     className={cn(
                       "rounded-full border px-3 py-1 text-[12px] font-medium transition-colors",
                       active
-                        ? "border-violet-400 bg-violet-100 text-violet-700 dark:border-violet-600 dark:bg-violet-950/60 dark:text-violet-300"
-                        : "border-border bg-muted/50 text-muted-foreground hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700"
+                        ? "border-teal-500/40 bg-teal-500/14 text-teal-700 dark:text-teal-300"
+                        : "border-border bg-muted/50 text-muted-foreground hover:border-teal-500/30 hover:bg-teal-500/10 hover:text-teal-700 dark:hover:text-teal-300"
                     )}
                   >
                     {c.label}

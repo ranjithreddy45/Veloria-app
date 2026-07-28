@@ -144,7 +144,7 @@ const columns: ColumnDef<BudgetItem>[] = [
       const [year, mon] = month.split("-");
       const date = new Date(parseInt(year), parseInt(mon) - 1);
       return (
-        <span className="text-sm">
+        <span className="numeric text-[13px] text-muted-foreground">
           {date.toLocaleString("en-IN", { month: "short", year: "numeric" })}
         </span>
       );
@@ -156,7 +156,7 @@ const columns: ColumnDef<BudgetItem>[] = [
       <DataTableColumnHeader column={column} title="Revenue" />
     ),
     cell: ({ row }) => (
-      <span className="font-medium text-emerald-700 dark:text-emerald-400">
+      <span className="numeric font-medium text-emerald-700 dark:text-emerald-400">
         {formatINR(row.getValue("revenue"))}
       </span>
     ),
@@ -167,7 +167,7 @@ const columns: ColumnDef<BudgetItem>[] = [
       <DataTableColumnHeader column={column} title="Expenses" />
     ),
     cell: ({ row }) => (
-      <span className="font-medium text-red-700 dark:text-red-400">
+      <span className="numeric font-medium text-rose-700 dark:text-rose-400">
         {formatINR(row.getValue("expenses"))}
       </span>
     ),
@@ -181,10 +181,10 @@ const columns: ColumnDef<BudgetItem>[] = [
       const profit = row.getValue("profit") as number;
       return (
         <span
-          className={`font-medium ${
+          className={`numeric font-medium ${
             profit >= 0
               ? "text-emerald-700 dark:text-emerald-400"
-              : "text-red-700 dark:text-red-400"
+              : "text-rose-700 dark:text-rose-400"
           }`}
         >
           {formatINR(profit)}
@@ -200,11 +200,11 @@ const columns: ColumnDef<BudgetItem>[] = [
     cell: ({ row }) => {
       const category = row.getValue("category") as string | null;
       return category ? (
-        <Badge variant="secondary" className="text-xs">
+        <Badge variant="secondary" className="text-[11px] font-medium">
           {category}
         </Badge>
       ) : (
-        <span className="text-muted-foreground text-sm">--</span>
+        <span className="text-[13px] text-muted-foreground">--</span>
       );
     },
   },

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { BarChart3 } from "lucide-react";
 
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
@@ -96,9 +97,11 @@ export default async function AnalyticsPage() {
       <PageHeader
         aura
         eyebrow={`Business Intelligence · ${bookingsData.totalBookings} bookings`}
+        icon={BarChart3}
+        accent="violet"
         title="Analytics"
         help={<PageHelp id="analytics" />}
-        description="Advanced analytics and business intelligence for your event management operations."
+        description="Revenue, bookings, pipeline, clients and venue performance — all in one view."
       />
 
       <AnalyticsDashboard

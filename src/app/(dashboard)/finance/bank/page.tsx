@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
+import { BanknoteIcon } from "lucide-react";
 import { auth } from "@/../auth";
+import { PageHeader } from "@/components/layout/page-header";
 import { hasPermission } from "@/lib/permissions";
 import { getFinAccounts } from "@/actions/finance.actions";
 import { getBankAccounts, getBankTxns, getReconSummary, getCategorySuggestions } from "@/actions/finance-bank.actions";
@@ -21,11 +23,14 @@ export default async function BankPage({ searchParams }: { searchParams: Promise
     : [[], { unmatched: 0, matched: 0, reconciled: 0, ignored: 0, statementBalance: 0, glBalance: 0 }, {}];
 
   return (
-    <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Bank &amp; Reconcile</h1>
-        <p className="text-sm text-muted-foreground">Import statements, auto-match to the ledger, and categorize what&apos;s left.</p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={BanknoteIcon}
+        accent="emerald"
+        eyebrow="Finance"
+        title="Bank & Reconcile"
+        description="Import statements, auto-match to the ledger, and categorize what's left."
+      />
       <BankReconcile
         canAdmin={canAdmin}
         accounts={accounts.map((a) => ({ id: a.id, name: a.name, bankName: a.bankName, accountNo: a.accountNo, gl: `${a.glAccount.code} ${a.glAccount.name}`, txnCount: a._count.txns }))}

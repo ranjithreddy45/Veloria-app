@@ -1,10 +1,12 @@
 import {
   Filter, Target, Trophy, CalendarClock, Wallet, Coins,
   AlertTriangle, Clock, Timer, XCircle, TrendingDown, TrendingUp,
+  BarChart3, CalendarDays, CalendarRange, CheckCircle2, Inbox, PieChart, ThumbsUp, Users,
 } from "lucide-react";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { StatTile } from "@/components/ui/stat-tile";
 import { getSalesExecutives, getSalesAnalytics } from "@/actions/sales-analytics.actions";
 import {
@@ -16,7 +18,6 @@ import {
 import { BdFilterBar } from "@/app/(dashboard)/bd/_components/bd-filter-bar";
 import {
   ReportSection,
-  EmptyLine,
   TableScroll,
   Th,
   Td,
@@ -24,6 +25,11 @@ import {
   fmtDate,
   pct,
 } from "@/app/(dashboard)/bd/reports/_components/report-primitives";
+
+/** Micro sub-heading inside a report section. */
+const SUB_HEAD = "mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground";
+/** Shared body-row treatment for the hand-rolled report tables. */
+const ROW = "border-t border-border/60 transition-colors hover:bg-muted/40";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Sales Reports" };
@@ -265,18 +271,27 @@ export default async function SalesReportsPage({
   ];
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="space-y-6">
       <PageHeader
         aura
         eyebrow="Sales · Bookings"
+        icon={BarChart3}
+        accent="violet"
         title="Sales Reports"
         description="Funnel, bookings, revenue, follow-ups, losses, and team performance for the selected period."
+        help={
+          <span className="numeric inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-muted/40 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+            <CalendarRange className="size-3.5" aria-hidden />
+            {a.range.label}
+          </span>
+        }
       />
 
       {/* Filter bar */}
-      <div className="sticky top-2 z-20 -mx-1 rounded-2xl border border-border/70 bg-card/80 px-3 py-2.5 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-card/70">
+      <div className="sticky top-2 z-20 -mx-1 rounded-2xl border border-border/70 bg-card/80 px-3 py-2.5 shadow-card backdrop-blur supports-[backdrop-filter]:bg-card/70">
         <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <Filter className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+          <span className="hidden text-[11px] uppercase tracking-wide text-muted-foreground sm:inline">Filters</span>
           <BdFilterBar employees={execs} />
         </div>
       </div>
@@ -287,7 +302,12 @@ export default async function SalesReportsPage({
         description={`Stage-to-stage progression for ${a.range.label}.`}
       >
         {a.funnel.length === 0 ? (
-          <EmptyLine>No funnel activity in this period.</EmptyLine>
+          <EmptyState
+            className="px-0 py-12"
+            icon={<PieChart />}
+            title="No funnel activity in this period"
+            description="Nothing entered the funnel between these dates. Widen the range or clear the employee filter to see stage-to-stage movement."
+          />
         ) : (
           <div className="space-y-2">
             {a.funnel.map((row, i) => {
@@ -299,16 +319,16 @@ export default async function SalesReportsPage({
                   <div className="w-28 shrink-0 truncate text-[13px] text-muted-foreground sm:w-40">
                     {row.label}
                   </div>
-                  <div className="relative h-7 flex-1 overflow-hidden rounded-lg border border-border bg-muted/30">
+                  <div className="relative h-8 flex-1 overflow-hidden rounded-lg border border-border/70 bg-muted/25">
                     <div
-                      className="h-full rounded-lg bg-gradient-to-r from-violet-500/30 to-violet-500/10"
+                      className="h-full bg-gradient-to-r from-violet-500/35 to-violet-500/10"
                       style={{ width: `${width}%` }}
                     />
-                    <div className="absolute inset-0 flex items-center px-3 text-[13px] font-medium tabular-nums text-foreground">
+                    <div className="numeric absolute inset-0 flex items-center px-3 text-[13px] font-medium text-foreground">
                       {row.count.toLocaleString("en-IN")}
                     </div>
                   </div>
-                  <div className="w-16 shrink-0 text-right text-[12px] tabular-nums text-muted-foreground">
+                  <div className="numeric w-16 shrink-0 text-right text-[12px] text-muted-foreground">
                     {stepConv === null ? "—" : `${stepConv}%`}
                   </div>
                 </div>
@@ -350,11 +370,14 @@ export default async function SalesReportsPage({
 
         {/* Lead sources */}
         <div>
-          <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
-            Enquiry sources
-          </h3>
+          <h3 className={SUB_HEAD}>Enquiry sources</h3>
           {a.leadSources.length === 0 ? (
-            <EmptyLine>No enquiry sources yet.</EmptyLine>
+            <EmptyState
+              className="px-0 py-10"
+              icon={<Inbox />}
+              title="No enquiry sources recorded"
+              description="Tag incoming enquiries with a source to see which channels actually fill the funnel."
+            />
           ) : (
             <TableScroll>
               <table className="w-full border-separate border-spacing-0">
@@ -366,9 +389,9 @@ export default async function SalesReportsPage({
                 </thead>
                 <tbody>
                   {a.leadSources.map((s) => (
-                    <tr key={s.source} className="border-t border-border/60">
+                    <tr key={s.source} className={ROW}>
                       <Td>{s.label}</Td>
-                      <Td className="text-right tabular-nums">{s.count.toLocaleString("en-IN")}</Td>
+                      <Td className="numeric text-right">{s.count.toLocaleString("en-IN")}</Td>
                     </tr>
                   ))}
                 </tbody>
@@ -384,7 +407,12 @@ export default async function SalesReportsPage({
         description="Bookings sorted by event date, with payment progress and next milestone."
       >
         {tracker.rows.length === 0 ? (
-          <EmptyLine>No bookings to track in this period.</EmptyLine>
+          <EmptyState
+            className="px-0 py-12"
+            icon={<CalendarDays />}
+            title="No bookings to track right now"
+            description="Confirmed bookings appear here sorted by event date, with payment progress and the next milestone due."
+          />
         ) : (
           <TableScroll>
             <table className="w-full border-separate border-spacing-0">
@@ -404,12 +432,12 @@ export default async function SalesReportsPage({
               </thead>
               <tbody>
                 {tracker.rows.map((r) => (
-                  <tr key={r.id} className="border-t border-border/60">
-                    <Td className="font-medium">{r.ref || "—"}</Td>
-                    <Td>{r.client || "—"}</Td>
-                    <Td>{fmtDate(r.eventDate)}</Td>
+                  <tr key={r.id} className={ROW}>
+                    <Td className="numeric font-medium">{r.ref || "—"}</Td>
+                    <Td className="font-medium">{r.client || "—"}</Td>
+                    <Td className="numeric">{fmtDate(r.eventDate)}</Td>
                     <Td>{r.hall || "—"}</Td>
-                    <Td className="text-right tabular-nums">
+                    <Td className="numeric text-right">
                       {r.guests === null || r.guests === "" ? "—" : r.guests}
                     </Td>
                     <Td>{r.tier || "—"}</Td>
@@ -420,8 +448,8 @@ export default async function SalesReportsPage({
                         const barPct = Math.min(100, Math.max(0, paidPct));
                         const done = barPct >= 100;
                         return (
-                          <span className="inline-flex items-center justify-end gap-1.5">
-                            <span className="h-1 w-10 shrink-0 overflow-hidden rounded-full bg-muted">
+                          <span className="inline-flex items-center justify-end gap-2">
+                            <span className="h-1.5 w-12 shrink-0 overflow-hidden rounded-full bg-muted">
                               <span
                                 className={`block h-full rounded-full ${
                                   done
@@ -432,7 +460,7 @@ export default async function SalesReportsPage({
                               />
                             </span>
                             <span
-                              className={`tabular-nums ${done ? "font-medium text-emerald-600" : ""}`}
+                              className={`numeric w-9 text-right ${done ? "font-medium text-emerald-600 dark:text-emerald-400" : ""}`}
                             >
                               {paidPct}%
                             </span>
@@ -491,9 +519,7 @@ export default async function SalesReportsPage({
         </div>
 
         <div>
-          <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
-            20 / 60 / 20 milestones
-          </h3>
+          <h3 className={SUB_HEAD}>20 / 60 / 20 milestones</h3>
           <TableScroll>
             <table className="w-full border-separate border-spacing-0">
               <thead>
@@ -506,11 +532,11 @@ export default async function SalesReportsPage({
               </thead>
               <tbody>
                 {milestoneRows.map((m) => (
-                  <tr key={m.label} className="border-t border-border/60">
+                  <tr key={m.label} className={ROW}>
                     <Td className="font-medium">{m.label}</Td>
-                    <Td className="text-right tabular-nums">{inr(m.stat.due)}</Td>
-                    <Td className="text-right tabular-nums">{inr(m.stat.paid)}</Td>
-                    <Td className="text-right tabular-nums">{(m.stat.count || 0).toLocaleString("en-IN")}</Td>
+                    <Td className="numeric text-right">{inr(m.stat.due)}</Td>
+                    <Td className="numeric text-right">{inr(m.stat.paid)}</Td>
+                    <Td className="numeric text-right">{(m.stat.count || 0).toLocaleString("en-IN")}</Td>
                   </tr>
                 ))}
               </tbody>
@@ -552,18 +578,18 @@ export default async function SalesReportsPage({
           {/* Overdue payments */}
           <AlertCard title="Overdue payments" tone="red" count={alerts.overdue.length} empty="Nothing overdue — nice.">
             {alerts.overdue.map((it) => (
-              <li key={it.id} className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
+              <li key={it.id} className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5 transition-colors hover:bg-muted/40">
                 <div className="flex items-center justify-between gap-2">
                   <span className="truncate text-[13px] font-medium text-foreground">{it.client || "—"}</span>
-                  <span className="shrink-0 text-[12px] font-semibold tabular-nums text-red-600 dark:text-red-400">
+                  <span className="numeric shrink-0 text-[12px] font-semibold text-red-600 dark:text-red-400">
                     {inr(it.amount)}
                   </span>
                 </div>
-                <div className="mt-0.5 flex items-center justify-between gap-2 text-[11.5px] text-muted-foreground">
+                <div className="mt-1 flex items-center justify-between gap-2 text-[11.5px] text-muted-foreground">
                   <span className="truncate">
                     {[it.ref, it.event].filter(Boolean).join(" · ") || "—"}
                   </span>
-                  <span className="shrink-0 tabular-nums">{fmtDate(it.when)}</span>
+                  <span className="numeric shrink-0">{fmtDate(it.when)}</span>
                 </div>
                 <div className="mt-0.5 truncate text-[11.5px] text-muted-foreground">{it.owner || "—"}</div>
               </li>
@@ -573,10 +599,10 @@ export default async function SalesReportsPage({
           {/* Today's quote follow-ups */}
           <AlertCard title="Today's quote follow-ups" tone="amber" count={alerts.followups.length} empty="No quote follow-ups due today.">
             {alerts.followups.map((it) => (
-              <li key={it.id} className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
+              <li key={it.id} className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5 transition-colors hover:bg-muted/40">
                 <div className="flex items-center justify-between gap-2">
                   <span className="truncate text-[13px] font-medium text-foreground">{it.client || "—"}</span>
-                  <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{fmtDate(it.when)}</span>
+                  <span className="numeric shrink-0 text-[11px] text-muted-foreground">{fmtDate(it.when)}</span>
                 </div>
                 <div className="mt-0.5 truncate text-[11.5px] text-muted-foreground">{it.owner || "—"}</div>
               </li>
@@ -586,12 +612,12 @@ export default async function SalesReportsPage({
           {/* No payment 7+ days */}
           <AlertCard title="No payment 7+ days" tone="muted" count={alerts.stale.length} empty="No stale bookings right now.">
             {alerts.stale.map((it) => (
-              <li key={it.id} className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
+              <li key={it.id} className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5 transition-colors hover:bg-muted/40">
                 <div className="flex items-center justify-between gap-2">
                   <span className="truncate text-[13px] font-medium text-foreground">{it.client || "—"}</span>
-                  <span className="shrink-0 text-[12px] font-semibold tabular-nums text-foreground">{inr(it.amount)}</span>
+                  <span className="numeric shrink-0 text-[12px] font-semibold text-foreground">{inr(it.amount)}</span>
                 </div>
-                <div className="mt-0.5 flex items-center justify-between gap-2 text-[11.5px] text-muted-foreground">
+                <div className="mt-1 flex items-center justify-between gap-2 text-[11.5px] text-muted-foreground">
                   <span className="truncate">
                     {[it.ref, it.event].filter(Boolean).join(" · ") || "—"}
                   </span>
@@ -628,11 +654,15 @@ export default async function SalesReportsPage({
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {/* Loss reasons */}
           <div>
-            <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
-              Reasons
-            </h3>
+            <h3 className={SUB_HEAD}>Reasons</h3>
             {lost.reasons.length === 0 ? (
-              <EmptyLine>No lost bookings to break down.</EmptyLine>
+              <EmptyState
+                className="px-0 py-10"
+                icon={<ThumbsUp />}
+                tone="success"
+                title="Nothing to break down"
+                description="No bookings were marked lost in this period, so there are no reasons to analyse."
+              />
             ) : (
               <TableScroll>
                 <table className="w-full border-separate border-spacing-0">
@@ -645,10 +675,10 @@ export default async function SalesReportsPage({
                   </thead>
                   <tbody>
                     {lost.reasons.map((r) => (
-                      <tr key={r.reason} className="border-t border-border/60">
+                      <tr key={r.reason} className={ROW}>
                         <Td>{r.reason}</Td>
-                        <Td className="text-right tabular-nums">{r.count.toLocaleString("en-IN")}</Td>
-                        <Td className="text-right tabular-nums">{inr(r.value)}</Td>
+                        <Td className="numeric text-right">{r.count.toLocaleString("en-IN")}</Td>
+                        <Td className="numeric text-right">{inr(r.value)}</Td>
                       </tr>
                     ))}
                   </tbody>
@@ -659,11 +689,14 @@ export default async function SalesReportsPage({
 
           {/* Win-rate trend */}
           <div>
-            <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
-              Win-rate trend (6 months)
-            </h3>
+            <h3 className={SUB_HEAD}>Win-rate trend (6 months)</h3>
             {lost.trend.length === 0 ? (
-              <EmptyLine>Not enough history yet.</EmptyLine>
+              <EmptyState
+                className="px-0 py-10"
+                icon={<TrendingUp />}
+                title="Not enough history yet"
+                description="Once a few months of won and lost bookings accumulate, the win-rate trend plots here."
+              />
             ) : (
               <div className="flex items-end gap-2">
                 {lost.trend.map((tr) => {
@@ -674,17 +707,17 @@ export default async function SalesReportsPage({
                   const rate = Math.min(100, Math.max(0, tr.winRate || 0));
                   const h = Math.max(4, Math.round((rate / 100) * 80));
                   return (
-                    <div key={tr.month} className="flex flex-1 flex-col items-center gap-1">
-                      <span className="text-[10px] tabular-nums text-muted-foreground">
+                    <div key={tr.month} className="group flex flex-1 flex-col items-center gap-1">
+                      <span className="numeric text-[10px] font-medium text-muted-foreground">
                         {Math.round(rate)}%
                       </span>
-                      <div className="flex h-20 w-full items-end overflow-hidden">
+                      <div className="flex h-20 w-full items-end overflow-hidden rounded-md bg-muted/25">
                         <div
-                          className="w-full rounded-t bg-gradient-to-t from-violet-500/45 to-violet-500/20"
+                          className="w-full rounded-t-md bg-gradient-to-t from-violet-500/50 to-violet-500/20 transition-colors group-hover:from-violet-500/70 group-hover:to-violet-500/30"
                           style={{ height: `${h}px` }}
                         />
                       </div>
-                      <span className="truncate text-[10px] text-muted-foreground">{tr.month}</span>
+                      <span className="numeric truncate text-[10px] text-muted-foreground">{tr.month}</span>
                     </div>
                   );
                 })}
@@ -695,11 +728,15 @@ export default async function SalesReportsPage({
 
         {/* Lost rows */}
         <div>
-          <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
-            Lost bookings
-          </h3>
+          <h3 className={SUB_HEAD}>Lost bookings</h3>
           {lost.rows.length === 0 ? (
-            <EmptyLine>No lost bookings in this period.</EmptyLine>
+            <EmptyState
+              className="px-0 py-12"
+              icon={<ThumbsUp />}
+              tone="success"
+              title="No bookings lost in this period"
+              description="Nothing slipped away between these dates. Lost bookings land here with their reason, value and owner."
+            />
           ) : (
             <TableScroll>
               <table className="w-full border-separate border-spacing-0">
@@ -715,13 +752,13 @@ export default async function SalesReportsPage({
                 </thead>
                 <tbody>
                   {lost.rows.map((r) => (
-                    <tr key={r.id} className="border-t border-border/60">
+                    <tr key={r.id} className={ROW}>
                       <Td className="font-medium">{r.client || "—"}</Td>
                       <Td className="text-muted-foreground">{r.reason || "—"}</Td>
                       <Td>{r.eventType || "—"}</Td>
-                      <Td className="text-right tabular-nums">{inr(r.value)}</Td>
+                      <Td className="numeric text-right">{inr(r.value)}</Td>
                       <Td className="text-muted-foreground">{r.owner || "—"}</Td>
-                      <Td>{fmtDate(r.lostOn)}</Td>
+                      <Td className="numeric">{fmtDate(r.lostOn)}</Td>
                     </tr>
                   ))}
                 </tbody>
@@ -740,7 +777,12 @@ export default async function SalesReportsPage({
           {/* Employee table */}
           <div className="lg:col-span-2">
             {a.employees.length === 0 ? (
-              <EmptyLine>No executive activity in this period.</EmptyLine>
+              <EmptyState
+                className="px-0 py-12"
+                icon={<Users />}
+                title="No executive activity in this period"
+                description="Widen the date range or clear the employee filter to see per-executive bookings, conversion and revenue."
+              />
             ) : (
               <TableScroll>
                 <table className="w-full border-separate border-spacing-0">
@@ -763,13 +805,13 @@ export default async function SalesReportsPage({
                       const avgUpsell =
                         e.bookingsConfirmed > 0 ? e.upsellValue / e.bookingsConfirmed : 0;
                       return (
-                        <tr key={e.userId} className="border-t border-border/60">
+                        <tr key={e.userId} className={ROW}>
                           <Td className="font-medium">{e.name}</Td>
-                          <Td className="text-right tabular-nums">{e.bookingsConfirmed}</Td>
-                          <Td className="text-right tabular-nums">{conv}%</Td>
-                          <Td className="text-right tabular-nums">{inr(e.revenue)}</Td>
-                          <Td className="text-right tabular-nums">{inr(avgUpsell)}</Td>
-                          <Td className="text-right font-semibold tabular-nums">{e.salesScore}</Td>
+                          <Td className="numeric text-right">{e.bookingsConfirmed}</Td>
+                          <Td className="numeric text-right">{conv}%</Td>
+                          <Td className="numeric text-right">{inr(e.revenue)}</Td>
+                          <Td className="numeric text-right">{inr(avgUpsell)}</Td>
+                          <Td className="numeric text-right font-semibold">{e.salesScore}</Td>
                         </tr>
                       );
                     })}
@@ -781,11 +823,14 @@ export default async function SalesReportsPage({
 
           {/* Leaderboard */}
           <div>
-            <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
-              Leaderboard · Sales score
-            </h3>
+            <h3 className={SUB_HEAD}>Leaderboard · Sales score</h3>
             {a.leaderboard.length === 0 ? (
-              <EmptyLine>No scores yet.</EmptyLine>
+              <EmptyState
+                className="px-0 py-10"
+                icon={<Trophy />}
+                title="No scores yet"
+                description="Sales scores appear here as the team logs site visits, quotations and confirmed bookings."
+              />
             ) : (
               <ol className="space-y-1.5">
                 {a.leaderboard.map((l, i) => {
@@ -793,15 +838,15 @@ export default async function SalesReportsPage({
                   return (
                     <li
                       key={l.userId}
-                      className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-[13px]"
+                      className={`flex items-center justify-between gap-3 rounded-xl border border-border/60 px-3 py-2 text-[13px] transition-colors hover:bg-muted/40 ${i === 0 ? "bg-amber-500/8" : "bg-muted/20"}`}
                     >
                       <span className="flex min-w-0 items-center gap-2">
-                        <span className="w-6 shrink-0 text-center tabular-nums text-muted-foreground">
+                        <span className="numeric w-6 shrink-0 text-center text-muted-foreground">
                           {medal ?? i + 1}
                         </span>
                         <span className="truncate font-medium text-foreground">{l.name}</span>
                       </span>
-                      <span className="shrink-0 font-semibold tabular-nums text-foreground">
+                      <span className="numeric shrink-0 font-semibold text-foreground">
                         {l.salesScore.toLocaleString("en-IN")}
                       </span>
                     </li>
@@ -840,14 +885,19 @@ function AlertCard({
         : "text-muted-foreground";
 
   return (
-    <Card className="gap-0 py-0">
+    <Card className="gap-0 py-0 transition-shadow hover:shadow-card-hover">
       <CardContent className="space-y-3 px-4 py-4">
-        <div className={`flex items-center justify-between text-[12px] font-semibold uppercase tracking-[0.04em] ${headTone}`}>
+        <div className={`flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide ${headTone}`}>
           <span>{title}</span>
-          <span className="tabular-nums">{count}</span>
+          <span className="numeric rounded-full bg-muted/60 px-2 py-0.5 text-foreground">{count}</span>
         </div>
         {count === 0 ? (
-          <p className="text-[12px] text-muted-foreground">{empty}</p>
+          <EmptyState
+            className="px-0 py-8"
+            icon={<CheckCircle2 />}
+            tone={tone === "muted" ? "neutral" : "success"}
+            title={empty}
+          />
         ) : (
           <ul className="space-y-2">{children}</ul>
         )}

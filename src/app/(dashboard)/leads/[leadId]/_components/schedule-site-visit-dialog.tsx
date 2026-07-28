@@ -168,7 +168,7 @@ export function ScheduleSiteVisitDialog({
             </div>
           </div>
 
-          <div className="space-y-3 rounded-lg border bg-muted/30 p-2.5">
+          <div className="space-y-3 rounded-xl border bg-muted/30 p-3">
             <p className="text-xs font-medium text-muted-foreground">Guest</p>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">

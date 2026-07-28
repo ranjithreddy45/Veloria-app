@@ -63,55 +63,60 @@ export default async function PortalPaymentsPage() {
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <PageHeader
+        eyebrow="Your account"
         title="Payment History"
-        description="Track all your payments and receipts."
+        description="Every payment you've made, with receipts you can pull up any time."
       />
 
       {/* Summary */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="border-zinc-200/80 shadow-sm">
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-lg bg-emerald-50">
-                <CheckCircle2 className="size-5 text-emerald-600" />
+      <div className="grid gap-5 sm:grid-cols-3">
+        <Card className="shadow-card rounded-2xl py-0">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3.5">
+              <div className="flex size-11 items-center justify-center rounded-xl bg-emerald-500/10">
+                <CheckCircle2 className="size-5 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
-                <p className="text-xs font-medium text-zinc-500">Total Paid</p>
-                <p className="text-lg font-bold text-zinc-900">
+                <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
+                  Total paid
+                </p>
+                <p className="numeric text-foreground mt-1 text-[20px] font-semibold">
                   {formatINR(totalPaid)}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="border-zinc-200/80 shadow-sm">
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-lg bg-indigo-50">
-                <CreditCard className="size-5 text-indigo-600" />
+        <Card className="shadow-card rounded-2xl py-0">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3.5">
+              <div className="bg-primary/10 flex size-11 items-center justify-center rounded-xl">
+                <CreditCard className="text-primary size-5" />
               </div>
               <div>
-                <p className="text-xs font-medium text-zinc-500">
-                  Completed Payments
+                <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
+                  Settled
                 </p>
-                <p className="text-lg font-bold text-zinc-900">
+                <p className="numeric text-foreground mt-1 text-[20px] font-semibold">
                   {completedPayments.length}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="border-zinc-200/80 shadow-sm">
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-lg bg-amber-50">
-                <Clock className="size-5 text-amber-600" />
+        <Card className="shadow-card rounded-2xl py-0">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3.5">
+              <div className="flex size-11 items-center justify-center rounded-xl bg-amber-500/10">
+                <Clock className="size-5 text-amber-600 dark:text-amber-400" />
               </div>
               <div>
-                <p className="text-xs font-medium text-zinc-500">Pending</p>
-                <p className="text-lg font-bold text-zinc-900">
+                <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
+                  In progress
+                </p>
+                <p className="numeric text-foreground mt-1 text-[20px] font-semibold">
                   {pendingPayments.length}
                 </p>
               </div>
@@ -122,68 +127,72 @@ export default async function PortalPaymentsPage() {
 
       {/* Payments List */}
       {payments.length === 0 ? (
-        <Card className="border-zinc-200/80 shadow-sm">
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="flex size-16 items-center justify-center rounded-full bg-zinc-100">
-              <CreditCard className="size-8 text-zinc-400" />
+        <Card className="shadow-card rounded-2xl py-0">
+          <CardContent className="flex flex-col items-center justify-center px-6 py-20 text-center">
+            <div className="bg-muted flex size-16 items-center justify-center rounded-2xl">
+              <CreditCard className="text-muted-foreground/60 size-8" />
             </div>
-            <h3 className="mt-4 text-base font-semibold text-zinc-900">
-              No payments yet
+            <h3 className="font-editorial text-foreground mt-5 text-xl font-semibold">
+              Nothing paid yet
             </h3>
-            <p className="mt-1 max-w-sm text-sm text-zinc-500">
-              Your payment history will appear here once you make a payment.
+            <p className="text-muted-foreground mt-2 max-w-sm text-sm leading-relaxed">
+              The moment your first payment goes through, it lands here with its
+              receipt — permanently.
             </p>
           </CardContent>
         </Card>
       ) : (
-        <Card className="border-zinc-200/80 shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold text-zinc-900">
-              All Payments ({payments.length})
+        <Card className="shadow-card rounded-2xl py-0">
+          <CardHeader className="px-6 pt-6 pb-4">
+            <CardTitle className="font-editorial text-foreground text-[20px] font-semibold">
+              All payments
+              <span className="numeric text-muted-foreground/60 ml-2 text-sm font-normal">
+                {payments.length}
+              </span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-6 pb-6">
             {/* Desktop Table */}
-            <div className="hidden md:block overflow-x-auto">
+            <div className="hidden overflow-x-auto md:block">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-zinc-100">
-                    <th className="pb-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                  <tr className="border-b">
+                    <th className="text-muted-foreground pb-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em]">
                       Date
                     </th>
-                    <th className="pb-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                    <th className="text-muted-foreground pb-3 text-right text-[11px] font-semibold uppercase tracking-[0.14em]">
                       Amount
                     </th>
-                    <th className="pb-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                    <th className="text-muted-foreground pb-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em]">
                       Method
                     </th>
-                    <th className="pb-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                    <th className="text-muted-foreground pb-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em]">
                       Receipt #
                     </th>
-                    <th className="pb-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                    <th className="text-muted-foreground pb-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em]">
                       Invoice
                     </th>
-                    <th className="pb-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                    <th className="text-muted-foreground pb-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em]">
                       Event
                     </th>
-                    <th className="pb-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                    <th className="text-muted-foreground pb-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em]">
                       Status
                     </th>
-                    <th className="pb-3 text-right text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                    <th className="text-muted-foreground pb-3 text-right text-[11px] font-semibold uppercase tracking-[0.14em]">
                       Receipt
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-50">
+                <tbody className="divide-border/60 divide-y">
                   {payments.map((payment) => {
                     const MethodIcon =
                       METHOD_ICONS[payment.method] || CreditCard;
                     return (
                       <tr
                         key={payment.id}
-                        className="transition-colors hover:bg-zinc-50/50"
+                        className="hover:bg-muted/60 transition-colors"
                       >
-                        <td className="py-3 text-sm text-zinc-700">
+                        <td className="numeric text-muted-foreground py-3.5 text-sm">
                           {payment.paidAt
                             ? new Date(payment.paidAt).toLocaleDateString(
                                 "en-IN",
@@ -202,39 +211,39 @@ export default async function PortalPaymentsPage() {
                                 }
                               )}
                         </td>
-                        <td className="py-3 text-sm font-semibold text-zinc-900">
+                        <td className="numeric text-foreground py-3.5 text-right text-sm font-semibold">
                           {formatINR(payment.amount)}
                         </td>
-                        <td className="py-3">
-                          <div className="flex items-center gap-1.5 text-sm text-zinc-600">
-                            <MethodIcon className="size-3.5 text-zinc-400" />
+                        <td className="py-3.5">
+                          <div className="text-muted-foreground flex items-center gap-1.5 text-sm">
+                            <MethodIcon className="text-muted-foreground/50 size-3.5" />
                             {METHOD_LABELS[payment.method] || payment.method}
                           </div>
                         </td>
-                        <td className="py-3 text-sm text-zinc-600">
-                          {payment.receiptNumber || "-"}
+                        <td className="numeric text-muted-foreground py-3.5 text-sm">
+                          {payment.receiptNumber || "—"}
                         </td>
-                        <td className="py-3 text-sm text-indigo-600 font-medium">
+                        <td className="numeric text-primary py-3.5 text-sm font-medium">
                           {payment.invoiceNumber}
                         </td>
-                        <td className="py-3 text-sm text-zinc-600 max-w-[150px] truncate">
-                          {payment.eventName || "-"}
+                        <td className="text-muted-foreground max-w-[150px] truncate py-3.5 text-sm">
+                          {payment.eventName || "—"}
                         </td>
-                        <td className="py-3">
+                        <td className="py-3.5">
                           <StatusBadge
                             status={payment.status}
                             colorMap={PAYMENT_STATUS_COLORS}
                             className="text-[10px]"
                           />
                         </td>
-                        <td className="py-3 text-right">
+                        <td className="py-3.5 text-right">
                           {payment.status === "COMPLETED" &&
                             payment.invoiceId && (
                               <a
                                 href={`/portal/invoices/${payment.invoiceId}/pdf?auto=1`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
+                                className="text-muted-foreground/60 hover:text-primary inline-flex items-center gap-1 text-xs font-medium transition-colors"
                                 title="View invoice PDF"
                               >
                                 <Download className="size-3.5" />
@@ -255,32 +264,32 @@ export default async function PortalPaymentsPage() {
                 return (
                   <div
                     key={payment.id}
-                    className="rounded-lg border border-zinc-100 p-4"
+                    className="rounded-xl border p-4"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div
-                          className={`flex size-8 items-center justify-center rounded-full ${
+                          className={`flex size-9 items-center justify-center rounded-xl ${
                             payment.status === "COMPLETED"
-                              ? "bg-emerald-100"
+                              ? "bg-emerald-500/10"
                               : payment.status === "FAILED"
-                              ? "bg-red-100"
-                              : "bg-zinc-100"
+                              ? "bg-red-500/10"
+                              : "bg-muted"
                           }`}
                         >
                           {payment.status === "COMPLETED" ? (
-                            <CheckCircle2 className="size-4 text-emerald-600" />
+                            <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
                           ) : payment.status === "FAILED" ? (
-                            <AlertCircle className="size-4 text-red-600" />
+                            <AlertCircle className="size-4 text-red-600 dark:text-red-400" />
                           ) : (
-                            <Clock className="size-4 text-zinc-400" />
+                            <Clock className="text-muted-foreground/60 size-4" />
                           )}
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-zinc-900">
+                          <p className="numeric text-foreground text-sm font-semibold">
                             {formatINR(payment.amount)}
                           </p>
-                          <p className="text-xs text-zinc-500">
+                          <p className="numeric text-muted-foreground text-xs">
                             {payment.invoiceNumber}
                           </p>
                         </div>
@@ -291,17 +300,19 @@ export default async function PortalPaymentsPage() {
                         className="text-[10px]"
                       />
                     </div>
-                    <div className="mt-3 flex items-center justify-between text-xs text-zinc-500">
+                    <div className="text-muted-foreground mt-3 flex items-center justify-between text-xs">
                       <div className="flex items-center gap-3">
                         <div className="flex items-center gap-1">
-                          <MethodIcon className="size-3 text-zinc-400" />
+                          <MethodIcon className="text-muted-foreground/50 size-3" />
                           {METHOD_LABELS[payment.method] || payment.method}
                         </div>
                         {payment.receiptNumber && (
-                          <span>{payment.receiptNumber}</span>
+                          <span className="numeric">
+                            {payment.receiptNumber}
+                          </span>
                         )}
                       </div>
-                      <span>
+                      <span className="numeric">
                         {payment.paidAt
                           ? new Date(payment.paidAt).toLocaleDateString(
                               "en-IN",
@@ -320,7 +331,7 @@ export default async function PortalPaymentsPage() {
                       </span>
                     </div>
                     {payment.eventName && (
-                      <p className="mt-1.5 text-xs text-zinc-400 truncate">
+                      <p className="text-muted-foreground/70 mt-1.5 truncate text-xs">
                         {payment.eventName}
                       </p>
                     )}

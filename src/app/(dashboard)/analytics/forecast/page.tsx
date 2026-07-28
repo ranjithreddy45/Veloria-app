@@ -78,6 +78,8 @@ export default async function ForecastPage() {
       <PageHeader
         aura
         eyebrow="Analytics · Forecast"
+        icon={TrendingUpIcon}
+        accent="emerald"
         title="Revenue Forecast"
         help={<PageHelp id="forecast" />}
         description="AI-powered demand forecasting with predicted revenue, bookings, and venue demand heatmaps."

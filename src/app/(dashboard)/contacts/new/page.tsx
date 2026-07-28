@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ContactIcon } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { ContactForm } from "../_components/contact-form";
 
@@ -12,8 +13,11 @@ export default function NewContactPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        icon={ContactIcon}
+        accent="blue"
+        eyebrow="CRM · Contact"
         title="New Contact"
-        description="Add a new contact to your CRM."
+        description="Add a person to your directory — their leads, bookings and history roll up here."
       />
       <div className="mx-auto max-w-3xl">
         <ContactForm />

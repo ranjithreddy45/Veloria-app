@@ -50,9 +50,9 @@ function IrnCell({ irn }: { irn: string }) {
       type="button"
       onClick={copy}
       title={irn}
-      className="inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 font-mono text-[11.5px] text-muted-foreground transition-premium hover:bg-muted hover:text-foreground"
+      className="inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 numeric text-[11.5px] text-muted-foreground transition-premium hover:bg-muted hover:text-foreground"
     >
-      <span className="tabular-nums">{irn.slice(0, 12)}…{irn.slice(-4)}</span>
+      <span className="numeric">{irn.slice(0, 12)}…{irn.slice(-4)}</span>
       {copied ? <Check className="size-3 text-emerald-600" /> : <Copy className="size-3" />}
     </button>
   );
@@ -146,9 +146,9 @@ export function EInvoiceWorkspace({ rows, canWrite }: { rows: EInvoiceRow[]; can
                   return (
                     <TableRow key={r.invoiceId}>
                       <TableCell className="font-medium">{r.invoiceNumber}</TableCell>
-                      <TableCell className="text-muted-foreground tabular-nums">{fmtDate(r.issueDate)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatINR(r.totalAmount)}</TableCell>
-                      <TableCell className="font-mono text-[11.5px] text-muted-foreground">{r.gstin ?? "—"}</TableCell>
+                      <TableCell className="text-muted-foreground numeric">{fmtDate(r.issueDate)}</TableCell>
+                      <TableCell className="text-right numeric">{formatINR(r.totalAmount)}</TableCell>
+                      <TableCell className="numeric text-[11.5px] text-muted-foreground">{r.gstin ?? "—"}</TableCell>
                       <TableCell>
                         <StatusPill label={meta.label} hue={meta.hue} />
                       </TableCell>

@@ -24,7 +24,7 @@ export default async function CalibrationPage({ params }: { params: Promise<{ cy
   if (!cycle) notFound();
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <Link href="/people/performance" className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-3.5" /> Performance
       </Link>
@@ -33,7 +33,7 @@ export default async function CalibrationPage({ params }: { params: Promise<{ cy
         description={`${formatDate(cycle.startDate)} – ${formatDate(cycle.endDate)}. Compare self vs manager ratings across the org to calibrate fairly.`}
       />
       {rows.length === 0 ? (
-        <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">No goals or reviews recorded for this cycle yet.</div>
+        <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground">No goals or reviews recorded for this cycle yet.</div>
       ) : (
         <div className="overflow-hidden rounded-xl border bg-card">
           <Table>

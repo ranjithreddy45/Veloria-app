@@ -80,7 +80,7 @@ export function PendingProofs({ payments }: { payments: Proof[] }) {
         {proofs.map((p) => (
           <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-background p-2 text-sm">
             <div>
-              <span className="font-medium tabular-nums">{formatINR(p.amount)}</span>
+              <span className="font-medium numeric">{formatINR(p.amount)}</span>
               <span className="text-muted-foreground"> · {p.method.replace("_", " ")}</span>
               {p.notes && <span className="block text-xs text-muted-foreground">{p.notes}</span>}
             </div>

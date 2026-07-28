@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, X, ReceiptText, Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -63,16 +64,22 @@ function StatusBadge({ status }: { status: string }) {
 
 export function MyReimbursementsList({ claims }: { claims: ReimbursementClaim[] }) {
   return (
-    <div className="rounded-xl border bg-card">
-      <div className="border-b px-4 py-3 text-[13px] font-semibold">My claims</div>
+    <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
+      <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
+        <span className="text-[13px] font-semibold">My claims</span>
+        {claims.length > 0 && (
+          <span className="text-[13px] text-muted-foreground">
+            <span className="numeric font-medium text-foreground">{claims.length}</span>{" "}
+            {claims.length === 1 ? "claim" : "claims"}
+          </span>
+        )}
+      </div>
       {claims.length === 0 ? (
-        <div className="p-10 text-center text-sm text-muted-foreground">
-          <ReceiptText className="mx-auto size-7 text-muted-foreground/40" />
-          <p className="mt-2">No reimbursement claims yet. Use “New claim” to submit your first expense.</p>
-          <p className="mt-1 text-[12px] text-muted-foreground/80">
-            If your account isn’t linked to an employee record yet, ask HR to connect your profile.
-          </p>
-        </div>
+        <EmptyState
+          icon={<ReceiptText className="size-5" />}
+          title="No claims yet"
+          description="Use “New claim” to submit your first expense. If your account isn’t linked to an employee record yet, ask HR to connect your profile."
+        />
       ) : (
         <Table>
           <TableHeader>
@@ -85,7 +92,7 @@ export function MyReimbursementsList({ claims }: { claims: ReimbursementClaim[] 
               <TableHead></TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody className="[&_td]:py-3.5">
             {claims.map((c) => {
               const label = STATUS[c.status]?.label ?? c.status;
               return (
@@ -118,8 +125,8 @@ export function MyReimbursementsList({ claims }: { claims: ReimbursementClaim[] 
                       <span className="ml-1 text-[11px] text-amber-600 dark:text-amber-400">· taxable</span>
                     )}
                   </TableCell>
-                  <TableCell className="text-[13px] text-muted-foreground">{formatDate(c.claimDate)}</TableCell>
-                  <TableCell className="text-right font-medium tabular-nums">{INR.format(c.amount)}</TableCell>
+                  <TableCell className="numeric text-[12.5px] text-muted-foreground whitespace-nowrap">{formatDate(c.claimDate)}</TableCell>
+                  <TableCell className="numeric text-right text-[13px] font-medium">{INR.format(c.amount)}</TableCell>
                   <TableCell>
                     <StatusBadge status={c.status} />
                   </TableCell>

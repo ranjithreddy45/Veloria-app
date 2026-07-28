@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { BookingTerms } from "@/components/legal/booking-terms";
@@ -20,11 +21,13 @@ import {
   LayoutDashboardIcon,
   ClipboardListIcon,
   CalendarClockIcon,
+  CalendarCheckIcon,
 } from "lucide-react";
 
 import { getBooking } from "@/actions/booking.actions";
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
+import { PageHeader } from "@/components/layout/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,6 +37,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Tabs,
   TabsContent,
@@ -67,6 +71,77 @@ import { hasPermission } from "@/lib/permissions";
 import { formatINR, cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Booking Details" };
+
+// ============================================================
+// Presentation helpers — visual only, no data/behaviour changes.
+// ============================================================
+
+/** SCREAMING_SNAKE → Title Case (WEDDING_RECEPTION → Wedding Reception). */
+function titleCase(value: string): string {
+  return value
+    .toLowerCase()
+    .split(/[_\s]+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+/** A labelled band so the page reads as distinct sections, not one long column. */
+function Section({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="space-y-3">
+      <div className="space-y-0.5">
+        <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-foreground">
+          {title}
+        </h2>
+        {description && (
+          <p className="text-[13px] text-muted-foreground">{description}</p>
+        )}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/** One cell of the summary fact strip under the page header. */
+function Fact({
+  label,
+  value,
+  sub,
+  numeric,
+}: {
+  label: string;
+  value: ReactNode;
+  sub?: string;
+  numeric?: boolean;
+}) {
+  return (
+    <div className="bg-card p-4">
+      <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+        {label}
+      </p>
+      <p
+        className={cn(
+          "mt-1 truncate text-[15px] font-semibold tracking-[-0.01em] text-foreground",
+          numeric && "numeric"
+        )}
+      >
+        {value}
+      </p>
+      {sub && (
+        <p className="mt-0.5 truncate text-[12px] text-muted-foreground">{sub}</p>
+      )}
+    </div>
+  );
+}
 
 // ============================================================
 // Booking Detail Page
@@ -183,61 +258,98 @@ export default async function BookingDetailPage({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight">
-              {booking.eventName}
-            </h1>
-            <StatusBadge
-              status={booking.status}
-              colorMap={BOOKING_STATUS_COLORS}
-            />
+      {/* Header — event identity, status and the primary actions */}
+      <PageHeader
+        icon={CalendarCheckIcon}
+        accent="blue"
+        title={booking.eventName}
+        eyebrow={
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>Booking</span>
+            <span className="h-3 w-px bg-border" />
+            <span className="numeric text-foreground/80">
+              {booking.bookingNumber}
+            </span>
+            <span className="h-3 w-px bg-border" />
+            <span className="text-foreground/80">
+              {titleCase(booking.eventType)}
+            </span>
           </div>
-          <p className="text-muted-foreground mt-1 text-sm">
-            {booking.bookingNumber} | {booking.eventType}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" asChild>
-            <Link href={`/bookings/${booking.id}/edit`}>
-              <PencilIcon className="mr-2 size-4" />
-              Edit
-            </Link>
-          </Button>
-          <BookingActions
-            bookingId={booking.id}
-            currentStatus={booking.status}
-            canOverride={isSuperAdmin}
-          />
-        </div>
+        }
+        description={`${format(new Date(booking.date), "EEEE, d MMMM yyyy")} · ${
+          TIME_SLOT_LABELS[booking.timeSlot] || booking.timeSlot
+        } · ${booking.venue.name}`}
+      >
+        <StatusBadge status={booking.status} colorMap={BOOKING_STATUS_COLORS} />
+        <Button variant="outline" asChild>
+          <Link href={`/bookings/${booking.id}/edit`}>
+            <PencilIcon className="mr-2 size-4" />
+            Edit
+          </Link>
+        </Button>
+        <BookingActions
+          bookingId={booking.id}
+          currentStatus={booking.status}
+          canOverride={isSuperAdmin}
+        />
+      </PageHeader>
+
+      {/* Summary fact strip — the five things ops always need at a glance */}
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border bg-border/60 shadow-card sm:grid-cols-3 lg:grid-cols-5">
+        <Fact
+          label="Date"
+          numeric
+          value={format(new Date(booking.date), "d MMM yyyy")}
+          sub={format(new Date(booking.date), "EEEE")}
+        />
+        <Fact
+          label="Time slot"
+          value={TIME_SLOT_LABELS[booking.timeSlot] || booking.timeSlot}
+        />
+        <Fact
+          label="Venue"
+          value={booking.venue.name}
+          sub={booking.hallBooked ?? undefined}
+        />
+        <Fact label="Guests" numeric value={booking.guestCount} sub="expected" />
+        <Fact
+          label="Total value"
+          numeric
+          value={formatINR(booking.totalAmount)}
+          sub="contracted"
+        />
       </div>
 
       {/* Hold Warning */}
       {booking.status === "HOLD" && booking.holdExpiresAt && (
         <div
-          className={`flex items-center gap-3 rounded-lg border p-4 ${
+          className={cn(
+            "flex items-center gap-3 rounded-2xl border p-4 shadow-card",
             holdExpired
               ? "border-red-200 bg-red-50"
               : "border-amber-200 bg-amber-50"
-          }`}
+          )}
         >
           <ClockIcon
-            className={`size-5 ${holdExpired ? "text-red-500" : "text-amber-500"}`}
+            className={cn(
+              "size-5 shrink-0",
+              holdExpired ? "text-red-500" : "text-amber-500"
+            )}
           />
           <div>
             <p
-              className={`text-sm font-medium ${
+              className={cn(
+                "text-sm font-semibold",
                 holdExpired ? "text-red-800" : "text-amber-800"
-              }`}
+              )}
             >
               {holdExpired ? "Hold has expired" : "Booking is on hold"}
             </p>
             <p
-              className={`text-xs ${
+              className={cn(
+                "text-[13px]",
                 holdExpired ? "text-red-600" : "text-amber-600"
-              }`}
+              )}
             >
               {holdExpired
                 ? `Expired ${formatDistanceToNow(new Date(booking.holdExpiresAt), { addSuffix: true })}`
@@ -248,8 +360,18 @@ export default async function BookingDetailPage({
       )}
 
       {/* CR-002: 6-stage event lifecycle pipeline + health % */}
-      <EventPipelineTracker stages={pipelineStages} />
+      <Section
+        title="Event lifecycle"
+        description="Where this event stands across the six hand-off stages, from confirmation to guest readiness."
+      >
+        <EventPipelineTracker stages={pipelineStages} />
+      </Section>
 
+      <Section
+        title="Money & readiness"
+        description="Collection progress against invoices, plus the pre-event checklist."
+      >
+        <div className="space-y-4">
       {/* CR-003: Stage 1 payment summary (Total invoiced / Collected / Pending) */}
       {booking.invoices.length > 0 &&
         (() => {
@@ -263,7 +385,7 @@ export default async function BookingDetailPage({
             .sort((a, b) => a - b);
           const nextDue = dueDates.length ? new Date(dueDates[0]) : null;
           return (
-            <Card>
+            <Card className="rounded-2xl shadow-card">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <IndianRupeeIcon className="size-4 text-emerald-600" /> Payment summary
@@ -272,16 +394,16 @@ export default async function BookingDetailPage({
               <CardContent>
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                   <div>
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Total invoiced</p>
-                    <p className="mt-0.5 text-lg font-semibold tabular-nums">{formatINR(totalInvoiced)}</p>
+                    <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Total invoiced</p>
+                    <p className="numeric mt-1 text-lg font-semibold">{formatINR(totalInvoiced)}</p>
                   </div>
                   <div>
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Collected</p>
-                    <p className="mt-0.5 text-lg font-semibold tabular-nums text-emerald-600">{formatINR(collected)}</p>
+                    <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Collected</p>
+                    <p className="numeric mt-1 text-lg font-semibold text-emerald-600">{formatINR(collected)}</p>
                   </div>
                   <div>
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Pending</p>
-                    <p className={cn("mt-0.5 text-lg font-semibold tabular-nums", pending > 0 ? "text-amber-600" : "text-muted-foreground")}>{formatINR(pending)}</p>
+                    <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Pending</p>
+                    <p className={cn("numeric mt-1 text-lg font-semibold", pending > 0 ? "text-amber-600" : "text-muted-foreground")}>{formatINR(pending)}</p>
                   </div>
                 </div>
                 <div className="mt-3">
@@ -335,7 +457,14 @@ export default async function BookingDetailPage({
         guestCount={booking.guestCount}
         eventDate={booking.date}
       />
+        </div>
+      </Section>
 
+      <Section
+        title="Services, vendors & hand-off"
+        description="What the client has signed off, who is delivering it, and the Sales → Ops handover."
+      >
+        <div className="space-y-4">
       {/* CR-004: Service confirmation (Stage 2) — décor, photo/video, add-ons + 24h SLA */}
       {servicesData && (
         <ServiceConfirmationCard bookingId={booking.id} data={servicesData} />
@@ -369,6 +498,14 @@ export default async function BookingDetailPage({
         }
       />
 
+        </div>
+      </Section>
+
+      <Section
+        title="Record & feedback"
+        description="Photos captured before, during and after the event, plus the client's verdict."
+      >
+        <div className="space-y-4">
       {/* Event / readiness photos (pre / post / during) */}
       <BookingPhotos
         bookingId={booking.id}
@@ -382,8 +519,14 @@ export default async function BookingDetailPage({
         review={existingReview}
         canModerate={canModerate}
       />
+        </div>
+      </Section>
 
       {/* Quick Access Links */}
+      <Section
+        title="Workspaces"
+        description="Jump into the day-of tooling and downstream documents for this event."
+      >
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" size="sm" asChild>
           <Link href={`/bookings/${booking.id}/execution`}>
@@ -419,6 +562,7 @@ export default async function BookingDetailPage({
           />
         )}
       </div>
+      </Section>
 
       {/* Tabs */}
       <Tabs defaultValue="details">
@@ -439,7 +583,7 @@ export default async function BookingDetailPage({
         <TabsContent value="details" className="mt-6 space-y-6">
           <div className="grid gap-6 md:grid-cols-2">
             {/* Event Details Card */}
-            <Card>
+            <Card className="rounded-2xl shadow-card">
               <CardHeader>
                 <CardTitle className="text-base">Event Details</CardTitle>
               </CardHeader>
@@ -466,7 +610,7 @@ export default async function BookingDetailPage({
                   <UsersIcon className="text-muted-foreground size-4 shrink-0" />
                   <div>
                     <p className="text-muted-foreground text-xs">Guest Count</p>
-                    <p className="text-sm font-medium">{booking.guestCount} guests</p>
+                    <p className="text-sm font-medium"><span className="numeric">{booking.guestCount}</span> guests</p>
                   </div>
                 </div>
                 {(booking.startTime || booking.endTime) && (
@@ -490,7 +634,7 @@ export default async function BookingDetailPage({
                   <IndianRupeeIcon className="text-muted-foreground size-4 shrink-0" />
                   <div>
                     <p className="text-muted-foreground text-xs">Total Amount</p>
-                    <p className="text-sm font-medium">
+                    <p className="numeric text-sm font-semibold">
                       {formatINR(booking.totalAmount)}
                     </p>
                   </div>
@@ -513,7 +657,7 @@ export default async function BookingDetailPage({
                             <dt className="text-muted-foreground">
                               Per Plate Price
                             </dt>
-                            <dd className="font-medium tabular-nums">
+                            <dd className="numeric font-medium">
                               {formatINR(booking.perPlatePrice)}
                             </dd>
                           </div>
@@ -521,7 +665,7 @@ export default async function BookingDetailPage({
                         {booking.hallRental != null && (
                           <div className="flex items-center justify-between">
                             <dt className="text-muted-foreground">Hall Rental</dt>
-                            <dd className="font-medium tabular-nums">
+                            <dd className="numeric font-medium">
                               {formatINR(booking.hallRental)}
                             </dd>
                           </div>
@@ -531,7 +675,7 @@ export default async function BookingDetailPage({
                             <dt className="text-muted-foreground">
                               Decor Charges
                             </dt>
-                            <dd className="font-medium tabular-nums">
+                            <dd className="numeric font-medium">
                               {formatINR(booking.decorCharges)}
                             </dd>
                           </div>
@@ -541,7 +685,7 @@ export default async function BookingDetailPage({
                             <dt className="text-muted-foreground">
                               Other Services
                             </dt>
-                            <dd className="font-medium tabular-nums">
+                            <dd className="numeric font-medium">
                               {formatINR(booking.otherServices)}
                             </dd>
                           </div>
@@ -577,7 +721,7 @@ export default async function BookingDetailPage({
             </Card>
 
             {/* Venue Card */}
-            <Card>
+            <Card className="rounded-2xl shadow-card">
               <CardHeader>
                 <CardTitle className="text-base">Venue</CardTitle>
               </CardHeader>
@@ -637,7 +781,7 @@ export default async function BookingDetailPage({
             </Card>
 
             {/* Client Card */}
-            <Card>
+            <Card className="rounded-2xl shadow-card">
               <CardHeader>
                 <CardTitle className="text-base flex items-center justify-between">
                   <span>Client</span>
@@ -681,7 +825,7 @@ export default async function BookingDetailPage({
             </Card>
 
             {/* Booking Info Card */}
-            <Card>
+            <Card className="rounded-2xl shadow-card">
               <CardHeader>
                 <CardTitle className="text-base">Booking Info</CardTitle>
               </CardHeader>
@@ -722,7 +866,7 @@ export default async function BookingDetailPage({
 
         {/* Invoices Tab */}
         <TabsContent value="invoices" className="mt-6">
-          <Card>
+          <Card className="rounded-2xl shadow-card">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">
                 <span className="flex items-center gap-2">
@@ -739,40 +883,48 @@ export default async function BookingDetailPage({
             </CardHeader>
             <CardContent>
               {booking.invoices.length === 0 ? (
-                <div className="text-muted-foreground py-8 text-center text-sm">
-                  <p>No invoices created for this booking yet.</p>
-                  <Button variant="outline" size="sm" className="mt-3" asChild>
-                    <Link href={`/invoices/new?bookingId=${booking.id}`}>
-                      <FileTextIcon className="mr-2 size-4" />
-                      Generate Proforma Invoice
-                    </Link>
-                  </Button>
-                </div>
+                <EmptyState
+                  icon={<FileTextIcon className="size-6" />}
+                  title="No invoices yet"
+                  description="Nothing has been billed against this booking. Generate a proforma invoice to start the collection trail."
+                  action={
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/invoices/new?bookingId=${booking.id}`}>
+                        <FileTextIcon className="mr-2 size-4" />
+                        Generate Proforma Invoice
+                      </Link>
+                    </Button>
+                  }
+                />
               ) : (
                 <div className="space-y-3">
                   {booking.invoices.map((invoice) => (
                       <Link
                         key={invoice.id}
                         href={`/invoices/${invoice.id}`}
-                        className="hover:bg-muted/50 flex items-center justify-between rounded-lg border p-3 transition-colors"
+                        className="flex items-center justify-between gap-4 rounded-xl border p-3.5 transition-shadow hover:bg-muted/40 hover:shadow-card-hover"
                       >
-                        <div>
-                          <p className="font-medium">{invoice.invoiceNumber}</p>
-                          <div className="text-muted-foreground mt-1 text-xs">
-                            Issued:{" "}
-                            {format(new Date(invoice.issueDate), "dd MMM yyyy")}{" "}
-                            | Due:{" "}
-                            {format(new Date(invoice.dueDate), "dd MMM yyyy")}
+                        <div className="min-w-0">
+                          <p className="numeric text-sm font-semibold">{invoice.invoiceNumber}</p>
+                          <div className="mt-1 text-[13px] text-muted-foreground">
+                            Issued{" "}
+                            <span className="numeric">
+                              {format(new Date(invoice.issueDate), "dd MMM yyyy")}
+                            </span>{" "}
+                            · Due{" "}
+                            <span className="numeric">
+                              {format(new Date(invoice.dueDate), "dd MMM yyyy")}
+                            </span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex shrink-0 items-center gap-3">
                           <div className="text-right">
-                            <p className="text-sm font-medium">
+                            <p className="numeric text-sm font-semibold">
                               {formatINR(invoice.totalAmount)}
                             </p>
                             {Number(invoice.balanceDue) > 0 && (
-                              <p className="text-destructive text-xs">
-                                Due: {formatINR(invoice.balanceDue)}
+                              <p className="numeric text-destructive text-[12px]">
+                                Due {formatINR(invoice.balanceDue)}
                               </p>
                             )}
                           </div>
@@ -792,7 +944,7 @@ export default async function BookingDetailPage({
 
         {/* Tasks Tab */}
         <TabsContent value="tasks" className="mt-6">
-          <Card>
+          <Card className="rounded-2xl shadow-card">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">
                 <span className="flex items-center gap-2">
@@ -803,9 +955,11 @@ export default async function BookingDetailPage({
             </CardHeader>
             <CardContent>
               {booking.tasks.length === 0 ? (
-                <p className="text-muted-foreground py-8 text-center text-sm">
-                  No tasks associated with this booking yet.
-                </p>
+                <EmptyState
+                  icon={<ListChecksIcon className="size-6" />}
+                  title="No tasks on this booking"
+                  description="Nothing has been assigned yet. Tasks created against this event will appear here with owner, due date and priority."
+                />
               ) : (
                 <div className="space-y-3">
                   {booking.tasks.map(
@@ -819,23 +973,26 @@ export default async function BookingDetailPage({
                     }) => (
                       <div
                         key={task.id}
-                        className="flex items-center justify-between rounded-lg border p-3"
+                        className="flex items-center justify-between gap-4 rounded-xl border p-3.5 transition-shadow hover:shadow-card-hover"
                       >
-                        <div>
+                        <div className="min-w-0">
                           <p className="text-sm font-medium">{task.title}</p>
-                          <div className="text-muted-foreground mt-1 flex items-center gap-2 text-xs">
+                          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] text-muted-foreground">
                             {task.dueDate && (
                               <span>
-                                Due:{" "}
-                                {format(new Date(task.dueDate), "dd MMM yyyy")}
+                                Due{" "}
+                                <span className="numeric">
+                                  {format(new Date(task.dueDate), "dd MMM yyyy")}
+                                </span>
                               </span>
                             )}
-                            {task.assignee && (
-                              <span>Assigned to: {task.assignee.name}</span>
+                            {task.dueDate && task.assignee && (
+                              <span aria-hidden className="h-3 w-px bg-border" />
                             )}
+                            {task.assignee && <span>{task.assignee.name}</span>}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex shrink-0 items-center gap-2">
                           <StatusBadge
                             status={task.priority}
                             colorMap={TASK_PRIORITY_COLORS}

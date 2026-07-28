@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
+import { FileBarChart2Icon } from "lucide-react";
 import { auth } from "@/../auth";
+import { PageHeader } from "@/components/layout/page-header";
 import { hasPermission } from "@/lib/permissions";
 import { getProfitAndLoss, getBalanceSheet, getTrialBalance, getFinFiscalYears } from "@/actions/finance.actions";
 import { FinanceReports } from "../_components/finance-reports";
@@ -23,14 +25,16 @@ export default async function FinanceReportsPage({ searchParams }: { searchParam
   ]);
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Financial reports</h1>
-          <p className="text-sm text-muted-foreground">Profit &amp; Loss, Balance Sheet and Trial Balance — derived live from the posted ledger.</p>
-        </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={FileBarChart2Icon}
+        accent="emerald"
+        eyebrow={fy ? <span className="numeric">FY {fy}</span> : "Finance"}
+        title="Financial reports"
+        description="Profit & Loss, Balance Sheet and Trial Balance — derived live from the posted ledger."
+      >
         <InvestorPackButton fy={fy} />
-      </div>
+      </PageHeader>
       <FinanceReports fy={fy} fiscalYears={fiscalYears} pl={pl} bs={bs} tb={tb} />
     </div>
   );

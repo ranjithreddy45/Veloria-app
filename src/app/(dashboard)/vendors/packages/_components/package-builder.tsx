@@ -270,7 +270,7 @@ function ItemEditor({
             className={cn(
               "rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-colors",
               item.type === t
-                ? "border-violet-300 bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-700"
+                ? "border-teal-500/35 bg-teal-500/12 text-teal-700 dark:text-teal-300"
                 : "border-border bg-background text-muted-foreground hover:border-border/80"
             )}
           >
@@ -1182,7 +1182,7 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
                         />
                         {/* Cover badge */}
                         {isCover && (
-                          <div className="absolute left-1 top-1 flex items-center gap-0.5 rounded-full bg-violet-600 px-1.5 py-0.5 text-[9px] font-semibold text-white">
+                          <div className="absolute left-1 top-1 flex items-center gap-0.5 rounded-full bg-teal-600 px-1.5 py-0.5 text-[9px] font-semibold text-white">
                             <StarIcon className="size-2.5 fill-current" />
                             Cover
                           </div>

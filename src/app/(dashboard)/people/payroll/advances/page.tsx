@@ -35,7 +35,7 @@ export default async function AdvancesPage() {
   const recoveredToDate = advances.reduce((s, a) => s + a.recovered, 0);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title="Salary advances"
         description="Advances paid to employees and recovered from their salary in monthly instalments. Instalments are deducted automatically when payroll is processed."

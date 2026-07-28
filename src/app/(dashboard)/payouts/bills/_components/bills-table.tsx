@@ -322,7 +322,7 @@ export function BillsTable({ data }: { data: BillRow[] }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground tabular-nums">
+        <p className="text-sm text-muted-foreground numeric">
           {rows.length} bill{rows.length === 1 ? "" : "s"}
         </p>
         <Select value={status} onValueChange={setStatus}>
@@ -339,7 +339,7 @@ export function BillsTable({ data }: { data: BillRow[] }) {
         </Select>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-border/70 bg-card shadow-card">
+      <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
         {rows.length === 0 ? (
           <EmptyState
             icon={<ReceiptTextIcon className="size-5" />}
@@ -353,7 +353,7 @@ export function BillsTable({ data }: { data: BillRow[] }) {
         ) : (
           <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow className="bg-muted/30 hover:bg-muted/30 [&>th]:h-9 [&>th]:text-[11px] [&>th]:font-medium [&>th]:uppercase [&>th]:tracking-[0.05em] [&>th]:text-muted-foreground">
                 <TableHead>Bill #</TableHead>
                 <TableHead>Vendor</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
@@ -368,7 +368,7 @@ export function BillsTable({ data }: { data: BillRow[] }) {
             <TableBody>
               {rows.map((b) => (
                 <TableRow key={b.id}>
-                  <TableCell className="font-mono text-xs font-medium">{b.billNumber}</TableCell>
+                  <TableCell className="numeric text-xs font-medium">{b.billNumber}</TableCell>
                   <TableCell className="max-w-[200px]">
                     <span className="block truncate font-medium">{b.vendorName}</span>
                     {b.description && (
@@ -377,15 +377,15 @@ export function BillsTable({ data }: { data: BillRow[] }) {
                       </span>
                     )}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums font-medium">
+                  <TableCell className="numeric text-right font-semibold">
                     {inr.format(b.amount)}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums text-emerald-700 dark:text-emerald-400">
+                  <TableCell className="numeric text-right text-success">
                     {inr.format(b.paid)}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums font-medium">
+                  <TableCell className="numeric text-right font-semibold">
                     {b.outstanding > 0 ? (
-                      <span className="text-rose-600 dark:text-rose-400">
+                      <span className="text-destructive">
                         {inr.format(b.outstanding)}
                       </span>
                     ) : (
@@ -402,10 +402,10 @@ export function BillsTable({ data }: { data: BillRow[] }) {
                   <TableCell>
                     <span className="text-xs text-muted-foreground">
                       {EXPENSE_LABEL[b.expenseCode] ?? b.expenseCode}
-                      <span className="ml-1 font-mono opacity-60">{b.expenseCode}</span>
+                      <span className="ml-1 numeric opacity-60">{b.expenseCode}</span>
                     </span>
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell className="numeric text-[12.5px] text-muted-foreground">
                     {format(new Date(b.createdAt), "dd MMM yyyy")}
                   </TableCell>
                   <TableCell className="text-right">

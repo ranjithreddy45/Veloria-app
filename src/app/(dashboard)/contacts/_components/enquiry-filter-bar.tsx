@@ -46,7 +46,7 @@ export function EnquiryFilterBar() {
   );
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-2">
+    <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-2 shadow-card">
       {/* Enquiry creation date range */}
       <div className="flex items-center gap-1.5">
         <CalendarDays className="size-4 text-muted-foreground" />

@@ -6,7 +6,6 @@ import { type ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { EyeIcon, MoreHorizontalIcon, WalletIcon } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -78,7 +77,7 @@ const columns: ColumnDef<PayoutRow, unknown>[] = [
     cell: ({ row }) => (
       <Link
         href={`/payouts/${row.original.id}`}
-        className="font-medium font-mono text-blue-600 hover:underline"
+        className="numeric text-[13px] font-medium text-foreground underline-offset-4 hover:text-primary hover:underline"
       >
         {row.original.referenceNumber || row.original.id.slice(0, 8)}
       </Link>
@@ -89,18 +88,18 @@ const columns: ColumnDef<PayoutRow, unknown>[] = [
     header: "Type",
     cell: ({ row }) => {
       const type = row.original.type;
-      const typeColors: Record<string, string> = {
-        VENDOR_PAYMENT: "bg-purple-100 text-purple-800 border-purple-200",
-        OWNER_PAYOUT: "bg-indigo-100 text-indigo-800 border-indigo-200",
-        COMMISSION: "bg-cyan-100 text-cyan-800 border-cyan-200",
+      const typeHue: Record<string, Hue> = {
+        VENDOR_PAYMENT: "purple",
+        OWNER_PAYOUT: "indigo",
+        COMMISSION: "cyan",
       };
       return (
-        <Badge
-          variant="outline"
-          className={`${typeColors[type] || ""} border text-xs`}
-        >
-          {PAYOUT_TYPE_LABELS[type] || type}
-        </Badge>
+        <StatusPill
+          label={PAYOUT_TYPE_LABELS[type] || type}
+          hue={typeHue[type] ?? "neutral"}
+          size="xs"
+          noDot
+        />
       );
     },
   },
@@ -109,11 +108,11 @@ const columns: ColumnDef<PayoutRow, unknown>[] = [
     header: "Vendor",
     cell: ({ row }) => {
       const vendor = row.original.vendor;
-      if (!vendor) return <span className="text-muted-foreground">--</span>;
+      if (!vendor) return <span className="text-muted-foreground">—</span>;
       return (
         <Link
           href={`/vendors/${vendor.id}`}
-          className="text-sm text-blue-600 hover:underline"
+          className="text-[13px] font-medium underline-offset-4 hover:text-primary hover:underline"
         >
           {vendor.name}
         </Link>
@@ -125,11 +124,11 @@ const columns: ColumnDef<PayoutRow, unknown>[] = [
     header: "Booking",
     cell: ({ row }) => {
       const booking = row.original.booking;
-      if (!booking) return <span className="text-muted-foreground">--</span>;
+      if (!booking) return <span className="text-muted-foreground">—</span>;
       return (
         <Link
           href={`/bookings/${booking.id}`}
-          className="text-sm text-blue-600 hover:underline"
+          className="numeric text-[12.5px] underline-offset-4 hover:text-primary hover:underline"
         >
           {booking.bookingNumber}
         </Link>
@@ -139,12 +138,20 @@ const columns: ColumnDef<PayoutRow, unknown>[] = [
   {
     accessorKey: "amount",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Amount" />
+      <div className="flex justify-end">
+        <DataTableColumnHeader column={column} title="Amount" />
+      </div>
     ),
     cell: ({ row }) => (
-      <span className="font-medium tabular-nums text-emerald-700 dark:text-emerald-400">
+      <div
+        className={
+          row.original.status === "PAID"
+            ? "numeric text-right text-[13px] font-semibold text-success"
+            : "numeric text-right text-[13px] font-semibold text-foreground"
+        }
+      >
         {formatINR(row.original.amount)}
-      </span>
+      </div>
     ),
   },
   {
@@ -166,9 +173,9 @@ const columns: ColumnDef<PayoutRow, unknown>[] = [
     ),
     cell: ({ row }) => {
       const paidAt = row.original.paidAt;
-      if (!paidAt) return <span className="text-muted-foreground">--</span>;
+      if (!paidAt) return <span className="text-muted-foreground">—</span>;
       return (
-        <span className="text-sm">
+        <span className="numeric text-[12.5px] text-muted-foreground">
           {format(new Date(paidAt), "dd MMM yyyy")}
         </span>
       );
@@ -210,7 +217,7 @@ interface PayoutTableProps {
 export function PayoutTable({ data, isFiltered }: PayoutTableProps) {
   if (data.length === 0) {
     return (
-      <div className="rounded-xl border border-border/70 bg-card shadow-card">
+      <div className="rounded-2xl border bg-card shadow-card">
         <EmptyState
           icon={<WalletIcon className="size-5" />}
           title={isFiltered ? "No payouts match the current filters" : "No payouts found"}

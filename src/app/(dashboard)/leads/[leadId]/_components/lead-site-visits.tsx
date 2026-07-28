@@ -8,6 +8,7 @@ import { MapPinIcon, LinkIcon, UserIcon } from "lucide-react";
 import { getLeadSiteVisits } from "@/actions/site-visit.actions";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { SiteVisitStatus } from "@prisma/client";
 
 const STATUS_STYLE: Record<SiteVisitStatus, string> = {
@@ -41,9 +42,12 @@ export async function LeadSiteVisits({ leadId }: { leadId: string }) {
       </CardHeader>
       <CardContent>
         {visits.length === 0 ? (
-          <p className="text-muted-foreground py-2 text-sm">
-            No site visits scheduled yet. Use “Schedule site visit” to book one.
-          </p>
+          <EmptyState
+            className="py-8"
+            icon={<MapPinIcon />}
+            title="No site visits scheduled"
+            description="Use “Schedule site visit” to book a showround or tasting — the guest gets their own confirmation link."
+          />
         ) : (
           <div className="divide-y">
             {visits.map((v) => (
@@ -55,12 +59,12 @@ export async function LeadSiteVisits({ leadId }: { leadId: string }) {
                       {STATUS_LABEL[v.status]}
                     </Badge>
                   </div>
-                  <span className="text-muted-foreground text-xs">{v.durationMin} min</span>
+                  <span className="numeric text-[11.5px] text-muted-foreground">{v.durationMin} min</span>
                 </div>
-                <p className="text-sm">
+                <p className="numeric text-sm">
                   {v.dateLabel} · {v.timeLabel} <span className="text-muted-foreground">IST</span>
                 </p>
-                <div className="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted-foreground">
                   {v.venueName && (
                     <span className="flex items-center gap-1">
                       <MapPinIcon className="size-3" /> {v.venueName}

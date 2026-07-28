@@ -28,7 +28,7 @@ export function CockpitHero({ fy, cashPosition, mtdRevenue, mtdExpense, mtdNet }
             <p className="text-[11.5px] font-medium uppercase tracking-[0.08em] text-white/60">
               Cash position · all bank accounts
             </p>
-            <p className="mt-1.5 text-4xl font-semibold tabular-nums leading-none sm:text-5xl">
+            <p className="mt-1.5 text-4xl font-semibold numeric leading-none sm:text-5xl">
               {formatINR(cashPosition)}
             </p>
             <p className="mt-2 text-[13px] text-white/60">
@@ -66,7 +66,7 @@ function HeroStat({ label, value, accent, sub }: { label: string; value: string;
   return (
     <div>
       <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-white/55">{label}</p>
-      <p className={`mt-1 text-xl font-semibold tabular-nums ${accent}`}>{value}</p>
+      <p className={`mt-1 text-xl font-semibold numeric ${accent}`}>{value}</p>
       {sub && <p className="mt-0.5 text-[10.5px] text-white/45">{sub}</p>}
     </div>
   );

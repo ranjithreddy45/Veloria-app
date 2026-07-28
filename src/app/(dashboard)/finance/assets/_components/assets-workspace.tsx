@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Building2Icon } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { StatTile } from "@/components/ui/stat-tile";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -59,6 +60,8 @@ export function AssetsWorkspace({
   return (
     <div className="space-y-6">
       <PageHeader
+        icon={Building2Icon}
+        accent="teal"
         eyebrow="Finance · Fixed Assets"
         title="Fixed assets & profitability"
         description="Track the asset register, run straight-line depreciation that posts to the General Ledger, and read venue & event profitability live from the ledger."
@@ -107,9 +110,9 @@ export function AssetsWorkspace({
                     <TableRow key={a.id}>
                       <TableCell className="font-medium">{a.name}</TableCell>
                       <TableCell className="text-muted-foreground">{a.category ?? "—"}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatINR(a.cost)}</TableCell>
-                      <TableCell className="text-right tabular-nums text-rose-600 dark:text-rose-400">{formatINR(a.accumulatedDep)}</TableCell>
-                      <TableCell className="text-right font-medium tabular-nums">{formatINR(a.netBookValue)}</TableCell>
+                      <TableCell className="text-right numeric">{formatINR(a.cost)}</TableCell>
+                      <TableCell className="text-right numeric text-rose-600 dark:text-rose-400">{formatINR(a.accumulatedDep)}</TableCell>
+                      <TableCell className="text-right font-medium numeric">{formatINR(a.netBookValue)}</TableCell>
                       <TableCell><StatusPill label={statusLabel(a.status)} hue={statusHue(a.status)} size="xs" /></TableCell>
                       {canWrite && (
                         <TableCell className="text-right">
@@ -177,10 +180,10 @@ function PnlTable({
           <TableBody>
             {rows.map((r) => (
               <TableRow key={r.key}>
-                <TableCell className="font-mono text-[12.5px] text-muted-foreground">{r.key}</TableCell>
-                <TableCell className="text-right tabular-nums text-emerald-600 dark:text-emerald-400">{formatINR(r.income)}</TableCell>
-                <TableCell className="text-right tabular-nums text-rose-600 dark:text-rose-400">{formatINR(r.expense)}</TableCell>
-                <TableCell className={cn("text-right font-medium tabular-nums", r.net >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>{formatINR(r.net)}</TableCell>
+                <TableCell className="numeric text-[12.5px] text-muted-foreground">{r.key}</TableCell>
+                <TableCell className="text-right numeric text-emerald-600 dark:text-emerald-400">{formatINR(r.income)}</TableCell>
+                <TableCell className="text-right numeric text-rose-600 dark:text-rose-400">{formatINR(r.expense)}</TableCell>
+                <TableCell className={cn("text-right font-medium numeric", r.net >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>{formatINR(r.net)}</TableCell>
               </TableRow>
             ))}
           </TableBody>

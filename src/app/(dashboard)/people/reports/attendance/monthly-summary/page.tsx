@@ -28,7 +28,7 @@ export default async function MonthlySummaryPage() {
   const initial = await getMonthlySummary({ fy, month });
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         icon={CalendarCheck}
         accent="amber"

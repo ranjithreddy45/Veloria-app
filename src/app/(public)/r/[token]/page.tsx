@@ -26,11 +26,11 @@ export default async function ReviewGatePage({
   // Invalid / unknown token — friendly card, no internal leak.
   if (!req.found) {
     return (
-      <div className="rounded-2xl border border-border bg-card p-8 text-center shadow-card">
-        <p className="text-base font-medium">This link isn’t valid</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          The feedback link could not be found or has expired. Please reach out
-          to us if you’d still like to share your experience.
+      <div className="bg-card shadow-card mx-auto max-w-lg rounded-2xl border p-10 text-center">
+        <h1 className="text-foreground text-[24px]">This link isn’t valid</h1>
+        <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm leading-relaxed">
+          The feedback link couldn’t be found, or it has expired. Do reach out —
+          we’d still love to hear how it went.
         </p>
       </div>
     );
@@ -39,30 +39,30 @@ export default async function ReviewGatePage({
   // Already rated / routed — thank-you state.
   if (req.alreadyRated) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-8 text-center dark:border-emerald-900/50 dark:bg-emerald-950/30">
-        <CheckCircle2 className="size-10 text-emerald-600" />
-        <p className="text-lg font-semibold text-emerald-800 dark:text-emerald-200">
-          Thank you{req.customerFirstName ? `, ${req.customerFirstName}` : ""}!
+      <div className="flex flex-col items-center gap-2 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.07] p-10 text-center">
+        <CheckCircle2 className="size-9 text-emerald-600 dark:text-emerald-400" />
+        <p className="font-editorial mt-2 text-[24px] font-semibold text-emerald-900 dark:text-emerald-200">
+          Thank you{req.customerFirstName ? `, ${req.customerFirstName}` : ""}
         </p>
-        <p className="text-sm text-emerald-700 dark:text-emerald-300">
-          We’ve received your feedback for {req.eventName}. We truly appreciate
-          you taking the time.
+        <p className="mx-auto max-w-sm text-sm leading-relaxed text-emerald-800/85 dark:text-emerald-300/85">
+          We’ve received your feedback for {req.eventName}, and we truly
+          appreciate you taking the time.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-8 shadow-card">
-      <div className="mb-6 flex flex-col items-center text-center">
-        <div className="mb-3 flex size-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-600 dark:bg-amber-950/50 dark:text-amber-300">
+    <div className="bg-card shadow-card rounded-2xl border p-8 sm:p-10">
+      <div className="mb-8 flex flex-col items-center text-center">
+        <div className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-amber-500/12 text-amber-600 dark:text-amber-400">
           <Star className="size-6" />
         </div>
-        <h1 className="text-xl font-bold tracking-tight">
+        <h1 className="text-foreground text-[28px] sm:text-[32px]">
           How was {req.eventName}?
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {req.customerFirstName ? `Hi ${req.customerFirstName}, ` : ""}thank you
+        <p className="text-muted-foreground mx-auto mt-3 max-w-md text-[15px] leading-relaxed">
+          {req.customerFirstName ? `${req.customerFirstName}, thank you ` : "Thank you "}
           for celebrating with us at {req.venueName}. Your feedback means the
           world to our team.
         </p>

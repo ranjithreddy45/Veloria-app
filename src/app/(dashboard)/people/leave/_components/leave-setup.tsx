@@ -20,12 +20,12 @@ export function LeaveSetup() {
   }
 
   return (
-    <div className="mx-auto max-w-lg rounded-xl border border-dashed p-10 text-center">
-      <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+    <div className="mx-auto max-w-lg rounded-2xl border border-dashed bg-card p-8 text-center shadow-card sm:p-10">
+      <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
         <CalendarCheck className="size-6" />
       </div>
-      <h3 className="mt-4 text-lg font-semibold">Set up leave</h3>
-      <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
+      <h3 className="font-editorial mt-5 text-[22px] leading-tight">Set up leave</h3>
+      <p className="mx-auto mt-2 max-w-sm text-[13px] leading-relaxed text-muted-foreground">
         Create the standard leave types (Casual, Sick, Earned, Comp-off, Maternity, LOP) and 2026 public holidays.
         Everything is editable afterwards.
       </p>

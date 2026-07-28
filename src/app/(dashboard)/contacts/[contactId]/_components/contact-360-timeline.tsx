@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 
 // ============================================================
 // Icon & Color Mapping
@@ -214,9 +215,12 @@ export function Contact360Timeline({ contactId }: Contact360TimelineProps) {
             </span>
           </div>
         ) : items.length === 0 ? (
-          <p className="text-muted-foreground py-12 text-center text-sm">
-            No activities found for this contact.
-          </p>
+          <EmptyState
+            className="py-12"
+            icon={<TargetIcon />}
+            title="No activity yet"
+            description="Leads, bookings, invoices and conversations for this contact will stack up here as a single timeline."
+          />
         ) : (
           <div className="relative space-y-0">
             {/* Vertical timeline line */}
@@ -246,7 +250,7 @@ export function Contact360Timeline({ contactId }: Contact360TimelineProps) {
                   </div>
 
                   {/* Content card */}
-                  <div className="flex-1 min-w-0 rounded-lg border bg-card p-3">
+                  <div className="min-w-0 flex-1 rounded-xl border bg-card p-3.5 shadow-card transition-shadow hover:shadow-card-hover">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">

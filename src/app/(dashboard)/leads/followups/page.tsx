@@ -4,6 +4,7 @@ import { CalendarClock, AlertTriangle, CalendarDays } from "lucide-react";
 import { getSalesFollowupQueue } from "@/actions/lead.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { StatusPill } from "@/components/shared/status-pill";
 import { formatDate } from "@/lib/utils";
 
@@ -30,26 +31,35 @@ function Bucket({ title, hue, icon: Icon, leads }: { title: string; hue: "rose" 
         <CardTitle className="flex items-center gap-2 text-sm">
           <Icon className={`size-4 ${ring}`} />
           {title}
-          <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums text-muted-foreground">{leads.length}</span>
+          <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs numeric text-muted-foreground">{leads.length}</span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-1.5">
+      <CardContent className="space-y-2">
         {leads.length === 0 ? (
-          <p className="py-3 text-center text-[13px] text-muted-foreground">Nothing here.</p>
+          <EmptyState
+            className="py-8"
+            icon={<Icon />}
+            title="Nothing in this bucket"
+            description="Leads land here as their next follow-up date comes due."
+          />
         ) : (
           leads.map((l) => (
-            <Link key={l.id} href={`/leads/${l.id}`} className="flex items-start justify-between gap-3 rounded-md border px-3 py-2 text-sm hover:bg-muted/40">
+            <Link
+              key={l.id}
+              href={`/leads/${l.id}`}
+              className="flex items-start justify-between gap-3 rounded-xl border bg-card px-3.5 py-2.5 text-sm shadow-card transition-shadow hover:shadow-card-hover"
+            >
               <div className="min-w-0">
-                <div className="font-medium">{l.title}</div>
-                <div className="text-xs text-muted-foreground">
+                <div className="truncate font-medium tracking-[-0.01em]">{l.title}</div>
+                <div className="truncate text-[13px] text-muted-foreground">
                   {l.contact ? `${l.contact.firstName} ${l.contact.lastName}` : "—"}
-                  {l.estimatedValue ? ` · ${inr(l.estimatedValue)}` : ""}
+                  {l.estimatedValue ? <> · <span className="numeric">{inr(l.estimatedValue)}</span></> : null}
                   {l.assignedTo?.name ? ` · ${l.assignedTo.name}` : ""}
                 </div>
               </div>
-              <div className="shrink-0 text-right">
+              <div className="shrink-0 space-y-1 text-right">
                 <StatusPill label={l.status} hue="blue" size="xs" />
-                <div className={`mt-1 text-[11.5px] ${hue === "rose" ? "text-rose-600" : "text-muted-foreground"}`}>{formatDate(l.followUpDate)}</div>
+                <div className={`numeric text-[11.5px] ${hue === "rose" ? "text-rose-600" : "text-muted-foreground"}`}>{formatDate(l.followUpDate)}</div>
               </div>
             </Link>
           ))
@@ -63,8 +73,11 @@ export default async function SalesFollowupsPage() {
   const res = await getSalesFollowupQueue();
   const data = res.success ? res.data : { overdue: [], today: [], upcoming: [] };
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
+        icon={CalendarClock}
+        accent="amber"
+        eyebrow="Sales · Follow-ups"
         title="Sales Follow-ups"
         description="Your active leads by next follow-up date. Overdue first — clear them and keep the pipeline moving."
       />

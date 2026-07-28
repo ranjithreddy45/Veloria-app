@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getContact } from "@/actions/contact.actions";
+import { PencilIcon } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { ContactForm } from "../../_components/contact-form";
 
@@ -29,6 +30,9 @@ export default async function EditContactPage({
   return (
     <div className="space-y-6">
       <PageHeader
+        icon={PencilIcon}
+        accent="blue"
+        eyebrow="CRM · Contact"
         title="Edit Contact"
         description={`Editing ${contact.firstName} ${contact.lastName}`}
       />

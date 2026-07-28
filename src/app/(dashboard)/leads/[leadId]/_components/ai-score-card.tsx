@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
 import { aiScoreLead } from "@/actions/ai.actions";
 
@@ -93,11 +94,11 @@ export function AIScoreCard({
       <CardContent>
         {aiScore !== null ? (
           <>
-            <div className="flex items-center gap-3">
-              <span className={cn("text-4xl font-bold", scoreColor)}>
+            <div className="flex items-baseline gap-2">
+              <span className={cn("numeric text-4xl font-bold tracking-[-0.03em]", scoreColor)}>
                 {aiScore}
               </span>
-              <span className="text-muted-foreground text-sm">/ 100</span>
+              <span className="numeric text-sm text-muted-foreground">/ 100</span>
               <Badge
                 variant="outline"
                 className={cn("ml-auto border font-medium", badgeColor)}
@@ -110,15 +111,15 @@ export function AIScoreCard({
               </Badge>
             </div>
 
-            <p className="text-muted-foreground mt-1 text-xs">
+            <p className="mt-2 text-[13px] text-muted-foreground">
               Advisory assessment only — the rule-based{" "}
               <span className="font-medium">Lead Score</span> below is what drives
               prioritisation and sorting.
             </p>
 
             {aiScoredAt && (
-              <p className="text-muted-foreground mt-2 text-xs">
-                Last scored: {format(new Date(aiScoredAt), "dd MMM yyyy, hh:mm a")}
+              <p className="numeric mt-2 text-[11.5px] text-muted-foreground">
+                Last scored {format(new Date(aiScoredAt), "dd MMM yyyy, hh:mm a")}
               </p>
             )}
 
@@ -126,10 +127,10 @@ export function AIScoreCard({
               <>
                 <Separator className="my-4" />
                 <div>
-                  <p className="text-muted-foreground mb-2 text-xs font-medium uppercase tracking-wide">
+                  <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                     AI Analysis
                   </p>
-                  <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                  <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-muted-foreground">
                     {aiScoreReason}
                   </p>
                 </div>
@@ -137,13 +138,12 @@ export function AIScoreCard({
             )}
           </>
         ) : (
-          <div className="flex flex-col items-center py-4 text-center">
-            <SparklesIcon className="text-muted-foreground mb-2 size-8" />
-            <p className="text-muted-foreground text-sm">
-              No AI score yet. Click &quot;Score Now&quot; to generate an AI-powered
-              lead assessment.
-            </p>
-          </div>
+          <EmptyState
+            className="py-8"
+            icon={<SparklesIcon />}
+            title="No AI score yet"
+            description="Run Score Now to generate an AI-powered read on how likely this enquiry is to close."
+          />
         )}
       </CardContent>
     </Card>

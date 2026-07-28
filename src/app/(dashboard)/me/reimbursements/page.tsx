@@ -28,7 +28,7 @@ export default async function MyReimbursementsPage() {
   const claims = await listMyReimbursements();
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         icon={Receipt}
         accent="emerald"

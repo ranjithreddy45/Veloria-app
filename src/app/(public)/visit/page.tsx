@@ -27,10 +27,10 @@ export default async function VisitPage() {
   return (
     <div className="space-y-6">
       <header className="text-center">
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+        <h1 className="text-foreground text-[30px] sm:text-[34px]">
           Book your visit
         </h1>
-        <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="text-muted-foreground mx-auto mt-3 max-w-md text-[15px] leading-relaxed">
           Tour our venues or taste our menus. Pick a time that works for you —
           we&apos;ll confirm by WhatsApp.
         </p>

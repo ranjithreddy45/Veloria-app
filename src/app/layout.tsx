@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Geist, Geist_Mono, Fraunces } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import AuthSessionProvider from "@/providers/session-provider";
 import QueryProvider from "@/providers/query-provider";
@@ -8,10 +8,36 @@ import { CapacitorProvider } from "@/providers/capacitor-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
-// Inter is the cross-platform fallback. On Apple devices the CSS font stack
-// resolves to the native San Francisco family first, for a true Apple feel.
-const inter = Inter({
-  variable: "--font-inter",
+// ============================================================
+// Typography — a deliberate, brand-owned type system.
+// ------------------------------------------------------------
+// Previously the stack led with -apple-system, so the whole app rendered in the
+// raw OS font (SF Pro on Mac, Inter elsewhere): consistent-looking to a browser,
+// but it reads as *unstyled* and differs per platform. We now ship real webfonts
+// so Veloria looks identical and intentional everywhere:
+//   Geist       — UI / body. Modern premium grotesque, superb at small sizes.
+//   Geist Mono  — numerals, money, IDs. (globals.css already referenced
+//                 --font-geist-mono, which was never defined → every tabular
+//                 figure silently fell back to Courier. This wires it for real.)
+//   Fraunces    — editorial serif reserved for large display moments (page
+//                 titles, hero, portal). Gives a luxury-hospitality voice
+//                 without hurting data density.
+// All are variable + self-hosted by next/font (no layout shift, no external CDN).
+// ============================================================
+const geist = Geist({
+  variable: "--font-geist",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
   subsets: ["latin"],
   display: "swap",
 });
@@ -65,7 +91,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className={`${geist.variable} ${geistMono.variable} ${fraunces.variable} font-sans antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

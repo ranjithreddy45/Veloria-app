@@ -31,7 +31,7 @@ const typeColors: Record<string, string> = {
   EMAIL: "bg-indigo-100 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-400",
   WHATSAPP: "bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400",
   TASK: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400",
-  NOTE: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800/30 dark:text-zinc-400",
+  NOTE: "bg-muted text-muted-foreground",
   SMS: "bg-violet-100 text-violet-700 dark:bg-violet-950/30 dark:text-violet-400",
   MEETING: "bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400",
 };

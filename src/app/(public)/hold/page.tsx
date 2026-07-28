@@ -24,17 +24,17 @@ export default async function PublicHoldPage() {
   return (
     <div className="space-y-6">
       <header className="text-center">
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+        <h1 className="text-foreground text-[30px] sm:text-[34px]">
           Check availability &amp; hold your date
         </h1>
-        <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="text-muted-foreground mx-auto mt-3 max-w-md text-[15px] leading-relaxed">
           Pick a venue and date to see open slots in real time, then hold your
           date instantly with a small token.
         </p>
       </header>
 
       {venues.length === 0 ? (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
+        <div className="bg-card shadow-card text-muted-foreground rounded-2xl border p-10 text-center text-sm">
           No venues are open for online booking right now. Please contact us and
           we&apos;ll help you plan your event.
         </div>

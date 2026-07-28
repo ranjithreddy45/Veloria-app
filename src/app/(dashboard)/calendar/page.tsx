@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { startOfMonth, endOfMonth } from "date-fns";
+import { CalendarClockIcon } from "lucide-react";
 
 import { getMyCalendarTasks } from "@/actions/crm-task.actions";
 import { PageHeader } from "@/components/layout/page-header";
@@ -40,6 +41,8 @@ export default async function MyCalendarPage({
     <div className="space-y-6">
       <PageHeader
         aura
+        icon={CalendarClockIcon}
+        accent="teal"
         eyebrow="Sales CRM · Personal"
         title="My Calendar"
         description="Your scheduled follow-ups, calls, meetings and show-arounds. Overdue items are flagged in red — mark them done as you go."

@@ -21,12 +21,10 @@ export default async function VendorEventsPage() {
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-3">
-          <CalendarCheck className="size-6 text-violet-600" />
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-            My Events
-          </h1>
+          <CalendarCheck className="size-6 text-teal-700 dark:text-teal-300" />
+          <h1 className="text-[28px] leading-tight text-foreground">Your events</h1>
         </div>
-        <div className="rounded-lg border border-red-200 bg-red-50 p-6 dark:border-red-900 dark:bg-red-950">
+        <div className="rounded-2xl border border-red-500/25 bg-red-500/10 p-6">
           <p className="text-sm text-red-600 dark:text-red-400">
             {result.error}
           </p>

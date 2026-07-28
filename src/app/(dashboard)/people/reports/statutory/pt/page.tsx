@@ -20,7 +20,7 @@ export default async function PtRegisterPage() {
   const initial = first ? await getPtRegister({ fy: first.fy, month: first.month }) : null;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         eyebrow="People · Reports"
         title="Professional Tax register"

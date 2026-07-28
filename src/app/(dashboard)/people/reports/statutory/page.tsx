@@ -52,7 +52,7 @@ export default async function StatutoryReportsIndexPage() {
   const latest = periods[0];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         eyebrow="People · Reports"
         title="Statutory Registers"

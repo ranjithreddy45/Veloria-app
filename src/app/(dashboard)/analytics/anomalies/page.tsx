@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
+import { ShieldAlert } from "lucide-react";
+
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
 import { getAnomalies, getAnomalyStats } from "@/actions/anomaly.actions";
+import { PageHeader } from "@/components/layout/page-header";
 import { AnomalyDashboard } from "./_components/anomaly-dashboard";
 
 export const metadata: Metadata = {
@@ -32,14 +35,14 @@ export default async function AnomaliesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">
-          Anomaly Detection
-        </h1>
-        <p className="text-muted-foreground">
-          AI-powered anomaly alerts for your business metrics
-        </p>
-      </div>
+      <PageHeader
+        aura
+        eyebrow="Analytics · Signals"
+        icon={ShieldAlert}
+        accent="rose"
+        title="Anomaly Detection"
+        description="AI-powered alerts that surface unusual movement in your business metrics before it costs you."
+      />
       <AnomalyDashboard
         anomalies={anomaliesResult.success ? anomaliesResult.data : []}
         stats={statsResult.success ? statsResult.data : null}

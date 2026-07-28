@@ -75,19 +75,19 @@ export function EmployeePayslips({ payslips }: { payslips: EmployeePayslipRow[] 
         const chip = statusChip(p.run.status);
         const isDraft = p.run.status === "DRAFT";
         return (
-          <Card key={p.id} className="flex flex-col gap-3 p-4">
-            <div className="flex items-start justify-between gap-2">
+          <Card key={p.id} className="gap-4 p-5 shadow-card transition-shadow hover:shadow-card-hover">
+            <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="truncate text-sm font-semibold">{label}</div>
-                <div className="text-xs text-muted-foreground">FY {p.run.fy}</div>
+                <div className="truncate text-[15px] font-semibold tracking-[-0.01em]">{label}</div>
+                <div className="numeric mt-0.5 text-[12px] text-muted-foreground">FY {p.run.fy}</div>
               </div>
               <StatusPill label={chip.label} hue={chip.hue} size="xs" />
             </div>
 
             <div className="mt-auto">
-              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Net Pay</div>
-              <div className="text-xl font-bold tabular-nums">{inr.format(p.net)}</div>
-              <div className="mt-1 text-[11px] text-muted-foreground tabular-nums">
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Net pay</div>
+              <div className="numeric mt-1 text-[26px] font-semibold leading-none">{inr.format(p.net)}</div>
+              <div className="numeric mt-2 text-[11.5px] text-muted-foreground">
                 Gross {inr.format(p.gross)} · {p.paidDays} paid
                 {p.lopDays > 0 ? ` · ${p.lopDays} LOP` : ""}
               </div>

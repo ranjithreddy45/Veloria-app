@@ -23,36 +23,40 @@ export default async function PortalNewReviewPage() {
   const bookings = result.success ? result.data! : [];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <PageHeader
-        title="Write a Review"
-        description="Share your experience and help us improve our service."
+        eyebrow="Your account"
+        title="Tell us how it went"
+        description="Your words help the next couple choose well — and help us get better at what we do."
       />
 
       {bookings.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="flex size-16 items-center justify-center rounded-full bg-muted">
-              <CalendarX className="size-8 text-muted-foreground/60" />
+        <Card className="shadow-card rounded-2xl py-0">
+          <CardContent className="flex flex-col items-center justify-center px-6 py-20 text-center">
+            <div className="bg-muted flex size-16 items-center justify-center rounded-2xl">
+              <CalendarX className="text-muted-foreground/60 size-8" />
             </div>
-            <h3 className="mt-4 text-base font-semibold text-foreground">
-              No events to review
+            <h3 className="font-editorial text-foreground mt-5 text-xl font-semibold">
+              Come back after the celebration
             </h3>
-            <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-              You can only write reviews for completed events. Once your event is
-              marked as completed, you will be able to leave feedback here.
+            <p className="text-muted-foreground mt-2 max-w-sm text-sm leading-relaxed">
+              Once your event wraps up, this is where you can share how it felt.
+              We read every word.
             </p>
           </CardContent>
         </Card>
       ) : (
-        <Card>
+        <Card className="shadow-card rounded-2xl py-0">
           <CardContent className="p-6">
-            <div className="mb-6 flex items-center gap-3 rounded-lg bg-indigo-50 dark:bg-indigo-950/30 p-4">
-              <Star className="size-5 text-indigo-600 dark:text-indigo-400" />
-              <p className="text-sm text-indigo-700 dark:text-indigo-300">
-                You have {bookings.length} completed event
-                {bookings.length !== 1 ? "s" : ""} available for review. Your
-                feedback is valuable and helps us maintain our high standards.
+            <div className="bg-primary/[0.06] border-primary/15 mb-6 flex items-start gap-3 rounded-xl border p-4">
+              <Star className="text-primary mt-0.5 size-4 flex-shrink-0" />
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                <span className="numeric text-foreground font-semibold">
+                  {bookings.length}
+                </span>{" "}
+                completed event{bookings.length !== 1 ? "s" : ""} ready for your
+                thoughts. Be as honest as you like — it&apos;s the only way we
+                improve.
               </p>
             </div>
             <ReviewForm bookings={bookings} />

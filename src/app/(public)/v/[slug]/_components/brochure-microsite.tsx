@@ -27,7 +27,7 @@ export function BrochureMicrosite({ brochure }: { brochure: PublicBrochureDTO })
       style={{ ["--brand" as string]: ACCENT } as React.CSSProperties}
     >
       {/* Hero */}
-      <section className="overflow-hidden rounded-3xl border border-zinc-200/70 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+      <section className="bg-card shadow-card overflow-hidden rounded-3xl border">
         {brochure.heroImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -36,26 +36,26 @@ export function BrochureMicrosite({ brochure }: { brochure: PublicBrochureDTO })
             className="h-56 w-full object-cover sm:h-72"
           />
         ) : (
-          <div
-            className="h-40 w-full sm:h-52"
-            style={{
-              background: `linear-gradient(135deg, ${ACCENT}, #db2777)`,
-            }}
-          />
+          <div className="h-40 w-full bg-zinc-950 sm:h-52" />
         )}
-        <div className="p-6 text-center">
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 sm:text-3xl">
+        <div className="px-6 py-9 text-center">
+          <h1 className="text-foreground text-[30px] sm:text-[36px]">
             {brochure.title}
           </h1>
           {brochure.subtitle && (
-            <p className="mx-auto mt-2 max-w-md text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="text-muted-foreground mx-auto mt-3 max-w-md text-[15px] leading-relaxed">
               {brochure.subtitle}
             </p>
           )}
           {brochure.startingFromAmount != null && (
-            <div className="mt-4 inline-flex items-baseline gap-1.5 rounded-full bg-zinc-100 px-4 py-1.5 dark:bg-zinc-800">
-              <span className="text-xs text-zinc-500">Starting from</span>
-              <span className="text-base font-bold tabular-nums" style={{ color: "var(--brand)" }}>
+            <div className="bg-muted mt-6 inline-flex items-baseline gap-2 rounded-full px-4 py-2">
+              <span className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.14em]">
+                Starting from
+              </span>
+              <span
+                className="numeric text-[16px] font-semibold"
+                style={{ color: "var(--brand)" }}
+              >
                 {formatINR(brochure.startingFromAmount)}
               </span>
             </div>
@@ -93,7 +93,7 @@ export function BrochureMicrosite({ brochure }: { brochure: PublicBrochureDTO })
             {brochure.galleryItems.map((g) => (
               <div
                 key={g.id}
-                className="aspect-square overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800"
+                className="bg-muted aspect-square overflow-hidden rounded-xl"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -130,7 +130,7 @@ export function BrochureMicrosite({ brochure }: { brochure: PublicBrochureDTO })
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="mb-3 text-center text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+    <h2 className="font-editorial text-foreground mb-5 text-center text-[24px] font-semibold">
       {children}
     </h2>
   );
@@ -148,8 +148,8 @@ function EmbedFrame({
   label: string;
 }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-zinc-200/70 bg-black dark:border-zinc-800">
-      <div className="flex items-center gap-1.5 bg-zinc-900 px-3 py-2 text-xs font-medium text-zinc-300">
+    <div className="overflow-hidden rounded-2xl border bg-black">
+      <div className="flex items-center gap-1.5 bg-zinc-900 px-3.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-300">
         {icon} {label}
       </div>
       <div className="aspect-video w-full">
@@ -181,7 +181,7 @@ function TestimonialCarousel({
   const go = (delta: number) => setIdx((i) => (i + delta + total) % total);
 
   return (
-    <div className="rounded-2xl border border-zinc-200/70 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="bg-card shadow-card rounded-2xl border p-6">
       <Quote className="mb-3 size-6" style={{ color: "var(--brand)" }} />
       <div className="mb-2 flex gap-0.5">
         {Array.from({ length: 5 }).map((_, i) => (
@@ -194,17 +194,17 @@ function TestimonialCarousel({
         ))}
       </div>
       {r.title && (
-        <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{r.title}</p>
+        <p className="text-foreground text-sm font-semibold">{r.title}</p>
       )}
-      <p className="mt-1 text-sm leading-relaxed text-zinc-600 dark:text-zinc-300">{r.content}</p>
-      <p className="mt-3 text-xs font-medium text-zinc-500">— {r.authorFirstName}</p>
+      <p className="mt-1 text-muted-foreground text-sm leading-relaxed">{r.content}</p>
+      <p className="mt-3 text-muted-foreground text-xs font-medium">— {r.authorFirstName}</p>
 
       {total > 1 && (
         <div className="mt-4 flex items-center justify-between">
           <button
             onClick={() => go(-1)}
             aria-label="Previous testimonial"
-            className="rounded-full border border-zinc-200 p-1.5 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+            className="hover:bg-muted rounded-full border p-1.5 transition-colors"
           >
             <ChevronLeft className="size-4" />
           </button>
@@ -220,7 +220,7 @@ function TestimonialCarousel({
           <button
             onClick={() => go(1)}
             aria-label="Next testimonial"
-            className="rounded-full border border-zinc-200 p-1.5 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+            className="hover:bg-muted rounded-full border p-1.5 transition-colors"
           >
             <ChevronRight className="size-4" />
           </button>

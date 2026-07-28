@@ -34,24 +34,25 @@ export default async function PortalGalleryPage() {
   const bookings = result.success ? result.data.bookings : [];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <PageHeader
+        eyebrow="Your account"
         title="My Gallery"
-        description="Photos and videos from your events."
+        description="The moments our team captured on the day, kept safe for you to revisit."
       />
 
       {items.length === 0 ? (
-        <Card className="border-zinc-200/80 shadow-sm">
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="flex size-16 items-center justify-center rounded-full bg-zinc-100">
-              <ImageIcon className="size-8 text-zinc-400" />
+        <Card className="shadow-card rounded-2xl py-0">
+          <CardContent className="flex flex-col items-center justify-center px-6 py-20 text-center">
+            <div className="bg-muted flex size-16 items-center justify-center rounded-2xl">
+              <ImageIcon className="text-muted-foreground/60 size-8" />
             </div>
-            <h3 className="mt-4 text-base font-semibold text-zinc-900">
-              No photos yet
+            <h3 className="font-editorial text-foreground mt-5 text-xl font-semibold">
+              Your story starts here
             </h3>
-            <p className="mt-1 max-w-sm text-sm text-zinc-500">
-              Photos and videos from your events will appear here once they are
-              shared by the event team.
+            <p className="text-muted-foreground mt-2 max-w-sm text-sm leading-relaxed">
+              Once the celebration is over and our team has sorted through the
+              day, the photographs and films will appear right here.
             </p>
           </CardContent>
         </Card>
@@ -69,14 +70,16 @@ export default async function PortalGalleryPage() {
             return (
               <div key={booking.id} className="space-y-4">
                 <div className="flex items-center gap-2">
-                  <CalendarCheck className="size-4 text-indigo-500" />
-                  <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-500">
-                    {booking.eventName} ({bookingItems.length}{" "}
-                    {bookingItems.length === 1 ? "item" : "items"})
+                  <CalendarCheck className="text-primary size-3.5" />
+                  <h2 className="text-muted-foreground flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em]">
+                    {booking.eventName}
+                    <span className="numeric text-muted-foreground/60">
+                      {bookingItems.length}
+                    </span>
                   </h2>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                   {bookingItems.map(
                     (item: {
                       id: string;
@@ -90,12 +93,12 @@ export default async function PortalGalleryPage() {
                     }) => (
                       <Card
                         key={item.id}
-                        className="group overflow-hidden border-zinc-200/80 shadow-sm transition-all duration-200 hover:shadow-md hover:border-indigo-200"
+                        className="group shadow-card hover:shadow-card-hover overflow-hidden rounded-2xl py-0 transition-all duration-200"
                       >
                         {/* Image / Video Preview */}
-                        <div className="relative aspect-[4/3] overflow-hidden bg-zinc-100">
+                        <div className="bg-muted relative aspect-[4/3] overflow-hidden">
                           {item.mediaType === "VIDEO" ? (
-                            <div className="flex size-full items-center justify-center bg-zinc-900/5">
+                            <div className="bg-foreground/[0.04] flex size-full items-center justify-center">
                               {item.thumbnailUrl ? (
                                 <Image
                                   src={item.thumbnailUrl}
@@ -105,7 +108,7 @@ export default async function PortalGalleryPage() {
                                   sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                                 />
                               ) : (
-                                <VideoIcon className="size-12 text-zinc-400" />
+                                <VideoIcon className="text-muted-foreground/50 size-12" />
                               )}
                               <div className="absolute inset-0 flex items-center justify-center">
                                 <div className="flex size-12 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm">
@@ -127,7 +130,7 @@ export default async function PortalGalleryPage() {
                           <div className="absolute right-2 top-2">
                             <Badge
                               variant="secondary"
-                              className="bg-black/50 text-white border-transparent text-[10px]"
+                              className="border-transparent bg-black/55 text-[10px] font-medium tracking-[0.06em] text-white backdrop-blur-sm"
                             >
                               {MEDIA_TYPE_LABELS[item.mediaType] ||
                                 item.mediaType}
@@ -136,12 +139,12 @@ export default async function PortalGalleryPage() {
                         </div>
 
                         {/* Info */}
-                        <CardContent className="p-3">
-                          <p className="truncate text-sm font-medium text-zinc-900">
+                        <CardContent className="p-4">
+                          <p className="text-foreground truncate text-sm font-medium">
                             {item.title || "Untitled"}
                           </p>
                           {item.description && (
-                            <p className="mt-0.5 truncate text-xs text-zinc-500">
+                            <p className="text-muted-foreground mt-0.5 truncate text-xs">
                               {item.description}
                             </p>
                           )}
@@ -151,7 +154,7 @@ export default async function PortalGalleryPage() {
                                 <Badge
                                   key={tag}
                                   variant="outline"
-                                  className="text-[10px] py-0 px-1.5 text-zinc-500"
+                                  className="text-muted-foreground px-1.5 py-0 text-[10px] font-normal"
                                 >
                                   <TagIcon className="mr-0.5 size-2" />
                                   {tag}
@@ -160,14 +163,14 @@ export default async function PortalGalleryPage() {
                               {item.tags.length > 3 && (
                                 <Badge
                                   variant="outline"
-                                  className="text-[10px] py-0 px-1.5 text-zinc-400"
+                                  className="numeric text-muted-foreground/70 px-1.5 py-0 text-[10px] font-normal"
                                 >
                                   +{item.tags.length - 3}
                                 </Badge>
                               )}
                             </div>
                           )}
-                          <p className="mt-2 text-[10px] text-zinc-400">
+                          <p className="numeric text-muted-foreground/60 mt-2.5 text-[10px]">
                             {new Date(item.createdAt).toLocaleDateString(
                               "en-IN",
                               {
@@ -195,13 +198,15 @@ export default async function PortalGalleryPage() {
             return (
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                  <GlobeIcon className="size-4 text-indigo-500" />
-                  <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-500">
-                    General Gallery ({unbookedItems.length}{" "}
-                    {unbookedItems.length === 1 ? "item" : "items"})
+                  <GlobeIcon className="text-primary size-3.5" />
+                  <h2 className="text-muted-foreground flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em]">
+                    From the venue
+                    <span className="numeric text-muted-foreground/60">
+                      {unbookedItems.length}
+                    </span>
                   </h2>
                 </div>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                   {unbookedItems.map(
                     (item: {
                       id: string;
@@ -215,11 +220,11 @@ export default async function PortalGalleryPage() {
                     }) => (
                       <Card
                         key={item.id}
-                        className="group overflow-hidden border-zinc-200/80 shadow-sm transition-all duration-200 hover:shadow-md hover:border-indigo-200"
+                        className="group shadow-card hover:shadow-card-hover overflow-hidden rounded-2xl py-0 transition-all duration-200"
                       >
-                        <div className="relative aspect-[4/3] overflow-hidden bg-zinc-100">
+                        <div className="bg-muted relative aspect-[4/3] overflow-hidden">
                           {item.mediaType === "VIDEO" ? (
-                            <div className="flex size-full items-center justify-center bg-zinc-900/5">
+                            <div className="bg-foreground/[0.04] flex size-full items-center justify-center">
                               {item.thumbnailUrl ? (
                                 <Image
                                   src={item.thumbnailUrl}
@@ -229,7 +234,7 @@ export default async function PortalGalleryPage() {
                                   sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                                 />
                               ) : (
-                                <VideoIcon className="size-12 text-zinc-400" />
+                                <VideoIcon className="text-muted-foreground/50 size-12" />
                               )}
                               <div className="absolute inset-0 flex items-center justify-center">
                                 <div className="flex size-12 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm">
@@ -249,23 +254,23 @@ export default async function PortalGalleryPage() {
                           <div className="absolute right-2 top-2">
                             <Badge
                               variant="secondary"
-                              className="bg-black/50 text-white border-transparent text-[10px]"
+                              className="border-transparent bg-black/55 text-[10px] font-medium tracking-[0.06em] text-white backdrop-blur-sm"
                             >
                               {MEDIA_TYPE_LABELS[item.mediaType] ||
                                 item.mediaType}
                             </Badge>
                           </div>
                         </div>
-                        <CardContent className="p-3">
-                          <p className="truncate text-sm font-medium text-zinc-900">
+                        <CardContent className="p-4">
+                          <p className="text-foreground truncate text-sm font-medium">
                             {item.title || "Untitled"}
                           </p>
                           {item.description && (
-                            <p className="mt-0.5 truncate text-xs text-zinc-500">
+                            <p className="text-muted-foreground mt-0.5 truncate text-xs">
                               {item.description}
                             </p>
                           )}
-                          <p className="mt-2 text-[10px] text-zinc-400">
+                          <p className="numeric text-muted-foreground/60 mt-2.5 text-[10px]">
                             {new Date(item.createdAt).toLocaleDateString(
                               "en-IN",
                               {

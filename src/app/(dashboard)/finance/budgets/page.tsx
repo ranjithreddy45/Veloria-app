@@ -22,7 +22,7 @@ export default async function BudgetsPage({ searchParams }: { searchParams: Prom
     : { rows: [], totals: { budget: 0, actual: 0, variance: 0, pct: 0 } };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       <BudgetsWorkspace
         canManage={canManage}
         budgets={budgets.map((b) => ({ id: b.id, fy: b.fy, name: b.name, status: b.status, lineCount: b.lineCount, total: b.total }))}

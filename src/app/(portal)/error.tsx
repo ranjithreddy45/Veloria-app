@@ -17,29 +17,31 @@ export default function PortalError({
   }, [error]);
 
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center p-6 text-center">
-      <div className="rounded-full bg-red-100 p-4 dark:bg-red-900/30">
-        <AlertTriangle className="size-8 text-red-600 dark:text-red-400" />
+    <div className="flex min-h-[60vh] flex-col items-center justify-center px-6 py-16 text-center">
+      <div className="flex size-16 items-center justify-center rounded-2xl bg-amber-500/10">
+        <AlertTriangle className="size-8 text-amber-600 dark:text-amber-400" />
       </div>
-      <h2 className="mt-4 text-xl font-semibold">Something went wrong</h2>
-      <p className="mt-2 max-w-md text-sm text-muted-foreground">
-        An unexpected error occurred. Please try again or return to your portal
-        dashboard.
+      <h2 className="font-editorial text-foreground mt-5 text-[22px] font-semibold">
+        This page didn&apos;t load
+      </h2>
+      <p className="text-muted-foreground mt-2 max-w-md text-sm leading-relaxed">
+        Something went wrong on our side — not yours. Try once more, or head back
+        to your portal and we&apos;ll pick up where you left off.
       </p>
       {error.digest && (
-        <p className="mt-1 text-xs text-muted-foreground">
-          Error ID: {error.digest}
+        <p className="numeric text-muted-foreground/60 mt-3 text-[11px]">
+          Reference {error.digest}
         </p>
       )}
-      <div className="mt-6 flex items-center gap-3">
+      <div className="mt-7 flex items-center gap-3">
         <Button variant="outline" onClick={reset}>
           <RotateCcw className="mr-2 size-4" />
-          Try Again
+          Try again
         </Button>
         <Button asChild>
           <Link href="/portal">
             <Home className="mr-2 size-4" />
-            Portal Home
+            Back to my portal
           </Link>
         </Button>
       </div>

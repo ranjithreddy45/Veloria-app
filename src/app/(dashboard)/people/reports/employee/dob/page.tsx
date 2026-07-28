@@ -50,7 +50,7 @@ export default async function DobReport({ searchParams }: PageProps) {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         icon={Cake}
         accent="pink"

@@ -36,6 +36,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { VENDOR_BID_STATUS_COLORS } from "@/lib/constants";
 import { formatINR, formatDate } from "@/lib/utils";
@@ -196,15 +197,21 @@ export function VendorBidsClient({ initialData, availableBookings }: VendorBidsC
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <Gavel className="size-6 text-violet-600 dark:text-violet-400" />
-          <div>
-            <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-              My Bids
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex items-start gap-3.5">
+          <span className="mt-0.5 hidden size-11 shrink-0 items-center justify-center rounded-2xl bg-teal-500/12 text-teal-700 sm:flex dark:text-teal-300">
+            <Gavel className="size-[22px]" />
+          </span>
+          <div className="space-y-1.5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-teal-700 dark:text-teal-300">
+              Opportunities
+            </p>
+            <h1 className="text-[28px] leading-tight text-foreground sm:text-[32px]">
+              Your bids
             </h1>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              {data.total} bid{data.total !== 1 ? "s" : ""} submitted
+            <p className="text-[14px] text-muted-foreground">
+              <span className="numeric">{data.total}</span> bid
+              {data.total !== 1 ? "s" : ""} submitted to our events team.
             </p>
           </div>
         </div>
@@ -212,7 +219,7 @@ export function VendorBidsClient({ initialData, availableBookings }: VendorBidsC
         <div className="flex items-center gap-3">
           {/* Filter */}
           <div className="flex items-center gap-2">
-            <Filter className="size-4 text-zinc-400" />
+            <Filter className="size-4 text-muted-foreground" />
             <Select value={statusFilter} onValueChange={handleStatusChange}>
               <SelectTrigger className="w-[160px]">
                 <SelectValue placeholder="Filter by status" />
@@ -229,22 +236,22 @@ export function VendorBidsClient({ initialData, availableBookings }: VendorBidsC
           {/* New Bid Button */}
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2 bg-violet-600 hover:bg-violet-700">
+              <Button className="gap-2">
                 <Plus className="size-4" />
-                New Bid
+                New bid
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle>Submit a New Bid</DialogTitle>
+                <DialogTitle>Submit a bid</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 pt-2">
                 {/* Booking Select */}
                 <div className="space-y-2">
                   <Label htmlFor="booking">Booking</Label>
                   {availableBookings.length === 0 ? (
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                      No available bookings to bid on.
+                    <p className="text-sm text-muted-foreground">
+                      Nothing is open for bidding right now — we&apos;ll be in touch.
                     </p>
                   ) : (
                     <Select value={selectedBookingId} onValueChange={setSelectedBookingId}>
@@ -307,9 +314,8 @@ export function VendorBidsClient({ initialData, availableBookings }: VendorBidsC
                   <Button
                     onClick={handleSubmitBid}
                     disabled={submitting || availableBookings.length === 0}
-                    className="bg-violet-600 hover:bg-violet-700"
                   >
-                    {submitting ? "Submitting..." : "Submit Bid"}
+                    {submitting ? "Submitting…" : "Submit bid"}
                   </Button>
                 </div>
               </div>
@@ -319,37 +325,37 @@ export function VendorBidsClient({ initialData, availableBookings }: VendorBidsC
       </div>
 
       {/* Bids Table */}
-      <Card className="border-zinc-200/80 shadow-sm dark:border-zinc-800">
+      <Card className="rounded-2xl border bg-card shadow-card">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-            Bid History
-          </CardTitle>
+          <CardTitle className="text-[15px] font-semibold">Bid history</CardTitle>
         </CardHeader>
         <CardContent>
           {data.data.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Gavel className="size-12 text-zinc-300 dark:text-zinc-600" />
-              <p className="mt-3 text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                No bids found
-              </p>
-              <p className="text-xs text-zinc-400 dark:text-zinc-500">
-                {statusFilter !== "all"
-                  ? "Try changing the filter to see more bids."
-                  : "Submit your first bid to get started."}
-              </p>
-            </div>
+            <EmptyState
+              icon={<Gavel />}
+              title={
+                statusFilter !== "all"
+                  ? "Nothing under this filter"
+                  : "Your first bid starts the conversation"
+              }
+              description={
+                statusFilter !== "all"
+                  ? "Switch back to all statuses to see everything you've quoted."
+                  : "Pick an open event, name your price, and our team reviews it the same week."
+              }
+            />
           ) : (
             <>
               {/* Desktop table */}
               <div className="hidden md:block">
                 <Table>
                   <TableHeader>
-                    <TableRow>
+                    <TableRow className="[&>th]:text-[11px] [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-[0.1em] [&>th]:text-muted-foreground">
                       <TableHead>Booking</TableHead>
                       <TableHead>Event</TableHead>
-                      <TableHead>Event Date</TableHead>
+                      <TableHead>Event date</TableHead>
                       <TableHead>Venue</TableHead>
-                      <TableHead className="text-right">Bid Amount</TableHead>
+                      <TableHead className="text-right">Bid amount</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Submitted</TableHead>
                       <TableHead>Responded</TableHead>
@@ -358,54 +364,57 @@ export function VendorBidsClient({ initialData, availableBookings }: VendorBidsC
                   </TableHeader>
                   <TableBody>
                     {data.data.map((bid) => (
-                      <TableRow key={bid.id} className={loading ? "opacity-50" : ""}>
-                        <TableCell className="font-medium text-zinc-900 dark:text-zinc-100">
+                      <TableRow
+                        key={bid.id}
+                        className={`transition-colors hover:bg-muted/40 ${loading ? "opacity-50" : ""}`}
+                      >
+                        <TableCell className="numeric py-3.5 font-medium text-foreground">
                           {bid.booking.bookingNumber}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-3.5">
                           <div>
-                            <p className="text-sm text-zinc-900 dark:text-zinc-100">
+                            <p className="text-sm text-foreground">
                               {bid.booking.eventName}
                             </p>
-                            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                            <p className="text-xs text-muted-foreground">
                               {bid.booking.eventType}
                             </p>
                           </div>
                         </TableCell>
-                        <TableCell className="whitespace-nowrap text-sm text-zinc-600 dark:text-zinc-300">
+                        <TableCell className="numeric whitespace-nowrap py-3.5 text-sm text-muted-foreground">
                           {formatDate(bid.booking.date)}
                         </TableCell>
-                        <TableCell className="text-sm text-zinc-600 dark:text-zinc-300">
+                        <TableCell className="py-3.5 text-sm text-muted-foreground">
                           {bid.booking.venue.name}
                         </TableCell>
-                        <TableCell className="text-right font-semibold text-zinc-900 dark:text-zinc-100">
+                        <TableCell className="numeric py-3.5 text-right font-semibold text-foreground">
                           {formatINR(bid.amount)}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-3.5">
                           <StatusBadge
                             status={bid.status}
                             colorMap={VENDOR_BID_STATUS_COLORS}
                           />
                         </TableCell>
-                        <TableCell className="whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400">
+                        <TableCell className="numeric whitespace-nowrap py-3.5 text-sm text-muted-foreground">
                           {formatDate(bid.submittedAt)}
                         </TableCell>
-                        <TableCell className="whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400">
-                          {bid.respondedAt ? formatDate(bid.respondedAt) : "--"}
+                        <TableCell className="numeric whitespace-nowrap py-3.5 text-sm text-muted-foreground">
+                          {bid.respondedAt ? formatDate(bid.respondedAt) : "—"}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="py-3.5 text-right">
                           {bid.status === "PENDING" ? (
                             <Button
                               variant="outline"
                               size="sm"
-                              className="gap-1 border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/30"
+                              className="gap-1 border-red-500/30 text-red-600 hover:bg-red-500/10 dark:text-red-400"
                               onClick={() => setWithdrawTarget(bid)}
                             >
                               <X className="size-3.5" />
                               Withdraw
                             </Button>
                           ) : (
-                            <span className="text-xs text-zinc-400 dark:text-zinc-500">--</span>
+                            <span className="text-xs text-muted-foreground/60">—</span>
                           )}
                         </TableCell>
                       </TableRow>
@@ -419,17 +428,19 @@ export function VendorBidsClient({ initialData, availableBookings }: VendorBidsC
                 {data.data.map((bid) => (
                   <div
                     key={bid.id}
-                    className={`rounded-lg border border-zinc-100 bg-zinc-50/50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50 ${
+                    className={`rounded-xl border bg-muted/30 p-4 ${
                       loading ? "opacity-50" : ""
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <p className="font-medium text-zinc-900 dark:text-zinc-100">
+                        <p className="font-medium text-foreground">
                           {bid.booking.eventName}
                         </p>
-                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                          {bid.booking.bookingNumber} &middot; {bid.booking.eventType}
+                        <p className="text-xs text-muted-foreground">
+                          <span className="numeric">{bid.booking.bookingNumber}</span>
+                          {" · "}
+                          {bid.booking.eventType}
                         </p>
                       </div>
                       <StatusBadge
@@ -437,24 +448,24 @@ export function VendorBidsClient({ initialData, availableBookings }: VendorBidsC
                         colorMap={VENDOR_BID_STATUS_COLORS}
                       />
                     </div>
-                    <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400">
+                    <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Clock className="size-3" />
-                        {formatDate(bid.booking.date)}
+                        <span className="numeric">{formatDate(bid.booking.date)}</span>
                       </div>
-                      <span className="text-zinc-300 dark:text-zinc-600">|</span>
+                      <span className="opacity-40">·</span>
                       <span>{bid.booking.venue.name}</span>
                     </div>
-                    <div className="mt-3 flex items-center justify-between">
-                      <span className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
+                    <div className="mt-3 flex items-center justify-between border-t pt-3">
+                      <span className="numeric text-[17px] font-semibold text-foreground">
                         {formatINR(bid.amount)}
                       </span>
-                      <span className="text-xs text-zinc-400 dark:text-zinc-500">
+                      <span className="text-xs text-muted-foreground">
                         Submitted {formatDate(bid.submittedAt)}
                       </span>
                     </div>
                     {bid.message && (
-                      <p className="mt-2 text-xs text-zinc-500 italic dark:text-zinc-400">
+                      <p className="mt-2 text-xs italic text-muted-foreground">
                         &quot;{bid.message}&quot;
                       </p>
                     )}
@@ -463,7 +474,7 @@ export function VendorBidsClient({ initialData, availableBookings }: VendorBidsC
                         <Button
                           variant="outline"
                           size="sm"
-                          className="gap-1 border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/30"
+                          className="gap-1 border-red-500/30 text-red-600 hover:bg-red-500/10 dark:text-red-400"
                           onClick={() => setWithdrawTarget(bid)}
                         >
                           <X className="size-3.5" />
@@ -477,9 +488,11 @@ export function VendorBidsClient({ initialData, availableBookings }: VendorBidsC
 
               {/* Pagination */}
               {data.totalPages > 1 && (
-                <div className="mt-4 flex items-center justify-between">
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                    Page {data.page} of {data.totalPages} ({data.total} total)
+                <div className="mt-5 flex items-center justify-between border-t pt-4">
+                  <p className="text-sm text-muted-foreground">
+                    Page <span className="numeric">{data.page}</span> of{" "}
+                    <span className="numeric">{data.totalPages}</span> ·{" "}
+                    <span className="numeric">{data.total}</span> total
                   </p>
                   <div className="flex gap-2">
                     <Button
@@ -517,9 +530,13 @@ export function VendorBidsClient({ initialData, availableBookings }: VendorBidsC
           <DialogHeader>
             <DialogTitle>Withdraw bid</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            Withdraw your {withdrawTarget ? formatINR(withdrawTarget.amount) : ""} bid on{" "}
-            <span className="font-medium text-zinc-700 dark:text-zinc-200">
+          <p className="text-sm text-muted-foreground">
+            Withdraw your{" "}
+            <span className="numeric font-medium text-foreground">
+              {withdrawTarget ? formatINR(withdrawTarget.amount) : ""}
+            </span>{" "}
+            bid on{" "}
+            <span className="font-medium text-foreground">
               {withdrawTarget?.booking.eventName}
             </span>
             ? This removes it permanently and can&apos;t be undone.

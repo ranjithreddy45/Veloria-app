@@ -1,7 +1,10 @@
 "use client";
 
+import { SparklesIcon } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { formatINR } from "@/lib/utils";
 import { FORECAST_CONFIDENCE_COLORS } from "@/lib/constants";
 
@@ -65,22 +68,22 @@ export function ForecastChart({ predictions, actuals }: ForecastChartProps) {
 
   if (predictions.length === 0 && actuals.length === 0) {
     return (
-      <Card className="gap-0 py-0">
+      <Card className="gap-0 rounded-2xl border bg-card py-0 shadow-card">
         <CardContent className="px-5 py-5">
-          <h2 className="text-[13px] font-semibold tracking-[-0.01em] text-foreground">
-            Revenue Forecast Chart
-          </h2>
-          <p className="mt-1 text-[12px] text-muted-foreground">
-            No forecast data available. Generate a forecast to see the chart.
-          </p>
+          <EmptyState
+            icon={<SparklesIcon />}
+            title="No forecast yet"
+            description="Generate a forecast to project revenue and bookings for the months ahead."
+            className="py-10"
+          />
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="gap-0 py-0">
-      <CardContent className="px-5 py-5">
+    <Card className="gap-0 rounded-2xl border bg-card py-0 shadow-card">
+      <CardContent className="p-5">
         <div className="mb-4">
           <h2 className="text-[13px] font-semibold tracking-[-0.01em] text-foreground">
             Revenue Forecast Chart
@@ -91,7 +94,7 @@ export function ForecastChart({ predictions, actuals }: ForecastChartProps) {
           </p>
         </div>
         {/* Legend */}
-        <div className="mb-4 flex flex-wrap items-center gap-4 text-sm">
+        <div className="mb-4 flex flex-wrap items-center gap-4 text-[12px]">
           <div className="flex items-center gap-1.5">
             <div className="h-3 w-6 rounded-sm bg-emerald-500 dark:bg-emerald-600" />
             <span className="text-muted-foreground">Existing Forecast</span>
@@ -109,7 +112,7 @@ export function ForecastChart({ predictions, actuals }: ForecastChartProps) {
         {/* Chart Container */}
         <div className="relative">
           {/* Y-Axis Labels */}
-          <div className="absolute left-0 top-0 bottom-8 w-20 flex flex-col justify-between text-xs text-muted-foreground">
+          <div className="numeric absolute bottom-8 left-0 top-0 flex w-20 flex-col justify-between text-[10.5px] text-muted-foreground">
             <span>{formatINR(maxRevenue)}</span>
             <span>{formatINR(maxRevenue * 0.75)}</span>
             <span>{formatINR(maxRevenue * 0.5)}</span>
@@ -188,7 +191,7 @@ export function ForecastChart({ predictions, actuals }: ForecastChartProps) {
                   key={prediction.month}
                   className="flex-1 text-center min-w-0"
                 >
-                  <span className="text-xs text-muted-foreground truncate block">
+                  <span className="numeric block truncate text-[11px] text-muted-foreground">
                     {getMonthLabel(prediction.month)}
                   </span>
                 </div>
@@ -211,30 +214,32 @@ export function ForecastChart({ predictions, actuals }: ForecastChartProps) {
               return (
                 <div
                   key={prediction.month}
-                  className="rounded-lg border p-3 space-y-2"
+                  className="space-y-2.5 rounded-xl border bg-card p-4 shadow-card transition-shadow hover:shadow-card-hover"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">
+                    <span className="text-[13px] font-semibold tracking-[-0.01em]">
                       {getMonthLabel(prediction.month)}{" "}
-                      {prediction.month.split("-")[0]}
+                      <span className="numeric font-medium text-muted-foreground">
+                        {prediction.month.split("-")[0]}
+                      </span>
                     </span>
                     <Badge
                       variant="secondary"
-                      className={confidenceColors}
+                      className={`numeric ${confidenceColors}`}
                     >
                       {Math.round(prediction.confidence * 100)}%
                     </Badge>
                   </div>
                   <div className="space-y-1">
-                    <div className="flex justify-between text-sm">
+                    <div className="flex justify-between text-[13px]">
                       <span className="text-muted-foreground">Revenue</span>
-                      <span className="font-medium text-emerald-700 dark:text-emerald-400">
+                      <span className="numeric font-medium text-emerald-700 dark:text-emerald-400">
                         {formatINR(prediction.predictedRevenue)}
                       </span>
                     </div>
-                    <div className="flex justify-between text-sm">
+                    <div className="flex justify-between text-[13px]">
                       <span className="text-muted-foreground">Bookings</span>
-                      <span className="font-medium">
+                      <span className="numeric font-medium">
                         {prediction.predictedBookings}
                       </span>
                     </div>
@@ -244,7 +249,7 @@ export function ForecastChart({ predictions, actuals }: ForecastChartProps) {
                       <Badge
                         key={i}
                         variant="outline"
-                        className="text-xs font-normal"
+                        className="text-[11px] font-normal text-muted-foreground"
                       >
                         {factor}
                       </Badge>

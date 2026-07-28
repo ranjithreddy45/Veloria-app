@@ -8,6 +8,7 @@ import { CalendarDays, IndianRupee, LayoutList, Kanban as KanbanIcon } from "luc
 import { ViewTabs } from "@/components/ui/view-tabs";
 import { KanbanBoard, type KanbanColumn, type ColumnHue } from "@/components/ui/kanban-board";
 import { LeadStatusPill } from "@/components/shared/status-pill";
+import { DotAvatar } from "@/components/shared/dot-avatar";
 import { LeadsTable, type LeadWithContact } from "./leads-table";
 
 // ============================================================
@@ -40,12 +41,15 @@ function formatCurrency(n: number | null | undefined): string {
   return `₹${v.toLocaleString("en-IN")}`;
 }
 
+// Board-card anatomy (kept in step with the quotations board): title →
+// muted meta line → footer of status pill + money, then an owner chip rail.
 function BoardCard({ lead }: { lead: LeadWithContact }) {
   const fullName = `${lead.contact.firstName} ${lead.contact.lastName}`.trim();
   const value = lead.estimatedValue != null ? formatCurrency(Number(lead.estimatedValue)) : null;
+  const owner = lead.assignedTo;
   return (
     <Link href={`/leads/${lead.id}`} className="block space-y-2">
-      <p className="truncate text-[13px] font-semibold leading-snug text-foreground">
+      <p className="truncate text-[13px] font-semibold leading-snug tracking-[-0.01em] text-foreground">
         {lead.title}
       </p>
       <p className="truncate text-[11.5px] text-muted-foreground">
@@ -55,18 +59,36 @@ function BoardCard({ lead }: { lead: LeadWithContact }) {
       <div className="flex items-center justify-between gap-2 pt-0.5">
         <LeadStatusPill status={lead.status} size="xs" />
         {value ? (
-          <span className="inline-flex items-center gap-0.5 text-[12px] font-bold tabular-nums text-foreground/90">
+          <span className="numeric inline-flex items-center gap-0.5 text-[12px] font-bold text-foreground/90">
             <IndianRupee className="size-3" strokeWidth={2.5} />
             {value.replace(/^₹/, "")}
           </span>
         ) : lead.eventDate ? (
-          <span className="inline-flex items-center gap-1 text-[11px] tabular-nums text-muted-foreground">
+          <span className="numeric inline-flex items-center gap-1 text-[11px] text-muted-foreground">
             <CalendarDays className="size-3" />
             {format(new Date(lead.eventDate as string), "MMM d")}
           </span>
         ) : (
           <span />
         )}
+      </div>
+      <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-2">
+        {owner ? (
+          <span className="inline-flex min-w-0 items-center gap-1.5">
+            <DotAvatar seed={owner.id} name={owner.name} size="xs" />
+            <span className="truncate text-[11px] text-muted-foreground">
+              {owner.name?.split(" ")[0] ?? "—"}
+            </span>
+          </span>
+        ) : (
+          <span className="text-[11px] italic text-muted-foreground/60">Unassigned</span>
+        )}
+        {value && lead.eventDate ? (
+          <span className="numeric inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+            <CalendarDays className="size-3" />
+            {format(new Date(lead.eventDate as string), "MMM d")}
+          </span>
+        ) : null}
       </div>
     </Link>
   );

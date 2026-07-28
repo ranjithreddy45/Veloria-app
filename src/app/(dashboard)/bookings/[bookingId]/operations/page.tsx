@@ -7,6 +7,7 @@ import {
   ChefHatIcon,
   ShoppingCartIcon,
   TruckIcon,
+  ClipboardListIcon,
 } from "lucide-react";
 
 import { getBooking } from "@/actions/booking.actions";
@@ -15,6 +16,7 @@ import { getOperationReadinessForBooking } from "@/actions/ops-readiness.actions
 import { getEventOpsFinancials } from "@/actions/ops-financials.actions";
 import { getBookingVendors } from "@/actions/vendor.actions";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/layout/page-header";
 import { OperationsView } from "./_components/operations-view";
 import { ReadinessPanel } from "./_components/readiness-panel";
 import { FinancialsPanel } from "./_components/financials-panel";
@@ -86,29 +88,33 @@ export default async function OperationsPage({ params }: OperationsPageProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <Button variant="ghost" size="sm" asChild>
-              <Link href={`/bookings/${booking.id}`}>
-                <ArrowLeftIcon className="mr-1 size-4" />
-                Back
-              </Link>
-            </Button>
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Event Operations
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            {booking.eventName} | {booking.bookingNumber}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+      <div>
+        <Button variant="ghost" size="sm" className="-ml-2 mb-1" asChild>
+          <Link href={`/bookings/${booking.id}`}>
+            <ArrowLeftIcon className="mr-1 size-4" />
+            Back to booking
+          </Link>
+        </Button>
+        <PageHeader
+          icon={ClipboardListIcon}
+          accent="teal"
+          title="Event Operations"
+          eyebrow={
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span>Ops</span>
+              <span className="h-3 w-px bg-border" />
+              <span className="numeric text-foreground/80">
+                {booking.bookingNumber}
+              </span>
+            </div>
+          }
+          description={`${booking.eventName} — crew, vendors, readiness and the day-of run of show.`}
+        >
           <Button variant="outline" size="sm" asChild>
             <Link href={`/bookings/${booking.id}/control`}>Live cockpit</Link>
           </Button>
           <ShareClientPlan bookingId={booking.id} />
-        </div>
+        </PageHeader>
       </div>
 
       {/* Readiness checklist (best-effort; absent until an operation exists) */}
@@ -127,11 +133,11 @@ export default async function OperationsPage({ params }: OperationsPageProps) {
             key={href}
             variant="outline"
             asChild
-            className="h-auto justify-start gap-2 py-3"
+            className="h-auto justify-start gap-2 rounded-2xl py-3.5 shadow-card transition-shadow hover:shadow-card-hover"
           >
             <Link href={href}>
               <Icon className="size-4 shrink-0" />
-              <span className="truncate text-left text-sm">{label}</span>
+              <span className="truncate text-left text-[13px] font-medium">{label}</span>
             </Link>
           </Button>
         ))}

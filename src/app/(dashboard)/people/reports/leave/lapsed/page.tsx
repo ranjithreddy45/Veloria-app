@@ -29,7 +29,7 @@ export default async function LeaveLapsedReportPage({
   const rows = await getLapsedReport(year);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <PageHeader
           eyebrow="People · Reports"

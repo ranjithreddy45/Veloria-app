@@ -44,23 +44,25 @@ export default async function PortalBookingsPage() {
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <PageHeader
+        eyebrow="Your account"
         title="My Bookings"
-        description="View and manage all your event bookings."
+        description="Every event you've entrusted to us, past and upcoming."
       />
 
       {bookings.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="flex size-16 items-center justify-center rounded-full bg-muted">
-              <CalendarX className="size-8 text-muted-foreground/60" />
+        <Card className="shadow-card rounded-2xl">
+          <CardContent className="flex flex-col items-center justify-center px-6 py-20 text-center">
+            <div className="bg-muted flex size-16 items-center justify-center rounded-2xl">
+              <CalendarX className="text-muted-foreground/60 size-8" />
             </div>
-            <h3 className="mt-4 text-base font-semibold text-foreground">
-              No bookings yet
+            <h3 className="font-editorial text-foreground mt-5 text-xl font-semibold">
+              Your first celebration awaits
             </h3>
-            <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-              Your bookings will appear here once they are created. Contact us to plan your next event.
+            <p className="text-muted-foreground mt-2 max-w-sm text-sm leading-relaxed">
+              Bookings appear here the moment your date is held. Talk to us and
+              we&apos;ll start planning.
             </p>
           </CardContent>
         </Card>
@@ -68,30 +70,36 @@ export default async function PortalBookingsPage() {
         <>
           {/* Upcoming Bookings */}
           {upcomingBookings.length > 0 && (
-            <div className="space-y-4">
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                Upcoming Events ({upcomingBookings.length})
+            <section className="space-y-4">
+              <h2 className="text-muted-foreground flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em]">
+                Upcoming events
+                <span className="numeric text-muted-foreground/60">
+                  {upcomingBookings.length}
+                </span>
               </h2>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {upcomingBookings.map((booking) => (
                   <BookingCard key={booking.id} booking={booking} />
                 ))}
               </div>
-            </div>
+            </section>
           )}
 
           {/* Past Bookings */}
           {pastBookings.length > 0 && (
-            <div className="space-y-4">
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                Past Events ({pastBookings.length})
+            <section className="space-y-4">
+              <h2 className="text-muted-foreground flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em]">
+                Past events
+                <span className="numeric text-muted-foreground/60">
+                  {pastBookings.length}
+                </span>
               </h2>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {pastBookings.map((booking) => (
                   <BookingCard key={booking.id} booking={booking} isPast />
                 ))}
               </div>
-            </div>
+            </section>
           )}
         </>
       )}
@@ -123,29 +131,37 @@ function BookingCard({ booking, isPast }: BookingCardProps) {
   const eventDate = new Date(booking.date);
 
   return (
-    <Link href={`/portal/bookings/${booking.id}`}>
+    <Link href={`/portal/bookings/${booking.id}`} className="block">
       <Card
-        className={`group transition-all duration-200 hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-800 ${
-          isPast ? "opacity-75 hover:opacity-100" : ""
+        className={`group shadow-card hover:shadow-card-hover h-full overflow-hidden rounded-2xl py-0 transition-all duration-200 ${
+          isPast ? "opacity-70 hover:opacity-100" : ""
         }`}
       >
         <CardContent className="p-0">
           {/* Date Strip */}
-          <div className={`flex items-center gap-3 rounded-t-xl px-5 py-3 ${isPast ? "bg-muted/50" : "bg-indigo-50/50 dark:bg-indigo-950/20"}`}>
+          <div
+            className={`flex items-center gap-4 px-5 py-4 ${isPast ? "bg-muted/40" : "bg-primary/[0.05]"}`}
+          >
             <div className="text-center">
-              <p className={`text-2xl font-bold ${isPast ? "text-muted-foreground/60" : "text-indigo-600 dark:text-indigo-400"}`}>
+              <p
+                className={`numeric text-[26px] font-semibold leading-none ${isPast ? "text-muted-foreground/60" : "text-primary"}`}
+              >
                 {eventDate.getDate()}
               </p>
-              <p className={`text-xs font-medium uppercase ${isPast ? "text-muted-foreground/60" : "text-indigo-500 dark:text-indigo-400"}`}>
+              <p
+                className={`mt-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${isPast ? "text-muted-foreground/60" : "text-primary/70"}`}
+              >
                 {eventDate.toLocaleDateString("en-IN", { month: "short" })}
               </p>
             </div>
-            <div className="h-8 w-px bg-border" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-foreground truncate">
+            <div className="bg-border h-9 w-px" />
+            <div className="min-w-0 flex-1">
+              <p className="font-editorial text-foreground truncate text-[16px] font-semibold">
                 {booking.eventName}
               </p>
-              <p className="text-xs text-muted-foreground">{booking.eventType}</p>
+              <p className="text-muted-foreground truncate text-xs">
+                {booking.eventType}
+              </p>
             </div>
             <StatusBadge
               status={booking.status}
@@ -156,34 +172,36 @@ function BookingCard({ booking, isPast }: BookingCardProps) {
           </div>
 
           {/* Details */}
-          <div className="space-y-2.5 px-5 py-4">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <MapPin className="size-3.5 text-muted-foreground/60 flex-shrink-0" />
+          <div className="space-y-2.5 border-t px-5 py-4">
+            <div className="text-muted-foreground flex items-center gap-2 text-sm">
+              <MapPin className="text-muted-foreground/50 size-3.5 flex-shrink-0" />
               <span className="truncate">{booking.venueName}</span>
             </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Clock className="size-3.5 text-muted-foreground/60 flex-shrink-0" />
+            <div className="text-muted-foreground flex items-center gap-2 text-sm">
+              <Clock className="text-muted-foreground/50 size-3.5 flex-shrink-0" />
               <span className="truncate">
                 {TIME_SLOT_LABELS[booking.timeSlot] || booking.timeSlot}
               </span>
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Users className="size-3.5 text-muted-foreground/60 flex-shrink-0" />
-                <span>{booking.guestCount} guests</span>
+            <div className="flex items-center justify-between gap-3 pt-1">
+              <div className="text-muted-foreground flex items-center gap-2 text-sm">
+                <Users className="text-muted-foreground/50 size-3.5 flex-shrink-0" />
+                <span>
+                  <span className="numeric">{booking.guestCount}</span> guests
+                </span>
               </div>
-              <span className="text-sm font-semibold text-foreground">
+              <span className="numeric text-foreground text-[15px] font-semibold">
                 {formatINR(booking.totalAmount)}
               </span>
             </div>
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between border-t px-5 py-2.5">
-            <span className="text-xs text-muted-foreground/60">
-              #{booking.bookingNumber}
+          <div className="bg-muted/25 flex items-center justify-between border-t px-5 py-2.5">
+            <span className="numeric text-muted-foreground/60 text-[11px]">
+              {booking.bookingNumber}
             </span>
-            <span className="flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 opacity-0 transition-opacity group-hover:opacity-100">
+            <span className="text-primary flex items-center gap-1 text-xs font-medium opacity-0 transition-opacity group-hover:opacity-100">
               View details
               <ArrowUpRight className="size-3" />
             </span>

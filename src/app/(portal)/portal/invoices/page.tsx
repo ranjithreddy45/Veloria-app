@@ -40,23 +40,25 @@ export default async function PortalInvoicesPage() {
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <PageHeader
+        eyebrow="Your account"
         title="My Invoices"
-        description="View and pay your invoices."
+        description="A clear record of what's been billed, paid and still due."
       />
 
       {invoices.length === 0 ? (
-        <Card className="border-zinc-200/80 shadow-sm">
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="flex size-16 items-center justify-center rounded-full bg-zinc-100">
-              <FileX className="size-8 text-zinc-400" />
+        <Card className="shadow-card rounded-2xl">
+          <CardContent className="flex flex-col items-center justify-center px-6 py-20 text-center">
+            <div className="bg-muted flex size-16 items-center justify-center rounded-2xl">
+              <FileX className="text-muted-foreground/60 size-8" />
             </div>
-            <h3 className="mt-4 text-base font-semibold text-zinc-900">
-              No invoices yet
+            <h3 className="font-editorial text-foreground mt-5 text-xl font-semibold">
+              Nothing due right now
             </h3>
-            <p className="mt-1 max-w-sm text-sm text-zinc-500">
-              Your invoices will appear here once generated.
+            <p className="text-muted-foreground mt-2 max-w-sm text-sm leading-relaxed">
+              Invoices appear here as soon as they&apos;re issued, with a simple
+              way to settle them.
             </p>
           </CardContent>
         </Card>
@@ -64,30 +66,36 @@ export default async function PortalInvoicesPage() {
         <>
           {/* Action Required */}
           {unpaidInvoices.length > 0 && (
-            <div className="space-y-4">
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-500">
-                Action Required ({unpaidInvoices.length})
+            <section className="space-y-4">
+              <h2 className="text-muted-foreground flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em]">
+                Action required
+                <span className="numeric text-muted-foreground/60">
+                  {unpaidInvoices.length}
+                </span>
               </h2>
               <div className="space-y-3">
                 {unpaidInvoices.map((inv) => (
                   <InvoiceRow key={inv.id} invoice={inv} showPayButton />
                 ))}
               </div>
-            </div>
+            </section>
           )}
 
           {/* Other Invoices */}
           {otherInvoices.length > 0 && (
-            <div className="space-y-4">
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-500">
-                {unpaidInvoices.length > 0 ? "Other Invoices" : "All Invoices"} ({otherInvoices.length})
+            <section className="space-y-4">
+              <h2 className="text-muted-foreground flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em]">
+                {unpaidInvoices.length > 0 ? "Other invoices" : "All invoices"}
+                <span className="numeric text-muted-foreground/60">
+                  {otherInvoices.length}
+                </span>
               </h2>
               <div className="space-y-3">
                 {otherInvoices.map((inv) => (
                   <InvoiceRow key={inv.id} invoice={inv} />
                 ))}
               </div>
-            </div>
+            </section>
           )}
         </>
       )}
@@ -123,30 +131,30 @@ function InvoiceRow({ invoice, showPayButton }: InvoiceRowProps) {
   return (
     <Link href={`/portal/invoices/${invoice.id}`} className="block">
       <Card
-        className={`group border-zinc-200/80 shadow-sm transition-all duration-200 hover:shadow-md ${
-          isOverdue
-            ? "hover:border-red-200 border-red-100"
-            : "hover:border-indigo-200"
+        className={`group shadow-card hover:shadow-card-hover overflow-hidden rounded-2xl py-0 transition-all duration-200 ${
+          isOverdue ? "border-red-500/30" : ""
         }`}
       >
         <CardContent className="p-0">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-5">
+          <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
             {/* Icon + Invoice Info */}
-            <div className="flex items-center gap-4 flex-1 min-w-0">
+            <div className="flex min-w-0 flex-1 items-center gap-4">
               <div
-                className={`flex size-10 items-center justify-center rounded-lg flex-shrink-0 ${
-                  isOverdue ? "bg-red-50" : "bg-indigo-50"
+                className={`flex size-10 flex-shrink-0 items-center justify-center rounded-xl ${
+                  isOverdue ? "bg-red-500/10" : "bg-primary/10"
                 }`}
               >
                 <FileText
                   className={`size-5 ${
-                    isOverdue ? "text-red-500" : "text-indigo-500"
+                    isOverdue
+                      ? "text-red-600 dark:text-red-400"
+                      : "text-primary"
                   }`}
                 />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold text-zinc-900">
+                  <p className="numeric text-foreground text-sm font-semibold">
                     {invoice.invoiceNumber}
                   </p>
                   <StatusBadge
@@ -155,7 +163,7 @@ function InvoiceRow({ invoice, showPayButton }: InvoiceRowProps) {
                     className="text-[10px]"
                   />
                 </div>
-                <p className="mt-0.5 text-xs text-zinc-500 truncate">
+                <p className="text-muted-foreground mt-0.5 truncate text-xs">
                   {invoice.eventName && (
                     <>
                       {invoice.eventName}
@@ -175,22 +183,30 @@ function InvoiceRow({ invoice, showPayButton }: InvoiceRowProps) {
             {/* Amounts */}
             <div className="flex items-center gap-6 sm:gap-8">
               <div className="text-right">
-                <p className="text-xs text-zinc-400">Total</p>
-                <p className="text-sm font-semibold text-zinc-900">
+                <p className="text-muted-foreground/70 text-[10px] font-semibold uppercase tracking-[0.1em]">
+                  Total
+                </p>
+                <p className="numeric text-foreground mt-0.5 text-sm font-semibold">
                   {formatINR(invoice.totalAmount)}
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-xs text-zinc-400">Paid</p>
-                <p className="text-sm font-medium text-emerald-600">
+                <p className="text-muted-foreground/70 text-[10px] font-semibold uppercase tracking-[0.1em]">
+                  Paid
+                </p>
+                <p className="numeric mt-0.5 text-sm font-medium text-emerald-600 dark:text-emerald-400">
                   {formatINR(invoice.paidAmount)}
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-xs text-zinc-400">Balance</p>
+                <p className="text-muted-foreground/70 text-[10px] font-semibold uppercase tracking-[0.1em]">
+                  Balance
+                </p>
                 <p
-                  className={`text-sm font-bold ${
-                    invoice.balanceDue > 0 ? "text-red-600" : "text-emerald-600"
+                  className={`numeric mt-0.5 text-sm font-semibold ${
+                    invoice.balanceDue > 0
+                      ? "text-red-600 dark:text-red-400"
+                      : "text-emerald-600 dark:text-emerald-400"
                   }`}
                 >
                   {formatINR(invoice.balanceDue)}
@@ -199,40 +215,40 @@ function InvoiceRow({ invoice, showPayButton }: InvoiceRowProps) {
 
               {/* Pay Button or Arrow */}
               {showPayButton && invoice.balanceDue > 0 ? (
-                <span className="hidden sm:inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white transition-colors group-hover:bg-indigo-700">
+                <span className="bg-primary text-primary-foreground hidden items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition-opacity group-hover:opacity-90 sm:inline-flex">
                   <CreditCard className="size-3.5" />
-                  Pay Now
+                  Pay now
                 </span>
               ) : (
-                <ArrowUpRight className="size-4 text-zinc-300 flex-shrink-0 transition-colors group-hover:text-indigo-500" />
+                <ArrowUpRight className="text-muted-foreground/40 group-hover:text-primary size-4 flex-shrink-0 transition-colors" />
               )}
             </div>
           </div>
 
           {/* Due Date Footer */}
           <div
-            className={`flex items-center justify-between border-t px-5 py-2 text-xs ${
+            className={`flex items-center justify-between border-t px-5 py-2.5 text-xs ${
               isOverdue
-                ? "border-red-100 bg-red-50/50 text-red-600"
-                : "border-zinc-100 text-zinc-400"
+                ? "border-red-500/20 bg-red-500/[0.06] text-red-600 dark:text-red-400"
+                : "text-muted-foreground/70 bg-muted/25"
             }`}
           >
             <span>
-              Due:{" "}
-              {dueDate.toLocaleDateString("en-IN", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              })}
+              Due{" "}
+              <span className="numeric">
+                {dueDate.toLocaleDateString("en-IN", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </span>
             </span>
-            {isOverdue && (
-              <span className="font-semibold">Overdue</span>
-            )}
+            {isOverdue && <span className="font-semibold">Overdue</span>}
             {/* Mobile Pay Button */}
             {showPayButton && invoice.balanceDue > 0 && (
-              <span className="inline-flex sm:hidden items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white">
+              <span className="bg-primary text-primary-foreground inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold sm:hidden">
                 <CreditCard className="size-3" />
-                Pay Now
+                Pay now
               </span>
             )}
           </div>

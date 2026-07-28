@@ -48,7 +48,7 @@ const columns: ColumnDef<ForecastEntry>[] = [
       <DataTableColumnHeader column={column} title="Predicted Revenue" />
     ),
     cell: ({ row }) => (
-      <span className="font-medium text-emerald-700 dark:text-emerald-400">
+      <span className="numeric font-medium text-emerald-700 dark:text-emerald-400">
         {formatINR(row.getValue("predictedRevenue"))}
       </span>
     ),
@@ -59,7 +59,7 @@ const columns: ColumnDef<ForecastEntry>[] = [
       <DataTableColumnHeader column={column} title="Predicted Bookings" />
     ),
     cell: ({ row }) => (
-      <span className="text-sm">{row.getValue("predictedBookings")}</span>
+      <span className="numeric text-[13px]">{row.getValue("predictedBookings")}</span>
     ),
   },
   {
@@ -75,10 +75,10 @@ const columns: ColumnDef<ForecastEntry>[] = [
           variant="secondary"
           className={
             percent >= 80
-              ? "bg-emerald-100 text-emerald-700"
+              ? "numeric bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"
               : percent >= 50
-                ? "bg-amber-100 text-amber-700"
-                : "bg-red-100 text-red-700"
+                ? "numeric bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300"
+                : "numeric bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300"
           }
         >
           {percent}%
@@ -92,7 +92,7 @@ const columns: ColumnDef<ForecastEntry>[] = [
     cell: ({ row }) => {
       const date = row.getValue("generatedAt") as string;
       return (
-        <span className="text-muted-foreground text-sm">
+        <span className="numeric text-[13px] text-muted-foreground">
           {new Date(date).toLocaleDateString("en-IN", {
             day: "2-digit",
             month: "short",

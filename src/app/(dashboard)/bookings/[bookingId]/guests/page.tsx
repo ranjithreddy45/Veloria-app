@@ -8,6 +8,7 @@ import { getGuestList, createGuestList } from "@/actions/guest.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { GuestManager } from "./_components/guest-manager";
 import { CreateGuestListButton } from "./_components/guest-manager";
 
@@ -50,8 +51,17 @@ export default async function GuestPage({ params }: GuestPageProps) {
       </div>
 
       <PageHeader
+        icon={UsersIcon}
+        accent="cyan"
+        eyebrow={
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>Guests</span>
+            <span className="h-3 w-px bg-border" />
+            <span className="numeric text-foreground/80">{booking.bookingNumber}</span>
+          </div>
+        }
         title="Guest Management"
-        description={`${booking.eventName} - ${booking.bookingNumber}`}
+        description={`${booking.eventName} — invitations, RSVPs and headcount.`}
       />
 
       {guestList ? (
@@ -60,17 +70,14 @@ export default async function GuestPage({ params }: GuestPageProps) {
           guestList={guestList}
         />
       ) : (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="rounded-full bg-zinc-100 p-4 dark:bg-zinc-800">
-              <UsersIcon className="size-8 text-zinc-400" />
-            </div>
-            <h3 className="mt-4 text-lg font-semibold">No Guest List Yet</h3>
-            <p className="mt-1 max-w-sm text-center text-sm text-muted-foreground">
-              Create a guest list to start managing guests, RSVPs, and check-ins
-              for this event.
-            </p>
-            <CreateGuestListButton bookingId={bookingId} />
+        <Card className="rounded-2xl shadow-card">
+          <CardContent className="p-0">
+            <EmptyState
+              icon={<UsersIcon className="size-6" />}
+              title="No guest list yet"
+              description="Start a guest list to track invitations, RSVPs and check-ins for this event."
+              action={<CreateGuestListButton bookingId={bookingId} />}
+            />
           </CardContent>
         </Card>
       )}

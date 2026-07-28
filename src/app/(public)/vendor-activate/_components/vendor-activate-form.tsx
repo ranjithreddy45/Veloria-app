@@ -41,10 +41,10 @@ export function VendorActivateForm({ vendorId, token, email }: { vendorId: strin
   }
 
   return (
-    <div className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="space-y-4 bg-card shadow-card rounded-2xl border p-6">
       <div className="space-y-1.5">
         <Label className="text-sm">Your sign-in email</Label>
-        <Input value={email} readOnly disabled className="bg-zinc-50 dark:bg-zinc-950/40" />
+        <Input value={email} readOnly disabled className="bg-muted/50" />
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="vp" className="text-sm">Create a password</Label>

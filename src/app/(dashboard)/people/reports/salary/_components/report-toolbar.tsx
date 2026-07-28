@@ -168,7 +168,7 @@ export function ReportEmpty({
   }
   if (draftHidden) {
     return (
-      <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
+      <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground">
         This period&apos;s run is still a <span className="font-medium">draft</span>. Draft figures are
         withheld from reports until the run is locked.
         <div className="mt-3">

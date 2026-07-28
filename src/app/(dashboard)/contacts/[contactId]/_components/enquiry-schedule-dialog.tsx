@@ -133,7 +133,7 @@ export function EnquiryScheduleDialog({
           </div>
 
           {taskType === "SHOW_AROUND" && (
-            <div className="space-y-3 rounded-lg border bg-muted/30 p-2.5">
+            <div className="space-y-3 rounded-xl border bg-muted/30 p-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Location</Label>
                 <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Venue / meeting point" />

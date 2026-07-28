@@ -45,7 +45,7 @@ export default async function ArrearsPage() {
   const paidTotal = paidThisFy.reduce((s, a) => s + a.amount, 0);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title="Salary arrears"
         description="One-off amounts owed to employees — back-dated hikes, missed components, corrections — paid through a chosen payroll run. Statutory deductions are applied by the run when it pays the arrear."

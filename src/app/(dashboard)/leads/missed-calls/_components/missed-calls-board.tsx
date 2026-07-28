@@ -21,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { EmptyState } from "@/components/ui/empty-state";
 import { StatusPill, type Hue } from "@/components/shared/status-pill";
 import { retryMissedCallWhatsApp } from "@/actions/missed-call-rescue.actions";
 
@@ -101,20 +102,18 @@ export function MissedCallsBoard({
           <PhoneIncoming className="size-4 text-muted-foreground" />
           Inbound ring log
         </CardTitle>
-        <span className="text-xs text-muted-foreground">
-          {total} ring{total === 1 ? "" : "s"}
+        <span className="text-[13px] text-muted-foreground">
+          <span className="numeric">{total}</span> ring{total === 1 ? "" : "s"}
         </span>
       </CardHeader>
       <CardContent className="p-0">
         {initialRows.length === 0 ? (
-          <div className="py-12 text-center text-sm text-muted-foreground">
-            No inbound rings rescued yet. Point your telephony / IVR
-            StatusCallback at{" "}
-            <code className="rounded bg-muted px-1 py-0.5 text-[11px]">
-              /api/webhooks/telephony/inbound?provider=…
-            </code>
-            .
-          </div>
+          <EmptyState
+            className="py-14"
+            icon={<PhoneIncoming />}
+            title="No inbound rings rescued yet"
+            description="Point your telephony / IVR StatusCallback at /api/webhooks/telephony/inbound?provider=… and every missed ring will land here as a scored lead."
+          />
         ) : (
           <div className="overflow-x-auto">
             <Table>
@@ -152,7 +151,7 @@ export function MissedCallsBoard({
 
                   return (
                     <TableRow key={r.id}>
-                      <TableCell className="font-medium tabular-nums">
+                      <TableCell className="font-medium numeric">
                         {r.callerPhone}
                         {r.contactName ? (
                           <span className="block text-xs font-normal text-muted-foreground">
@@ -195,7 +194,7 @@ export function MissedCallsBoard({
                       <TableCell className="text-xs text-muted-foreground">
                         {r.provider}
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
+                      <TableCell className="numeric text-xs text-muted-foreground">
                         {formatWhen(r.receivedAt)}
                       </TableCell>
                       <TableCell className="text-right">

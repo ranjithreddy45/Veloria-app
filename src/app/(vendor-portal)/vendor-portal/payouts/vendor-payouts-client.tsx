@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { PAYOUT_STATUS_COLORS, PAYOUT_TYPE_LABELS } from "@/lib/constants";
 import { formatINR, formatDate } from "@/lib/utils";
@@ -117,50 +118,53 @@ export function VendorPayoutsClient({ initialData }: VendorPayoutsClientProps) {
 
   const statCards = [
     {
-      title: "Total Paid",
+      title: "Total paid",
       value: formatINR(stats.totalPaid),
       count: stats.paidCount,
       icon: CheckCircle2,
-      color: "text-emerald-600",
-      bgColor: "bg-emerald-50",
+      chip: "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300",
     },
     {
       title: "Pending",
       value: formatINR(stats.totalPending),
       count: stats.pendingCount,
       icon: Clock,
-      color: "text-amber-600",
-      bgColor: "bg-amber-50",
+      chip: "bg-amber-500/14 text-amber-700 dark:text-amber-300",
     },
     {
       title: "Approved",
       value: formatINR(stats.totalApproved),
       count: stats.approvedCount,
       icon: CircleDot,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50",
+      chip: "bg-teal-500/12 text-teal-700 dark:text-teal-300",
     },
   ];
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <Wallet className="size-6 text-violet-600 dark:text-violet-400" />
-          <div>
-            <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-              My Payouts
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex items-start gap-3.5">
+          <span className="mt-0.5 hidden size-11 shrink-0 items-center justify-center rounded-2xl bg-teal-500/12 text-teal-700 sm:flex dark:text-teal-300">
+            <Wallet className="size-[22px]" />
+          </span>
+          <div className="space-y-1.5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-teal-700 dark:text-teal-300">
+              Payments
+            </p>
+            <h1 className="text-[28px] leading-tight text-foreground sm:text-[32px]">
+              Your payouts
             </h1>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              {data.total} payout{data.total !== 1 ? "s" : ""} total
+            <p className="text-[14px] text-muted-foreground">
+              <span className="numeric">{data.total}</span> payout
+              {data.total !== 1 ? "s" : ""} on record with Veloria Grand.
             </p>
           </div>
         </div>
 
         {/* Filter */}
         <div className="flex items-center gap-2">
-          <Filter className="size-4 text-zinc-400" />
+          <Filter className="size-4 text-muted-foreground" />
           <Select value={statusFilter} onValueChange={handleStatusChange}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filter by status" />
@@ -183,25 +187,26 @@ export function VendorPayoutsClient({ initialData }: VendorPayoutsClientProps) {
           return (
             <Card
               key={card.title}
-              className="border-zinc-200/80 shadow-sm dark:border-zinc-800"
+              className="rounded-2xl border bg-card py-0 shadow-card"
             >
               <CardContent className="p-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1.5">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
                       {card.title}
                     </p>
-                    <p className="mt-1 text-xl font-bold text-zinc-900 dark:text-zinc-100">
+                    <p className="numeric text-[22px] font-semibold leading-none tracking-[-0.02em] text-foreground">
                       {card.value}
                     </p>
-                    <p className="text-xs text-zinc-400 dark:text-zinc-500">
-                      {card.count} payout{card.count !== 1 ? "s" : ""}
+                    <p className="text-[12px] text-muted-foreground">
+                      <span className="numeric">{card.count}</span> payout
+                      {card.count !== 1 ? "s" : ""}
                     </p>
                   </div>
                   <div
-                    className={`flex size-10 items-center justify-center rounded-lg ${card.bgColor} dark:opacity-90`}
+                    className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${card.chip}`}
                   >
-                    <Icon className={`size-5 ${card.color}`} />
+                    <Icon className="size-[18px]" />
                   </div>
                 </div>
               </CardContent>
@@ -211,32 +216,34 @@ export function VendorPayoutsClient({ initialData }: VendorPayoutsClientProps) {
       </div>
 
       {/* Payouts Table */}
-      <Card className="border-zinc-200/80 shadow-sm dark:border-zinc-800">
+      <Card className="rounded-2xl border bg-card shadow-card">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-            Payout History
+          <CardTitle className="text-[15px] font-semibold">
+            Payout history
           </CardTitle>
         </CardHeader>
         <CardContent>
           {data.data.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Wallet className="size-12 text-zinc-300 dark:text-zinc-600" />
-              <p className="mt-3 text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                No payouts found
-              </p>
-              <p className="text-xs text-zinc-400 dark:text-zinc-500">
-                {statusFilter !== "all"
-                  ? "Try changing the filter to see more payouts."
-                  : "Your payouts will appear here once created."}
-              </p>
-            </div>
+            <EmptyState
+              icon={<Wallet />}
+              title={
+                statusFilter !== "all"
+                  ? "Nothing under this filter"
+                  : "No payments have gone out yet"
+              }
+              description={
+                statusFilter !== "all"
+                  ? "Switch back to all statuses to see your full payment history."
+                  : "Every advance and settlement we raise against your work will be listed here, with its reference."
+              }
+            />
           ) : (
             <>
               {/* Desktop table */}
               <div className="hidden md:block">
                 <Table>
                   <TableHeader>
-                    <TableRow>
+                    <TableRow className="[&>th]:text-[11px] [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-[0.1em] [&>th]:text-muted-foreground">
                       <TableHead>Reference</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead>Booking</TableHead>
@@ -244,49 +251,52 @@ export function VendorPayoutsClient({ initialData }: VendorPayoutsClientProps) {
                       <TableHead className="text-right">Amount</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Created</TableHead>
-                      <TableHead>Paid At</TableHead>
+                      <TableHead>Paid on</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {data.data.map((payout) => (
-                      <TableRow key={payout.id} className={loading ? "opacity-50" : ""}>
-                        <TableCell className="font-medium text-zinc-900 dark:text-zinc-100">
-                          {payout.referenceNumber || "--"}
+                      <TableRow
+                        key={payout.id}
+                        className={`transition-colors hover:bg-muted/40 ${loading ? "opacity-50" : ""}`}
+                      >
+                        <TableCell className="numeric py-3.5 font-medium text-foreground">
+                          {payout.referenceNumber || "—"}
                         </TableCell>
-                        <TableCell className="text-sm text-zinc-600 dark:text-zinc-300">
+                        <TableCell className="py-3.5 text-sm text-muted-foreground">
                           {PAYOUT_TYPE_LABELS[payout.type] || payout.type}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-3.5">
                           {payout.booking ? (
                             <div>
-                              <p className="text-sm text-zinc-900 dark:text-zinc-100">
+                              <p className="numeric text-sm text-foreground">
                                 {payout.booking.bookingNumber}
                               </p>
-                              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                              <p className="text-xs text-muted-foreground">
                                 {payout.booking.eventName}
                               </p>
                             </div>
                           ) : (
-                            <span className="text-sm text-zinc-400">--</span>
+                            <span className="text-sm text-muted-foreground/60">—</span>
                           )}
                         </TableCell>
-                        <TableCell className="max-w-[200px] truncate text-sm text-zinc-600 dark:text-zinc-300">
-                          {payout.description || "--"}
+                        <TableCell className="max-w-[200px] truncate py-3.5 text-sm text-muted-foreground">
+                          {payout.description || "—"}
                         </TableCell>
-                        <TableCell className="text-right font-semibold text-zinc-900 dark:text-zinc-100">
+                        <TableCell className="numeric py-3.5 text-right font-semibold text-foreground">
                           {formatINR(payout.amount)}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-3.5">
                           <StatusBadge
                             status={payout.status}
                             colorMap={PAYOUT_STATUS_COLORS}
                           />
                         </TableCell>
-                        <TableCell className="whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400">
+                        <TableCell className="numeric whitespace-nowrap py-3.5 text-sm text-muted-foreground">
                           {formatDate(payout.createdAt)}
                         </TableCell>
-                        <TableCell className="whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400">
-                          {payout.paidAt ? formatDate(payout.paidAt) : "--"}
+                        <TableCell className="numeric whitespace-nowrap py-3.5 text-sm text-muted-foreground">
+                          {payout.paidAt ? formatDate(payout.paidAt) : "—"}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -299,16 +309,16 @@ export function VendorPayoutsClient({ initialData }: VendorPayoutsClientProps) {
                 {data.data.map((payout) => (
                   <div
                     key={payout.id}
-                    className={`rounded-lg border border-zinc-100 bg-zinc-50/50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50 ${
+                    className={`rounded-xl border bg-muted/30 p-4 ${
                       loading ? "opacity-50" : ""
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <p className="font-medium text-zinc-900 dark:text-zinc-100">
-                          {payout.referenceNumber || "No Reference"}
+                        <p className="numeric font-medium text-foreground">
+                          {payout.referenceNumber || "No reference"}
                         </p>
-                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                        <p className="text-xs text-muted-foreground">
                           {PAYOUT_TYPE_LABELS[payout.type] || payout.type}
                         </p>
                       </div>
@@ -318,24 +328,26 @@ export function VendorPayoutsClient({ initialData }: VendorPayoutsClientProps) {
                       />
                     </div>
                     {payout.booking && (
-                      <div className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-                        {payout.booking.bookingNumber} - {payout.booking.eventName}
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        <span className="numeric">{payout.booking.bookingNumber}</span>
+                        {" · "}
+                        {payout.booking.eventName}
                       </div>
                     )}
                     {payout.description && (
-                      <p className="mt-1 text-xs text-zinc-400 truncate dark:text-zinc-500">
+                      <p className="mt-1 truncate text-xs text-muted-foreground/80">
                         {payout.description}
                       </p>
                     )}
-                    <div className="mt-3 flex items-center justify-between">
-                      <span className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
+                    <div className="mt-3 flex items-center justify-between border-t pt-3">
+                      <span className="numeric text-[17px] font-semibold text-foreground">
                         {formatINR(payout.amount)}
                       </span>
-                      <div className="flex items-center gap-1 text-xs text-zinc-400 dark:text-zinc-500">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <IndianRupee className="size-3" />
                         {payout.paidAt
                           ? `Paid ${formatDate(payout.paidAt)}`
-                          : `Created ${formatDate(payout.createdAt)}`}
+                          : `Raised ${formatDate(payout.createdAt)}`}
                       </div>
                     </div>
                   </div>
@@ -344,9 +356,11 @@ export function VendorPayoutsClient({ initialData }: VendorPayoutsClientProps) {
 
               {/* Pagination */}
               {data.totalPages > 1 && (
-                <div className="mt-4 flex items-center justify-between">
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                    Page {data.page} of {data.totalPages} ({data.total} total)
+                <div className="mt-5 flex items-center justify-between border-t pt-4">
+                  <p className="text-sm text-muted-foreground">
+                    Page <span className="numeric">{data.page}</span> of{" "}
+                    <span className="numeric">{data.totalPages}</span> ·{" "}
+                    <span className="numeric">{data.total}</span> total
                   </p>
                   <div className="flex gap-2">
                     <Button

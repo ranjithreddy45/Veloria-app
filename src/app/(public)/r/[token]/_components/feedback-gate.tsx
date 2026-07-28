@@ -228,7 +228,7 @@ export function FeedbackGate({
                 className={
                   active
                     ? "size-10 fill-amber-400 text-amber-400"
-                    : "size-10 text-zinc-300 dark:text-zinc-600"
+                    : "size-10 text-muted-foreground/35"
                 }
               />
             </button>

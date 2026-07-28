@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
+import { QrCodeIcon } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { getEInvoiceRows } from "@/actions/finance-einvoice.actions";
 import { EInvoiceWorkspace } from "./_components/einvoice-workspace";
@@ -18,6 +19,8 @@ export default async function FinanceEInvoicePage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        icon={QrCodeIcon}
+        accent="cyan"
         aura
         eyebrow="Finance · E-Invoicing"
         title="GST E-Invoicing"

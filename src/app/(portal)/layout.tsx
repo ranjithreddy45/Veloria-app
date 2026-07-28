@@ -24,10 +24,10 @@ export default async function PortalLayout({
   ).length;
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+    <div className="bg-background min-h-screen">
       {/* Portal Header */}
-      <header className="sticky top-0 z-30 border-b bg-white/90 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-900/90">
-        <div className="relative mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <header className="bg-background/85 supports-[backdrop-filter]:bg-background/70 sticky top-0 z-30 border-b backdrop-blur-xl">
+        <div className="relative mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
           {/* Logo */}
           <Link
             href="/portal"
@@ -37,10 +37,10 @@ export default async function PortalLayout({
               className="h-9 w-auto max-w-[200px] object-contain object-left"
               fallback={
                 <>
-                  <div className="flex size-8 items-center justify-center rounded-lg bg-zinc-950 text-white dark:bg-zinc-100 dark:text-zinc-900">
+                  <div className="bg-foreground text-background flex size-8 items-center justify-center rounded-xl">
                     <Gem className="size-4" />
                   </div>
-                  <span className="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+                  <span className="font-editorial text-foreground text-[19px] font-semibold tracking-tight">
                     Veloria Grand
                   </span>
                 </>
@@ -57,9 +57,17 @@ export default async function PortalLayout({
       </header>
 
       {/* Content */}
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-12">
         {children}
       </main>
+
+      <footer className="mx-auto mt-8 max-w-6xl px-5 pb-10 sm:px-8">
+        <div className="text-muted-foreground/70 border-t pt-6 text-center text-xs">
+          <span className="font-editorial text-[13px]">Veloria Grand</span>
+          <span className="mx-2">&middot;</span>
+          Every detail, considered.
+        </div>
+      </footer>
     </div>
   );
 }

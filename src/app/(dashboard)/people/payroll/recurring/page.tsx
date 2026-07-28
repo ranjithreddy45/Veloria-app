@@ -27,7 +27,7 @@ export default async function RecurringPage() {
   const activeDeductions = rows.filter((r) => r.active && r.kind === "DEDUCTION").length;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title="Recurring pay"
         description="Standing per-employee earnings and deductions that repeat every payroll — allowances, fixed reimbursements, recurring recoveries. The payroll run applies each active component within its start/end window."

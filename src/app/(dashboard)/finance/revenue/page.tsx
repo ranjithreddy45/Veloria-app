@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
+import { TrendingUpIcon } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import {
   getUninvoicedBookings,
@@ -23,6 +24,8 @@ export default async function FinanceRevenuePage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        icon={TrendingUpIcon}
+        accent="emerald"
         aura
         eyebrow="Finance · Revenue Automation"
         title="Revenue Automation"

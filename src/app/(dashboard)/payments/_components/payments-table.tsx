@@ -104,7 +104,7 @@ function makeColumns(perms: {
       <DataTableColumnHeader column={column} title="Receipt #" />
     ),
     cell: ({ row }) => (
-      <span className="font-medium">
+      <span className="numeric text-[13px] font-medium">
         {row.original.receiptNumber || row.original.id.slice(0, 8)}
       </span>
     ),
@@ -115,7 +115,7 @@ function makeColumns(perms: {
     cell: ({ row }) => (
       <Link
         href={`/invoices/${row.original.invoice.id}`}
-        className="font-medium text-blue-600 hover:underline"
+        className="numeric text-[13px] font-medium text-foreground underline-offset-4 hover:text-primary hover:underline"
       >
         {row.original.invoice.invoiceNumber}
       </Link>
@@ -127,12 +127,14 @@ function makeColumns(perms: {
     cell: ({ row }) => {
       const c = row.original.invoice.contact;
       return (
-        <div>
-          <div className="font-medium">
+        <div className="min-w-0">
+          <div className="truncate text-[13px] font-medium">
             {c.firstName} {c.lastName}
           </div>
           {c.company && (
-            <div className="text-xs text-muted-foreground">{c.company}</div>
+            <div className="truncate text-[12px] text-muted-foreground">
+              {c.company}
+            </div>
           )}
         </div>
       );
@@ -141,12 +143,20 @@ function makeColumns(perms: {
   {
     accessorKey: "amount",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Amount" />
+      <div className="flex justify-end">
+        <DataTableColumnHeader column={column} title="Amount" />
+      </div>
     ),
     cell: ({ row }) => (
-      <span className="font-medium text-green-700">
+      <div
+        className={
+          row.original.status === "COMPLETED"
+            ? "numeric text-right text-[13px] font-semibold text-success"
+            : "numeric text-right text-[13px] font-semibold text-foreground"
+        }
+      >
         {formatINR(row.original.amount)}
-      </span>
+      </div>
     ),
   },
   {
@@ -190,15 +200,19 @@ function makeColumns(perms: {
     ),
     cell: ({ row }) => {
       const date = row.original.paidAt || row.original.createdAt;
-      return format(new Date(date), "dd MMM yyyy");
+      return (
+        <span className="numeric text-[12.5px] text-muted-foreground">
+          {format(new Date(date), "dd MMM yyyy")}
+        </span>
+      );
     },
   },
   {
     accessorKey: "transactionId",
     header: "Transaction ID",
     cell: ({ row }) => (
-      <span className="text-sm text-muted-foreground">
-        {row.original.transactionId || "--"}
+      <span className="numeric text-[12.5px] text-muted-foreground">
+        {row.original.transactionId || "—"}
       </span>
     ),
   },
@@ -287,7 +301,7 @@ export function PaymentsTable({ data, canCancel = false, isManager = false }: Pa
 
   if (data.length === 0) {
     return (
-      <div className="rounded-xl border bg-card shadow-card">
+      <div className="rounded-2xl border bg-card shadow-card">
         <EmptyState
           icon={<ReceiptIcon className="size-5" />}
           title="No payments yet"

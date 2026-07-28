@@ -40,9 +40,14 @@ export default async function InvoicesPage() {
         aura
         icon={FileTextIcon}
         accent="emerald"
-        eyebrow={`FINANCE · ${invoices.length} invoice${
-          invoices.length === 1 ? "" : "s"
-        } · ${formatINR(outstanding)} outstanding`}
+        eyebrow={
+          <span>
+            FINANCE ·{" "}
+            <span className="numeric">{invoices.length}</span> invoice
+            {invoices.length === 1 ? "" : "s"} ·{" "}
+            <span className="numeric">{formatINR(outstanding)}</span> outstanding
+          </span>
+        }
         title="Invoices"
         help={<PageHelp id="invoices" />}
         description="Manage invoices, track payments and generate GST-compliant documents."
@@ -56,7 +61,7 @@ export default async function InvoicesPage() {
       </PageHeader>
 
       {invoices.length === 0 ? (
-        <div className="animate-rise-in animate-stagger-1 rounded-xl border border-dashed bg-card shadow-premium">
+        <div className="animate-rise-in animate-stagger-1 rounded-2xl border border-dashed bg-card shadow-card">
           <EmptyState
             icon={<ReceiptIndianRupeeIcon className="size-6" />}
             title="No invoices yet"
@@ -76,21 +81,21 @@ export default async function InvoicesPage() {
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 animate-rise-in animate-stagger-1">
             <StatTile
               label="Total invoiced"
-              value={formatINR(totalInvoiced)}
+              value={<span className="numeric">{formatINR(totalInvoiced)}</span>}
               accent="indigo"
               icon={<ReceiptIndianRupeeIcon className="size-4" />}
               sub={`${invoices.length} invoice${invoices.length === 1 ? "" : "s"}`}
             />
             <StatTile
               label="Outstanding"
-              value={formatINR(outstanding)}
+              value={<span className="numeric">{formatINR(outstanding)}</span>}
               accent="amber"
               icon={<WalletIcon className="size-4" />}
               sub="Balance due across invoices"
             />
             <StatTile
               label="Paid"
-              value={formatINR(paid)}
+              value={<span className="numeric">{formatINR(paid)}</span>}
               accent="emerald"
               icon={<CheckCircle2Icon className="size-4" />}
               sub="Collected to date"

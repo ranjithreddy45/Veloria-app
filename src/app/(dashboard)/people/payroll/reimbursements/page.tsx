@@ -27,7 +27,7 @@ export default async function ReimbursementsPage() {
   const [rows, stats] = await Promise.all([listReimbursements(), reimbursementStats()]);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title="Reimbursement approvals"
         description="Expense reimbursements submitted by employees. Approve a claim onto a pay run and payroll disburses it automatically; reject with a note. Reimbursements are non-taxable unless you flag them."

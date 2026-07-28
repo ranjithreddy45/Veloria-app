@@ -80,17 +80,17 @@ export function AddAssetDialog() {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-[12.5px]">Cost (₹)</Label>
-              <Input value={cost} onChange={(e) => setCost(e.target.value)} placeholder="0" className="text-right tabular-nums" inputMode="decimal" />
+              <Input value={cost} onChange={(e) => setCost(e.target.value)} placeholder="0" className="text-right numeric" inputMode="decimal" />
             </div>
             <div className="space-y-1.5">
               <Label className="text-[12.5px]">Salvage value (₹)</Label>
-              <Input value={salvageValue} onChange={(e) => setSalvageValue(e.target.value)} placeholder="0" className="text-right tabular-nums" inputMode="decimal" />
+              <Input value={salvageValue} onChange={(e) => setSalvageValue(e.target.value)} placeholder="0" className="text-right numeric" inputMode="decimal" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-[12.5px]">Useful life (months)</Label>
-              <Input value={usefulLifeMonths} onChange={(e) => setUsefulLifeMonths(e.target.value)} placeholder="60" className="text-right tabular-nums" inputMode="numeric" />
+              <Input value={usefulLifeMonths} onChange={(e) => setUsefulLifeMonths(e.target.value)} placeholder="60" className="text-right numeric" inputMode="numeric" />
             </div>
             <div className="space-y-1.5">
               <Label className="text-[12.5px]">Venue ID (optional)</Label>

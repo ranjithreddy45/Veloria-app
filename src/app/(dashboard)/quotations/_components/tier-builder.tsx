@@ -175,7 +175,7 @@ export function TierBuilder({ baseQuotationId, baseInput, status, canBuild }: Pr
             <p className="text-sm text-emerald-700 dark:text-emerald-400">
               Published — share this one link; the customer compares all tiers and pays the one they pick.
             </p>
-            <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2">
+            <div className="flex items-center gap-2 rounded-xl border bg-muted/40 px-3 py-2">
               <Link2 className="size-4 shrink-0 text-indigo-600" />
               <span className="flex-1 truncate font-mono text-xs text-muted-foreground">{published.url}</span>
               <Button size="sm" variant="ghost" className="h-7 gap-1.5 px-2" onClick={copyLink}>
@@ -212,7 +212,7 @@ export function TierBuilder({ baseQuotationId, baseInput, status, canBuild }: Pr
                 return (
                   <div
                     key={t.key}
-                    className={`grid grid-cols-[1fr_auto_auto_auto] items-end gap-2 rounded-lg border p-2.5 ${
+                    className={`grid grid-cols-[1fr_auto_auto_auto] items-end gap-2 rounded-xl border p-3 ${
                       t.isRecommended ? "border-indigo-300 bg-indigo-50/40 dark:bg-indigo-950/20" : ""
                     }`}
                   >

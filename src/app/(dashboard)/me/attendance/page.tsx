@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Clock } from "lucide-react";
+import { Clock, LogIn, UserX } from "lucide-react";
 import { auth } from "@/../auth";
 import { FEATURES } from "@/config/features";
 import { PageHeader } from "@/components/layout/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 import { getMyAttendance } from "@/actions/hr-attendance.actions";
 import { AttendanceHome } from "@/app/(dashboard)/people/attendance/_components/attendance-home";
 import { MyMonthCalendar, type MyAttendanceDay } from "./_components/my-month-calendar";
@@ -29,7 +30,7 @@ export default async function MyAttendancePage() {
   const data = await getMyAttendance();
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         icon={Clock}
         accent="violet"
@@ -39,13 +40,20 @@ export default async function MyAttendancePage() {
       />
 
       {!data ? (
-        <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
-          Please sign in.
+        <div className="rounded-2xl border border-dashed bg-card">
+          <EmptyState
+            icon={<LogIn className="size-5" />}
+            title="Please sign in"
+            description="Your attendance is private to you, so we need an active session before it can be shown."
+          />
         </div>
       ) : data.linked === false ? (
-        <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
-          Your account isn&rsquo;t linked to an employee record yet, so attendance can&rsquo;t be tracked. Ask HR to
-          connect your profile.
+        <div className="rounded-2xl border border-dashed bg-card">
+          <EmptyState
+            icon={<UserX className="size-5" />}
+            title="No employee profile linked"
+            description="Your login isn’t connected to an employee record yet, so attendance can’t be tracked. Ask HR to link your profile."
+          />
         </div>
       ) : (
         <>

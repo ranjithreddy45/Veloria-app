@@ -157,39 +157,47 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
       </div>
 
       {/* A4 Invoice Container */}
-      <div className="mx-auto max-w-[210mm] rounded-lg border bg-white p-8 shadow-sm print:shadow-none print:border-0 print:p-0">
-        {/* Header */}
+      <div className="mx-auto max-w-[210mm] rounded-2xl border bg-white p-8 text-zinc-900 shadow-card print:shadow-none print:border-0 print:p-0 print:rounded-none">
+        {/* Header — issuer block (left) vs document block (right) */}
         <div className="flex flex-col gap-6 sm:flex-row sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-zinc-900">Veloria Grand</h1>
-            <p className="mt-0.5 text-xs font-semibold text-zinc-600">
+            <div className="font-editorial text-[30px] font-semibold leading-tight text-zinc-900">
+              Veloria Grand
+            </div>
+            <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
               {COMPANY_LEGAL_LINE}
             </p>
-            <p className="mt-1 text-sm text-zinc-500">
-              Premium Event & Banquet Services
+            <p className="mt-1.5 text-[13px] text-zinc-500">
+              Premium Event &amp; Banquet Services
             </p>
-            <p className="mt-2 text-xs text-zinc-500">
+            <p className="mt-2.5 text-[12px] leading-relaxed text-zinc-500">
               {COMPANY_ADDRESS}
               <br />
-              GSTIN: {COMPANY_GSTIN || "Not Configured"}
+              GSTIN: <span className="numeric">{COMPANY_GSTIN || "Not Configured"}</span>
             </p>
           </div>
-          <div className="text-left sm:text-right">
-            <h2 className="text-2xl font-bold text-zinc-900">{docTitle}</h2>
-            <p className="mt-1 text-sm font-medium">
+          <div className="shrink-0 text-left sm:text-right">
+            <h2 className="text-[13px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+              {docTitle}
+            </h2>
+            <p className="numeric mt-1.5 text-[20px] font-semibold text-zinc-900">
               {invoice.invoiceNumber}
             </p>
-            <div className="mt-2 space-y-0.5 text-sm text-zinc-600">
-              <p>
-                <span className="font-medium">Issue Date:</span>{" "}
-                {format(new Date(invoice.issueDate), "dd MMM yyyy")}
+            <div className="mt-3 space-y-1 text-[12.5px] text-zinc-600">
+              <p className="sm:flex sm:justify-end sm:gap-3">
+                <span className="text-zinc-400">Issue date</span>
+                <span className="numeric">
+                  {format(new Date(invoice.issueDate), "dd MMM yyyy")}
+                </span>
               </p>
-              <p>
-                <span className="font-medium">Due Date:</span>{" "}
-                {format(new Date(invoice.dueDate), "dd MMM yyyy")}
+              <p className="sm:flex sm:justify-end sm:gap-3">
+                <span className="text-zinc-400">Due date</span>
+                <span className="numeric">
+                  {format(new Date(invoice.dueDate), "dd MMM yyyy")}
+                </span>
               </p>
             </div>
-            <div className="mt-2">
+            <div className="mt-3">
               <Badge
                 variant="outline"
                 className={`${INVOICE_STATUS_COLORS[invoice.status] || ""} border print:border`}
@@ -204,18 +212,18 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
 
         {/* Bill To & Invoice Details */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          <div>
-            <h3 className="text-xs font-semibold uppercase text-zinc-400 mb-2">
+          <div className="rounded-xl bg-zinc-50/80 p-4 print:bg-transparent print:p-0">
+            <h3 className="mb-2 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
               Bill To
             </h3>
-            <p className="font-semibold text-zinc-900">
+            <p className="text-[15px] font-semibold text-zinc-900">
               {invoice.contact.firstName} {invoice.contact.lastName}
             </p>
             {invoice.contact.company && (
-              <p className="text-sm text-zinc-600">{invoice.contact.company}</p>
+              <p className="text-[13px] text-zinc-600">{invoice.contact.company}</p>
             )}
             {invoice.contact.address && (
-              <p className="text-sm text-zinc-500">
+              <p className="mt-1 text-[13px] leading-relaxed text-zinc-500">
                 {invoice.contact.address}
                 {invoice.contact.city && `, ${invoice.contact.city}`}
                 {invoice.contact.state && `, ${invoice.contact.state}`}
@@ -223,22 +231,25 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
               </p>
             )}
             {invoice.contact.email && (
-              <p className="text-sm text-zinc-500">{invoice.contact.email}</p>
+              <p className="text-[13px] text-zinc-500">{invoice.contact.email}</p>
             )}
             {invoice.contact.phone && (
-              <p className="text-sm text-zinc-500">{invoice.contact.phone}</p>
+              <p className="numeric text-[13px] text-zinc-500">
+                {invoice.contact.phone}
+              </p>
             )}
             {invoice.gstin && (
-              <p className="text-sm text-zinc-500 mt-1">
-                <span className="font-medium">GSTIN:</span> {invoice.gstin}
+              <p className="mt-1 text-[13px] text-zinc-500">
+                <span className="font-medium">GSTIN:</span>{" "}
+                <span className="numeric">{invoice.gstin}</span>
               </p>
             )}
           </div>
-          <div>
-            <h3 className="text-xs font-semibold uppercase text-zinc-400 mb-2">
+          <div className="rounded-xl bg-zinc-50/80 p-4 print:bg-transparent print:p-0">
+            <h3 className="mb-2 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
               Invoice Details
             </h3>
-            <div className="space-y-1 text-sm">
+            <div className="space-y-1 text-[13px]">
               {invoice.placeOfSupply && (
                 <p>
                   <span className="text-zinc-500">Place of Supply:</span>{" "}
@@ -248,14 +259,14 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
               {invoice.sacCode && (
                 <p>
                   <span className="text-zinc-500">SAC Code:</span>{" "}
-                  <span className="font-medium">{invoice.sacCode}</span>
+                  <span className="numeric font-medium">{invoice.sacCode}</span>
                 </p>
               )}
               {invoice.booking && (
                 <>
                   <p>
                     <span className="text-zinc-500">Booking:</span>{" "}
-                    <span className="font-medium">
+                    <span className="numeric font-medium">
                       {invoice.booking.bookingNumber}
                     </span>
                   </p>
@@ -267,7 +278,7 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
                   </p>
                   <p>
                     <span className="text-zinc-500">Date:</span>{" "}
-                    <span className="font-medium">
+                    <span className="numeric font-medium">
                       {format(new Date(invoice.booking.date), "dd MMM yyyy")}
                     </span>
                   </p>
@@ -286,52 +297,51 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
         </div>
 
         {/* Line Items Table */}
-        <div className="mt-8">
-          <table className="w-full text-sm">
+        <div className="mt-8 overflow-x-auto">
+          <table className="w-full text-[13px]">
             <thead>
-              <tr className="border-b-2 border-zinc-200">
-                <th className="pb-2 text-left font-semibold text-zinc-500">
+              <tr className="border-b border-zinc-300">
+                <th className="w-8 pb-2 text-left text-[10.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
                   #
                 </th>
-                <th className="pb-2 text-left font-semibold text-zinc-500">
+                <th className="pb-2 text-left text-[10.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
                   Description
                 </th>
                 {invoice.lineItems[0]?.sacCode && (
-                  <th className="pb-2 text-left font-semibold text-zinc-500">
+                  <th className="pb-2 text-left text-[10.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
                     SAC
                   </th>
                 )}
-                <th className="pb-2 text-right font-semibold text-zinc-500">
+                <th className="w-16 pb-2 text-right text-[10.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
                   Qty
                 </th>
-                <th className="pb-2 text-right font-semibold text-zinc-500">
+                <th className="w-32 pb-2 text-right text-[10.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
                   Unit Price
                 </th>
-                <th className="pb-2 text-right font-semibold text-zinc-500">
+                <th className="w-36 pb-2 text-right text-[10.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
                   Amount
                 </th>
               </tr>
             </thead>
             <tbody>
               {invoice.lineItems.map((item, index) => (
-                <tr
-                  key={item.id}
-                  className="border-b border-zinc-100"
-                >
-                  <td className="py-3 text-zinc-400">{index + 1}</td>
-                  <td className="py-3 font-medium">{item.description}</td>
+                <tr key={item.id} className="border-b border-zinc-100">
+                  <td className="numeric py-3 text-zinc-400">{index + 1}</td>
+                  <td className="py-3 pr-4 font-medium text-zinc-800">
+                    {item.description}
+                  </td>
                   {item.sacCode !== undefined && (
-                    <td className="py-3 text-zinc-500">
-                      {item.sacCode || "--"}
+                    <td className="numeric py-3 text-zinc-500">
+                      {item.sacCode || "—"}
                     </td>
                   )}
-                  <td className="py-3 text-right">
+                  <td className="numeric py-3 text-right text-zinc-600">
                     {toNum(item.quantity)}
                   </td>
-                  <td className="py-3 text-right">
+                  <td className="numeric py-3 text-right text-zinc-600">
                     {formatINR(item.unitPrice)}
                   </td>
-                  <td className="py-3 text-right font-medium">
+                  <td className="numeric py-3 text-right font-semibold text-zinc-900">
                     {formatINR(item.amount)}
                   </td>
                 </tr>
@@ -342,56 +352,76 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
 
         {/* Totals */}
         <div className="mt-6 flex justify-end">
-          <div className="w-full max-w-xs space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-zinc-500">Subtotal</span>
-              <span className="font-medium">
-                {formatINR(invoice.subtotal)}
+          <div className="w-full max-w-xs rounded-xl border border-zinc-200 bg-zinc-50/70 p-4 text-[13px] print:border-0 print:bg-transparent print:p-0">
+            <div className="space-y-2">
+              <div className="flex items-baseline justify-between gap-4">
+                <span className="text-zinc-500">Subtotal</span>
+                <span className="numeric font-medium text-zinc-900">
+                  {formatINR(invoice.subtotal)}
+                </span>
+              </div>
+              {discountAmount > 0 && (
+                <div className="flex items-baseline justify-between gap-4 text-red-600">
+                  <span>
+                    Discount (<span className="numeric">{discountPercent}</span>%)
+                  </span>
+                  <span className="numeric">-{formatINR(discountAmount)}</span>
+                </div>
+              )}
+              {!isInterstate ? (
+                <>
+                  {cgstAmount > 0 && (
+                    <div className="flex items-baseline justify-between gap-4">
+                      <span className="text-zinc-500">
+                        CGST (<span className="numeric">{cgstRate}</span>%)
+                      </span>
+                      <span className="numeric text-zinc-700">
+                        {formatINR(cgstAmount)}
+                      </span>
+                    </div>
+                  )}
+                  {sgstAmount > 0 && (
+                    <div className="flex items-baseline justify-between gap-4">
+                      <span className="text-zinc-500">
+                        SGST (<span className="numeric">{sgstRate}</span>%)
+                      </span>
+                      <span className="numeric text-zinc-700">
+                        {formatINR(sgstAmount)}
+                      </span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                igstAmount > 0 && (
+                  <div className="flex items-baseline justify-between gap-4">
+                    <span className="text-zinc-500">
+                      IGST (<span className="numeric">{igstRate}</span>%)
+                    </span>
+                    <span className="numeric text-zinc-700">
+                      {formatINR(igstAmount)}
+                    </span>
+                  </div>
+                )
+              )}
+            </div>
+
+            <div className="mt-3 flex items-baseline justify-between gap-4 border-t border-zinc-300 pt-3 text-[15px] font-semibold">
+              <span className="text-zinc-900">Total</span>
+              <span className="numeric text-zinc-900">
+                {formatINR(invoice.totalAmount)}
               </span>
             </div>
-            {discountAmount > 0 && (
-              <div className="flex justify-between text-red-600">
-                <span>Discount ({discountPercent}%)</span>
-                <span>-{formatINR(discountAmount)}</span>
-              </div>
-            )}
-            {!isInterstate ? (
-              <>
-                {cgstAmount > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-zinc-500">CGST ({cgstRate}%)</span>
-                    <span>{formatINR(cgstAmount)}</span>
-                  </div>
-                )}
-                {sgstAmount > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-zinc-500">SGST ({sgstRate}%)</span>
-                    <span>{formatINR(sgstAmount)}</span>
-                  </div>
-                )}
-              </>
-            ) : (
-              igstAmount > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-zinc-500">IGST ({igstRate}%)</span>
-                  <span>{formatINR(igstAmount)}</span>
-                </div>
-              )
-            )}
-            <Separator />
-            <div className="flex justify-between text-base font-bold">
-              <span>Total</span>
-              <span>{formatINR(invoice.totalAmount)}</span>
-            </div>
-            <div className="flex justify-between text-green-700">
+            <div className="mt-2 flex items-baseline justify-between gap-4 text-green-700">
               <span>Paid</span>
-              <span>{formatINR(invoice.paidAmount)}</span>
+              <span className="numeric">{formatINR(invoice.paidAmount)}</span>
             </div>
-            <div className="flex justify-between text-lg font-bold">
-              <span>Balance Due</span>
+            <div className="mt-2 flex items-baseline justify-between gap-4 border-t border-zinc-200 pt-2.5 text-[17px] font-bold">
+              <span className="text-zinc-900">Balance Due</span>
               <span
                 className={
-                  toNum(invoice.balanceDue) > 0 ? "text-red-600" : "text-green-700"
+                  toNum(invoice.balanceDue) > 0
+                    ? "numeric text-red-600"
+                    : "numeric text-green-700"
                 }
               >
                 {formatINR(invoice.balanceDue)}
@@ -399,36 +429,34 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
             </div>
 
             {/* Goal-gradient: collection progress (screen only, not printed) */}
-            <div className="pt-1 print:hidden">
-              <div className="flex items-center justify-between text-[11px] text-zinc-400">
+            <div className="pt-3 print:hidden">
+              <div className="flex items-center justify-between text-[10.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
                 <span>Collection progress</span>
-                <span className="tabular-nums">{paidPct}%</span>
+                <span className="numeric tracking-normal">{paidPct}%</span>
               </div>
-              <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
+              <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-zinc-200/70">
                 <div
                   className={`h-full rounded-full transition-all ${
-                    fullyPaid
-                      ? "bg-emerald-500"
-                      : "bg-gradient-to-r from-violet-500 to-emerald-500"
+                    fullyPaid ? "bg-emerald-500" : "bg-violet-500"
                   }`}
                   style={{ width: `${paidPct}%` }}
                 />
               </div>
               {fullyPaid ? (
-                <p className="mt-1.5 text-[12px] font-medium text-emerald-600">
-                  Fully paid 🎉
+                <p className="mt-2 text-[12px] font-medium text-emerald-600">
+                  Fully paid
                 </p>
               ) : almostThere ? (
-                <p className="mt-1.5 text-[12px] font-medium text-amber-600">
+                <p className="mt-2 text-[12px] font-medium text-amber-600">
                   Almost there —{" "}
-                  <span className="tabular-nums text-emerald-700">
+                  <span className="numeric text-emerald-700">
                     {inr(balanceNum)}
                   </span>{" "}
                   to go
                 </p>
               ) : (
-                <p className="mt-1.5 text-[12px] text-zinc-500">
-                  <span className="font-semibold tabular-nums text-zinc-700">
+                <p className="mt-2 text-[12px] text-zinc-500">
+                  <span className="numeric font-semibold text-zinc-700">
                     {inr(balanceNum)}
                   </span>{" "}
                   away from fully paid
@@ -494,65 +522,58 @@ This is a Proforma Invoice for advance/part payment and is not a tax document. A
       {/* Payment History - Not printed */}
       {invoice.payments.length > 0 && (
         <div className="print:hidden">
-          <h3 className="text-lg font-semibold mb-3">Payment History</h3>
-          <div className="rounded-md border">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-zinc-50">
-                  <th className="p-3 text-left font-medium text-zinc-500">
-                    Receipt #
-                  </th>
-                  <th className="p-3 text-left font-medium text-zinc-500">
-                    Date
-                  </th>
-                  <th className="p-3 text-left font-medium text-zinc-500">
-                    Method
-                  </th>
-                  <th className="p-3 text-left font-medium text-zinc-500">
-                    Transaction ID
-                  </th>
-                  <th className="p-3 text-right font-medium text-zinc-500">
-                    Amount
-                  </th>
-                  <th className="p-3 text-left font-medium text-zinc-500">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {invoice.payments.map((payment) => (
-                  <tr key={payment.id} className="border-b last:border-0">
-                    <td className="p-3 font-medium">
-                      {payment.receiptNumber || "--"}
-                    </td>
-                    <td className="p-3">
-                      {payment.paidAt
-                        ? format(new Date(payment.paidAt), "dd MMM yyyy")
-                        : format(new Date(payment.createdAt), "dd MMM yyyy")}
-                    </td>
-                    <td className="p-3">
-                      <Badge variant="outline" className="text-xs">
-                        {payment.method.replace("_", " ")}
-                      </Badge>
-                    </td>
-                    <td className="p-3 text-zinc-500">
-                      {payment.transactionId || "--"}
-                    </td>
-                    <td className="p-3 text-right font-medium text-green-700">
-                      {formatINR(payment.amount)}
-                    </td>
-                    <td className="p-3">
-                      <Badge
-                        variant="outline"
-                        className={`${PAYMENT_STATUS_COLORS[payment.status] || ""} border text-xs`}
-                      >
-                        {payment.status}
-                      </Badge>
-                    </td>
+          <h3 className="mb-3">Payment History</h3>
+          <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
+            <div className="overflow-x-auto">
+              <table className="w-full text-[13px]">
+                <thead>
+                  <tr className="border-b bg-muted/30 text-[11px] font-medium uppercase tracking-[0.05em] text-muted-foreground">
+                    <th className="px-3 py-2.5 text-left">Receipt #</th>
+                    <th className="px-3 py-2.5 text-left">Date</th>
+                    <th className="px-3 py-2.5 text-left">Method</th>
+                    <th className="px-3 py-2.5 text-left">Transaction ID</th>
+                    <th className="px-3 py-2.5 text-right">Amount</th>
+                    <th className="px-3 py-2.5 text-left">Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {invoice.payments.map((payment) => (
+                    <tr
+                      key={payment.id}
+                      className="border-b transition-colors last:border-0 hover:bg-muted/40"
+                    >
+                      <td className="numeric px-3 py-2.5 font-medium">
+                        {payment.receiptNumber || "—"}
+                      </td>
+                      <td className="numeric px-3 py-2.5 text-muted-foreground">
+                        {payment.paidAt
+                          ? format(new Date(payment.paidAt), "dd MMM yyyy")
+                          : format(new Date(payment.createdAt), "dd MMM yyyy")}
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <Badge variant="outline" className="text-xs">
+                          {payment.method.replace("_", " ")}
+                        </Badge>
+                      </td>
+                      <td className="numeric px-3 py-2.5 text-muted-foreground">
+                        {payment.transactionId || "—"}
+                      </td>
+                      <td className="numeric px-3 py-2.5 text-right font-semibold text-success">
+                        {formatINR(payment.amount)}
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <Badge
+                          variant="outline"
+                          className={`${PAYMENT_STATUS_COLORS[payment.status] || ""} border text-xs`}
+                        >
+                          {payment.status}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -560,47 +581,44 @@ This is a Proforma Invoice for advance/part payment and is not a tax document. A
       {/* Installment Schedule - Not printed */}
       {invoice.installments.length > 0 && (
         <div className="print:hidden">
-          <h3 className="text-lg font-semibold mb-3">Installment Schedule</h3>
-          <div className="rounded-md border">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-zinc-50">
-                  <th className="p-3 text-left font-medium text-zinc-500">
-                    Installment
-                  </th>
-                  <th className="p-3 text-left font-medium text-zinc-500">
-                    Due Date
-                  </th>
-                  <th className="p-3 text-right font-medium text-zinc-500">
-                    Amount
-                  </th>
-                  <th className="p-3 text-left font-medium text-zinc-500">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {invoice.installments.map((inst) => (
-                  <tr key={inst.id} className="border-b last:border-0">
-                    <td className="p-3 font-medium">{inst.label}</td>
-                    <td className="p-3">
-                      {format(new Date(inst.dueDate), "dd MMM yyyy")}
-                    </td>
-                    <td className="p-3 text-right font-medium">
-                      {formatINR(inst.amount)}
-                    </td>
-                    <td className="p-3">
-                      <Badge
-                        variant="outline"
-                        className={`${PAYMENT_STATUS_COLORS[inst.status] || ""} border text-xs`}
-                      >
-                        {inst.status}
-                      </Badge>
-                    </td>
+          <h3 className="mb-3">Installment Schedule</h3>
+          <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
+            <div className="overflow-x-auto">
+              <table className="w-full text-[13px]">
+                <thead>
+                  <tr className="border-b bg-muted/30 text-[11px] font-medium uppercase tracking-[0.05em] text-muted-foreground">
+                    <th className="px-3 py-2.5 text-left">Installment</th>
+                    <th className="px-3 py-2.5 text-left">Due Date</th>
+                    <th className="px-3 py-2.5 text-right">Amount</th>
+                    <th className="px-3 py-2.5 text-left">Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {invoice.installments.map((inst) => (
+                    <tr
+                      key={inst.id}
+                      className="border-b transition-colors last:border-0 hover:bg-muted/40"
+                    >
+                      <td className="px-3 py-2.5 font-medium">{inst.label}</td>
+                      <td className="numeric px-3 py-2.5 text-muted-foreground">
+                        {format(new Date(inst.dueDate), "dd MMM yyyy")}
+                      </td>
+                      <td className="numeric px-3 py-2.5 text-right font-semibold">
+                        {formatINR(inst.amount)}
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <Badge
+                          variant="outline"
+                          className={`${PAYMENT_STATUS_COLORS[inst.status] || ""} border text-xs`}
+                        >
+                          {inst.status}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}

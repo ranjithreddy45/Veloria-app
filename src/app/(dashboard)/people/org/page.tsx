@@ -21,7 +21,7 @@ export default async function OrgChartPage({ searchParams }: PageProps) {
   ]);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title="Org Chart"
         description="The whole group in one tree — across every legal entity and vertical. This reporting line is the single source of truth for approval routing everywhere in the platform."

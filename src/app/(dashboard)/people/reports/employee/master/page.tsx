@@ -40,7 +40,7 @@ export default async function EmployeeMasterReport({ searchParams }: PageProps) 
   ]);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         icon={IdCard}
         accent="violet"

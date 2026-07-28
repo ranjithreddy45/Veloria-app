@@ -36,7 +36,7 @@ export default async function LeavePage() {
     .map((h) => ({ id: h.id, name: h.name, date: new Date(h.date).toISOString() }));
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <PageHeader
           title="Leave"
@@ -69,14 +69,14 @@ export default async function LeavePage() {
 
       {needsSetup ? (
         canAdmin ? <LeaveSetup /> : (
-          <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
+          <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground">
             Leave hasn’t been set up yet. Ask an HR Manager to configure leave types.
           </div>
         )
       ) : !dashboard ? (
-        <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">Please sign in.</div>
+        <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground">Please sign in.</div>
       ) : dashboard.linked === false ? (
-        <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
+        <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground">
           Your account isn’t linked to an employee record yet, so there’s no leave balance to show.
           {canApprove && " You can still review team requests from Approvals."}
         </div>

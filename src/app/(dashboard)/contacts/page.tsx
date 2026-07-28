@@ -39,7 +39,7 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
   const individual = contacts.filter((c) => c.type === "INDIVIDUAL").length;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         aura
         icon={ContactIcon}
@@ -69,12 +69,12 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
             <span>CRM · Directory</span>
             <span className="h-3 w-px bg-border" />
             <span className="text-foreground/80">
-              <span className="font-semibold tabular-nums">{contacts.length}</span> total
+              <span className="font-semibold numeric">{contacts.length}</span> total
             </span>
             <span className="h-3 w-px bg-border" />
             <span>
-              <span className="font-semibold tabular-nums text-foreground/80">{individual}</span> individual ·{" "}
-              <span className="font-semibold tabular-nums text-foreground/80">{corporate}</span> corporate
+              <span className="font-semibold numeric text-foreground/80">{individual}</span> individual ·{" "}
+              <span className="font-semibold numeric text-foreground/80">{corporate}</span> corporate
             </span>
           </div>
         }
@@ -96,7 +96,7 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
       )}
 
       {contacts.length === 0 ? (
-        <div className="animate-rise-in animate-stagger-1 rounded-xl border border-dashed bg-card shadow-premium">
+        <div className="animate-rise-in animate-stagger-1 rounded-2xl border border-dashed bg-card shadow-card">
           {isFiltered ? (
             <EmptyState
               icon={<UsersIcon className="size-6" />}

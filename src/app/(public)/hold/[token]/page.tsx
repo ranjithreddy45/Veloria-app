@@ -31,20 +31,21 @@ export default async function HoldConfirmationPage({
 
   if (!res.success) {
     return (
-      <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center dark:border-zinc-800 dark:bg-zinc-900">
-        <p className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+      <div className="bg-card shadow-card mx-auto max-w-lg rounded-2xl border p-10 text-center">
+        <h1 className="text-foreground text-[24px]">
           We couldn&apos;t find this hold
-        </p>
-        <p className="mt-1 text-sm text-zinc-500">
-          The link may have expired. Please check availability again.
+        </h1>
+        <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm leading-relaxed">
+          The link may have expired. Your date could still be open — have
+          another look.
         </p>
         <a
           href="/hold"
-          className="mt-4 inline-block rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white dark:bg-zinc-100 dark:text-zinc-900"
+          className="bg-primary text-primary-foreground mt-6 inline-block rounded-full px-5 py-2.5 text-sm font-medium transition-opacity hover:opacity-90"
         >
           Check availability
         </a>
-        <HelpChip variant="banner" className="mt-5" />
+        <HelpChip variant="banner" className="mt-6" />
       </div>
     );
   }
@@ -70,53 +71,73 @@ export default async function HoldConfirmationPage({
   }).catch(() => null);
 
   return (
-    <div className="space-y-5">
-      <header className="text-center">
-        <h1 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+    <div className="space-y-6">
+      <header className="pb-1 text-center">
+        <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.18em]">
+          For {h.customerFirstName}
+        </p>
+        <h1 className="text-foreground mt-3 text-[30px] sm:text-[36px]">
           {paid ? "Your date is secured" : "Your date is on hold"}
         </h1>
-        <p className="mt-1 text-sm text-zinc-500">Hi {h.customerFirstName} 👋</p>
       </header>
 
       {/* Summary card */}
-      <div className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-        <Row icon={<MapPin className="size-4 text-violet-600" />} label="Venue" value={h.venueName} />
-        <Row icon={<CalendarDays className="size-4 text-violet-600" />} label="Date" value={dateLabel} />
-        <Row icon={<Clock className="size-4 text-violet-600" />} label="Slot" value={h.slotLabel} />
-        <Row icon={<Users className="size-4 text-violet-600" />} label="Guests" value={String(h.guestCount)} />
+      <div className="bg-card shadow-card space-y-3.5 rounded-2xl border p-6">
+        <Row
+          icon={<MapPin className="text-muted-foreground/60 size-4" />}
+          label="Venue"
+          value={h.venueName}
+        />
+        <Row
+          icon={<CalendarDays className="text-muted-foreground/60 size-4" />}
+          label="Date"
+          value={dateLabel}
+        />
+        <Row
+          icon={<Clock className="text-muted-foreground/60 size-4" />}
+          label="Slot"
+          value={h.slotLabel}
+        />
+        <Row
+          icon={<Users className="text-muted-foreground/60 size-4" />}
+          label="Guests"
+          value={String(h.guestCount)}
+        />
       </div>
 
       {paid ? (
         <div className="space-y-3">
-          <div className="flex flex-col items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center dark:border-emerald-900 dark:bg-emerald-950/30">
-            <CheckCircle2 className="size-10 text-emerald-600" />
-            <p className="text-lg font-semibold text-emerald-800 dark:text-emerald-300">
-              Token received — your date is secured
+          <div className="flex flex-col items-center gap-2 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.07] p-8 text-center">
+            <CheckCircle2 className="size-9 text-emerald-600 dark:text-emerald-400" />
+            <p className="font-editorial mt-1 text-[22px] font-semibold text-emerald-900 dark:text-emerald-200">
+              Your date is secured
             </p>
-            <p className="text-sm text-emerald-700 dark:text-emerald-400">
-              Payment of {inr(h.tokenAmount)} received · {dateLabel} · {h.slotLabel}
+            <p className="text-sm text-emerald-800/85 dark:text-emerald-300/85">
+              <span className="numeric">{inr(h.tokenAmount)}</span> received ·{" "}
+              {dateLabel} · {h.slotLabel}
             </p>
-            <p className="mt-1 flex items-center justify-center gap-1.5 text-[12.5px] font-medium text-emerald-800 dark:text-emerald-300">
-              <PhoneCall className="size-3.5" /> Your coordinator will call you within 24 hours.
+            <p className="mt-2 flex items-center justify-center gap-1.5 text-[12.5px] font-medium text-emerald-800 dark:text-emerald-300">
+              <PhoneCall className="size-3.5" /> Your coordinator will call you
+              within 24 hours.
             </p>
           </div>
           <HelpChip variant="banner" />
         </div>
       ) : expired || released ? (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6 text-center dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+        <div className="bg-card shadow-card rounded-2xl border p-8 text-center">
+          <p className="font-editorial text-foreground text-[22px] font-semibold">
             {released ? "This hold was released" : "This hold has expired"}
           </p>
-          <p className="mt-1 text-sm text-zinc-500">
-            The date is open again. You can check availability and hold it once more.
+          <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm leading-relaxed">
+            The date is open again — you&apos;re welcome to hold it once more.
           </p>
           <a
             href="/hold"
-            className="mt-4 inline-block rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white dark:bg-zinc-100 dark:text-zinc-900"
+            className="bg-primary text-primary-foreground mt-6 inline-block rounded-full px-5 py-2.5 text-sm font-medium transition-opacity hover:opacity-90"
           >
             Check availability
           </a>
-          <HelpChip variant="banner" className="mt-5" />
+          <HelpChip variant="banner" className="mt-6" />
         </div>
       ) : (
         <HoldPayPanel
@@ -144,12 +165,12 @@ function Row({
   value: string;
 }) {
   return (
-    <div className="flex items-center justify-between text-sm">
-      <span className="flex items-center gap-2 text-zinc-500">
+    <div className="flex items-center justify-between gap-3 text-sm">
+      <span className="text-muted-foreground flex items-center gap-2">
         {icon}
         {label}
       </span>
-      <span className="font-medium text-zinc-900 dark:text-zinc-100">{value}</span>
+      <span className="text-foreground text-right font-medium">{value}</span>
     </div>
   );
 }

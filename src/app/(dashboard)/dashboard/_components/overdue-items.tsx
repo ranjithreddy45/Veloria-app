@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { cn, formatINR } from "@/lib/utils";
 import type {
   OverduePayment,
@@ -49,19 +50,21 @@ export function OverdueItems({ tasks, payments }: OverdueItemsProps) {
   const hasItems = tasks.length > 0 || payments.length > 0;
 
   return (
-    <Card className="card-hover-tint border border-border bg-card shadow-none">
+    <Card className="card-hover-tint rounded-2xl border bg-card shadow-card transition-shadow hover:shadow-card-hover">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-[13px] font-medium uppercase tracking-[0.05em] text-muted-foreground">
+            <CardTitle className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
               Overdue
             </CardTitle>
-            <p className="mt-1 text-[12px] text-muted-foreground/80">Tasks and payments past due</p>
+            <p className="mt-1 text-[13px] text-muted-foreground">
+              Tasks and payments past due
+            </p>
           </div>
           {hasItems && (
             <Badge
               variant="outline"
-              className="border-destructive/30 bg-destructive/5 px-1.5 py-0 text-[11px] font-medium text-destructive"
+              className="numeric border-destructive/30 bg-destructive/5 px-1.5 py-0 text-[11px] font-medium text-destructive"
             >
               {tasks.length + payments.length}
             </Badge>
@@ -70,11 +73,13 @@ export function OverdueItems({ tasks, payments }: OverdueItemsProps) {
       </CardHeader>
       <CardContent>
         {!hasItems ? (
-          <div className="flex flex-col items-center justify-center gap-1 py-10 text-muted-foreground">
-            <CircleAlert className="mb-1 size-5 opacity-50" />
-            <p className="text-[13px] font-medium">All caught up</p>
-            <p className="text-[12px] text-muted-foreground/70">No overdue items</p>
-          </div>
+          <EmptyState
+            icon={<CircleAlert />}
+            tone="success"
+            title="All caught up"
+            description="No tasks or payments are past due right now."
+            className="py-12"
+          />
         ) : (
           <div className="divide-y divide-border">
             {/* Overdue Tasks */}
@@ -86,7 +91,7 @@ export function OverdueItems({ tasks, payments }: OverdueItemsProps) {
               return (
                 <div
                   key={task.id}
-                  className="flex items-start gap-3 py-3 first:pt-1 last:pb-1"
+                  className="-mx-2 flex items-start gap-3 rounded-lg px-2 py-3 transition-colors first:pt-2 last:pb-2 hover:bg-muted/40"
                 >
                   <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-muted">
                     <CheckSquare className="size-3.5 text-muted-foreground" strokeWidth={2} />
@@ -99,7 +104,7 @@ export function OverdueItems({ tasks, payments }: OverdueItemsProps) {
                           PRIORITY_DOT[task.priority] || "bg-slate-400"
                         )}
                       />
-                      <p className="truncate text-[13px] font-medium leading-tight text-foreground">
+                      <p className="truncate text-[13.5px] font-medium leading-tight text-foreground">
                         {task.title}
                       </p>
                     </div>
@@ -115,7 +120,7 @@ export function OverdueItems({ tasks, payments }: OverdueItemsProps) {
                       </span>
                     </div>
                   </div>
-                  <span className="shrink-0 text-[11px] font-medium tabular-nums text-destructive">
+                  <span className="numeric shrink-0 text-[11px] font-medium text-destructive">
                     {daysOverdue}d
                   </span>
                 </div>
@@ -131,13 +136,13 @@ export function OverdueItems({ tasks, payments }: OverdueItemsProps) {
               return (
                 <div
                   key={payment.id}
-                  className="flex items-start gap-3 py-3 first:pt-1 last:pb-1"
+                  className="-mx-2 flex items-start gap-3 rounded-lg px-2 py-3 transition-colors first:pt-2 last:pb-2 hover:bg-muted/40"
                 >
                   <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-muted">
                     <FileText className="size-3.5 text-muted-foreground" strokeWidth={2} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13px] font-medium leading-tight text-foreground">
+                    <p className="numeric truncate text-[13px] font-medium leading-tight text-foreground">
                       {payment.invoiceNumber}
                     </p>
                     <div className="mt-0.5 flex items-center gap-2 text-[11.5px] text-muted-foreground">
@@ -145,12 +150,12 @@ export function OverdueItems({ tasks, payments }: OverdueItemsProps) {
                         {payment.contact.firstName} {payment.contact.lastName}
                       </span>
                       <span>·</span>
-                      <span className="font-medium text-foreground/80 tabular-nums">
+                      <span className="numeric font-medium text-foreground/80">
                         {formatINR(payment.balanceDue)}
                       </span>
                     </div>
                   </div>
-                  <span className="shrink-0 text-[11px] font-medium tabular-nums text-amber-700 dark:text-amber-400">
+                  <span className="numeric shrink-0 text-[11px] font-medium text-amber-700 dark:text-amber-400">
                     {daysOverdue}d
                   </span>
                 </div>

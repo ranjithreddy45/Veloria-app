@@ -6,6 +6,7 @@ import { PackageIcon, PlusIcon } from "lucide-react";
 
 import { VENDOR_MODULE_CATEGORY_LABELS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { PackageCard } from "./package-card";
 import type { PackageCardData } from "./vendor-module";
 
@@ -49,31 +50,31 @@ export function PackagesPanel({
     const hasAny = initial.length > 0;
 
     return (
-      <div className="rounded-2xl border border-dashed border-border/70 bg-card/50 p-12 text-center">
-        <PackageIcon className="mx-auto mb-3 size-8 text-muted-foreground/40" />
+      <div className="rounded-2xl border border-dashed bg-card/50">
         {!hasAny ? (
-          <>
-            <p className="text-[15px] font-medium text-foreground">No packages yet</p>
-            <p className="mt-1 text-[13px] text-muted-foreground">
-              Create your first vendor package to get started.
-            </p>
-            <Button asChild size="sm" className="mt-4 gap-1.5">
-              <Link href="/vendors/packages/new">
-                <PlusIcon className="size-3.5" strokeWidth={2.5} />
-                Create package
-              </Link>
-            </Button>
-          </>
+          <EmptyState
+            icon={<PackageIcon />}
+            title="Your catalogue is a blank page"
+            description="Packages are what your team quotes from — build the first one and it becomes sellable everywhere."
+            action={
+              <Button asChild size="sm" className="gap-1.5">
+                <Link href="/vendors/packages/new">
+                  <PlusIcon className="size-3.5" strokeWidth={2.5} />
+                  Create package
+                </Link>
+              </Button>
+            }
+          />
         ) : (
-          <>
-            <p className="text-[15px] font-medium text-foreground">No packages match</p>
-            <p className="mt-1 text-[13px] text-muted-foreground">
-              Try adjusting the search or{" "}
-              {category !== "all" &&
-                `removing the "${VENDOR_MODULE_CATEGORY_LABELS[category] ?? category}" filter`}
-              .
-            </p>
-          </>
+          <EmptyState
+            icon={<PackageIcon />}
+            title="Nothing in the catalogue matches that"
+            description={
+              category !== "all"
+                ? `Try a different search, or drop the "${VENDOR_MODULE_CATEGORY_LABELS[category] ?? category}" category filter.`
+                : "Try a shorter search term — we match on package and vendor names."
+            }
+          />
         )}
       </div>
     );
