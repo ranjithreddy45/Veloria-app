@@ -14,6 +14,7 @@ import {
   Gift,
   FolderOpen,
   Users,
+  Smartphone,
   LogOut,
   Menu,
   X,
@@ -100,6 +101,19 @@ export function PortalNav({ userName, contractsAwaiting = 0 }: PortalNavProps) {
         </Button>
 
         <div className="ml-3 flex items-center gap-2 border-l pl-3">
+          {/* Install the app — the /get-app page detects the platform and shows
+              either a real install button or the iOS Add-to-Home-Screen steps. */}
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="text-muted-foreground hover:text-foreground hidden gap-1.5 md:inline-flex"
+          >
+            <Link href="/get-app">
+              <Smartphone className="size-4" />
+              <span className="hidden lg:inline">Get the app</span>
+            </Link>
+          </Button>
           <span className="text-muted-foreground hidden text-[13px] sm:inline">
             {userName}
           </span>

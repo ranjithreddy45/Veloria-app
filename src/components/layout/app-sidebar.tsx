@@ -26,6 +26,7 @@ import {
   CreditCard,
   Settings,
   LogOut,
+  Smartphone,
   ChevronRight,
   Gem,
   BarChart3,
@@ -545,6 +546,18 @@ export function AppSidebar() {
 
       {/* Footer with user info */}
       <SidebarFooter className="border-t border-sidebar-border p-2">
+        {/* Install on phone — matters most for field staff, whose geo-fenced
+            attendance check-in happens on mobile. */}
+        <Link
+          href="/get-app"
+          className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[12.5px] font-medium text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0"
+          title="Get the app on your phone"
+        >
+          <Smartphone className="size-4 shrink-0" />
+          <span className="truncate group-data-[collapsible=icon]:hidden">
+            Get the app
+          </span>
+        </Link>
         <div className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 transition-colors duration-150 hover:bg-sidebar-accent/70 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0">
           <Avatar size="sm">
             <AvatarImage src={user?.image || undefined} alt={user?.name || ""} />

@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/card";
 import { ShieldAlert } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
+import { InstallAppCard } from "@/components/pwa/install-app-card";
 import { auth } from "@/../auth";
 import { getPortalDashboard } from "@/actions/portal.actions";
 import { resolvePortalContactIds } from "@/lib/portal-identity";
@@ -382,6 +383,9 @@ export default async function PortalPage() {
           })}
         </div>
       </div>
+
+      {/* Install prompt — hides itself once the app is already installed. */}
+      <InstallAppCard />
     </div>
   );
 }

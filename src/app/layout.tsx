@@ -6,6 +6,7 @@ import QueryProvider from "@/providers/query-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { CapacitorProvider } from "@/providers/capacitor-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ServiceWorkerRegistrar } from "@/components/pwa/service-worker-registrar";
 import "./globals.css";
 
 // ============================================================
@@ -102,6 +103,9 @@ export default function RootLayout({
             <QueryProvider>
               <CapacitorProvider>
                 <TooltipProvider delayDuration={0}>
+                  {/* Registers /sw.js in production (browser only) so Android/Chrome
+                      offers "Install app" — see components/pwa/service-worker-registrar. */}
+                  <ServiceWorkerRegistrar />
                   {children}
                   <Toaster position="top-right" richColors closeButton />
                 </TooltipProvider>
