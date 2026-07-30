@@ -75,6 +75,8 @@ interface Contact {
   isActive: boolean;
   enquiryStatus: string | null;
   enquiryStatusAt: Date | string | null;
+  enquiryVenueId: string | null;
+  enquiryVenue: { id: string; name: string } | null;
   createdAt: Date | string;
   updatedAt: Date | string;
 }
@@ -84,6 +86,7 @@ const CONTACT_FACETS: FacetDef<Contact>[] = [
   // Enquiry status is also filterable server-side from the URL rail; this facet
   // narrows within whatever the server returned.
   { key: "enquiryStatus", label: "Enquiry status", get: (c) => enquiryStatusOption(c.enquiryStatus).label },
+  { key: "enquiryVenue", label: "Hall / Property", get: (c) => c.enquiryVenue?.name ?? "Unassigned", max: 12 },
   { key: "status", label: "Status", get: (c) => (c.isActive ? "Active" : "Inactive") },
   { key: "city", label: "City", get: (c) => c.city, max: 8 },
   { key: "state", label: "State", get: (c) => c.state, max: 8 },
@@ -361,6 +364,19 @@ const columns: ColumnDef<Contact>[] = [
     cell: ({ row }) => {
       const opt = enquiryStatusOption(row.original.enquiryStatus);
       return <StatusPill label={opt.label} hue={opt.hue} size="xs" />;
+    },
+  },
+  {
+    id: "enquiryVenue",
+    accessorFn: (row) => row.enquiryVenue?.name ?? "",
+    header: "Hall / Property",
+    cell: ({ row }) => {
+      const name = row.original.enquiryVenue?.name;
+      return name ? (
+        <span className="text-[12.5px] text-foreground/90">{name}</span>
+      ) : (
+        <span className="text-muted-foreground/60 text-[12px]">—</span>
+      );
     },
   },
   {
