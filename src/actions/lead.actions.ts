@@ -88,6 +88,8 @@ export interface LeadListFilters {
   /** Lead-creation period — IST yyyy-mm-dd, inclusive on both ends. */
   createdFrom?: string;
   createdTo?: string;
+  /** Hall/Property (preferred venue). "UNASSIGNED" → leads with no venue. */
+  venueId?: string;
   scope?: LeadScope;
 }
 
@@ -185,6 +187,15 @@ function buildLeadListWhere(
   // Lead-creation period.
   const createdRange = istRangeFilter(filters?.createdFrom, filters?.createdTo);
   if (createdRange) where.createdAt = createdRange;
+
+  // Hall/Property (preferred venue). "UNASSIGNED" is the no-venue bucket; any
+  // other non-empty value narrows to that venue (a stale id returns no rows).
+  const venueId = filters?.venueId?.trim();
+  if (venueId === "UNASSIGNED") {
+    where.preferredVenueId = null;
+  } else if (venueId) {
+    where.preferredVenueId = venueId;
+  }
 
   return { where, scope, canViewAll };
 }
@@ -750,6 +761,51 @@ export async function deleteLead(id: string) {
     console.error("[DELETE_LEAD_ERROR]", error);
     return { success: false as const, error: "Failed to delete lead" };
   }
+}
+
+// ============================================================
+// Test-lead cleanup — remove the "[TEST] …" leads created by integration
+// checks (Google Ads "Send test data", webhook verification) so they don't
+// skew conversion reporting. Matches ONLY the "[TEST]" tag we control, never a
+// real-looking name, so it can't delete a genuine lead. Soft-delete (trash),
+// so it's recoverable for 30 days.
+// ============================================================
+
+/** How many undeleted "[TEST]" leads exist (drives the cleanup button). */
+export async function getTestLeadsCount(): Promise<{ success: true; count: number } | { success: false; error: string }> {
+  const session = await auth();
+  if (!session?.user) return { success: false as const, error: "Unauthorized" };
+  if (!hasPermission(session.user.role, "leads:read")) {
+    return { success: false as const, error: "Insufficient permissions" };
+  }
+  const count = await prisma.lead.count({
+    where: { deletedAt: null, title: { contains: "[TEST]" } },
+  });
+  return { success: true as const, count };
+}
+
+export async function deleteTestLeads(): Promise<{ success: true; deleted: number } | { success: false; error: string }> {
+  const session = await auth();
+  if (!session?.user) return { success: false as const, error: "Unauthorized" };
+  if (!hasPermission(session.user.role, "leads:delete")) {
+    return { success: false as const, error: "Insufficient permissions" };
+  }
+
+  // Never touch a test lead that was already converted to a deal.
+  const res = await prisma.lead.updateMany({
+    where: { deletedAt: null, title: { contains: "[TEST]" }, deal: { is: null } },
+    data: { deletedAt: new Date() },
+  });
+
+  await logActivity({
+    userId: session.user.id as string,
+    action: "deleted_test_leads",
+    entityType: "Lead",
+    entityId: "bulk",
+  });
+  revalidatePath("/leads");
+  revalidatePath("/settings/trash");
+  return { success: true as const, deleted: res.count };
 }
 
 // ============================================================

@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PlusIcon, UploadCloud as UploadCloudIcon, Sparkles as SparklesIcon, UserPlus as UserPlusIcon, FilterX as FilterXIcon } from "lucide-react";
 
-import { getLeads, getLeadStats, type LeadListFilters } from "@/actions/lead.actions";
+import { getLeads, getLeadStats, getTestLeadsCount, type LeadListFilters } from "@/actions/lead.actions";
+import { getVenues } from "@/actions/booking.actions";
+import { auth } from "@/../auth";
+import { hasPermission } from "@/lib/permissions";
+import { CleanupTestLeadsButton } from "./_components/cleanup-test-leads-button";
 import { PageHeader } from "@/components/layout/page-header";
 import { HelpHint } from "@/components/layout/help-hint";
 import { Button } from "@/components/ui/button";
@@ -37,6 +41,7 @@ export default async function LeadsPage({
   const filters: LeadListFilters = {
     scope: first(sp.scope) === "all" ? "all" : "mine",
     status: first(sp.status),
+    venueId: first(sp.venue),
     eventFrom: first(sp.eventFrom),
     eventTo: first(sp.eventTo),
     createdFrom: first(sp.createdFrom),
@@ -45,11 +50,19 @@ export default async function LeadsPage({
 
   // Ceiling lets the client-side table page through records without the
   // default-50 cutoff, while keeping the payload far lighter than 1000.
-  const [result, statsResult] = await Promise.all([
+  const [result, statsResult, testCountResult, venuesResult, session] = await Promise.all([
     getLeads({ ...filters, limit: 500 }),
     getLeadStats(filters),
+    getTestLeadsCount(),
+    getVenues({ activeOnly: true }),
+    auth(),
   ]);
+  const venues = venuesResult.success
+    ? venuesResult.data.map((v) => ({ id: v.id, name: v.name }))
+    : [];
   const leads = result.success ? result.data.data : [];
+  const canDeleteLeads = hasPermission(session?.user?.role ?? "", "leads:delete");
+  const testLeadCount = testCountResult.success ? testCountResult.count : 0;
 
   // Scope/permission are whatever the SERVER resolved, not what the URL asked for.
   const canViewAll = result.success ? result.data.canViewAll : false;
@@ -57,6 +70,7 @@ export default async function LeadsPage({
   const statusFilter = first(sp.status);
   const filtersActive = Boolean(
     statusFilter ||
+      filters.venueId ||
       filters.eventFrom ||
       filters.eventTo ||
       filters.createdFrom ||
@@ -126,6 +140,7 @@ export default async function LeadsPage({
         }
         description="Track and qualify every inbound opportunity — from first contact to close."
       >
+        {canDeleteLeads && <CleanupTestLeadsButton count={testLeadCount} />}
         <Button variant="outline" asChild>
           <Link href="/leads/import">
             <UploadCloudIcon className="size-3.5" strokeWidth={2.5} />
@@ -142,7 +157,7 @@ export default async function LeadsPage({
       {/* The filter bar renders even on an empty result — otherwise a filter that
           matches nothing would hide the only control that can clear it. */}
       <div className="animate-rise-in animate-stagger-1 space-y-4">
-        <LeadsFilterBar canViewAll={canViewAll} scope={scope} />
+        <LeadsFilterBar canViewAll={canViewAll} scope={scope} venues={venues} />
 
         {leads.length === 0 ? (
           <div className="rounded-2xl border border-dashed bg-card shadow-card">

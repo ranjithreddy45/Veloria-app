@@ -34,6 +34,9 @@ import { ViewTabs } from "@/components/ui/view-tabs";
 
 // Sentinel for "no status filter" — a shadcn SelectItem can't take value="".
 const ANY_STATUS = "ALL";
+// Hall/Property sentinels (same reason — no empty SelectItem value).
+const ANY_VENUE = "ALL";
+const UNASSIGNED_VENUE = "UNASSIGNED";
 
 const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
   { value: ANY_STATUS, label: "All statuses" },
@@ -49,6 +52,7 @@ const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
 // The URL keys this bar owns — cleared together by "Clear filters".
 const FILTER_KEYS = [
   "status",
+  "venue",
   "eventFrom",
   "eventTo",
   "createdFrom",
@@ -60,15 +64,18 @@ interface Props {
   canViewAll: boolean;
   /** Server-resolved effective scope (a downgraded "all" shows as "mine"). */
   scope: "mine" | "all";
+  /** Active halls/properties for the venue filter. */
+  venues: { id: string; name: string }[];
 }
 
-export function LeadsFilterBar({ canViewAll, scope }: Props) {
+export function LeadsFilterBar({ canViewAll, scope, venues }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
   const [pending, startTransition] = useTransition();
 
   const status = sp.get("status") ?? ANY_STATUS;
+  const venue = sp.get("venue") ?? ANY_VENUE;
   const eventFrom = sp.get("eventFrom") ?? "";
   const eventTo = sp.get("eventTo") ?? "";
   const createdFrom = sp.get("createdFrom") ?? "";
@@ -122,6 +129,25 @@ export function LeadsFilterBar({ canViewAll, scope }: Props) {
           {STATUS_OPTIONS.map((o) => (
             <SelectItem key={o.value} value={o.value}>
               {o.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      {/* Hall / Property (preferred venue) */}
+      <Select
+        value={venue}
+        onValueChange={(v) => push({ venue: v === ANY_VENUE ? null : v })}
+      >
+        <SelectTrigger className="h-9 w-[180px]" aria-label="Filter by hall / property">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={ANY_VENUE}>All halls / properties</SelectItem>
+          <SelectItem value={UNASSIGNED_VENUE}>Unassigned</SelectItem>
+          {venues.map((v) => (
+            <SelectItem key={v.id} value={v.id}>
+              {v.name}
             </SelectItem>
           ))}
         </SelectContent>

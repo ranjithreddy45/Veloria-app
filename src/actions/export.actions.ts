@@ -4,10 +4,47 @@ import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/utils";
+import { ENQUIRY_STATUS_LABEL, type EnquiryStatus } from "@/lib/enquiry-status";
 
 // ============================================================
 // Export Actions — Fetch ALL data (no pagination) for CSV export
 // ============================================================
+
+/** yyyy-mm-dd for a timeline entry (kept short so CSV cells stay readable). */
+function d(dt: Date | null | undefined): string {
+  return dt ? dt.toISOString().split("T")[0] : "";
+}
+
+/** Human label for a Contact-side enquiry status (null = untouched "New"). */
+function enquiryStatusLabel(status: string | null): string {
+  if (!status) return "New";
+  return ENQUIRY_STATUS_LABEL[status as EnquiryStatus] ?? status;
+}
+
+/**
+ * Flatten the CrmNote/Task timeline of a lead or enquiry into three CSV cells:
+ * notes, calls, and meetings. `rows` is the pre-fetched, already-scoped set of
+ * notes+tasks for ONE record. Multiple entries are joined with " | " so each
+ * export row stays a single cell. Meetings come from Task (MEETING/SHOW_AROUND);
+ * calls from CrmNote kind=CALL; notes from CrmNote kind=NOTE.
+ */
+function formatTimeline(
+  notes: { kind: string; body: string; callOutcome: string | null; createdAt: Date }[],
+  meetings: { taskType: string | null; title: string; dueDate: Date | null; status: string }[]
+): { notes: string; calls: string; meetings: string } {
+  const noteCell = notes
+    .filter((n) => n.kind === "NOTE")
+    .map((n) => `[${d(n.createdAt)}] ${n.body}`)
+    .join(" | ");
+  const callCell = notes
+    .filter((n) => n.kind === "CALL")
+    .map((n) => `[${d(n.createdAt)}]${n.callOutcome ? ` ${n.callOutcome}` : ""}: ${n.body}`)
+    .join(" | ");
+  const meetingCell = meetings
+    .map((m) => `[${d(m.dueDate)}] ${m.taskType ?? "MEETING"} (${m.status}): ${m.title}`)
+    .join(" | ");
+  return { notes: noteCell, calls: callCell, meetings: meetingCell };
+}
 
 export async function exportContacts() {
   try {
@@ -25,6 +62,7 @@ export async function exportContacts() {
       orderBy: { createdAt: "desc" },
       take: 10000,
       select: {
+        id: true,
         firstName: true,
         lastName: true,
         email: true,
@@ -33,9 +71,42 @@ export async function exportContacts() {
         city: true,
         state: true,
         type: true,
+        enquiryStatus: true,
+        enquiryVenue: { select: { name: true } },
         createdAt: true,
       },
     });
+
+    // Pull the notes/calls (CrmNote) and meetings (Task) for the exported set in
+    // two batched queries, then group by contact — avoids an N+1 per row.
+    const contactIds = contacts.map((c) => c.id);
+    const [crmNotes, meetings] = await Promise.all([
+      contactIds.length
+        ? prisma.crmNote.findMany({
+            where: { contactId: { in: contactIds } },
+            orderBy: { createdAt: "asc" },
+            select: { contactId: true, kind: true, body: true, callOutcome: true, createdAt: true },
+          })
+        : Promise.resolve([]),
+      contactIds.length
+        ? prisma.task.findMany({
+            where: { contactId: { in: contactIds }, taskType: { in: ["MEETING", "SHOW_AROUND"] } },
+            orderBy: { dueDate: "asc" },
+            select: { contactId: true, taskType: true, title: true, dueDate: true, status: true },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const notesByContact = new Map<string, typeof crmNotes>();
+    for (const n of crmNotes) {
+      if (!n.contactId) continue;
+      (notesByContact.get(n.contactId) ?? notesByContact.set(n.contactId, []).get(n.contactId)!).push(n);
+    }
+    const meetingsByContact = new Map<string, typeof meetings>();
+    for (const m of meetings) {
+      if (!m.contactId) continue;
+      (meetingsByContact.get(m.contactId) ?? meetingsByContact.set(m.contactId, []).get(m.contactId)!).push(m);
+    }
 
     const headers = [
       "First Name",
@@ -46,20 +117,33 @@ export async function exportContacts() {
       "City",
       "State",
       "Type",
+      "Hall / Property",
+      "Enquiry Status",
+      "Notes",
+      "Calls",
+      "Meetings",
       "Created At",
     ];
 
-    const rows = contacts.map((c) => [
-      c.firstName,
-      c.lastName,
-      c.email || "",
-      c.phone || "",
-      c.company || "",
-      c.city || "",
-      c.state || "",
-      c.type || "",
-      c.createdAt.toISOString().split("T")[0],
-    ]);
+    const rows = contacts.map((c) => {
+      const t = formatTimeline(notesByContact.get(c.id) ?? [], meetingsByContact.get(c.id) ?? []);
+      return [
+        c.firstName,
+        c.lastName,
+        c.email || "",
+        c.phone || "",
+        c.company || "",
+        c.city || "",
+        c.state || "",
+        c.type || "",
+        c.enquiryVenue?.name || "",
+        enquiryStatusLabel(c.enquiryStatus),
+        t.notes,
+        t.calls,
+        t.meetings,
+        c.createdAt.toISOString().split("T")[0],
+      ];
+    });
 
     return serialize({ success: true as const, data: { headers, rows } });
   } catch (error) {
@@ -90,30 +174,73 @@ export async function exportLeads() {
       include: {
         contact: { select: { firstName: true, lastName: true } },
         assignedTo: { select: { name: true } },
+        preferredVenue: { select: { name: true } },
       },
     });
+
+    // Batch the timeline (notes/calls from CrmNote, meetings from Task) for the
+    // whole exported set, then group by lead — one query each, no N+1.
+    const leadIds = leads.map((l) => l.id);
+    const [crmNotes, meetings] = await Promise.all([
+      leadIds.length
+        ? prisma.crmNote.findMany({
+            where: { leadId: { in: leadIds } },
+            orderBy: { createdAt: "asc" },
+            select: { leadId: true, kind: true, body: true, callOutcome: true, createdAt: true },
+          })
+        : Promise.resolve([]),
+      leadIds.length
+        ? prisma.task.findMany({
+            where: { leadId: { in: leadIds }, taskType: { in: ["MEETING", "SHOW_AROUND"] } },
+            orderBy: { dueDate: "asc" },
+            select: { leadId: true, taskType: true, title: true, dueDate: true, status: true },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const notesByLead = new Map<string, typeof crmNotes>();
+    for (const n of crmNotes) {
+      if (!n.leadId) continue;
+      (notesByLead.get(n.leadId) ?? notesByLead.set(n.leadId, []).get(n.leadId)!).push(n);
+    }
+    const meetingsByLead = new Map<string, typeof meetings>();
+    for (const m of meetings) {
+      if (!m.leadId) continue;
+      (meetingsByLead.get(m.leadId) ?? meetingsByLead.set(m.leadId, []).get(m.leadId)!).push(m);
+    }
 
     const headers = [
       "Title",
       "Contact",
+      "Hall / Property",
       "Status",
       "Source",
       "Event Type",
       "Est. Value",
       "Assigned To",
+      "Notes",
+      "Calls",
+      "Meetings",
       "Created At",
     ];
 
-    const rows = leads.map((l) => [
-      l.title,
-      `${l.contact.firstName} ${l.contact.lastName}`,
-      l.status,
-      l.source,
-      l.eventType || "",
-      l.estimatedValue ? Number(l.estimatedValue) : "",
-      l.assignedTo?.name || "",
-      l.createdAt.toISOString().split("T")[0],
-    ]);
+    const rows = leads.map((l) => {
+      const t = formatTimeline(notesByLead.get(l.id) ?? [], meetingsByLead.get(l.id) ?? []);
+      return [
+        l.title,
+        `${l.contact.firstName} ${l.contact.lastName}`,
+        l.preferredVenue?.name || "",
+        l.status,
+        l.source,
+        l.eventType || "",
+        l.estimatedValue ? Number(l.estimatedValue) : "",
+        l.assignedTo?.name || "",
+        t.notes,
+        t.calls,
+        t.meetings,
+        l.createdAt.toISOString().split("T")[0],
+      ];
+    });
 
     return serialize({ success: true as const, data: { headers, rows } });
   } catch (error) {

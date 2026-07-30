@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getContact } from "@/actions/contact.actions";
+import { getVenues } from "@/actions/booking.actions";
 import { PencilIcon } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { ContactForm } from "../../_components/contact-form";
@@ -19,13 +20,19 @@ export default async function EditContactPage({
   params,
 }: EditContactPageProps) {
   const { contactId } = await params;
-  const result = await getContact(contactId);
+  const [result, venuesResult] = await Promise.all([
+    getContact(contactId),
+    getVenues({ activeOnly: true }),
+  ]);
 
   if (!result.success || !result.data) {
     notFound();
   }
 
   const contact = result.data;
+  const venues = venuesResult.success
+    ? venuesResult.data.map((v) => ({ id: v.id, name: v.name }))
+    : [];
 
   return (
     <div className="space-y-6">
@@ -37,7 +44,7 @@ export default async function EditContactPage({
         description={`Editing ${contact.firstName} ${contact.lastName}`}
       />
       <div className="mx-auto max-w-3xl">
-        <ContactForm contact={contact} />
+        <ContactForm contact={contact} venues={venues} />
       </div>
     </div>
   );

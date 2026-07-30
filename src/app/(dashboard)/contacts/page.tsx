@@ -3,6 +3,7 @@ import Link from "next/link";
 import { PlusIcon, UsersIcon, UserIcon, Building2Icon, ContactIcon } from "lucide-react";
 
 import { getContacts } from "@/actions/contact.actions";
+import { getVenues } from "@/actions/booking.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { HelpHint } from "@/components/layout/help-hint";
 import { Button } from "@/components/ui/button";
@@ -18,22 +19,29 @@ export const metadata: Metadata = { title: "Enquiry" };
 // ============================================================
 
 interface ContactsPageProps {
-  searchParams: Promise<{ from?: string; to?: string; status?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; status?: string; venue?: string }>;
 }
 
 export default async function ContactsPage({ searchParams }: ContactsPageProps) {
-  const { from, to, status } = await searchParams;
+  const { from, to, status, venue } = await searchParams;
 
   // Ceiling lets the client table page through rows without the default-50
   // cutoff, while keeping the payload far lighter than 1000.
-  const result = await getContacts({
-    limit: 500,
-    createdFrom: from,
-    createdTo: to,
-    enquiryStatus: status,
-  });
+  const [result, venuesResult] = await Promise.all([
+    getContacts({
+      limit: 500,
+      createdFrom: from,
+      createdTo: to,
+      enquiryStatus: status,
+      venueId: venue,
+    }),
+    getVenues({ activeOnly: true }),
+  ]);
   const contacts = result.success ? result.data.data : [];
-  const isFiltered = !!from || !!to || !!status;
+  const venues = venuesResult.success
+    ? venuesResult.data.map((v) => ({ id: v.id, name: v.name }))
+    : [];
+  const isFiltered = !!from || !!to || !!status || !!venue;
 
   const corporate = contacts.filter((c) => c.type === "CORPORATE").length;
   const individual = contacts.filter((c) => c.type === "INDIVIDUAL").length;
@@ -91,7 +99,7 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
           filter is active, so a zero-result filter can be cleared. */}
       {(contacts.length > 0 || isFiltered) && (
         <div className="animate-rise-in animate-stagger-1">
-          <EnquiryFilterBar />
+          <EnquiryFilterBar venues={venues} />
         </div>
       )}
 

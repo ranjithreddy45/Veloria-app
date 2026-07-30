@@ -60,6 +60,11 @@ export const contactSchema = z.object({
     .optional()
     .or(z.literal("")),
   tags: z.array(z.string()).default([]),
+  // Hall/Property this enquiry is about. Empty string → cleared (stored null).
+  enquiryVenueId: z
+    .string()
+    .optional()
+    .or(z.literal("")),
 });
 
 export type ContactInput = z.infer<typeof contactSchema>;

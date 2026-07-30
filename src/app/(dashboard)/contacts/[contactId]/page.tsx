@@ -47,6 +47,8 @@ import { WhatsAppQuickSendDialog } from "@/components/shared/whatsapp-quick-send
 import { SmartSuggestions } from "@/components/ai/smart-suggestions";
 import { SentimentTrendChart } from "@/components/ai/sentiment-trend-chart";
 import { EnquiryStatusSelect } from "./_components/enquiry-status-select";
+import { EnquiryVenueSelect } from "./_components/enquiry-venue-select";
+import { getVenues } from "@/actions/booking.actions";
 import { EnquiryNotesPanel } from "./_components/enquiry-notes-panel";
 import { EnquiryRemindersPanel } from "./_components/enquiry-reminders-panel";
 import { StatusPill } from "@/components/shared/status-pill";
@@ -66,13 +68,19 @@ export default async function ContactDetailPage({
   params,
 }: ContactDetailPageProps) {
   const { contactId } = await params;
-  const result = await getContact(contactId);
+  const [result, venuesResult] = await Promise.all([
+    getContact(contactId),
+    getVenues({ activeOnly: true }),
+  ]);
 
   if (!result.success || !result.data) {
     notFound();
   }
 
   const contact = result.data;
+  const venues = venuesResult.success
+    ? venuesResult.data.map((v) => ({ id: v.id, name: v.name }))
+    : [];
   const statusOption = enquiryStatusOption(contact.enquiryStatus);
 
   // Format currency in Indian format
@@ -120,6 +128,11 @@ export default async function ContactDetailPage({
           <EnquiryStatusSelect
             contactId={contact.id}
             currentStatus={contact.enquiryStatus ?? null}
+          />
+          <EnquiryVenueSelect
+            contactId={contact.id}
+            currentVenueId={contact.enquiryVenueId ?? null}
+            venues={venues}
           />
           <AIEmailComposer
             contactId={contact.id}

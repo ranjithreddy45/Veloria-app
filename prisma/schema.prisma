@@ -498,6 +498,8 @@ model Contact {
   // Enquiry pipeline status (Sales CRM). Null = new/untouched enquiry.
   // LEAD_CREATED | INTERESTED | NO_RESPONSE | DROPPED
   enquiryStatus    String?
+  // Hall/Property this enquiry is about (Sales CRM). Null = not yet assigned.
+  enquiryVenueId   String?
   enquiryStatusAt  DateTime?
   // Customer 360 (spec §3.2) — vipCustomer/anniversary set by staff;
   // customerType, lifetimeBookings, totalRevenue, lastEventDate are
@@ -527,11 +529,13 @@ model Contact {
   reviewRequests     ReviewRequest[]
   corporateAccountId String?
   corporateAccount   CorporateAccount? @relation("ContactCorporateAccount")
+  enquiryVenue       Venue?            @relation("ContactEnquiryVenue", fields: [enquiryVenueId], references: [id])
 
   @@index([email])
   @@index([phone])
   @@index([firstName, lastName])
   @@index([deletedAt, createdAt]) // hot list query: not-deleted, newest first
+  @@index([enquiryVenueId]) // filter enquiries by Hall/Property
 }
 
 model Lead {
@@ -667,6 +671,7 @@ model Venue {
   ratePlans           RatePlan[]
   insurancePolicies   InsurancePolicy[]
   preferredLeads      Lead[]               @relation("LeadPreferredVenue")
+  enquiryContacts     Contact[]            @relation("ContactEnquiryVenue")
   salesQuotations     SalesQuotation[]     @relation("SalesQuotationVenue")
   publicHolds         PublicHold[]         @relation("VenuePublicHolds")
   publicQuoteDrafts   PublicQuoteDraft[]   @relation("VenuePublicQuoteDrafts")

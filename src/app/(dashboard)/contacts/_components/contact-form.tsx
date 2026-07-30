@@ -37,6 +37,10 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 
+// Sentinel for the "no hall assigned" option — a shadcn SelectItem can't hold
+// value="" (empty maps to placeholder), so we map this to a stored null.
+const NO_VENUE = "NONE";
+
 // ============================================================
 // ContactForm Props
 // ============================================================
@@ -56,17 +60,20 @@ interface ContactData {
   pincode: string | null;
   notes: string | null;
   tags: string[];
+  enquiryVenueId: string | null;
 }
 
 interface ContactFormProps {
   contact?: ContactData;
+  /** Active halls/properties for the enquiry assignment field. */
+  venues: { id: string; name: string }[];
 }
 
 // ============================================================
 // ContactForm Component
 // ============================================================
 
-export function ContactForm({ contact }: ContactFormProps) {
+export function ContactForm({ contact, venues }: ContactFormProps) {
   const router = useRouter();
   const [isPending, setIsPending] = React.useState(false);
 
@@ -89,6 +96,7 @@ export function ContactForm({ contact }: ContactFormProps) {
       pincode: contact?.pincode ?? "",
       notes: contact?.notes ?? "",
       tags: contact?.tags ?? [],
+      enquiryVenueId: contact?.enquiryVenueId ?? "",
     },
   });
 
@@ -204,6 +212,35 @@ export function ContactForm({ contact }: ContactFormProps) {
                       </div>
                     </RadioGroup>
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            {/* Hall / Property — which venue this enquiry is about. */}
+            <FormField
+              control={form.control}
+              name="enquiryVenueId"
+              render={({ field }) => (
+                <FormItem className="sm:col-span-2">
+                  <FormLabel>Hall / Property</FormLabel>
+                  <Select
+                    onValueChange={(v) => field.onChange(v === NO_VENUE ? "" : v)}
+                    value={field.value ? field.value : NO_VENUE}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select hall / property" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value={NO_VENUE}>Not assigned</SelectItem>
+                      {venues.map((v) => (
+                        <SelectItem key={v.id} value={v.id}>
+                          {v.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

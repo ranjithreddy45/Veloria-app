@@ -65,6 +65,8 @@ export async function getContacts(params?: {
   createdTo?: string;
   /** Enquiry status filter. "NEW" matches untouched (null) enquiries. */
   enquiryStatus?: string;
+  /** Hall/Property filter. "UNASSIGNED" matches enquiries with no venue. */
+  venueId?: string;
 }) {
   try {
     const session = await auth();
@@ -99,6 +101,15 @@ export async function getContacts(params?: {
       where.enquiryStatus = status;
     }
 
+    // Hall/Property. "UNASSIGNED" is the no-venue bucket; any other non-empty
+    // value filters to that venue id (a stale id simply returns no rows).
+    const venueId = params?.venueId?.trim();
+    if (venueId === "UNASSIGNED") {
+      where.enquiryVenueId = null;
+    } else if (venueId) {
+      where.enquiryVenueId = venueId;
+    }
+
     if (search) {
       where.OR = [
         { firstName: { contains: search, mode: "insensitive" as const } },
@@ -115,6 +126,7 @@ export async function getContacts(params?: {
         orderBy: { createdAt: "desc" },
         skip,
         take: limit,
+        include: { enquiryVenue: { select: { id: true, name: true } } },
       }),
       prisma.contact.count({ where }),
     ]);
@@ -153,6 +165,7 @@ export async function getContact(id: string) {
     const contact = await prisma.contact.findFirst({
       where: { id, deletedAt: null },
       include: {
+        enquiryVenue: { select: { id: true, name: true } },
         leads: {
           where: { deletedAt: null },
           orderBy: { createdAt: "desc" },
@@ -249,6 +262,7 @@ export async function createContact(data: ContactInput) {
         pincode: contactData.pincode || null,
         notes: contactData.notes || null,
         tags: contactData.tags,
+        enquiryVenueId: contactData.enquiryVenueId || null,
       },
     });
 
@@ -339,6 +353,7 @@ export async function updateContact(id: string, data: ContactInput) {
         pincode: contactData.pincode || null,
         notes: contactData.notes || null,
         tags: contactData.tags,
+        enquiryVenueId: contactData.enquiryVenueId || null,
       },
     });
 
@@ -416,6 +431,75 @@ export async function setEnquiryStatus(contactId: string, status: string | null)
   } catch (error) {
     console.error("[SET_ENQUIRY_STATUS_ERROR]", error);
     return { success: false as const, error: "Failed to update enquiry status" };
+  }
+}
+
+// ============================================================
+// Assign Enquiry to Hall / Property
+// ============================================================
+
+/** Assign an enquiry (Contact) to a Hall/Property. Pass null to unassign.
+ *  Validates the venue exists so a stale/foreign id can't be stored. */
+export async function assignEnquiryVenue(contactId: string, venueId: string | null) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+
+    // Gated like every other contact write.
+    if (!hasPermission(session.user.role, "contacts:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
+    if (!contactId || typeof contactId !== "string") {
+      return { success: false as const, error: "Invalid enquiry" };
+    }
+
+    const existing = await prisma.contact.findFirst({
+      where: { id: contactId, deletedAt: null },
+      select: { id: true, enquiryVenueId: true },
+    });
+    if (!existing) {
+      return { success: false as const, error: "Contact not found" };
+    }
+
+    // Reject an unknown venue id rather than store a dangling FK.
+    if (venueId) {
+      const venue = await prisma.venue.findUnique({
+        where: { id: venueId },
+        select: { id: true },
+      });
+      if (!venue) {
+        return { success: false as const, error: "Hall / Property not found" };
+      }
+    }
+
+    // No-op guard.
+    if (existing.enquiryVenueId === (venueId || null)) {
+      return { success: true as const, data: { id: contactId, enquiryVenueId: venueId } };
+    }
+
+    const contact = await prisma.contact.update({
+      where: { id: contactId },
+      data: { enquiryVenueId: venueId || null },
+      select: { id: true, enquiryVenueId: true },
+    });
+
+    await logActivity({
+      userId: session.user.id as string,
+      action: "updated",
+      entityType: "Contact",
+      entityId: contactId,
+      changes: { enquiryVenueId: { from: existing.enquiryVenueId, to: venueId || null } },
+    });
+
+    revalidatePath("/contacts");
+    revalidatePath(`/contacts/${contactId}`);
+    return { success: true as const, data: serialize(contact) };
+  } catch (error) {
+    console.error("[ASSIGN_ENQUIRY_VENUE_ERROR]", error);
+    return { success: false as const, error: "Failed to assign Hall / Property" };
   }
 }
 

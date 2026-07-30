@@ -18,8 +18,15 @@ import {
 import { ENQUIRY_STATUS_OPTIONS } from "./enquiry-status";
 
 const ALL_STATUSES = "ALL";
+const ALL_VENUES = "ALL";
+const UNASSIGNED_VENUE = "UNASSIGNED";
 
-export function EnquiryFilterBar() {
+export function EnquiryFilterBar({
+  venues,
+}: {
+  /** Active halls/properties for the assignment filter. */
+  venues: { id: string; name: string }[];
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
@@ -28,7 +35,8 @@ export function EnquiryFilterBar() {
   const from = sp.get("from") ?? "";
   const to = sp.get("to") ?? "";
   const status = sp.get("status") ?? ALL_STATUSES;
-  const isFiltered = !!from || !!to || status !== ALL_STATUSES;
+  const venue = sp.get("venue") ?? ALL_VENUES;
+  const isFiltered = !!from || !!to || status !== ALL_STATUSES || venue !== ALL_VENUES;
 
   const push = useCallback(
     (next: Record<string, string | null>) => {
@@ -84,12 +92,26 @@ export function EnquiryFilterBar() {
         </SelectContent>
       </Select>
 
+      {/* Hall / Property */}
+      <Select value={venue} onValueChange={(v) => push({ venue: v === ALL_VENUES ? null : v })}>
+        <SelectTrigger className="h-9 w-[190px]" aria-label="Hall / Property filter">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={ALL_VENUES}>All halls / properties</SelectItem>
+          <SelectItem value={UNASSIGNED_VENUE}>Unassigned</SelectItem>
+          {venues.map((v) => (
+            <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
       {isFiltered && (
         <Button
           variant="ghost"
           size="sm"
           className="h-9 gap-1.5 text-muted-foreground"
-          onClick={() => push({ from: null, to: null, status: null })}
+          onClick={() => push({ from: null, to: null, status: null, venue: null })}
         >
           <X className="size-3.5" /> Clear
         </Button>
