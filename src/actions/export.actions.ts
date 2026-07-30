@@ -21,29 +21,68 @@ function enquiryStatusLabel(status: string | null): string {
   return ENQUIRY_STATUS_LABEL[status as EnquiryStatus] ?? status;
 }
 
+/** "4m12s" / "45s" from a duration in seconds. Blank for 0/absent. */
+function dur(seconds: number | null | undefined): string {
+  if (!seconds || seconds <= 0) return "";
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return m > 0 ? `${m}m${s}s` : `${s}s`;
+}
+
+/** One CallLog row as it appears in the Calls cell. */
+type CallLogRow = {
+  disposition: string;
+  durationSeconds: number;
+  notes: string | null;
+  createdAt: Date;
+};
+
 /**
- * Flatten the CrmNote/Task timeline of a lead or enquiry into three CSV cells:
- * notes, calls, and meetings. `rows` is the pre-fetched, already-scoped set of
- * notes+tasks for ONE record. Multiple entries are joined with " | " so each
- * export row stays a single cell. Meetings come from Task (MEETING/SHOW_AROUND);
- * calls from CrmNote kind=CALL; notes from CrmNote kind=NOTE.
+ * Flatten the activity timeline of a lead or enquiry into three CSV cells:
+ * notes, calls, and meetings. Every argument is the pre-fetched, already-scoped
+ * set for ONE record; entries are joined with " | " so each cell stays single.
+ *
+ *   notes    — CrmNote kind=NOTE, oldest first (reads as the story)
+ *   calls    — CrmNote kind=CALL **merged with** telephony CallLog, NEWEST first,
+ *              so the most recent contact attempt leads. Both sources are included
+ *              because a rep may log a call either in the CRM panel or through the
+ *              phone integration; taking only one silently drops the other's calls.
+ *   meetings — Task with taskType MEETING/SHOW_AROUND, by due date
  */
 function formatTimeline(
   notes: { kind: string; body: string; callOutcome: string | null; createdAt: Date }[],
-  meetings: { taskType: string | null; title: string; dueDate: Date | null; status: string }[]
+  meetings: { taskType: string | null; title: string; dueDate: Date | null; status: string }[],
+  callLogs: CallLogRow[] = []
 ): { notes: string; calls: string; meetings: string } {
   const noteCell = notes
     .filter((n) => n.kind === "NOTE")
     .map((n) => `[${d(n.createdAt)}] ${n.body}`)
     .join(" | ");
-  const callCell = notes
-    .filter((n) => n.kind === "CALL")
-    .map((n) => `[${d(n.createdAt)}]${n.callOutcome ? ` ${n.callOutcome}` : ""}: ${n.body}`)
-    .join(" | ");
+
+  // Merge both call sources on a common shape, then sort newest-first.
+  const merged: { at: Date; text: string }[] = [
+    ...notes
+      .filter((n) => n.kind === "CALL")
+      .map((n) => ({
+        at: n.createdAt,
+        text: `[${d(n.createdAt)}]${n.callOutcome ? ` ${n.callOutcome}` : ""}: ${n.body}`,
+      })),
+    ...callLogs.map((c) => {
+      const length = dur(c.durationSeconds);
+      return {
+        at: c.createdAt,
+        text: `[${d(c.createdAt)}] ${c.disposition}${length ? ` (${length})` : ""}${
+          c.notes ? `: ${c.notes}` : ""
+        }`,
+      };
+    }),
+  ].sort((a, b) => b.at.getTime() - a.at.getTime());
+
   const meetingCell = meetings
     .map((m) => `[${d(m.dueDate)}] ${m.taskType ?? "MEETING"} (${m.status}): ${m.title}`)
     .join(" | ");
-  return { notes: noteCell, calls: callCell, meetings: meetingCell };
+
+  return { notes: noteCell, calls: merged.map((c) => c.text).join(" | "), meetings: meetingCell };
 }
 
 export async function exportContacts() {
@@ -80,7 +119,7 @@ export async function exportContacts() {
     // Pull the notes/calls (CrmNote) and meetings (Task) for the exported set in
     // two batched queries, then group by contact — avoids an N+1 per row.
     const contactIds = contacts.map((c) => c.id);
-    const [crmNotes, meetings] = await Promise.all([
+    const [crmNotes, meetings, callLogs] = await Promise.all([
       contactIds.length
         ? prisma.crmNote.findMany({
             where: { contactId: { in: contactIds } },
@@ -95,6 +134,20 @@ export async function exportContacts() {
             select: { contactId: true, taskType: true, title: true, dueDate: true, status: true },
           })
         : Promise.resolve([]),
+      // Telephony calls — merged into the same Calls cell as CrmNote CALL rows.
+      contactIds.length
+        ? prisma.callLog.findMany({
+            where: { contactId: { in: contactIds } },
+            orderBy: { createdAt: "desc" },
+            select: {
+              contactId: true,
+              disposition: true,
+              durationSeconds: true,
+              notes: true,
+              createdAt: true,
+            },
+          })
+        : Promise.resolve([]),
     ]);
 
     const notesByContact = new Map<string, typeof crmNotes>();
@@ -106,6 +159,10 @@ export async function exportContacts() {
     for (const m of meetings) {
       if (!m.contactId) continue;
       (meetingsByContact.get(m.contactId) ?? meetingsByContact.set(m.contactId, []).get(m.contactId)!).push(m);
+    }
+    const callsByContact = new Map<string, typeof callLogs>();
+    for (const c of callLogs) {
+      (callsByContact.get(c.contactId) ?? callsByContact.set(c.contactId, []).get(c.contactId)!).push(c);
     }
 
     const headers = [
@@ -126,7 +183,11 @@ export async function exportContacts() {
     ];
 
     const rows = contacts.map((c) => {
-      const t = formatTimeline(notesByContact.get(c.id) ?? [], meetingsByContact.get(c.id) ?? []);
+      const t = formatTimeline(
+        notesByContact.get(c.id) ?? [],
+        meetingsByContact.get(c.id) ?? [],
+        callsByContact.get(c.id) ?? []
+      );
       return [
         c.firstName,
         c.lastName,
@@ -181,7 +242,11 @@ export async function exportLeads() {
     // Batch the timeline (notes/calls from CrmNote, meetings from Task) for the
     // whole exported set, then group by lead — one query each, no N+1.
     const leadIds = leads.map((l) => l.id);
-    const [crmNotes, meetings] = await Promise.all([
+    // CallLog hangs off Contact, not Lead, so a lead's telephony calls are its
+    // contact's calls. Two leads for the same person therefore show the same call
+    // history — that is the most faithful read of a contact-scoped call record.
+    const leadContactIds = [...new Set(leads.map((l) => l.contactId))];
+    const [crmNotes, meetings, callLogs] = await Promise.all([
       leadIds.length
         ? prisma.crmNote.findMany({
             where: { leadId: { in: leadIds } },
@@ -196,6 +261,19 @@ export async function exportLeads() {
             select: { leadId: true, taskType: true, title: true, dueDate: true, status: true },
           })
         : Promise.resolve([]),
+      leadContactIds.length
+        ? prisma.callLog.findMany({
+            where: { contactId: { in: leadContactIds } },
+            orderBy: { createdAt: "desc" },
+            select: {
+              contactId: true,
+              disposition: true,
+              durationSeconds: true,
+              notes: true,
+              createdAt: true,
+            },
+          })
+        : Promise.resolve([]),
     ]);
 
     const notesByLead = new Map<string, typeof crmNotes>();
@@ -207,6 +285,12 @@ export async function exportLeads() {
     for (const m of meetings) {
       if (!m.leadId) continue;
       (meetingsByLead.get(m.leadId) ?? meetingsByLead.set(m.leadId, []).get(m.leadId)!).push(m);
+    }
+    // Keyed by CONTACT id (see the leadContactIds note above), then looked up per
+    // lead through l.contactId.
+    const callsByContact = new Map<string, typeof callLogs>();
+    for (const c of callLogs) {
+      (callsByContact.get(c.contactId) ?? callsByContact.set(c.contactId, []).get(c.contactId)!).push(c);
     }
 
     const headers = [
@@ -225,7 +309,11 @@ export async function exportLeads() {
     ];
 
     const rows = leads.map((l) => {
-      const t = formatTimeline(notesByLead.get(l.id) ?? [], meetingsByLead.get(l.id) ?? []);
+      const t = formatTimeline(
+        notesByLead.get(l.id) ?? [],
+        meetingsByLead.get(l.id) ?? [],
+        callsByContact.get(l.contactId) ?? []
+      );
       return [
         l.title,
         `${l.contact.firstName} ${l.contact.lastName}`,
