@@ -10,7 +10,8 @@ import { after } from "next/server";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
 import { notify } from "@/lib/notify";
 import { sendForSignature } from "@/lib/acq/esign";
-import { isSafeReceiptUrl } from "@/lib/sales/receipt";
+import { isSafeReceiptUrl, isSafeReceiptDataUrl } from "@/lib/sales/receipt";
+import { transitionAcqDeal } from "@/actions/acq-deal.actions";
 import { z } from "zod";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
@@ -577,6 +578,227 @@ async function postSigningNotify(
   } catch (e) {
     console.error("[postSigningNotify] error:", e);
   }
+}
+
+// ------------------------------------------------------------
+// Item 14 — signing mode: DIGITAL or MANUAL
+// ------------------------------------------------------------
+// DIGITAL keeps the existing e-sign route (sendAcqContractForEsign →
+// esignProvider/esignRequestId/esignStatus) completely untouched. MANUAL means
+// the agreement was printed and signed offline: the scan is uploaded here, and
+// THAT upload is what marks the contract signed, wins the deal and provisions
+// the hall.
+const SIGNING_MODES = ["DIGITAL", "MANUAL"] as const;
+
+export async function setAcqContractSigningMode(
+  id: string,
+  mode: "DIGITAL" | "MANUAL"
+): Promise<Result<{ signingMode: string }>> {
+  const user = await requireUser();
+  if (!user || !acqCan(user.role, "lead:write")) return { success: false, error: "Unauthorized" };
+  if (!SIGNING_MODES.includes(mode)) return { success: false, error: "Invalid signing mode." };
+
+  const c = await prisma.acqContract.findFirst({
+    where: { id, deletedAt: null },
+    select: { id: true, status: true, signingMode: true },
+  });
+  if (!c) return { success: false, error: "Contract not found" };
+  if (c.signingMode === mode) return { success: true, data: { signingMode: mode } }; // no-op
+  // Once executed, how it was signed is a matter of record — don't let it be
+  // rewritten after the fact.
+  if (c.status === "SIGNED" || c.status === "ACTIVE" || c.status === "TERMINATED") {
+    return { success: false, error: "The signing method can't be changed after the contract is signed." };
+  }
+
+  await prisma.acqContract.update({ where: { id }, data: { signingMode: mode } });
+  await logActivity(id, user.id, "NOTE", `Signing method set to ${mode === "MANUAL" ? "manual (offline)" : "digital (e-sign)"}`);
+  revalidatePath(`/bd/contracts/${id}`);
+  return { success: true, data: { signingMode: mode } };
+}
+
+/**
+ * MANUAL signing: upload the physically signed agreement. On success this
+ *   1. stores the scan (also as an AcqContractDocument so it shows in Documents),
+ *   2. stamps signedContractUrl / signedUploadedById / signedUploadedAt + signedAt,
+ *   3. moves the contract to its signed phase/status through the EXISTING
+ *      lifecycle helper markAcqContractSignedCLM (no new states invented), and
+ *   4. wins the source deal, which provisions the property/hall via the shared
+ *      conversion bridge (ensureDealProperty, reached through transitionAcqDeal).
+ *
+ * Fully idempotent: re-uploading replaces the scan but never signs twice and
+ * never creates a second property/venue.
+ */
+export async function uploadSignedAcqContract(
+  id: string,
+  input: { url: string; fileName?: string; mimeType?: string }
+): Promise<Result<{ signed: boolean; dealWon: boolean; propertyId: string | null; note: string | null }>> {
+  const user = await requireUser();
+  if (!user || !acqCan(user.role, "deal:transition")) return { success: false, error: "Unauthorized" };
+
+  const url = (input.url ?? "").trim();
+  if (!url) return { success: false, error: "Upload the signed agreement first." };
+  if (url.length > 9_000_000) {
+    return { success: false, error: "File is too large — please upload a smaller scan (max ~9 MB)." };
+  }
+  // A scanned, wet-signed contract is almost always a PDF, so validate with
+  // isSafeReceiptDataUrl (base64 image OR application/pdf). Deliberately NOT
+  // requiring a `data:image/` prefix — that would reject every real scan.
+  if (!isSafeReceiptDataUrl(url)) {
+    return { success: false, error: "Upload the signed agreement as a PDF or image file." };
+  }
+
+  const c = await prisma.acqContract.findFirst({ where: { id, deletedAt: null } });
+  if (!c) return { success: false, error: "Contract not found" };
+  if (c.status === "TERMINATED") {
+    return { success: false, error: "This contract is terminated." };
+  }
+  const alreadySigned = c.status === "SIGNED" || c.status === "ACTIVE";
+  // Same precondition the lifecycle already enforces — checked BEFORE any write
+  // so a rejected upload leaves nothing half-persisted.
+  if (!alreadySigned && c.status !== "NEGOTIATED") {
+    return { success: false, error: "Send the contract to the owner before uploading the signed copy." };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.acqContract.update({
+      where: { id },
+      data: {
+        signingMode: "MANUAL",
+        signedContractUrl: url,
+        signedUploadedById: user.id,
+        signedUploadedAt: new Date(),
+      },
+    });
+    // Mirror it into Documents so it appears with the rest of the paperwork —
+    // and so markAcqContractSignedCLM's "signature evidence" check passes.
+    await tx.acqContractDocument.create({
+      data: {
+        contractId: id,
+        url,
+        label: input.fileName || "Signed agreement",
+        fileName: input.fileName || null,
+        mimeType: input.mimeType || null,
+        uploadedById: user.id,
+      },
+    });
+  });
+  await logActivity(id, user.id, "SIGNED", alreadySigned ? "Signed copy replaced" : "Signed copy uploaded (manual signing)");
+
+  // (3) Signed phase/status via the module's existing lifecycle action.
+  if (!alreadySigned) {
+    const signed = await markAcqContractSignedCLM(id);
+    if (!signed.success) {
+      // The scan is stored; surface why the status move was refused.
+      revalidatePath(`/bd/contracts/${id}`);
+      return { success: false, error: signed.error };
+    }
+  }
+
+  // (4) Win the deal + provision the hall (idempotent).
+  const win = await winDealFromSignedContract(c.dealId, id, user.id);
+  revalidatePath(`/bd/contracts/${id}`);
+  revalidatePath("/bd/contracts");
+  return {
+    success: true,
+    data: { signed: true, dealWon: win.won, propertyId: win.propertyId, note: win.note },
+  };
+}
+
+/** Remove the uploaded scan (mis-scan / wrong file). Does NOT un-sign the
+ *  contract or un-win the deal — those are governed moves of their own. */
+export async function removeSignedAcqContract(id: string): Promise<Result<{ id: string }>> {
+  const user = await requireUser();
+  if (!user || !acqCan(user.role, "deal:transition")) return { success: false, error: "Unauthorized" };
+  const c = await prisma.acqContract.findFirst({ where: { id, deletedAt: null }, select: { id: true } });
+  if (!c) return { success: false, error: "Contract not found" };
+  await prisma.acqContract.update({
+    where: { id },
+    data: { signedContractUrl: null, signedUploadedById: null, signedUploadedAt: null },
+  });
+  await logActivity(id, user.id, "NOTE", "Signed copy removed");
+  revalidatePath(`/bd/contracts/${id}`);
+  return { success: true, data: { id } };
+}
+
+/**
+ * Drive the source deal to WON so the hall gets provisioned, reusing the
+ * module's own guarded state machine (transitionAcqDeal) — which is the single
+ * place that calls the shared conversion bridge ensureDealProperty(). We do NOT
+ * write a second provisioning path here.
+ *
+ * The state machine legitimately requires CONTRACT_SENT → SIGNED → WON and, at
+ * SIGNED, evidence that an executed agreement exists (contractStatus SIGNED +
+ * an AGREEMENT attachment). A manually uploaded, signed contract IS that
+ * evidence, so it is recorded on the deal first — then the guarded transitions
+ * run, and every other Won gate (agreed commercials, large-deal sign-off) still
+ * applies and will refuse honestly rather than being bypassed.
+ *
+ * Idempotent at every step: an already-WON deal short-circuits, the AGREEMENT
+ * attachment is only created when missing, and ensureDealProperty reuses an
+ * existing property/onboarding project/hall owner.
+ */
+async function winDealFromSignedContract(
+  dealId: string | null,
+  contractId: string,
+  actorId: string
+): Promise<{ won: boolean; propertyId: string | null; note: string | null }> {
+  if (!dealId) {
+    return { won: false, propertyId: null, note: "This contract isn't linked to a BD deal, so no hall was created." };
+  }
+
+  const deal = await prisma.acqDeal.findFirst({
+    where: { id: dealId, deletedAt: null },
+    select: { id: true, stage: true, contractStatus: true },
+  });
+  if (!deal) return { won: false, propertyId: null, note: "The source deal no longer exists." };
+
+  // Idempotency: already won — just report the existing property.
+  if (deal.stage === "WON") {
+    const existing = await prisma.acqProperty.findUnique({ where: { dealId }, select: { id: true } });
+    return { won: true, propertyId: existing?.id ?? null, note: null };
+  }
+
+  // Record the executed-agreement evidence the SIGNED gate asks for.
+  const signedUrl = `/api/bd/contracts/${contractId}/pdf`;
+  const hasAgreement = await prisma.acqAttachment.findFirst({
+    where: { dealId, kind: "AGREEMENT" },
+    select: { id: true },
+  });
+  if (!hasAgreement) {
+    await prisma.acqAttachment.create({
+      data: { dealId, kind: "AGREEMENT", label: "Signed agreement (manual)", url: signedUrl, uploadedById: actorId },
+    });
+  }
+  if (deal.contractStatus !== "SIGNED") {
+    await prisma.acqDeal.update({ where: { id: dealId }, data: { contractStatus: "SIGNED" } });
+  }
+
+  // Guarded transitions. CONTRACT_SENT → SIGNED first when needed.
+  if (deal.stage === "CONTRACT_SENT") {
+    const toSigned = await transitionAcqDeal(dealId, "SIGNED", { reason: "Signed contract uploaded" });
+    if (!toSigned.success) {
+      return { won: false, propertyId: null, note: `Contract signed, but the deal couldn't be moved to Signed: ${toSigned.error}` };
+    }
+  }
+
+  const fresh = await prisma.acqDeal.findUnique({ where: { id: dealId }, select: { stage: true } });
+  if (fresh?.stage !== "SIGNED") {
+    return {
+      won: false,
+      propertyId: null,
+      note: `Contract signed. The deal is at ${fresh?.stage ?? "an earlier stage"} — move it to Signed on the deal page to create the hall.`,
+    };
+  }
+
+  const toWon = await transitionAcqDeal(dealId, "WON", { reason: "Signed contract uploaded" });
+  if (!toWon.success) {
+    return { won: false, propertyId: null, note: `Contract signed, but the deal couldn't be won: ${toWon.error}` };
+  }
+  // transitionAcqDeal's WON branch created (or reused) the property via
+  // ensureDealProperty — read it back for the caller's deep link.
+  const property = await prisma.acqProperty.findUnique({ where: { dealId }, select: { id: true } });
+  revalidatePath("/bd/properties");
+  return { won: true, propertyId: property?.id ?? null, note: null };
 }
 
 // Activate (start of operations) and Terminate (with gain/loss).

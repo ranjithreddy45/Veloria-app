@@ -129,3 +129,77 @@ describe("projection lifecycle", () => {
     }
   });
 });
+
+// ============================================================
+// REVENUE_MARGIN runs the SAME lifecycle (shared AcqProjectionModel enum), so
+// the approve/send guards and the PDF url come for free. What this proves is
+// that the enum value round-trips through the DB and that approval freezes a
+// Revenue-Margin grid (gross + separate margin, no opex).
+// ============================================================
+describe("projection lifecycle — REVENUE_MARGIN", () => {
+  const RM_INPUTS = {
+    basePrice: 900,
+    bestPrice: 1200,
+    priceBasis: "PER_PAX" as const,
+    hallCapacity: 500,
+    minimumPax: 100,
+    actualPax: 300,
+    eventsPerMonth: 12,
+  };
+  let rmId: string;
+
+  it("creates a DRAFT with modelType REVENUE_MARGIN", async () => {
+    setActor(headId, "BD_HEAD");
+    const r = await createAcqProjection(dealId, "REVENUE_MARGIN", RM_INPUTS);
+    expect(r.success).toBe(true);
+    if (!r.success) return;
+    rmId = r.data.id;
+    const row = await prisma.acqProjection.findUnique({ where: { id: rmId } });
+    expect(row?.modelType).toBe("REVENUE_MARGIN");
+    // The pax + events ASSUMPTIONS are frozen onto the row, not just the prices.
+    const stored = row?.inputsJson as unknown as typeof RM_INPUTS;
+    expect(stored.actualPax).toBe(300);
+    expect(stored.eventsPerMonth).toBe(12);
+  });
+
+  it("rejects RM inputs that would produce a negative margin", async () => {
+    setActor(headId, "BD_HEAD");
+    const r = await createAcqProjection(dealId, "REVENUE_MARGIN", {
+      ...RM_INPUTS,
+      bestPrice: 500,
+    });
+    expect(r.success).toBe(false);
+    if (!r.success) expect(r.error).toMatch(/negative margin/i);
+  });
+
+  it("approval freezes a gross + margin grid with no opex term", async () => {
+    setActor(headId, "BD_HEAD");
+    expect((await submitAcqProjection(rmId)).success).toBe(true);
+    setActor(adminId, "ADMIN");
+    expect((await approveAcqProjection(rmId)).success).toBe(true);
+
+    const row = await prisma.acqProjection.findUnique({ where: { id: rmId } });
+    expect(row?.status).toBe("APPROVED");
+    expect(row?.pdfUrl).toBe(`/api/bd/projections/${rmId}/pdf`);
+    const grid = row?.outputsJson as unknown as {
+      modelType: string;
+      base: { annualRevenue: number };
+      best: { annualRevenue: number };
+      margin: { annual: number };
+    };
+    expect(grid.modelType).toBe("REVENUE_MARGIN");
+    // 900 × 300 pax × 12 events × 12 months
+    expect(grid.base.annualRevenue).toBe(38880000);
+    expect(grid.best.annualRevenue).toBe(51840000);
+    expect(grid.margin.annual).toBe(12960000);
+    expect(JSON.stringify(grid).toLowerCase()).not.toContain("opex");
+  });
+
+  it("sends from APPROVED like any other projection", async () => {
+    setActor(headId, "BD_HEAD");
+    const r = await sendAcqProjection(rmId, { method: "MANUAL_DOWNLOAD", channel: "in-person" });
+    expect(r.success).toBe(true);
+    const row = await prisma.acqProjection.findUnique({ where: { id: rmId } });
+    expect(row?.status).toBe("SENT");
+  });
+});

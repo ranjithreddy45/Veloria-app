@@ -33,6 +33,7 @@ import {
   updateCrmTaskStatus,
   type CalendarTaskDTO,
 } from "@/actions/crm-task.actions";
+import { markAcqVisitDone } from "@/actions/acq-visit.actions";
 
 // ============================================================
 // Task-type visual config (icon + colour). Kept generous so an
@@ -123,7 +124,13 @@ function TaskRow({
 
   function markDone() {
     startTransition(async () => {
-      const res = await updateCrmTaskStatus(task.id, "DONE");
+      // A BD visit is an AcqSiteVisit, not a CRM Task — sending its id to
+      // updateCrmTaskStatus would fail with "Task not found". `source` is set
+      // only by listAcqVisitsForCalendar.
+      const res =
+        (task as { source?: string }).source === "BD_VISIT"
+          ? await markAcqVisitDone(task.id)
+          : await updateCrmTaskStatus(task.id, "DONE");
       if (res.success) {
         toast.success("Marked done");
         onDone(task.id);

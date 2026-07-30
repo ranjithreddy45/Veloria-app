@@ -14,15 +14,27 @@ import {
 } from "lucide-react";
 
 import {
-  computeProjection,
-  validateProjectionInputs,
+  computeAnyProjection,
+  validateAnyProjectionInputs,
+  isRevenueMarginGrid,
+  asProjectionInputs,
+  asRevenueMarginInputs,
   PROJECTION_CONST,
+  PROJECTION_MODEL_LABEL,
+  type AcqProjectionModelType,
+  type AnyProjectionGrid,
+  type AnyProjectionInputs,
   type ProjectionInputs,
-  type ProjectionModel,
-  type ProjectionGrid,
+  type RevenueMarginInputs,
+  type RmPriceBasis,
   type ProjectionConfig,
   type YearRow,
 } from "@/lib/acq/projection-calc";
+import {
+  ACQ_RM_PRICE_BASIS,
+  ACQ_RM_PRICE_BASIS_LABEL,
+} from "@/lib/acq/constants";
+import { RevenueMarginGridView } from "./revenue-margin-projection";
 import {
   getAcqProjections,
   getAcqProjectionConfig,
@@ -39,7 +51,6 @@ import { StatusPill } from "@/components/shared/status-pill";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import {
   Card,
   CardContent,
@@ -76,7 +87,7 @@ type ProjectionStatus =
 interface ProjectionRow {
   id: string;
   version: number;
-  modelType: ProjectionModel;
+  modelType: AcqProjectionModelType;
   status: ProjectionStatus;
   inputsJson: unknown;
   outputsJson: unknown | null;
@@ -135,35 +146,43 @@ function canApprove(role?: string): boolean {
   return role === "BD_HEAD" || role === "ADMIN" || role === "SUPER_ADMIN";
 }
 
-// Coerce a serialized inputsJson blob into a usable ProjectionInputs.
-function asInputs(raw: unknown): ProjectionInputs {
-  const o = (raw ?? {}) as Record<string, unknown>;
-  const n = (v: unknown): number => (typeof v === "number" ? v : Number(v));
-  return {
-    banquetSizeSft: n(o.banquetSizeSft),
-    seatingCapacity: n(o.seatingCapacity),
-    eventsBaseCase: n(o.eventsBaseCase),
-    eventsBestCase: n(o.eventsBestCase),
-    hourlyHallCharge: o.hourlyHallCharge != null ? n(o.hourlyHallCharge) : undefined,
-    hoursPerEvent: o.hoursPerEvent != null ? n(o.hoursPerEvent) : undefined,
-    perPlateCharge: o.perPlateCharge != null ? n(o.perPlateCharge) : undefined,
-    bestCasePlateUplift: o.bestCasePlateUplift != null ? n(o.bestCasePlateUplift) : undefined,
-  };
-}
+// Pill hue per engine. A Record keyed by the enum: adding a fourth model breaks
+// the build here instead of silently rendering an undefined hue.
+const MODEL_HUE: Record<AcqProjectionModelType, Parameters<typeof StatusPill>[0]["hue"]> = {
+  WITH_FOOD: "violet",
+  WITHOUT_FOOD: "cyan",
+  REVENUE_MARGIN: "amber",
+};
 
 // Resolve a grid for read-only views: prefer the frozen snapshot, else compute
 // (using the DB-resolved config so a non-snapshot preview matches the server).
-function resolveGrid(row: ProjectionRow, cfg: ProjectionConfig = PROJECTION_CONST): ProjectionGrid {
+// computeAnyProjection owns the engine choice — see projection-calc.ts.
+function resolveGrid(
+  row: ProjectionRow,
+  cfg: ProjectionConfig = PROJECTION_CONST
+): AnyProjectionGrid {
   if (row.outputsJson) {
-    return row.outputsJson as ProjectionGrid;
+    return row.outputsJson as AnyProjectionGrid;
   }
-  return computeProjection(row.modelType, asInputs(row.inputsJson), cfg);
+  return computeAnyProjection(row.modelType, row.inputsJson, cfg);
 }
 
-function y1NetReturn(row: ProjectionRow, cfg: ProjectionConfig = PROJECTION_CONST): number | null {
+/**
+ * One-line headline for the versions list. The two models measure different
+ * things: a fee grid's point is the owner's Year-1 net return, a Revenue-Margin
+ * projection's is the annualised gross (never the margin — that is ours).
+ */
+function headline(
+  row: ProjectionRow,
+  cfg: ProjectionConfig = PROJECTION_CONST
+): string | null {
   try {
     const grid = resolveGrid(row, cfg);
-    return grid.base[0]?.netOwnerReturn ?? null;
+    if (isRevenueMarginGrid(grid)) {
+      return `Gross/yr ${fmtMoney(grid.base.annualRevenue)}`;
+    }
+    const net = grid.base[0]?.netOwnerReturn;
+    return net == null ? null : `Y1 net ${fmtMoney(net)}`;
   } catch {
     return null;
   }
@@ -278,7 +297,12 @@ function GridTable({
   );
 }
 
-function ProjectionGridView({ grid }: { grid: ProjectionGrid }) {
+function ProjectionGridView({ grid }: { grid: AnyProjectionGrid }) {
+  // Revenue Margin is a different document: gross headline + separate margin,
+  // no years, no opex. It has its own view (shared with the owner PDF's shape).
+  if (isRevenueMarginGrid(grid)) {
+    return <RevenueMarginGridView grid={grid} />;
+  }
   const withFood = grid.modelType === "WITH_FOOD";
   return (
     <div className="space-y-5">
@@ -301,12 +325,33 @@ type View =
   | { kind: "create" }
   | { kind: "open"; row: ProjectionRow };
 
+/**
+ * Deal-derived starting values for a Revenue-Margin draft. They are only SEED
+ * values: whatever sits in the builder when it saves is what gets frozen into
+ * inputsJson, so an approved projection stays reproducible even after the deal's
+ * economics or expected volume change.
+ */
+export interface RmProjectionDefaults {
+  basePrice: number | null;
+  bestPrice: number | null;
+  priceBasis: RmPriceBasis;
+  hallCapacity: number | null;
+  minimumPax: number | null;
+  eventsPerMonth: number | null;
+  expectedPax: number | null;
+}
+
 export function ProjectionTab({
   dealId,
   userRole,
+  dealModel,
+  rmDefaults,
 }: {
   dealId: string;
   userRole?: string;
+  /** The deal's commercial model — preselects the matching projection engine. */
+  dealModel?: string | null;
+  rmDefaults?: RmProjectionDefaults;
 }) {
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<ProjectionRow[]>([]);
@@ -379,6 +424,8 @@ export function ProjectionTab({
         dealId={dealId}
         existing={null}
         cfg={cfg}
+        dealModel={dealModel}
+        rmDefaults={rmDefaults}
         onBack={() => setView({ kind: "list" })}
         onSaved={(id) => reloadAndStay(id)}
       />
@@ -392,6 +439,8 @@ export function ProjectionTab({
         dealId={dealId}
         userRole={userRole}
         cfg={cfg}
+        dealModel={dealModel}
+        rmDefaults={rmDefaults}
         onBack={() => reloadAndStay()}
         onReload={(id) => reloadAndStay(id ?? view.row.id)}
       />
@@ -405,7 +454,11 @@ export function ProjectionTab({
         <div className="flex items-center justify-between gap-3">
           <div>
             <CardTitle className="text-[13px] tracking-[-0.01em]">Owner Projection</CardTitle>
-            <CardDescription>3-year indicative revenue projection.</CardDescription>
+            <CardDescription>
+              {dealModel === "REVENUE_MARGIN"
+                ? "Indicative revenue projection — approve, then send to the owner."
+                : "3-year indicative revenue projection."}
+            </CardDescription>
           </div>
           {rows.length > 0 && (
             <Button size="sm" onClick={() => setView({ kind: "create" })}>
@@ -425,7 +478,7 @@ export function ProjectionTab({
         ) : (
           <ul className="space-y-2">
             {rows.map((row) => {
-              const net = y1NetReturn(row, cfg);
+              const head = headline(row, cfg);
               return (
                 <li key={row.id}>
                   <button
@@ -438,8 +491,8 @@ export function ProjectionTab({
                         v{row.version}
                       </span>
                       <StatusPill
-                        label={row.modelType === "WITH_FOOD" ? "With Food" : "Hall-Only"}
-                        hue={row.modelType === "WITH_FOOD" ? "violet" : "cyan"}
+                        label={PROJECTION_MODEL_LABEL[row.modelType]}
+                        hue={MODEL_HUE[row.modelType]}
                         size="xs"
                       />
                       <StatusPill
@@ -449,10 +502,8 @@ export function ProjectionTab({
                       />
                     </div>
                     <div className="flex shrink-0 items-center gap-4 text-[11.5px] text-muted-foreground">
-                      {net != null && (
-                        <span className="text-foreground">
-                          Y1 net {fmtMoney(net)}
-                        </span>
+                      {head != null && (
+                        <span className="text-foreground">{head}</span>
                       )}
                       <span>
                         {row.sentAt
@@ -474,6 +525,8 @@ export function ProjectionTab({
 // ============================================================
 // Builder (create or edit DRAFT)
 // ============================================================
+// One flat form covering all three engines; only the active model's fields are
+// rendered, and only its fields are turned into inputs.
 interface FormState {
   seatingCapacity: string;
   banquetSizeSft: string;
@@ -483,9 +536,23 @@ interface FormState {
   hoursPerEvent: string;
   perPlateCharge: string;
   bestCasePlateUplift: string;
+  // REVENUE_MARGIN
+  rmBasePrice: string;
+  rmBestPrice: string;
+  rmPriceBasis: RmPriceBasis;
+  rmHallCapacity: string;
+  rmMinimumPax: string;
+  rmExpectedPax: string;
+  rmEventsPerMonth: string;
 }
 
-function emptyForm(model: ProjectionModel): FormState {
+const str = (v: number | null | undefined): string =>
+  v == null || Number.isNaN(v) ? "" : String(v);
+
+function emptyForm(
+  model: AcqProjectionModelType,
+  rm?: RmProjectionDefaults
+): FormState {
   return {
     seatingCapacity: "",
     banquetSizeSft: "",
@@ -495,27 +562,71 @@ function emptyForm(model: ProjectionModel): FormState {
     hoursPerEvent: model === "WITHOUT_FOOD" ? String(HOURS_PER_EVENT_DEFAULT) : "",
     perPlateCharge: "",
     bestCasePlateUplift: model === "WITH_FOOD" ? String(BEST_CASE_UPLIFT_DEFAULT) : "",
+    // Seeded from the deal's agreed economics; editable, and whatever is here at
+    // save time is frozen into inputsJson.
+    rmBasePrice: str(rm?.basePrice),
+    rmBestPrice: str(rm?.bestPrice),
+    rmPriceBasis: rm?.priceBasis ?? "PER_EVENT",
+    rmHallCapacity: str(rm?.hallCapacity),
+    rmMinimumPax: str(rm?.minimumPax),
+    rmExpectedPax: str(rm?.expectedPax),
+    rmEventsPerMonth: str(rm?.eventsPerMonth),
   };
 }
 
-function formFromInputs(raw: unknown): FormState {
-  const i = asInputs(raw);
-  const s = (v: number | undefined): string =>
-    v == null || Number.isNaN(v) ? "" : String(v);
+function formFromInputs(
+  model: AcqProjectionModelType,
+  raw: unknown,
+  rm?: RmProjectionDefaults
+): FormState {
+  const base = emptyForm(model, rm);
+  if (model === "REVENUE_MARGIN") {
+    // Edit the STORED assumptions, never the deal's current values — otherwise
+    // reopening a draft would silently re-baseline it.
+    const i = asRevenueMarginInputs(raw);
+    return {
+      ...base,
+      rmBasePrice: str(i.basePrice),
+      rmBestPrice: str(i.bestPrice),
+      rmPriceBasis: i.priceBasis,
+      rmHallCapacity: str(i.hallCapacity),
+      rmMinimumPax: str(i.minimumPax),
+      rmExpectedPax: str(i.actualPax),
+      rmEventsPerMonth: str(i.eventsPerMonth),
+    };
+  }
+  const i = asProjectionInputs(raw);
   return {
-    seatingCapacity: s(i.seatingCapacity),
-    banquetSizeSft: s(i.banquetSizeSft),
-    eventsBaseCase: s(i.eventsBaseCase),
-    eventsBestCase: s(i.eventsBestCase),
-    hourlyHallCharge: s(i.hourlyHallCharge),
-    hoursPerEvent: s(i.hoursPerEvent),
-    perPlateCharge: s(i.perPlateCharge),
-    bestCasePlateUplift: s(i.bestCasePlateUplift),
+    ...base,
+    seatingCapacity: str(i.seatingCapacity),
+    banquetSizeSft: str(i.banquetSizeSft),
+    eventsBaseCase: str(i.eventsBaseCase),
+    eventsBestCase: str(i.eventsBestCase),
+    hourlyHallCharge: str(i.hourlyHallCharge),
+    hoursPerEvent: str(i.hoursPerEvent),
+    perPlateCharge: str(i.perPlateCharge),
+    bestCasePlateUplift: str(i.bestCasePlateUplift),
   };
 }
 
-function toInputs(model: ProjectionModel, f: FormState): ProjectionInputs {
+function toInputs(model: AcqProjectionModelType, f: FormState): AnyProjectionInputs {
   const n = (v: string): number => (v.trim() === "" ? NaN : Number(v));
+  const nOrNull = (v: string): number | null => (v.trim() === "" ? null : Number(v));
+
+  if (model === "REVENUE_MARGIN") {
+    // Everything the engine needs is captured here — including the pax and
+    // events/month assumptions — so the frozen snapshot is reproducible.
+    return {
+      basePrice: n(f.rmBasePrice),
+      bestPrice: n(f.rmBestPrice),
+      priceBasis: f.rmPriceBasis,
+      hallCapacity: nOrNull(f.rmHallCapacity),
+      minimumPax: f.rmPriceBasis === "PER_PAX" ? nOrNull(f.rmMinimumPax) : null,
+      actualPax: f.rmPriceBasis === "PER_PAX" ? nOrNull(f.rmExpectedPax) : null,
+      eventsPerMonth: n(f.rmEventsPerMonth),
+    } satisfies RevenueMarginInputs;
+  }
+
   const base: ProjectionInputs = {
     seatingCapacity: n(f.seatingCapacity),
     banquetSizeSft: n(f.banquetSizeSft),
@@ -538,20 +649,28 @@ function Builder({
   dealId,
   existing,
   cfg = PROJECTION_CONST,
+  dealModel,
+  rmDefaults,
   onBack,
   onSaved,
 }: {
   dealId: string;
   existing: ProjectionRow | null;
   cfg?: ProjectionConfig;
+  dealModel?: string | null;
+  rmDefaults?: RmProjectionDefaults;
   onBack: () => void;
   onSaved: (id: string) => void;
 }) {
-  const [model, setModel] = useState<ProjectionModel>(
-    existing?.modelType ?? "WITHOUT_FOOD"
-  );
+  // A Revenue-Margin deal opens on the Revenue-Margin engine; the model of an
+  // existing draft always wins (it is already persisted on the row).
+  const initialModel: AcqProjectionModelType =
+    existing?.modelType ?? (dealModel === "REVENUE_MARGIN" ? "REVENUE_MARGIN" : "WITHOUT_FOOD");
+  const [model, setModel] = useState<AcqProjectionModelType>(initialModel);
   const [form, setForm] = useState<FormState>(() =>
-    existing ? formFromInputs(existing.inputsJson) : emptyForm("WITHOUT_FOOD")
+    existing
+      ? formFromInputs(existing.modelType, existing.inputsJson, rmDefaults)
+      : emptyForm(initialModel, rmDefaults)
   );
   const [dirty, setDirty] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
@@ -563,8 +682,7 @@ function Builder({
     setDirty(true);
   };
 
-  const onModelChange = (on: boolean) => {
-    const next: ProjectionModel = on ? "WITH_FOOD" : "WITHOUT_FOOD";
+  const onModelChange = (next: AcqProjectionModelType) => {
     setModel(next);
     // Re-seed model-specific defaults while keeping shared values.
     setForm((f) => ({
@@ -587,12 +705,12 @@ function Builder({
 
   const inputs = useMemo(() => toInputs(model, form), [model, form]);
   const errors = useMemo(
-    () => validateProjectionInputs(model, inputs),
+    () => validateAnyProjectionInputs(model, inputs),
     [model, inputs]
   );
   const valid = errors.length === 0;
   const grid = useMemo(
-    () => (valid ? computeProjection(model, inputs, cfg) : null),
+    () => (valid ? computeAnyProjection(model, inputs, cfg) : null),
     [valid, model, inputs, cfg]
   );
 
@@ -677,65 +795,149 @@ function Builder({
           </div>
         )}
 
-        <div className="flex items-center justify-between rounded-md border border-border/60 p-3">
-          <div className="space-y-0.5">
-            <Label className="text-[13px]">Owner has in-house restaurant?</Label>
-            <p className="text-[11.5px] text-muted-foreground">
-              On = With Food model · Off = Hall-Only
-            </p>
-          </div>
-          <Switch checked={model === "WITH_FOOD"} onCheckedChange={onModelChange} />
+        {/* Engine picker. The model is fixed once a draft exists (it is a column
+            on the row, and the stored inputs belong to that engine). */}
+        <div className="space-y-1.5 rounded-md border border-border/60 p-3">
+          <Label className="text-[13px]">Projection model</Label>
+          <Select
+            value={model}
+            onValueChange={(v) => onModelChange(v as AcqProjectionModelType)}
+            disabled={isDraftEdit}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="WITHOUT_FOOD">
+                {PROJECTION_MODEL_LABEL.WITHOUT_FOOD} — hall only, management fee
+              </SelectItem>
+              <SelectItem value="WITH_FOOD">
+                {PROJECTION_MODEL_LABEL.WITH_FOOD} — owner supplies catering
+              </SelectItem>
+              <SelectItem value="REVENUE_MARGIN">
+                {PROJECTION_MODEL_LABEL.REVENUE_MARGIN} — guaranteed price + spread
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-[11.5px] text-muted-foreground">
+            {model === "REVENUE_MARGIN"
+              ? "Gross event value at the guaranteed and expected prices. No operating expenses."
+              : "3-year grid with operating expenses and the management fee."}
+            {isDraftEdit && " The model can't change on an existing version — create a new one."}
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <NumField
-            label="Seating capacity"
-            value={form.seatingCapacity}
-            onChange={(v) => set("seatingCapacity", v)}
-          />
-          <NumField
-            label="Banquet size (sft)"
-            value={form.banquetSizeSft}
-            onChange={(v) => set("banquetSizeSft", v)}
-          />
-          <NumField
-            label="Events / month (base case)"
-            value={form.eventsBaseCase}
-            onChange={(v) => set("eventsBaseCase", v)}
-          />
-          <NumField
-            label="Events / month (best case)"
-            value={form.eventsBestCase}
-            onChange={(v) => set("eventsBestCase", v)}
-          />
-          {model === "WITHOUT_FOOD" ? (
-            <>
-              <NumField
-                label="Hourly hall charge"
-                value={form.hourlyHallCharge}
-                onChange={(v) => set("hourlyHallCharge", v)}
-              />
-              <NumField
-                label="Hours per event"
-                value={form.hoursPerEvent}
-                onChange={(v) => set("hoursPerEvent", v)}
-              />
-            </>
-          ) : (
-            <>
-              <NumField
-                label="Per-plate charge"
-                value={form.perPlateCharge}
-                onChange={(v) => set("perPlateCharge", v)}
-              />
-              <NumField
-                label="Best-case plate uplift"
-                value={form.bestCasePlateUplift}
-                onChange={(v) => set("bestCasePlateUplift", v)}
-              />
-            </>
-          )}
-        </div>
+        {model === "REVENUE_MARGIN" ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>Price basis</Label>
+              <Select
+                value={form.rmPriceBasis}
+                onValueChange={(v) => set("rmPriceBasis", v)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ACQ_RM_PRICE_BASIS.map((b) => (
+                    <SelectItem key={b} value={b}>
+                      {ACQ_RM_PRICE_BASIS_LABEL[b]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <NumField
+              label="Base price (₹, owner guaranteed)"
+              value={form.rmBasePrice}
+              onChange={(v) => set("rmBasePrice", v)}
+            />
+            <NumField
+              label="Best price (₹, expected sell)"
+              value={form.rmBestPrice}
+              onChange={(v) => set("rmBestPrice", v)}
+            />
+            <NumField
+              label="Hall capacity (pax)"
+              value={form.rmHallCapacity}
+              onChange={(v) => set("rmHallCapacity", v)}
+            />
+            {form.rmPriceBasis === "PER_PAX" && (
+              <>
+                <NumField
+                  label="Minimum pax (billable floor)"
+                  value={form.rmMinimumPax}
+                  onChange={(v) => set("rmMinimumPax", v)}
+                />
+                <NumField
+                  label="Expected pax / event"
+                  value={form.rmExpectedPax}
+                  onChange={(v) => set("rmExpectedPax", v)}
+                />
+              </>
+            )}
+            <NumField
+              label="Events / month"
+              value={form.rmEventsPerMonth}
+              onChange={(v) => set("rmEventsPerMonth", v)}
+            />
+            <p className="text-[11.5px] text-muted-foreground sm:col-span-2">
+              Seeded from the deal&apos;s agreed economics. These exact numbers are
+              frozen onto the projection when you save, so an approved version
+              stays reproducible even if the deal changes later.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <NumField
+              label="Seating capacity"
+              value={form.seatingCapacity}
+              onChange={(v) => set("seatingCapacity", v)}
+            />
+            <NumField
+              label="Banquet size (sft)"
+              value={form.banquetSizeSft}
+              onChange={(v) => set("banquetSizeSft", v)}
+            />
+            <NumField
+              label="Events / month (base case)"
+              value={form.eventsBaseCase}
+              onChange={(v) => set("eventsBaseCase", v)}
+            />
+            <NumField
+              label="Events / month (best case)"
+              value={form.eventsBestCase}
+              onChange={(v) => set("eventsBestCase", v)}
+            />
+            {model === "WITHOUT_FOOD" ? (
+              <>
+                <NumField
+                  label="Hourly hall charge"
+                  value={form.hourlyHallCharge}
+                  onChange={(v) => set("hourlyHallCharge", v)}
+                />
+                <NumField
+                  label="Hours per event"
+                  value={form.hoursPerEvent}
+                  onChange={(v) => set("hoursPerEvent", v)}
+                />
+              </>
+            ) : (
+              <>
+                <NumField
+                  label="Per-plate charge"
+                  value={form.perPlateCharge}
+                  onChange={(v) => set("perPlateCharge", v)}
+                />
+                <NumField
+                  label="Best-case plate uplift"
+                  value={form.bestCasePlateUplift}
+                  onChange={(v) => set("bestCasePlateUplift", v)}
+                />
+              </>
+            )}
+          </div>
+        )}
 
         {!valid && (
           <ul className="space-y-1 rounded-md border border-rose-200 bg-rose-50 p-3 text-[12px] text-rose-700">
@@ -791,6 +993,8 @@ function OpenProjection({
   dealId,
   userRole,
   cfg = PROJECTION_CONST,
+  dealModel,
+  rmDefaults,
   onBack,
   onReload,
 }: {
@@ -798,6 +1002,8 @@ function OpenProjection({
   dealId: string;
   userRole?: string;
   cfg?: ProjectionConfig;
+  dealModel?: string | null;
+  rmDefaults?: RmProjectionDefaults;
   onBack: () => void;
   onReload: (id?: string) => void;
 }) {
@@ -807,6 +1013,8 @@ function OpenProjection({
         dealId={dealId}
         existing={row}
         cfg={cfg}
+        dealModel={dealModel}
+        rmDefaults={rmDefaults}
         onBack={onBack}
         onSaved={(id) => onReload(id)}
       />
@@ -827,8 +1035,8 @@ function OpenProjection({
           <div className="flex items-center gap-2">
             <CardTitle className="text-[13px] tracking-[-0.01em]">Projection v{row.version}</CardTitle>
             <StatusPill
-              label={row.modelType === "WITH_FOOD" ? "With Food" : "Hall-Only"}
-              hue={row.modelType === "WITH_FOOD" ? "violet" : "cyan"}
+              label={PROJECTION_MODEL_LABEL[row.modelType]}
+              hue={MODEL_HUE[row.modelType]}
               size="xs"
             />
             <StatusPill

@@ -26,6 +26,17 @@ interface VenueOption {
   name: string;
 }
 
+/**
+ * Local-time "YYYY-MM-DD" for a date input's `min`. NOT toISOString(): that is
+ * UTC, and the browser reads `min` as local wall-clock — in IST (UTC+5:30) a
+ * UTC-derived min lets guests pick a date that is already past.
+ */
+function todayLocal(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 export function BookingForm({ venues }: { venues: VenueOption[] }) {
   const params = useSearchParams();
   const prefillVenueId = params.get("venueId") ?? "";
@@ -180,7 +191,7 @@ export function BookingForm({ venues }: { venues: VenueOption[] }) {
             <input
               className={inputClass}
               type="date"
-              min={new Date().toISOString().slice(0, 10)}
+              min={todayLocal()}
               value={form.eventDate}
               onChange={(e) => update("eventDate", e.target.value)}
             />

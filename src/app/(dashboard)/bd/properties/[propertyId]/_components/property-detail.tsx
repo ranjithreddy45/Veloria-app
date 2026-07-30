@@ -5,10 +5,13 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
+  AlertTriangle,
   Building2,
   CheckCircle2,
+  FileText,
   ImageIcon,
   Megaphone,
+  ShieldCheck,
   UserCog,
   ArrowUpRight,
   Loader2,
@@ -17,10 +20,14 @@ import {
   setAcqOnboardingTaskDone,
   assignPropertyManager,
   markPropertyAvailable,
+  upsertAcqPropertyDocument,
+  removeAcqPropertyDocument,
 } from "@/actions/acq-property.actions";
 import { StatusPill } from "@/components/shared/status-pill";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { FileUpload } from "@/components/ui/file-upload";
 import {
   Card,
   CardContent,
@@ -60,6 +67,13 @@ export interface AcqPropertyDetail {
   availableAt: string | null;
   propertyManagerId: string | null;
   propertyManager?: { id: string; name: string | null } | null;
+  // Statutory documents (item 15) — file, number and expiry per certificate.
+  tradeLicenseUrl?: string | null;
+  tradeLicenseNumber?: string | null;
+  tradeLicenseExpiry?: string | null;
+  fssaiCertificateUrl?: string | null;
+  fssaiNumber?: string | null;
+  fssaiExpiry?: string | null;
   deal?: {
     id: string;
     name: string;
@@ -255,6 +269,9 @@ export function PropertyDetail({ property, managers, userRole }: PropertyDetailP
 
       {/* Property images — pulled from the deal's PHOTO attachments. */}
       <PropertyPhotos deal={property.deal} />
+
+      {/* Statutory documents — Trade licence + FSSAI certificate (item 15). */}
+      <PropertyStatutoryDocs property={property} canEdit={canOnboard} />
 
       {/* Sales-notification banner */}
       <div className="flex items-start gap-3 rounded-xl border border-amber-200/80 bg-amber-50 px-4 py-3 dark:border-amber-900/50 dark:bg-amber-950/30">
@@ -475,6 +492,253 @@ function PropertyPhotos({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+// ============================================================
+// Item 15 — statutory documents: Trade licence + FSSAI certificate.
+// Each row holds the file, its number and its expiry, and flags expiry state
+// with the semantic --warning / --destructive tokens so a lapsed licence is
+// impossible to miss.
+// ============================================================
+
+const EXPIRY_SOON_DAYS = 30;
+
+/**
+ * Expiry is a CALENDAR date the server stores anchored at UTC noon
+ * (see parseCalendarDate in acq-property.actions). Read it back through UTC
+ * parts so the date shown is exactly the date typed, whatever the viewer's
+ * offset — slicing a local-rendered date would drift by a day.
+ */
+function toDateInputValue(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}`;
+}
+
+function fmtCalendarDate(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  // timeZone "UTC" for the same reason as above: the stored anchor is UTC noon.
+  return d.toLocaleDateString(undefined, { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" });
+}
+
+type ExpiryState = { kind: "missing" | "no-expiry" | "valid" | "soon" | "expired"; days: number | null };
+
+function expiryState(url: string | null | undefined, expiry: string | null | undefined): ExpiryState {
+  if (!url) return { kind: "missing", days: null };
+  if (!expiry) return { kind: "no-expiry", days: null };
+  const d = new Date(expiry);
+  if (Number.isNaN(d.getTime())) return { kind: "no-expiry", days: null };
+  const days = Math.floor((d.getTime() - Date.now()) / 86_400_000);
+  if (days < 0) return { kind: "expired", days };
+  if (days <= EXPIRY_SOON_DAYS) return { kind: "soon", days };
+  return { kind: "valid", days };
+}
+
+function PropertyStatutoryDocs({
+  property,
+  canEdit,
+}: {
+  property: AcqPropertyDetail;
+  canEdit: boolean;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-[13px] tracking-[-0.01em]">
+          <ShieldCheck className="size-4 text-muted-foreground" />
+          Statutory documents
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="grid gap-4 lg:grid-cols-2">
+        <StatutoryDocRow
+          propertyId={property.id}
+          kind="TRADE_LICENSE"
+          title="Trade licence"
+          numberLabel="Licence number"
+          url={property.tradeLicenseUrl ?? null}
+          number={property.tradeLicenseNumber ?? null}
+          expiry={property.tradeLicenseExpiry ?? null}
+          canEdit={canEdit}
+        />
+        <StatutoryDocRow
+          propertyId={property.id}
+          kind="FSSAI"
+          title="FSSAI certificate"
+          numberLabel="FSSAI number"
+          url={property.fssaiCertificateUrl ?? null}
+          number={property.fssaiNumber ?? null}
+          expiry={property.fssaiExpiry ?? null}
+          canEdit={canEdit}
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
+function StatutoryDocRow({
+  propertyId,
+  kind,
+  title,
+  numberLabel,
+  url,
+  number,
+  expiry,
+  canEdit,
+}: {
+  propertyId: string;
+  kind: "TRADE_LICENSE" | "FSSAI";
+  title: string;
+  numberLabel: string;
+  url: string | null;
+  number: string | null;
+  expiry: string | null;
+  canEdit: boolean;
+}) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [num, setNum] = useState(number ?? "");
+  const [exp, setExp] = useState(toDateInputValue(expiry));
+
+  const state = expiryState(url, expiry);
+  const dirty = (num ?? "") !== (number ?? "") || exp !== toDateInputValue(expiry);
+
+  async function save(patch: { url?: string; number?: string | null; expiry?: string | null }) {
+    setBusy(true);
+    try {
+      const res = await upsertAcqPropertyDocument(propertyId, kind, patch);
+      if (!res.success) {
+        toast.error(res.error ?? "Could not save the document.");
+        return;
+      }
+      toast.success(`${title} updated`);
+      router.refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onUploaded(dataUrl: string) {
+    await save({ url: dataUrl, number: num || null, expiry: exp || null });
+  }
+
+  async function remove() {
+    if (!window.confirm(`Remove the ${title.toLowerCase()} and its details?`)) return;
+    setBusy(true);
+    try {
+      const res = await removeAcqPropertyDocument(propertyId, kind);
+      if (!res.success) {
+        toast.error(res.error ?? "Could not remove the document.");
+        return;
+      }
+      setNum("");
+      setExp("");
+      toast.success(`${title} removed`);
+      router.refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-border/60 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-[13px] font-medium text-foreground">{title}</span>
+        {state.kind === "missing" && (
+          <span className="text-[11.5px] font-medium text-muted-foreground">Not uploaded</span>
+        )}
+        {state.kind === "no-expiry" && (
+          <span className="text-[11.5px] font-medium text-warning">No expiry recorded</span>
+        )}
+        {state.kind === "valid" && (
+          <span className="text-[11.5px] font-medium text-muted-foreground">
+            Valid until {fmtCalendarDate(expiry)}
+          </span>
+        )}
+        {state.kind === "soon" && (
+          <span className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-warning">
+            <AlertTriangle className="size-3.5" />
+            Expires in {state.days} day{state.days === 1 ? "" : "s"}
+          </span>
+        )}
+        {state.kind === "expired" && (
+          <span className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-destructive">
+            <AlertTriangle className="size-3.5" />
+            Expired {fmtCalendarDate(expiry)}
+          </span>
+        )}
+      </div>
+
+      {url ? (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex w-fit items-center gap-1 text-[12.5px] font-medium text-primary hover:underline"
+        >
+          <FileText className="size-3.5" />
+          View document
+        </a>
+      ) : (
+        <p className="text-[12px] text-muted-foreground">
+          Upload the certificate as a PDF or image, and record its number and expiry.
+        </p>
+      )}
+
+      <div className="grid gap-2 sm:grid-cols-2">
+        <div className="flex flex-col gap-1">
+          <label className="text-[11px] uppercase tracking-[0.04em] text-muted-foreground">{numberLabel}</label>
+          <Input
+            value={num}
+            onChange={(e) => setNum(e.target.value)}
+            placeholder="e.g. TL/2026/00123"
+            disabled={!canEdit || busy}
+            className="h-8 text-[12.5px]"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-[11px] uppercase tracking-[0.04em] text-muted-foreground">Expiry date</label>
+          <Input
+            type="date"
+            value={exp}
+            onChange={(e) => setExp(e.target.value)}
+            disabled={!canEdit || busy}
+            className="h-8 text-[12.5px]"
+          />
+        </div>
+      </div>
+
+      {canEdit && (
+        <div className="flex flex-wrap items-center gap-2">
+          <FileUpload
+            onUploaded={onUploaded}
+            label={url ? "Replace file" : "Upload file"}
+            disabled={busy}
+          />
+          {dirty && (
+            <Button size="sm" onClick={() => save({ number: num || null, expiry: exp || null })} disabled={busy}>
+              {busy && <Loader2 className="size-3.5 animate-spin" />}
+              Save details
+            </Button>
+          )}
+          {url && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-destructive hover:text-destructive"
+              onClick={remove}
+              disabled={busy}
+            >
+              Remove
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 

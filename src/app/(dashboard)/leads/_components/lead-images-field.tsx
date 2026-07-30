@@ -14,6 +14,24 @@ import { toast } from "sonner";
 import { FileUpload } from "@/components/ui/file-upload";
 import { isSafeReceiptDataUrl } from "@/lib/sales/receipt";
 
+// HEIC/HEIF is the iPhone camera default and is NOT in the app's accepted
+// data-URL formats, so it must be called out by name — otherwise the user picks
+// their photos, the save reports success, and the images are simply gone.
+function isHeicLike(file: File | undefined): boolean {
+  if (!file) return false;
+  return (
+    /\.(heic|heif)$/i.test(file.name) || /^image\/hei[cf]/i.test(file.type)
+  );
+}
+
+function rejectionMessage(file: File | undefined): string {
+  const name = file?.name || "That file";
+  if (isHeicLike(file)) {
+    return `${name} isn't a supported image format. iPhone photos: turn on Settings → Camera → Formats → Most Compatible, or share the photo to convert it to JPEG.`;
+  }
+  return `${name} isn't a supported image format. Please use JPEG, PNG, WebP or GIF.`;
+}
+
 export function LeadImagesField({
   value,
   onChange,
@@ -21,14 +39,23 @@ export function LeadImagesField({
   value: string[];
   onChange: (images: string[]) => void;
 }) {
-  function handleUploaded(dataUrl: string) {
-    // Reuse the app's data-URL safety check (image/PDF only). PDFs won't render
-    // as a thumbnail but are harmless; we only accept image data-URLs here.
-    if (!isSafeReceiptDataUrl(dataUrl) || !dataUrl.startsWith("data:image/")) {
-      toast.error("Only image files are supported.");
-      return;
-    }
-    onChange([...value, dataUrl]);
+  function handleUploadedMany(dataUrls: string[], files: File[]) {
+    // Validate with the SAME gate the server action applies (isSafeReceiptDataUrl,
+    // image data-URLs only). Rejecting here is the only place the user can hear
+    // about it: server-side the unsupported entry is filtered out and the save
+    // still reports success, so the photos vanish without a word.
+    const accepted: string[] = [];
+    dataUrls.forEach((dataUrl, i) => {
+      if (isSafeReceiptDataUrl(dataUrl) && dataUrl.startsWith("data:image/")) {
+        accepted.push(dataUrl);
+        return;
+      }
+      toast.error(rejectionMessage(files[i]), { duration: 8000 });
+    });
+    if (accepted.length === 0) return;
+    // ONE onChange for the whole batch — appending per image would re-read the
+    // same stale `value` each time and keep only the last one.
+    onChange([...value, ...accepted]);
   }
 
   function remove(idx: number) {
@@ -39,15 +66,26 @@ export function LeadImagesField({
     <div className="sm:col-span-2 space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium">Images</p>
+          <p className="text-sm font-medium">
+            Images
+            {value.length > 0 && (
+              <span className="text-muted-foreground ml-1.5 font-normal">
+                ({value.length} {value.length === 1 ? "image" : "images"})
+              </span>
+            )}
+          </p>
           <p className="text-muted-foreground text-xs">
-            Reference photos, venue shots, mood boards.
+            Reference photos, venue shots, mood boards. Pick several at once.
           </p>
         </div>
+        {/* HEIC/HEIF is listed in `accept` on purpose: iOS otherwise hides those
+            files from the picker, so the user sees an empty photo list and
+            assumes the app is broken instead of getting the explanatory toast. */}
         <FileUpload
-          accept="image/png,image/jpeg,image/webp"
-          label="Add image"
-          onUploaded={handleUploaded}
+          accept="image/png,image/jpeg,image/webp,image/gif,image/heic,image/heif"
+          label="Add images"
+          multiple
+          onUploadedMany={handleUploadedMany}
         />
       </div>
 

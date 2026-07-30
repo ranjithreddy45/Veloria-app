@@ -4,8 +4,18 @@ import {
   withoutFoodOpexY1,
   withFoodOpexY1,
   validateProjectionInputs,
+  computeRevenueMarginProjection,
+  validateRevenueMarginInputs,
+  effectiveRmPax,
+  computeAnyProjection,
+  validateAnyProjectionInputs,
+  asRevenueMarginInputs,
+  asProjectionInputs,
+  isRevenueMarginGrid,
+  PROJECTION_MODEL_LABEL,
   PROJECTION_CONST,
   type ProjectionInputs,
+  type RevenueMarginInputs,
 } from "./projection-calc";
 
 // ============================================================
@@ -167,5 +177,272 @@ describe("guards", () => {
     expect(validateProjectionInputs("WITHOUT_FOOD", { seatingCapacity: 100, banquetSizeSft: 1500, eventsBaseCase: 20, eventsBestCase: 25, hourlyHallCharge: 6999, hoursPerEvent: 4 })).toEqual([]);
     expect(validateProjectionInputs("WITH_FOOD", { seatingCapacity: 150, banquetSizeSft: 2500, eventsBaseCase: 25, eventsBestCase: 25, perPlateCharge: 699 })).toEqual([]);
     expect(validateProjectionInputs("WITH_FOOD", { seatingCapacity: 0 }).length).toBeGreaterThan(0);
+  });
+});
+
+// ============================================================
+// REVENUE MARGIN model — headline gross + separate margin line, no opex.
+// ============================================================
+describe("REVENUE_MARGIN — per-event basis", () => {
+  const i: RevenueMarginInputs = {
+    basePrice: 100000,
+    bestPrice: 130000,
+    priceBasis: "PER_EVENT",
+    eventsPerMonth: 10,
+  };
+
+  it("pax is NOT a multiplier: gross = price × events × 12", () => {
+    const g = computeRevenueMarginProjection(i);
+    expect(g.effectivePax).toBe(1);
+    expect(g.paxBinding).toBe("PER_EVENT");
+    expect(g.base.revenuePerEvent).toBe(100000);
+    expect(g.base.monthlyRevenue).toBe(1000000); // 100000 × 10
+    expect(g.base.annualRevenue).toBe(12000000); // × 12
+    expect(g.best.annualRevenue).toBe(15600000); // 130000 × 10 × 12
+  });
+
+  it("ignores hall capacity / minimum pax on a per-event basis", () => {
+    const withPaxNoise = computeRevenueMarginProjection({
+      ...i, hallCapacity: 200, minimumPax: 150, actualPax: 400,
+    });
+    expect(withPaxNoise.effectivePax).toBe(1);
+    expect(withPaxNoise.base.annualRevenue).toBe(12000000);
+  });
+
+  it("margin is the spread only, never the gross", () => {
+    const g = computeRevenueMarginProjection(i);
+    expect(g.margin.spreadPerUnit).toBe(30000);
+    expect(g.margin.perEvent).toBe(30000);
+    expect(g.margin.monthly).toBe(300000);
+    expect(g.margin.annual).toBe(3600000); // (130000 − 100000) × 1 × 10 × 12
+    // The two headline cases differ by exactly the annual margin.
+    expect(g.best.annualRevenue - g.base.annualRevenue).toBe(g.margin.annual);
+  });
+});
+
+describe("REVENUE_MARGIN — per-pax basis", () => {
+  const i: RevenueMarginInputs = {
+    basePrice: 900,
+    bestPrice: 1200,
+    priceBasis: "PER_PAX",
+    hallCapacity: 500,
+    minimumPax: 100,
+    actualPax: 300,
+    eventsPerMonth: 12,
+  };
+
+  it("gross = price × pax × events × 12 with pax as a real multiplier", () => {
+    const g = computeRevenueMarginProjection(i);
+    expect(g.effectivePax).toBe(300);
+    expect(g.paxBinding).toBe("ACTUAL");
+    expect(g.base.revenuePerEvent).toBe(270000); // 900 × 300
+    expect(g.base.annualRevenue).toBe(38880000); // 900 × 300 × 12 × 12
+    expect(g.best.annualRevenue).toBe(51840000); // 1200 × 300 × 12 × 12
+  });
+
+  it("minimum-pax floor binds when actual pax is below it", () => {
+    const g = computeRevenueMarginProjection({ ...i, actualPax: 60 });
+    expect(g.effectivePax).toBe(100); // floored up to the minimum
+    expect(g.paxBinding).toBe("MINIMUM");
+    expect(g.base.revenuePerEvent).toBe(90000); // 900 × 100
+    expect(g.base.annualRevenue).toBe(12960000);
+  });
+
+  it("hall-capacity cap binds when actual pax exceeds it", () => {
+    const g = computeRevenueMarginProjection({ ...i, actualPax: 900 });
+    expect(g.effectivePax).toBe(500); // capped at capacity
+    expect(g.paxBinding).toBe("CAPACITY");
+    expect(g.base.revenuePerEvent).toBe(450000); // 900 × 500
+    expect(g.base.annualRevenue).toBe(64800000);
+  });
+
+  it("applies the minimum BEFORE the cap; capacity is the binding limit when minimum > capacity", () => {
+    // minimum 400 floors an actual of 50, then the cap of 200 binds.
+    const g = computeRevenueMarginProjection({
+      ...i, hallCapacity: 200, minimumPax: 400, actualPax: 50,
+    });
+    expect(g.effectivePax).toBe(200);
+    expect(g.paxBinding).toBe("CAPACITY");
+    // effectiveRmPax is the single source of that ordering.
+    expect(effectiveRmPax({ priceBasis: "PER_PAX", actualPax: 50, minimumPax: 400, hallCapacity: 200 }))
+      .toEqual({ pax: 200, binding: "CAPACITY" });
+  });
+
+  it("margin = spread × pax × events × 12 (and equals best − base gross)", () => {
+    const g = computeRevenueMarginProjection(i);
+    expect(g.margin.spreadPerUnit).toBe(300); // 1200 − 900
+    expect(g.margin.perEvent).toBe(90000); // 300 × 300 pax
+    expect(g.margin.annual).toBe(12960000); // 300 × 300 × 12 × 12
+    expect(g.best.annualRevenue - g.base.annualRevenue).toBe(g.margin.annual);
+  });
+
+  it("a capped pax feeds the margin line too (no stale uncapped pax)", () => {
+    const g = computeRevenueMarginProjection({ ...i, actualPax: 900 });
+    expect(g.margin.perEvent).toBe(300 * 500);
+    expect(g.margin.annual).toBe(300 * 500 * 12 * 12);
+  });
+});
+
+describe("REVENUE_MARGIN — no opex participates", () => {
+  it("the output carries no opex / GOP / management-fee term at all", () => {
+    const g = computeRevenueMarginProjection({
+      basePrice: 900, bestPrice: 1200, priceBasis: "PER_PAX",
+      hallCapacity: 500, minimumPax: 100, actualPax: 300, eventsPerMonth: 12,
+    });
+    const blob = JSON.stringify(g).toLowerCase();
+    for (const term of ["opex", "gop", "mgmtfee", "basefee", "incentivefee", "netownerreturn"]) {
+      expect(blob).not.toContain(term);
+    }
+    // Structurally: the only money lines are gross revenue + the spread.
+    expect(Object.keys(g.base).sort()).toEqual(
+      ["annualRevenue", "eventsPerMonth", "kind", "monthlyRevenue", "pax", "price", "revenuePerEvent"]
+    );
+    expect(Object.keys(g.margin).sort()).toEqual(["annual", "monthly", "perEvent", "spreadPerUnit"]);
+  });
+});
+
+describe("REVENUE_MARGIN — validation", () => {
+  const ok: RevenueMarginInputs = {
+    basePrice: 900, bestPrice: 1200, priceBasis: "PER_PAX",
+    hallCapacity: 500, minimumPax: 100, actualPax: 300, eventsPerMonth: 12,
+  };
+
+  it("accepts a complete per-pax and a complete per-event input", () => {
+    expect(validateRevenueMarginInputs(ok)).toEqual([]);
+    expect(validateRevenueMarginInputs({
+      basePrice: 100000, bestPrice: 100000, priceBasis: "PER_EVENT", eventsPerMonth: 8,
+    })).toEqual([]);
+  });
+
+  it("rejects a best price below the base price", () => {
+    const errs = validateRevenueMarginInputs({ ...ok, bestPrice: 800 });
+    expect(errs.join(" ")).toMatch(/negative margin/i);
+  });
+
+  it("rejects negative prices, a bad basis, non-integer capacity/minimum and minimum > capacity", () => {
+    expect(validateRevenueMarginInputs({ ...ok, basePrice: -1 }).length).toBeGreaterThan(0);
+    expect(validateRevenueMarginInputs({ ...ok, priceBasis: "PER_HEAD" as never }).length).toBeGreaterThan(0);
+    expect(validateRevenueMarginInputs({ ...ok, hallCapacity: 12.5 }).length).toBeGreaterThan(0);
+    expect(validateRevenueMarginInputs({ ...ok, minimumPax: 0 }).length).toBeGreaterThan(0);
+    expect(validateRevenueMarginInputs({ ...ok, minimumPax: 600 }).join(" ")).toMatch(/exceed the hall capacity/i);
+  });
+
+  it("requires capacity, minimum pax and expected pax only on a per-pax basis", () => {
+    const perPax = validateRevenueMarginInputs({
+      basePrice: 900, bestPrice: 1200, priceBasis: "PER_PAX", eventsPerMonth: 12,
+    });
+    expect(perPax.length).toBe(3);
+    expect(validateRevenueMarginInputs({
+      basePrice: 900, bestPrice: 1200, priceBasis: "PER_EVENT", eventsPerMonth: 12,
+    })).toEqual([]);
+  });
+
+  it("never assumes an events/month volume", () => {
+    const errs = validateRevenueMarginInputs({ ...ok, eventsPerMonth: undefined });
+    expect(errs.join(" ")).toMatch(/events per month is required/i);
+  });
+});
+
+// ============================================================
+// Cross-model dispatch + the frozen-snapshot round trip.
+//
+// An AcqProjection stores inputsJson at save time and freezes outputsJson at
+// approval. The regression that matters is DRIFT: the frozen grid must be
+// byte-identical to what the engine still produces from the same stored inputs,
+// otherwise the PDF the owner received and the on-screen re-render disagree.
+// ============================================================
+describe("projection dispatch (AcqProjectionModel enum)", () => {
+  const rmInputs: RevenueMarginInputs = {
+    basePrice: 900, bestPrice: 1200, priceBasis: "PER_PAX",
+    hallCapacity: 500, minimumPax: 100, actualPax: 300, eventsPerMonth: 12,
+  };
+  const feeInputs: ProjectionInputs = {
+    banquetSizeSft: 1500, seatingCapacity: 100,
+    eventsBaseCase: 20, eventsBestCase: 25,
+    hourlyHallCharge: 6999, hoursPerEvent: 4,
+  };
+
+  it("labels every enum value (a new model can't ship unlabelled)", () => {
+    expect(Object.keys(PROJECTION_MODEL_LABEL).sort()).toEqual(
+      ["REVENUE_MARGIN", "WITHOUT_FOOD", "WITH_FOOD"] // ASCII: "_" > "O"
+    );
+  });
+
+  it("routes REVENUE_MARGIN to the RM engine and the food models to the fee grids", () => {
+    const rm = computeAnyProjection("REVENUE_MARGIN", rmInputs);
+    expect(isRevenueMarginGrid(rm)).toBe(true);
+    expect(rm.modelType).toBe("REVENUE_MARGIN");
+
+    const hall = computeAnyProjection("WITHOUT_FOOD", feeInputs);
+    expect(isRevenueMarginGrid(hall)).toBe(false);
+    // Identical to calling the legacy engine directly — no behaviour change.
+    expect(hall).toEqual(computeProjection("WITHOUT_FOOD", feeInputs));
+  });
+
+  it("routes validation per model", () => {
+    expect(validateAnyProjectionInputs("REVENUE_MARGIN", rmInputs)).toEqual([]);
+    expect(validateAnyProjectionInputs("WITHOUT_FOOD", feeInputs)).toEqual([]);
+    // RM inputs fed to a fee grid must NOT validate (and vice versa).
+    expect(validateAnyProjectionInputs("WITHOUT_FOOD", rmInputs).length).toBeGreaterThan(0);
+    expect(validateAnyProjectionInputs("REVENUE_MARGIN", feeInputs).length).toBeGreaterThan(0);
+  });
+
+  it("coerces JSON-ish inputs (string numbers, missing optionals)", () => {
+    const coerced = asRevenueMarginInputs({
+      basePrice: "900", bestPrice: "1200", priceBasis: "PER_PAX",
+      hallCapacity: "500", minimumPax: "100", actualPax: "300", eventsPerMonth: "12",
+    });
+    expect(coerced).toEqual(rmInputs);
+    // An unknown basis degrades to PER_EVENT rather than producing NaN pax math.
+    expect(asRevenueMarginInputs({ priceBasis: "junk" }).priceBasis).toBe("PER_EVENT");
+    expect(asProjectionInputs({ seatingCapacity: "100" }).seatingCapacity).toBe(100);
+  });
+
+  it("an approved RM projection's frozen outputsJson round-trips to the same grid", () => {
+    // 1. Draft save: inputsJson goes through JSON (Prisma Json column).
+    const inputsJson = JSON.parse(JSON.stringify(rmInputs));
+    // 2. Approval: the server freezes the computed grid into outputsJson.
+    const frozen = JSON.parse(
+      JSON.stringify(computeAnyProjection("REVENUE_MARGIN", inputsJson))
+    );
+    // 3. Any later re-render recomputes from the SAME stored inputs.
+    const recomputed = JSON.parse(
+      JSON.stringify(computeAnyProjection("REVENUE_MARGIN", inputsJson))
+    );
+    expect(recomputed).toEqual(frozen);
+    // And it equals the engine called directly — no drift via the coercer.
+    expect(frozen).toEqual(
+      JSON.parse(JSON.stringify(computeRevenueMarginProjection(rmInputs)))
+    );
+    // The frozen snapshot is self-describing, so the PDF can pick the right body.
+    expect(frozen.modelType).toBe("REVENUE_MARGIN");
+  });
+
+  it("the frozen snapshot carries the pax + events assumptions, not just prices", () => {
+    // This is what makes an approved projection reproducible after the deal
+    // moves on: the stored inputs alone regenerate the grid.
+    const inputsJson = JSON.parse(JSON.stringify(rmInputs));
+    expect(inputsJson.actualPax).toBe(300);
+    expect(inputsJson.eventsPerMonth).toBe(12);
+
+    // The deal later changes (fewer events, bigger minimum) — the approved
+    // projection must NOT move.
+    const frozen = computeAnyProjection("REVENUE_MARGIN", inputsJson);
+    const afterDealChanged = computeAnyProjection("REVENUE_MARGIN", {
+      ...inputsJson, eventsPerMonth: 4, minimumPax: 400,
+    });
+    expect(frozen).toEqual(computeAnyProjection("REVENUE_MARGIN", inputsJson));
+    expect(afterDealChanged).not.toEqual(frozen);
+  });
+
+  it("a frozen fee grid still round-trips too (no regression)", () => {
+    const inputsJson = JSON.parse(JSON.stringify(feeInputs));
+    const frozen = JSON.parse(JSON.stringify(computeAnyProjection("WITH_FOOD", {
+      ...inputsJson, perPlateCharge: 699, bestCasePlateUplift: 100,
+    })));
+    const again = JSON.parse(JSON.stringify(computeAnyProjection("WITH_FOOD", {
+      ...inputsJson, perPlateCharge: 699, bestCasePlateUplift: 100,
+    })));
+    expect(again).toEqual(frozen);
   });
 });

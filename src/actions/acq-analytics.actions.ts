@@ -104,6 +104,16 @@ export interface BdEmployeeMetrics {
 // ------------------------------------------------------------
 // BD executives (for the employee filter)
 // ------------------------------------------------------------
+/**
+ * Statuses that mean "this lead passed the qualification gate".
+ * qualifyAcqLead creates the deal and moves the lead to DEAL_CREATED, so a
+ * converted lead no longer sits on QUALIFIED. Counting only QUALIFIED here made
+ * both the per-exec `dealsQualified` figure and the funnel's qualified step read
+ * ZERO for every converted lead — silently, which is the worst kind of wrong for
+ * a metric. Both values count.
+ */
+const QUALIFIED_OR_BEYOND: ReadonlySet<string> = new Set(["QUALIFIED", "DEAL_CREATED"]);
+
 export async function getBdExecutives(): Promise<Result<{ id: string; name: string }[]>> {
   const user = await requireBd();
   if (!user) return { success: false, error: "Unauthorized" };
@@ -221,7 +231,7 @@ export async function getBdAnalytics(params: BdRangeParams): Promise<Result<unkn
       r.leadsTotal++;
       if (CAMPAIGN_SOURCES.has(l.leadSource)) r.leadsCampaign++;
       else r.leadsCold++;
-      if (l.status === "QUALIFIED") r.dealsQualified++;
+      if (QUALIFIED_OR_BEYOND.has(l.status)) r.dealsQualified++;
     }
   }
   for (const d of dealsCreated) { const r = ensure(d.bdExecutiveId); if (r) r.dealsCreated++; }
@@ -291,7 +301,7 @@ export async function getBdAnalytics(params: BdRangeParams): Promise<Result<unkn
       switch (s.key) {
         case "leads": count++; break;
         case "contacted": if (l.firstContactAt || l.status !== "NEW") count++; break;
-        case "qualified": if (l.status === "QUALIFIED") count++; break;
+        case "qualified": if (QUALIFIED_OR_BEYOND.has(l.status)) count++; break;
         case "siteVisit": if (siteVisitLeadIds.has(l.id)) count++; break;
         case "proposal": if (stageAtLeast(st, ["PROPOSAL_SENT", "NEGOTIATION", "CONTRACT_SENT", "SIGNED", "WON"])) count++; break;
         case "negotiation": if (stageAtLeast(st, ["NEGOTIATION", "CONTRACT_SENT", "SIGNED", "WON"])) count++; break;

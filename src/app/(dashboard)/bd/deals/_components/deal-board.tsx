@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import {
   ACQ_DEAL_STAGE,
   ACQ_DEAL_STAGE_LABEL,
+  ACQ_DEAL_MODEL_LABEL,
+  type AcqDealModel,
   type AcqDealStage,
 } from "@/lib/acq/constants";
 import { StatusPill } from "@/components/shared/status-pill";
@@ -135,7 +137,11 @@ export function DealBoard({ deals }: { deals: AcqDealCard[] }) {
 
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
                       <span className="rounded bg-muted px-1.5 py-0.5 font-medium">
-                        {deal.model ?? "—"}
+                        {/* Label map, so REVENUE_MARGIN reads "Revenue Margin". */}
+                        {(deal.model &&
+                          ACQ_DEAL_MODEL_LABEL[deal.model as AcqDealModel]) ??
+                          deal.model ??
+                          "—"}
                       </span>
                       {score != null && (
                         <span className="rounded bg-muted px-1.5 py-0.5 font-medium">

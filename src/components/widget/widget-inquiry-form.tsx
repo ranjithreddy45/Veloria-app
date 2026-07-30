@@ -55,6 +55,17 @@ interface WidgetInquiryFormProps {
   venues?: Venue[];
 }
 
+/**
+ * Local-time "YYYY-MM-DD" for the date input's `min`. NOT toISOString(): that
+ * is UTC and the browser evaluates `min` against the local wall-clock date, so
+ * a UTC-derived min is off by a day for part of every day in IST (UTC+5:30).
+ */
+function todayLocal(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 // ============================================================
 // WidgetInquiryForm Component
 // ============================================================
@@ -259,7 +270,7 @@ export function WidgetInquiryForm({ venues = [] }: WidgetInquiryFormProps) {
                           const val = e.target.value;
                           field.onChange(val ? new Date(val) : null);
                         }}
-                        min={new Date().toISOString().split("T")[0]}
+                        min={todayLocal()}
                       />
                     </FormControl>
                     <FormMessage />

@@ -1,5 +1,11 @@
 import { prisma } from "@/lib/prisma";
-import type { ProjectionGrid, YearRow } from "@/lib/acq/projection-calc";
+import {
+  isRevenueMarginGrid,
+  type AnyProjectionGrid,
+  type RevenueMarginGrid,
+  type RmCaseRow,
+  type YearRow,
+} from "@/lib/acq/projection-calc";
 
 export const runtime = "nodejs";
 
@@ -59,6 +65,90 @@ function gridTable(rows: YearRow[], withFood: boolean): string {
   </table>`;
 }
 
+// ---- REVENUE_MARGIN document body -------------------------------------
+// The owner reads this. Two rules drive the layout:
+//   1. The headline is the FULL GROSS event value — never presented as profit,
+//      because no operating expenses are deducted anywhere in this model.
+//   2. Veloria's margin is a physically separate block, labelled as ours, so it
+//      can never be mistaken for the owner's revenue.
+function rmCaseTable(grid: RevenueMarginGrid, row: RmCaseRow): string {
+  const perPax = grid.priceBasis === "PER_PAX";
+  const line = (label: string, value: string, emphasize = false) => `
+    <tr class="${emphasize ? "emph" : ""}">
+      <td class="rowlabel">${label}</td><td>${value}</td>
+    </tr>`;
+  return `
+  <table class="grid two">
+    <thead><tr><th class="rowlabel">Particulars</th><th>Amount</th></tr></thead>
+    <tbody>
+      ${line(perPax ? "Price per guest (pax)" : "Price per event", inr(row.price))}
+      ${perPax ? line("Billable guests per event", num1(row.pax)) : ""}
+      ${line("Events per month", num1(row.eventsPerMonth))}
+      ${line("Gross event value — per event", inr(row.revenuePerEvent))}
+      ${line("Gross event value — per month", inr(row.monthlyRevenue))}
+      ${line("Gross event value — per year", inr(row.annualRevenue), true)}
+    </tbody>
+  </table>`;
+}
+
+function rmMarginTable(grid: RevenueMarginGrid): string {
+  const perPax = grid.priceBasis === "PER_PAX";
+  const line = (label: string, value: string, emphasize = false) => `
+    <tr class="${emphasize ? "emph" : ""}">
+      <td class="rowlabel">${label}</td><td>${value}</td>
+    </tr>`;
+  return `
+  <table class="grid two">
+    <thead><tr><th class="rowlabel">Particulars</th><th>Amount</th></tr></thead>
+    <tbody>
+      ${line(perPax ? "Spread per guest (pax)" : "Spread per event", inr(grid.margin.spreadPerUnit))}
+      ${line("Margin per event", inr(grid.margin.perEvent))}
+      ${line("Margin per month", inr(grid.margin.monthly))}
+      ${line("Margin per year", inr(grid.margin.annual), true)}
+    </tbody>
+  </table>`;
+}
+
+function rmBody(grid: RevenueMarginGrid): string {
+  const basis = grid.priceBasis === "PER_PAX" ? "Per-guest (pax) pricing" : "Per-event pricing";
+  const paxNote =
+    grid.priceBasis === "PER_PAX"
+      ? ` Billable guests per event: ${num1(grid.effectivePax)}${
+          grid.paxBinding === "CAPACITY"
+            ? " (capped at the hall's capacity)"
+            : grid.paxBinding === "MINIMUM"
+              ? " (at the agreed minimum guest count)"
+              : ""
+        }.`
+      : "";
+  return `
+    <div class="modeltag">Revenue Margin Model · ${basis} · No operating expenses included</div>
+
+    <h2>Base Case — at your guaranteed price</h2>
+    ${rmCaseTable(grid, grid.base)}
+    <div class="note">The guaranteed price is what Veloria Grand commits to you per
+      ${grid.priceBasis === "PER_PAX" ? "guest" : "event"}, irrespective of what the event is finally sold for.${paxNote}</div>
+
+    <h2>Best Case — at the expected market price</h2>
+    ${rmCaseTable(grid, grid.best)}
+    <div class="note">Indicative price we expect to achieve in the market. It is
+      shown so the full event value is transparent to you.</div>
+
+    <h2>Veloria Grand&rsquo;s margin — not part of your guaranteed amount</h2>
+    ${rmMarginTable(grid)}
+    <div class="note"><strong>This margin is Veloria Grand&rsquo;s, not yours.</strong> It is the
+      difference between the guaranteed price above and the expected market price
+      &mdash; it is not additional revenue to you, and it is not deducted from your
+      guaranteed amount either.</div>
+
+    <div class="note" style="font-style:normal;margin-top:14px">
+      <strong>No operating expenses are included in this document.</strong> Every figure
+      above is gross event value, not profit: electricity, staffing, housekeeping,
+      food, décor, marketing and all other running costs are outside this model
+      and are not deducted from any number shown here.
+    </div>`;
+}
+
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -76,15 +166,19 @@ export async function GET(
     return new Response("This projection is not finalized.", { status: 403 });
   }
 
-  const grid = projection.outputsJson as unknown as ProjectionGrid;
+  const grid = projection.outputsJson as unknown as AnyProjectionGrid;
+  // Revenue-Margin projections are a different document (no years, no fees, no
+  // opex) — they render their own body below.
+  const isRm = isRevenueMarginGrid(grid);
   const withFood = grid.modelType === "WITH_FOOD";
   const property = esc(projection.deal.propertyName);
+  const docTitle = isRm ? "Revenue Projection" : "3-Year Revenue Projection";
   const today = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Kolkata" });
 
   const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>3-Year Revenue Projection — ${property}</title>
+<title>${docTitle} — ${property}</title>
 <style>
   @page { size: A4 landscape; margin: 14mm; }
   * { box-sizing: border-box; }
@@ -102,6 +196,9 @@ export async function GET(
   table.grid th { background: ${PLUM}; color: ${IVORY}; font-weight: 600; font-size: 11px; }
   table.grid th.rowlabel, table.grid td.rowlabel { text-align: left; font-weight: 600; }
   table.grid tr.emph td { background: #f6efe2; color: ${PLUM}; font-weight: 800; }
+  /* Two-column (Particulars / Amount) layout used by the Revenue-Margin doc. */
+  table.grid.two { max-width: 620px; }
+  table.grid.two td.rowlabel, table.grid.two th.rowlabel { width: 62%; }
   .note { font-size: 11px; color: #6b5b73; margin: 6px 2px 0; font-style: italic; }
   .footer { margin-top: 22px; padding-top: 12px; border-top: 1px solid #e6dccb; font-size: 10.5px; color: #6b5b73; display:flex; justify-content: space-between; }
   .actions { text-align:center; margin: 8px 0 18px; }
@@ -113,9 +210,12 @@ export async function GET(
     <div class="actions"><button onclick="window.print()">Save as PDF / Print</button></div>
     <div class="header">
       <div class="brand">Veloria Grand<small>Premium Event Venues</small></div>
-      <div class="title">3-Year Revenue Projection<small>${property} · ${esc(projection.deal.locality)}</small></div>
+      <div class="title">${docTitle}<small>${property} · ${esc(projection.deal.locality)}</small></div>
     </div>
-    <div class="modeltag">${withFood ? "With In-House Food" : "Hall-Only (Without Food)"} Model · Management Fee 5% Revenue + 20% GOP</div>
+    ${
+      isRm
+        ? rmBody(grid)
+        : `<div class="modeltag">${withFood ? "With In-House Food" : "Hall-Only (Without Food)"} Model · Management Fee 5% Revenue + 20% GOP</div>
 
     <h2>Base Case</h2>
     ${gridTable(grid.base, withFood)}
@@ -126,7 +226,8 @@ export async function GET(
     }</div>
 
     <h2>Best Case</h2>
-    ${gridTable(grid.best, withFood)}
+    ${gridTable(grid.best, withFood)}`
+    }
 
     <div class="footer">
       <span>Indicative projection. Actuals vary with bookings &amp; seasonality.</span>

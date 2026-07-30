@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { notify } from "@/lib/notify";
 import { logActivity } from "@/lib/activity-logger";
 import { acqCan, acqHasAnyAccess } from "@/lib/acq/rbac";
+import { isSafeReceiptDataUrl } from "@/lib/sales/receipt";
 import { Prisma } from "@prisma/client";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
@@ -114,6 +115,130 @@ export async function assignPropertyManager(propertyId: string, managerId: strin
   }
   await prisma.acqProperty.update({ where: { id: propertyId }, data: { propertyManagerId: managerId } });
   revalidatePath("/bd/properties");
+  revalidatePath(`/bd/properties/${propertyId}`);
+  return { success: true, data: { id: propertyId } };
+}
+
+// ------------------------------------------------------------
+// Item 15 — statutory property documents: Trade licence + FSSAI certificate.
+// Each carries a file (data-URL), its number and its expiry date so renewals
+// can be chased. Writes use `onboarding:complete` — the same permission the
+// module already uses for every other property-level edit (onboarding tasks,
+// property-manager assignment); statutory paperwork is part of onboarding.
+// ------------------------------------------------------------
+const PROPERTY_DOC_KINDS = ["TRADE_LICENSE", "FSSAI"] as const;
+type PropertyDocKind = (typeof PROPERTY_DOC_KINDS)[number];
+
+/**
+ * `<input type="date">` gives a bare "YYYY-MM-DD" with no zone. `new Date(str)`
+ * would read it as UTC midnight, which renders as the PREVIOUS day for any
+ * negative-offset viewer. Anchor it at UTC NOON instead: the calendar date then
+ * survives ±12h of rendering offset, and the UI formats it with timeZone "UTC"
+ * so what was typed is what's shown. Expiry is a calendar date, not an instant.
+ */
+function parseCalendarDate(value: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  if (!m) return null;
+  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12, 0, 0));
+  return isNaN(d.getTime()) ? null : d;
+}
+
+export async function upsertAcqPropertyDocument(
+  propertyId: string,
+  kind: PropertyDocKind,
+  input: { url?: string | null; number?: string | null; expiry?: string | null }
+): Promise<Result<{ id: string }>> {
+  const user = await requireUser();
+  if (!user || !acqCan(user.role, "onboarding:complete")) {
+    return { success: false, error: "Only Operations / BD Head / Admin can update property documents." };
+  }
+  if (!PROPERTY_DOC_KINDS.includes(kind)) return { success: false, error: "Unknown document type." };
+
+  const property = await prisma.acqProperty.findFirst({
+    where: { id: propertyId, deletedAt: null },
+    select: { id: true },
+  });
+  if (!property) return { success: false, error: "Property not found" };
+
+  const data: Record<string, unknown> = {};
+  const isTrade = kind === "TRADE_LICENSE";
+
+  if (input.url !== undefined && input.url !== null) {
+    const url = input.url.trim();
+    if (url) {
+      if (url.length > 9_000_000) {
+        return { success: false, error: "File is too large — upload a smaller PDF or image (max ~9 MB)." };
+      }
+      // A licence/certificate is normally a scanned PDF, so accept image OR PDF.
+      if (!isSafeReceiptDataUrl(url)) {
+        return { success: false, error: "Upload the certificate as a PDF or image file." };
+      }
+      data[isTrade ? "tradeLicenseUrl" : "fssaiCertificateUrl"] = url;
+    }
+  }
+
+  if (input.number !== undefined) {
+    const num = (input.number ?? "").trim();
+    if (num.length > 100) return { success: false, error: "Number is too long." };
+    data[isTrade ? "tradeLicenseNumber" : "fssaiNumber"] = num || null;
+  }
+
+  if (input.expiry !== undefined) {
+    const raw = (input.expiry ?? "").trim();
+    if (!raw) {
+      data[isTrade ? "tradeLicenseExpiry" : "fssaiExpiry"] = null;
+    } else {
+      const when = parseCalendarDate(raw);
+      if (!when) return { success: false, error: "Enter the expiry as a valid date." };
+      data[isTrade ? "tradeLicenseExpiry" : "fssaiExpiry"] = when;
+    }
+  }
+
+  if (Object.keys(data).length === 0) return { success: false, error: "Nothing to save." };
+
+  await prisma.acqProperty.update({ where: { id: propertyId }, data });
+  logActivity({
+    userId: user.id,
+    action: "PROPERTY_DOCUMENT_UPDATED",
+    entityType: "AcqProperty",
+    entityId: propertyId,
+    changes: { kind, fields: Object.keys(data) },
+  });
+  revalidatePath(`/bd/properties/${propertyId}`);
+  return { success: true, data: { id: propertyId } };
+}
+
+/** Remove a statutory document and its metadata (wrong upload / superseded). */
+export async function removeAcqPropertyDocument(
+  propertyId: string,
+  kind: PropertyDocKind
+): Promise<Result<{ id: string }>> {
+  const user = await requireUser();
+  if (!user || !acqCan(user.role, "onboarding:complete")) {
+    return { success: false, error: "Only Operations / BD Head / Admin can update property documents." };
+  }
+  if (!PROPERTY_DOC_KINDS.includes(kind)) return { success: false, error: "Unknown document type." };
+
+  const property = await prisma.acqProperty.findFirst({
+    where: { id: propertyId, deletedAt: null },
+    select: { id: true },
+  });
+  if (!property) return { success: false, error: "Property not found" };
+
+  await prisma.acqProperty.update({
+    where: { id: propertyId },
+    data:
+      kind === "TRADE_LICENSE"
+        ? { tradeLicenseUrl: null, tradeLicenseNumber: null, tradeLicenseExpiry: null }
+        : { fssaiCertificateUrl: null, fssaiNumber: null, fssaiExpiry: null },
+  });
+  logActivity({
+    userId: user.id,
+    action: "PROPERTY_DOCUMENT_REMOVED",
+    entityType: "AcqProperty",
+    entityId: propertyId,
+    changes: { kind },
+  });
   revalidatePath(`/bd/properties/${propertyId}`);
   return { success: true, data: { id: propertyId } };
 }

@@ -17,16 +17,59 @@ import { getAcqConfig } from "@/lib/acq/config";
 import { acqCan, acqHasAnyAccess } from "@/lib/acq/rbac";
 import {
   ACQ_LEAD_SOURCE,
+  ACQ_LEAD_SOURCE_RETIRED,
+  ACQ_LEAD_STATUS,
+  ACQ_LEAD_STATUS_LABEL,
+  ACQ_LEAD_STATUS_TRANSITIONS,
   ACQ_OWNER_TYPE,
   ACQ_PROPERTY_TYPE,
   ACQ_PROPERTY_STAGE,
-  ACQ_SEATING_RANGE,
   ACQ_DISQUALIFY_REASON,
   type AcqDisqualifyReason,
+  type AcqLeadStatus,
 } from "@/lib/acq/constants";
+import { isSafeReceiptDataUrl } from "@/lib/sales/receipt";
 import { z } from "zod";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
+
+// Accept the retired WALK_IN on INPUT (a stale open form may still post it) but
+// never store it — it is normalised to INCOMING_LEAD below. Item 7.
+const leadSourceInput = z.enum([...ACQ_LEAD_SOURCE, ACQ_LEAD_SOURCE_RETIRED]);
+function normalizeLeadSource(v: z.infer<typeof leadSourceInput>): (typeof ACQ_LEAD_SOURCE)[number] {
+  return v === ACQ_LEAD_SOURCE_RETIRED ? "INCOMING_LEAD" : v;
+}
+
+/** Max property photos stored on a lead — mirrors updateAcqDealImages. */
+const MAX_LEAD_IMAGES = 24;
+
+/**
+ * Validate base64 image data-URLs for AcqLead.images.
+ *
+ * Returns an ERROR when something was offered and nothing survived (or when any
+ * single entry is rejected). Silently filtering to [] and reporting success is
+ * the bug the owner hit: the picker showed photos, the save said "Saved", and
+ * the column stayed empty.
+ */
+function sanitizeLeadImages(images: unknown): { ok: true; images: string[] } | { ok: false; error: string } {
+  const raw = Array.isArray(images) ? images : [];
+  const candidates = raw.filter((v): v is string => typeof v === "string" && v.length > 0);
+  if (candidates.length !== raw.length) {
+    return { ok: false, error: "Some photos couldn't be read — remove them and try again." };
+  }
+  if (candidates.length > MAX_LEAD_IMAGES) {
+    return { ok: false, error: `Up to ${MAX_LEAD_IMAGES} photos per lead — remove a few and save again.` };
+  }
+  const safe = candidates.filter((v) => isSafeReceiptDataUrl(v) && v.startsWith("data:image/"));
+  if (safe.length !== candidates.length) {
+    const rejected = candidates.length - safe.length;
+    return {
+      ok: false,
+      error: `${rejected} file${rejected === 1 ? " isn't" : "s aren't"} a supported image (PNG, JPEG or WebP) — remove ${rejected === 1 ? "it" : "them"} and save again.`,
+    };
+  }
+  return { ok: true, images: safe };
+}
 
 const leadInputSchema = z.object({
   ownerName: z.string().min(1).max(200),
@@ -39,7 +82,8 @@ const leadInputSchema = z.object({
   locality: z.string().min(1).max(100),
   seatingTheatre: z.number().int().nonnegative().optional(),
   seatingFloating: z.number().int().nonnegative().optional(),
-  seatingRange: z.enum(ACQ_SEATING_RANGE).optional(),
+  // NOTE: seatingRange (bucketed dropdown) is intentionally NOT accepted — the
+  // exact theatre/floating numbers are the single source of truth (item 9).
   propertyStage: z.enum(ACQ_PROPERTY_STAGE).optional(),
   notes: z.string().max(5000).optional().or(z.literal("")),
   parkingAvailable: z.boolean().optional(),
@@ -47,9 +91,12 @@ const leadInputSchema = z.object({
   referrerPhone: z.string().max(20).optional().or(z.literal("")),
   referrerEmail: z.string().email().optional().or(z.literal("")),
   brokerageDemand: z.string().max(200).optional().or(z.literal("")),
-  leadSource: z.enum(ACQ_LEAD_SOURCE),
+  leadSource: leadSourceInput,
   ownerType: z.enum(ACQ_OWNER_TYPE),
   bdExecutiveId: z.string().optional(),
+  // Property photos captured at capture time (AcqLead.images) — validated by
+  // sanitizeLeadImages, not by zod, so the caller gets a specific reason.
+  images: z.array(z.string()).optional(),
 });
 export type AcqLeadInput = z.infer<typeof leadInputSchema>;
 
@@ -72,7 +119,15 @@ export async function getAcqLeads(filters?: {
     return { success: false, error: "Unauthorized" };
   }
   const where: Record<string, unknown> = { deletedAt: null };
-  if (filters?.status) where.status = filters.status;
+  // Validate the status against the allowed set BEFORE it reaches Prisma — an
+  // arbitrary ?status= string in the URL would otherwise throw a Prisma
+  // enum-conversion error and 500 the leads page (item 12).
+  if (filters?.status) {
+    if (!(ACQ_LEAD_STATUS as readonly string[]).includes(filters.status)) {
+      return { success: false, error: "Unknown lead status filter." };
+    }
+    where.status = filters.status;
+  }
   if (filters?.city) where.city = filters.city;
   if (filters?.bdExecutiveId) where.bdExecutiveId = filters.bdExecutiveId;
 
@@ -85,6 +140,29 @@ export async function getAcqLeads(filters?: {
   return { success: true, data: serialize(leads) as unknown[] };
 }
 
+/**
+ * Per-status lead totals for the inbox chips. Computed server-side so the chip
+ * numbers stay the true totals even when the list itself is filtered down to one
+ * status (or capped by the 500-row take).
+ */
+export async function getAcqLeadStatusCounts(): Promise<Result<Record<string, number>>> {
+  const user = await requireUser();
+  if (!user || !acqHasAnyAccess(user.role)) return { success: false, error: "Unauthorized" };
+
+  const grouped = await prisma.acqLead.groupBy({
+    by: ["status"],
+    where: { deletedAt: null },
+    _count: { _all: true },
+  });
+  const counts: Record<string, number> = { ALL: 0 };
+  for (const s of ACQ_LEAD_STATUS) counts[s] = 0;
+  for (const row of grouped) {
+    counts[row.status] = row._count._all;
+    counts.ALL += row._count._all;
+  }
+  return { success: true, data: counts };
+}
+
 export async function getAcqLead(id: string): Promise<Result<unknown>> {
   const user = await requireUser();
   if (!user || !acqHasAnyAccess(user.role)) return { success: false, error: "Unauthorized" };
@@ -94,6 +172,8 @@ export async function getAcqLead(id: string): Promise<Result<unknown>> {
       bdExecutive: { select: { id: true, name: true } },
       deal: { select: { id: true, stage: true } },
       activities: { orderBy: { createdAt: "desc" }, take: 100 },
+      // Everyone the team works this property through — primary first (item 1).
+      contacts: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }] },
     },
   });
   if (!lead) return { success: false, error: "Lead not found" };
@@ -120,6 +200,9 @@ export async function createAcqLead(input: AcqLeadInput): Promise<
   const parsed = leadInputSchema.safeParse(input);
   if (!parsed.success) return { success: false, error: "Validation failed" };
   const d = parsed.data;
+
+  const pics = sanitizeLeadImages(d.images ?? []);
+  if (!pics.ok) return { success: false, error: pics.error };
 
   const mobile = normalizeMobile(d.mobilePrimary);
 
@@ -161,7 +244,6 @@ export async function createAcqLead(input: AcqLeadInput): Promise<
       locality: d.locality,
       seatingTheatre: d.seatingTheatre ?? null,
       seatingFloating: d.seatingFloating ?? null,
-      seatingRange: d.seatingRange ?? null,
       propertyStage: d.propertyStage ?? null,
       notes: d.notes || null,
       parkingAvailable: d.parkingAvailable ?? null,
@@ -169,8 +251,9 @@ export async function createAcqLead(input: AcqLeadInput): Promise<
       referrerPhone: d.referrerPhone || null,
       referrerEmail: d.referrerEmail || null,
       brokerageDemand: d.brokerageDemand || null,
-      leadSource: d.leadSource,
+      leadSource: normalizeLeadSource(d.leadSource),
       ownerType: d.ownerType,
+      images: pics.images,
       bdExecutiveId: d.bdExecutiveId || user.id,
       status: "NEW",
       firstContactDue,
@@ -230,6 +313,120 @@ export async function updateAcqLead(
   revalidatePath("/bd/dashboard");
   revalidatePath("/bd/followups");
   return { success: true, data: { id } };
+}
+
+// ------------------------------------------------------------
+// Change lead status from the UI (item 6).
+//
+// This is the ONLY generic status writer, and it deliberately refuses the three
+// statuses that carry side effects — they must keep going through their own
+// gated actions:
+//   • QUALIFIED / DEAL_CREATED → qualifyAcqLead (4-criteria gate + creates the deal)
+//   • DISQUALIFIED             → disqualifyAcqLead (reason + attempts/window rule)
+// Everything else is driven by ACQ_LEAD_STATUS_TRANSITIONS, and every move
+// writes an AcqStageTransition row so the timeline stays complete.
+// ------------------------------------------------------------
+export async function setAcqLeadStatus(
+  id: string,
+  status: string,
+  opts?: { nextFollowupAt?: string | null; reason?: string }
+): Promise<Result<{ id: string; status: AcqLeadStatus }>> {
+  const user = await requireUser();
+  if (!user || !acqCan(user.role, "lead:write")) return { success: false, error: "Unauthorized" };
+
+  if (!(ACQ_LEAD_STATUS as readonly string[]).includes(status)) {
+    return { success: false, error: "Unknown lead status." };
+  }
+  const target = status as AcqLeadStatus;
+
+  const lead = await prisma.acqLead.findFirst({ where: { id, deletedAt: null } });
+  if (!lead) return { success: false, error: "Lead not found" };
+  const current = lead.status as AcqLeadStatus;
+  if (current === target) return { success: true, data: { id, status: target } };
+
+  // Route the gated statuses back to their own flows instead of silently
+  // skipping their side effects.
+  if (target === "QUALIFIED" || target === "DEAL_CREATED") {
+    return {
+      success: false,
+      error: 'Use "Qualify lead" — it confirms the four criteria and creates the deal.',
+    };
+  }
+  if (target === "DISQUALIFIED") {
+    return { success: false, error: 'Use "Drop lead" — a drop reason is required.' };
+  }
+  if (!ACQ_LEAD_STATUS_TRANSITIONS[current].includes(target)) {
+    return {
+      success: false,
+      error: `Can't move a ${ACQ_LEAD_STATUS_LABEL[current]} lead to ${ACQ_LEAD_STATUS_LABEL[target]}.`,
+    };
+  }
+
+  const data: Record<string, unknown> = { status: target };
+  if (target === "CONTACTED") {
+    // Same rule updateAcqLead enforces: a Contacted lead without a follow-up date
+    // falls out of the follow-up queue AND out of the NEW-only SLA net.
+    if (!opts?.nextFollowupAt) {
+      return { success: false, error: "A follow-up date is required when marking Contacted." };
+    }
+    const next = new Date(opts.nextFollowupAt);
+    if (Number.isNaN(next.getTime()) || next <= new Date()) {
+      return { success: false, error: "Follow-up date must be in the future." };
+    }
+    data.nextFollowupAt = next;
+  }
+  if (target === "NEW") {
+    // Back to the top of the funnel: the pending follow-up no longer applies.
+    data.nextFollowupAt = null;
+  }
+  // Reopening a dropped lead must clear the drop reason, or the lead keeps
+  // reporting as dropped-for-X in the reports.
+  if (current === "DISQUALIFIED") data.disqualifyReason = null;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.acqLead.update({ where: { id }, data });
+    await tx.acqStageTransition.create({
+      data: {
+        entity: "LEAD",
+        entityId: id,
+        fromState: current,
+        toState: target,
+        actorId: user.id,
+        reason:
+          opts?.reason?.trim() ||
+          (current === "DISQUALIFIED" ? "Lead reopened" : "Status changed manually"),
+      },
+    });
+  });
+
+  revalidatePath("/bd/leads");
+  revalidatePath(`/bd/leads/${id}`);
+  revalidatePath("/bd/dashboard");
+  revalidatePath("/bd/followups");
+  return { success: true, data: { id, status: target } };
+}
+
+// ------------------------------------------------------------
+// Property photos on the lead (AcqLead.images) — mirrors updateAcqDealImages,
+// but reports an error instead of quietly storing [] when nothing validates.
+// ------------------------------------------------------------
+export async function updateAcqLeadImages(
+  id: string,
+  images: string[]
+): Promise<Result<{ id: string; count: number }>> {
+  const user = await requireUser();
+  if (!user || !acqCan(user.role, "lead:write")) return { success: false, error: "Unauthorized" };
+
+  const lead = await prisma.acqLead.findFirst({ where: { id, deletedAt: null }, select: { id: true } });
+  if (!lead) return { success: false, error: "Lead not found" };
+
+  const pics = sanitizeLeadImages(images);
+  if (!pics.ok) return { success: false, error: pics.error };
+
+  await prisma.acqLead.update({ where: { id }, data: { images: pics.images } });
+  revalidatePath(`/bd/leads/${id}`);
+  revalidatePath("/bd/leads");
+  return { success: true, data: { id, count: pics.images.length } };
 }
 
 // ------------------------------------------------------------
@@ -352,6 +549,7 @@ export async function qualifyAcqLead(
   const lead = await prisma.acqLead.findFirst({ where: { id, deletedAt: null } });
   if (!lead) return { success: false, error: "Lead not found" };
   if (lead.status === "QUALIFIED") return { success: false, error: "Lead is already qualified." };
+  if (lead.status === "DEAL_CREATED") return { success: false, error: "This lead already has a deal." };
   if (lead.status === "DISQUALIFIED") return { success: false, error: "Lead is disqualified." };
 
   const gate = evaluateQualification(payload);
@@ -383,7 +581,10 @@ export async function qualifyAcqLead(
     await tx.acqLead.update({
       where: { id: lead.id },
       data: {
-        status: "QUALIFIED",
+        // Qualifying CREATES the deal in this same transaction, so the lead lands
+        // on DEAL_CREATED, not QUALIFIED (item 11). Setting it here — inside the
+        // one path that can create a deal — is what makes it impossible to forget.
+        status: "DEAL_CREATED",
         convertedDealId: deal.id,
         qualSeating100: payload.seating_100_plus,
         qualOwnerInterested: payload.owner_interested_in_management_model,
@@ -392,7 +593,14 @@ export async function qualifyAcqLead(
       },
     });
     await tx.acqStageTransition.create({
-      data: { entity: "LEAD", entityId: lead.id, fromState: lead.status, toState: "QUALIFIED", actorId: user.id },
+      data: {
+        entity: "LEAD",
+        entityId: lead.id,
+        fromState: lead.status,
+        toState: "DEAL_CREATED",
+        actorId: user.id,
+        reason: "Qualified — deal created",
+      },
     });
     await tx.acqStageTransition.create({
       data: { entity: "DEAL", entityId: deal.id, fromState: null, toState: "QUALIFIED", actorId: user.id, reason: "Created from qualified lead" },
@@ -422,6 +630,10 @@ export async function disqualifyAcqLead(
   const lead = await prisma.acqLead.findFirst({ where: { id, deletedAt: null } });
   if (!lead) return { success: false, error: "Lead not found" };
   if (lead.status === "QUALIFIED") return { success: false, error: "Cannot disqualify a qualified lead." };
+  // A lead with a deal behind it must be lost on the DEAL, not dropped here.
+  if (lead.status === "DEAL_CREATED") {
+    return { success: false, error: "This lead has a deal — mark the deal Lost instead." };
+  }
 
   const cfg = await getAcqConfig();
   const allowed = canDisqualify(reason, {
@@ -450,6 +662,14 @@ export async function disqualifyAcqLead(
 }
 
 export async function getBdUsers(): Promise<{ id: string; name: string | null; role: string }[]> {
+  // A server action is a PUBLIC endpoint. This one had no auth check at all, so
+  // anyone able to invoke it could enumerate the internal staff directory (names
+  // + roles). It only ever feeds BD assignee pickers, so gate it on BD access and
+  // return an empty list — not an error — so a caller without access simply sees
+  // no assignees instead of a broken panel.
+  const session = await auth();
+  if (!session?.user || !acqHasAnyAccess(session.user.role as string)) return [];
+
   const users = await prisma.user.findMany({
     where: { isActive: true, role: { in: ["BD_EXECUTIVE", "BD_HEAD", "SUPER_ADMIN", "ADMIN", "OPERATIONS"] } },
     select: { id: true, name: true, role: true },
@@ -489,9 +709,10 @@ const editSchema = z.object({
   locality: z.string().min(1).max(100).optional(),
   seatingTheatre: z.number().int().nonnegative().nullable().optional(),
   seatingFloating: z.number().int().nonnegative().nullable().optional(),
-  seatingRange: z.enum(ACQ_SEATING_RANGE).nullable().optional(),
+  // seatingRange intentionally omitted — retired from the UI (item 9); the stored
+  // value stays untouched in the DB.
   propertyStage: z.enum(ACQ_PROPERTY_STAGE).nullable().optional(),
-  leadSource: z.enum(ACQ_LEAD_SOURCE).optional(),
+  leadSource: leadSourceInput.optional(),
   ownerType: z.enum(ACQ_OWNER_TYPE).optional(),
   notes: z.string().max(5000).optional().or(z.literal("")),
   parkingAvailable: z.boolean().nullable().optional(),
@@ -536,9 +757,8 @@ export async function editAcqLead(
   if (p.locality !== undefined) data.locality = p.locality;
   if (p.seatingTheatre !== undefined) data.seatingTheatre = p.seatingTheatre;
   if (p.seatingFloating !== undefined) data.seatingFloating = p.seatingFloating;
-  if (p.seatingRange !== undefined) data.seatingRange = p.seatingRange;
   if (p.propertyStage !== undefined) data.propertyStage = p.propertyStage;
-  if (p.leadSource !== undefined) data.leadSource = p.leadSource;
+  if (p.leadSource !== undefined) data.leadSource = normalizeLeadSource(p.leadSource);
   if (p.ownerType !== undefined) data.ownerType = p.ownerType;
   if (p.notes !== undefined) data.notes = p.notes || null;
   if (p.parkingAvailable !== undefined) data.parkingAvailable = p.parkingAvailable;

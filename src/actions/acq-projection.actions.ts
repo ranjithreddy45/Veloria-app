@@ -11,11 +11,12 @@ import { after } from "next/server";
 import { acqCan, acqHasAnyAccess } from "@/lib/acq/rbac";
 import { getProjectionConfig } from "@/lib/acq/config";
 import {
-  computeProjection,
-  validateProjectionInputs,
+  computeAnyProjection,
+  validateAnyProjectionInputs,
   PROJECTION_CONST,
-  type ProjectionModel,
-  type ProjectionInputs,
+  PROJECTION_MODEL_LABEL,
+  type AcqProjectionModelType,
+  type AnyProjectionInputs,
   type ProjectionConfig,
 } from "@/lib/acq/projection-calc";
 import { Prisma } from "@prisma/client";
@@ -81,8 +82,8 @@ export async function getAcqProjection(id: string): Promise<Result<unknown>> {
 // ------------------------------------------------------------
 export async function createAcqProjection(
   dealId: string,
-  modelType: ProjectionModel,
-  inputs: ProjectionInputs
+  modelType: AcqProjectionModelType,
+  inputs: AnyProjectionInputs
 ): Promise<Result<{ id: string }>> {
   const user = await requireUser();
   if (!user || !acqCan(user.role, "lead:write")) return { success: false, error: "Unauthorized" };
@@ -90,7 +91,11 @@ export async function createAcqProjection(
   const deal = await prisma.acqDeal.findFirst({ where: { id: dealId, deletedAt: null } });
   if (!deal) return { success: false, error: "Deal not found" };
 
-  const errs = validateProjectionInputs(modelType, inputs);
+  // Reject an unknown engine before it reaches the enum column.
+  if (!(modelType in PROJECTION_MODEL_LABEL)) {
+    return { success: false, error: "Unknown projection model." };
+  }
+  const errs = validateAnyProjectionInputs(modelType, inputs);
   if (errs.length) return { success: false, error: errs.join(" ") };
 
   const last = await prisma.acqProjection.findFirst({
@@ -122,7 +127,7 @@ export async function createAcqProjection(
 // ------------------------------------------------------------
 export async function updateAcqProjection(
   id: string,
-  inputs: ProjectionInputs
+  inputs: AnyProjectionInputs
 ): Promise<Result<{ id: string }>> {
   const user = await requireUser();
   if (!user || !acqCan(user.role, "lead:write")) return { success: false, error: "Unauthorized" };
@@ -130,7 +135,7 @@ export async function updateAcqProjection(
   if (!row) return { success: false, error: "Projection not found" };
   if (row.status !== "DRAFT") return { success: false, error: "Only a draft projection can be edited. Create a new version instead.", code: 409 };
 
-  const errs = validateProjectionInputs(row.modelType, inputs);
+  const errs = validateAnyProjectionInputs(row.modelType, inputs);
   if (errs.length) return { success: false, error: errs.join(" ") };
 
   await prisma.acqProjection.update({
@@ -151,7 +156,7 @@ export async function submitAcqProjection(id: string): Promise<Result<{ status: 
   if (!row) return { success: false, error: "Projection not found" };
   if (row.status !== "DRAFT") return { success: false, error: `Cannot submit from ${row.status}.`, code: 409 };
 
-  const errs = validateProjectionInputs(row.modelType, row.inputsJson as unknown as ProjectionInputs);
+  const errs = validateAnyProjectionInputs(row.modelType, row.inputsJson);
   if (errs.length) return { success: false, error: errs.join(" ") };
 
   await prisma.$transaction([
@@ -174,7 +179,10 @@ export async function submitAcqProjection(id: string): Promise<Result<{ status: 
       userId: h.id,
       type: "SLA_WARNING",
       title: "Projection awaiting approval",
-      message: `A 3-year projection for ${row.deal.propertyName} needs your approval.`,
+      message:
+        row.modelType === "REVENUE_MARGIN"
+          ? `A Revenue-Margin projection for ${row.deal.propertyName} needs your approval.`
+          : `A 3-year projection for ${row.deal.propertyName} needs your approval.`,
       actionUrl: `/bd/deals/${row.dealId}`,
     });
   }
@@ -203,8 +211,9 @@ export async function approveAcqProjection(id: string): Promise<Result<{ status:
 
   // Freeze the snapshot: compute the full grid server-side from the stored
   // inputs using the DB-resolved config (same config the preview used).
-  const inputs = row.inputsJson as unknown as ProjectionInputs;
-  const grid = computeProjection(row.modelType, inputs, config);
+  // Engine selection is centralised in computeAnyProjection — a REVENUE_MARGIN
+  // row freezes a RevenueMarginGrid, everything else a 3-year fee grid.
+  const grid = computeAnyProjection(row.modelType, row.inputsJson, config);
 
   await prisma.$transaction([
     prisma.acqProjection.update({
@@ -323,10 +332,15 @@ export async function sendAcqProjection(
 
   if (opts.method === "EMAIL_APP") {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.theveloriagrand.com";
-    const subject = opts.subject?.trim() || `3-Year Revenue Projection — ${row.deal.propertyName}`;
+    // The Revenue-Margin document is not a 3-year grid — don't call it one.
+    const isRm = row.modelType === "REVENUE_MARGIN";
+    const docName = isRm ? "Revenue Projection" : "3-Year Revenue Projection";
+    const subject = opts.subject?.trim() || `${docName} — ${row.deal.propertyName}`;
     const body =
       opts.body?.trim() ||
-      `Dear ${row.deal.lead.ownerName || "Partner"},<br/><br/>Please find your indicative 3-year revenue projection for ${row.deal.propertyName} prepared by Veloria Grand.<br/><br/><a href="${appUrl}${pdfUrl}">View / download the projection (PDF)</a><br/><br/>Warm regards,<br/>Veloria Grand`;
+      `Dear ${row.deal.lead.ownerName || "Partner"},<br/><br/>Please find your indicative ${
+        isRm ? "revenue projection" : "3-year revenue projection"
+      } for ${row.deal.propertyName} prepared by Veloria Grand.<br/><br/><a href="${appUrl}${pdfUrl}">View / download the projection (PDF)</a><br/><br/>Warm regards,<br/>Veloria Grand`;
     // after() so the projection email survives a serverless freeze.
     after(() =>
       sendEmail({ to: ownerEmail, subject, html: body }).catch((e) =>

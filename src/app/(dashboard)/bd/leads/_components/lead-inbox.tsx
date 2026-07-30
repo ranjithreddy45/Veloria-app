@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   Plus,
@@ -26,13 +26,17 @@ import {
   ACQ_PROPERTY_TYPE,
   ACQ_PROPERTY_TYPE_LABEL,
   ACQ_LEAD_SOURCE,
+  ACQ_LEAD_SOURCE_LABEL,
   ACQ_OWNER_TYPE,
   ACQ_DISQUALIFY_REASON,
-  ACQ_SEATING_RANGE,
-  ACQ_SEATING_RANGE_LABEL,
   ACQ_PROPERTY_STAGE,
   ACQ_PROPERTY_STAGE_LABEL,
+  ACQ_LEAD_STATUS,
+  ACQ_LEAD_STATUS_LABEL,
+  ACQ_LEAD_STATUS_HUE,
+  type AcqLeadStatus as AcqLeadStatusValue,
 } from "@/lib/acq/constants";
+import { LeadImagesField } from "@/app/(dashboard)/leads/_components/lead-images-field";
 import { isValidMobile } from "@/lib/acq/domain";
 
 import { Button } from "@/components/ui/button";
@@ -61,11 +65,7 @@ import { cn } from "@/lib/utils";
 // Types
 // ============================================================
 
-export type AcqLeadStatus =
-  | "NEW"
-  | "CONTACTED"
-  | "QUALIFIED"
-  | "DISQUALIFIED";
+export type AcqLeadStatus = AcqLeadStatusValue;
 
 export interface AcqLead {
   id: string;
@@ -79,7 +79,6 @@ export interface AcqLead {
   locality: string;
   seatingTheatre?: number | null;
   seatingFloating?: number | null;
-  seatingRange?: string | null;
   propertyStage?: string | null;
   notes?: string | null;
   leadSource: string;
@@ -101,6 +100,10 @@ interface LeadInboxProps {
   leads: AcqLead[];
   bdUsers: BdUser[];
   userRole?: string;
+  /** Server-validated ?status= filter currently in effect (item 12). */
+  activeStatus?: string;
+  /** True per-status totals from the server (ALL + one key per status). */
+  statusCounts?: Record<string, number>;
 }
 
 /** Minimal shape we read off a `duplicateOf` payload. */
@@ -127,30 +130,12 @@ interface OwnerLookupResult {
 // Helpers
 // ============================================================
 
-const STATUS_HUE: Record<
-  AcqLeadStatus,
-  "slate" | "blue" | "emerald" | "rose"
-> = {
-  NEW: "slate",
-  CONTACTED: "blue",
-  QUALIFIED: "emerald",
-  DISQUALIFIED: "rose",
-};
+// Labels + hues come from constants so the inbox, the detail page and any future
+// surface can never drift (and DEAL_CREATED is picked up automatically).
+const STATUS_HUE = ACQ_LEAD_STATUS_HUE;
+const STATUS_LABEL = ACQ_LEAD_STATUS_LABEL;
 
-const STATUS_LABEL: Record<AcqLeadStatus, string> = {
-  NEW: "New",
-  CONTACTED: "Contacted",
-  QUALIFIED: "Qualified",
-  DISQUALIFIED: "Dropped",
-};
-
-const STATUS_TABS: Array<"ALL" | AcqLeadStatus> = [
-  "ALL",
-  "NEW",
-  "CONTACTED",
-  "QUALIFIED",
-  "DISQUALIFIED",
-];
+const STATUS_TABS: Array<"ALL" | AcqLeadStatus> = ["ALL", ...ACQ_LEAD_STATUS];
 
 /** Convert an UPPER_SNAKE enum value into a human label. */
 function humanizeEnum(value: string): string {
@@ -193,24 +178,42 @@ function slaCopy(firstContactDue: string): {
 // Lead Inbox
 // ============================================================
 
-export function LeadInbox({ leads, bdUsers }: LeadInboxProps) {
-  const [activeTab, setActiveTab] = React.useState<"ALL" | AcqLeadStatus>(
-    "ALL"
-  );
+export function LeadInbox({
+  leads,
+  bdUsers,
+  activeStatus,
+  statusCounts,
+}: LeadInboxProps) {
   const [query, setQuery] = React.useState("");
   const [createOpen, setCreateOpen] = React.useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   // Auto-open the capture form when arriving via "New deal" on the board.
   React.useEffect(() => {
     if (searchParams.get("new") === "1") setCreateOpen(true);
   }, [searchParams]);
-  // Honour a ?status= deep-link from the dashboard drill-downs (FEAT-005).
-  React.useEffect(() => {
-    const s = searchParams.get("status");
-    if (s && ["NEW", "CONTACTED", "QUALIFIED", "DISQUALIFIED"].includes(s)) {
-      setActiveTab(s as AcqLeadStatus);
-    }
-  }, [searchParams]);
+
+  // The status filter lives in the URL (?status=), the same way the BD filter bar
+  // works — the server page validates it and queries with it, so the filter also
+  // reaches leads beyond the 500-row page cap. A ?status= deep-link from the
+  // dashboard drill-downs (FEAT-005) therefore just works.
+  const activeTab: "ALL" | AcqLeadStatus =
+    activeStatus && (ACQ_LEAD_STATUS as readonly string[]).includes(activeStatus)
+      ? (activeStatus as AcqLeadStatus)
+      : "ALL";
+
+  const setActiveTab = React.useCallback(
+    (tab: "ALL" | AcqLeadStatus) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (tab === "ALL") params.delete("status");
+      else params.set("status", tab);
+      const qs = params.toString();
+      router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    },
+    [router, pathname, searchParams]
+  );
+
   const [qualifyLead, setQualifyLead] = React.useState<AcqLead | null>(null);
   const [logContactLead, setLogContactLead] = React.useState<AcqLead | null>(
     null
@@ -229,30 +232,21 @@ export function LeadInbox({ leads, bdUsers }: LeadInboxProps) {
     [query]
   );
 
-  // Chip counts reflect the active search so the numbers always match the rows shown
-  // (BD BUG-015 / Sales SCRM-012).
+  // Chip counts are the SERVER's per-status totals. They can't be derived from
+  // `leads` any more: that array is already filtered to the active status (and
+  // capped), so every other chip would read 0. The "Showing X of Y" line below
+  // keeps the visible-rows number honest while a search is typed.
   const counts = React.useMemo(() => {
-    const base: Record<"ALL" | AcqLeadStatus, number> = {
-      ALL: 0,
-      NEW: 0,
-      CONTACTED: 0,
-      QUALIFIED: 0,
-      DISQUALIFIED: 0,
-    };
-    for (const lead of leads) {
-      if (!matchesQuery(lead)) continue;
-      base.ALL += 1;
-      base[lead.status] += 1;
-    }
-    return base;
-  }, [leads, matchesQuery]);
+    const base: Record<string, number> = { ALL: 0 };
+    for (const s of ACQ_LEAD_STATUS) base[s] = 0;
+    return { ...base, ...(statusCounts ?? {}) };
+  }, [statusCounts]);
 
-  const filtered = React.useMemo(() => {
-    return leads.filter((lead) => {
-      if (activeTab !== "ALL" && lead.status !== activeTab) return false;
-      return matchesQuery(lead);
-    });
-  }, [leads, activeTab, matchesQuery]);
+  // Status is applied server-side; only the text search runs here.
+  const filtered = React.useMemo(
+    () => leads.filter((lead) => matchesQuery(lead)),
+    [leads, matchesQuery]
+  );
 
   return (
     <div className="flex flex-col gap-4 text-[13px]">
@@ -310,6 +304,14 @@ export function LeadInbox({ leads, bdUsers }: LeadInboxProps) {
           </Button>
         </div>
       </div>
+
+      {query.trim() && (
+        <p className="text-[12px] text-muted-foreground">
+          Showing {filtered.length} of {leads.length} loaded lead
+          {leads.length === 1 ? "" : "s"}
+          {activeTab !== "ALL" ? ` in ${STATUS_LABEL[activeTab]}` : ""}.
+        </p>
+      )}
 
       {/* Table */}
       <div className="overflow-x-auto rounded-lg border border-border">
@@ -386,7 +388,9 @@ function LeadRow({
   onLogContact: () => void;
 }) {
   const isTerminal =
-    lead.status === "QUALIFIED" || lead.status === "DISQUALIFIED";
+    lead.status === "QUALIFIED" ||
+    lead.status === "DEAL_CREATED" ||
+    lead.status === "DISQUALIFIED";
   const canLogContact =
     lead.status === "NEW" || lead.status === "CONTACTED";
   const sla = lead.status === "NEW" ? slaCopy(lead.firstContactDue) : null;
@@ -409,7 +413,8 @@ function LeadRow({
         <span className="text-muted-foreground"> · {lead.locality}</span>
       </td>
       <td className="px-3 py-2.5 text-muted-foreground">
-        {humanizeEnum(lead.leadSource)}
+        {/* Label map, so a legacy WALK_IN row reads "Incoming lead" and never a raw enum. */}
+        {ACQ_LEAD_SOURCE_LABEL[lead.leadSource] ?? humanizeEnum(lead.leadSource)}
       </td>
       <td className="px-3 py-2.5">
         <StatusPill
@@ -475,7 +480,6 @@ interface CreateFormState {
   locality: string;
   seatingTheatre: string;
   seatingFloating: string;
-  seatingRange: string;
   propertyStage: string;
   parkingAvailable: "YES" | "NO" | "UNKNOWN";
   leadSource: string;
@@ -485,6 +489,8 @@ interface CreateFormState {
   referrerEmail: string;
   brokerageDemand: string;
   bdExecutiveId: string;
+  /** Property photos (AcqLead.images) captured at capture time. */
+  images: string[];
 }
 
 const EMPTY_FORM: CreateFormState = {
@@ -498,7 +504,6 @@ const EMPTY_FORM: CreateFormState = {
   locality: "",
   seatingTheatre: "",
   seatingFloating: "",
-  seatingRange: "",
   propertyStage: "",
   parkingAvailable: "UNKNOWN",
   leadSource: ACQ_LEAD_SOURCE[0],
@@ -508,6 +513,7 @@ const EMPTY_FORM: CreateFormState = {
   referrerEmail: "",
   brokerageDemand: "",
   bdExecutiveId: "",
+  images: [],
 };
 
 const UNASSIGNED = "__unassigned__";
@@ -611,9 +617,6 @@ function CreateLeadDialog({
         locality: form.locality.trim(),
         seatingTheatre,
         seatingFloating,
-        seatingRange: form.seatingRange
-          ? (form.seatingRange as (typeof ACQ_SEATING_RANGE)[number])
-          : undefined,
         propertyStage: form.propertyStage
           ? (form.propertyStage as (typeof ACQ_PROPERTY_STAGE)[number])
           : undefined,
@@ -630,6 +633,7 @@ function CreateLeadDialog({
           form.bdExecutiveId && form.bdExecutiveId !== UNASSIGNED
             ? form.bdExecutiveId
             : undefined,
+        images: form.images.length ? form.images : undefined,
       });
 
       if (res.success) {
@@ -748,6 +752,7 @@ function CreateLeadDialog({
                 value={form.leadSource}
                 onChange={(v) => set("leadSource", v)}
                 options={ACQ_LEAD_SOURCE}
+                labelFor={(v) => ACQ_LEAD_SOURCE_LABEL[v] ?? humanizeEnum(v)}
               />
             </Field>
             <Field label="City" required>
@@ -782,17 +787,8 @@ function CreateLeadDialog({
               />
             </Field>
 
-            <Field label="Seating capacity (range)">
-              <EnumSelect
-                value={form.seatingRange}
-                onChange={(v) => set("seatingRange", v)}
-                options={ACQ_SEATING_RANGE}
-                labelFor={(v) =>
-                  (ACQ_SEATING_RANGE_LABEL as Record<string, string>)[v] ?? v
-                }
-                placeholder="Select range…"
-              />
-            </Field>
+            {/* The bucketed "seating capacity (range)" picker was removed — the
+                exact theatre/floating numbers above are the single source of truth. */}
             <Field label="Property status">
               <EnumSelect
                 value={form.propertyStage}
@@ -863,6 +859,12 @@ function CreateLeadDialog({
               </Field>
             </div>
             )}
+
+            {/* Property photos → AcqLead.images (validated server-side). */}
+            <LeadImagesField
+              value={form.images}
+              onChange={(images) => set("images", images)}
+            />
 
             <Field label="Assign BD executive" className="sm:col-span-2">
               <Select
@@ -976,12 +978,12 @@ const EMPTY_CHECKS: QualifyChecks = {
   required_photos_available: false,
 };
 
-/** Pre-tick "seating 100+" from the lead's captured seating data. */
+/**
+ * Pre-tick "seating 100+" from the lead's EXACT seating numbers. The bucketed
+ * seatingRange was a second, contradictory source for this gate and is retired.
+ */
 function seatingIs100Plus(lead: AcqLead): boolean {
-  const cap = Math.max(toNumber(lead.seatingTheatre), toNumber(lead.seatingFloating));
-  if (cap >= 100) return true;
-  const r = (lead as { seatingRange?: string | null }).seatingRange;
-  return !!r && r !== "R_50_100";
+  return Math.max(toNumber(lead.seatingTheatre), toNumber(lead.seatingFloating)) >= 100;
 }
 
 function QualifyLeadDialog({

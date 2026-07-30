@@ -608,6 +608,20 @@ async function main() {
   }
   if (acqCfgCreated > 0) console.log(`[bootstrap] Seeded ${acqCfgCreated} BD config value(s)`);
 
+  // ---- 7b. Lead source WALK_IN → INCOMING_LEAD (BD item 7) ----
+  // The value was renamed; WALK_IN stays declared in the Prisma enum only so
+  // not-yet-migrated rows remain readable. Idempotent: once every row is
+  // migrated the updateMany matches nothing and this logs 0. Non-fatal.
+  try {
+    const migrated = await prisma.acqLead.updateMany({
+      where: { leadSource: "WALK_IN" },
+      data: { leadSource: "INCOMING_LEAD" },
+    });
+    console.log(`[bootstrap] BD lead source WALK_IN → INCOMING_LEAD: ${migrated.count} row(s) migrated`);
+  } catch (e) {
+    console.error("[bootstrap] BD lead-source migration failed (non-fatal):", e);
+  }
+
   const acqLeadCount = await prisma.acqLead.count();
   if (acqLeadCount === 0 && approver) {
     const due = new Date(Date.now() + 24 * 60 * 60 * 1000);

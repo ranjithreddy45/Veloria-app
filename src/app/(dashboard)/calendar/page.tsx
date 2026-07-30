@@ -3,6 +3,7 @@ import { startOfMonth, endOfMonth } from "date-fns";
 import { CalendarClockIcon } from "lucide-react";
 
 import { getMyCalendarTasks } from "@/actions/crm-task.actions";
+import { listAcqVisitsForCalendar } from "@/actions/acq-visit.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { MyCalendar } from "./_components/my-calendar";
 
@@ -34,8 +35,20 @@ export default async function MyCalendarPage({
   const from = startOfMonth(anchor);
   const to = endOfMonth(anchor);
 
-  const result = await getMyCalendarTasks(from.toISOString(), to.toISOString());
-  const tasks = result.success ? result.data : [];
+  // BD site visits / meetings / calls appear alongside Sales CRM tasks, so an
+  // employee has ONE calendar rather than having to remember which module a
+  // commitment came from. listAcqVisitsForCalendar returns a DTO deliberately
+  // shaped to match CalendarTaskDTO (with SITE_VISIT mapped to SHOW_AROUND etc.)
+  // so the existing icon/colour table renders BD rows unchanged. Fetched in
+  // parallel; either source failing degrades to the other rather than the page.
+  const [result, bdVisits] = await Promise.all([
+    getMyCalendarTasks(from.toISOString(), to.toISOString()),
+    listAcqVisitsForCalendar({ from: from.toISOString(), to: to.toISOString() }),
+  ]);
+  const tasks = [
+    ...(result.success ? result.data : []),
+    ...(bdVisits.success ? bdVisits.data : []),
+  ].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 
   return (
     <div className="space-y-6">

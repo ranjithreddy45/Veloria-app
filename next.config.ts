@@ -34,6 +34,16 @@ const nextConfig: NextConfig = {
 
   // Barrel-optimize heavy libraries so only the used exports are bundled.
   experimental: {
+    // Uploads travel as base64 data-URLs through server actions (the app's
+    // standard pattern — venue photos, receipts, signed contracts). The default
+    // body limit is 1 MB, and base64 inflates a file by ~a third, so a single
+    // 3 MB phone photo was silently failing to save. Images are now downscaled
+    // client-side (see lib/images/downscale-image.ts), which is the real fix;
+    // this raises the ceiling to cover multi-image batches and PDF scans, which
+    // are NOT downscaled. Kept at 4 MB on purpose: the serverless platform
+    // enforces its own request-body cap of roughly 4.5 MB, so a larger number
+    // here would be fiction — requests would still be rejected upstream.
+    serverActions: { bodySizeLimit: "4mb" },
     optimizePackageImports: [
       "recharts",
       "lucide-react",

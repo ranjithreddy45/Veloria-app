@@ -64,6 +64,17 @@ const TIME_SLOTS = [
   { value: "FULL_DAY", label: "Full Day" },
 ] as const;
 
+/**
+ * Local-time "YYYY-MM-DD" for the date input's `min`. NOT toISOString(): that
+ * is UTC while the browser compares `min` as local wall-clock, so in IST
+ * (UTC+5:30) the UTC string can still be yesterday and lets a past date pass.
+ */
+function todayLocal(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 // ============================================================
 // Component
 // ============================================================
@@ -276,7 +287,7 @@ export function ConvertDealDialog({
               <Input
                 id="convert-date"
                 type="date"
-                min={new Date().toISOString().slice(0, 10)}
+                min={todayLocal()}
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
               />

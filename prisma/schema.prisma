@@ -4979,9 +4979,17 @@ model AcqConfig {
 // BD CRM — Owner Projection Calculator (5-year revenue projection)
 // ============================================================
 
+// Which ENGINE produced a projection, not (despite the two original names) purely
+// a food question. WITH_FOOD/WITHOUT_FOOD are the two owner-projection variants;
+// REVENUE_MARGIN is the third engine, added for the Revenue Margin deal model
+// (base/best price × pax × events, margin as the spread, no opex). It shares this
+// enum so an RM projection gets the SAME draft → approve → send → PDF lifecycle as
+// the others — without it, the one projection a property owner most needs to be
+// sent could only ever be viewed on screen.
 enum AcqProjectionModel {
   WITH_FOOD
   WITHOUT_FOOD
+  REVENUE_MARGIN
 }
 
 enum AcqProjectionStatus {

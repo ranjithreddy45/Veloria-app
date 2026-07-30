@@ -39,6 +39,9 @@ import {
   rejectAcqContract,
   sendAcqContractToOwner,
   restoreAcqContractVersion,
+  setAcqContractSigningMode,
+  uploadSignedAcqContract,
+  removeSignedAcqContract,
 } from "@/actions/acq-contract.actions";
 import { defaultManagementAgreement } from "@/lib/acq/contract-template";
 import { FileDown, FileText } from "lucide-react";
@@ -65,6 +68,12 @@ export interface ContractFull {
   terminationGainLoss?: number | string | null;
   esignProvider?: string | null;
   esignStatus?: string | null;
+  /** DIGITAL (e-sign) | MANUAL (signed offline, scan uploaded) — item 14. */
+  signingMode?: string | null;
+  signedContractUrl?: string | null;
+  signedUploadedAt?: string | null;
+  /** Source deal — a manual signing wins it and provisions the hall. */
+  dealId?: string | null;
   documents: { id: string; label: string | null; url: string; createdAt: string }[];
   activities: { id: string; type: string; detail: string | null; createdAt: string; actorName?: string | null }[];
   versions: { id: string; version: number; body: string; createdAt: string }[];
@@ -206,16 +215,19 @@ export function ContractDetail({ contract, userRole }: { contract: ContractFull;
                 </Button>
               </div>
             )}
-            {(contract.status === "APPROVED" || contract.status === "NEGOTIATED") && canMove && (
+            {/* E-sign is the DIGITAL route only — hidden once manual signing is chosen. */}
+            {(contract.status === "APPROVED" || contract.status === "NEGOTIATED") && canMove && contract.signingMode !== "MANUAL" && (
               <Button size="sm" variant="outline" disabled={busy !== null} onClick={() => run("esign", async () => {
                 const r = await sendAcqContractForEsign(contract.id);
-                if (r.success && !r.data.configured) toast.message("E-sign not connected yet — upload the signed PDF below.");
+                if (r.success && !r.data.configured) toast.message("E-sign not connected yet — switch to manual signing below.");
                 return r;
               }, "Sent for signature")}>
                 {busy === "esign" ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />} Send for e-signature
               </Button>
             )}
-            {contract.status === "NEGOTIATED" && canMove && (
+            {/* With MANUAL signing the signed-copy upload below is what marks it
+                signed (and wins the deal), so the bare status flip is hidden. */}
+            {contract.status === "NEGOTIATED" && canMove && contract.signingMode !== "MANUAL" && (
               <Button size="sm" variant="outline" disabled={busy !== null} onClick={() => run("sign", () => markAcqContractSignedCLM(contract.id), "Marked signed")}>
                 <FileSignature className="size-3.5" /> Mark signed (manual)
               </Button>
@@ -237,6 +249,9 @@ export function ContractDetail({ contract, userRole }: { contract: ContractFull;
           </CardContent>
         </Card>
       </div>
+
+      {/* Signing method — digital (e-sign) or manual (upload the signed copy) */}
+      <ContractSigning contract={contract} canMove={canMove} canWrite={canWrite} />
 
       {/* Documents */}
       <ContractDocs contractId={contract.id} docs={contract.documents} />
@@ -371,6 +386,167 @@ function RejectBox({ contractId, busy, run }: { contractId: string; busy: string
           onClick={() => run("reject", () => rejectAcqContract(contractId, reason), "Sent back with changes")}>Send back</Button>
       </div>
     </div>
+  );
+}
+
+// ============================================================
+// Item 14 — signing method.
+//   DIGITAL → the existing e-sign route (untouched).
+//   MANUAL  → printed & signed offline; uploading the scan is what marks the
+//             contract signed, wins the source deal and provisions the hall.
+// ============================================================
+function ContractSigning({
+  contract,
+  canMove,
+  canWrite,
+}: {
+  contract: ContractFull;
+  canMove: boolean;
+  canWrite: boolean;
+}) {
+  const router = useRouter();
+  const [busy, setBusy] = React.useState(false);
+  const mode = contract.signingMode ?? null;
+  const executed = contract.status === "SIGNED" || contract.status === "ACTIVE" || contract.status === "TERMINATED";
+
+  async function chooseMode(next: "DIGITAL" | "MANUAL") {
+    setBusy(true);
+    try {
+      const res = await setAcqContractSigningMode(contract.id, next);
+      if (!res.success) { toast.error(res.error); return; }
+      toast.success(next === "MANUAL" ? "Manual signing selected" : "Digital e-signature selected");
+      router.refresh();
+    } finally { setBusy(false); }
+  }
+
+  async function onUploaded(dataUrl: string, file: File) {
+    setBusy(true);
+    try {
+      const res = await uploadSignedAcqContract(contract.id, {
+        url: dataUrl,
+        fileName: file.name,
+        mimeType: file.type,
+      });
+      if (!res.success) { toast.error(res.error); return; }
+      toast.success("Signed contract uploaded");
+      if (res.data.dealWon) {
+        toast.success("Deal won — the hall has been created and onboarding started.");
+      } else if (res.data.note) {
+        // Honest reporting: the contract is signed but the deal's own Won gates
+        // weren't met, so nothing was provisioned.
+        toast.warning(res.data.note);
+      }
+      router.refresh();
+    } finally { setBusy(false); }
+  }
+
+  async function removeScan() {
+    setBusy(true);
+    try {
+      const res = await removeSignedAcqContract(contract.id);
+      if (!res.success) { toast.error(res.error); return; }
+      toast.success("Signed copy removed");
+      router.refresh();
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-1.5 text-[13px] tracking-[-0.01em]">
+          <FileSignature className="size-4" /> Signing method
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant={mode === "DIGITAL" ? "default" : "outline"}
+            disabled={busy || executed || !canWrite}
+            onClick={() => chooseMode("DIGITAL")}
+          >
+            Digital e-signature
+          </Button>
+          <Button
+            size="sm"
+            variant={mode === "MANUAL" ? "default" : "outline"}
+            disabled={busy || executed || !canWrite}
+            onClick={() => chooseMode("MANUAL")}
+          >
+            Manual (signed offline)
+          </Button>
+        </div>
+
+        {mode === null && (
+          <p className="text-[12px] text-muted-foreground">
+            Pick how this agreement gets signed. <strong>Digital</strong> routes it through the e-signature
+            provider; <strong>Manual</strong> means you print it, get it signed, and upload the scan here.
+          </p>
+        )}
+
+        {mode === "DIGITAL" && (
+          <p className="text-[12px] text-muted-foreground">
+            Use <strong>Send for e-signature</strong> in Actions above.{" "}
+            {contract.esignStatus ? `Provider status: ${contract.esignProvider ?? ""} ${contract.esignStatus}.` : "Not sent yet."}
+          </p>
+        )}
+
+        {mode === "MANUAL" && (
+          <div className="space-y-3">
+            <p className="text-[12px] text-muted-foreground">
+              Upload the signed agreement (PDF or photo/scan). This marks the contract <strong>signed</strong>,
+              wins the source deal and creates the hall for onboarding — in one step.
+              {!contract.dealId && " This contract isn't linked to a deal, so no hall will be created."}
+            </p>
+            {contract.signedContractUrl ? (
+              <div className="flex flex-wrap items-center gap-3 rounded-md border border-border/60 bg-muted/30 px-3 py-2">
+                <a
+                  href={contract.signedContractUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[13px] font-medium text-primary hover:underline"
+                >
+                  Signed agreement
+                </a>
+                <span className="text-[11.5px] text-muted-foreground">
+                  Uploaded {fmtDate(contract.signedUploadedAt)}
+                </span>
+                {canMove && (
+                  <div className="ml-auto flex items-center gap-2">
+                    <FileUpload
+                      onUploaded={onUploaded}
+                      label={busy ? "Uploading…" : "Replace"}
+                      disabled={busy}
+                    />
+                    <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" disabled={busy} onClick={removeScan}>
+                      Remove
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : canMove ? (
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <FileUpload
+                  onUploaded={onUploaded}
+                  label={busy ? "Uploading…" : "Upload signed contract"}
+                  disabled={busy || contract.status === "TERMINATED"}
+                />
+                <span className="text-[11.5px] text-muted-foreground">PDF or image, up to ~5 MB.</span>
+              </div>
+            ) : (
+              <p className="text-[12px] text-muted-foreground">
+                Waiting for a BD executive / BD Head to upload the signed copy.
+              </p>
+            )}
+            {contract.status !== "NEGOTIATED" && !executed && (
+              <p className="text-[11.5px] text-warning">
+                Send the contract to the owner first — the signed copy can only be uploaded once it&apos;s out for signature.
+              </p>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

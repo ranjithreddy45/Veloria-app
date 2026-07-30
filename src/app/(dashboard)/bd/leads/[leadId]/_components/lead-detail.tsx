@@ -16,6 +16,9 @@ import {
   XCircle,
   Clock,
   BadgeCheck,
+  Camera,
+  Handshake,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,18 +43,24 @@ import {
 } from "@/components/ui/select";
 import { StatusPill } from "@/components/shared/status-pill";
 import { LeadVisits } from "./lead-visits";
+import { LeadContacts, type AcqLeadContactRow } from "./lead-contacts";
+// Shared notes-on-visits/meetings/calls panel (owned by another agent).
+import { AcqSchedulePanel } from "@/app/(dashboard)/bd/_components/acq-schedule-panel";
+import { LeadImagesField } from "@/app/(dashboard)/leads/_components/lead-images-field";
 import { acqCan } from "@/lib/acq/rbac";
 import {
   ACQ_PROPERTY_TYPE,
   ACQ_PROPERTY_TYPE_LABEL,
   ACQ_LEAD_SOURCE,
+  ACQ_LEAD_SOURCE_LABEL,
   ACQ_OWNER_TYPE,
   ACQ_DISQUALIFY_REASON,
-  ACQ_SEATING_RANGE,
-  ACQ_SEATING_RANGE_LABEL,
   ACQ_PROPERTY_STAGE,
   ACQ_PROPERTY_STAGE_LABEL,
   ACQ_LEAD_STATUS_LABEL,
+  ACQ_LEAD_STATUS_HUE,
+  ACQ_LEAD_STATUS_TRANSITIONS,
+  type AcqLeadStatus,
 } from "@/lib/acq/constants";
 import {
   logAcqLeadContact,
@@ -60,12 +69,14 @@ import {
   editAcqLead,
   reassignAcqLead,
   deleteAcqLead,
+  setAcqLeadStatus,
+  updateAcqLeadImages,
 } from "@/actions/acq-lead.actions";
 
 // ============================================================
 // Types
 // ============================================================
-type Status = "NEW" | "CONTACTED" | "QUALIFIED" | "DISQUALIFIED";
+type Status = AcqLeadStatus;
 
 export interface BdUser {
   id: string;
@@ -85,9 +96,12 @@ export interface AcqLeadFull {
   locality: string;
   seatingTheatre?: number | null;
   seatingFloating?: number | null;
-  seatingRange?: string | null;
   propertyStage?: string | null;
   notes?: string | null;
+  /** Property photos (AcqLead.images) — base64 data-URLs. */
+  images?: string[] | null;
+  /** Everyone worked on this property, with their role (AcqLeadContact). */
+  contacts?: AcqLeadContactRow[];
   parkingAvailable?: boolean | null;
   referrerName?: string | null;
   referrerPhone?: string | null;
@@ -126,12 +140,8 @@ export interface AcqLeadFull {
   }>;
 }
 
-const STATUS_HUE: Record<Status, "slate" | "blue" | "emerald" | "rose"> = {
-  NEW: "slate",
-  CONTACTED: "blue",
-  QUALIFIED: "emerald",
-  DISQUALIFIED: "rose",
-};
+// Hues live in constants so the inbox and this page can never disagree.
+const STATUS_HUE = ACQ_LEAD_STATUS_HUE;
 
 function num(v: unknown): number {
   const n = Number(v);
@@ -148,14 +158,25 @@ function fmtDate(iso?: string | null): string {
     ? "—"
     : d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
 }
+// Reads the EXACT seating numbers only. The bucketed seatingRange used to be a
+// second, contradictory source for this gate; it was retired (item 9).
 function seatingIs100Plus(l: AcqLeadFull): boolean {
-  const cap = Math.max(num(l.seatingTheatre), num(l.seatingFloating));
-  if (cap >= 100) return true;
-  return !!l.seatingRange && l.seatingRange !== "R_50_100";
+  return Math.max(num(l.seatingTheatre), num(l.seatingFloating)) >= 100;
 }
 /** Digits only, for wa.me / tel links. */
 function dial(raw: string): string {
   return (raw || "").replace(/[^\d]/g, "");
+}
+/**
+ * `min`/`value` for <input type="datetime-local"> in LOCAL time.
+ * `new Date().toISOString()` is UTC — in IST that made `min` 5h30m in the PAST,
+ * so the browser happily accepted a follow-up the server then rejected.
+ */
+function toLocalInputValue(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+    d.getHours()
+  )}:${pad(d.getMinutes())}`;
 }
 
 // ============================================================
@@ -181,8 +202,13 @@ export function LeadDetail({
   const canReassign = acqCan(userRole, "lead:reassign");
   const canDelete = acqCan(userRole, "lead:delete");
   const canWrite = acqCan(userRole, "lead:write");
-  const isTerminal = lead.status === "QUALIFIED" || lead.status === "DISQUALIFIED";
+  // Qualified / converted / dropped leads are out of the working funnel.
+  const isTerminal =
+    lead.status === "QUALIFIED" ||
+    lead.status === "DEAL_CREATED" ||
+    lead.status === "DISQUALIFIED";
   const phone = dial(lead.mobilePrimary);
+  const refresh = React.useCallback(() => router.refresh(), [router]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -271,16 +297,12 @@ export function LeadDetail({
               <Field label="Primary mobile" value={lead.mobilePrimary} />
               <Field label="Alternate" value={lead.mobileAlternate || "—"} />
               <Field label="Email" value={lead.email || "—"} />
-              <Field label="Lead source" value={label({}, lead.leadSource)} />
+              <Field label="Lead source" value={label(ACQ_LEAD_SOURCE_LABEL, lead.leadSource)} />
               <Field label="Property" value={lead.propertyName} />
               <Field label="Property type" value={label(ACQ_PROPERTY_TYPE_LABEL, lead.propertyType)} />
               <Field label="Property status" value={label(ACQ_PROPERTY_STAGE_LABEL, lead.propertyStage)} />
               <Field label="City" value={lead.city} />
               <Field label="Locality" value={lead.locality} />
-              <Field
-                label="Seating range"
-                value={label(ACQ_SEATING_RANGE_LABEL, lead.seatingRange)}
-              />
               <Field
                 label="Seating (theatre / floating)"
                 value={`${lead.seatingTheatre ?? "—"} / ${lead.seatingFloating ?? "—"}`}
@@ -316,6 +338,10 @@ export function LeadDetail({
                 {lead.notes}
               </div>
             )}
+
+            <div className="mt-4">
+              <LeadImagesSection lead={lead} canWrite={canWrite} onSaved={refresh} />
+            </div>
           </CardContent>
         </Card>
 
@@ -327,9 +353,13 @@ export function LeadDetail({
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="rounded-md border border-border/60 bg-muted/30 p-3 text-[13px]">
-                {lead.status === "QUALIFIED" ? (
+                {lead.status === "DEAL_CREATED" ? (
+                  <span className="inline-flex items-center gap-1.5 text-primary">
+                    <Handshake className="size-4" /> Deal created
+                  </span>
+                ) : lead.status === "QUALIFIED" ? (
                   <span className="inline-flex items-center gap-1.5 text-emerald-700">
-                    <BadgeCheck className="size-4" /> Qualified — deal created
+                    <BadgeCheck className="size-4" /> Qualified — no deal yet
                   </span>
                 ) : lead.status === "DISQUALIFIED" ? (
                   <span className="inline-flex items-center gap-1.5 text-rose-600">
@@ -347,11 +377,15 @@ export function LeadDetail({
                 )}
               </div>
 
-              {lead.status === "QUALIFIED" && lead.convertedDealId && (
+              {lead.convertedDealId && (
                 <Button asChild variant="outline" size="sm" className="w-full">
                   <Link href={`/bd/deals/${lead.convertedDealId}`}>Open deal</Link>
                 </Button>
               )}
+
+              {/* Item 6 — change status. Only the moves the server's state machine
+                  allows are offered; qualify/drop stay behind their own gates. */}
+              {canWrite && <StatusChanger lead={lead} onDone={refresh} />}
 
               {!isTerminal && canWrite && (
                 <div className="grid gap-2">
@@ -394,8 +428,14 @@ export function LeadDetail({
         </div>
       </div>
 
+      {/* People we work this property through, each with their role */}
+      <LeadContacts leadId={lead.id} contacts={lead.contacts ?? []} canWrite={canWrite} />
+
       {/* Notes + site visits / meetings */}
       <LeadVisits leadId={lead.id} canWrite={canWrite} />
+
+      {/* Notes against site visits / meetings / calls (shared BD panel) */}
+      <AcqSchedulePanel scope="lead" id={lead.id} userRole={userRole} onMutate={refresh} />
 
       {/* Activity timeline */}
       <Card>
@@ -485,6 +525,183 @@ function CriterionRow({ ok, text }: { ok?: boolean | null; text: string }) {
 }
 
 // ------------------------------------------------------------
+// Status changer (item 6)
+//
+// Offers only the transitions the server allows for the current status
+// (ACQ_LEAD_STATUS_TRANSITIONS). Qualify → DEAL_CREATED and drop → DISQUALIFIED
+// are deliberately absent: they run the qualification checklist / require a drop
+// reason, and live on the buttons below. Moving to Contacted collects the
+// follow-up date the server insists on, instead of round-tripping an error.
+// ------------------------------------------------------------
+function StatusChanger({ lead, onDone }: { lead: AcqLeadFull; onDone: () => void }) {
+  const allowed = ACQ_LEAD_STATUS_TRANSITIONS[lead.status] ?? [];
+  const [target, setTarget] = React.useState<Status | null>(null);
+  const [followup, setFollowup] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+
+  if (allowed.length === 0) {
+    return (
+      <p className="text-[11.5px] text-muted-foreground">
+        {lead.status === "DEAL_CREATED" || lead.status === "QUALIFIED"
+          ? "Status is set by the deal from here on."
+          : "No status change available."}
+      </p>
+    );
+  }
+
+  function pick(next: string) {
+    const s = next as Status;
+    setTarget(s);
+    if (s === "CONTACTED") {
+      // Default to tomorrow, same time — local time, never UTC.
+      const t = new Date();
+      t.setDate(t.getDate() + 1);
+      setFollowup(toLocalInputValue(t));
+    } else {
+      setFollowup("");
+    }
+  }
+
+  async function save() {
+    if (!target) return;
+    setBusy(true);
+    try {
+      const res = await setAcqLeadStatus(lead.id, target, {
+        nextFollowupAt: followup ? new Date(followup).toISOString() : undefined,
+      });
+      if (!res.success) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(`Status changed to ${ACQ_LEAD_STATUS_LABEL[target]}`);
+      setTarget(null);
+      onDone();
+    } catch {
+      toast.error("Couldn't change status — please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="space-y-2 rounded-md border border-border/60 p-3">
+      <Label className="text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
+        Change status
+      </Label>
+      <Select value={target ?? undefined} onValueChange={pick}>
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder={`Currently ${ACQ_LEAD_STATUS_LABEL[lead.status]}…`} />
+        </SelectTrigger>
+        <SelectContent>
+          {allowed.map((s) => (
+            <SelectItem key={s} value={s}>
+              {ACQ_LEAD_STATUS_LABEL[s]}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {target === "CONTACTED" && (
+        <div className="space-y-1.5">
+          <Label className="text-[12px]">Next follow-up</Label>
+          <Input
+            type="datetime-local"
+            value={followup}
+            min={toLocalInputValue(new Date())}
+            onChange={(e) => setFollowup(e.target.value)}
+          />
+        </div>
+      )}
+      {target && (
+        <div className="flex justify-end gap-2">
+          <Button size="sm" variant="outline" onClick={() => setTarget(null)} disabled={busy}>
+            Cancel
+          </Button>
+          <Button size="sm" onClick={save} disabled={busy || (target === "CONTACTED" && !followup)}>
+            {busy && <Loader2 className="size-3.5 animate-spin" />}
+            Save status
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ------------------------------------------------------------
+// Property photos on the lead (AcqLead.images) — mirrors the deal-detail panel.
+// Persists via updateAcqLeadImages, which ERRORS rather than silently storing []
+// when nothing validates.
+// ------------------------------------------------------------
+function LeadImagesSection({
+  lead,
+  canWrite,
+  onSaved,
+}: {
+  lead: AcqLeadFull;
+  canWrite: boolean;
+  onSaved: () => void;
+}) {
+  const saved = lead.images ?? [];
+  const [images, setImages] = React.useState<string[]>(saved);
+  const [busy, setBusy] = React.useState(false);
+
+  React.useEffect(() => {
+    setImages(lead.images ?? []);
+  }, [lead.images]);
+
+  const dirty =
+    images.length !== saved.length || images.some((v, i) => v !== saved[i]);
+
+  async function save() {
+    setBusy(true);
+    try {
+      const res = await updateAcqLeadImages(lead.id, images);
+      if (!res.success) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Property photos saved");
+      onSaved();
+    } catch {
+      toast.error("Couldn't save — please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="space-y-3 rounded-md border border-border/60 p-3.5">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+          <Camera className="size-3.5" /> Property photos
+        </div>
+        {canWrite && dirty && (
+          <Button size="sm" onClick={save} disabled={busy}>
+            {busy && <Loader2 className="size-3.5 animate-spin" />}
+            Save photos
+          </Button>
+        )}
+      </div>
+      {canWrite ? (
+        <div className="grid gap-4">
+          <LeadImagesField value={images} onChange={setImages} />
+        </div>
+      ) : images.length === 0 ? (
+        <p className="text-[12.5px] text-muted-foreground">No photos yet.</p>
+      ) : (
+        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+          {images.map((src, idx) => (
+            <div key={idx} className="aspect-square overflow-hidden rounded-md border bg-muted">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={src} alt={`Property photo ${idx + 1}`} className="size-full object-cover" />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ------------------------------------------------------------
 // Edit dialog
 // ------------------------------------------------------------
 function EditLeadDialog({
@@ -521,7 +738,6 @@ function EditLeadDialog({
         locality: f.locality.trim(),
         seatingTheatre: f.seatingTheatre ? Number(f.seatingTheatre) : null,
         seatingFloating: f.seatingFloating ? Number(f.seatingFloating) : null,
-        seatingRange: f.seatingRange ? (f.seatingRange as (typeof ACQ_SEATING_RANGE)[number]) : null,
         propertyStage: f.propertyStage ? (f.propertyStage as (typeof ACQ_PROPERTY_STAGE)[number]) : null,
         leadSource: f.leadSource as (typeof ACQ_LEAD_SOURCE)[number],
         ownerType: f.ownerType as (typeof ACQ_OWNER_TYPE)[number],
@@ -558,10 +774,10 @@ function EditLeadDialog({
           <L label="City"><Input value={f.city} onChange={(e) => set("city", e.target.value)} /></L>
           <L label="Locality"><Input value={f.locality} onChange={(e) => set("locality", e.target.value)} /></L>
           <L label="Property status"><Picker value={f.propertyStage} onChange={(v) => set("propertyStage", v)} options={ACQ_PROPERTY_STAGE} labels={ACQ_PROPERTY_STAGE_LABEL} placeholder="Select…" /></L>
-          <L label="Seating range"><Picker value={f.seatingRange} onChange={(v) => set("seatingRange", v)} options={ACQ_SEATING_RANGE} labels={ACQ_SEATING_RANGE_LABEL} placeholder="Select…" /></L>
+          {/* Seating is captured as exact numbers only — the bucketed range was retired. */}
           <L label="Seating — theatre"><Input value={f.seatingTheatre} inputMode="numeric" onChange={(e) => set("seatingTheatre", e.target.value)} /></L>
           <L label="Seating — floating"><Input value={f.seatingFloating} inputMode="numeric" onChange={(e) => set("seatingFloating", e.target.value)} /></L>
-          <L label="Lead source"><Picker value={f.leadSource} onChange={(v) => set("leadSource", v)} options={ACQ_LEAD_SOURCE} /></L>
+          <L label="Lead source"><Picker value={f.leadSource} onChange={(v) => set("leadSource", v)} options={ACQ_LEAD_SOURCE} labels={ACQ_LEAD_SOURCE_LABEL} /></L>
           <L label="Owner type"><Picker value={f.ownerType} onChange={(v) => set("ownerType", v)} options={ACQ_OWNER_TYPE} /></L>
           <div className="sm:col-span-2">
             <L label="Notes"><Textarea value={f.notes} onChange={(e) => set("notes", e.target.value)} rows={3} /></L>
@@ -587,10 +803,11 @@ function toForm(l: AcqLeadFull) {
     city: l.city ?? "",
     locality: l.locality ?? "",
     propertyStage: l.propertyStage ?? "",
-    seatingRange: l.seatingRange ?? "",
     seatingTheatre: l.seatingTheatre != null ? String(l.seatingTheatre) : "",
     seatingFloating: l.seatingFloating != null ? String(l.seatingFloating) : "",
-    leadSource: l.leadSource ?? ACQ_LEAD_SOURCE[0],
+    // A not-yet-migrated WALK_IN row maps onto its replacement so the picker
+    // shows a value instead of appearing empty (item 7).
+    leadSource: l.leadSource === "WALK_IN" ? "INCOMING_LEAD" : l.leadSource ?? ACQ_LEAD_SOURCE[0],
     ownerType: l.ownerType ?? ACQ_OWNER_TYPE[0],
     notes: l.notes ?? "",
   };
@@ -923,7 +1140,10 @@ function LogContactDialog({
             <Input
               type="datetime-local"
               value={followup}
-              min={new Date().toISOString().slice(0, 16)}
+              // LOCAL time: a datetime-local `min` is interpreted in the browser's
+              // timezone, so the old toISOString() (UTC) let IST users pick a time
+              // 5h30m in the past that the server then rejected.
+              min={toLocalInputValue(new Date())}
               onChange={(e) => setFollowup(e.target.value)}
             />
           </L>

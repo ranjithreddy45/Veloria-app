@@ -21,6 +21,7 @@ import { acqCan, acqHasAnyAccess } from "@/lib/acq/rbac";
 import {
   ACQ_LOST_REASON,
   ACQ_DEAL_MODEL,
+  ACQ_RM_PRICE_BASIS,
   ACQ_OWNER_TYPE,
   ACQ_PROPERTY_TYPE,
   type AcqDealStage,
@@ -33,6 +34,43 @@ async function requireUser() {
   const session = await auth();
   if (!session?.user?.id) return null;
   return session.user as { id: string; name?: string | null; role?: string };
+}
+
+// The five REVENUE_MARGIN economics columns. This model quotes ABSOLUTE prices
+// (owner-guaranteed base vs. the price we expect to sell at), so the percentage
+// floors in requiresBdHeadApproval (base fee / incentive / royalty) do not apply
+// to it — every gate below asks for these fields instead.
+const RM_ECONOMICS_KEYS = [
+  "rmBasePrice",
+  "rmBestPrice",
+  "rmPriceBasis",
+  "rmHallCapacity",
+  "rmMinimumPax",
+] as const;
+
+/**
+ * Which REVENUE_MARGIN economics are still missing, as a human list — shared by
+ * the freeze precondition and the PROPOSAL_SENT / WON stage gates so a rep never
+ * sees a demand for a fee % this model doesn't have.
+ */
+function rmMissingEconomics(d: {
+  rmBasePrice: unknown;
+  rmBestPrice: unknown;
+  rmPriceBasis: string | null;
+  rmHallCapacity: number | null;
+  rmMinimumPax: number | null;
+}): string | null {
+  const missing: string[] = [];
+  if (d.rmBasePrice == null) missing.push("a base price");
+  if (d.rmBestPrice == null) missing.push("a best price");
+  if (!d.rmPriceBasis) missing.push("a price basis (per event / per pax)");
+  if (d.rmPriceBasis === "PER_PAX") {
+    // Per-pax volume is bounded by the hall and floored by the minimum, so both
+    // are required before the economics mean anything.
+    if (d.rmHallCapacity == null) missing.push("the hall capacity");
+    if (d.rmMinimumPax == null) missing.push("a minimum billable pax");
+  }
+  return missing.length > 0 ? missing.join(", ") : null;
 }
 
 
@@ -92,6 +130,8 @@ export async function updateAcqDeal(
     "signatoryAuthorityVerified", "gpaDocumentUrl", "expectedCloseDate",
     // Deal-preview commercial dates/fees (BD CRM)
     "expectedSigningDate", "taFees", "expectedCollectionDate",
+    // REVENUE_MARGIN economics (absolute prices — see RM_ECONOMICS_KEYS)
+    ...RM_ECONOMICS_KEYS,
   ];
   const data: Record<string, unknown> = {};
   for (const k of allowed) {
@@ -101,13 +141,65 @@ export async function updateAcqDeal(
     return { success: false, error: "Invalid model" };
   }
 
-  // Once economics are frozen, the agreed commercials are immutable.
+  // Once economics are frozen, the agreed commercials are immutable. The
+  // Revenue-Margin prices are that model's agreed commercials, so they lock too.
   if (deal.economicsFrozenAt) {
-    for (const locked of ["baseFeePct", "incentivePct", "royaltyPct", "termYears"]) {
+    for (const locked of ["baseFeePct", "incentivePct", "royaltyPct", "termYears", ...RM_ECONOMICS_KEYS]) {
       if (locked in data) {
-        return { success: false, error: "Economics are frozen — base fee, incentive, royalty and term can't be changed." };
+        return { success: false, error: "Economics are frozen — base fee, incentive, royalty, term and the Revenue-Margin prices can't be changed." };
       }
     }
+  }
+
+  // ---- REVENUE_MARGIN validation (absolute prices, not percentages) ----
+  // Money: ≥ 0, or null to clear.
+  for (const k of ["rmBasePrice", "rmBestPrice"] as const) {
+    if (!(k in data)) continue;
+    if (data[k] == null || data[k] === "") { data[k] = null; continue; }
+    const n = Number(data[k]);
+    if (!Number.isFinite(n) || n < 0) {
+      return { success: false, error: `${k === "rmBasePrice" ? "Base" : "Best"} price must be a number ≥ 0.` };
+    }
+    data[k] = n;
+  }
+  // Head counts: whole numbers ≥ 1. Rejected rather than truncated — silently
+  // turning 250.5 pax into 250 would change the owner's economics behind them.
+  for (const k of ["rmHallCapacity", "rmMinimumPax"] as const) {
+    if (!(k in data)) continue;
+    if (data[k] == null || data[k] === "") { data[k] = null; continue; }
+    const n = Number(data[k]);
+    if (!Number.isInteger(n) || n < 1) {
+      return {
+        success: false,
+        error: `${k === "rmHallCapacity" ? "Hall capacity" : "Minimum pax"} must be a whole number ≥ 1.`,
+      };
+    }
+    data[k] = n;
+  }
+  if ("rmPriceBasis" in data) {
+    if (data.rmPriceBasis == null || data.rmPriceBasis === "") {
+      data.rmPriceBasis = null;
+    } else if (!ACQ_RM_PRICE_BASIS.includes(data.rmPriceBasis as never)) {
+      return { success: false, error: "Price basis must be per event or per pax." };
+    }
+  }
+  // Cross-field checks run on the MERGED view (patch ∪ stored) so patching one
+  // field can't leave an invalid pair with what is already on the deal.
+  const rmEff = (k: (typeof RM_ECONOMICS_KEYS)[number]): number | null => {
+    const v = k in data ? data[k] : (deal as Record<string, unknown>)[k];
+    return v == null ? null : Number(v);
+  };
+  const rmBase = rmEff("rmBasePrice");
+  const rmBest = rmEff("rmBestPrice");
+  if (rmBase != null && rmBest != null && rmBest < rmBase) {
+    // A best price under the guaranteed base is a data-entry error: it would
+    // project a negative margin on every event.
+    return { success: false, error: "Best price can't be lower than the base price (that would be a negative margin)." };
+  }
+  const rmCapacity = rmEff("rmHallCapacity");
+  const rmMinPax = rmEff("rmMinimumPax");
+  if (rmCapacity != null && rmMinPax != null && rmMinPax > rmCapacity) {
+    return { success: false, error: "Minimum pax can't exceed the hall capacity." };
   }
   // Coerce date strings → Date for every date field; null clears them.
   for (const dk of ["expectedCloseDate", "expectedSigningDate", "expectedCollectionDate"]) {
@@ -139,7 +231,7 @@ export async function updateAcqDeal(
   // no longer applies — clear it so it must be re-approved (prevents a BD exec
   // approving high terms then quietly lowering them after the fact).
   if (deal.bdHeadApprovedById) {
-    const commercialKeys = ["model", "baseFeePct", "incentivePct", "royaltyPct", "lockinYears", "termYears"];
+    const commercialKeys = ["model", "baseFeePct", "incentivePct", "royaltyPct", "lockinYears", "termYears", ...RM_ECONOMICS_KEYS];
     const changed = commercialKeys.some(
       (k) => k in data && String(data[k]) !== String((deal as Record<string, unknown>)[k])
     );
@@ -151,7 +243,7 @@ export async function updateAcqDeal(
 
   // Record the commercials edits to the deal change-log (FEAT-007) so the thread shows
   // before→after with actor + timestamp (mirrors editAcqDealOverview).
-  const logKeys = ["model", "baseFeePct", "incentivePct", "royaltyPct", "termYears", "lockinYears"];
+  const logKeys = ["model", "baseFeePct", "incentivePct", "royaltyPct", "termYears", "lockinYears", ...RM_ECONOMICS_KEYS];
   const changes = logKeys
     .filter((k) => k in data && String(data[k] ?? "—") !== String((deal as Record<string, unknown>)[k] ?? "—"))
     .map((k) => `${k}: "${(deal as Record<string, unknown>)[k] ?? "—"}" → "${data[k] ?? "—"}"`);
@@ -209,7 +301,17 @@ export async function setAcqDealEconomicsFrozen(
   if (!deal) return { success: false, error: "Deal not found" };
 
   if (frozen) {
-    if (deal.baseFeePct == null || deal.incentivePct == null || deal.termYears == null) {
+    if (deal.model === "REVENUE_MARGIN") {
+      // This model has no base fee / incentive % to freeze — its agreed
+      // commercials are the absolute base/best prices.
+      const missing = rmMissingEconomics(deal);
+      if (missing) {
+        return { success: false, error: `Set the Revenue-Margin economics before freezing — missing ${missing}.` };
+      }
+      if (deal.termYears == null) {
+        return { success: false, error: "Set the term (years) before freezing." };
+      }
+    } else if (deal.baseFeePct == null || deal.incentivePct == null || deal.termYears == null) {
       return { success: false, error: "Set base fee, incentive and term before freezing." };
     }
   }
@@ -575,6 +677,14 @@ export async function transitionAcqDeal(
       if (deal.model === "FRANCHISE" && deal.royaltyPct == null) {
         return { success: false, error: "Franchise model needs a royalty %.", code: 422 };
       }
+      // REVENUE_MARGIN carries absolute prices instead of a fee/royalty % —
+      // require ITS fields, never the percentages it doesn't have.
+      if (deal.model === "REVENUE_MARGIN") {
+        const missing = rmMissingEconomics(deal);
+        if (missing) {
+          return { success: false, error: `Revenue Margin model needs ${missing}.`, code: 422 };
+        }
+      }
       if (deal.termYears == null || deal.lockinYears == null) {
         return { success: false, error: "Term (years) and lock-in (years) are required.", code: 422 };
       }
@@ -637,6 +747,12 @@ export async function transitionAcqDeal(
       }
       if (deal.model === "FRANCHISE" && deal.royaltyPct == null) {
         return { success: false, error: "A Won franchise deal needs a royalty %.", code: 422 };
+      }
+      if (deal.model === "REVENUE_MARGIN") {
+        const missing = rmMissingEconomics(deal);
+        if (missing) {
+          return { success: false, error: `A Won Revenue Margin deal needs ${missing}.`, code: 422 };
+        }
       }
       if (deal.termYears == null) return { success: false, error: "Set the term (years) before marking the deal Won.", code: 422 };
       if (deal.projectedFeeValue == null) {

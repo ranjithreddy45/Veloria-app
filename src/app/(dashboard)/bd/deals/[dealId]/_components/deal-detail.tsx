@@ -23,7 +23,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
-import { requiresBdHeadApproval } from "@/lib/acq/domain";
+import { requiresBdHeadApproval, LEGAL_TRANSITIONS } from "@/lib/acq/domain";
 import { acqCan } from "@/lib/acq/rbac";
 import { cn } from "@/lib/utils";
 
@@ -49,18 +49,26 @@ import {
 } from "@/actions/acq-meeting.actions";
 import { FileUpload } from "@/components/ui/file-upload";
 import {
+  ACQ_DEAL_STAGE,
   ACQ_DEAL_STAGE_LABEL,
+  ACQ_DEAL_MODEL,
+  ACQ_DEAL_MODEL_LABEL,
   ACQ_LOST_REASON,
   ACQ_OWNER_TYPE,
   ACQ_PROPERTY_TYPE,
   ACQ_PROPERTY_STAGE,
   ACQ_LEAD_SOURCE,
+  ACQ_RM_PRICE_BASIS,
+  ACQ_RM_PRICE_BASIS_LABEL,
   type AcqDealStage,
+  type AcqDealModel,
+  type AcqRmPriceBasis,
   type AcqLostReason,
 } from "@/lib/acq/constants";
 
 import { StatusPill } from "@/components/shared/status-pill";
 import { ProjectionTab } from "./projection-tab";
+import { AcqSchedulePanel } from "@/app/(dashboard)/bd/_components/acq-schedule-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -171,12 +179,18 @@ export interface AcqDealDetail {
   ownerCurrentMonthlyRevenue: Num;
   avgEventsPerMonth: Num;
   peakRateCard: Num;
-  model: "MANAGEMENT" | "FRANCHISE" | null;
+  model: AcqDealModel | null;
   baseFeePct: Num;
   incentivePct: Num;
   royaltyPct: Num;
   termYears: Num;
   lockinYears: Num;
+  // REVENUE_MARGIN economics — absolute prices, not percentages.
+  rmBasePrice?: Num;
+  rmBestPrice?: Num;
+  rmPriceBasis?: string | null;
+  rmHallCapacity?: number | null;
+  rmMinimumPax?: number | null;
   isExclusive: boolean;
   expectedMonthlyEvents: Num;
   projectedFeeValue: Num;
@@ -202,20 +216,10 @@ export interface AcqDealDetail {
 }
 
 // ============================================================
-// Stage machine (mirrors server guard) — legal next stages
+// Stage machine — the SAME map the server guard uses (imported, not copied, so
+// the buttons offered here can never drift from what transitionAcqDeal allows).
 // ============================================================
-const LEGAL_TARGETS: Record<AcqDealStage, AcqDealStage[]> = {
-  QUALIFIED: ["EVALUATION", "LOST", "ON_HOLD"],
-  EVALUATION: ["EVALUATION_COMPLETED", "ON_HOLD", "LOST"],
-  EVALUATION_COMPLETED: ["PROPOSAL_SENT", "LOST"],
-  PROPOSAL_SENT: ["NEGOTIATION", "LOST"],
-  NEGOTIATION: ["CONTRACT_SENT", "LOST"],
-  CONTRACT_SENT: ["SIGNED", "NEGOTIATION", "LOST"],
-  SIGNED: ["WON"],
-  WON: [],
-  LOST: [],
-  ON_HOLD: ["EVALUATION", "LOST"],
-};
+const LEGAL_TARGETS: Record<AcqDealStage, AcqDealStage[]> = LEGAL_TRANSITIONS;
 
 // The single forward stage for each current stage, and the live guard
 // requirements to reach it — so a rep sees exactly what's needed before
@@ -249,6 +253,21 @@ function forwardStep(deal: AcqDealDetail): NextStep | null {
       ];
       if (deal.model === "FRANCHISE") {
         reqs.push({ label: "Royalty % set", met: num(deal.royaltyPct) != null });
+      } else if (deal.model === "REVENUE_MARGIN") {
+        // Absolute-price model: ask for ITS fields, never a fee/royalty %.
+        reqs.push({
+          label: "Base price, best price and price basis set",
+          met:
+            num(deal.rmBasePrice) != null &&
+            num(deal.rmBestPrice) != null &&
+            !!deal.rmPriceBasis,
+        });
+        if (deal.rmPriceBasis === "PER_PAX") {
+          reqs.push({
+            label: "Hall capacity and minimum pax set (per-pax price)",
+            met: deal.rmHallCapacity != null && deal.rmMinimumPax != null,
+          });
+        }
       } else {
         reqs.push({
           label: "Base fee % and incentive % set",
@@ -387,6 +406,7 @@ export function DealDetail({
             <TabsTrigger value="economics" className="shrink-0 whitespace-nowrap">Economics &amp; Model</TabsTrigger>
             <TabsTrigger value="evaluation" className="shrink-0 whitespace-nowrap">Evaluation</TabsTrigger>
             <TabsTrigger value="projection" className="shrink-0 whitespace-nowrap">Projection</TabsTrigger>
+            <TabsTrigger value="schedule" className="shrink-0 whitespace-nowrap">Schedule</TabsTrigger>
             <TabsTrigger value="negotiation" className="shrink-0 whitespace-nowrap">Negotiation</TabsTrigger>
             <TabsTrigger value="contract" className="shrink-0 whitespace-nowrap">Contract</TabsTrigger>
           </TabsList>
@@ -404,7 +424,36 @@ export function DealDetail({
             <EvaluationTab deal={deal} onMutate={() => router.refresh()} />
           </TabsContent>
           <TabsContent value="projection" className="mt-4">
-            <ProjectionTab dealId={deal.id} userRole={userRole} />
+            {/* One projection lifecycle for every model. A Revenue-Margin deal
+                seeds the RM engine from its agreed economics; the builder freezes
+                those numbers onto the projection when it saves. */}
+            <ProjectionTab
+              dealId={deal.id}
+              userRole={userRole}
+              dealModel={deal.model}
+              rmDefaults={{
+                basePrice: num(deal.rmBasePrice),
+                bestPrice: num(deal.rmBestPrice),
+                priceBasis: deal.rmPriceBasis === "PER_PAX" ? "PER_PAX" : "PER_EVENT",
+                hallCapacity: deal.rmHallCapacity ?? null,
+                minimumPax: deal.rmMinimumPax ?? null,
+                eventsPerMonth: num(deal.expectedMonthlyEvents),
+                expectedPax:
+                  Math.max(
+                    num(deal.seatingTheatre) ?? 0,
+                    num(deal.seatingFloating) ?? 0
+                  ) || null,
+              }}
+            />
+          </TabsContent>
+          <TabsContent value="schedule" className="mt-4">
+            {/* Calls / site-visits / meetings against this deal (shared panel). */}
+            <AcqSchedulePanel
+              scope="deal"
+              id={deal.id}
+              userRole={userRole}
+              onMutate={() => router.refresh()}
+            />
           </TabsContent>
           <TabsContent value="negotiation" className="mt-4">
             <NegotiationTab deal={deal} onMutate={() => router.refresh()} />
@@ -551,21 +600,32 @@ function StagePanel({
   const [lostOpen, setLostOpen] = useState(false);
   const [lostReason, setLostReason] = useState<AcqLostReason | "">("");
   const [lostBusy, setLostBusy] = useState(false);
+  // Explicit stage editor (task 6). It calls the SAME guarded transition action
+  // as the quick buttons — there is no bypass path.
+  const [target, setTarget] = useState<AcqDealStage | "">("");
+  const [note, setNote] = useState("");
+  // Refusals are kept on screen (a toast disappears before the rep has read the
+  // requirement it names).
+  const [refusal, setRefusal] = useState<string | null>(null);
 
   const targets = LEGAL_TARGETS[deal.stage] ?? [];
 
-  async function go(toStage: AcqDealStage) {
+  async function go(toStage: AcqDealStage, reason?: string) {
     if (toStage === "LOST") {
       setLostOpen(true);
       return;
     }
+    setRefusal(null);
     setPending(toStage);
-    const res = await transitionAcqDeal(deal.id, toStage);
+    const res = await transitionAcqDeal(deal.id, toStage, reason?.trim() ? { reason: reason.trim() } : {});
     setPending(null);
     if (!res.success) {
+      setRefusal(res.error);
       toast.error(res.error);
       return;
     }
+    setTarget("");
+    setNote("");
     toast.success(`Moved to ${ACQ_DEAL_STAGE_LABEL[res.data.stage]}`);
     onMutate();
   }
@@ -576,14 +636,20 @@ function StagePanel({
       return;
     }
     setLostBusy(true);
-    const res = await transitionAcqDeal(deal.id, "LOST", { lostReason });
+    const res = await transitionAcqDeal(deal.id, "LOST", {
+      lostReason,
+      ...(note.trim() ? { reason: note.trim() } : {}),
+    });
     setLostBusy(false);
     if (!res.success) {
+      setRefusal(res.error);
       toast.error(res.error);
       return;
     }
     setLostOpen(false);
     setLostReason("");
+    setNote("");
+    setTarget("");
     toast.success("Deal marked lost");
     onMutate();
   }
@@ -659,6 +725,60 @@ function StagePanel({
             <p className="pt-1 text-[11.5px] text-muted-foreground">
               Lost reason: {deal.lostReason.replaceAll("_", " ")}
             </p>
+          )}
+
+          {/* Explicit stage editor — pick any stage; illegal ones are disabled
+              with the reason, and the guarded action still has the final say. */}
+          {targets.length > 0 && (
+            <div className="space-y-2 border-t border-border/60 pt-3">
+              <Label className="text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
+                Change stage
+              </Label>
+              <Select value={target} onValueChange={(v) => setTarget(v as AcqDealStage)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a stage" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ACQ_DEAL_STAGE.filter((s) => s !== deal.stage).map((s) => {
+                    const legal = targets.includes(s);
+                    return (
+                      <SelectItem key={s} value={s} disabled={!legal}>
+                        {ACQ_DEAL_STAGE_LABEL[s]}
+                        {!legal && ` — not allowed from ${ACQ_DEAL_STAGE_LABEL[deal.stage]}`}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+              <Textarea
+                rows={2}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Reason / note for the stage change (optional)"
+              />
+              <Button
+                size="sm"
+                className="w-full"
+                disabled={!target || pending !== null || lostBusy}
+                onClick={() => target && go(target, note)}
+              >
+                {pending === target ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <ArrowRight className="size-3.5" />
+                )}
+                Update stage
+              </Button>
+            </div>
+          )}
+
+          {refusal && (
+            <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-2.5 text-[12px] text-destructive">
+              <AlertTriangle className="mt-px size-3.5 shrink-0" />
+              <span>
+                <strong>Stage change refused.</strong> {refusal}
+              </span>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -1406,9 +1526,15 @@ function EconomicsTab({
 }) {
   const frozen = !!deal.economicsFrozenAt;
   const canFreeze = acqCan(userRole, "bdhead:approve");
-  const [model, setModel] = useState<"MANAGEMENT" | "FRANCHISE">(
-    deal.model ?? "MANAGEMENT"
+  const [model, setModel] = useState<AcqDealModel>(deal.model ?? "MANAGEMENT");
+  // REVENUE_MARGIN economics — absolute prices, so none of the % floors apply.
+  const [rmBasePrice, setRmBasePrice] = useState(numStr(deal.rmBasePrice));
+  const [rmBestPrice, setRmBestPrice] = useState(numStr(deal.rmBestPrice));
+  const [rmPriceBasis, setRmPriceBasis] = useState<AcqRmPriceBasis>(
+    deal.rmPriceBasis === "PER_PAX" ? "PER_PAX" : "PER_EVENT"
   );
+  const [rmHallCapacity, setRmHallCapacity] = useState(numStr(deal.rmHallCapacity ?? null));
+  const [rmMinimumPax, setRmMinimumPax] = useState(numStr(deal.rmMinimumPax ?? null));
   const [baseFeePct, setBaseFeePct] = useState(numStr(deal.baseFeePct));
   const [incentivePct, setIncentivePct] = useState(numStr(deal.incentivePct));
   const [royaltyPct, setRoyaltyPct] = useState(numStr(deal.royaltyPct));
@@ -1444,7 +1570,35 @@ function EconomicsTab({
     return n == null ? null : Math.trunc(n);
   };
 
+  // Client mirror of the server's REVENUE_MARGIN rules (acq-deal.actions.ts) so
+  // the rep sees the problem before the round-trip. The server still re-checks.
+  const rmErrors: string[] = [];
+  if (model === "REVENUE_MARGIN") {
+    const b = numOrNull(rmBasePrice);
+    const t = numOrNull(rmBestPrice);
+    const cap = numOrNull(rmHallCapacity);
+    const min = numOrNull(rmMinimumPax);
+    if (b != null && b < 0) rmErrors.push("Base price must be ≥ 0.");
+    if (t != null && t < 0) rmErrors.push("Best price must be ≥ 0.");
+    if (b != null && t != null && t < b) {
+      rmErrors.push("Best price can't be lower than the base price (that would be a negative margin).");
+    }
+    if (cap != null && (!Number.isInteger(cap) || cap < 1)) {
+      rmErrors.push("Hall capacity must be a whole number ≥ 1.");
+    }
+    if (min != null && (!Number.isInteger(min) || min < 1)) {
+      rmErrors.push("Minimum pax must be a whole number ≥ 1.");
+    }
+    if (cap != null && min != null && min > cap) {
+      rmErrors.push("Minimum pax can't exceed the hall capacity.");
+    }
+  }
+
   async function save() {
+    if (rmErrors.length > 0) {
+      toast.error(rmErrors[0]);
+      return;
+    }
     setBusy(true);
     try {
       const patch: Record<string, unknown> = {
@@ -1460,10 +1614,24 @@ function EconomicsTab({
         banquetSizeSft: intOrNull(banquetSizeSft),
       };
       // Frozen → never send the locked commercials (the server would reject).
+      // The Revenue-Margin prices are locked by the same freeze.
       if (!frozen) {
         patch.baseFeePct = numOrNull(baseFeePct);
         patch.incentivePct = numOrNull(incentivePct);
         patch.termYears = intOrNull(termYears);
+        // Only the Revenue-Margin model owns these columns — don't write (and
+        // change-log) them on a Management/Franchise deal. Values already saved
+        // are left untouched, so switching models back keeps the agreed prices.
+        if (model === "REVENUE_MARGIN") {
+          patch.rmBasePrice = numOrNull(rmBasePrice);
+          patch.rmBestPrice = numOrNull(rmBestPrice);
+          patch.rmPriceBasis = rmPriceBasis;
+          patch.rmHallCapacity = numOrNull(rmHallCapacity);
+          // Minimum pax only means anything on a per-pax price — clear it on a
+          // per-event price so a stale floor can't quietly inflate a projection.
+          patch.rmMinimumPax =
+            rmPriceBasis === "PER_PAX" ? numOrNull(rmMinimumPax) : null;
+        }
       }
       const res = await updateAcqDeal(deal.id, patch);
       if (!res.success) {
@@ -1509,29 +1677,30 @@ function EconomicsTab({
       <CardHeader>
         <CardTitle className="text-[13px] tracking-[-0.01em]">Economics &amp; Model</CardTitle>
         <CardDescription>
-          Floors: base ≥ 5%, incentive ≥ 15%, royalty ≥ 20%, lock-in ≥ 3 yrs.
-          Below these requires BD Head approval.
+          {model === "REVENUE_MARGIN"
+            ? "Revenue Margin quotes absolute prices — the % floors don't apply. Lock-in ≥ 3 yrs still needs BD Head approval when shorter."
+            : "Floors: base ≥ 5%, incentive ≥ 15%, royalty ≥ 20%, lock-in ≥ 3 yrs. Below these requires BD Head approval."}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label>Commercial model</Label>
-            <Select
-              value={model}
-              onValueChange={(v) => setModel(v as "MANAGEMENT" | "FRANCHISE")}
-            >
+            <Select value={model} onValueChange={(v) => setModel(v as AcqDealModel)}>
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="MANAGEMENT">Management</SelectItem>
-                <SelectItem value="FRANCHISE">Franchise</SelectItem>
+                {ACQ_DEAL_MODEL.map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {ACQ_DEAL_MODEL_LABEL[m]}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
 
-          {model === "MANAGEMENT" ? (
+          {model === "MANAGEMENT" && (
             <>
               <NumField
                 label="Base fee %"
@@ -1548,7 +1717,8 @@ function EconomicsTab({
                 warn={belowIncentive ? FLOOR_WARN : undefined}
               />
             </>
-          ) : (
+          )}
+          {model === "FRANCHISE" && (
             <NumField
               label="Royalty %"
               value={royaltyPct}
@@ -1556,6 +1726,61 @@ function EconomicsTab({
               disabled={frozen}
               warn={belowRoyalty ? FLOOR_WARN : undefined}
             />
+          )}
+          {/* REVENUE_MARGIN inputs — only this model has them. */}
+          {model === "REVENUE_MARGIN" && (
+            <>
+              <div className="space-y-1.5">
+                <Label>Price basis</Label>
+                <Select
+                  value={rmPriceBasis}
+                  onValueChange={(v) => setRmPriceBasis(v as AcqRmPriceBasis)}
+                  disabled={frozen}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ACQ_RM_PRICE_BASIS.map((b) => (
+                      <SelectItem key={b} value={b}>
+                        {ACQ_RM_PRICE_BASIS_LABEL[b]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11.5px] text-muted-foreground">
+                  {rmPriceBasis === "PER_PAX"
+                    ? "Priced per head — pax multiplies the gross, capped by hall capacity."
+                    : "Priced per event — pax is not a multiplier."}
+                </p>
+              </div>
+              <NumField
+                label="Base price (₹, owner guaranteed)"
+                value={rmBasePrice}
+                onChange={setRmBasePrice}
+                disabled={frozen}
+              />
+              <NumField
+                label="Best price (₹, expected sell)"
+                value={rmBestPrice}
+                onChange={setRmBestPrice}
+                disabled={frozen}
+              />
+              <NumField
+                label="Hall capacity (pax)"
+                value={rmHallCapacity}
+                onChange={setRmHallCapacity}
+                disabled={frozen}
+              />
+              {rmPriceBasis === "PER_PAX" && (
+                <NumField
+                  label="Minimum pax (billable floor)"
+                  value={rmMinimumPax}
+                  onChange={setRmMinimumPax}
+                  disabled={frozen}
+                />
+              )}
+            </>
           )}
 
           <NumField
@@ -1653,8 +1878,23 @@ function EconomicsTab({
           </div>
         )}
 
+        {rmErrors.length > 0 && (
+          <ul className="space-y-1 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-[12px] text-destructive">
+            {rmErrors.map((e) => (
+              <li key={e}>• {e}</li>
+            ))}
+          </ul>
+        )}
+
+        {model === "REVENUE_MARGIN" && rmErrors.length === 0 && (
+          <p className="text-[11.5px] text-muted-foreground">
+            Save, then see the <strong>Projection</strong> tab for the annualised
+            gross revenue and the base-to-best margin.
+          </p>
+        )}
+
         <div className="flex justify-end">
-          <Button onClick={save} disabled={busy}>
+          <Button onClick={save} disabled={busy || rmErrors.length > 0}>
             {busy && <Loader2 className="size-3.5 animate-spin" />}
             Save
           </Button>
