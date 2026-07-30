@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { getInvoice } from "@/actions/invoice.actions";
 import { formatINR } from "@/lib/utils";
 import { COMPANY_ADDRESS, COMPANY_GSTIN, COMPANY_LEGAL_LINE, LEGACY_INVOICE_TERMS } from "@/lib/constants";
+import { PAYMENT_TERMS_LINES } from "@/lib/sales/quotation-calc";
 
 // ============================================================
 // Print-Optimized Invoice PDF Page
@@ -411,9 +412,8 @@ export default async function InvoicePdfPage({ params }: InvoicePdfPageProps) {
             <div className="notes-section">
               <h4>Payment Terms</h4>
               <p>
-                1. To block the slot — 20% on the day of booking.{"\n"}
-                2. 60% — 15 days before the event.{"\n"}
-                3. Balance (20%) — 2 hours before the event.{"\n"}
+                {PAYMENT_TERMS_LINES.join("\n")}
+                {"\n"}
                 {"\n"}
                 This is a Proforma Invoice for advance/part payment and is not a tax
                 document. A Tax Invoice will be issued once full payment is received.

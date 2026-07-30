@@ -264,6 +264,25 @@ export const PAYMENT_TERMS_SENTENCE = `Payment terms: ${PAYMENT_TERMS.map(
 ).join(", ")}.`;
 
 /**
+ * The numbered "Payment Terms" block printed on quotation and invoice documents,
+ * e.g. ["1. 30% — on the day of booking, blocks the slot.", …].
+ *
+ * WHY THIS IS DERIVED: this block was previously hand-typed prose in FOUR
+ * separate customer-facing templates (quotation PDF, invoice preview, staff
+ * invoice print, portal invoice PDF). Because it spelled the numbers out in
+ * words, it survived a search for the old "20/60/20" split — so the documents
+ * showed a Payment Schedule table of 30/50/20 directly above a Payment Terms
+ * list still claiming 20/60/20 and "2 hours before". Two contradictory sets of
+ * terms on one page the customer is asked to pay against. Never hand-type these
+ * numbers again; render this array.
+ */
+export const PAYMENT_TERMS_LINES: string[] = PAYMENT_TERMS.map((t, i) => {
+  // Lower-case the hint's first letter so it reads as one clause after the dash.
+  const hint = t.dueHint.charAt(0).toLowerCase() + t.dueHint.slice(1);
+  return `${i + 1}. ${t.pct}% — ${hint}.`;
+});
+
+/**
  * Due date for one installment, given the event date. `daysBeforeEvent === null`
  * means due immediately (the advance). Without an event date, `fallbackDays`
  * keeps the dates strictly increasing so the plan still validates.

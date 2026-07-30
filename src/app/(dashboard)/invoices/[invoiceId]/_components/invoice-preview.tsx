@@ -14,6 +14,7 @@ import {
   LEGACY_INVOICE_TERMS,
 } from "@/lib/constants";
 import { formatINR } from "@/lib/utils";
+import { PAYMENT_TERMS_LINES } from "@/lib/sales/quotation-calc";
 
 // ============================================================
 // Types
@@ -474,9 +475,7 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
               Payment Terms
             </h4>
             <p className="text-sm text-zinc-600 whitespace-pre-line">
-              {`1. To block the slot — 20% on the day of booking.
-2. 60% — 15 days before the event.
-3. Balance (20%) — 2 hours before the event.
+              {`${PAYMENT_TERMS_LINES.join("\n")}
 
 This is a Proforma Invoice for advance/part payment and is not a tax document. A Tax Invoice will be issued once full payment is received.`}
             </p>

@@ -4,6 +4,7 @@ import {
   computePackageLine,
   buildPaymentSchedule,
   PAYMENT_TERMS,
+  PAYMENT_TERMS_LINES,
   PAYMENT_TERMS_LABEL,
   validateQuotationInput,
   QUOTE_CATALOG,
@@ -116,6 +117,26 @@ describe("buildPaymentSchedule", () => {
     expect(sched[1].amount).toBe(65037); // round(130074 × 0.50)
     expect(sched[2].amount).toBe(26015); // remainder — absorbs rounding
     expect(sched.reduce((s, i) => s + i.amount, 0)).toBe(130074); // no drift
+  });
+
+  it("the printed Payment Terms block agrees with the Payment Schedule table", () => {
+    // The owner caught a document showing a 30/50/20 schedule table directly above
+    // a Payment Terms list still reading 20/60/20 — because that list was
+    // hand-typed prose in four templates and survived a numeric search. These must
+    // never disagree again: both sides derive from PAYMENT_TERMS.
+    const schedulePcts = buildPaymentSchedule(146790).map((i) => i.pct);
+    const linePcts = PAYMENT_TERMS_LINES.map((l) => Number(l.match(/(\d+)%/)![1]));
+    expect(linePcts).toEqual(schedulePcts);
+    expect(linePcts).toEqual([30, 50, 20]);
+    // Superseded wording must be gone from the printed block.
+    const joined = PAYMENT_TERMS_LINES.join(" ");
+    expect(joined).not.toMatch(/2 hours/);
+    expect(joined).not.toMatch(/60%/);
+    expect(joined).toMatch(/48 hours before the event/);
+    expect(joined).toMatch(/15 days before the event/);
+    // One line per term, numbered in order.
+    expect(PAYMENT_TERMS_LINES).toHaveLength(PAYMENT_TERMS.length);
+    PAYMENT_TERMS_LINES.forEach((l, i) => expect(l.startsWith(`${i + 1}. `)).toBe(true));
   });
 
   it("percentages are exactly the canonical PAYMENT_TERMS (single source of truth)", () => {

@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { PageHelp } from "@/lib/page-help";
 import { StatTile } from "@/components/ui/stat-tile";
 import { PaymentsTable } from "./_components/payments-table";
+import { PaymentGatewayStatus } from "./_components/gateway-status";
 import { formatINR } from "@/lib/utils";
 
 export const metadata = {
@@ -28,6 +29,7 @@ export default async function PaymentsPage() {
   const role = (session?.user?.role as string) ?? "";
   const canCancel = hasPermission(role, "payments:update");
   const isManager = hasPermission(role, "payments:cancel");
+  const canConfigurePayments = hasPermission(role, "payments:create");
 
   // ---- Derive headline metrics from existing fields (amount/status/paidAt) ----
   const toNumber = (v: unknown): number => {
@@ -96,6 +98,8 @@ export default async function PaymentsPage() {
           sub="Collected since the 1st"
         />
       </div>
+
+      {canConfigurePayments && <PaymentGatewayStatus />}
 
       <PaymentsTable data={payments} canCancel={canCancel} isManager={isManager} />
     </div>

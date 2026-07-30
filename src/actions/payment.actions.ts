@@ -17,7 +17,7 @@ import { hasPermission } from "@/lib/permissions";
 import { maybeConfirmBookingOnPayment } from "@/lib/sales/confirm-booking";
 import { isSafeReceiptUrl } from "@/lib/sales/receipt";
 import { applyRazorpayCapture, allocatePaidAmountToInstallments } from "@/lib/payments/apply-capture";
-import { razorpayKeyId, razorpayKeySecret, razorpayConfigured } from "@/lib/payments/razorpay-creds";
+import { razorpayKeyId, razorpayKeySecret, razorpayConfigured, razorpayWebhookSecret } from "@/lib/payments/razorpay-creds";
 import { postPaymentReceived } from "@/lib/finance/receivables";
 
 // ============================================================
@@ -454,6 +454,166 @@ export async function verifyPaymentProof(paymentId: string) {
 // ============================================================
 // Create Razorpay Order (direct SDK call — no self-referential fetch)
 // ============================================================
+
+// ============================================================
+// Payment-gateway diagnostics — "Test connection"
+// ------------------------------------------------------------
+// Staff-only health check that answers "why isn't payment collection
+// working?" WITHOUT exposing any secret. It pings Razorpay with the
+// configured server keys (a harmless read — list one order) so we can tell
+// the real failure modes apart:
+//   • keys missing         → nothing in the environment
+//   • keys invalid/rotated → Razorpay returns 401
+//   • test-mode keys       → rzp_test_… collects NO real money
+//   • public/server mismatch → browser checkout would use another account
+//   • webhook secret unset → a captured payment may not post back if the
+//     customer closes the tab before the verify round-trip
+// Returns only safe, masked info — never the secret or webhook value.
+// ============================================================
+
+type GatewayCheck = {
+  ok: boolean;
+  level: "pass" | "warn" | "fail";
+  label: string;
+  detail: string;
+};
+
+export async function getPaymentGatewayHealth(): Promise<
+  | {
+      success: true;
+      configured: boolean;
+      mode: "live" | "test" | "unknown";
+      keyIdMasked: string | null;
+      keysValid: boolean | null;
+      webhookSecretSet: boolean;
+      checks: GatewayCheck[];
+      headline: string;
+      canCollect: boolean;
+    }
+  | { success: false; error: string }
+> {
+  const session = await auth();
+  if (!session?.user) return { success: false as const, error: "Unauthorized" };
+  if (!hasPermission(session.user.role as string, "payments:create")) {
+    return { success: false as const, error: "Insufficient permissions" };
+  }
+
+  const keyId = razorpayKeyId();
+  const secret = razorpayKeySecret();
+  const publicKeyId = (process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "").trim() || null;
+  const webhookSecretSet = !!razorpayWebhookSecret();
+  const configured = !!(keyId && secret);
+
+  const mode: "live" | "test" | "unknown" = keyId?.startsWith("rzp_live_")
+    ? "live"
+    : keyId?.startsWith("rzp_test_")
+      ? "test"
+      : "unknown";
+  const keyIdMasked = keyId ? `${keyId.slice(0, 12)}…${keyId.slice(-4)}` : null;
+
+  // Live validity probe — a read-only call that authenticates without side
+  // effects. A 401 means the key pair is wrong/rotated.
+  let keysValid: boolean | null = null;
+  let probeError = "";
+  if (configured) {
+    try {
+      const Razorpay = (await import("razorpay")).default;
+      const razorpay = new Razorpay({ key_id: keyId, key_secret: secret });
+      await razorpay.orders.all({ count: 1 });
+      keysValid = true;
+    } catch (e: unknown) {
+      keysValid = false;
+      const err = e as { statusCode?: number; error?: { description?: string }; message?: string };
+      probeError =
+        err?.statusCode === 401
+          ? "401 Authentication failed — the key id/secret pair is wrong or has been regenerated."
+          : err?.error?.description || err?.message || "Unknown error contacting Razorpay.";
+    }
+  }
+
+  const publicMatch = publicKeyId && keyId ? publicKeyId === keyId : null;
+
+  const checks: GatewayCheck[] = [
+    {
+      ok: configured,
+      level: configured ? "pass" : "fail",
+      label: "API keys present",
+      detail: configured
+        ? `Key id ${keyIdMasked} and secret are set.`
+        : "RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET are missing from the environment.",
+    },
+    {
+      ok: keysValid === true,
+      level: keysValid === true ? "pass" : keysValid === false ? "fail" : "warn",
+      label: "Razorpay accepts the keys",
+      detail:
+        keysValid === true
+          ? "Razorpay authenticated the key pair successfully."
+          : keysValid === false
+            ? probeError
+            : "Not tested — keys are not configured.",
+    },
+    {
+      ok: mode === "live",
+      level: mode === "live" ? "pass" : mode === "test" ? "warn" : "warn",
+      label: "Live mode (collects real money)",
+      detail:
+        mode === "live"
+          ? "Live keys (rzp_live_…) — real payments are collected."
+          : mode === "test"
+            ? "TEST keys (rzp_test_…) — checkout works but NO real money is collected. Replace with Live keys to take real payments."
+            : "Could not read the mode from the key id.",
+    },
+    {
+      ok: publicMatch !== false,
+      level: publicMatch === false ? "fail" : "pass",
+      label: "Browser key matches server key",
+      detail:
+        publicMatch === false
+          ? "NEXT_PUBLIC_RAZORPAY_KEY_ID is a DIFFERENT key than RAZORPAY_KEY_ID — the checkout popup and the server would use different accounts, so verification fails. Set them to the same key id."
+          : publicKeyId
+            ? "Public key id matches the server key id."
+            : "No separate public key set (the server sends the key id to the browser — fine).",
+    },
+    {
+      ok: webhookSecretSet,
+      level: webhookSecretSet ? "pass" : "warn",
+      label: "Webhook secret set",
+      detail: webhookSecretSet
+        ? "RAZORPAY_WEBHOOK_SECRET is set. Confirm the webhook URL in the Razorpay dashboard points to /api/payments/webhook."
+        : "RAZORPAY_WEBHOOK_SECRET is not set. Payments still complete via the browser verify step, but if a customer closes the tab mid-payment, the capture won't post back automatically.",
+    },
+  ];
+
+  const canCollect = configured && keysValid === true && mode === "live" && publicMatch !== false;
+
+  let headline: string;
+  if (!configured) {
+    headline = "Not configured — add your Razorpay Live key id and secret in Vercel.";
+  } else if (keysValid === false) {
+    headline = "Razorpay is rejecting your keys. Regenerate the Live key/secret in the dashboard and update Vercel.";
+  } else if (mode === "test") {
+    headline = "Connected, but in TEST mode — no real money is collected. Switch to Live keys.";
+  } else if (publicMatch === false) {
+    headline = "Key mismatch between browser and server — checkout will fail verification. Align the two key ids.";
+  } else if (mode === "unknown") {
+    headline = "Keys work, but the mode couldn't be read. Verify these are your Live keys.";
+  } else {
+    headline = "Live and authenticated — you're ready to collect real payments.";
+  }
+
+  return {
+    success: true as const,
+    configured,
+    mode,
+    keyIdMasked,
+    keysValid,
+    webhookSecretSet,
+    checks,
+    headline,
+    canCollect,
+  };
+}
 
 export async function createRazorpayOrder(invoiceId: string, amount: number) {
   try {

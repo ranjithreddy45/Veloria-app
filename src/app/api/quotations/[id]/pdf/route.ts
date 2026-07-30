@@ -1,5 +1,10 @@
 import { prisma } from "@/lib/prisma";
-import { computeQuotation, type QuotationInput, type QuotationResult } from "@/lib/sales/quotation-calc";
+import {
+  computeQuotation,
+  PAYMENT_TERMS_LINES,
+  type QuotationInput,
+  type QuotationResult,
+} from "@/lib/sales/quotation-calc";
 import { renderBookingTermsQuoteHtml } from "@/lib/legal/booking-terms";
 import { COMPANY_LEGAL_LINE, COMPANY_ADDRESS, COMPANY_GSTIN } from "@/lib/constants";
 import { SLOT_LABEL, plannerSlotToEnum } from "@/lib/sales/slot";
@@ -161,9 +166,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
     <h2>Payment Terms</h2>
     <p class="terms">
-      1. To block the slot — 20% on the day of booking.<br/>
-      2. 60% — 15 days before the event.<br/>
-      3. Balance (20%) — 2 hours before the event.
+      ${PAYMENT_TERMS_LINES.join("<br/>\n      ")}
     </p>
 
     ${renderBookingTermsQuoteHtml()}
