@@ -120,6 +120,18 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
       // Assignment rules are optional; proceed without assignment
     }
 
+    // Fallback owner — an inbound lead must NEVER land orphaned. The Leads list
+    // defaults to "My leads" (assignedToId = viewer), so an unassigned lead is
+    // invisible to everyone until someone thinks to switch to "All leads". That
+    // silently hides ad/website leads from the people who need to act on them
+    // (this is exactly why a Google Ads test lead "wasn't coming into the app").
+    // If no assignment rule matched, fall back to the system admin (founder) so
+    // every captured lead surfaces for someone by default.
+    if (!assignedToId) {
+      const fallbackOwner = await getSystemUserId();
+      if (fallbackOwner) assignedToId = fallbackOwner;
+    }
+
     // Derive an estimated value: explicit budget, else per-plate × guests.
     const estimatedValue =
       data.estimatedValue && data.estimatedValue > 0

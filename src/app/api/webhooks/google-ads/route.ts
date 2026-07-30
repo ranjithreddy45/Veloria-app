@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
 
     const attribution = await parseAttributionFromRequest(request, body);
 
-    await captureLeadFromExternal({
+    const capture = await captureLeadFromExternal({
       name,
       email: email || undefined,
       phone: phone || undefined,
@@ -152,6 +152,15 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // captureLeadFromExternal swallows its own errors and returns
+    // { success:false }. Previously we ignored this and always returned 200 —
+    // so a failed capture looked like success, the lead was dropped, and Google
+    // never retried. Surface a 5xx so the failure is visible and retried.
+    if (!capture || capture.success === false) {
+      console.error("[GoogleAds] Lead capture failed", { leadId, isTest });
+      return NextResponse.json({ error: "Lead capture failed" }, { status: 502 });
+    }
+
     if (configId) {
       try {
         await prisma.leadCaptureConfig.update({
@@ -163,7 +172,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ success: true }, { status: 200 });
+    return NextResponse.json({ success: true, leadId: capture.leadId }, { status: 200 });
   } catch (error) {
     console.error("[GoogleAds] Webhook error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
