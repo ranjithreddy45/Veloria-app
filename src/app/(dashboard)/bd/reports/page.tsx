@@ -303,7 +303,7 @@ export default async function BdReportsPage({
             <StatTile
               label="Qualified → Won"
               value={pct(a.conversion.qualifiedToWon)}
-              accent="violet"
+              accent="gold"
               icon={<Handshake className="size-4" />}
               sub="Close rate from qualified"
             />
@@ -360,7 +360,7 @@ export default async function BdReportsPage({
           <StatTile
             label="Weighted value"
             value={inr(pipeline.totalWeighted)}
-            accent="violet"
+            accent="gold"
             icon={<Gauge className="size-4" />}
             sub="Probability-adjusted"
           />
@@ -478,7 +478,7 @@ export default async function BdReportsPage({
           <StatTile
             label="Site visits"
             value={a.totals.siteVisitsDone}
-            accent="violet"
+            accent="gold"
             icon={<MapPin className="size-4" />}
             sub="Activity this period"
           />

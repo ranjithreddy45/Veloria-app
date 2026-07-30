@@ -276,7 +276,7 @@ export default async function SalesReportsPage({
         aura
         eyebrow="Sales · Bookings"
         icon={BarChart3}
-        accent="violet"
+        accent="gold"
         title="Sales Reports"
         description="Funnel, bookings, revenue, follow-ups, losses, and team performance for the selected period."
         help={
@@ -355,7 +355,7 @@ export default async function SalesReportsPage({
           <StatTile
             label="Avg enquiry → booking"
             value={`${a.avgDaysEnquiryToBooking ?? "—"} days`}
-            accent="violet"
+            accent="gold"
             icon={<CalendarClock className="size-4" />}
             sub="Time to close"
           />
@@ -512,7 +512,7 @@ export default async function SalesReportsPage({
           <StatTile
             label="Upsell revenue"
             value={inr(revenue.upsellRevenue)}
-            accent="violet"
+            accent="gold"
             icon={<TrendingUp className="size-4" />}
             sub="Add-on value"
           />

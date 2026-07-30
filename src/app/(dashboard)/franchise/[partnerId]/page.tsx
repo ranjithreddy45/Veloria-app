@@ -93,7 +93,7 @@ export default async function FranchisePartnerPage({
       </PageHeader>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile label="Venues" value={venues.length} accent="violet" icon={<Building2 />} />
+        <StatTile label="Venues" value={venues.length} accent="gold" icon={<Building2 />} />
         <StatTile
           label={`MTD gross (${period})`}
           value={formatINR(mtdGross)}

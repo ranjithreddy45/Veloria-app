@@ -41,7 +41,7 @@ export default async function CadenceDetailPage({
     <div className="space-y-6">
       <PageHeader
         icon={RepeatIcon}
-        accent="violet"
+        accent="gold"
         title={cadence.name}
         eyebrow={
           <span className="flex items-center gap-1.5">

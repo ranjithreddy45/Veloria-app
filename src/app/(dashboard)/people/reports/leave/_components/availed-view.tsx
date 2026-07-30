@@ -44,7 +44,7 @@ export function AvailedView({
     <div className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-3">
         <StatTile label="Requests" value={rows.length} accent="blue" icon={<CalendarCheck />} sub="Approved in period" />
-        <StatTile label="Employees" value={employees} accent="violet" icon={<Users />} sub="Took leave in period" />
+        <StatTile label="Employees" value={employees} accent="gold" icon={<Users />} sub="Took leave in period" />
         <StatTile label="Total days" value={totalDays} accent="emerald" icon={<Sigma />} sub="Working days availed" />
       </div>
 

@@ -34,7 +34,7 @@ export function ProjectsStatStrip({
             {avgReadiness}%
           </span>
         }
-        accent="violet"
+        accent="gold"
         icon={<Activity className="size-4" />}
         pct={total ? avgReadiness : 0}
       />

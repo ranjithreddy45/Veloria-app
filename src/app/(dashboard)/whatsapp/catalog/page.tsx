@@ -103,7 +103,7 @@ export default async function WhatsAppCatalogPage() {
           <StatTile
             label="Cards sent"
             value={stats.cardsSent + stats.ctaClicked + stats.closed}
-            accent="violet"
+            accent="gold"
             icon={<LayoutGridIcon />}
             sub="package cards delivered"
           />

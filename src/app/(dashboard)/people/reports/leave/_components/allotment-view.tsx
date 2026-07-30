@@ -25,7 +25,7 @@ export function AllotmentView({ rows, year }: { rows: AllotmentRow[]; year: numb
     <div className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-3">
         <StatTile label="Employees" value={employees} accent="blue" icon={<Users />} sub={`Granted for ${year}`} />
-        <StatTile label="Total allotted" value={totalAllotted} accent="violet" icon={<Gift />} sub="Entitled + carried forward" />
+        <StatTile label="Total allotted" value={totalAllotted} accent="gold" icon={<Gift />} sub="Entitled + carried forward" />
         <StatTile label="Carried forward" value={totalCarried} accent="cyan" icon={<ArrowRightLeft />} sub="Brought in from last year" />
       </div>
 

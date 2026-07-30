@@ -16,7 +16,7 @@ export default async function ScoringRulesPage() {
       <PageHeader
         eyebrow="Settings · Automation"
         icon={GaugeIcon}
-        accent="violet"
+        accent="gold"
         title="Scoring Rules"
         description="Score leads, contacts and deals automatically from your own criteria. Rules run in order and the running total is capped at the rule set's maximum."
       />

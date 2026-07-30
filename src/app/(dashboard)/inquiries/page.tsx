@@ -51,7 +51,7 @@ export default async function InquiriesPage() {
           <StatTile
             label="Total inquiries"
             value={total}
-            accent="violet"
+            accent="gold"
             icon={<InboxIcon className="size-4" />}
             sub="From the booking widget"
           />

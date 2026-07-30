@@ -59,7 +59,7 @@ export default async function PeoplePage({ searchParams }: PageProps) {
       <PageHeader
         aura
         icon={Users}
-        accent="violet"
+        accent="gold"
         eyebrow="People · Directory"
         title="People"
         description="The single employee master for the whole group — across every legal entity and business vertical. The same record powers Projects, approvals and access everywhere."

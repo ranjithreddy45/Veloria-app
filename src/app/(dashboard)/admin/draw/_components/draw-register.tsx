@@ -332,7 +332,7 @@ export function DrawRegister({ isAdmin, currentMonth }: { isAdmin: boolean; curr
       : winner.prize_delivered
         ? "Prize delivered"
         : "Drawn";
-  const winnerAccent = !winner ? "amber" : winner.prize_delivered ? "emerald" : "violet";
+  const winnerAccent = !winner ? "amber" : winner.prize_delivered ? "emerald" : "gold";
 
   return (
     <div className="space-y-5">

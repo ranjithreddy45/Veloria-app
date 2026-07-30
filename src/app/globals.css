@@ -41,6 +41,12 @@
   --color-info-foreground: var(--info-foreground);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
+  /* Gold — the brand's accent metal. `gold` is theme-aware and safe as ink on the
+   * page background; `gold-bright` is the true metallic tone, only legible on the
+   * emerald/dark surfaces it is meant for. See the note in :root. */
+  --color-gold: var(--gold);
+  --color-gold-bright: var(--gold-bright);
+  --color-gold-foreground: var(--gold-foreground);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -66,7 +72,7 @@
  * ----------------------------------------------------------------
  * Inspired by macOS Sonoma / iOS / apple.com:
  *   - Faint cool-gray canvas (#f5f5f7) with pure-white cards
- *   - Violet accent (#7c3aed light / brighter violet dark)
+ *   - Emerald brand accent (#006742 light / lighter emerald dark) + gold metal
  *   - Near-black ink (#1d1d1f), hairline separators
  *   - Large continuous corner radii (12px) + soft diffuse shadows
  *   - Frosted-glass materials, SF system typography
@@ -91,16 +97,34 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.235 0.005 286);
 
-  /* Violet accent (#7c3aed) */
-  --primary: oklch(0.55 0.25 293);
+  /* ------------------------------------------------------------
+   * Brand: deep emerald + gold on white.
+   * WHY emerald carries `primary` and gold does not: `text-primary` is used on
+   * ~256 call sites, and not decoratively — it colours 11-13px links and money
+   * figures (e.g. `text-[15px] font-bold text-primary` on netPayable), plus
+   * avatar initials sitting on a `bg-primary/10` tint. True metallic gold
+   * (#d6a62e) scores 2.25:1 on white; a salary figure in it is unreadable, and
+   * gold dark enough to pass 4.5:1 is no longer gold, it is brown. So emerald
+   * takes the load-bearing role (6.93:1 as ink on white, 6.73:1 for white text
+   * on the button) and gold is freed to do what gold is for — accent.
+   * ------------------------------------------------------------ */
+  --primary: oklch(0.45 0.11 162);         /* #006742 emerald */
   --primary-foreground: oklch(0.99 0 0);
+
+  /* Gold. `--gold` is the deepened tone that still reads on white (3.29:1, clears
+   * the 3:1 bar for icons//UI components); `--gold-bright` is the true metal, for
+   * use ON emerald or dark surfaces only (3.68:1 on emerald) — it is deliberately
+   * NOT safe on white, which is why the two are separate tokens. */
+  --gold: oklch(0.65 0.13 80);             /* #b88513 */
+  --gold-bright: oklch(0.8 0.15 86);       /* #e8b631 */
+  --gold-foreground: oklch(0.22 0.03 80);  /* espresso ink on a gold fill */
 
   /* Quiet secondary / muted — cool gray fills */
   --secondary: oklch(0.955 0.002 286);
   --secondary-foreground: oklch(0.235 0.005 286);
   --muted: oklch(0.955 0.002 286);
   --muted-foreground: oklch(0.55 0.006 286);  /* Apple secondary label gray */
-  --accent: oklch(0.95 0.006 293);
+  --accent: oklch(0.95 0.012 162);
   --accent-foreground: oklch(0.235 0.005 286);
 
   --destructive: oklch(0.585 0.21 27);     /* Apple red #ff3b30 ballpark */
@@ -123,11 +147,13 @@
   /* Hairline separators — cool, faint */
   --border: oklch(0.9 0.002 286);
   --input: oklch(0.9 0.002 286);
-  --ring: oklch(0.55 0.25 293);
+  --ring: oklch(0.45 0.11 162);
 
   /* Apple system color chart palette */
-  --chart-1: oklch(0.55 0.25 293);       /* violet */
-  --chart-2: oklch(0.66 0.16 150);         /* green */
+  --chart-1: oklch(0.45 0.11 162);         /* emerald — brand */
+  /* Was a second green, which now collides with both --success and the emerald
+   * brand colour. Gold is the brand's other half, so it takes slot 2. */
+  --chart-2: oklch(0.65 0.13 80);          /* gold */
   --chart-3: oklch(0.78 0.16 70);          /* orange */
   --chart-4: oklch(0.62 0.2 320);          /* pink/purple */
   --chart-5: oklch(0.68 0.13 200);         /* teal */
@@ -135,12 +161,12 @@
   /* Sidebar — frosted light tone */
   --sidebar: oklch(0.978 0.0015 286);
   --sidebar-foreground: oklch(0.36 0.005 286);
-  --sidebar-primary: oklch(0.55 0.25 293);
+  --sidebar-primary: oklch(0.45 0.11 162);
   --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.93 0.006 293); /* hover */
+  --sidebar-accent: oklch(0.93 0.012 162); /* hover */
   --sidebar-accent-foreground: oklch(0.235 0.005 286);
   --sidebar-border: oklch(0.91 0.002 286);
-  --sidebar-ring: oklch(0.55 0.25 293);
+  --sidebar-ring: oklch(0.45 0.11 162);
 }
 
 .dark {
@@ -151,15 +177,21 @@
   --popover: oklch(0.225 0.004 286);
   --popover-foreground: oklch(0.965 0.002 286);
 
-  /* Violet accent (dark) */
-  --primary: oklch(0.68 0.22 293);
-  --primary-foreground: oklch(0.99 0 0);
+  /* Emerald + gold (dark). On dark the emerald must lighten to stay visible, which
+   * flips its text pairing: white on an L=0.66 green is only ~3.5:1, so the
+   * foreground becomes dark ink (5.3:1) — the same move --success already makes. */
+  --primary: oklch(0.66 0.13 163);
+  --primary-foreground: oklch(0.16 0.003 286);
+
+  --gold: oklch(0.8 0.14 86);
+  --gold-bright: oklch(0.85 0.14 88);
+  --gold-foreground: oklch(0.18 0.03 80);
 
   --secondary: oklch(0.255 0.004 286);
   --secondary-foreground: oklch(0.965 0.002 286);
   --muted: oklch(0.255 0.004 286);
   --muted-foreground: oklch(0.68 0.005 286);
-  --accent: oklch(0.27 0.008 293);
+  --accent: oklch(0.27 0.016 162);
   --accent-foreground: oklch(0.965 0.002 286);
 
   --destructive: oklch(0.66 0.2 27);       /* #ff453a */
@@ -174,22 +206,22 @@
 
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 14%);
-  --ring: oklch(0.68 0.22 293);
+  --ring: oklch(0.66 0.13 163);
 
-  --chart-1: oklch(0.68 0.22 293);        /* violet */
-  --chart-2: oklch(0.72 0.16 150);         /* green */
+  --chart-1: oklch(0.66 0.13 163);         /* emerald — brand */
+  --chart-2: oklch(0.8 0.14 86);           /* gold */
   --chart-3: oklch(0.81 0.15 70);          /* orange */
   --chart-4: oklch(0.68 0.2 320);          /* pink */
   --chart-5: oklch(0.72 0.13 200);         /* teal */
 
   --sidebar: oklch(0.185 0.003 286);
   --sidebar-foreground: oklch(0.88 0.003 286);
-  --sidebar-primary: oklch(0.68 0.22 293);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.27 0.008 293);
+  --sidebar-primary: oklch(0.66 0.13 163);
+  --sidebar-primary-foreground: oklch(0.16 0.003 286);
+  --sidebar-accent: oklch(0.27 0.016 162);
   --sidebar-accent-foreground: oklch(0.965 0.002 286);
   --sidebar-border: oklch(1 0 0 / 12%);
-  --sidebar-ring: oklch(0.68 0.22 293);
+  --sidebar-ring: oklch(0.66 0.13 163);
 }
 
 @layer base {
@@ -278,14 +310,14 @@
 @utility card-hover-tint {
   transition: border-color 200ms cubic-bezier(0.4, 0, 0.2, 1), background-color 200ms, box-shadow 200ms;
   &:hover {
-    border-color: oklch(0.55 0.25 293 / 30%);
-    background-color: oklch(0.99 0.006 293);
+    border-color: oklch(0.45 0.11 162 / 30%);
+    background-color: oklch(0.99 0.008 162);
   }
 }
 
 .dark .card-hover-tint:hover {
-  border-color: oklch(0.68 0.22 293 / 35%);
-  background-color: oklch(0.225 0.008 293);
+  border-color: oklch(0.66 0.13 163 / 35%);
+  background-color: oklch(0.225 0.012 162);
 }
 
 /* Apple primary button — flat system-blue fill, faint depth, gentle press.
@@ -295,7 +327,7 @@
   background-color: var(--primary);
   box-shadow:
     0 0.5px 0 oklch(1 0 0 / 12%) inset,
-    0 1px 2px oklch(0.4 0.24 293 / 18%);
+    0 1px 2px oklch(0.4 0.12 162 / 18%);
   transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 150ms ease, filter 150ms ease;
 }
 .button-sheen:hover {
@@ -367,15 +399,15 @@
 @utility bg-auth-mesh {
   background-color: var(--background);
   background-image:
-    radial-gradient(at 18% 12%, oklch(0.55 0.25 293 / 8%) 0%, transparent 40%),
-    radial-gradient(at 82% 78%, oklch(0.62 0.2 320 / 5%) 0%, transparent 44%),
+    radial-gradient(at 18% 12%, oklch(0.45 0.11 162 / 8%) 0%, transparent 40%),
+    radial-gradient(at 82% 78%, oklch(0.72 0.13 84 / 7%) 0%, transparent 44%),
     radial-gradient(at 50% 100%, oklch(0.68 0.13 200 / 4%) 0%, transparent 40%);
 }
 
 .dark .bg-auth-mesh {
   background-image:
-    radial-gradient(at 18% 12%, oklch(0.68 0.22 293 / 12%) 0%, transparent 40%),
-    radial-gradient(at 82% 78%, oklch(0.6 0.2 320 / 8%) 0%, transparent 44%),
+    radial-gradient(at 18% 12%, oklch(0.66 0.13 163 / 12%) 0%, transparent 40%),
+    radial-gradient(at 82% 78%, oklch(0.8 0.14 86 / 9%) 0%, transparent 44%),
     radial-gradient(at 50% 100%, oklch(0.65 0.13 200 / 6%) 0%, transparent 40%);
 }
 
@@ -384,18 +416,22 @@
   background-image:
     linear-gradient(to bottom, oklch(1 0 0 / 16%), transparent 55%),
     linear-gradient(to bottom, var(--primary), color-mix(in oklab, var(--primary) 88%, black 12%));
+  /* The hairline ring is GOLD, not a darker emerald: this chip is the brand mark
+   * on every surface (sign-in, sidebar, payment, quote, careers), so it is where
+   * the second metal earns its keep. Gold-bright is correct here specifically
+   * because it sits on emerald (3.68:1) rather than on white. */
   box-shadow:
     inset 0 1px 0 oklch(1 0 0 / 24%),
-    0 0 0 1px oklch(0.4 0.24 293 / 28%),
-    0 1px 3px oklch(0.4 0.24 293 / 22%);
+    0 0 0 1px oklch(0.8 0.15 86 / 55%),
+    0 1px 3px oklch(0.4 0.12 162 / 26%);
 }
 
 /* Sparkline gradient fill */
 @utility spark-fill {
   background: linear-gradient(
     to bottom,
-    oklch(0.55 0.25 293 / 28%) 0%,
-    oklch(0.55 0.25 293 / 0%) 100%
+    oklch(0.45 0.11 162 / 28%) 0%,
+    oklch(0.45 0.11 162 / 0%) 100%
   );
 }
 
@@ -415,7 +451,7 @@
     outline: none;
     box-shadow:
       0 0 0 2px var(--background),
-      0 0 0 4px oklch(0.55 0.25 293 / 45%);
+      0 0 0 4px oklch(0.45 0.11 162 / 45%);
   }
 }
 
@@ -487,13 +523,13 @@
  * old 320: magenta read as stray pink against the violet accent.) */
 @utility bg-aura {
   background-image:
-    radial-gradient(60% 80% at 10% -10%, oklch(0.55 0.25 293 / 8%) 0%, transparent 60%),
+    radial-gradient(60% 80% at 10% -10%, oklch(0.45 0.11 162 / 8%) 0%, transparent 60%),
     radial-gradient(48% 70% at 105% 0%, oklch(0.62 0.2 280 / 6%) 0%, transparent 60%),
     radial-gradient(70% 90% at 55% 130%, oklch(0.68 0.13 200 / 5%) 0%, transparent 55%);
 }
 .dark .bg-aura {
   background-image:
-    radial-gradient(60% 80% at 10% -10%, oklch(0.68 0.22 293 / 16%) 0%, transparent 60%),
+    radial-gradient(60% 80% at 10% -10%, oklch(0.66 0.13 163 / 16%) 0%, transparent 60%),
     radial-gradient(48% 70% at 105% 0%, oklch(0.6 0.2 280 / 11%) 0%, transparent 60%),
     radial-gradient(70% 90% at 55% 130%, oklch(0.65 0.13 200 / 8%) 0%, transparent 55%);
 }
@@ -520,21 +556,22 @@
   background-image: radial-gradient(oklch(1 0 0 / 6%) 1px, transparent 1px);
 }
 
-/* Gradient ink — tasteful violet→ink fill for hero numerals & titles. */
+/* Gradient ink — emerald→ink fill for hero numerals & titles. */
 @utility text-ink-gradient {
-  background-image: linear-gradient(135deg, oklch(0.4 0.17 293) 0%, oklch(0.235 0.02 286) 72%);
+  background-image: linear-gradient(135deg, oklch(0.42 0.1 162) 0%, oklch(0.235 0.02 286) 72%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 .dark .text-ink-gradient {
-  background-image: linear-gradient(135deg, oklch(0.86 0.11 293) 0%, oklch(0.97 0.01 286) 78%);
+  background-image: linear-gradient(135deg, oklch(0.84 0.1 165) 0%, oklch(0.97 0.01 286) 78%);
 }
 
-/* Brand gradient — vivid violet ramp for accent numerals/eyebrows. (Second
- * stop was hue 320 magenta; it read as stray pink against the violet accent.) */
+/* Brand gradient — emerald→gold, the brand's two metals in one ramp. Both stops
+ * stay dark enough to survive background-clip:text on white (the gold stop is the
+ * deepened --gold, never --gold-bright, which would wash out at small sizes). */
 @utility text-brand-gradient {
-  background-image: linear-gradient(120deg, oklch(0.55 0.25 293), oklch(0.62 0.22 285));
+  background-image: linear-gradient(120deg, oklch(0.45 0.11 162), oklch(0.6 0.12 79));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -588,8 +625,14 @@
 }
 
 /* Ring glow — soft violet halo around icon chips / focused affordances. */
-@utility ring-glow-violet {
-  box-shadow: 0 0 0 1px oklch(0.55 0.25 293 / 20%), 0 6px 18px oklch(0.55 0.25 293 / 24%);
+/* Paired with `logo-chip` on the brand mark. Both set box-shadow, so this one wins
+ * the cascade — it must therefore carry the gold hairline itself, or the ring would
+ * silently fall back to all-emerald wherever the two are used together (which is
+ * the sign-in screen and the sidebar, i.e. the brand's two most visible marks). */
+@utility ring-glow-brand {
+  box-shadow:
+    0 0 0 1px oklch(0.8 0.15 86 / 55%),
+    0 6px 18px oklch(0.45 0.11 162 / 24%);
 }
 
 /* Premium shimmer — elegant left-to-right sheen for loading skeletons. */

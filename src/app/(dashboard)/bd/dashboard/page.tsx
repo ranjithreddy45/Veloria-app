@@ -70,14 +70,14 @@ export default async function BdDashboardPage({
   const kpis: { label: string; value: number; icon: React.ComponentType<{ className?: string }>; accent: Accent; sub?: string }[] = t
     ? [
         { label: "Leads", value: t.leadsTotal, icon: Users, accent: "indigo", sub: `${t.leadsCold} cold · ${t.leadsCampaign} campaign` },
-        { label: "Deals Created", value: t.dealsCreated, icon: Handshake, accent: "violet" },
+        { label: "Deals Created", value: t.dealsCreated, icon: Handshake, accent: "gold" },
         { label: "Qualified", value: t.dealsQualified, icon: CheckCircle2, accent: "blue" },
         { label: "Won", value: t.dealsWon, icon: Trophy, accent: "emerald", sub: inr(t.wonValue) },
         { label: "Lost", value: t.dealsLost, icon: XCircle, accent: "rose", sub: inr(t.lostValue) },
         { label: "Calls Made", value: t.callsMade, icon: Phone, accent: "amber" },
         { label: "Notes / Follow-ups", value: t.notesFollowups, icon: StickyNote, accent: "teal" },
         { label: "Site Visits", value: t.siteVisitsDone, icon: MapPin, accent: "pink" },
-        { label: "Task Score", value: t.taskScore, icon: Sparkles, accent: "violet" },
+        { label: "Task Score", value: t.taskScore, icon: Sparkles, accent: "gold" },
       ]
     : [];
 

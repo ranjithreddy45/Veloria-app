@@ -493,7 +493,7 @@ function CostSummary({ plan }: { plan: KitchenPlanDTO }) {
           <StatTile
             label="Cost / cover"
             value={formatINR(plan.perCoverCost)}
-            accent="violet"
+            accent="gold"
             icon={<Users className="size-4" />}
           />
         </div>

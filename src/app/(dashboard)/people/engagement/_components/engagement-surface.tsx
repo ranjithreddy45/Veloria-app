@@ -349,7 +349,7 @@ export function EngagementSurface({
           <StatTile
             label="Your avg score"
             value={myAvg != null ? myAvg.toFixed(1) : "—"}
-            accent="violet"
+            accent="gold"
             icon={<Sparkles className="size-4" />}
             sub="across answered pulses"
             className="col-span-2 sm:col-span-1"

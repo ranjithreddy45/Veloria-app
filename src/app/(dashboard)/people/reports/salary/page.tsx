@@ -68,7 +68,7 @@ export default async function SalaryReportsIndexPage() {
       <div className="grid gap-4 sm:grid-cols-3">
         <StatTile label="Payroll runs" value={runs.length} accent="indigo" icon={<Receipt />} />
         <StatTile label="Final runs" value={finalRuns.length} accent="emerald" icon={<FileSpreadsheet />} sub="Locked or paid" />
-        <StatTile label="Latest period" value={latest?.label ?? "—"} accent="violet" icon={<Sigma />} sub={latest ? `${latest.headcount} employees` : "No runs yet"} />
+        <StatTile label="Latest period" value={latest?.label ?? "—"} accent="gold" icon={<Sigma />} sub={latest ? `${latest.headcount} employees` : "No runs yet"} />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">

@@ -75,7 +75,7 @@ export default async function SpeedToLeadPage() {
         <StatTile
           label="Avg send latency"
           value={formatLatency(summary.avgLatencyMs)}
-          accent="violet"
+          accent="gold"
           icon={<Gauge />}
           sub={`${summary.sentLast24h} sent in last 24h`}
         />

@@ -69,7 +69,7 @@ export default async function EmployeeReportsIndex() {
       <PageHeader
         aura
         icon={Users}
-        accent="violet"
+        accent="gold"
         eyebrow="People · Reports"
         title="Employee Reports"
         description="Read-only reports over the employee master. Filter, review and export any slice of the workforce to CSV."

@@ -27,7 +27,7 @@ export interface Process {
   name: string;
   tagline: string;
   /** Tailwind colour family used for accents. */
-  accent: "violet" | "emerald" | "amber" | "blue" | "rose" | "cyan";
+  accent: "gold" | "emerald" | "amber" | "blue" | "rose" | "cyan";
   icon: string; // lucide name
   handoffIn?: string;
   handoffOut?: string;
@@ -36,7 +36,7 @@ export interface Process {
 
 // ---- The value chain (how the six processes connect) -------------------
 export const VALUE_CHAIN: { name: string; sub: string; accent: Process["accent"]; icon: string }[] = [
-  { name: "BD acquisition", sub: "Win new venue partners", accent: "violet", icon: "Handshake" },
+  { name: "BD acquisition", sub: "Win new venue partners", accent: "gold", icon: "Handshake" },
   { name: "Projects", sub: "Ready the venue, take it live", accent: "amber", icon: "Briefcase" },
   { name: "Sales", sub: "Book customer events", accent: "emerald", icon: "Target" },
   { name: "Event ops", sub: "Deliver the event", accent: "blue", icon: "UtensilsCrossed" },
@@ -170,7 +170,7 @@ export const PROCESSES: Process[] = [
     key: "bd",
     name: "BD acquisition — winning new venues",
     tagline: "From a hall-owner lead to a signed partnership and onboarding.",
-    accent: "violet",
+    accent: "gold",
     icon: "Handshake",
     handoffOut: "A signed deal hands off to the Projects team.",
     steps: [

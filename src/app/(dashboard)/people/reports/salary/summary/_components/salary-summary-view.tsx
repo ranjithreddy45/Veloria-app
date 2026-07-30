@@ -74,7 +74,7 @@ export function SalarySummaryView({
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatTile label="Headcount" value={data.headcount} accent="indigo" icon={<Users />} />
-            <StatTile label="Total gross" value={inr(data.totalGross)} accent="violet" icon={<Wallet />} />
+            <StatTile label="Total gross" value={inr(data.totalGross)} accent="gold" icon={<Wallet />} />
             <StatTile label="Total net" value={inr(data.totalNet)} accent="emerald" icon={<BadgeIndianRupee />} sub="Payable" />
             <StatTile label="Total CTC" value={inr(data.totalCtc)} accent="amber" icon={<Building2 />} sub="Gross + employer cost" />
             <StatTile label="PF (ee + er)" value={inr(data.pfTotal)} accent="cyan" icon={<PiggyBank />} sub={`ee ${inr(data.pfEmployee)} · er ${inr(data.pfEmployer)}`} />

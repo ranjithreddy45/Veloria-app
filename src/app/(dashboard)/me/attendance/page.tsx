@@ -33,7 +33,7 @@ export default async function MyAttendancePage() {
     <div className="space-y-6">
       <PageHeader
         icon={Clock}
-        accent="violet"
+        accent="gold"
         eyebrow="My space"
         title="My Attendance"
         description="Check in and out with location verification, track your hours, and request corrections."

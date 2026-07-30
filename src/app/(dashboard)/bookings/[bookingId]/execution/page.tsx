@@ -28,7 +28,7 @@ export default async function ExecutionPlanPage({ params }: ExecutionPageProps) 
     <div className="space-y-6">
       <PageHeader
         icon={PlayCircleIcon}
-        accent="violet"
+        accent="gold"
         eyebrow="Event delivery"
         title="Execution Plan"
         description="Every phase, task and proof needed to deliver this event — assigned and tracked."

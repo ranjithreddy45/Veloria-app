@@ -42,7 +42,7 @@ export default async function MyLeavePage() {
     <div className="space-y-6">
       <PageHeader
         icon={CalendarCheck}
-        accent="violet"
+        accent="gold"
         eyebrow="My space"
         title="My Leave"
         description="Apply for time off, track your balances, and see where each request stands. Weekends and holidays are handled for you."

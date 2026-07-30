@@ -98,7 +98,7 @@ export function PayrollWorkspace({
     <div className="space-y-6">
       <PageHeader
         icon={UsersIcon}
-        accent="violet"
+        accent="gold"
         eyebrow="Finance · Payroll"
         title="Payroll"
         description="Maintain the salaried roster, run monthly payroll, and post a balanced salary journal to the ledger."
@@ -115,7 +115,7 @@ export function PayrollWorkspace({
           <div className="grid gap-3 sm:grid-cols-3">
             <StatTile label="Headcount" value={headcount} accent="indigo" icon={<Users className="size-4" />} sub="Active employees" />
             <StatTile label="Monthly payroll" value={formatINR(monthlyPayroll)} accent="emerald" icon={<Wallet className="size-4" />} sub="Sum of active CTC" />
-            <StatTile label="Average CTC" value={formatINR(avgCtc)} accent="violet" icon={<Gauge className="size-4" />} sub="Per active employee / month" />
+            <StatTile label="Average CTC" value={formatINR(avgCtc)} accent="gold" icon={<Gauge className="size-4" />} sub="Per active employee / month" />
           </div>
 
           <div className="flex items-center justify-between">

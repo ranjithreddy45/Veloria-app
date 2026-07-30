@@ -128,7 +128,7 @@ export function SellDownBoard({
         <StatTile
           label="Lead coverage"
           value={`${kpis?.matchedLeadCoveragePct ?? 0}%`}
-          accent="violet"
+          accent="gold"
           icon={<Target />}
           pct={kpis?.matchedLeadCoveragePct ?? 0}
           sub="Open slots with a matched lead"

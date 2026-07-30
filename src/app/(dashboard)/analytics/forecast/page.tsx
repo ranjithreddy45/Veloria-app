@@ -120,7 +120,7 @@ export default async function ForecastPage() {
           value={
             entries.length > 0 ? `${Math.round(avgConfidence * 100)}%` : "--"
           }
-          accent="violet"
+          accent="gold"
           icon={<TargetIcon className="size-4" />}
           pct={entries.length > 0 ? Math.round(avgConfidence * 100) : undefined}
           sub={`Across ${entries.length} forecast${entries.length !== 1 ? "s" : ""} · Total predicted: ${formatINR(totalPredictedRevenue)}, ${totalPredictedBookings} bookings`}

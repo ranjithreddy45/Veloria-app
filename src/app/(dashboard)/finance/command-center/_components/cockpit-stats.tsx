@@ -41,7 +41,7 @@ export function CockpitStats({ cashPosition, mtdRevenue, mtdExpense, mtdNet }: C
       <StatTile
         label="Net profit · MTD"
         value={formatINR(mtdNet)}
-        accent="violet"
+        accent="gold"
         icon={<PiggyBank className="size-4" />}
         sub={mtdNet >= 0 ? "In the black this month" : "Running at a loss"}
       />

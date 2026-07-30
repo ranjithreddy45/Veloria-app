@@ -140,7 +140,7 @@ export default async function BookingsPage() {
           <StatTile
             label="Confirmed revenue"
             value={fmtCurrency(confirmedRevenue)}
-            accent="violet"
+            accent="gold"
             icon={<IndianRupeeIcon className="size-4" />}
             sub="Contracted — confirmed bookings"
           />

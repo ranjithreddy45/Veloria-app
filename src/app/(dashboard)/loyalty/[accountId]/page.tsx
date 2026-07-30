@@ -171,7 +171,7 @@ export default async function LoyaltyAccountDetailPage({
         <StatTile
           label="Total redeemed"
           value={account.totalRedeemed}
-          accent="violet"
+          accent="gold"
           icon={<TrendingDownIcon />}
           sub="Lifetime points spent"
         />

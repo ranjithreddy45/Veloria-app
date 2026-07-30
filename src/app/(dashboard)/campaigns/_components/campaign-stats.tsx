@@ -103,7 +103,7 @@ export function CampaignPerformance({
       <StatTile
         label="Clicked"
         value={totalClicked.toLocaleString("en-IN")}
-        accent="violet"
+        accent="gold"
         icon={<MousePointerClickIcon className="size-4" />}
         pct={clickRate}
         sub={`${clickRate.toFixed(1)}% click rate`}

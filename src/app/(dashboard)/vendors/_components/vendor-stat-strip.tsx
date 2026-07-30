@@ -58,7 +58,7 @@ export function VendorStatStrip({ vendors }: { vendors: VendorStatRow[] }) {
       <StatTile
         label="Bookings"
         value={<span className="tabular-nums">{totalBookings}</span>}
-        accent="violet"
+        accent="gold"
         icon={<CalendarCheckIcon className="size-4" />}
       />
     </div>

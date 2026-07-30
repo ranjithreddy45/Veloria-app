@@ -332,7 +332,7 @@ function SidebarNavItem({
           "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
           "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0!",
           isActive &&
-            "sheen-sweep bg-gradient-to-b from-primary to-[color-mix(in_oklab,var(--primary)_90%,black_10%)] font-semibold text-primary-foreground shadow-[inset_0_1px_0_oklch(1_0_0/0.28),0_2px_8px_oklch(0.4_0.24_293/0.32)] hover:text-primary-foreground hover:from-primary hover:to-[color-mix(in_oklab,var(--primary)_90%,black_10%)]"
+            "sheen-sweep bg-gradient-to-b from-primary to-[color-mix(in_oklab,var(--primary)_90%,black_10%)] font-semibold text-primary-foreground shadow-[inset_0_1px_0_oklch(1_0_0/0.28),0_2px_8px_oklch(0.4_0.12_162/0.32)] hover:text-primary-foreground hover:from-primary hover:to-[color-mix(in_oklab,var(--primary)_90%,black_10%)]"
         )}
       >
         <Link href={item.href}>
@@ -378,7 +378,7 @@ function SidebarCollapsibleItem({
                 "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
                 "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0!",
                 isGroupActive &&
-                  "bg-primary/[0.07] font-semibold text-sidebar-accent-foreground shadow-[inset_0_0_0_1px_oklch(0.55_0.25_293/0.14)]"
+                  "bg-primary/[0.07] font-semibold text-sidebar-accent-foreground shadow-[inset_0_0_0_1px_oklch(0.45_0.11_162/0.14)]"
               )}
             >
               <span className={cn("flex size-6 shrink-0 items-center justify-center rounded-[7px] transition-colors duration-200", tileClass)}>
@@ -401,7 +401,7 @@ function SidebarCollapsibleItem({
                       className={cn(
                         "h-8 rounded-lg text-[12.5px] text-sidebar-foreground/70 transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
                         "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
-                        isChildActive && "bg-primary/[0.11] font-semibold text-primary shadow-[inset_0_0_0_1px_oklch(0.55_0.25_293/0.16)] hover:bg-primary/[0.14] hover:text-primary"
+                        isChildActive && "bg-primary/[0.11] font-semibold text-primary shadow-[inset_0_0_0_1px_oklch(0.45_0.11_162/0.16)] hover:bg-primary/[0.14] hover:text-primary"
                       )}
                     >
                       <Link href={child.href}>
@@ -471,7 +471,7 @@ export function AppSidebar() {
           className="group/brand flex items-center gap-2.5 rounded-xl transition-all duration-200 hover:opacity-95 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
           {/* Collapsed (icon-only) sidebar — compact mark */}
-          <div className="logo-chip ring-glow-violet hidden size-7 shrink-0 items-center justify-center rounded-lg text-primary-foreground transition-transform duration-200 group-hover/brand:scale-[1.04] group-data-[collapsible=icon]:flex">
+          <div className="logo-chip ring-glow-brand hidden size-7 shrink-0 items-center justify-center rounded-lg text-primary-foreground transition-transform duration-200 group-hover/brand:scale-[1.04] group-data-[collapsible=icon]:flex">
             <Gem className="size-3.5" strokeWidth={2.5} />
           </div>
           {/* Expanded sidebar — full wordmark, falls back to mark + text */}
@@ -480,7 +480,7 @@ export function AppSidebar() {
               className="h-8 w-auto max-w-[180px] object-contain object-left"
               fallback={
                 <>
-                  <div className="logo-chip ring-glow-violet flex size-7 shrink-0 items-center justify-center rounded-lg text-primary-foreground transition-transform duration-200 group-hover/brand:scale-[1.04]">
+                  <div className="logo-chip ring-glow-brand flex size-7 shrink-0 items-center justify-center rounded-lg text-primary-foreground transition-transform duration-200 group-hover/brand:scale-[1.04]">
                     <Gem className="size-3.5" strokeWidth={2.5} />
                   </div>
                   <div className="flex flex-col">

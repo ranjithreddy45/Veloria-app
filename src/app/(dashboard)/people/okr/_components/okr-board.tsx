@@ -129,7 +129,7 @@ export function OkrBoard({
           <StatTile
             label="Avg progress"
             value={`${avgProgress}%`}
-            accent="violet"
+            accent="gold"
             icon={<TrendingUp className="size-4" />}
             pct={avgProgress}
           />

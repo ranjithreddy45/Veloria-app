@@ -5,7 +5,8 @@ import { cn } from "@/lib/utils";
 // ClickUp-style module accent chips — a colored icon tile to the left of the
 // title so each module reads at a glance. Full class strings for Tailwind's JIT.
 export type HeaderAccent =
-  | "violet"
+  | "brand"
+  | "gold"
   | "blue"
   | "amber"
   | "emerald"
@@ -15,8 +16,13 @@ export type HeaderAccent =
   | "rose"
   | "slate";
 
+// `violet` used to be the brand slot; with an emerald+gold identity it retired and
+// gold took its place, so 85 module headers gain the second metal without touching
+// their call sites. The remaining hues stay categorical — they let each module read
+// at a glance, so they are deliberately NOT collapsed into the brand colour.
 const ACCENT_CHIP: Record<HeaderAccent, string> = {
-  violet: "bg-violet-500/12 text-violet-600 dark:bg-violet-400/15 dark:text-violet-300",
+  brand: "bg-primary/12 text-primary dark:bg-primary/20",
+  gold: "bg-gold/15 text-gold dark:bg-gold/20",
   blue: "bg-blue-500/12 text-blue-600 dark:bg-blue-400/15 dark:text-blue-300",
   amber: "bg-amber-500/15 text-amber-600 dark:bg-amber-400/15 dark:text-amber-300",
   emerald: "bg-emerald-500/12 text-emerald-600 dark:bg-emerald-400/15 dark:text-emerald-300",
@@ -53,7 +59,7 @@ export function PageHeader({
   description,
   eyebrow,
   icon: Icon,
-  accent = "violet",
+  accent = "brand",
   children,
   help,
   aura = false,
@@ -83,7 +89,7 @@ export function PageHeader({
         <div className="space-y-2">
           {eyebrow && (
             <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em]">
-              <span aria-hidden className="h-3 w-[3px] rounded-full bg-gradient-to-b from-violet-500 to-violet-400" />
+              <span aria-hidden className="from-gold-bright to-gold h-3 w-[3px] rounded-full bg-gradient-to-b" />
               <span className="text-brand-gradient">{eyebrow}</span>
             </div>
           )}

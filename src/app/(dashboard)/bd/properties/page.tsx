@@ -51,7 +51,7 @@ export default async function BdPropertiesPage({
         <StatTile label="Onboarding" value={count("ONBOARDING")} accent="amber" icon={<Hammer className="size-4" />} />
         <StatTile label="Available" value={count("AVAILABLE")} accent="emerald" icon={<CheckCircle2 className="size-4" />} />
         <StatTile label="Active" value={count("ACTIVE")} accent="blue" icon={<CalendarCheck className="size-4" />} />
-        <StatTile label="Paused" value={count("PAUSED")} accent="violet" icon={<PauseCircle className="size-4" />} />
+        <StatTile label="Paused" value={count("PAUSED")} accent="gold" icon={<PauseCircle className="size-4" />} />
         <StatTile label="Off-boarded" value={count("OFF_BOARDED")} accent="rose" icon={<XCircle className="size-4" />} />
       </div>
 

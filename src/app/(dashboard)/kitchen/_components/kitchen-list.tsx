@@ -68,7 +68,7 @@ export function KitchenList({
         <StatTile
           label="Avg cost / cover"
           value={formatINR(avgPerCover)}
-          accent="violet"
+          accent="gold"
           icon={<Users className="size-4" />}
         />
       </div>

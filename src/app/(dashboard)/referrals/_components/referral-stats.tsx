@@ -51,7 +51,7 @@ export function ReferralStats({ stats }: ReferralStatsProps) {
       <StatTile
         label="Conversion Rate"
         value={`${stats.conversionRate}%`}
-        accent="violet"
+        accent="gold"
         icon={<TrendingUpIcon />}
         pct={Math.max(0, Math.min(100, stats.conversionRate))}
       />

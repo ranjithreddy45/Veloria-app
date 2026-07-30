@@ -69,7 +69,7 @@ export function LeadsStatStrip({ data }: { data: StatLead[] }) {
       <StatTile
         label="Pipeline value"
         value={formatINR(stats.pipeline)}
-        accent="violet"
+        accent="gold"
         icon={<BanknoteIcon className="size-4" />}
         sub="Open (excl. won/lost)"
       />

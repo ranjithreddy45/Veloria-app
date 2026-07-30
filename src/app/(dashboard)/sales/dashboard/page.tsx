@@ -101,10 +101,10 @@ export default async function SalesDashboardPage({
         { label: "Quotations Sent", value: t.quotationsSent, icon: FileText, accent: "blue" },
         { label: "Payment Links", value: t.paymentLinksSent, icon: Link2, accent: "teal" },
         { label: "Advance Collected", value: t.advanceCollected, icon: Wallet, accent: "emerald", sub: inr(t.advanceCollected) },
-        { label: "Bookings Confirmed", value: t.bookingsConfirmed, icon: CheckCircle2, accent: "violet" },
+        { label: "Bookings Confirmed", value: t.bookingsConfirmed, icon: CheckCircle2, accent: "gold" },
         { label: "Bookings Lost", value: t.bookingsLost, icon: XCircle, accent: "rose" },
         { label: "Upsell Value", value: t.upsellValue, icon: TrendingUp, accent: "amber", sub: inr(t.upsellValue) },
-        { label: "Sales Score", value: t.salesScore, icon: Sparkles, accent: "violet" },
+        { label: "Sales Score", value: t.salesScore, icon: Sparkles, accent: "gold" },
       ]
     : [];
 
@@ -125,7 +125,7 @@ export default async function SalesDashboardPage({
         aura
         eyebrow="Sales · Bookings"
         icon={Gauge}
-        accent="violet"
+        accent="gold"
         title="Sales Dashboard"
         description="Employee-wise sales funnel, activity and leaderboard."
         help={

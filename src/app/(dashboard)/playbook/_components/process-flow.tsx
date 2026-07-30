@@ -26,7 +26,7 @@ const ICONS: Record<string, LucideIcon> = {
 type Accent = Process["accent"];
 
 const ACCENT: Record<Accent, { soft: string; text: string; ring: string; dot: string; bar: string; chipBg: string }> = {
-  violet: { soft: "bg-violet-50 dark:bg-violet-950/30", text: "text-violet-700 dark:text-violet-300", ring: "ring-violet-200 dark:ring-violet-900", dot: "bg-violet-500", bar: "bg-violet-500", chipBg: "bg-violet-100 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300" },
+  gold: { soft: "bg-gold/10", text: "text-gold", ring: "ring-gold/30", dot: "bg-gold", bar: "bg-gold", chipBg: "bg-gold/15 text-gold" },
   emerald: { soft: "bg-emerald-50 dark:bg-emerald-950/30", text: "text-emerald-700 dark:text-emerald-300", ring: "ring-emerald-200 dark:ring-emerald-900", dot: "bg-emerald-500", bar: "bg-emerald-500", chipBg: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300" },
   amber: { soft: "bg-amber-50 dark:bg-amber-950/30", text: "text-amber-700 dark:text-amber-300", ring: "ring-amber-200 dark:ring-amber-900", dot: "bg-amber-500", bar: "bg-amber-500", chipBg: "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300" },
   blue: { soft: "bg-blue-50 dark:bg-blue-950/30", text: "text-blue-700 dark:text-blue-300", ring: "ring-blue-200 dark:ring-blue-900", dot: "bg-blue-500", bar: "bg-blue-500", chipBg: "bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300" },

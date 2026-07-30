@@ -22,7 +22,7 @@ export default async function RecruitmentPage() {
       <PageHeader
         aura
         icon={UserSearchIcon}
-        accent="violet"
+        accent="gold"
         title="Recruitment"
         eyebrow="Hiring · Overview"
         description="Track every opening through the hiring pipeline — screening to hire — with time-to-fill and time-to-hire at a glance."

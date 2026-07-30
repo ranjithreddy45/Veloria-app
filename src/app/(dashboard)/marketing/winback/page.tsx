@@ -109,7 +109,7 @@ export default async function WinbackPage() {
           <StatTile
             label="Recovery rate"
             value={`${stats.totals.recoveryRate}%`}
-            accent="violet"
+            accent="gold"
             icon={<FlameIcon />}
             pct={stats.totals.recoveryRate}
           />

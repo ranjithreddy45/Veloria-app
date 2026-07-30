@@ -107,7 +107,7 @@ export default async function IndividualPerformancePage({
         <StatTile
           label="Quality Score"
           value={`${qualityScore.toFixed(1)}%`}
-          accent="violet"
+          accent="gold"
           icon={<StarIcon className="size-4" />}
           pct={qualityScore}
         />

@@ -48,7 +48,7 @@ export function Workqueue({ data, userName }: { data: WorkqueueData; userName: s
         <StatTile label="Open tasks" value={counts.open} accent="indigo" icon={<ListChecks className="size-4" />} />
         <StatTile label="Overdue" value={counts.overdue} accent="rose" icon={<AlarmClock className="size-4" />} sub={counts.overdue > 0 ? "Needs attention" : "All clear"} />
         <StatTile label="Due today" value={counts.dueToday} accent="amber" icon={<CalendarClock className="size-4" />} />
-        <StatTile label="My leads" value={counts.leads} accent="violet" icon={<Users className="size-4" />} />
+        <StatTile label="My leads" value={counts.leads} accent="gold" icon={<Users className="size-4" />} />
         <StatTile label="My bookings" value={counts.bookings} accent="emerald" icon={<CalendarCheck className="size-4" />} />
       </div>
 

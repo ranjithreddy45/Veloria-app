@@ -32,7 +32,7 @@ export default async function RecurringPage() {
         title="Recurring pay"
         description="Standing per-employee earnings and deductions that repeat every payroll — allowances, fixed reimbursements, recurring recoveries. The payroll run applies each active component within its start/end window."
         icon={Repeat}
-        accent="violet"
+        accent="gold"
       >
         <NewRecurringButton employees={employees} />
       </PageHeader>

@@ -171,7 +171,7 @@ export function ReviewsModerationList({
         <StatTile
           label="Pending Moderation"
           value={pendingReviews.length}
-          accent="violet"
+          accent="gold"
           icon={<Hourglass className="size-4" />}
           sub="awaiting review"
         />

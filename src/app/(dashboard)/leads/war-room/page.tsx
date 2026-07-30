@@ -75,7 +75,7 @@ export default async function SlaWarRoomPage() {
         <StatTile
           label="Escalated to manager"
           value={summary.escalatedManagerCount}
-          accent="violet"
+          accent="gold"
           icon={<ShieldAlert />}
           sub={
             summary.avgMinutesToBreach != null

@@ -120,7 +120,7 @@ export default async function CommsInboxPage({
             <StatTile
               label="SMS"
               value={stats.sms}
-              accent="violet"
+              accent="gold"
               icon={<MessageSquare className="size-4" />}
               sub="this month"
             />

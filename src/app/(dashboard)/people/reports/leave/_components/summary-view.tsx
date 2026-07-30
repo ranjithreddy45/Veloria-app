@@ -27,7 +27,7 @@ export function SummaryView({ rows, year }: { rows: SummaryRow[]; year: number }
   return (
     <div className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatTile label="Total allotted" value={totalAllotted} accent="violet" icon={<PieChart />} sub={`Across all types, ${year}`} />
+        <StatTile label="Total allotted" value={totalAllotted} accent="gold" icon={<PieChart />} sub={`Across all types, ${year}`} />
         <StatTile label="Total used" value={totalUsed} accent="blue" icon={<Sigma />} sub="Days consumed" />
         <StatTile label="Utilisation" value={`${utilisation}%`} accent={utilisation > 85 ? "rose" : "emerald"} icon={<Gauge />} sub="Used ÷ allotted" pct={Math.min(100, utilisation)} />
       </div>

@@ -141,7 +141,7 @@ export function BudgetsWorkspace({
         />
         <StatTile
           label="% used"
-          accent="violet"
+          accent="gold"
           icon={<Target className="size-4" />}
           value={`${pctUsed}%`}
           pct={Math.max(0, Math.min(100, pctUsed))}

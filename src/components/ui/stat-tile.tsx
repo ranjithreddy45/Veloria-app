@@ -11,12 +11,15 @@ import { cn } from "@/lib/utils";
 import { Donut } from "@/components/ui/donut";
 import { CountUp } from "@/components/ui/count-up";
 
-export type Accent = "indigo" | "blue" | "violet" | "emerald" | "amber" | "rose" | "red" | "pink" | "cyan" | "teal";
+export type Accent = "indigo" | "blue" | "gold" | "brand" | "emerald" | "amber" | "rose" | "red" | "pink" | "cyan" | "teal";
 
 const ACCENT: Record<Accent, { wash: string; chip: string; ring: string; bar: string; text: string }> = {
   indigo: { wash: "from-indigo-500/8 to-indigo-500/0", chip: "bg-indigo-100 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-300", ring: "text-indigo-500", bar: "bg-indigo-500", text: "text-indigo-600 dark:text-indigo-300" },
   blue: { wash: "from-blue-500/8 to-blue-500/0", chip: "bg-blue-100 text-blue-600 dark:bg-blue-950/50 dark:text-blue-300", ring: "text-blue-500", bar: "bg-blue-500", text: "text-blue-600 dark:text-blue-300" },
-  violet: { wash: "from-violet-500/8 to-violet-500/0", chip: "bg-violet-100 text-violet-600 dark:bg-violet-950/50 dark:text-violet-300", ring: "text-violet-500", bar: "bg-violet-500", text: "text-violet-600 dark:text-violet-300" },
+  // Brand slots — token-driven so they follow the emerald+gold identity rather
+  // than a frozen palette step. `violet` retired with the rebrand.
+  gold: { wash: "from-gold/10 to-gold/0", chip: "bg-gold/15 text-gold dark:bg-gold/20", ring: "text-gold", bar: "bg-gold", text: "text-gold" },
+  brand: { wash: "from-primary/10 to-primary/0", chip: "bg-primary/12 text-primary dark:bg-primary/20", ring: "text-primary", bar: "bg-primary", text: "text-primary" },
   emerald: { wash: "from-emerald-500/8 to-emerald-500/0", chip: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-300", ring: "text-emerald-500", bar: "bg-emerald-500", text: "text-emerald-600 dark:text-emerald-300" },
   amber: { wash: "from-amber-500/8 to-amber-500/0", chip: "bg-amber-100 text-amber-600 dark:bg-amber-950/50 dark:text-amber-300", ring: "text-amber-500", bar: "bg-amber-500", text: "text-amber-600 dark:text-amber-300" },
   rose: { wash: "from-rose-500/8 to-rose-500/0", chip: "bg-rose-100 text-rose-600 dark:bg-rose-950/50 dark:text-rose-300", ring: "text-rose-500", bar: "bg-rose-500", text: "text-rose-600 dark:text-rose-300" },

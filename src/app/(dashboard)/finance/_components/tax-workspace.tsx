@@ -60,7 +60,7 @@ export function TaxWorkspace({ summary, fiscalYears }: { summary: TaxSummary; fi
         <StatTile label="Output GST" accent="amber" icon={<Receipt className="size-4" />} value={formatINR(gstr3b.outputGst)} sub="Liability · GST collected" />
         <StatTile label="Input tax credit" accent="emerald" icon={<ArrowDownToLine className="size-4" />} value={formatINR(gstr3b.inputCredit)} sub="ITC available" />
         <StatTile label={netLabel} accent="rose" icon={<Wallet className="size-4" />} value={formatINR(Math.abs(gstr3b.netPayable))} sub="Output − Input" />
-        <StatTile label="TDS payable" accent="violet" icon={<Landmark className="size-4" />} value={formatINR(tds.payable)} sub="Deducted, to remit" />
+        <StatTile label="TDS payable" accent="gold" icon={<Landmark className="size-4" />} value={formatINR(tds.payable)} sub="Deducted, to remit" />
       </div>
 
       <Tabs defaultValue="gstr3b">

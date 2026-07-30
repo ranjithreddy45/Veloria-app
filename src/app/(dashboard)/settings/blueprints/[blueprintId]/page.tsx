@@ -62,7 +62,7 @@ export default async function BlueprintDetailPage({
       <PageHeader
         eyebrow="Settings · Blueprints"
         icon={GitBranchIcon}
-        accent="violet"
+        accent="gold"
         title={blueprint.name}
         description={
           blueprint.description ??

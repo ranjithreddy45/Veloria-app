@@ -208,7 +208,7 @@ export default async function DashboardPage() {
           <StatTile
             label="Leads created this month"
             value={leadsThisMonth}
-            accent="violet"
+            accent="gold"
             icon={<CalendarPlus className="size-4" />}
             sub={`New leads in ${monthLabel}`}
           />

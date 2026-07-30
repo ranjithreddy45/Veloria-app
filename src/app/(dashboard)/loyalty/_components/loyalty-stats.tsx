@@ -58,7 +58,7 @@ export function LoyaltyStats({ stats }: LoyaltyStatsProps) {
       <StatTile
         label="Total Redeemed"
         value={stats.totalPointsRedeemed.toLocaleString("en-IN")}
-        accent="violet"
+        accent="gold"
         icon={<AwardIcon />}
         sub="Lifetime points redeemed"
       />

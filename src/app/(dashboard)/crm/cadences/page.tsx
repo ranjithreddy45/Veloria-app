@@ -16,7 +16,7 @@ export default async function CadencesPage() {
       <PageHeader
         aura
         icon={RepeatIcon}
-        accent="violet"
+        accent="gold"
         eyebrow="CRM"
         title="Sales Cadences"
         description="Create and manage automated outreach sequences for leads and contacts."

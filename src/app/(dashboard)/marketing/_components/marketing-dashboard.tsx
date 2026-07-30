@@ -125,7 +125,7 @@ export function MarketingDashboard({
         <StatTile
           label="Blended ROAS"
           value={blendedRoas === null ? "—" : `${blendedRoas.toFixed(2)}×`}
-          accent="violet"
+          accent="gold"
           icon={<TrophyIcon />}
           sub="Revenue ÷ spend"
         />

@@ -63,7 +63,7 @@ export default async function ReferralPartnersPage() {
             label="Active partners"
             value={stats.activePartners}
             sub={`${stats.totalPartners} total`}
-            accent="violet"
+            accent="gold"
             icon={<Users />}
           />
           <StatTile

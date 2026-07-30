@@ -69,7 +69,7 @@ export default async function MissedCallsPage() {
         <StatTile
           label="Instant WhatsApp sent"
           value={`${stats.whatsappSentRatePct}%`}
-          accent="violet"
+          accent="gold"
           icon={<MessageCircle />}
           pct={stats.whatsappSentRatePct}
           sub={`${stats.whatsappSent} auto first-responses landed`}

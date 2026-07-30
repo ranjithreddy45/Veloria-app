@@ -156,7 +156,7 @@ export function RevenueWorkspace({
           <StatTile
             label="Total payouts"
             value={formatINR(payoutTotal)}
-            accent="violet"
+            accent="gold"
             icon={<HandCoins className="size-4" />}
             sub={`${statements.length} vendor${statements.length === 1 ? "" : "s"}`}
           />

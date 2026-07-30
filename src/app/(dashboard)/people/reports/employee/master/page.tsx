@@ -43,7 +43,7 @@ export default async function EmployeeMasterReport({ searchParams }: PageProps) 
     <div className="space-y-6">
       <PageHeader
         icon={IdCard}
-        accent="violet"
+        accent="gold"
         eyebrow="People · Reports"
         title="Employee Master"
         description="The full employee directory. Filter by branch, department, designation or status, then export to CSV."

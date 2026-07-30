@@ -160,7 +160,7 @@ export function ContractsDashboard({
           accent={(stats?.terminatedGainLoss ?? 0) < 0 ? "rose" : "emerald"}
           icon={<TrendingUp className="size-4" />}
         />
-        <StatTile label="Total contracts" value={contracts.length} accent="violet" icon={<CalendarDays className="size-4" />} />
+        <StatTile label="Total contracts" value={contracts.length} accent="gold" icon={<CalendarDays className="size-4" />} />
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

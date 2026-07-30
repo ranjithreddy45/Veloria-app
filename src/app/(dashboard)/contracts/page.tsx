@@ -51,7 +51,7 @@ export default async function ContractsPage() {
         <StatTile
           label="Total"
           value={total}
-          accent="violet"
+          accent="gold"
           icon={<FileSignatureIcon className="size-4" />}
           sub="All contracts"
         />

@@ -87,7 +87,7 @@ export default async function JobOpeningDetailPage({
         <StatTile
           label="Applicants"
           value={candidates.length}
-          accent="violet"
+          accent="gold"
           icon={<Users className="size-4" />}
         />
         <StatTile

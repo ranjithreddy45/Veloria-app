@@ -395,7 +395,7 @@ export function Applications({
         <StatTile
           label="In screening"
           value={counts.screening}
-          accent="violet"
+          accent="gold"
           icon={<Users className="size-4" />}
         />
         <StatTile

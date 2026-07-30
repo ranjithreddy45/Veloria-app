@@ -28,7 +28,7 @@ export default async function PayGradesPage() {
       </Link>
       <PageHeader
         icon={Layers}
-        accent="violet"
+        accent="gold"
         title="Pay Grades"
         description="Define the pay grades and salary bands used across the workforce. Each grade carries a level and an optional CTC range."
       />

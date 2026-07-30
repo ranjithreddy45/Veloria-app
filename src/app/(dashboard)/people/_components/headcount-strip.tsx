@@ -27,7 +27,7 @@ export function HeadcountStrip({
       <StatTile
         label="Total employees"
         value={total}
-        accent="violet"
+        accent="gold"
         icon={<Users className="size-4" />}
         sub="across the group"
       />

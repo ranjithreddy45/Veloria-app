@@ -113,7 +113,7 @@ export default async function CoolingLeadsPage() {
           <StatTile
             label="Recovery rate"
             value={`${stats.recoveryRate}%`}
-            accent="violet"
+            accent="gold"
             icon={<FlameIcon />}
             pct={stats.recoveryRate}
           />

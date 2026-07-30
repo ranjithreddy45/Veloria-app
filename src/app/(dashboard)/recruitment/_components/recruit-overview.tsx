@@ -159,7 +159,7 @@ export function RecruitOverview({
         <StatTile
           label="Total applications"
           value={data.totals.applications}
-          accent="violet"
+          accent="gold"
           icon={<Users className="size-4" />}
           sub="Candidates in pipeline"
         />

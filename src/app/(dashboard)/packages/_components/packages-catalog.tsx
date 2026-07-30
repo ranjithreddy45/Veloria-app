@@ -100,7 +100,7 @@ export function PackagesCatalog({ packages }: PackagesCatalogProps) {
         <StatTile
           label="Categories"
           value={<span className="tabular-nums">{categories.length}</span>}
-          accent="violet"
+          accent="gold"
           icon={<LayersIcon className="size-4" />}
         />
         <StatTile

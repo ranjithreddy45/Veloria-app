@@ -136,7 +136,7 @@ export default function StyleGuidePage() {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <StatTile label="Revenue (MTD)" value="₹18.4L" accent="emerald" icon={<IndianRupee className="size-4" />} delta={12} deltaLabel="%" />
           <StatTile label="Bookings" value="34" accent="blue" icon={<CalendarCheck className="size-4" />} sub="6 this week" />
-          <StatTile label="Goal progress" value="72%" accent="violet" icon={<Target className="size-4" />} pct={72} />
+          <StatTile label="Goal progress" value="72%" accent="gold" icon={<Target className="size-4" />} pct={72} />
           <StatTile label="Day streak" value="9" accent="amber" icon={<Flame className="size-4" />} sub="Keep it going!" />
           <StatTile label="Team Velos" value="1,240" accent="pink" icon={<Trophy className="size-4" />} pct={88} />
           <StatTile label="New leads" value="21" accent="cyan" icon={<Users className="size-4" />} delta={-3} />

@@ -36,7 +36,7 @@ export default async function CompensationPage() {
         <StatTile label="Active employees" value={total} accent="indigo" icon={<Users />} />
         <StatTile label="Salary set" value={withStructure} accent="emerald" icon={<BadgeIndianRupee />} sub="Have a current structure" />
         <StatTile label="Pending setup" value={without} accent="amber" icon={<AlertCircle />} sub="No CTC yet" />
-        <StatTile label="Monthly CTC" value={inr(totalMonthly)} accent="violet" icon={<Wallet />} sub="Sum of current structures" />
+        <StatTile label="Monthly CTC" value={inr(totalMonthly)} accent="gold" icon={<Wallet />} sub="Sum of current structures" />
       </div>
 
       <CompensationTable rows={rows} />

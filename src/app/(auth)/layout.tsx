@@ -21,7 +21,7 @@ export default function AuthLayout({
       {/* Soft floating glow orbs for depth */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -top-24 left-1/2 size-[420px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,oklch(0.55_0.25_293/0.10),transparent_70%)] blur-2xl dark:bg-[radial-gradient(circle,oklch(0.68_0.22_293/0.18),transparent_70%)]"
+        className="pointer-events-none absolute -top-24 left-1/2 size-[420px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,oklch(0.45_0.11_162/0.10),transparent_70%)] blur-2xl dark:bg-[radial-gradient(circle,oklch(0.66_0.13_163/0.18),transparent_70%)]"
       />
 
       <div className="animate-rise-in relative z-10 flex w-full max-w-[400px] flex-col items-center px-6 py-12">
@@ -31,7 +31,7 @@ export default function AuthLayout({
             className="h-16 w-auto max-w-[260px] object-contain"
             fallback={
               <>
-                <div className="logo-chip ring-glow-violet flex size-12 items-center justify-center rounded-[14px] text-primary-foreground">
+                <div className="logo-chip ring-glow-brand flex size-12 items-center justify-center rounded-[14px] text-primary-foreground">
                   <Gem className="size-[22px]" strokeWidth={2.2} />
                 </div>
                 <div className="text-center">

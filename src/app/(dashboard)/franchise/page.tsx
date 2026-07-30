@@ -87,7 +87,7 @@ export default async function FranchisePage() {
         <StatTile
           label="Venues under franchise"
           value={venueCount}
-          accent="violet"
+          accent="gold"
           icon={<Building2 />}
         />
         <StatTile

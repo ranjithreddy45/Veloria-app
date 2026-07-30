@@ -57,7 +57,7 @@ export default async function AccountsPage() {
         <StatTile
           label="Key accounts"
           value={stats.byTier.KEY}
-          accent="violet"
+          accent="gold"
           icon={<Building2Icon />}
           sub={`${stats.byTier.ACTIVE} active · ${stats.byTier.PROSPECT} prospects`}
         />

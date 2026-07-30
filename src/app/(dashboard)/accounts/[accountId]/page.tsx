@@ -87,7 +87,7 @@ export default async function AccountDetailPage({
     <div className="space-y-6">
       <PageHeader
         icon={Building2Icon}
-        accent="violet"
+        accent="gold"
         title={account.accountName}
         eyebrow={
           <span className="flex items-center gap-1.5">
@@ -180,7 +180,7 @@ export default async function AccountDetailPage({
         <StatTile
           label="Upcoming events"
           value={account.upcomingEventCount}
-          accent="violet"
+          accent="gold"
           icon={<CalendarClockIcon />}
         />
         <StatTile

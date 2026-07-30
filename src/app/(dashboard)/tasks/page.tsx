@@ -101,7 +101,7 @@ export default async function TasksPage() {
           <StatTile
             label="In progress"
             value={inProgressCount + inReviewCount}
-            accent="violet"
+            accent="gold"
             icon={<CircleDotIcon className="size-4" />}
             sub={inReviewCount > 0 ? `${inReviewCount} in review` : "underway"}
           />

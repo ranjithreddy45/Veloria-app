@@ -64,7 +64,7 @@ export function SiteVisitsBoard({
     <div className="space-y-6">
       {stats && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          <StatTile label="Upcoming" value={stats.upcoming} accent="violet" icon={<CalendarClock />} />
+          <StatTile label="Upcoming" value={stats.upcoming} accent="gold" icon={<CalendarClock />} />
           <StatTile label="Requested" value={stats.requested} accent="amber" icon={<Clock />} />
           <StatTile label="Confirmed" value={stats.confirmed} accent="emerald" icon={<CalendarCheck />} />
           <StatTile label="Completed" value={stats.completed} accent="indigo" icon={<CheckCircle2 />} />

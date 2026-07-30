@@ -125,7 +125,7 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
             <StatTile
               label="Total contacts"
               value={contacts.length}
-              accent="violet"
+              accent="gold"
               icon={<UsersIcon className="size-4" />}
               sub="In your directory"
             />

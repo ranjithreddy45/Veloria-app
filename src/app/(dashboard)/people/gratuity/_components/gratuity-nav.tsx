@@ -34,7 +34,7 @@ export function GratuityNav() {
             className={cn(
               "inline-flex items-center gap-1.5 rounded-[10px] px-2.5 py-1.5 text-[12.5px] font-medium transition-all duration-150 active:scale-[0.97]",
               active
-                ? "bg-violet-500/12 text-violet-600 shadow-[inset_0_0_0_1px_oklch(0.55_0.25_293/0.18)] dark:bg-violet-400/15 dark:text-violet-300"
+                ? "bg-primary/[0.12] text-primary shadow-[inset_0_0_0_1px_oklch(0.45_0.11_162/0.18)] dark:bg-primary/20"
                 : "text-muted-foreground hover:bg-background/70 hover:text-foreground",
             )}
           >

@@ -54,7 +54,7 @@ export default async function DayOfPage({ params }: DayOfPageProps) {
       {/* Header */}
       <PageHeader
         icon={CalendarClockIcon}
-        accent="violet"
+        accent="gold"
         title="Day-of Timeline"
         eyebrow={
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">

@@ -60,7 +60,7 @@ export default async function QuotationsPage() {
           <StatTile
             label="Total quotations"
             value={total}
-            accent="violet"
+            accent="gold"
             icon={<FileTextIcon className="size-4" />}
             sub="Built so far"
           />

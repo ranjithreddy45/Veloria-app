@@ -86,7 +86,7 @@ export default async function FeedbackPage() {
         <StatTile
           label="Rated"
           value={s.RATED + s.ROUTED_PUBLIC + s.ROUTED_PRIVATE + s.COMPLETED}
-          accent="violet"
+          accent="gold"
           icon={<Star className="size-4" />}
         />
         <StatTile

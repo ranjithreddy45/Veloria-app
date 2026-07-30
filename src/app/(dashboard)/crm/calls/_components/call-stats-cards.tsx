@@ -42,7 +42,7 @@ export function CallStatsCards({ analytics }: CallStatsProps) {
       <StatTile
         label="Avg duration"
         value={formatDuration(analytics.avgDuration)}
-        accent="violet"
+        accent="gold"
         icon={<Clock className="size-4" />}
         sub="per connected call"
       />

@@ -22,7 +22,7 @@ export default async function OffersPage() {
       <PageHeader
         aura
         icon={FileSignatureIcon}
-        accent="violet"
+        accent="gold"
         title="Offer Letters"
         eyebrow={`Hiring · ${total} offer${total === 1 ? "" : "s"}`}
         description="Generate and print branded offer letters for every candidate offer — merged from your HR letter templates."

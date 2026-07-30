@@ -98,7 +98,7 @@ export default async function AnalyticsPage() {
         aura
         eyebrow={`Business Intelligence · ${bookingsData.totalBookings} bookings`}
         icon={BarChart3}
-        accent="violet"
+        accent="gold"
         title="Analytics"
         help={<PageHelp id="analytics" />}
         description="Revenue, bookings, pipeline, clients and venue performance — all in one view."

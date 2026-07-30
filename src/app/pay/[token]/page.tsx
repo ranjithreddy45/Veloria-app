@@ -79,7 +79,7 @@ export default async function PayPage({
               <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-premium">
                 {/* Card header */}
                 <div className="flex items-start gap-3 border-b border-border/60 p-6">
-                  <div className="ring-glow-violet flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <div className="ring-glow-brand flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     <FileText className="size-5" />
                   </div>
                   <div className="min-w-0">

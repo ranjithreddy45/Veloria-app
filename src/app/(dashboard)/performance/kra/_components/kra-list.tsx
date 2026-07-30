@@ -86,7 +86,7 @@ export function KraList({
     <div className="flex flex-col gap-5">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatTile label="Scorecards" value={total} accent="indigo" icon={<Target className="size-4" />} />
-        <StatTile label="Avg score" value={`${avgScore}/100`} accent="violet" icon={<Trophy className="size-4" />} pct={avgScore} />
+        <StatTile label="Avg score" value={`${avgScore}/100`} accent="gold" icon={<Trophy className="size-4" />} pct={avgScore} />
         <StatTile label="Gate passed" value={`${passed}/${total || 0}`} accent="emerald" icon={<ShieldCheck className="size-4" />} />
         <StatTile label="Acknowledged" value={acknowledged} accent="teal" />
       </div>

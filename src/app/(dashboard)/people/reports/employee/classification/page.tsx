@@ -79,7 +79,7 @@ export default async function ClassificationReport({ searchParams }: PageProps) 
       />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile label="Total headcount" value={total} accent="violet" />
+        <StatTile label="Total headcount" value={total} accent="gold" />
         <StatTile label="Departments" value={byDepartment.length} accent="blue" />
         <StatTile label="Designations" value={byDesignation.length} accent="teal" />
         <StatTile label="Branches" value={byBranch.length} accent="amber" />
