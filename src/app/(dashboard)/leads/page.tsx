@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PlusIcon, UploadCloud as UploadCloudIcon, Sparkles as SparklesIcon, UserPlus as UserPlusIcon, FilterX as FilterXIcon } from "lucide-react";
 
-import { getLeads, getLeadStats, getTestLeadsCount, type LeadListFilters } from "@/actions/lead.actions";
+import { getLeads, getLeadStats, getTestLeadsCount, getUnassignedLeadsCount, type LeadListFilters } from "@/actions/lead.actions";
 import { getVenues } from "@/actions/booking.actions";
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
@@ -38,8 +38,9 @@ export default async function LeadsPage({
   // Filter/scope input straight from the URL. Every value is re-validated
   // server-side in getLeads — including `scope`, which is downgraded to "mine"
   // unless the viewer actually holds the manager permission.
+  const rawScope = first(sp.scope);
   const filters: LeadListFilters = {
-    scope: first(sp.scope) === "all" ? "all" : "mine",
+    scope: rawScope === "all" ? "all" : rawScope === "unassigned" ? "unassigned" : "mine",
     status: first(sp.status),
     venueId: first(sp.venue),
     eventFrom: first(sp.eventFrom),
@@ -50,13 +51,16 @@ export default async function LeadsPage({
 
   // Ceiling lets the client-side table page through records without the
   // default-50 cutoff, while keeping the payload far lighter than 1000.
-  const [result, statsResult, testCountResult, venuesResult, session] = await Promise.all([
-    getLeads({ ...filters, limit: 500 }),
-    getLeadStats(filters),
-    getTestLeadsCount(),
-    getVenues({ activeOnly: true }),
-    auth(),
-  ]);
+  const [result, statsResult, testCountResult, unassignedResult, venuesResult, session] =
+    await Promise.all([
+      getLeads({ ...filters, limit: 500 }),
+      getLeadStats(filters),
+      getTestLeadsCount(),
+      getUnassignedLeadsCount(),
+      getVenues({ activeOnly: true }),
+      auth(),
+    ]);
+  const unassignedCount = unassignedResult.success ? unassignedResult.count : 0;
   const venues = venuesResult.success
     ? venuesResult.data.map((v) => ({ id: v.id, name: v.name }))
     : [];
@@ -126,7 +130,11 @@ export default async function LeadsPage({
             <span className="h-3 w-px bg-border" />
             <span className="text-foreground/80">
               <span className="font-semibold numeric">{totalLeads}</span>{" "}
-              {scope === "all" ? "total" : "assigned to you"}
+              {scope === "all"
+                ? "total"
+                : scope === "unassigned"
+                  ? "awaiting an owner"
+                  : "assigned to you"}
             </span>
             {pipelineValue > 0 && (
               <>
@@ -157,7 +165,7 @@ export default async function LeadsPage({
       {/* The filter bar renders even on an empty result — otherwise a filter that
           matches nothing would hide the only control that can clear it. */}
       <div className="animate-rise-in animate-stagger-1 space-y-4">
-        <LeadsFilterBar canViewAll={canViewAll} scope={scope} venues={venues} />
+        <LeadsFilterBar canViewAll={canViewAll} scope={scope} venues={venues} unassignedCount={unassignedCount} />
 
         {leads.length === 0 ? (
           <div className="rounded-2xl border border-dashed bg-card shadow-card">
@@ -192,6 +200,17 @@ export default async function LeadsPage({
                       </Button>
                     )}
                   </div>
+                }
+              />
+            ) : scope === "unassigned" ? (
+              <EmptyState
+                icon={<SparklesIcon className="size-6" />}
+                title="Inbox zero — every lead has an owner"
+                description="No leads are waiting to be routed. New enquiries are auto-assigned on arrival; anything that ever lands without an owner will show up here."
+                action={
+                  <Button variant="outline" asChild>
+                    <Link href="/leads">Back to My leads</Link>
+                  </Button>
                 }
               />
             ) : (

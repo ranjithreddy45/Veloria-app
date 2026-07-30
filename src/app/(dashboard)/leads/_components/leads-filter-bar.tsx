@@ -15,6 +15,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   CalendarDays,
   CalendarPlus,
+  Inbox,
   Loader2,
   Users,
   User,
@@ -60,15 +61,17 @@ const FILTER_KEYS = [
 ] as const;
 
 interface Props {
-  /** Server-resolved: may this viewer switch to "All leads"? */
+  /** Server-resolved: may this viewer switch to "All leads" / "Unassigned"? */
   canViewAll: boolean;
   /** Server-resolved effective scope (a downgraded "all" shows as "mine"). */
-  scope: "mine" | "all";
+  scope: "mine" | "all" | "unassigned";
   /** Active halls/properties for the venue filter. */
   venues: { id: string; name: string }[];
+  /** Ownerless-lead count for the "Unassigned" inbox badge (managers only). */
+  unassignedCount?: number;
 }
 
-export function LeadsFilterBar({ canViewAll, scope, venues }: Props) {
+export function LeadsFilterBar({ canViewAll, scope, venues, unassignedCount = 0 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
@@ -109,10 +112,17 @@ export function LeadsFilterBar({ canViewAll, scope, venues }: Props) {
       {canViewAll && (
         <ViewTabs
           value={scope}
-          onValueChange={(v) => push({ scope: v === "all" ? "all" : null })}
+          // "mine" is the default → clear the param; the other two set it.
+          onValueChange={(v) => push({ scope: v === "mine" ? null : v })}
           options={[
             { value: "mine", label: "My leads", icon: User },
             { value: "all", label: "All leads", icon: Users },
+            {
+              value: "unassigned",
+              label:
+                unassignedCount > 0 ? `Unassigned (${unassignedCount})` : "Unassigned",
+              icon: Inbox,
+            },
           ]}
         />
       )}

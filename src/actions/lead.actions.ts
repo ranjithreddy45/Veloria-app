@@ -74,9 +74,10 @@ async function assigneeInvalid(userId: string): Promise<string | null> {
 
 /**
  * Which leads the list shows. Defaults to "mine" (leads assigned to the signed-in
- * user). "all" is a manager view — see `canSeeAllLeads`.
+ * user). "all" and "unassigned" are manager views — see `canSeeAllLeads`.
+ * "unassigned" is the routing inbox: leads with no owner yet (assignedToId=null).
  */
-export type LeadScope = "mine" | "all";
+export type LeadScope = "mine" | "all" | "unassigned";
 
 export interface LeadListFilters {
   search?: string;
@@ -148,10 +149,22 @@ function buildLeadListWhere(
 
   // ---- Ownership scoping (server-authoritative) ----
   const canViewAll = canSeeAllLeads(viewer.role);
-  const scope: LeadScope = filters?.scope === "all" && canViewAll ? "all" : "mine";
+  // "all" and "unassigned" are manager-only views; a rep asking for either is
+  // silently downgraded to "mine" so the query can never widen past their book.
+  const requested = filters?.scope;
+  const scope: LeadScope =
+    (requested === "all" || requested === "unassigned") && canViewAll
+      ? requested
+      : "mine";
   if (scope === "mine") {
     where.assignedToId = viewer.id;
+  } else if (scope === "unassigned") {
+    // The routing inbox: leads that landed with no owner. With the capture-side
+    // fallback owner this should stay near-empty, but it's the safety net that
+    // guarantees an ownerless lead is always one click away, never hidden.
+    where.assignedToId = null;
   }
+  // scope === "all" → no assignedToId filter (every lead in the company).
 
   const search = filters?.search?.trim();
   if (search) {
@@ -772,6 +785,24 @@ export async function deleteLead(id: string) {
 // ============================================================
 
 /** How many undeleted "[TEST]" leads exist (drives the cleanup button). */
+/**
+ * Count of ownerless leads — powers the "Unassigned" routing-inbox badge. Only
+ * meaningful for managers (who can open that view); reps get 0 since they can't
+ * switch to it anyway.
+ */
+export async function getUnassignedLeadsCount(): Promise<{ success: true; count: number } | { success: false; error: string }> {
+  const session = await auth();
+  if (!session?.user) return { success: false as const, error: "Unauthorized" };
+  if (!hasPermission(session.user.role, "leads:read")) {
+    return { success: false as const, error: "Insufficient permissions" };
+  }
+  if (!canSeeAllLeads(session.user.role)) return { success: true as const, count: 0 };
+  const count = await prisma.lead.count({
+    where: { deletedAt: null, assignedToId: null },
+  });
+  return { success: true as const, count };
+}
+
 export async function getTestLeadsCount(): Promise<{ success: true; count: number } | { success: false; error: string }> {
   const session = await auth();
   if (!session?.user) return { success: false as const, error: "Unauthorized" };
