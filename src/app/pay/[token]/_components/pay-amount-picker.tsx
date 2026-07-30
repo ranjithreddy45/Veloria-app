@@ -2,7 +2,7 @@
 
 // ============================================================
 // Pay-amount picker — status-quo default applied to collections.
-// When the invoice has a 20/60/20 installment plan and the link didn't pin an
+// When the invoice has a staged installment plan and the link didn't pin an
 // amount, the earliest unpaid installment is PRE-SELECTED (the default wins);
 // the full balance stays one tap away. Falls back to a single button when
 // there's nothing to choose between.

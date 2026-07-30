@@ -73,7 +73,7 @@ export async function getSalesEventTracker(params: { employeeIds?: string[] | nu
 }
 
 // ------------------------------------------------------------
-// Revenue & collections (+ 20/60/20 milestone view)
+// Revenue & collections (+ payment-milestone view)
 // ------------------------------------------------------------
 export async function getSalesRevenueCollections(params: Params): Promise<Result<unknown>> {
   const user = await requireSales();
@@ -99,7 +99,7 @@ export async function getSalesRevenueCollections(params: Params): Promise<Result
   const advanceCollected = payments.reduce((s, p) => s + num(p.amount), 0);
   const pendingCollection = openInvoices.reduce((s, i) => s + num(i.balanceDue), 0);
 
-  // 20/60/20 milestones — assign each installment to EXACTLY ONE bucket by priority
+  // Payment milestones — assign each installment to EXACTLY ONE bucket by priority
   // (advance → final → part). Independent regex tests double-counted: e.g. the real
   // "Final balance (20%)" label matched both the final bucket and an advance "20%"
   // test, inflating the advance total. One-installment-one-bucket removes that.

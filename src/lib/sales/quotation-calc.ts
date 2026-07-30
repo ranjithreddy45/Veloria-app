@@ -231,22 +231,70 @@ function findById<T extends { id: string }>(arr: T[], id?: string): T | undefine
 }
 
 /**
- * The planner's 3-stage payment terms, computed on the grand total:
- *  1. 20% to block the slot (on the booking day)
- *  2. 60% — 15 days before the event
- *  3. Balance (20%) — 1 day before the event
- * The final installment is computed as the remainder so the three
- * always sum to exactly the grand total (no rounding drift).
+ * THE canonical payment terms — 30 / 50 / 20.
+ *  1. 30% advance (on the booking day, blocks the slot)
+ *  2. 50% — 15 days before the event
+ *  3. 20% — 48 hours before the event
+ *
+ * Everything that quotes, invoices or renders the schedule reads THIS constant.
+ * It is exported so the invoice installment planner and the PDF/print templates
+ * cannot drift from the quote the customer accepted — a mismatch here is a
+ * money bug, not a copy bug.
+ *
+ * `daysBeforeEvent` is what the invoice scheduler anchors due dates on (48 hours
+ * = 2 days), so the timing lives beside the percentage rather than being
+ * re-derived per call site.
+ */
+export const PAYMENT_TERMS = [
+  { label: "Booking advance", pct: 30, dueHint: "On the day of booking — blocks the slot", daysBeforeEvent: null },
+  { label: "Part payment", pct: 50, dueHint: "15 days before the event", daysBeforeEvent: 15 },
+  { label: "Final balance", pct: 20, dueHint: "48 hours before the event", daysBeforeEvent: 2 },
+] as const;
+
+/** "30 / 50 / 20" — for headings and help text, derived so it can't go stale. */
+export const PAYMENT_TERMS_LABEL = PAYMENT_TERMS.map((t) => t.pct).join(" / ");
+
+/**
+ * The customer-facing terms sentence printed on invoices and quotes. Derived from
+ * PAYMENT_TERMS so the wording on the document can never contradict the
+ * installment plan actually raised against it.
+ */
+export const PAYMENT_TERMS_SENTENCE = `Payment terms: ${PAYMENT_TERMS.map(
+  (t) => `${t.pct}% ${t.daysBeforeEvent == null ? "to block the slot" : t.dueHint.toLowerCase()}`
+).join(", ")}.`;
+
+/**
+ * Due date for one installment, given the event date. `daysBeforeEvent === null`
+ * means due immediately (the advance). Without an event date, `fallbackDays`
+ * keeps the dates strictly increasing so the plan still validates.
+ */
+export function installmentDueDate(
+  daysBeforeEvent: number | null,
+  eventDate: Date | null,
+  fallbackDays: number
+): Date {
+  if (daysBeforeEvent == null) return new Date();
+  if (!eventDate) return new Date(Date.now() + fallbackDays * 86_400_000);
+  const d = new Date(eventDate);
+  d.setDate(d.getDate() - daysBeforeEvent);
+  return d;
+}
+
+/**
+ * Splits a grand total across PAYMENT_TERMS. The LAST installment is the
+ * remainder so the parts always sum to exactly the grand total (no rounding
+ * drift leaving a stray rupee uncollectable).
  */
 export function buildPaymentSchedule(grandTotal: number): PaymentInstallment[] {
-  const block = r2(grandTotal * 0.2);
-  const mid = r2(grandTotal * 0.6);
-  const balance = grandTotal - block - mid;
-  return [
-    { label: "Booking advance", pct: 20, amount: block, dueHint: "On the day of booking — blocks the slot" },
-    { label: "Part payment", pct: 60, amount: mid, dueHint: "15 days before the event" },
-    { label: "Final balance", pct: 20, amount: balance, dueHint: "1 day before the event" },
-  ];
+  const out: PaymentInstallment[] = [];
+  let allocated = 0;
+  PAYMENT_TERMS.forEach((term, idx) => {
+    const isLast = idx === PAYMENT_TERMS.length - 1;
+    const amount = isLast ? grandTotal - allocated : r2(grandTotal * (term.pct / 100));
+    allocated += amount;
+    out.push({ label: term.label, pct: term.pct, amount, dueHint: term.dueHint });
+  });
+  return out;
 }
 
 export function computeQuotation(

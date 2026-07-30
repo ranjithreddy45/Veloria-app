@@ -637,7 +637,7 @@ export async function getPublicInvoiceForPayment(invoiceId: string) {
       },
     });
     if (!invoice) return { success: false as const, error: "Invoice not found" };
-    // Status-quo default: the earliest unpaid installment (per the 20/60/20
+    // Status-quo default: the earliest unpaid installment (per the staged
     // plan) becomes the pre-selected amount on the pay page; the full balance
     // stays one tap away. Clamped to the remaining balance.
     const balance = Number(invoice.balanceDue);

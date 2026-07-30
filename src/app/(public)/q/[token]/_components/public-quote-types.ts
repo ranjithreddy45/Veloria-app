@@ -20,7 +20,7 @@ export interface PublicQuoteLine {
   amount: number;
 }
 
-/** One installment of the 20/60/20 payment schedule. */
+/** One installment of the staged payment schedule (see PAYMENT_TERMS). */
 export interface PublicPaymentInstallment {
   label: string;
   pct: number;

@@ -4123,6 +4123,9 @@ enum AcqLeadStatus {
   NEW
   CONTACTED
   QUALIFIED
+  // Set when the lead has been converted into a deal, so the inbox can tell a
+  // qualified-but-not-yet-converted lead from one that already has a deal.
+  DEAL_CREATED
   DISQUALIFIED
 }
 
@@ -4147,6 +4150,9 @@ enum AcqLeadSource {
   BROKER
   COLD_CALL
   SOCIAL_MEDIA
+  // Replaces WALK_IN. WALK_IN stays declared so existing rows remain readable
+  // while the data migration runs; it is hidden from the picker.
+  INCOMING_LEAD
   WALK_IN
   OTHER
 }
@@ -4185,6 +4191,9 @@ enum AcqDealStage {
 enum AcqDealModel {
   MANAGEMENT
   FRANCHISE
+  // Base/best price per event or per pax; Veloria's margin is the spread.
+  // Carries no opex — see the rm* fields on AcqDeal.
+  REVENUE_MARGIN
 }
 
 enum AcqContractStatus {
@@ -4250,6 +4259,10 @@ model AcqLead {
   qualOwnerInterested Boolean?
   qualAgreeRenovate   Boolean?
   qualPhotosReady     Boolean?
+  // Property photos captured on the LEAD (mirrors AcqDeal.images). Previously
+  // absent, which is why "images under Leads" could never save — there was no
+  // column behind the UI. base64 image data-URLs, validated server-side.
+  images              String[]
   leadSource          AcqLeadSource
   ownerType           AcqOwnerType
   bdExecutiveId       String
@@ -4265,6 +4278,7 @@ model AcqLead {
   deal                AcqDeal?             @relation("AcqDealOrigin")
   activities          AcqLeadActivity[]
   siteVisits          AcqSiteVisit[]
+  contacts            AcqLeadContact[]
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   deletedAt           DateTime?
@@ -4274,6 +4288,32 @@ model AcqLead {
   @@index([bdExecutiveId])
   @@index([mobilePrimary])
   @@index([deletedAt])
+}
+
+// ============================================================
+// People at the property behind a BD lead. AcqLead already carries ONE owner
+// (ownerName/mobilePrimary/email), but a deal is worked through several people —
+// the owner, a manager, an accountant. Each contact carries the role they play so
+// the BD exec knows who they are talking to.
+// ============================================================
+model AcqLeadContact {
+  id          String   @id @default(cuid())
+  leadId      String
+  lead        AcqLead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  name        String
+  designation String // OWNER | CO_OWNER | MANAGER | ACCOUNTANT | CARETAKER | BROKER | OTHER
+  /** Free-text title when designation is OTHER (e.g. "Estate lawyer"). */
+  designationOther String?
+  phone       String?
+  email       String?
+  /** The main person to call. At most one per lead is enforced in the action. */
+  isPrimary   Boolean  @default(false)
+  notes       String?  @db.Text
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([leadId])
 }
 
 // Contact-log / activity timeline for a BD lead (channel + outcome + note per touch).
@@ -4295,9 +4335,15 @@ model AcqLeadActivity {
 // scheduledAt; the BD/BA team later updates status + outcome notes once done.
 model AcqSiteVisit {
   id             String    @id @default(cuid())
-  leadId         String
-  lead           AcqLead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  type           String    @default("SITE_VISIT") // SITE_VISIT | MEETING
+  // Lead-scoped visits keep their required leadId. A visit scheduled against a
+  // DEAL carries dealId instead — hence leadId is now optional. Exactly one of
+  // the two is required; that invariant lives in scheduleAcqVisit, because making
+  // it a DB constraint would need a check constraint prisma db push can't express.
+  leadId         String?
+  lead           AcqLead?  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  dealId         String?
+  deal           AcqDeal?  @relation("AcqDealVisits", fields: [dealId], references: [id], onDelete: Cascade)
+  type           String    @default("SITE_VISIT") // SITE_VISIT | MEETING | CALL
   scheduledAt    DateTime
   location       String?
   agenda         String?   @db.Text
@@ -4311,9 +4357,31 @@ model AcqSiteVisit {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
+  /** Running log of what happened. `outcomeNotes` above stays the single summary
+   *  field; these are the timestamped, appendable entries the BD team asked for. */
+  visitNotes     AcqVisitNote[]
+
   @@index([leadId])
+  @@index([dealId])
   @@index([scheduledAt])
   @@index([status])
+}
+
+// Appendable notes against one scheduled call / site visit / meeting, so the team
+// can record what happened across several touches instead of overwriting a single
+// outcome field.
+model AcqVisitNote {
+  id         String       @id @default(cuid())
+  visitId    String
+  visit      AcqSiteVisit @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  body       String       @db.Text
+  authorId   String?
+  authorName String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  editedAt   DateTime?
+
+  @@index([visitId])
 }
 
 model AcqDeal {
@@ -4354,6 +4422,21 @@ model AcqDeal {
   // Once frozen, base fee / incentive / term are locked (post-agreement).
   economicsFrozenAt     DateTime?
 
+  // ---- REVENUE_MARGIN model (BD CRM) ----------------------------------------
+  // Deliberately NOT reusing baseFeePct/incentivePct: those are percentages for
+  // the MANAGEMENT/FRANCHISE models, whereas these are absolute prices. Mixing
+  // them would make the approval floors (which read the pct fields) meaningless.
+  // basePrice = what the owner is guaranteed; bestPrice = what we expect to sell
+  // at. The margin we surface is the spread. No opex participates in this model.
+  rmBasePrice   Decimal? @db.Decimal(12, 2)
+  rmBestPrice   Decimal? @db.Decimal(12, 2)
+  /** PER_EVENT | PER_PAX — whether the prices above are per event or per head. */
+  rmPriceBasis  String?
+  /** Hall capacity used to cap per-pax volume. */
+  rmHallCapacity Int?
+  /** Per-pax only: the minimum billable head-count, whatever actually turns up. */
+  rmMinimumPax  Int?
+
   // Scoring
   evalScore  Int?
   evalPassed Boolean?
@@ -4393,6 +4476,7 @@ model AcqDeal {
   attachments AcqAttachment[]
   notes       AcqDealNote[]
   projections AcqProjection[]
+  siteVisits  AcqSiteVisit[] @relation("AcqDealVisits")
 
   @@index([stage])
   @@index([bdExecutiveId])
@@ -4419,6 +4503,16 @@ model AcqProperty {
   propertyManagerId String?
   propertyManager   User?             @relation("AcqPropertyManager", fields: [propertyManagerId], references: [id])
   availableAt       DateTime?
+
+  // Statutory property documents (BD CRM item 15). Stored as data-URLs like the
+  // rest of the app's uploads; expiry is tracked so renewals can be chased.
+  tradeLicenseUrl     String?   @db.Text
+  tradeLicenseNumber  String?
+  tradeLicenseExpiry  DateTime?
+  fssaiCertificateUrl String?   @db.Text
+  fssaiNumber         String?
+  fssaiExpiry         DateTime?
+
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   deletedAt         DateTime?
@@ -4517,6 +4611,14 @@ model AcqContract {
   esignProvider  String?
   esignRequestId String?
   esignStatus    String? // SENT | SIGNED | DECLINED
+
+  // How this contract gets signed. DIGITAL routes through the e-sign provider;
+  // MANUAL means printed/signed offline and the scan is uploaded here, which is
+  // what flips the deal to Won and provisions the hall.
+  signingMode        String? // DIGITAL | MANUAL
+  signedContractUrl  String? @db.Text // uploaded scan (data-URL) for MANUAL
+  signedUploadedById String?
+  signedUploadedAt   DateTime?
 
   bdExecutiveId String
   createdById   String

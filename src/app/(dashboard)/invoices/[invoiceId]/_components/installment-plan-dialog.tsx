@@ -12,6 +12,12 @@ import {
 import { toast } from "sonner";
 
 import { createInstallmentPlan } from "@/actions/invoice.actions";
+import {
+  buildPaymentSchedule,
+  installmentDueDate,
+  PAYMENT_TERMS,
+  PAYMENT_TERMS_LABEL,
+} from "@/lib/sales/quotation-calc";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,32 +57,21 @@ type InstallmentRow = {
   dueDate: Date | undefined;
 };
 
-// Veloria's standard 20 / 60 / 20 payment terms:
-//   • Booking advance (20%) — on the day of booking, blocks the slot
-//   • Part payment (60%)    — 15 days before the event
-//   • Final balance (20%)   — 2 hours before the event
-// The final installment is the remainder so the three sum to the total exactly.
+// Veloria's standard payment terms, read from the SHARED PAYMENT_TERMS constant
+// (currently 30 / 50 / 20) so this dialog can never offer a split that differs
+// from what the quote engine and the invoice generator produce. The final
+// installment is the remainder, so the parts sum to the total exactly.
 function buildStandardSchedule(
   totalAmount: number,
   eventDate?: string | null
 ): InstallmentRow[] {
-  const advance = Math.round(totalAmount * 0.2);
-  const part = Math.round(totalAmount * 0.6);
-  const balance = totalAmount - advance - part;
-
   const event = eventDate ? new Date(eventDate) : null;
-  const partDue = event
-    ? new Date(event.getTime() - 15 * 24 * 60 * 60 * 1000)
-    : new Date(Date.now() + 15 * 24 * 60 * 60 * 1000);
-  const balanceDue = event
-    ? new Date(event.getTime() - 2 * 60 * 60 * 1000)
-    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-
-  return [
-    { label: "Booking advance (20%) — blocks the slot", amount: advance.toString(), dueDate: new Date() },
-    { label: "Part payment (60%) — 15 days before event", amount: part.toString(), dueDate: partDue },
-    { label: "Final balance (20%) — 2 hours before event", amount: balance.toString(), dueDate: balanceDue },
-  ];
+  const amounts = buildPaymentSchedule(totalAmount);
+  return PAYMENT_TERMS.map((term, idx) => ({
+    label: `${term.label} (${term.pct}%) — ${term.dueHint}`,
+    amount: amounts[idx].amount.toString(),
+    dueDate: installmentDueDate(term.daysBeforeEvent, event, 15 * (idx + 1)),
+  }));
 }
 
 // ============================================================

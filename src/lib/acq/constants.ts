@@ -84,8 +84,21 @@ export const ACQ_DEAL_STAGE = [
 ] as const;
 export type AcqDealStage = (typeof ACQ_DEAL_STAGE)[number];
 
-export const ACQ_DEAL_MODEL = ["MANAGEMENT", "FRANCHISE"] as const;
+export const ACQ_DEAL_MODEL = ["MANAGEMENT", "FRANCHISE", "REVENUE_MARGIN"] as const;
 export type AcqDealModel = (typeof ACQ_DEAL_MODEL)[number];
+export const ACQ_DEAL_MODEL_LABEL: Record<AcqDealModel, string> = {
+  MANAGEMENT: "Management",
+  FRANCHISE: "Franchise",
+  REVENUE_MARGIN: "Revenue Margin",
+};
+
+/** How REVENUE_MARGIN prices are quoted. */
+export const ACQ_RM_PRICE_BASIS = ["PER_EVENT", "PER_PAX"] as const;
+export type AcqRmPriceBasis = (typeof ACQ_RM_PRICE_BASIS)[number];
+export const ACQ_RM_PRICE_BASIS_LABEL: Record<AcqRmPriceBasis, string> = {
+  PER_EVENT: "Per event",
+  PER_PAX: "Per pax",
+};
 
 export const ACQ_CONTRACT_STATUS = ["NOT_SENT", "SENT", "SIGNED"] as const;
 export type AcqContractStatus = (typeof ACQ_CONTRACT_STATUS)[number];

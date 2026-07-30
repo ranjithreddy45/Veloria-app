@@ -8,7 +8,7 @@
 // WHY a plain lib (not the gated createBookingInvoiceFromQuotation action):
 // createBookingInvoiceFromQuotation / createInvoice / blockSlotFromQuotation are
 // all auth+RBAC gated and cannot run in the PUBLIC one-tap context. This module
-// REPLICATES the exact same proforma-first ordering (invoice → 20/60/20 plan →
+// REPLICATES the exact same proforma-first ordering (invoice → installment plan →
 // pay → block → auto-confirm), reusing the '__pending__' sentinel CLAIM and the
 // Serializable createBooking guard the internal path uses, but parametrized by
 // an explicit actor id (system user for public, rep for share-time pre-gen).
@@ -24,6 +24,10 @@ import { Prisma, type TimeSlot } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   computeQuotation,
+  buildPaymentSchedule,
+  installmentDueDate,
+  PAYMENT_TERMS,
+  PAYMENT_TERMS_SENTENCE,
   type QuotationInput,
   type QuotationResult,
 } from "@/lib/sales/quotation-calc";
@@ -222,16 +226,15 @@ export async function ensureProformaForShareLink(
       dueNow.setDate(dueNow.getDate() + 1);
 
       const event = q.eventDate ? new Date(q.eventDate) : null;
-      const midDue = event ? new Date(event) : new Date(Date.now() + 15 * 86400000);
-      if (event) midDue.setDate(midDue.getDate() - 15);
-      const balanceDueDate = event
-        ? new Date(event.getTime() - 2 * 60 * 60 * 1000)
-        : new Date(Date.now() + 30 * 86400000);
-
-      // 20 / 60 / 20 split off the invoice total (remainder carries to the last).
-      const block = Math.round(grand * 0.2);
-      const mid = Math.round(grand * 0.6);
-      const balance = round2(grand - block - mid);
+      // Canonical PAYMENT_TERMS split + due dates (remainder carries to the last),
+      // shared with the quotation and the direct invoice path so all three agree.
+      const rmInstallments = buildPaymentSchedule(grand);
+      const termRows = PAYMENT_TERMS.map((term, idx) => ({
+        label: `${term.label} (${term.pct}%) — ${term.dueHint}`,
+        amount: round2(rmInstallments[idx].amount),
+        dueDate: installmentDueDate(term.daysBeforeEvent, event, 15 * (idx + 1)),
+      }));
+      const balanceDueDate = termRows[termRows.length - 1].dueDate;
 
       const invoiceNumber = await nextInvoiceNumber();
       const invoiceId = await prisma.$transaction(async (tx) => {
@@ -254,8 +257,7 @@ export async function ensureProformaForShareLink(
             paidAmount: new Prisma.Decimal(0),
             balanceDue: new Prisma.Decimal(grand),
             notes: `Booking-advance proforma from quotation ${q.quoteNumber} (one-tap share link).`,
-            terms:
-              "Payment terms: 20% to block the slot, 60% fifteen days before the event, balance two hours before the event.",
+            terms: PAYMENT_TERMS_SENTENCE,
             contactId,
             bookingId: q.bookingId ?? undefined,
             createdById: actorId,
@@ -269,11 +271,12 @@ export async function ensureProformaForShareLink(
               })),
             },
             installments: {
-              create: [
-                { label: "Booking advance (20%) — blocks the slot", amount: new Prisma.Decimal(block), dueDate: new Date(), order: 0 },
-                { label: "Part payment (60%) — 15 days before event", amount: new Prisma.Decimal(mid), dueDate: midDue, order: 1 },
-                { label: "Final balance (20%) — 2 hours before event", amount: new Prisma.Decimal(balance), dueDate: balanceDueDate, order: 2 },
-              ],
+              create: termRows.map((r, order) => ({
+                label: r.label,
+                amount: new Prisma.Decimal(r.amount),
+                dueDate: r.dueDate,
+                order,
+              })),
             },
           },
           select: { id: true },
@@ -288,7 +291,7 @@ export async function ensureProformaForShareLink(
         data: { payInvoiceId: invoiceId },
       });
 
-      return { success: true, data: { invoiceId, advanceAmount: block } };
+      return { success: true, data: { invoiceId, advanceAmount: termRows[0].amount } };
     } catch (e) {
       await release();
       console.error("[ENSURE_PROFORMA_ERROR]", e);

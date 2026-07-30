@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 
 import { PageHeader } from "@/components/layout/page-header";
+import { PAYMENT_TERMS_LABEL } from "@/lib/sales/quotation-calc";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatTile } from "@/components/ui/stat-tile";
@@ -519,7 +520,7 @@ export default async function SalesReportsPage({
         </div>
 
         <div>
-          <h3 className={SUB_HEAD}>20 / 60 / 20 milestones</h3>
+          <h3 className={SUB_HEAD}>{PAYMENT_TERMS_LABEL} milestones</h3>
           <TableScroll>
             <table className="w-full border-separate border-spacing-0">
               <thead>

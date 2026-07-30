@@ -3,6 +3,8 @@ import {
   computeQuotation,
   computePackageLine,
   buildPaymentSchedule,
+  PAYMENT_TERMS,
+  PAYMENT_TERMS_LABEL,
   validateQuotationInput,
   QUOTE_CATALOG,
   type QuotationInput,
@@ -107,21 +109,38 @@ describe("computeQuotation — discount", () => {
 });
 
 describe("buildPaymentSchedule", () => {
-  it("splits 20/60/20 and always sums to the grand total", () => {
+  it("splits 30/50/20 and always sums to the grand total", () => {
     const sched = buildPaymentSchedule(130074);
-    expect(sched.map((s) => s.pct)).toEqual([20, 60, 20]);
-    expect(sched[0].amount).toBe(26015); // round(130074 × 0.20)
-    expect(sched[1].amount).toBe(78044); // round(130074 × 0.60)
-    expect(sched[2].amount).toBe(26015); // remainder
+    expect(sched.map((s) => s.pct)).toEqual([30, 50, 20]);
+    expect(sched[0].amount).toBe(39022); // round(130074 × 0.30)
+    expect(sched[1].amount).toBe(65037); // round(130074 × 0.50)
+    expect(sched[2].amount).toBe(26015); // remainder — absorbs rounding
     expect(sched.reduce((s, i) => s + i.amount, 0)).toBe(130074); // no drift
   });
 
-  it("final balance is due '1 day before the event' (SCRM part 5a)", () => {
+  it("percentages are exactly the canonical PAYMENT_TERMS (single source of truth)", () => {
+    expect(PAYMENT_TERMS.map((t) => t.pct)).toEqual([30, 50, 20]);
+    expect(PAYMENT_TERMS.reduce((s, t) => s + t.pct, 0)).toBe(100);
+    expect(PAYMENT_TERMS_LABEL).toBe("30 / 50 / 20");
+  });
+
+  it("final balance is due 48 hours before the event", () => {
     const sched = buildPaymentSchedule(100000);
     expect(sched[2].label).toBe("Final balance");
-    expect(sched[2].dueHint).toBe("1 day before the event");
-    // The old "2 hours before the event" wording must be gone.
+    expect(sched[2].dueHint).toBe("48 hours before the event");
+    // Superseded wordings must be gone.
     expect(sched.some((s) => s.dueHint.includes("2 hours"))).toBe(false);
+    expect(sched.some((s) => s.dueHint.includes("1 day"))).toBe(false);
+  });
+
+  it("part payment is 50% due 15 days before the event", () => {
+    const sched = buildPaymentSchedule(100000);
+    expect(sched[1].pct).toBe(50);
+    expect(sched[1].dueHint).toBe("15 days before the event");
+    expect(PAYMENT_TERMS[1].daysBeforeEvent).toBe(15);
+    // 48 hours must be expressed as 2 days for the invoice scheduler.
+    expect(PAYMENT_TERMS[2].daysBeforeEvent).toBe(2);
+    expect(PAYMENT_TERMS[0].daysBeforeEvent).toBeNull();
   });
 });
 

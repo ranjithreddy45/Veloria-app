@@ -150,7 +150,7 @@ export default async function PayPage({
                         </>
                       ) : (
                         /* No pinned amount — default to the due installment
-                           (20/60/20 plan), full balance one tap away. */
+                           (staged plan), full balance one tap away. */
                         <PayAmountPicker
                           invoiceId={i.id}
                           invoiceNumber={i.invoiceNumber}

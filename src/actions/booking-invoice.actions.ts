@@ -5,7 +5,15 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { hasPermission } from "@/lib/permissions";
 import { createInvoice, createInstallmentPlan } from "@/actions/invoice.actions";
-import { computeQuotation, type QuotationInput, type QuotationResult } from "@/lib/sales/quotation-calc";
+import {
+  computeQuotation,
+  buildPaymentSchedule,
+  PAYMENT_TERMS,
+  PAYMENT_TERMS_SENTENCE,
+  installmentDueDate,
+  type QuotationInput,
+  type QuotationResult,
+} from "@/lib/sales/quotation-calc";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -20,8 +28,8 @@ async function requireUser() {
  * Tax is the planner's 5% (CGST 2.5% + SGST 2.5%) so the invoice matches the
  * customer-facing quotation. Line items are broken out on a PER-PLATE basis
  * (food = rate/plate × guests); fixed services stay as single units. An
- * installment plan mirrors the 20% / 60% / 20% payment terms, with due dates
- * anchored on the event date.
+ * installment plan mirrors the canonical PAYMENT_TERMS (30 / 50 / 20), with due
+ * dates anchored on the event date.
  */
 export async function createBookingInvoiceFromQuotation(
   quotationId: string
@@ -123,7 +131,7 @@ export async function createBookingInvoiceFromQuotation(
       sgstRate: 2.5,
       igstRate: 0,
       notes: `Generated from quotation ${q.quoteNumber}. Effective per-plate: ₹${effectivePerPlate.toLocaleString("en-IN")} (grand total ÷ ${guests} guests).`,
-      terms: "Payment terms: 20% to block the slot, 60% fifteen days before the event, balance two hours before the event.",
+      terms: PAYMENT_TERMS_SENTENCE,
     });
 
     if (!inv.success || !inv.data) {
@@ -133,29 +141,28 @@ export async function createBookingInvoiceFromQuotation(
     const invData = inv.data as { id: string; totalAmount: number | string };
     const invoiceId = invData.id;
 
-    // 20 / 60 / 20 installment schedule anchored on the event date. Base the
-    // split on the INVOICE total (not the quotation's) so the three installments
-    // sum to it exactly — createInstallmentPlan rejects any drift.
+    // Installment schedule per the canonical PAYMENT_TERMS (30 / 50 / 20),
+    // anchored on the event date. Amounts come from buildPaymentSchedule so the
+    // split is identical to the quotation the customer accepted, and so the last
+    // installment absorbs rounding — createInstallmentPlan rejects any drift from
+    // the invoice total. Base it on the INVOICE total, not the quotation's.
     const grand = Number(invData.totalAmount);
-    const block = Math.round(grand * 0.2);
-    const mid = Math.round(grand * 0.6);
-    const balance = grand - block - mid;
+    const installments = buildPaymentSchedule(grand);
 
-    // Part payment falls 15 days before the event; the final balance falls
-    // 2 hours before the event start. Without an event date we fall back to
-    // relative offsets so the plan still validates.
+    // Each term states how many days before the event it falls (null = due now).
+    // Without an event date we fall back to relative offsets so the plan still
+    // validates rather than refusing to create.
     const event = q.eventDate ? new Date(q.eventDate) : null;
-    const midDue = event ? new Date(event) : new Date(Date.now() + 15 * 86400000);
-    if (event) midDue.setDate(midDue.getDate() - 15);
-    const balanceDue = event
-      ? new Date(event.getTime() - 2 * 60 * 60 * 1000)
-      : new Date(Date.now() + 30 * 86400000);
+    const planRows = PAYMENT_TERMS.map((term, idx) => ({
+      label: `${term.label} (${term.pct}%) — ${term.dueHint}`,
+      amount: installments[idx].amount,
+      // Fallback spacing keeps the dates strictly increasing when there's no event date.
+      dueDate: installmentDueDate(term.daysBeforeEvent, event, 15 * (idx + 1)),
+    }));
+    // The final installment's due date doubles as the invoice-level dueDate below.
+    const balanceDue = planRows[planRows.length - 1].dueDate;
 
-    const plan = await createInstallmentPlan(invoiceId, [
-      { label: "Booking advance (20%) — blocks the slot", amount: block, dueDate: new Date() },
-      { label: "Part payment (60%) — 15 days before event", amount: mid, dueDate: midDue },
-      { label: "Final balance (20%) — 2 hours before event", amount: balance, dueDate: balanceDue },
-    ]);
+    const plan = await createInstallmentPlan(invoiceId, planRows);
     if (!plan.success) {
       // Roll back the just-created invoice so we don't leave one without a plan.
       await prisma.invoice.delete({ where: { id: invoiceId } }).catch(() => {});
@@ -164,13 +171,13 @@ export async function createBookingInvoiceFromQuotation(
     }
 
     // Issue the invoice immediately. This booking-advance invoice exists to
-    // collect the confirming 20% advance, so it must be payable right away —
+    // collect the confirming advance, so it must be payable right away —
     // recordPayment rejects DRAFT invoices. Mark it SENT (no auto-email; the
     // slot-block / pay-link flow surfaces it to the customer separately).
     // Set the invoice-level dueDate to the FINAL installment date (not tomorrow):
-    // the 20/60/20 plan runs to the event, so a tomorrow due-date would let
-    // markOverdue flip the WHOLE invoice OVERDUE once the advance date passes,
-    // overstating overdue receivables by the not-yet-due 60%+20%. Per-installment
+    // the plan runs to the event, so a tomorrow due-date would let markOverdue
+    // flip the WHOLE invoice OVERDUE once the advance date passes, overstating
+    // overdue receivables by the not-yet-due later installments. Per-installment
     // urgency is tracked on the installments themselves.
     await prisma.invoice.update({
       where: { id: invoiceId },

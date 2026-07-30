@@ -17,6 +17,7 @@ vi.mock("next/server", async (orig) => {
 });
 
 import { prisma } from "@/lib/prisma";
+import { PAYMENT_TERMS } from "@/lib/sales/quotation-calc";
 import { createSalesQuotation, submitSalesQuotation, approveSalesQuotation } from "./sales-quotation.actions";
 import { blockSlotFromQuotation } from "./quotation-booking.actions";
 import { createBookingInvoiceFromQuotation } from "./booking-invoice.actions";
@@ -193,7 +194,7 @@ describe("Sales quotation → booking → payment → confirm → ops (E2E)", ()
     await prisma.salesQuotation.delete({ where: { id: q2.data.id } });
   });
 
-  it("generates a 5%-tax, per-plate invoice with a 20/60/20 plan", async () => {
+  it("generates a 5%-tax, per-plate invoice on the canonical payment terms", async () => {
     const res = await createBookingInvoiceFromQuotation(quotationId);
     expect(res.success).toBe(true);
     if (!res.success) return;
@@ -210,15 +211,19 @@ describe("Sales quotation → booking → payment → confirm → ops (E2E)", ()
     const food = inv!.lineItems.find((l) => l.description.startsWith("Food Plan"))!;
     expect(Number(food.quantity)).toBe(120);
     expect(Number(food.unitPrice)).toBe(699);
-    // 20 / 60 / 20 installments that sum to the total.
-    expect(inv!.installments.length).toBe(3);
+    // Installments follow the canonical PAYMENT_TERMS and sum to the total.
+    expect(inv!.installments.length).toBe(PAYMENT_TERMS.length);
     const sum = inv!.installments.reduce((s, i) => s + Number(i.amount), 0);
     expect(Math.round(sum)).toBe(140574);
-    expect(Math.round(Number(inv!.installments[0].amount))).toBe(Math.round(140574 * 0.2));
+    // Derived from the shared constant, so changing the terms updates the oracle.
+    expect(Math.round(Number(inv!.installments[0].amount))).toBe(
+      Math.round(140574 * (PAYMENT_TERMS[0].pct / 100))
+    );
   });
 
-  it("auto-confirms the slot and stamps ops tasks once the 20% advance is paid", async () => {
-    const advance = Math.round(140574 * 0.2); // 26,015
+  it("auto-confirms the slot and stamps ops tasks once the advance is paid", async () => {
+    // The advance is the FIRST canonical installment (30% → 42,172).
+    const advance = Math.round(140574 * (PAYMENT_TERMS[0].pct / 100));
     const pay = await recordPayment({ invoiceId, amount: advance, method: "UPI", notes: "Booking advance" });
     expect(pay.success).toBe(true);
 
