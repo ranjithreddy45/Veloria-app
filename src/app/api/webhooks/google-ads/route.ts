@@ -76,11 +76,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Google's "Send test data" ping — validate + acknowledge, don't create a
-    // fake lead in the CRM.
-    if (body.is_test === true) {
-      return NextResponse.json({ success: true, test: true }, { status: 200 });
-    }
+    // Google's "Send test data" ping (is_test:true). We DO create a lead so you
+    // can verify the integration end-to-end — but clearly tagged "[TEST]" and
+    // deduped on a test-scoped id, so repeated test clicks never create more
+    // than one, and it's trivial to spot and delete. Real leads carry no
+    // is_test flag and are untagged.
+    const isTest = body.is_test === true;
 
     const leadId = (body.lead_id as string) || (body.leadId as string) || "";
     const userColumnData = (body.user_column_data || body.userColumnData || []) as Array<
@@ -114,6 +115,8 @@ export async function POST(request: NextRequest) {
     if (typeof body.phone === "string" && body.phone) phone = body.phone;
 
     if (!name) name = "Google Ads Lead";
+    // Make a test lead unmistakable in the pipeline.
+    if (isTest) name = `[TEST] ${name}`;
 
     // Google sends the click id as gcl_id — feed it into attribution so the
     // lead can be matched back to the ad click (and offline-conversion import).
@@ -129,12 +132,15 @@ export async function POST(request: NextRequest) {
       email: email || undefined,
       phone: phone || undefined,
       source: "google_ads",
-      message: `Google Ads lead form${body.form_id ? ` (form ${String(body.form_id)})` : ""}${
-        leadId ? ` · lead ${leadId}` : ""
-      }`,
+      message: isTest
+        ? `Google Ads TEST lead (Send test data) — safe to delete.${body.form_id ? ` Form ${String(body.form_id)}.` : ""}`
+        : `Google Ads lead form${body.form_id ? ` (form ${String(body.form_id)})` : ""}${
+            leadId ? ` · lead ${leadId}` : ""
+          }`,
       // Idempotency: Google retries on any non-2xx, so the same lead_id must
-      // never create a second Lead row.
-      externalId: leadId ? `gads:${leadId}` : undefined,
+      // never create a second Lead row. Test pings share a fixed id, so
+      // repeated "Send test data" clicks all collapse onto ONE test lead.
+      externalId: leadId ? `${isTest ? "gads:test:" : "gads:"}${leadId}` : undefined,
       attribution: {
         ...attribution,
         source: attribution.source || "google_ads",
