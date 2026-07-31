@@ -124,7 +124,7 @@ export default async function EventPlanPage({
 
       {/* ---- Confirmed menu ---- */}
       {e.menu.items.length > 0 && (
-        <section className="bg-card shadow-card rounded-2xl border p-6">
+        <section className="bg-card shadow-card rounded-2xl border p-5 sm:p-6">
           <h2 className="font-editorial text-foreground flex items-center gap-2.5 text-[20px] font-semibold">
             <UtensilsCrossed className="text-muted-foreground/60 size-4" />
             Your menu
@@ -149,7 +149,7 @@ export default async function EventPlanPage({
 
       {/* ---- Run of show (time + activity only — no internal owners) ---- */}
       {e.timeline.length > 0 && (
-        <section className="bg-card shadow-card rounded-2xl border p-6">
+        <section className="bg-card shadow-card rounded-2xl border p-5 sm:p-6">
           <h2 className="font-editorial text-foreground flex items-center gap-2.5 text-[20px] font-semibold">
             <Clock className="text-muted-foreground/60 size-4" />
             How the day flows
@@ -178,7 +178,7 @@ export default async function EventPlanPage({
       )}
 
       {/* ---- What to expect ---- */}
-      <section className="border-primary/25 bg-primary/[0.06] rounded-2xl border p-6">
+      <section className="border-primary/25 bg-primary/[0.06] rounded-2xl border p-5 sm:p-6">
         <h2 className="font-editorial text-foreground flex items-center gap-2.5 text-[20px] font-semibold">
           <Heart className="size-4 text-destructive" />
           What to expect next
@@ -193,7 +193,7 @@ export default async function EventPlanPage({
 
       {/* ---- Point of contact ---- */}
       {(e.pointOfContact.name || e.pointOfContact.phone) && (
-        <section className="bg-card shadow-card rounded-2xl border p-6">
+        <section className="bg-card shadow-card rounded-2xl border p-5 sm:p-6">
           <p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.16em]">
             Your event coordinator
           </p>

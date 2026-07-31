@@ -252,7 +252,14 @@ export function LeadInbox({
     <div className="flex flex-col gap-4 text-[13px]">
       {/* Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-1.5">
+        {/* Six status chips, each 44px tall on touch, would wrap into three
+          * stacked rows on a 375px screen and push the lead table below the
+          * fold. On a phone the chips become a single snapping horizontal
+          * scroller instead; from sm: up they wrap exactly as before.
+          * No negative margin here on purpose — bleeding the scroller past the
+          * parent is exactly the kind of thing that ends up scrolling the page
+          * sideways, which is the failure this whole pass exists to remove. */}
+        <div className="flex snap-x items-center gap-1.5 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-x-visible sm:pb-0">
           {STATUS_TABS.map((tab) => {
             const active = activeTab === tab;
             const label = tab === "ALL" ? "All" : STATUS_LABEL[tab];
@@ -262,7 +269,7 @@ export function LeadInbox({
                 type="button"
                 onClick={() => setActiveTab(tab)}
                 className={cn(
-                  "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 font-medium transition-colors",
+                  "inline-flex shrink-0 snap-start items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-1 font-medium transition-colors",
                   active
                     ? "border-foreground/15 bg-muted text-foreground"
                     : "border-border bg-background text-muted-foreground hover:bg-muted/50"

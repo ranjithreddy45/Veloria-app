@@ -149,11 +149,21 @@ export function AppHeader() {
   React.useEffect(() => setMounted(true), []);
 
   return (
-    <header className="topbar-glass sticky top-0 z-30 flex min-h-14 shrink-0 items-center gap-3 border-b border-border/70 px-4 pt-[env(safe-area-inset-top)]">
-      {/* Mobile sidebar trigger */}
-      <SidebarTrigger className="-ml-1 size-8 rounded-full text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-foreground active:scale-[0.94]" />
+    // At 375px the eleven controls that live here used to add up to ~500px and
+    // pushed the whole page into a sideways scroll. `min-w-0` + tighter mobile
+    // gutters keep the bar inside the viewport; the cluster below decides what
+    // actually survives at phone width.
+    <header className="topbar-glass sticky top-0 z-30 flex min-h-14 w-full min-w-0 shrink-0 items-center gap-2 border-b border-border/70 px-2 pt-[env(safe-area-inset-top)] sm:gap-3 sm:px-4">
+      {/* Mobile sidebar trigger — the only way into the ~80-item nav on a
+          phone, so it stays first at every width.
+          min-w-11: the coarse-pointer rule in globals.css guarantees a 44px
+          HEIGHT here but not the width (the icon isn't the button's only child,
+          so that rule's min-width branch doesn't match), which would otherwise
+          leave a 36px-wide sliver to hit. */}
+      <SidebarTrigger className="size-9 min-w-11 shrink-0 rounded-full text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-foreground active:scale-[0.94] sm:-ml-1 sm:size-8 sm:min-w-0" />
 
-      <Separator orientation="vertical" className="mr-1 h-4 bg-border/60" />
+      {/* Decorative only — drop it on phones to buy back horizontal room. */}
+      <Separator orientation="vertical" className="mr-1 hidden h-4 bg-border/60 md:block" />
 
       {/* Breadcrumbs */}
       <Breadcrumb className="hidden md:flex">
@@ -176,14 +186,14 @@ export function AppHeader() {
       </Breadcrumb>
 
       {/* Spacer */}
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex min-w-0 items-center gap-1 sm:gap-2">
         {/* Quick create — visible shortcut to the most common "new X" forms,
             so staff (esp. on mobile) don't need to hunt for create buttons. */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               size="sm"
-              className="h-9 gap-1.5 rounded-full px-3 shadow-sm"
+              className="h-9 shrink-0 gap-1.5 rounded-full px-3 shadow-sm"
               title="Create new"
             >
               <Plus className="size-4" />
@@ -226,11 +236,12 @@ export function AppHeader() {
           </kbd>
         </Button>
 
-        {/* Search icon for mobile */}
+        {/* Search icon for mobile — search is the fastest route to any of the
+            ~80 modules on a phone, so it survives at every width. */}
         <Button
           variant="ghost"
           size="icon"
-          className="size-9 rounded-full text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-foreground active:scale-[0.94] lg:hidden"
+          className="size-9 shrink-0 rounded-full text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-foreground active:scale-[0.94] lg:hidden"
           onClick={() => setCommandOpen(true)}
         >
           <Search className="size-4" />
@@ -239,88 +250,99 @@ export function AppHeader() {
         {/* Command palette */}
         <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
 
-        {/* Self-serve availability toggle — flips the user's own rep availability
-            and keeps lastSeenAt fresh via heartbeat (smart-routing). */}
-        <AvailabilityToggle />
-
         {/* Pending approvals — items awaiting THIS user's action (self-scoped,
-            permission-aware). Renders only when there is something to approve. */}
+            permission-aware). Renders only when there is something to approve,
+            and it is an action queue, so it earns a slot even at 375px. */}
         <PendingApprovalsChip />
 
-        {/* Velos engagement chip — live points + rank, celebrates on earn */}
-        <VelosChip />
+        {/* ------------------------------------------------------------------
+            Secondary controls — hidden below `sm`.
+            At 375px there is room for roughly five 44px targets. These four
+            (availability, Velos, theme, help, what's-new) are ambient rather
+            than task-driven, so on a phone they collapse: theme and the
+            playbook reappear inside the avatar menu below, availability and
+            Velos have their own full pages one tap away in the nav.
+            ------------------------------------------------------------------ */}
+        <div className="hidden items-center gap-2 sm:flex">
+          {/* Self-serve availability toggle — flips the user's own rep availability
+              and keeps lastSeenAt fresh via heartbeat (smart-routing). */}
+          <AvailabilityToggle />
 
-        {/* Theme toggle */}
-        {mounted && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-9 rounded-full text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-foreground active:scale-[0.94]"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-          >
-            {theme === "dark" ? (
-              <Sun className="size-4" />
-            ) : (
-              <Moon className="size-4" />
-            )}
-          </Button>
-        )}
+          {/* Velos engagement chip — live points + rank, celebrates on earn */}
+          <VelosChip />
 
-        {/* Help & Guidance launcher — always available to every user, ungated */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+          {/* Theme toggle */}
+          {mounted && (
             <Button
               variant="ghost"
               size="icon"
               className="size-9 rounded-full text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-foreground active:scale-[0.94]"
-              title="Help & guidance"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
             >
-              <CircleHelp className="size-4" />
-              <span className="sr-only">Help & guidance</span>
+              {theme === "dark" ? (
+                <Sun className="size-4" />
+              ) : (
+                <Moon className="size-4" />
+              )}
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-60" align="end" sideOffset={8}>
-            <DropdownMenuLabel>Help & guidance</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem asChild>
-                <Link href="/playbook" className="cursor-pointer">
-                  <BookOpen className="mr-2 size-4" />
-                  Guided Playbook
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/dashboard" className="cursor-pointer">
-                  <Sparkles className="mr-2 size-4" />
-                  Getting started
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="cursor-pointer"
-                onSelect={() => setCommandOpen(true)}
-              >
-                <Search className="mr-2 size-4" />
-                Search & shortcuts
-                <kbd className="pointer-events-none ml-auto flex h-5 select-none items-center gap-0.5 rounded-md border border-border bg-background/60 px-1.5 font-sans text-[10px] font-medium text-muted-foreground">
-                  <span>⌘</span>K
-                </kbd>
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <div className="px-2 py-1.5 text-xs text-muted-foreground">
-              Need help? Ask your admin.
-            </div>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          )}
 
-        {/* What's new — recent releases; unread dot until first opened */}
-        <WhatsNew />
+          {/* Help & Guidance launcher — always available to every user, ungated */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-9 rounded-full text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-foreground active:scale-[0.94]"
+                title="Help & guidance"
+              >
+                <CircleHelp className="size-4" />
+                <span className="sr-only">Help & guidance</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-60" align="end" sideOffset={8}>
+              <DropdownMenuLabel>Help & guidance</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuItem asChild>
+                  <Link href="/playbook" className="cursor-pointer">
+                    <BookOpen className="mr-2 size-4" />
+                    Guided Playbook
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard" className="cursor-pointer">
+                    <Sparkles className="mr-2 size-4" />
+                    Getting started
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onSelect={() => setCommandOpen(true)}
+                >
+                  <Search className="mr-2 size-4" />
+                  Search & shortcuts
+                  <kbd className="pointer-events-none ml-auto flex h-5 select-none items-center gap-0.5 rounded-md border border-border bg-background/60 px-1.5 font-sans text-[10px] font-medium text-muted-foreground">
+                    <span>⌘</span>K
+                  </kbd>
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                Need help? Ask your admin.
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* What's new — recent releases; unread dot until first opened */}
+          <WhatsNew />
+        </div>
 
         {/* Notifications */}
         <NotificationPopover />
 
-        <Separator orientation="vertical" className="mx-1 h-6 bg-border/60" />
+        <Separator orientation="vertical" className="mx-1 hidden h-6 bg-border/60 sm:block" />
 
         {/* User dropdown */}
         <DropdownMenu>
@@ -328,7 +350,7 @@ export function AppHeader() {
             <Button
               variant="ghost"
               className={cn(
-                "relative h-9 gap-2 rounded-full px-1.5 pr-3 transition-all duration-200 active:scale-[0.97]",
+                "relative h-9 shrink-0 gap-2 rounded-full px-1.5 pr-1.5 transition-all duration-200 active:scale-[0.97] sm:pr-3",
                 "hover:bg-accent hover:shadow-[0_0_0_3px_oklch(0.45_0.11_162/0.08)]"
               )}
             >
@@ -377,6 +399,39 @@ export function AppHeader() {
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
+
+            {/* Phone-only rescue of the two header controls that get hidden
+                below `sm`. This menu is already the one thing every user can
+                reach on mobile, so it is the natural overflow home — and
+                nesting them here avoids a second "..." button competing for
+                the same 375px. */}
+            <DropdownMenuSeparator className="sm:hidden" />
+            <DropdownMenuGroup className="sm:hidden">
+              {mounted && (
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onSelect={(e) => {
+                    // Keep the menu open so the theme flip is visible in place.
+                    e.preventDefault();
+                    setTheme(theme === "dark" ? "light" : "dark");
+                  }}
+                >
+                  {theme === "dark" ? (
+                    <Sun className="mr-2 size-4" />
+                  ) : (
+                    <Moon className="mr-2 size-4" />
+                  )}
+                  {theme === "dark" ? "Light mode" : "Dark mode"}
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem asChild>
+                <Link href="/playbook" className="cursor-pointer">
+                  <BookOpen className="mr-2 size-4" />
+                  Guided Playbook
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="cursor-pointer text-destructive focus:text-destructive"

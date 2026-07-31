@@ -26,8 +26,10 @@ export default async function PortalLayout({
   return (
     <div className="bg-background min-h-screen">
       {/* Portal Header */}
-      <header className="bg-background/85 supports-[backdrop-filter]:bg-background/70 sticky top-0 z-30 border-b backdrop-blur-xl">
-        <div className="relative mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
+      {/* pad-safe-top: installed as a PWA there is no browser chrome, so a
+          sticky top-0 header would sit under the iOS status bar / notch. */}
+      <header className="bg-background/85 supports-[backdrop-filter]:bg-background/70 pad-safe-top sticky top-0 z-30 border-b backdrop-blur-xl">
+        <div className="relative mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-8">
           {/* Logo */}
           <Link
             href="/portal"
@@ -57,11 +59,15 @@ export default async function PortalLayout({
       </header>
 
       {/* Content */}
-      <main className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-12">
+      {/* px-4 on phones (was px-5): 8px more content width at 375px, which is
+          the difference between a truncated invoice number and a readable one. */}
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-8 sm:py-12">
         {children}
       </main>
 
-      <footer className="mx-auto mt-8 max-w-6xl px-5 pb-10 sm:px-8">
+      {/* Bottom inset added to the padding rather than via pad-safe-bottom so
+          the 2.5rem breathing room survives on devices with no home indicator. */}
+      <footer className="mx-auto mt-8 max-w-6xl px-4 pb-[calc(2.5rem+var(--sab))] sm:px-8">
         <div className="text-muted-foreground/70 border-t pt-6 text-center text-xs">
           <span className="font-editorial text-[13px]">Veloria Grand</span>
           <span className="mx-2">&middot;</span>

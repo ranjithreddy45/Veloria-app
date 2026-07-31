@@ -313,8 +313,9 @@ export function PaymentLinkDialog({
               </span>
             </div>
 
-            {/* Share buttons */}
-            <div className="grid grid-cols-3 gap-2">
+            {/* Share buttons — three across gives each ~96px inside the dialog
+                at 375px, which clips the "WhatsApp" label. Stack on a phone. */}
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               <Button
                 variant="outline"
                 size="sm"

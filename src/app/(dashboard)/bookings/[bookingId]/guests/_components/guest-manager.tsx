@@ -480,8 +480,11 @@ export function GuestManager({ bookingId, guestList }: GuestManagerProps) {
 
       {/* Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-1 items-center gap-2">
-          <div className="relative flex-1 sm:max-w-sm">
+        {/* Search + two 140px selects need ~300px of fixed width, leaving the
+            search box ~45px at 375px. Wrap: search takes its own row on a
+            phone and the two selects split the next one. */}
+        <div className="flex flex-1 flex-wrap items-center gap-2">
+          <div className="relative w-full sm:max-w-sm sm:flex-1">
             <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search guests..."
@@ -491,7 +494,7 @@ export function GuestManager({ bookingId, guestList }: GuestManagerProps) {
             />
           </div>
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-full flex-1 sm:w-[140px] sm:flex-none">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
@@ -504,7 +507,7 @@ export function GuestManager({ bookingId, guestList }: GuestManagerProps) {
             </SelectContent>
           </Select>
           <Select value={rsvpFilter} onValueChange={setRsvpFilter}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-full flex-1 sm:w-[140px] sm:flex-none">
               <SelectValue placeholder="RSVP" />
             </SelectTrigger>
             <SelectContent>

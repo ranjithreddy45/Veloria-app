@@ -56,8 +56,16 @@ export default async function MyAttendancePage() {
           />
         </div>
       ) : (
-        <>
-          {/* Additive month calendar — sits above the punch-in/out list. */}
+        // Order flips on a phone: punching in is the only reason most staff open
+        // this page, and with the month calendar first the Check in button sits
+        // a full screen below the fold. Flexbox `order` reverses the pair below
+        // md: and leaves the desktop layout exactly as it was. Only the two
+        // top-level blocks are reordered — focus still lands on the calendar
+        // first when tabbing on a phone, which is an acceptable trade for the
+        // primary action being immediately visible and thumb-reachable.
+        <div className="flex flex-col gap-6">
+          {/* Additive month calendar — sits above the punch-in/out list on desktop. */}
+          <div className="order-2 md:order-1">
           <MyMonthCalendar
             initialYear={data.year}
             initialMonth={data.month}
@@ -77,8 +85,10 @@ export default async function MyAttendancePage() {
               }),
             )}
           />
+          </div>
 
           {/* Self-service only: never expose the HR manual-mark override here. */}
+          <div className="order-1 md:order-2">
           <AttendanceHome
             today={data.today as never}
             records={data.records as never}
@@ -86,7 +96,8 @@ export default async function MyAttendancePage() {
             canMarkManually={false}
             employees={[]}
           />
-        </>
+          </div>
+        </div>
       )}
     </div>
   );

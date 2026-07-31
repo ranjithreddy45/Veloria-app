@@ -27,7 +27,7 @@ export default async function VenuesPage() {
             <Link
               key={v.id}
               href={`/app/venues/${v.id}`}
-              className="sheen-sweep hover-lift block overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-zinc-100 transition active:scale-[0.99]"
+              className="sheen-sweep hover-lift block w-full overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-zinc-100 transition active:scale-[0.99]"
             >
               <div className="relative">
                 <VenueImage

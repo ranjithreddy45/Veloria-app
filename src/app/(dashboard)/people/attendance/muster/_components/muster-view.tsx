@@ -240,11 +240,13 @@ function DayView({ initialDate, initial, canAdmin }: { initialDate: string; init
 
       {/* Controls */}
       <div className="flex flex-wrap items-end gap-3">
-        <div className="w-48">
+        {/* w-48 + a 12rem-min search is 384px — wider than a 375px viewport — so
+         * the date picker goes full-width on a phone and the search sits below. */}
+        <div className="w-full sm:w-48">
           <label className="mb-1 block text-[12px] font-medium text-muted-foreground">Day</label>
           <Input type="date" value={date} onChange={(e) => onDate(e.target.value)} className="h-9" />
         </div>
-        <div className="min-w-[12rem] flex-1">
+        <div className="w-full flex-1 sm:min-w-[12rem]">
           <label className="mb-1 block text-[12px] font-medium text-muted-foreground">Search</label>
           <div className="relative">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -495,6 +497,14 @@ function MonthView({ initialFy, initialMonth, canEdit, canAdmin }: { initialFy: 
       ) : reg.rows.length === 0 ? (
         <div className="rounded-xl border border-dashed p-12 text-center text-sm text-muted-foreground">No active employees on the roster.</div>
       ) : (
+        <>
+        {/* Up to 31 day columns can never fit 375px. The Employee column is
+          * already frozen with sticky left-0 so the reader keeps their place;
+          * this line makes the sideways scroll deliberate rather than a page
+          * that merely feels broken. */}
+        <p className="text-[12px] text-muted-foreground sm:hidden">
+          Swipe the register sideways to move through the month — the employee column stays put.
+        </p>
         <div className="overflow-x-auto rounded-xl border bg-card">
           <Table>
             <TableHeader>
@@ -538,6 +548,7 @@ function MonthView({ initialFy, initialMonth, canEdit, canAdmin }: { initialFy: 
             </TableBody>
           </Table>
         </div>
+        </>
       )}
 
       {/* Admin click-to-edit dialog */}

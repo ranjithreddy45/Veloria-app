@@ -68,13 +68,16 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        "relative flex flex-col gap-4 pb-2 sm:flex-row sm:items-end sm:justify-between",
+        // min-w-0 on the wrapper AND the text column: without it a long
+        // unbroken title (or a wide action button) sets the flex basis and
+        // pushes the whole page into a horizontal scroll on a 375px screen.
+        "relative flex min-w-0 flex-col gap-4 pb-2 sm:flex-row sm:items-end sm:justify-between",
         aura &&
           "bg-aura bg-grid-faint -mx-4 -mt-4 rounded-3xl px-4 pb-5 pt-5 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8",
         className
       )}
     >
-      <div className="flex items-start gap-3.5">
+      <div className="flex min-w-0 items-start gap-3.5">
         {Icon && (
           <span
             className={cn(
@@ -86,26 +89,30 @@ export function PageHeader({
             <Icon className="size-[22px]" strokeWidth={2} />
           </span>
         )}
-        <div className="space-y-2">
+        <div className="min-w-0 space-y-2">
           {eyebrow && (
             <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em]">
               <span aria-hidden className="from-gold-bright to-gold h-3 w-[3px] rounded-full bg-gradient-to-b" />
               <span className="text-brand-gradient">{eyebrow}</span>
             </div>
           )}
-          <div className="flex items-center gap-2.5">
-            <h1 className="large-title text-[28px] leading-tight text-foreground sm:text-[32px]">
+          {/* The help "?" must not be pushed off-screen by a long title, so the
+              title takes the min-w-0/wrap and the hint stays shrink-0. */}
+          <div className="flex min-w-0 items-center gap-2.5">
+            <h1 className="large-title min-w-0 break-words text-[24px] leading-tight text-foreground sm:text-[32px]">
               {title}
             </h1>
-            {help}
+            {help && <span className="shrink-0">{help}</span>}
           </div>
           {description && (
-            <p className="max-w-2xl text-[15px] leading-relaxed text-muted-foreground">{description}</p>
+            <p className="max-w-2xl text-[13.5px] leading-relaxed text-muted-foreground sm:text-[15px]">{description}</p>
           )}
         </div>
       </div>
       {children && (
-        <div className="relative flex flex-wrap items-center gap-2">{children}</div>
+        // Actions wrap AND each child may shrink, so a header with three
+        // buttons stacks into rows instead of running off a 375px screen.
+        <div className="relative flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto">{children}</div>
       )}
     </div>
   );

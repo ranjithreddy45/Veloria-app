@@ -349,7 +349,11 @@ export default async function BdReportsPage({
 
       {/* 2. Active Pipeline (Deal Tracker) */}
       <ReportSection title="Active Pipeline · Deal Tracker" description="Open deals weighted by close probability.">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {/* Single column on a phone. StatTile renders its value at 28px inside
+          * an overflow-hidden card; a half-width tile at 375px is ~125px of
+          * usable space, which silently CLIPS a figure like ₹1,25,00,000.
+          * Money must never be cut off, so money rows stack instead. */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <StatTile
             label="Open deals"
             value={pipeline.count}
@@ -508,7 +512,9 @@ export default async function BdReportsPage({
 
       {/* 5. Lost Deal Analysis */}
       <ReportSection title="Lost Deal Analysis" description={`Losses and win-rate trend for ${lost.range.label || a.range.label}.`}>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
+        {/* Stacks on a phone — "Lost value" is a rupee figure that a half-width
+          * StatTile clips (see Active Pipeline above). */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <StatTile
             label="Deals lost"
             value={lost.totalCount}

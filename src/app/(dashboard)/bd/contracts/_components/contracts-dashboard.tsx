@@ -150,8 +150,11 @@ export function ContractsDashboard({
 
   return (
     <div className="flex flex-col gap-5">
-      {/* KPI tiles */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {/* KPI tiles. Three of the four are rupee figures and StatTile renders its
+        * value at 28px inside an overflow-hidden card — a half-width tile at
+        * 375px has ~125px of usable width, which silently clips
+        * "₹1,25,00,000". Money rows stack on a phone, 2-up from sm: onward. */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile label="Active contract value" value={inr(stats?.activeValue ?? 0)} accent="emerald" icon={<IndianRupee className="size-4" />} />
         <StatTile label="Upcoming value" value={inr(stats?.upcomingValue ?? 0)} accent="indigo" icon={<FileText className="size-4" />} />
         <StatTile

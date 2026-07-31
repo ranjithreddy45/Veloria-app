@@ -51,7 +51,10 @@ export function AttendanceHome({
     <div className="space-y-5">
       <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
         <CheckInCard today={today} />
-        <div className="grid grid-cols-3 gap-3">
+        {/* Three stat tiles stay side-by-side even at 375px — they are short
+         * numbers, and stacking them would push the month table below the fold
+         * on the screen staff open most. The tiles shrink their padding instead. */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
           <Stat label="Present (mo.)" value={stats.presentDays} />
           <Stat label="Half days" value={stats.halfDays} />
           <Stat label="Hours logged" value={`${stats.totalHours}h`} />
@@ -59,7 +62,9 @@ export function AttendanceHome({
       </div>
 
       <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
-        <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
+        {/* "Mark manually" + "Regularize" together are wider than 375px minus the
+         * title, so the action pair drops to its own line on a phone. */}
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b px-4 py-3">
           <span className="text-[13px] font-semibold">This month</span>
           <div className="flex items-center gap-2">
             {canMarkManually && <MarkManuallyDialog employees={employees} />}
@@ -73,7 +78,10 @@ export function AttendanceHome({
             description="Your check-ins and check-outs will appear here as soon as you punch in."
           />
         ) : (
-          <Table>
+          /* Five columns will not fit 375px. Cells tighten to px-2.5 on a phone
+           * so the whole row fits without the container's scroll kicking in for
+           * a typical record; desktop keeps the roomier px-4. */
+          <Table className="[&_td]:px-2.5 [&_th]:px-2.5 sm:[&_td]:px-4 sm:[&_th]:px-4">
             <TableHeader>
               <TableRow>
                 <TableHead>Date</TableHead>
@@ -108,9 +116,9 @@ export function AttendanceHome({
 
 function Stat({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="rounded-2xl border bg-card p-5 shadow-card">
-      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className="numeric mt-2.5 text-[26px] font-semibold leading-none">{value}</div>
+    <div className="rounded-2xl border bg-card p-3 shadow-card sm:p-5">
+      <div className="text-[10.5px] uppercase leading-tight tracking-wide text-muted-foreground sm:text-[11px]">{label}</div>
+      <div className="numeric mt-2 text-[20px] font-semibold leading-none sm:mt-2.5 sm:text-[26px]">{value}</div>
     </div>
   );
 }
@@ -208,11 +216,13 @@ function CheckInCard({ today }: { today: Rec | null }) {
   }
 
   return (
-    <div className="rounded-2xl border bg-gradient-to-br from-card to-muted/30 p-5 shadow-card">
+    <div className="rounded-2xl border bg-gradient-to-br from-card to-muted/30 p-4 shadow-card sm:p-5">
       <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
         <Clock className="size-3.5" /> Today
       </div>
-      <div className="mt-3 flex items-baseline gap-5">
+      {/* Wraps at 375px: in-time + out-time + the status pill overflow a phone
+       * row, and an un-wrapped flex would push the pill off the card edge. */}
+      <div className="mt-3 flex flex-wrap items-baseline gap-x-5 gap-y-3">
         <div>
           <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Check-in</div>
           <div className="numeric mt-1 text-[19px] font-semibold leading-none">{fmtTime(today?.checkInAt ?? null)}</div>
@@ -252,12 +262,15 @@ function CheckInCard({ today }: { today: Rec | null }) {
         </div>
       )}
       <div className="mt-4">
+        {/* The punch button is the single reason most staff open this app on a
+         * phone, so it gets more than the 44px tap floor: a 52px hero target at
+         * phone width, reverting to normal button density from sm: up. */}
         {!checkedIn ? (
-          <Button onClick={doCheckIn} disabled={busy} className="w-full gap-1.5">
+          <Button onClick={doCheckIn} disabled={busy} className="h-13 w-full gap-1.5 text-[15px] sm:h-9 sm:text-[13px]">
             {busy ? <Loader2 className="size-4 animate-spin" /> : <LogIn className="size-4" />} Check in
           </Button>
         ) : !checkedOut ? (
-          <Button onClick={doCheckOut} disabled={busy} variant="outline" className="w-full gap-1.5">
+          <Button onClick={doCheckOut} disabled={busy} variant="outline" className="h-13 w-full gap-1.5 text-[15px] sm:h-9 sm:text-[13px]">
             {busy ? <Loader2 className="size-4 animate-spin" /> : <LogOut className="size-4" />} Check out
           </Button>
         ) : (

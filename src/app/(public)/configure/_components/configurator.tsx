@@ -46,8 +46,12 @@ interface Props {
   resume?: PublicQuoteDraftView | null;
 }
 
+// text-base below sm: iOS Safari force-zooms the whole page when a focused
+// <select> or <input> has a font-size under 16px, which yanks the layout
+// sideways mid-form. The coarse-pointer rule in globals.css covers <input> but
+// not the font-size of a plain <select>.
 const selectClass =
-  "h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
+  "h-10 w-full rounded-md border border-input bg-background px-3 text-base focus:outline-none focus:ring-2 focus:ring-ring sm:text-sm";
 
 export function Configurator({ catalog, venues, initialVenueId, resume }: Props) {
   const r = resume?.inputs;
@@ -239,12 +243,30 @@ export function Configurator({ catalog, venues, initialVenueId, resume }: Props)
     }
   }, [token, input, meta, name, phone, email, validationErrors]);
 
+  const inr = (n: number) =>
+    new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }).format(n);
+  const advance = result.paymentSchedule[0];
+  // The mobile price bar only earns its space once there is a price to show.
+  const showMobilePriceBar = result.grandTotal > 0;
+
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+    <div
+      className={`grid gap-6 lg:grid-cols-[1fr_360px] ${
+        // Room for the fixed mobile price bar so it never covers the Next /
+        // Proceed buttons at the bottom of a step card.
+        showMobilePriceBar ? "pb-24 lg:pb-0" : ""
+      }`}
+    >
       {/* Left: steps */}
       <div className="space-y-6">
-        {/* Stepper */}
-        <div className="flex items-center gap-2 text-xs font-medium">
+        {/* Stepper — wraps rather than overflowing: three labels plus their
+            connectors measure ~316px, which clears 375px but not a 320px
+            iPhone SE, and an overflowing stepper scrolls the whole page. */}
+        <div className="flex flex-wrap items-center gap-y-2 gap-x-2 text-xs font-medium">
           {["Event", "Package", "Details"].map((label, i) => {
             const n = i + 1;
             return (
@@ -557,11 +579,39 @@ export function Configurator({ catalog, venues, initialVenueId, resume }: Props)
         )}
       </div>
 
-      {/* Right: live price */}
+      {/* Right: live price. On desktop it sits alongside and sticks; on a phone
+          it stacks BELOW the step card, so the live price — the whole point of
+          the configurator — is off-screen while the customer is choosing.
+          The fixed bar below keeps it visible on mobile. */}
       <div className="lg:sticky lg:top-6 lg:self-start space-y-4">
         <PriceSummary result={result} />
         <SocialProofAside occasion={occasion} venueId={venueId} />
       </div>
+
+      {showMobilePriceBar && (
+        <div className="bg-background/95 supports-[backdrop-filter]:bg-background/85 fixed inset-x-0 bottom-0 z-40 border-t px-4 pb-[calc(0.75rem+var(--sab))] pt-3 backdrop-blur-xl lg:hidden">
+          <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-muted-foreground text-[10.5px] font-semibold uppercase tracking-[0.14em]">
+                Your estimate
+              </p>
+              <p className="tabular-nums text-foreground text-[19px] font-semibold leading-tight">
+                {inr(result.grandTotal)}
+              </p>
+            </div>
+            {advance && advance.amount > 0 && (
+              <div className="shrink-0 text-right">
+                <p className="text-muted-foreground text-[10.5px] font-semibold uppercase tracking-[0.14em]">
+                  Pay now
+                </p>
+                <p className="tabular-nums text-primary text-[19px] font-semibold leading-tight">
+                  {inr(advance.amount)}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

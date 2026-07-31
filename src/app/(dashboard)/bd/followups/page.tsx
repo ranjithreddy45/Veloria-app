@@ -87,8 +87,10 @@ export default async function FollowupsPage() {
         description="Your active leads by next follow-up date. Overdue first — clear them, log the contact, and the SLA stays green."
       />
 
-      {/* Queue counts */}
-      <div className="grid grid-cols-3 gap-3">
+      {/* Queue counts. Three StatTiles across a 375px screen leaves ~66px of
+        * usable width inside each (p-5 plus a 32px icon chip), so the labels
+        * shred into single-word lines. Two-up on a phone reads cleanly. */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatTile label="Overdue" value={overdue.length} accent="rose" icon={<AlertTriangle className="size-4" />} />
         <StatTile label="Today" value={today.length} accent="amber" icon={<CalendarClock className="size-4" />} />
         <StatTile label="Upcoming" value={upcoming.length} accent="indigo" icon={<CalendarDays className="size-4" />} />

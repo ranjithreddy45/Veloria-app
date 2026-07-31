@@ -11,6 +11,13 @@
 import * as React from "react";
 import { ChevronDown, SlidersHorizontal, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 
 export interface FacetDef<T> {
@@ -104,6 +111,7 @@ export function FacetFilterRail<T>({
   className?: string;
 }) {
   const [selected, setSelected] = React.useState<Record<string, Set<string>>>({});
+  const [sheetOpen, setSheetOpen] = React.useState(false);
 
   const activeCount = React.useMemo(
     () => Object.values(selected).reduce((s, set) => s + set.size, 0),
@@ -136,23 +144,90 @@ export function FacetFilterRail<T>({
     });
   }
 
+  // The facet list, declared ONCE and rendered into either the desktop aside or
+  // the mobile sheet. Both containers belong to this single component instance,
+  // so they share `selected` — mounting the rail twice (once per breakpoint) at
+  // the call sites would give each copy its own state and both would fire
+  // onChange, fighting over the filtered result.
+  const body = (
+    <div className="-mt-1">
+      {facets.map((f) => (
+        <FacetSection key={f.key} facet={f} items={items} selected={selected[f.key] ?? new Set()} onToggle={(v) => toggle(f.key, v)} />
+      ))}
+    </div>
+  );
+
+  const clearButton =
+    activeCount > 0 ? (
+      <Button variant="ghost" size="sm" className="h-6 px-1.5 text-[11px]" onClick={() => setSelected({})}>
+        <X className="size-3" /> Clear ({activeCount})
+      </Button>
+    ) : null;
+
   return (
-    <aside className={cn("w-56 shrink-0 rounded-xl border border-border/70 bg-card p-3 shadow-card", className)}>
-      <div className="flex items-center justify-between pb-1">
-        <span className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold">
-          <SlidersHorizontal className="size-3.5 text-muted-foreground" /> Filter by
-        </span>
-        {activeCount > 0 && (
-          <Button variant="ghost" size="sm" className="h-6 px-1.5 text-[11px]" onClick={() => setSelected({})}>
-            <X className="size-3" /> Clear ({activeCount})
-          </Button>
+    <>
+      {/* Desktop rail — unchanged. `hidden lg:block` lives HERE now rather than
+          being passed in by every call site, so the mobile affordance below can
+          never be forgotten by a new caller. */}
+      <aside
+        className={cn(
+          "hidden w-56 shrink-0 rounded-xl border border-border/70 bg-card p-3 shadow-card lg:block",
+          className
         )}
+      >
+        <div className="flex items-center justify-between pb-1">
+          <span className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold">
+            <SlidersHorizontal className="size-3.5 text-muted-foreground" /> Filter by
+          </span>
+          {clearButton}
+        </div>
+        {body}
+      </aside>
+
+      {/* Below lg the rail was simply `hidden`, so these lists had NO faceted
+          filtering on a phone or tablet at all. Same state, shown in a sheet. */}
+      <div className="w-full lg:hidden">
+        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+          <div className="flex items-center gap-2">
+            <SheetTrigger asChild>
+              <Button variant="outline" size="sm" className="flex-1 justify-center gap-1.5">
+                <SlidersHorizontal className="size-3.5" />
+                Filter by
+                {activeCount > 0 && (
+                  <span className="bg-primary text-primary-foreground numeric ml-0.5 inline-flex min-w-4 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none">
+                    {activeCount}
+                  </span>
+                )}
+              </Button>
+            </SheetTrigger>
+            {/* One-tap clear without opening the sheet. */}
+            {activeCount > 0 && (
+              <Button variant="ghost" size="sm" onClick={() => setSelected({})} aria-label="Clear filters">
+                <X className="size-4" />
+              </Button>
+            )}
+          </div>
+          <SheetContent
+            side="bottom"
+            className="max-h-[85dvh] overflow-y-auto pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+          >
+            <SheetHeader>
+              <SheetTitle className="flex items-center gap-2 text-[15px]">
+                <SlidersHorizontal className="size-4" /> Filter by
+              </SheetTitle>
+            </SheetHeader>
+            {body}
+            <div className="mt-3 flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setSelected({})} disabled={activeCount === 0}>
+                Clear all
+              </Button>
+              <Button className="flex-1" onClick={() => setSheetOpen(false)}>
+                Show results
+              </Button>
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
-      <div className="-mt-1">
-        {facets.map((f) => (
-          <FacetSection key={f.key} facet={f} items={items} selected={selected[f.key] ?? new Set()} onToggle={(v) => toggle(f.key, v)} />
-        ))}
-      </div>
-    </aside>
+    </>
   );
 }

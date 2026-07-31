@@ -38,16 +38,25 @@ export default async function PayPage({
 
   return (
     <main className="relative min-h-screen bg-aura bg-grid-faint">
-      <div className="mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-6 px-4 py-12">
+      {/* Safe-area insets folded into the padding — this page is opened from a
+          WhatsApp link and, once installed, runs full-screen with no chrome.
+          The mobile rhythm is deliberately tighter than desktop: every pixel
+          spent on the brand hero is a pixel that pushes the Pay button below
+          the fold on a 375x812 screen. */}
+      <div className="mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-5 px-4 pb-[calc(2rem+var(--sab))] pt-[calc(2rem+var(--sat))] sm:gap-6 sm:pb-[calc(3rem+var(--sab))] sm:pt-[calc(3rem+var(--sat))]">
         {/* ---- Brand hero ---- */}
         <header className="text-center">
-          <div className="logo-chip mx-auto flex size-14 items-center justify-center rounded-2xl">
+          <div className="logo-chip mx-auto flex size-12 items-center justify-center rounded-2xl sm:size-14">
             <span className="font-serif text-2xl font-semibold leading-none text-white drop-shadow-sm">
               V
             </span>
           </div>
-          <h1 className="large-title mt-4 text-3xl text-ink-gradient">Veloria Grand</h1>
-          <p className="mt-1.5 text-xs text-muted-foreground">{COMPANY_LEGAL_LINE}</p>
+          <h1 className="large-title mt-3 text-2xl text-ink-gradient sm:mt-4 sm:text-3xl">
+            Veloria Grand
+          </h1>
+          <p className="mt-1.5 text-[11px] text-muted-foreground sm:text-xs">
+            {COMPANY_LEGAL_LINE}
+          </p>
         </header>
 
         {!res.success ? (
@@ -78,7 +87,7 @@ export default async function PayPage({
               )}
               <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-premium">
                 {/* Card header */}
-                <div className="flex items-start gap-3 border-b border-border/60 p-6">
+                <div className="flex items-start gap-3 border-b border-border/60 p-5 sm:p-6">
                   <div className="ring-glow-brand flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     <FileText className="size-5" />
                   </div>
@@ -93,9 +102,9 @@ export default async function PayPage({
                   </div>
                 </div>
 
-                <div className="p-6">
+                <div className="p-5 sm:p-6">
                   {/* Invoice summary */}
-                  <div className="rounded-2xl bg-muted/40 p-5 text-sm">
+                  <div className="rounded-2xl bg-muted/40 p-4 text-sm sm:p-5">
                     <div className="flex items-baseline justify-between">
                       <span className="text-muted-foreground">Total</span>
                       <span className="tabular-nums font-medium text-foreground">{inr(i.total)}</span>
@@ -107,9 +116,12 @@ export default async function PayPage({
                       </span>
                     </div>
                     <div className="divider-fade my-4" />
-                    <div className="flex items-baseline justify-between">
+                    {/* The balance is the one number the customer is here for —
+                        it wraps to its own line rather than shrinking when the
+                        figure is long (₹1,25,00,000 at 375px). */}
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                       <span className="text-[15px] font-semibold text-foreground">Balance due</span>
-                      <span className="large-title tabular-nums text-2xl text-ink-gradient">
+                      <span className="large-title tabular-nums text-[28px] leading-none text-ink-gradient sm:text-2xl">
                         {inr(i.balanceDue)}
                       </span>
                     </div>

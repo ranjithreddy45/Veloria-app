@@ -38,15 +38,22 @@ export function CashFlowTable({
         </div>
       </div>
 
+      {/* Five rupee columns cannot be shown at once on a 375px screen and money
+        * must never be truncated, so the forecast keeps its horizontal scroll.
+        * Cell padding drops to px-2.5 below sm: (worth ~60px, roughly one more
+        * column visible) and the scroll is announced rather than discovered. */}
+      <p className="px-4 pt-2 text-[12px] text-muted-foreground sm:hidden">
+        Swipe the forecast sideways to reach Net and Running balance.
+      </p>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b text-[11px] uppercase tracking-wide text-muted-foreground">
-              <th className="px-4 py-2 text-left font-medium">Week</th>
-              <th className="px-4 py-2 text-right font-medium">Inflow</th>
-              <th className="px-4 py-2 text-right font-medium">Outflow</th>
-              <th className="px-4 py-2 text-right font-medium">Net</th>
-              <th className="px-4 py-2 text-right font-medium">Running balance</th>
+              <th className="px-2.5 py-2 sm:px-4 text-left font-medium">Week</th>
+              <th className="px-2.5 py-2 sm:px-4 text-right font-medium">Inflow</th>
+              <th className="px-2.5 py-2 sm:px-4 text-right font-medium">Outflow</th>
+              <th className="px-2.5 py-2 sm:px-4 text-right font-medium">Net</th>
+              <th className="px-2.5 py-2 sm:px-4 text-right font-medium">Running balance</th>
               <th className="hidden w-[28%] px-4 py-2 text-left font-medium sm:table-cell">
                 Trend
               </th>
@@ -61,13 +68,13 @@ export function CashFlowTable({
                   key={r.weekStart}
                   className="border-b last:border-0 transition-colors hover:bg-muted/40"
                 >
-                  <td className="whitespace-nowrap px-4 py-2.5">
+                  <td className="whitespace-nowrap px-2.5 py-2.5 sm:px-4">
                     <span className="font-medium">W{i + 1}</span>
                     <span className="ml-2 text-[11px] text-muted-foreground">
                       {fmtWeek(r.weekStart)}
                     </span>
                   </td>
-                  <td className="px-4 py-2.5 text-right numeric">
+                  <td className="px-2.5 py-2.5 sm:px-4 text-right numeric">
                     {r.inflow > 0 ? (
                       <span className="text-success">
                         {formatINR(r.inflow)}
@@ -76,7 +83,7 @@ export function CashFlowTable({
                       <span className="text-muted-foreground">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-2.5 text-right numeric">
+                  <td className="px-2.5 py-2.5 sm:px-4 text-right numeric">
                     {r.outflow > 0 ? (
                       <span className="text-destructive">
                         ({formatINR(r.outflow)})
@@ -87,7 +94,7 @@ export function CashFlowTable({
                   </td>
                   <td
                     className={cn(
-                      "px-4 py-2.5 text-right numeric",
+                      "px-2.5 py-2.5 sm:px-4 text-right numeric",
                       r.net < 0 ? "text-destructive" : "text-foreground",
                     )}
                   >
@@ -95,7 +102,7 @@ export function CashFlowTable({
                   </td>
                   <td
                     className={cn(
-                      "px-4 py-2.5 text-right font-medium numeric",
+                      "px-2.5 py-2.5 sm:px-4 text-right font-medium numeric",
                       neg ? "text-destructive" : "text-foreground",
                     )}
                   >
@@ -103,7 +110,7 @@ export function CashFlowTable({
                       ? `(${formatINR(Math.abs(r.runningBalance))})`
                       : formatINR(r.runningBalance)}
                   </td>
-                  <td className="hidden px-4 py-2.5 sm:table-cell">
+                  <td className="hidden px-2.5 py-2.5 sm:px-4 sm:table-cell">
                     <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                       <div
                         className={cn(

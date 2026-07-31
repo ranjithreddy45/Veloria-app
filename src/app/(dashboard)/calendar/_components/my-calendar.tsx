@@ -217,15 +217,21 @@ function TaskRow({
 
       {/* Action */}
       {!isDone && (
+        // The label costs ~65px of the ~155px left for the task title at 375px,
+        // so below `sm` the button is the check icon alone (aria-label carries
+        // the meaning); the full label returns on wider screens.
         <Button
           size="sm"
           variant="outline"
           className="shrink-0"
           disabled={pending}
           onClick={markDone}
+          aria-label="Mark done"
         >
-          <Check className="mr-1 size-3.5" />
-          {pending ? "Saving…" : "Mark done"}
+          <Check className="size-3.5 sm:mr-1" />
+          <span className="hidden sm:inline">
+            {pending ? "Saving…" : "Mark done"}
+          </span>
         </Button>
       )}
     </div>

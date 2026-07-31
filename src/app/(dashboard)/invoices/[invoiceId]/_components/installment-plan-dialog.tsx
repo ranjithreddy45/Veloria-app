@@ -214,11 +214,14 @@ export function InstallmentPlanDialog({
           {/* Installment Rows */}
           <div className="space-y-3 max-h-[340px] overflow-y-auto pr-1">
             {installments.map((inst, index) => (
+              // A 12-column row inside a dialog leaves ~17px per column at
+              // 375px — the amount field and the date picker were unusable.
+              // Single column on a phone, the original 12-col row from `sm`.
               <div
                 key={index}
-                className="grid grid-cols-12 gap-2 items-end rounded-md border p-3"
+                className="grid grid-cols-1 gap-2 rounded-md border p-3 sm:grid-cols-12 sm:items-end"
               >
-                <div className="col-span-4">
+                <div className="sm:col-span-4">
                   <Label className="text-xs">Label</Label>
                   <Input
                     value={inst.label}
@@ -228,7 +231,7 @@ export function InstallmentPlanDialog({
                     placeholder="e.g. Advance"
                   />
                 </div>
-                <div className="col-span-3">
+                <div className="sm:col-span-3">
                   <Label className="text-xs">Amount (INR)</Label>
                   <Input
                     type="number"
@@ -241,7 +244,7 @@ export function InstallmentPlanDialog({
                     placeholder="0.00"
                   />
                 </div>
-                <div className="col-span-4">
+                <div className="sm:col-span-4">
                   <Label className="text-xs">Due Date</Label>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -269,7 +272,7 @@ export function InstallmentPlanDialog({
                     </PopoverContent>
                   </Popover>
                 </div>
-                <div className="col-span-1 flex justify-center">
+                <div className="flex justify-end sm:col-span-1 sm:justify-center">
                   <Button
                     type="button"
                     variant="ghost"

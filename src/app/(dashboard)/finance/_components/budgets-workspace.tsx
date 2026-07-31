@@ -98,13 +98,16 @@ export function BudgetsWorkspace({
 
       {/* Budget selector */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
+        {/* "Budget" + a 280px select + the status pill is ~406px — wider than a
+          * 375px viewport. The group wraps and the select goes fluid on a
+          * phone, keeping its desktop width from sm: up. */}
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           <span className="text-[13px] text-muted-foreground">Budget</span>
           <Select
             value={activeId ?? undefined}
             onValueChange={(v) => router.push(`/finance/budgets?budget=${v}`)}
           >
-            <SelectTrigger className="w-[280px]">
+            <SelectTrigger className="w-full min-w-0 flex-1 sm:w-[280px] sm:flex-none">
               <SelectValue placeholder="Select a budget" />
             </SelectTrigger>
             <SelectContent>

@@ -81,7 +81,7 @@ export default async function VendorConfirmPage({
       )}
 
       {/* Summary card — vendor's own details only */}
-      <div className="bg-card shadow-card space-y-3.5 rounded-2xl border p-6">
+      <div className="bg-card shadow-card space-y-3.5 rounded-2xl border p-5 sm:p-6">
         <Row
           icon={<Sparkles className="text-muted-foreground/60 size-4" />}
           label="Event"

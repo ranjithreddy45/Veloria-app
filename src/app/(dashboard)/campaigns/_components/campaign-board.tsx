@@ -101,7 +101,6 @@ export function CampaignBoard({ data }: CampaignBoardProps) {
           items={data}
           facets={facets}
           onChange={setFiltered}
-          className="hidden lg:block"
         />
         <div className="flex-1 min-w-0">
           <CampaignTable data={filtered} />

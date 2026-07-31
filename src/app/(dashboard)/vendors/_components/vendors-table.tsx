@@ -380,7 +380,6 @@ export function VendorsTable({ data }: VendorsTableProps) {
         items={data}
         facets={VENDOR_FACETS}
         onChange={setFaceted}
-        className="hidden lg:block"
       />
       <div className="min-w-0 flex-1">
         <DataTable

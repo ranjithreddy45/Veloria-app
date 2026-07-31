@@ -253,7 +253,9 @@ export function OperationsView({
 
       {/* Tabbed Content */}
       <Tabs defaultValue="run-of-show">
-        <TabsList>
+        {/* Icon + label triggers are ~600px together; `inline-flex w-fit` made
+            the page itself scroll sideways. Contain the overflow in the strip. */}
+        <TabsList className="w-full justify-start overflow-x-auto [scrollbar-width:none] sm:w-fit [&::-webkit-scrollbar]:hidden">
           <TabsTrigger value="run-of-show">
             <ClockIcon className="mr-1.5 size-4" />
             Run of Show

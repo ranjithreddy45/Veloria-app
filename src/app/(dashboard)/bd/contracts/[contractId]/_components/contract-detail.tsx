@@ -321,11 +321,13 @@ function ContractAuthoring({ contract }: { contract: ContractFull }) {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      {/* "Authoring" plus "Insert standard template" and "Save draft" is ~370px
+        * of buttons alone — wider than a phone card, so the header wraps. */}
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <CardTitle className="flex items-center gap-1.5 text-[13px] tracking-[-0.01em]">
           <FileText className="size-4" /> Authoring
         </CardTitle>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={insertTemplate}>Insert standard template</Button>
           <Button size="sm" onClick={save} disabled={busy}>{busy ? "Saving…" : "Save draft"}</Button>
         </div>
@@ -350,7 +352,10 @@ function F({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="space-y-0.5">
       <dt className="text-[11px] uppercase tracking-[0.06em] text-muted-foreground">{label}</dt>
-      <dd className="text-[13px] text-foreground">{value || "—"}</dd>
+      {/* Emails and long owner names have no break opportunity, and this dl runs
+        * two columns (~165px) on a phone — without break-words they push the
+        * card past the viewport edge. */}
+      <dd className="text-[13px] break-words text-foreground">{value || "—"}</dd>
     </div>
   );
 }

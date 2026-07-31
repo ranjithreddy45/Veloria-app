@@ -46,7 +46,6 @@ export function PayoutsView({ data }: { data: PayoutRow[] }) {
         items={data}
         facets={facets}
         onChange={setFiltered}
-        className="hidden lg:block"
       />
       <div className="min-w-0 flex-1">
         <PayoutTable data={filtered} isFiltered={filtered.length !== data.length} />

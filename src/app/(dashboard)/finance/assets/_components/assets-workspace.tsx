@@ -15,6 +15,7 @@ import { formatINR } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { AddAssetDialog } from "./add-asset-dialog";
 import { RunDepreciationButton } from "./run-depreciation-button";
+import { TAB_LIST_SCROLL } from "@/lib/mobile-tabs";
 
 export interface AssetRow {
   id: string;
@@ -70,7 +71,7 @@ export function AssetsWorkspace({
       </PageHeader>
 
       <Tabs defaultValue="register">
-        <TabsList>
+        <TabsList className={TAB_LIST_SCROLL}>
           <TabsTrigger value="register" className="gap-1.5"><Boxes className="size-3.5" /> Assets register</TabsTrigger>
           <TabsTrigger value="pnl" className="gap-1.5"><Building2 className="size-3.5" /> Venue &amp; Event P&amp;L</TabsTrigger>
         </TabsList>

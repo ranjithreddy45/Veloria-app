@@ -240,7 +240,10 @@ function LeaveTypeDialog({ existing, nextOrder }: { existing?: LeaveTypeRow; nex
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          {/* Three number fields across a 375px dialog leaves ~95px each, where
+            * "Carry-forward cap" wraps to two lines over a box too narrow to
+            * read the value in. Two-up on a phone, three-up from sm:. */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <div className="space-y-1.5">
               <Label className="text-[12.5px]">Days / year</Label>
               <Input type="number" min={0} step="0.5" value={accrual} onChange={(e) => setAccrual(e.target.value)} />

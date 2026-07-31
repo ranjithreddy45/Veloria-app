@@ -567,7 +567,6 @@ export function ContactsTable({ data }: ContactsTableProps) {
           items={filtered}
           facets={CONTACT_FACETS}
           onChange={setFaceted}
-          className="hidden lg:block"
         />
         <div className="min-w-0 flex-1">
           <DataTable

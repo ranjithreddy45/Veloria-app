@@ -97,6 +97,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { TAB_LIST_SCROLL } from "@/lib/mobile-tabs";
 
 // ============================================================
 // Types — serialized deal shape (numbers may arrive as strings)
@@ -400,7 +401,9 @@ export function DealDetail({
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_300px]">
       <div className="min-w-0">
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="w-full justify-start overflow-x-auto">
+          {/* w-full is this screen's own choice (the tab row spans the deal
+            * column on desktop); TAB_LIST_SCROLL adds the phone behaviour. */}
+          <TabsList className={`${TAB_LIST_SCROLL} w-full`}>
             <TabsTrigger value="overview" className="shrink-0 whitespace-nowrap">Overview</TabsTrigger>
             <TabsTrigger value="contact" className="shrink-0 whitespace-nowrap">Contact</TabsTrigger>
             <TabsTrigger value="economics" className="shrink-0 whitespace-nowrap">Economics &amp; Model</TabsTrigger>
@@ -841,7 +844,10 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
       <dt className="text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
         {label}
       </dt>
-      <dd className="text-[13px] text-foreground">{value || "—"}</dd>
+      {/* Emails and long owner names have no break opportunity, and this dl runs
+        * two columns (~165px) on a phone — without break-words they push the
+        * card past the viewport edge. */}
+      <dd className="text-[13px] break-words text-foreground">{value || "—"}</dd>
     </div>
   );
 }
@@ -944,7 +950,7 @@ function OverviewTab({
 
         {/* Deal preview — full lead-stage details captured at lead stage */}
         <div className="space-y-3 rounded-md border border-border/60 bg-muted/20 p-3.5">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
             <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
               Deal preview · lead details
             </div>
@@ -1027,7 +1033,7 @@ function OverviewTab({
 
         {/* Commercial dates & TA fees (deal-level) */}
         <div className="space-y-3 rounded-md border border-border/60 p-3.5">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
             <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
               Signing &amp; collection
             </div>
@@ -1827,7 +1833,7 @@ function EconomicsTab({
           />
         </div>
 
-        <div className="flex items-center justify-between rounded-md border border-border/60 p-3">
+        <div className="flex items-center justify-between gap-3 rounded-md border border-border/60 p-3">
           <div className="space-y-0.5">
             <Label className="text-[13px]">Exclusive</Label>
             <p className="text-[11.5px] text-muted-foreground">
@@ -2526,7 +2532,7 @@ function ContractTab({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center justify-between rounded-md border border-border/60 p-3">
+        <div className="flex items-center justify-between gap-3 rounded-md border border-border/60 p-3">
           <div className="space-y-0.5">
             <Label className="flex items-center gap-2 text-[13px]">
               <ShieldCheck className="size-4" /> Signatory authority verified
@@ -2562,7 +2568,7 @@ function ContractTab({
 
         <ContractDocuments deal={deal} onMutate={onMutate} />
 
-        <div className="flex items-center justify-between rounded-md border border-border/60 p-3">
+        <div className="flex items-center justify-between gap-3 rounded-md border border-border/60 p-3">
           <div className="flex items-center gap-2 text-[12.5px] text-muted-foreground">
             {deal.contractStatus === "SIGNED" ? (
               <CheckCircle2 className="size-4 text-emerald-600" />

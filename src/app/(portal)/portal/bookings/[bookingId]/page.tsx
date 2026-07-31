@@ -141,7 +141,7 @@ export default async function PortalBookingDetailPage({
       {/* Progress Timeline */}
       {!isCancelled && (
         <Card className="shadow-card rounded-2xl py-0">
-          <CardContent className="p-6">
+          <CardContent className="p-5 sm:p-6">
             <div className="flex items-center justify-between">
               {PROGRESS_STEPS.map((step, idx) => {
                 const isCompleted = idx <= progressIndex;
@@ -162,8 +162,13 @@ export default async function PortalBookingDetailPage({
                           <Circle className="size-4" />
                         )}
                       </div>
+                      {/* Tighter type + tracking on mobile: the four labels
+                          alone measure ~300px at desktop settings, which is
+                          wider than the 295px card interior at 375px — they
+                          were squeezing the connector lines out of existence
+                          and wrapping mid-word. */}
                       <span
-                        className={`text-center text-[11px] font-semibold uppercase tracking-[0.1em] ${
+                        className={`text-center text-[10px] font-semibold uppercase tracking-[0.04em] sm:text-[11px] sm:tracking-[0.1em] ${
                           isCompleted
                             ? "text-primary"
                             : "text-muted-foreground/60"
@@ -174,7 +179,7 @@ export default async function PortalBookingDetailPage({
                     </div>
                     {idx < PROGRESS_STEPS.length - 1 && (
                       <div
-                        className={`mx-2 mb-6 h-0.5 flex-1 rounded-full ${
+                        className={`mx-1 mb-6 h-0.5 flex-1 rounded-full sm:mx-2 ${
                           idx < progressIndex ? "bg-primary" : "bg-border"
                         }`}
                       />
@@ -337,7 +342,7 @@ export default async function PortalBookingDetailPage({
                     <Link
                       key={inv.id}
                       href={`/portal/invoices/${inv.id}`}
-                      className="block"
+                      className="block w-full"
                     >
                       <div className="hover:bg-muted/60 flex items-center gap-4 rounded-xl border p-4 transition-colors">
                         <div className="bg-muted flex size-10 flex-shrink-0 items-center justify-center rounded-xl">

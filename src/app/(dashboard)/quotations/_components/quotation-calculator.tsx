@@ -401,7 +401,10 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
             {/* Pricing model toggle */}
             <div className={`${field} sm:col-span-2`}>
               <Label>Pricing Model</Label>
-              <div className="inline-flex rounded-md border p-0.5 text-sm">
+              {/* The two labels total ~380px side by side — wider than a 375px
+                  phone. Stacked full-width below `sm`, inline segmented control
+                  from `sm` up (unchanged on desktop). */}
+              <div className="flex w-full flex-col rounded-md border p-0.5 text-sm sm:inline-flex sm:w-auto sm:flex-row">
                 <button
                   type="button"
                   onClick={() => setFoodMode("WITH_FOOD")}
@@ -766,8 +769,10 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
               <div className="space-y-1.5 text-sm">
                 {result.lines.map((l) => (
                   <div key={l.sl} className="flex justify-between gap-2">
-                    <span className="text-muted-foreground">{l.particulars}</span>
-                    <span className="numeric font-medium">{inr(l.amount)}</span>
+                    {/* min-w-0 / shrink-0: a long particular (vendor package
+                        names run 40+ chars) must wrap, never squeeze the money. */}
+                    <span className="min-w-0 text-muted-foreground">{l.particulars}</span>
+                    <span className="numeric shrink-0 font-medium">{inr(l.amount)}</span>
                   </div>
                 ))}
               </div>
@@ -787,9 +792,9 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
               <div className="border-t pt-3 space-y-1.5">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Payment Schedule</p>
                 {result.paymentSchedule.map((p, i) => (
-                  <div key={i} className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">{p.label} ({p.pct}%)</span>
-                    <span className="numeric">{inr(p.amount)}</span>
+                  <div key={i} className="flex justify-between gap-2 text-xs">
+                    <span className="min-w-0 text-muted-foreground">{p.label} ({p.pct}%)</span>
+                    <span className="numeric shrink-0">{inr(p.amount)}</span>
                   </div>
                 ))}
               </div>

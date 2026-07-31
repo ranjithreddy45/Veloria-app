@@ -30,7 +30,7 @@ export default async function PortfolioPage() {
         <Kpi icon={<Building2 className="size-4" />} label="Active venues" value={String(summary.total)} accent />
         <Kpi icon={<AlertTriangle className="size-4" />} label="At risk" value={String(summary.atRisk)} danger={summary.atRisk > 0} />
         <Kpi icon={<ShieldAlert className="size-4" />} label="Open critical snags" value={String(summary.openCritical)} danger={summary.openCritical > 0} />
-        <Kpi icon={<IndianRupee className="size-4" />} label="Committed / estimate" value={`${formatINR(summary.committed)} / ${formatINR(summary.estimate)}`} />
+        <Kpi icon={<IndianRupee className="size-4" />} label="Committed / estimate" value={`${formatINR(summary.committed)} / ${formatINR(summary.estimate)}`} className="col-span-2 lg:col-span-1" />
       </div>
 
       {rows.length === 0 ? (
@@ -81,11 +81,15 @@ export default async function PortfolioPage() {
   );
 }
 
-function Kpi({ icon, label, value, accent, danger }: { icon: React.ReactNode; label: string; value: string; accent?: boolean; danger?: boolean }) {
+// `className` exists so a tile carrying a long money string can claim both
+// columns on a phone. The value also steps down to text-xl and is allowed to
+// break: these tiles sit 2-up at 375px (~133px of inner width) and a figure like
+// "₹1,20,00,000 / ₹1,50,00,000" would otherwise spill out of the card.
+function Kpi({ icon, label, value, accent, danger, className }: { icon: React.ReactNode; label: string; value: string; accent?: boolean; danger?: boolean; className?: string }) {
   return (
-    <div className="rounded-xl border bg-card p-4">
+    <div className={`rounded-xl border bg-card p-4 ${className ?? ""}`}>
       <div className="flex items-center gap-2 text-muted-foreground"><span className={danger ? "text-red-600" : accent ? "text-primary" : ""}>{icon}</span><span className="text-[12px] font-medium">{label}</span></div>
-      <div className={`mt-2 text-2xl font-semibold tabular-nums ${danger ? "text-red-700" : ""}`}>{value}</div>
+      <div className={`mt-2 text-xl font-semibold tabular-nums break-words sm:text-2xl ${danger ? "text-red-700" : ""}`}>{value}</div>
     </div>
   );
 }

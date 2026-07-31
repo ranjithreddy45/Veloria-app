@@ -19,6 +19,7 @@ import {
 import { StatusPill } from "@/components/shared/status-pill";
 import { formatINR, formatDate } from "@/lib/utils";
 import { seedFinance, createManualJournal, reverseEntry } from "@/actions/finance.actions";
+import { TAB_LIST_SCROLL } from "@/lib/mobile-tabs";
 
 interface Account { id: string; code: string; name: string; type: string }
 interface TBRow { code: string; name: string; type: string; debit: number; credit: number }
@@ -51,7 +52,7 @@ export function FinanceWorkspace({
       </div>
 
       <Tabs defaultValue="tb">
-        <TabsList>
+        <TabsList className={TAB_LIST_SCROLL}>
           <TabsTrigger value="tb" className="gap-1.5"><Scale className="size-3.5" /> Trial balance</TabsTrigger>
           <TabsTrigger value="journal" className="gap-1.5"><BookOpen className="size-3.5" /> Journal</TabsTrigger>
           <TabsTrigger value="coa" className="gap-1.5"><ListTree className="size-3.5" /> Accounts</TabsTrigger>
@@ -59,13 +60,19 @@ export function FinanceWorkspace({
 
         <TabsContent value="tb">
           <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
-            <Table>
+            {/* Debit and Credit are why anyone opens a trial balance, so they
+              * hold nowrap and the account name is the column allowed to wrap.
+              * Left as-is, a nowrap name plus w-24 + w-40 + w-40 of fixed
+              * column hints (344px on its own) shoves both money columns off a
+              * 375px screen behind a horizontal scroll. The hints and the cell
+              * padding relax below sm:. */}
+            <Table className="[&_td]:px-2.5 [&_th]:px-2.5 sm:[&_td]:px-4 sm:[&_th]:px-4">
               <TableHeader>
                 <TableRow className="bg-muted/30 hover:bg-muted/30 [&>th]:h-9 [&>th]:text-[11px] [&>th]:font-medium [&>th]:uppercase [&>th]:tracking-[0.05em] [&>th]:text-muted-foreground">
-                  <TableHead className="w-24">Code</TableHead>
+                  <TableHead className="sm:w-24">Code</TableHead>
                   <TableHead>Account</TableHead>
-                  <TableHead className="w-40 text-right">Debit</TableHead>
-                  <TableHead className="w-40 text-right">Credit</TableHead>
+                  <TableHead className="text-right sm:w-40">Debit</TableHead>
+                  <TableHead className="text-right sm:w-40">Credit</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -74,18 +81,18 @@ export function FinanceWorkspace({
                 ) : trialBalance.rows.map((r) => (
                   <TableRow key={r.code}>
                     <TableCell className="numeric text-[12px] text-muted-foreground">{r.code}</TableCell>
-                    <TableCell className="text-[13px]">{r.name}</TableCell>
-                    <TableCell className="numeric text-right text-[13px]">{r.debit ? formatINR(r.debit) : ""}</TableCell>
-                    <TableCell className="numeric text-right text-[13px]">{r.credit ? formatINR(r.credit) : ""}</TableCell>
+                    <TableCell className="whitespace-normal text-[13px]">{r.name}</TableCell>
+                    <TableCell className="numeric whitespace-nowrap text-right text-[13px]">{r.debit ? formatINR(r.debit) : ""}</TableCell>
+                    <TableCell className="numeric whitespace-nowrap text-right text-[13px]">{r.credit ? formatINR(r.credit) : ""}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
               {trialBalance.rows.length > 0 && (
                 <tfoot>
                   <tr className="border-t-2 bg-muted/20 text-[13px] font-semibold">
-                    <td className="px-4 py-2.5" colSpan={2}>Total {trialBalance.balanced ? <StatusPill label="Balanced" hue="emerald" size="xs" className="ml-2" /> : <StatusPill label="OUT OF BALANCE" hue="red" size="xs" className="ml-2" />}</td>
-                    <td className="numeric px-4 py-2.5 text-right">{formatINR(trialBalance.totalDebit)}</td>
-                    <td className="numeric px-4 py-2.5 text-right">{formatINR(trialBalance.totalCredit)}</td>
+                    <td className="px-2.5 py-2.5 sm:px-4" colSpan={2}>Total {trialBalance.balanced ? <StatusPill label="Balanced" hue="emerald" size="xs" className="ml-2" /> : <StatusPill label="OUT OF BALANCE" hue="red" size="xs" className="ml-2" />}</td>
+                    <td className="numeric whitespace-nowrap px-2.5 py-2.5 text-right sm:px-4">{formatINR(trialBalance.totalDebit)}</td>
+                    <td className="numeric whitespace-nowrap px-2.5 py-2.5 text-right sm:px-4">{formatINR(trialBalance.totalCredit)}</td>
                   </tr>
                 </tfoot>
               )}
@@ -135,11 +142,14 @@ function EntryCard({ entry }: { entry: Entry }) {
     setBusy(true); await reverseEntry(entry.id, reason); setBusy(false); router.refresh();
   }
   return (
-    <div className="rounded-2xl border bg-card p-5 shadow-card transition-shadow hover:shadow-card-hover">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+    <div className="rounded-2xl border bg-card p-3.5 shadow-card transition-shadow hover:shadow-card-hover sm:p-5">
+      {/* Entry no + narration + two status pills on one side and the date +
+        * Reverse button on the other is well over 375px, so both groups wrap
+        * rather than pushing the card past the viewport. */}
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           <span className="numeric text-[12px] text-muted-foreground">{entry.entryNo}</span>
-          <span className="text-[13px] font-medium">{entry.narration ?? "—"}</span>
+          <span className="text-[13px] font-medium break-words">{entry.narration ?? "—"}</span>
           <StatusPill label={entry.status[0] + entry.status.slice(1).toLowerCase()} hue={entry.status === "POSTED" ? "emerald" : entry.status === "REVERSED" ? "slate" : "amber"} size="xs" />
           <StatusPill label={entry.sourceModule[0] + entry.sourceModule.slice(1).toLowerCase()} hue="violet" size="xs" />
         </div>
@@ -150,10 +160,13 @@ function EntryCard({ entry }: { entry: Entry }) {
       </div>
       <div className="mt-3 space-y-1 border-t pt-2.5">
         {entry.lines.map((l, i) => (
-          <div key={i} className="flex items-center gap-3 text-[12.5px]">
+          /* gap-2 and w-24 on a phone: two w-28 money columns plus gap-3 eat
+           * 248 of the ~300px inside the card, leaving the account name barely
+           * a word. The amount columns keep their full desktop width from sm:. */
+          <div key={i} className="flex items-center gap-2 text-[12.5px] sm:gap-3">
             <span className="min-w-0 flex-1 truncate text-muted-foreground">{l.account}</span>
-            <span className="numeric w-28 text-right">{l.debit ? formatINR(l.debit) : ""}</span>
-            <span className="numeric w-28 text-right">{l.credit ? formatINR(l.credit) : ""}</span>
+            <span className="numeric w-24 shrink-0 text-right sm:w-28">{l.debit ? formatINR(l.debit) : ""}</span>
+            <span className="numeric w-24 shrink-0 text-right sm:w-28">{l.credit ? formatINR(l.credit) : ""}</span>
           </div>
         ))}
       </div>

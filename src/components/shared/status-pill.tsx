@@ -71,7 +71,13 @@ export function StatusPill({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full font-medium ring-1 ring-inset whitespace-nowrap",
+        // `whitespace-nowrap` is deliberate — a pill that wraps stops reading as
+        // a pill. But nowrap alone let long labels ("Contract Drafted",
+        // "Site Inspection") punch out of a narrow container, which on a 375px
+        // phone means spilling across the next field of a stacked card. Cap at
+        // the container width and ellipsise instead; the full text stays
+        // available to screen readers and as a native tooltip.
+        "inline-flex max-w-full items-center overflow-hidden text-ellipsis rounded-full font-medium ring-1 ring-inset whitespace-nowrap",
         c.bg,
         c.text,
         c.ring,
@@ -85,7 +91,9 @@ export function StatusPill({
           className={cn("inline-block size-1.5 shrink-0 rounded-full", c.dot)}
         />
       )}
-      {label}
+      <span className="min-w-0 truncate" title={label}>
+        {label}
+      </span>
     </span>
   );
 }

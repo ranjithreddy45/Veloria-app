@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusPill } from "@/components/shared/status-pill";
 import { formatINR } from "@/lib/utils";
+import { TAB_LIST_SCROLL } from "@/lib/mobile-tabs";
 
 interface Line { code: string; name: string; amount: number }
 interface PL { income: Line[]; expense: Line[]; totalIncome: number; totalExpense: number; netProfit: number }
@@ -22,19 +23,25 @@ interface TB { rows: { code: string; name: string; debit: number; credit: number
 
 function LineTable({ rows, total, totalLabel }: { rows: Line[]; total: number; totalLabel: string }) {
   return (
-    <Table>
+    /* TableCell defaults to whitespace-nowrap. On a phone an account name like
+     * "Sales — Banquet & Conferencing Revenue" would then widen the row past
+     * 375px and push the amount column off-screen behind a horizontal scroll —
+     * the figure is the whole point of the report. So the name wraps and the
+     * amount column is the one pinned to nowrap. Padding tightens on mobile to
+     * buy the amount column back another 24px. */
+    <Table className="[&_td]:px-2.5 sm:[&_td]:px-4">
       <TableBody>
         {rows.length === 0 ? (
           <TableRow><TableCell colSpan={2} className="py-4 text-center text-sm text-muted-foreground">No postings.</TableCell></TableRow>
         ) : rows.map((l) => (
           <TableRow key={l.code}>
-            <TableCell className="text-[13px]"><span className="numeric text-muted-foreground">{l.code}</span> {l.name}</TableCell>
-            <TableCell className="numeric text-right text-[13px]">{formatINR(l.amount)}</TableCell>
+            <TableCell className="whitespace-normal text-[13px]"><span className="numeric text-muted-foreground">{l.code}</span> {l.name}</TableCell>
+            <TableCell className="numeric whitespace-nowrap text-right text-[13px]">{formatINR(l.amount)}</TableCell>
           </TableRow>
         ))}
         <TableRow className="border-t-2 bg-muted/20 font-semibold hover:bg-muted/20">
-          <TableCell className="text-[13px]">{totalLabel}</TableCell>
-          <TableCell className="numeric text-right text-[13px]">{formatINR(total)}</TableCell>
+          <TableCell className="whitespace-normal text-[13px]">{totalLabel}</TableCell>
+          <TableCell className="numeric whitespace-nowrap text-right text-[13px]">{formatINR(total)}</TableCell>
         </TableRow>
       </TableBody>
     </Table>
@@ -53,7 +60,9 @@ export function FinanceReports({
   const router = useRouter();
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
+      {/* Label + a 144px select + the cumulative-basis note is ~460px, so this
+        * row wraps rather than running off a 375px screen. */}
+      <div className="flex flex-wrap items-center gap-2">
         <span className="text-sm text-muted-foreground">Financial year</span>
         <Select value={fy} onValueChange={(v) => router.push(`/finance/reports?fy=${v}`)}>
           <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
@@ -63,7 +72,7 @@ export function FinanceReports({
       </div>
 
       <Tabs defaultValue="pl">
-        <TabsList>
+        <TabsList className={TAB_LIST_SCROLL}>
           <TabsTrigger value="pl"><TrendingUp className="size-4" /> P&amp;L</TabsTrigger>
           <TabsTrigger value="bs"><Scale className="size-4" /> Balance Sheet</TabsTrigger>
           <TabsTrigger value="tb"><BookOpen className="size-4" /> Trial Balance</TabsTrigger>
@@ -76,7 +85,9 @@ export function FinanceReports({
             <Card className="border-0 shadow-card"><CardHeader className="pb-2"><CardTitle className="text-sm">Expenses</CardTitle></CardHeader><CardContent className="px-0"><LineTable rows={pl.expense} total={pl.totalExpense} totalLabel="Total expenses" /></CardContent></Card>
           </div>
           <Card className="border-0 shadow-card">
-            <CardContent className="flex items-center justify-between py-4">
+            {/* The 26px net-profit figure plus its caption is wider than a phone
+              * card; wrapping keeps the number whole instead of clipping it. */}
+            <CardContent className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-4">
               <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Net {pl.netProfit >= 0 ? "profit" : "loss"} · <span className="numeric tracking-normal">FY {fy}</span></span>
               <span className={`numeric text-[26px] font-bold ${pl.netProfit >= 0 ? "text-success" : "text-destructive"}`}>{formatINR(pl.netProfit)}</span>
             </CardContent>
@@ -101,24 +112,29 @@ export function FinanceReports({
         <TabsContent value="tb">
           <Card className="border-0 shadow-card">
             <CardContent className="px-0">
-              <Table>
+              {/* Debit and Credit are the reason to open this table, so they
+                * stay nowrap and the account name is the column allowed to
+                * wrap — otherwise a long name pushes both figures off a 375px
+                * screen behind a horizontal scroll. The 160px column hints are
+                * relaxed on mobile so the name isn't squeezed to nothing. */}
+              <Table className="[&_td]:px-2.5 [&_th]:px-2.5 sm:[&_td]:px-4 sm:[&_th]:px-4">
                 <TableHeader>
-                  <TableRow className="bg-muted/30 hover:bg-muted/30 [&>th]:h-9 [&>th]:text-[11px] [&>th]:font-medium [&>th]:uppercase [&>th]:tracking-[0.05em] [&>th]:text-muted-foreground"><TableHead>Account</TableHead><TableHead className="w-40 text-right">Debit</TableHead><TableHead className="w-40 text-right">Credit</TableHead></TableRow>
+                  <TableRow className="bg-muted/30 hover:bg-muted/30 [&>th]:h-9 [&>th]:text-[11px] [&>th]:font-medium [&>th]:uppercase [&>th]:tracking-[0.05em] [&>th]:text-muted-foreground"><TableHead>Account</TableHead><TableHead className="text-right sm:w-40">Debit</TableHead><TableHead className="text-right sm:w-40">Credit</TableHead></TableRow>
                 </TableHeader>
                 <TableBody>
                   {tb.rows.length === 0 ? (
                     <TableRow><TableCell colSpan={3} className="py-4 text-center text-sm text-muted-foreground">No postings yet.</TableCell></TableRow>
                   ) : tb.rows.map((r) => (
                     <TableRow key={r.code}>
-                      <TableCell className="text-[13px]"><span className="numeric text-muted-foreground">{r.code}</span> {r.name}</TableCell>
-                      <TableCell className="numeric text-right text-[13px]">{r.debit ? formatINR(r.debit) : "—"}</TableCell>
-                      <TableCell className="numeric text-right text-[13px]">{r.credit ? formatINR(r.credit) : "—"}</TableCell>
+                      <TableCell className="whitespace-normal text-[13px]"><span className="numeric text-muted-foreground">{r.code}</span> {r.name}</TableCell>
+                      <TableCell className="numeric whitespace-nowrap text-right text-[13px]">{r.debit ? formatINR(r.debit) : "—"}</TableCell>
+                      <TableCell className="numeric whitespace-nowrap text-right text-[13px]">{r.credit ? formatINR(r.credit) : "—"}</TableCell>
                     </TableRow>
                   ))}
                   <TableRow className="border-t-2 bg-muted/20 font-semibold hover:bg-muted/20">
-                    <TableCell className="text-[13px]">Total {tb.balanced ? "(balanced)" : "(out of balance)"}</TableCell>
-                    <TableCell className="numeric text-right text-[13px]">{formatINR(tb.totalDebit)}</TableCell>
-                    <TableCell className="numeric text-right text-[13px]">{formatINR(tb.totalCredit)}</TableCell>
+                    <TableCell className="whitespace-normal text-[13px]">Total {tb.balanced ? "(balanced)" : "(out of balance)"}</TableCell>
+                    <TableCell className="numeric whitespace-nowrap text-right text-[13px]">{formatINR(tb.totalDebit)}</TableCell>
+                    <TableCell className="numeric whitespace-nowrap text-right text-[13px]">{formatINR(tb.totalCredit)}</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>

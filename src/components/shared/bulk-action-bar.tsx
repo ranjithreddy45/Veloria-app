@@ -71,7 +71,7 @@ export function BulkActionBar({
   return (
     <div
       className={cn(
-        "fixed bottom-6 left-1/2 z-50 -translate-x-1/2",
+        "fixed bottom-[calc(1.5rem+max(var(--sab),0px))] left-1/2 z-50 -translate-x-1/2",
         "flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-lg",
         "animate-in slide-in-from-bottom-4 fade-in duration-200"
       )}

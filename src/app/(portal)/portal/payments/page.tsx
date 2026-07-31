@@ -335,6 +335,20 @@ export default async function PortalPaymentsPage() {
                         {payment.eventName}
                       </p>
                     )}
+                    {/* The receipt link existed only in the desktop table, so a
+                        customer on a phone — which is nearly all of them — had
+                        no way to pull up the receipt this page promises. */}
+                    {payment.status === "COMPLETED" && payment.invoiceId && (
+                      <a
+                        href={`/portal/invoices/${payment.invoiceId}/pdf?auto=1`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-muted-foreground hover:text-primary hover:border-primary/30 mt-3 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors"
+                      >
+                        <Download className="size-3.5" />
+                        Receipt
+                      </a>
+                    )}
                   </div>
                 );
               })}

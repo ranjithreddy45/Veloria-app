@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusPill } from "@/components/shared/status-pill";
 import { formatDate } from "@/lib/utils";
 import { createTicket, seedHelpdeskCategories } from "@/actions/hr-helpdesk.actions";
+import { TAB_LIST_SCROLL } from "@/lib/mobile-tabs";
 
 export const HD_STATUS_HUE: Record<string, "slate" | "amber" | "blue" | "emerald" | "neutral"> = { OPEN: "slate", IN_PROGRESS: "amber", WAITING: "blue", RESOLVED: "emerald", CLOSED: "neutral" };
 export const HD_STATUS_LABEL: Record<string, string> = { OPEN: "Open", IN_PROGRESS: "In progress", WAITING: "Waiting", RESOLVED: "Resolved", CLOSED: "Closed" };
@@ -32,7 +33,7 @@ export function HelpdeskHome({
 }) {
   return (
     <Tabs defaultValue="mine">
-      <TabsList>
+      <TabsList className={TAB_LIST_SCROLL}>
         <TabsTrigger value="mine" className="gap-1.5"><LifeBuoy className="size-3.5" /> My tickets</TabsTrigger>
         {isAgent && <TabsTrigger value="queue" className="gap-1.5"><Headphones className="size-3.5" /> Agent queue{queue.length ? ` (${queue.length})` : ""}</TabsTrigger>}
         <TabsTrigger value="kb" className="gap-1.5"><BookOpen className="size-3.5" /> Knowledge base</TabsTrigger>

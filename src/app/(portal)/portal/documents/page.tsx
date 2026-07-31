@@ -97,7 +97,7 @@ export default async function PortalDocumentsPage() {
                 <Link
                   key={c.id}
                   href={`/portal/contracts/${c.id}`}
-                  className="block"
+                  className="block w-full"
                 >
                   <Card className="group shadow-card hover:shadow-card-hover rounded-2xl py-0 transition-all duration-200">
                     <CardContent className="flex items-center gap-4 p-5">

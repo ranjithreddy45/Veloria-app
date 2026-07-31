@@ -85,7 +85,10 @@ export default async function InvoiceDetailPage({
         <Badge variant="outline" className={`${statusColors} border text-sm`}>
           {invoice.status.replace("_", " ")}
         </Badge>
-        <div className="flex items-center gap-2">
+        {/* Up to six actions live here (PDF, Edit, Send, Payment link, Record
+            payment, Installments, Cancel). Without flex-wrap this single row
+            runs ~700px wide and drags the whole page sideways on a phone. */}
+        <div className="flex flex-wrap items-center gap-2">
           <DownloadPdfButton invoiceId={invoiceId} />
           {invoice.status === "DRAFT" && (
             <>

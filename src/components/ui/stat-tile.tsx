@@ -48,17 +48,26 @@ interface StatTileProps {
 export function StatTile({ label, value, accent = "indigo", icon, sub, delta, deltaLabel, pct, className }: StatTileProps) {
   const a = ACCENT[accent];
   return (
-    <div className={cn("group sheen-sweep relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-br bg-card p-5 shadow-premium transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.34,1.4,0.64,1)] hover:-translate-y-1 hover:shadow-card-hover", a.wash, className)}>
-      <div className="relative z-[1] flex items-start justify-between gap-3">
-        <div className="min-w-0">
+    // KPI grids are routinely `grid-cols-2 md:grid-cols-4`, so at 375px a tile
+    // is only ~171px wide. p-5 (40px of gutter) plus a 28px money figure like
+    // "₹12,45,000" overflowed its own card; the mobile-first values below shrink
+    // the padding and type just enough to fit, and `sm:` restores today's
+    // desktop look exactly.
+    <div className={cn("group sheen-sweep relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-br bg-card p-4 shadow-premium transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.34,1.4,0.64,1)] hover:-translate-y-1 hover:shadow-card-hover sm:p-5", a.wash, className)}>
+      <div className="relative z-[1] flex items-start justify-between gap-2 sm:gap-3">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            {icon && <span className={cn("flex size-8 items-center justify-center rounded-xl shadow-sm transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.34,1.4,0.64,1)] group-hover:scale-110 group-hover:shadow-md [&>svg]:size-4", a.chip)}>{icon}</span>}
-            <span className="text-xs font-medium tracking-[-0.005em] text-muted-foreground">{label}</span>
+            {icon && <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-xl shadow-sm transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.34,1.4,0.64,1)] group-hover:scale-110 group-hover:shadow-md [&>svg]:size-4", a.chip)}>{icon}</span>}
+            {/* min-w-0 + wrapping: labels like "Leads created this month" must
+                wrap rather than push the tile wider than its grid cell. */}
+            <span className="min-w-0 text-[11px] font-medium leading-snug tracking-[-0.005em] text-muted-foreground sm:text-xs">{label}</span>
           </div>
-          <div className="mt-3 text-[28px] font-bold tabular-nums leading-none tracking-[-0.03em]">
+          {/* break-words, never truncate — a clipped money figure is a wrong
+              number, so a long value wraps to a second line instead. */}
+          <div className="mt-2.5 break-words text-[22px] font-bold tabular-nums leading-tight tracking-[-0.03em] sm:mt-3 sm:text-[28px] sm:leading-none">
             {typeof value === "number" ? <CountUp value={value} /> : value}
           </div>
-          {sub && <p className="mt-2 text-[11px] text-muted-foreground">{sub}</p>}
+          {sub && <p className="mt-2 text-[11px] leading-snug text-muted-foreground">{sub}</p>}
           {typeof delta === "number" && delta !== 0 && (
             <p className={cn("mt-2 inline-flex items-center gap-0.5 text-[11.5px] font-semibold tabular-nums", delta > 0 ? "text-success" : "text-destructive")}>
               {delta > 0 ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />}
@@ -67,7 +76,14 @@ export function StatTile({ label, value, accent = "indigo", icon, sub, delta, de
           )}
         </div>
         {typeof pct === "number" && (
-          <Donut value={Math.max(0, Math.min(100, pct))} size={48} thickness={5} colorClass={a.ring} ariaLabel={`${pct}% ${label}`} />
+          // shrink-0: without it flexbox squeezes the 48px ring into an ellipse
+          // when the label column is long. It keeps its full size on mobile —
+          // scaling it down would only add whitespace, since the layout still
+          // reserves 48px — and the text column absorbs the difference by
+          // wrapping instead.
+          <span className="block shrink-0">
+            <Donut value={Math.max(0, Math.min(100, pct))} size={48} thickness={5} colorClass={a.ring} ariaLabel={`${pct}% ${label}`} />
+          </span>
         )}
       </div>
       {typeof pct !== "number" && typeof delta !== "number" && (

@@ -506,7 +506,10 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="space-y-0.5">
       <dt className="text-[11px] uppercase tracking-[0.06em] text-muted-foreground">{label}</dt>
-      <dd className="text-[13px] text-foreground">{value || "—"}</dd>
+      {/* Emails and long owner names have no break opportunity, and this dl runs
+        * two columns (~165px) on a phone — without break-words they push the
+        * card past the viewport edge. */}
+      <dd className="text-[13px] break-words text-foreground">{value || "—"}</dd>
     </div>
   );
 }

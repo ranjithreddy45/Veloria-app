@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import {
   upsertShift, assignShift, removeAssignment, requestShiftSwap, decideShiftSwap,
 } from "@/actions/hr-shifts.actions";
+import { TAB_LIST_SCROLL } from "@/lib/mobile-tabs";
 
 interface Shift { id: string; name: string; startTime: string; endTime: string; color: string; isActive: boolean }
 interface Emp { id: string; firstName: string; lastName: string; empCode: string; department?: { name: string } | null }
@@ -40,7 +41,7 @@ export function ShiftsHome({
 }) {
   return (
     <Tabs defaultValue="mine">
-      <TabsList>
+      <TabsList className={TAB_LIST_SCROLL}>
         <TabsTrigger value="mine" className="gap-1.5"><Clock className="size-3.5" /> My shifts</TabsTrigger>
         <TabsTrigger value="roster" className="gap-1.5"><CalendarRange className="size-3.5" /> Roster</TabsTrigger>
         <TabsTrigger value="swaps" className="gap-1.5"><ArrowLeftRight className="size-3.5" /> Swaps{swaps.length ? ` (${swaps.length})` : ""}</TabsTrigger>

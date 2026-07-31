@@ -28,6 +28,7 @@ import { UsersIcon } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { formatINR } from "@/lib/utils";
 import { createEmployee, createPayrollRun, postPayrollRun } from "@/actions/finance-payroll.actions";
+import { TAB_LIST_SCROLL } from "@/lib/mobile-tabs";
 
 interface Employee {
   id: string;
@@ -105,7 +106,7 @@ export function PayrollWorkspace({
       />
 
       <Tabs defaultValue="employees" className="space-y-5">
-        <TabsList>
+        <TabsList className={TAB_LIST_SCROLL}>
           <TabsTrigger value="employees">Employees</TabsTrigger>
           <TabsTrigger value="runs">Payroll runs</TabsTrigger>
         </TabsList>

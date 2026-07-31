@@ -18,6 +18,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { StatusPill } from "@/components/shared/status-pill";
 import { formatINR } from "@/lib/utils";
 import type { TaxSummary } from "@/actions/finance-tax.actions";
+import { TAB_LIST_SCROLL } from "@/lib/mobile-tabs";
 
 const STATUS_HUE: Record<string, "emerald" | "amber" | "blue" | "rose" | "slate"> = {
   PAID: "emerald",
@@ -47,7 +48,9 @@ export function TaxWorkspace({ summary, fiscalYears }: { summary: TaxSummary; fi
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2">
+      {/* Label + a 144px select + the "derived live from the ledger" note runs
+        * well past 375px, so this row wraps on a phone. */}
+      <div className="flex flex-wrap items-center gap-2">
         <span className="text-sm text-muted-foreground">Financial year</span>
         <Select value={fy} onValueChange={(v) => router.push(`/finance/tax?fy=${v}`)}>
           <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
@@ -64,7 +67,7 @@ export function TaxWorkspace({ summary, fiscalYears }: { summary: TaxSummary; fi
       </div>
 
       <Tabs defaultValue="gstr3b">
-        <TabsList>
+        <TabsList className={TAB_LIST_SCROLL}>
           <TabsTrigger value="gstr3b"><Scale className="size-4" /> GSTR-3B</TabsTrigger>
           <TabsTrigger value="gstr1"><FileText className="size-4" /> GSTR-1</TabsTrigger>
           <TabsTrigger value="tds"><Landmark className="size-4" /> TDS</TabsTrigger>
@@ -97,7 +100,14 @@ export function TaxWorkspace({ summary, fiscalYears }: { summary: TaxSummary; fi
               {gstr1.invoices.length === 0 ? (
                 <EmptyState icon={<FileText className="size-5" />} title="No outward supplies" description="No SENT or PAID invoices in this financial year. GSTR-1 is built from issued invoices." />
               ) : (
-                <Table>
+                <>
+                {/* Seven columns (five of them rupee figures) can't fit 375px
+                  * and GST amounts must not be truncated, so the scroll stays —
+                  * but it's announced, and cell padding tightens on phones. */}
+                <p className="px-4 pb-2 text-[12px] text-muted-foreground sm:hidden">
+                  Swipe the table sideways to reach CGST, SGST, IGST and Total.
+                </p>
+                <Table className="[&_td]:px-2.5 [&_th]:px-2.5 sm:[&_td]:px-4 sm:[&_th]:px-4">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Invoice</TableHead>
@@ -140,6 +150,7 @@ export function TaxWorkspace({ summary, fiscalYears }: { summary: TaxSummary; fi
                     </TableRow>
                   </TableBody>
                 </Table>
+                </>
               )}
             </CardContent>
           </Card>

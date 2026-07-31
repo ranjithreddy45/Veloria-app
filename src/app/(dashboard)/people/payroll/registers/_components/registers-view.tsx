@@ -59,6 +59,14 @@ export function RegistersView({ periods, initial }: { periods: Period[]; initial
       </div>
 
       {reg && reg.rows.length > 0 ? (
+        <>
+        {/* Eight columns of rupee figures cannot be squeezed into 375px and must
+          * not be truncated, so the register keeps its horizontal scroll — but
+          * an unannounced sideways scroll reads as a broken page. Say it out
+          * loud on phones only. */}
+        <p className="text-[12px] text-muted-foreground sm:hidden">
+          Swipe the register sideways to see PF, ESI, PT, TDS and Net.
+        </p>
         <div className="overflow-x-auto rounded-xl border bg-card">
           <Table>
             <TableHeader>
@@ -100,6 +108,7 @@ export function RegistersView({ periods, initial }: { periods: Period[]; initial
             </TableFooter>
           </Table>
         </div>
+        </>
       ) : (
         <div className="flex items-center gap-2 rounded-xl border border-dashed p-12 text-center text-sm text-muted-foreground">
           <FileText className="size-4" /> No payslips in this period.

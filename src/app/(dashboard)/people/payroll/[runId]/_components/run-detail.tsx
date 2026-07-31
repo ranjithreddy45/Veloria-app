@@ -171,6 +171,13 @@ export function RunDetail({ run }: { run: RunView }) {
             {isDraft ? "No payslips yet — run Compute to generate them." : "No payslips in this run."}
           </div>
         ) : (
+          <>
+          {/* Eight columns of rupee figures cannot fit 375px and must not be
+            * truncated, so this keeps its horizontal scroll — but an
+            * unannounced sideways scroll reads as a broken page, so say it. */}
+          <p className="px-4 pb-2 text-[12px] text-muted-foreground sm:hidden">
+            Swipe the table sideways to see PF, ESI, PT, TDS and Net.
+          </p>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -213,6 +220,7 @@ export function RunDetail({ run }: { run: RunView }) {
               </TableBody>
             </Table>
           </div>
+          </>
         )}
       </div>
     </div>

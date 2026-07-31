@@ -93,11 +93,14 @@ export function BdFilterBar({ employees }: Props) {
       {/* Employee multiselect */}
       <Popover open={empOpen} onOpenChange={setEmpOpen}>
         <PopoverTrigger asChild>
-          <Button variant="outline" className="h-9 gap-2">
-            <Users className="h-4 w-4 text-muted-foreground" />
-            {empLabel}
+          {/* With exactly one employee picked the label is their full name, which
+            * on a 375px screen is wider than the row — truncate rather than let
+            * the button push the filter bar past the viewport edge. */}
+          <Button variant="outline" className="h-9 max-w-full gap-2">
+            <Users className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span className="truncate">{empLabel}</span>
             {selectedEmp.size > 0 && <Badge className="ml-1 h-5 px-1.5">{selectedEmp.size}</Badge>}
-            <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+            <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-60" />
           </Button>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-64 p-1.5">

@@ -132,7 +132,7 @@ function ContractRow({ contract, showSignButton }: ContractRowProps) {
   const isExpired = contract.status === "EXPIRED";
 
   return (
-    <Link href={`/portal/contracts/${contract.id}`} className="block">
+    <Link href={`/portal/contracts/${contract.id}`} className="block w-full">
       <Card
         className={`group shadow-card hover:shadow-card-hover overflow-hidden rounded-2xl py-0 transition-all duration-200 ${
           isSigned

@@ -25,8 +25,9 @@ export default async function VendorPortalLayout({
   return (
     <div className="min-h-screen bg-muted/25">
       {/* Vendor Portal Header */}
-      <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur-md">
-        <div className="relative mx-auto flex h-[68px] max-w-6xl items-center justify-between px-5 sm:px-8">
+      {/* pad-safe-top so the sticky bar clears the status bar when installed. */}
+      <header className="pad-safe-top sticky top-0 z-30 border-b bg-background/80 backdrop-blur-md">
+        <div className="relative mx-auto flex h-[68px] max-w-6xl items-center justify-between px-4 sm:px-8">
           {/* Logo */}
           <Link
             href="/vendor-portal"
@@ -56,7 +57,7 @@ export default async function VendorPortalLayout({
       </header>
 
       {/* Content */}
-      <main className="mx-auto max-w-6xl px-5 py-10 sm:px-8 lg:py-14">
+      <main className="mx-auto max-w-6xl px-4 py-8 pb-[calc(2rem+var(--sab))] sm:px-8 sm:py-10 lg:py-14">
         {children}
       </main>
     </div>

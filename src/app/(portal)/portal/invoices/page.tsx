@@ -129,7 +129,7 @@ function InvoiceRow({ invoice, showPayButton }: InvoiceRowProps) {
   const issueDate = new Date(invoice.issueDate);
 
   return (
-    <Link href={`/portal/invoices/${invoice.id}`} className="block">
+    <Link href={`/portal/invoices/${invoice.id}`} className="block w-full">
       <Card
         className={`group shadow-card hover:shadow-card-hover overflow-hidden rounded-2xl py-0 transition-all duration-200 ${
           isOverdue ? "border-destructive/30" : ""

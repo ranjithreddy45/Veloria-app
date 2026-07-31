@@ -158,7 +158,9 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
       </div>
 
       {/* A4 Invoice Container */}
-      <div className="mx-auto max-w-[210mm] rounded-2xl border bg-white p-8 text-zinc-900 shadow-card print:shadow-none print:border-0 print:p-0 print:rounded-none">
+      {/* p-8 leaves only ~311px of usable width on a 375px phone once the page
+          gutters are counted, which is what crushed the line-item table. */}
+      <div className="mx-auto max-w-[210mm] rounded-2xl border bg-white p-4 text-zinc-900 shadow-card sm:p-8 print:shadow-none print:border-0 print:p-0 print:rounded-none">
         {/* Header — issuer block (left) vs document block (right) */}
         <div className="flex flex-col gap-6 sm:flex-row sm:justify-between">
           <div>
@@ -232,7 +234,9 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
               </p>
             )}
             {invoice.contact.email && (
-              <p className="text-[13px] text-zinc-500">{invoice.contact.email}</p>
+              // break-all: a long address is one unbreakable token and would
+              // otherwise widen the whole invoice sheet past the viewport.
+              <p className="break-all text-[13px] text-zinc-500">{invoice.contact.email}</p>
             )}
             {invoice.contact.phone && (
               <p className="numeric text-[13px] text-zinc-500">
@@ -297,8 +301,35 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
           </div>
         </div>
 
+        {/* Line Items — six columns cannot fit 375px without a sideways scroll,
+            and an invoice line you have to drag to read is the worst case on
+            this screen. Below `sm` each line becomes a stacked card; the table
+            is what still prints. */}
+        <ul className="mt-6 space-y-2.5 sm:hidden print:hidden">
+          {invoice.lineItems.map((item, index) => (
+            <li
+              key={item.id}
+              className="rounded-xl border border-zinc-200 p-3"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <p className="min-w-0 text-[13px] font-medium text-zinc-800">
+                  <span className="numeric text-zinc-400">{index + 1}.</span>{" "}
+                  {item.description}
+                </p>
+                <p className="numeric shrink-0 text-[13px] font-semibold text-zinc-900">
+                  {formatINR(item.amount)}
+                </p>
+              </div>
+              <p className="numeric mt-1 text-[12px] text-zinc-500">
+                {toNum(item.quantity)} × {formatINR(item.unitPrice)}
+                {item.sacCode ? ` · SAC ${item.sacCode}` : ""}
+              </p>
+            </li>
+          ))}
+        </ul>
+
         {/* Line Items Table */}
-        <div className="mt-8 overflow-x-auto">
+        <div className="mt-8 hidden overflow-x-auto sm:block print:block">
           <table className="w-full text-[13px]">
             <thead>
               <tr className="border-b border-zinc-300">
@@ -523,7 +554,43 @@ This is a Proforma Invoice for advance/part payment and is not a tax document. A
         <div className="print:hidden">
           <h3 className="mb-3">Payment History</h3>
           <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
-            <div className="overflow-x-auto">
+            {/* Six columns need a sideways drag on a phone; stack them instead. */}
+            <ul className="divide-y sm:hidden">
+              {invoice.payments.map((payment) => (
+                <li key={payment.id} className="space-y-1.5 p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="numeric min-w-0 text-[13px] font-medium">
+                      {payment.receiptNumber || "—"}
+                    </span>
+                    <span className="numeric shrink-0 text-[13px] font-semibold text-success">
+                      {formatINR(payment.amount)}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+                    <span className="numeric">
+                      {payment.paidAt
+                        ? format(new Date(payment.paidAt), "dd MMM yyyy")
+                        : format(new Date(payment.createdAt), "dd MMM yyyy")}
+                    </span>
+                    <Badge variant="outline" className="text-xs">
+                      {payment.method.replace("_", " ")}
+                    </Badge>
+                    <Badge
+                      variant="outline"
+                      className={`${PAYMENT_STATUS_COLORS[payment.status] || ""} border text-xs`}
+                    >
+                      {payment.status}
+                    </Badge>
+                  </div>
+                  {payment.transactionId && (
+                    <p className="numeric break-all text-[12px] text-muted-foreground">
+                      Txn {payment.transactionId}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <div className="hidden overflow-x-auto sm:block">
               <table className="w-full text-[13px]">
                 <thead>
                   <tr className="border-b bg-muted/30 text-[11px] font-medium uppercase tracking-[0.05em] text-muted-foreground">
@@ -582,7 +649,33 @@ This is a Proforma Invoice for advance/part payment and is not a tax document. A
         <div className="print:hidden">
           <h3 className="mb-3">Installment Schedule</h3>
           <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
-            <div className="overflow-x-auto">
+            {/* Same reasoning as the payment history: stacked rows on a phone. */}
+            <ul className="divide-y sm:hidden">
+              {invoice.installments.map((inst) => (
+                <li key={inst.id} className="space-y-1.5 p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="min-w-0 text-[13px] font-medium">
+                      {inst.label}
+                    </span>
+                    <span className="numeric shrink-0 text-[13px] font-semibold">
+                      {formatINR(inst.amount)}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+                    <span className="numeric">
+                      Due {format(new Date(inst.dueDate), "dd MMM yyyy")}
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className={`${PAYMENT_STATUS_COLORS[inst.status] || ""} border text-xs`}
+                    >
+                      {inst.status}
+                    </Badge>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="hidden overflow-x-auto sm:block">
               <table className="w-full text-[13px]">
                 <thead>
                   <tr className="border-b bg-muted/30 text-[11px] font-medium uppercase tracking-[0.05em] text-muted-foreground">

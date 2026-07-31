@@ -59,7 +59,9 @@ export function TicketDetail({
         {ticket.status !== "CLOSED" && (
           <div className="rounded-xl border bg-card p-3">
             <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write a reply…" className="h-20 w-full resize-y rounded-md border bg-background p-2.5 text-[13px] outline-none focus:ring-2 focus:ring-ring" />
-            <div className="mt-2 flex items-center justify-between">
+            {/* "Internal note (hidden from requester)" plus Send is wider than
+              * the card on a phone — wrap so Send is never pushed off. */}
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
               {isAgent ? (
                 <label className="flex items-center gap-2 text-[12.5px] text-muted-foreground"><input type="checkbox" checked={internal} onChange={(e) => setInternal(e.target.checked)} className="size-4" /> Internal note (hidden from requester)</label>
               ) : <span />}

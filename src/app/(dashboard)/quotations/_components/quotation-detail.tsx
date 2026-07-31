@@ -247,7 +247,28 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, isSu
               <Detail label="Guests" value={String(quote.guestCount || "—")} numeric />
             </div>
 
-            <div className="overflow-hidden rounded-xl border">
+            {/* Particulars / Plan / Amount at px-4 needs ~330px, but the card
+                interior is ~295px at 375px — and the wrapper's overflow-hidden
+                CLIPPED the rightmost column, i.e. the money. Stacked rows below
+                `sm`; the table (now scrollable rather than clipped) from `sm`. */}
+            <ul className="divide-y rounded-xl border sm:hidden">
+              {result.lines.map((l) => (
+                <li key={l.sl} className="space-y-1 p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="min-w-0 text-[13px] font-medium">
+                      {l.particulars}
+                    </span>
+                    <span className="numeric shrink-0 text-[13px] font-semibold">
+                      {inr(l.amount)}
+                    </span>
+                  </div>
+                  {l.plan && (
+                    <p className="text-[12px] text-muted-foreground">{l.plan}</p>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <div className="hidden overflow-x-auto rounded-xl border sm:block">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-muted/30">
@@ -386,7 +407,9 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, isSu
             <DialogDescription>Share the approved quotation PDF.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
-            <div className="flex gap-2">
+            {/* Email + WhatsApp + Mark Downloaded is ~360px — wider than the
+                dialog interior on a 375px phone. */}
+            <div className="flex flex-wrap gap-2">
               <Button type="button" size="sm" variant={sendMethod === "EMAIL" ? "default" : "outline"} onClick={() => setSendMethod("EMAIL")}>
                 <Mail className="h-4 w-4" /> Email
               </Button>

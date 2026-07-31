@@ -191,10 +191,14 @@ export function MyMonthCalendar({
   const selectedRec = selected != null ? byDay.get(selected) ?? null : null;
 
   return (
-    <Card className="gap-0 p-5 shadow-card">
-      {/* Header + navigation */}
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
+    /* p-3 at phone width buys ~16px back for the 7-column grid — at p-5 each day
+     * cell is only 38px wide, which reads as a cramped strip on a 375px screen. */
+    <Card className="gap-0 p-3 shadow-card sm:p-5">
+      {/* Header + navigation. Wraps on a phone: the month title plus Today +
+       * two arrow buttons (44px each under the coarse-pointer rule) are wider
+       * than 375px, and without wrapping the arrows overflow the card. */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <div className="flex min-w-0 items-center gap-2.5">
           <span className="grid size-9 place-items-center rounded-xl bg-violet-100 text-violet-600 dark:bg-violet-950/50 dark:text-violet-300">
             <CalendarDays className="size-4" />
           </span>
@@ -220,7 +224,7 @@ export function MyMonthCalendar({
       </div>
 
       {/* Weekday headers */}
-      <div className="grid grid-cols-7 gap-1.5">
+      <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
         {WEEKDAYS.map((w) => (
           <div key={w} className="pb-1 text-center text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
             {w}
@@ -229,7 +233,7 @@ export function MyMonthCalendar({
       </div>
 
       {/* Day grid */}
-      <div className="grid grid-cols-7 gap-1.5">
+      <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
         {cells.map((c, i) => {
           if (c.day == null) return <div key={`b${i}`} aria-hidden />;
           const day = c.day;

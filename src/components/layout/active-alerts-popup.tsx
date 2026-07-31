@@ -219,7 +219,7 @@ export function ActiveAlertsPopup() {
         type="button"
         onClick={() => setCollapsed(false)}
         className={cn(
-          "fixed bottom-4 right-4 z-[60] flex items-center gap-2 rounded-full border px-4 py-2.5 shadow-lg transition-transform hover:scale-105",
+          "fixed bottom-[calc(1rem+max(var(--sab),0px))] right-4 z-[60] flex items-center gap-2 rounded-full border px-4 py-2.5 shadow-lg transition-transform hover:scale-105",
           overdueCount > 0
             ? "border-destructive/20 bg-destructive text-white"
             : "border-warning/20 bg-warning text-white"
@@ -239,7 +239,7 @@ export function ActiveAlertsPopup() {
     data.total - visibleTasks.length - visibleSla.length;
 
   return (
-    <div className="fixed bottom-4 right-4 z-[60] w-[min(92vw,22rem)]">
+    <div className="fixed bottom-[calc(1rem+max(var(--sab),0px))] right-4 z-[60] w-[min(92vw,22rem)]">
       <div className="overflow-hidden rounded-xl border border-border bg-card shadow-2xl ring-1 ring-black/5">
         {/* Header */}
         <div className="flex items-center justify-between gap-2 border-b border-border bg-gradient-to-r from-red-500 to-amber-500 px-4 py-2.5 text-white">

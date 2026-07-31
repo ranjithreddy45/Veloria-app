@@ -47,7 +47,7 @@ export default async function PortalGuestsPage() {
             const eventDate = new Date(b.date);
             const guestCount = b.guestList?._count?.guests ?? 0;
             return (
-              <Link key={b.id} href={`/portal/guests/${b.id}`} className="block">
+              <Link key={b.id} href={`/portal/guests/${b.id}`} className="block w-full">
                 <Card className="group shadow-card hover:shadow-card-hover h-full overflow-hidden rounded-2xl py-0 transition-all duration-200">
                   <CardContent className="p-0">
                     <div className="bg-primary/[0.05] flex items-center gap-4 px-5 py-4">
@@ -75,7 +75,9 @@ export default async function PortalGuestsPage() {
                         <span className="numeric">{guestCount}</span> guest
                         {guestCount === 1 ? "" : "s"}
                       </span>
-                      <span className="text-primary flex items-center gap-1 text-xs font-medium opacity-0 transition-opacity group-hover:opacity-100">
+                      {/* No hover on touch — keep the affordance visible so the
+                          card reads as tappable on a phone. */}
+                      <span className="text-primary flex items-center gap-1 text-xs font-medium transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                         Manage <ArrowUpRight className="size-3" />
                       </span>
                     </div>

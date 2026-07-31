@@ -97,16 +97,20 @@ export function MyReimbursementsList({ claims }: { claims: ReimbursementClaim[] 
               const label = STATUS[c.status]?.label ?? c.status;
               return (
                 <TableRow key={c.id}>
-                  <TableCell className="text-[13px]">
-                    <div className="flex items-center gap-1.5 font-medium">
+                  {/* TableCell is whitespace-nowrap by default, so a long note or
+                    * rejection reason used to stretch the row to its full text
+                    * width and drag the whole table sideways. Cap the column and
+                    * let the free-text lines wrap instead. */}
+                  <TableCell className="max-w-[220px] whitespace-normal text-[13px]">
+                    <div className="flex items-center gap-1.5 font-medium break-words">
                       {c.title}
                       {c.hasBill && (
-                        <Paperclip className="size-3.5 text-muted-foreground" aria-label="Bill attached" />
+                        <Paperclip className="size-3.5 shrink-0 text-muted-foreground" aria-label="Bill attached" />
                       )}
                     </div>
-                    {c.note && <div className="text-[12px] text-muted-foreground">{c.note}</div>}
+                    {c.note && <div className="text-[12px] break-words text-muted-foreground">{c.note}</div>}
                     {c.status === "REJECTED" && c.decisionNote && (
-                      <div className="mt-0.5 text-[12px] text-destructive">{c.decisionNote}</div>
+                      <div className="mt-0.5 text-[12px] break-words text-destructive">{c.decisionNote}</div>
                     )}
                     {c.status === "PAID" && c.paidAt && (
                       <div className="mt-0.5 text-[12px] text-success">

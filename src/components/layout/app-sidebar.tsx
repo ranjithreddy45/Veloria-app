@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment } from "react";
+import { Fragment, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
@@ -117,6 +117,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   Collapsible,
@@ -222,6 +223,32 @@ function getIcon(iconName: string): LucideIcon {
 }
 
 // ============================================================
+// Mobile drawer behaviour
+// ============================================================
+
+/**
+ * Below `md` the sidebar is a Radix Sheet. Radix has no idea the Next router
+ * moved, so without this the drawer stays open on top of the page you just
+ * navigated to and you have to dismiss it by hand every single time — the
+ * single most annoying thing about navigating this app on a phone.
+ * No-ops on desktop, where the sidebar is always mounted.
+ */
+function useCloseDrawerOnNavigate() {
+  const { isMobile, setOpenMobile } = useSidebar();
+  return useCallback(() => {
+    if (isMobile) setOpenMobile(false);
+  }, [isMobile, setOpenMobile]);
+}
+
+// Touch-sized nav rows. The global `pointer: coarse` rule in globals.css lifts
+// buttons and [role=button] to 44px, but these rows render as plain <a> via
+// `asChild` — anchors only get a 32px floor there — so the sizes are set here.
+// Mobile-first: unprefixed value applies on phones, `md:` restores the tight
+// desktop density, so this cannot regress the desktop sidebar.
+const NAV_ROW_TOUCH = "h-11 text-[14px] md:h-9 md:text-[13px]";
+const NAV_SUBROW_TOUCH = "h-10 text-[13.5px] md:h-8 md:text-[12.5px]";
+
+// ============================================================
 // Collapsible group labels
 // ============================================================
 
@@ -320,6 +347,7 @@ function SidebarNavItem({
   tileClass: string;
 }) {
   const Icon = getIcon(item.icon);
+  const closeDrawer = useCloseDrawerOnNavigate();
 
   return (
     <SidebarMenuItem>
@@ -328,14 +356,15 @@ function SidebarNavItem({
         isActive={isActive}
         tooltip={item.title}
         className={cn(
-          "group/nav relative h-9 overflow-hidden rounded-xl px-2 text-[13px] font-medium text-sidebar-foreground/80 transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
+          "group/nav relative overflow-hidden rounded-xl px-2 font-medium text-sidebar-foreground/80 transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
+          NAV_ROW_TOUCH,
           "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
           "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0!",
           isActive &&
             "sheen-sweep bg-gradient-to-b from-primary to-[color-mix(in_oklab,var(--primary)_90%,black_10%)] font-semibold text-primary-foreground shadow-[inset_0_1px_0_oklch(1_0_0/0.28),0_2px_8px_oklch(0.4_0.12_162/0.32)] hover:text-primary-foreground hover:from-primary hover:to-[color-mix(in_oklab,var(--primary)_90%,black_10%)]"
         )}
       >
-        <Link href={item.href}>
+        <Link href={item.href} onClick={closeDrawer}>
           <span
             className={cn(
               "flex size-6 shrink-0 items-center justify-center rounded-[7px] transition-colors duration-200",
@@ -366,6 +395,7 @@ function SidebarCollapsibleItem({
 }) {
   const Icon = getIcon(item.icon);
   const isGroupActive = pathname.startsWith(item.href);
+  const closeDrawer = useCloseDrawerOnNavigate();
 
   return (
       <Collapsible defaultOpen={isGroupActive} className="group/collapsible">
@@ -374,7 +404,8 @@ function SidebarCollapsibleItem({
             <SidebarMenuButton
               tooltip={item.title}
               className={cn(
-                "group/nav h-9 rounded-xl px-2 text-[13px] font-medium text-sidebar-foreground/80 transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
+                "group/nav rounded-xl px-2 font-medium text-sidebar-foreground/80 transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
+                NAV_ROW_TOUCH,
                 "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
                 "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0!",
                 isGroupActive &&
@@ -399,12 +430,13 @@ function SidebarCollapsibleItem({
                       asChild
                       isActive={isChildActive}
                       className={cn(
-                        "h-8 rounded-lg text-[12.5px] text-sidebar-foreground/70 transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
+                        "rounded-lg text-sidebar-foreground/70 transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
+                        NAV_SUBROW_TOUCH,
                         "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
                         isChildActive && "bg-primary/[0.11] font-semibold text-primary shadow-[inset_0_0_0_1px_oklch(0.45_0.11_162/0.16)] hover:bg-primary/[0.14] hover:text-primary"
                       )}
                     >
-                      <Link href={child.href}>
+                      <Link href={child.href} onClick={closeDrawer}>
                         <ChildIcon className={cn("size-3.5", isChildActive ? "text-primary" : "text-sidebar-foreground/50")} />
                         <span>{child.title}</span>
                       </Link>
@@ -447,6 +479,7 @@ export function AppSidebar() {
   const pathname = usePathname();
   const { user, isLoading } = useCurrentUser();
   const { permissions } = usePermissions();
+  const closeDrawer = useCloseDrawerOnNavigate();
 
   // Filter navigation based on user permissions
   const filteredNavigation = filterNavigationByPermissions(
@@ -464,10 +497,17 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-material-sidebar">
-      {/* Header with logo */}
-      <SidebarHeader className="px-3 py-3.5">
+      {/* Header with logo.
+          Safe-area top: installed as a PWA the drawer runs edge-to-edge with no
+          browser chrome, so without this the wordmark sits under the status bar
+          / notch. Written as calc(base + inset) rather than the `pad-safe-top`
+          utility because that utility REPLACES padding-top and would drop the
+          14px of breathing room the desktop sidebar needs (--sat is 0px in a
+          browser, so desktop is untouched). */}
+      <SidebarHeader className="px-3 pb-3.5 pt-[calc(0.875rem+max(var(--sat),0px))]">
         <Link
           href="/dashboard"
+          onClick={closeDrawer}
           className="group/brand flex items-center gap-2.5 rounded-xl transition-all duration-200 hover:opacity-95 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
           {/* Collapsed (icon-only) sidebar — compact mark */}
@@ -499,8 +539,11 @@ export function AppSidebar() {
         <div className="divider-fade mt-3 group-data-[collapsible=icon]:hidden" />
       </SidebarHeader>
 
-      {/* Navigation */}
-      <SidebarContent className="px-2">
+      {/* Navigation.
+          `overscroll-contain` stops a flick at the end of this ~80-item list
+          from chaining into the page behind the drawer (which on iOS shows as
+          the whole app rubber-banding under the overlay). */}
+      <SidebarContent className="overscroll-contain px-2">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -544,13 +587,16 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* Footer with user info */}
-      <SidebarFooter className="border-t border-sidebar-border p-2">
+      {/* Footer with user info. Safe-area bottom: in PWA standalone mode this
+          row otherwise sits under the iOS home indicator, making "Sign out"
+          and the profile row effectively untappable. */}
+      <SidebarFooter className="border-t border-sidebar-border p-2 pb-[calc(0.5rem+max(var(--sab),0px))]">
         {/* Install on phone — matters most for field staff, whose geo-fenced
             attendance check-in happens on mobile. */}
         <Link
           href="/get-app"
-          className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[12.5px] font-medium text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0"
+          onClick={closeDrawer}
+          className="flex min-h-11 items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13.5px] font-medium text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0 md:min-h-0 md:text-[12.5px]"
           title="Get the app on your phone"
         >
           <Smartphone className="size-4 shrink-0" />

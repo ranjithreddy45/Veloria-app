@@ -253,7 +253,6 @@ export function CommissionTable({ data }: CommissionTableProps) {
         items={data}
         facets={facets}
         onChange={setFiltered}
-        className="hidden lg:block"
       />
       <div className="min-w-0 flex-1">
         <DataTable

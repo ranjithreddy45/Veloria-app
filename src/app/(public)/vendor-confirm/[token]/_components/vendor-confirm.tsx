@@ -46,7 +46,7 @@ export function VendorConfirm({ token }: { token: string }) {
 
   if (mode === "declining") {
     return (
-      <div className="space-y-4 bg-card shadow-card rounded-2xl border p-6">
+      <div className="space-y-4 bg-card shadow-card rounded-2xl border p-5 sm:p-6">
         <div className="flex items-center justify-between">
           <p className="text-sm font-semibold text-foreground">
             Can&apos;t make it?

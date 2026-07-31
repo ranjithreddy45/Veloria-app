@@ -30,6 +30,7 @@ import { OpsAuditPanel } from "./ops-audit-panel";
 import { HandoverPanel } from "./handover-panel";
 import { Donut } from "@/components/ui/donut";
 import { healthTextClass, phaseHue } from "@/lib/projects/ui";
+import { TAB_LIST_SCROLL } from "@/lib/mobile-tabs";
 
 const inr = (n: number | string) => "₹" + Math.round(Number(n)).toLocaleString("en-IN");
 const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—");
@@ -153,15 +154,19 @@ export function ProjectDetail({ project, perms }: { project: any; perms: Perms }
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      {/* Back link + venue name + up to three status pills + a 48px readiness
+        * donut is far wider than 375px. Both halves wrap, and the title block
+        * gets min-w-0 so a long venue name truncates instead of stretching the
+        * row past the viewport. */}
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <div className="flex min-w-0 items-center gap-3">
           <Button asChild variant="ghost" size="sm"><a href="/projects"><ArrowLeft className="h-4 w-4" /> Projects</a></Button>
-          <div>
-            <h1 className="flex items-center gap-2 text-lg font-semibold"><Building2 className="h-4 w-4" /> {project.property.propertyName}</h1>
-            <p className="text-xs text-muted-foreground">{project.property.locality}, {project.property.city}</p>
+          <div className="min-w-0">
+            <h1 className="flex items-center gap-2 text-lg font-semibold"><Building2 className="h-4 w-4 shrink-0" /> <span className="truncate">{project.property.propertyName}</span></h1>
+            <p className="truncate text-xs text-muted-foreground">{project.property.locality}, {project.property.city}</p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {project.status === "ON_HOLD" && <StatusPill label="On hold" hue="amber" size="sm" />}
           {project.status === "CANCELLED" && <StatusPill label="Cancelled" hue="rose" size="sm" />}
           <StatusPill label={PROJECT_PHASE_LABEL[phase] ?? phase} hue={phaseHue(phase)} size="sm" />
@@ -200,7 +205,7 @@ export function ProjectDetail({ project, perms }: { project: any; perms: Perms }
       </Card>
 
       <Tabs defaultValue="readiness">
-        <TabsList>
+        <TabsList className={TAB_LIST_SCROLL}>
           <TabsTrigger value="readiness"><ClipboardCheck className="h-4 w-4" /> Readiness ({rPct}%)</TabsTrigger>
           <TabsTrigger value="capex"><Calculator className="h-4 w-4" /> CapEx</TabsTrigger>
           <TabsTrigger value="snags"><AlertTriangle className="h-4 w-4" /> Snags{openCMSnags > 0 ? ` (${openCMSnags})` : ""}</TabsTrigger>

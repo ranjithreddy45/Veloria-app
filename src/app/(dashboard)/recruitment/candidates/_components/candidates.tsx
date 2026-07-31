@@ -523,7 +523,6 @@ export function Candidates({
           items={data.rows}
           facets={FACETS}
           onChange={handleFacetChange}
-          className="hidden lg:block"
         />
 
         <Card className="min-w-0 flex-1 overflow-hidden p-0 shadow-card">

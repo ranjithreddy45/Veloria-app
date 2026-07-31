@@ -337,7 +337,6 @@ export function BookingsTable({ data }: BookingsTableProps) {
         items={data}
         facets={facets}
         onChange={setFiltered}
-        className="hidden lg:block"
       />
       <div className="min-w-0 flex-1">
         <DataTable

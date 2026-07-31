@@ -181,7 +181,7 @@ function TestimonialCarousel({
   const go = (delta: number) => setIdx((i) => (i + delta + total) % total);
 
   return (
-    <div className="bg-card shadow-card rounded-2xl border p-6">
+    <div className="bg-card shadow-card rounded-2xl border p-5 sm:p-6">
       <Quote className="mb-3 size-6" style={{ color: "var(--brand)" }} />
       <div className="mb-2 flex gap-0.5">
         {Array.from({ length: 5 }).map((_, i) => (

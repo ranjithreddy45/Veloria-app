@@ -566,7 +566,10 @@ export default async function BookingDetailPage({
 
       {/* Tabs */}
       <Tabs defaultValue="details">
-        <TabsList>
+        {/* TabsList is `inline-flex w-fit` with nowrap triggers — four of them
+            measure ~420px and pushed the whole page sideways at 375px. Full
+            width + a contained scroll keeps the overflow inside the strip. */}
+        <TabsList className="w-full justify-start overflow-x-auto [scrollbar-width:none] sm:w-fit [&::-webkit-scrollbar]:hidden">
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="invoices">
             Invoices ({booking.invoices.length})
@@ -806,9 +809,11 @@ export default async function BookingDetailPage({
                 {booking.contact.email && (
                   <div className="flex items-center gap-3">
                     <MailIcon className="text-muted-foreground size-4 shrink-0" />
-                    <div>
+                    {/* min-w-0 + break-all: an address is one unbreakable token
+                        and would otherwise widen the card past the viewport. */}
+                    <div className="min-w-0">
                       <p className="text-muted-foreground text-xs">Email</p>
-                      <p className="text-sm">{booking.contact.email}</p>
+                      <p className="break-all text-sm">{booking.contact.email}</p>
                     </div>
                   </div>
                 )}
@@ -867,14 +872,16 @@ export default async function BookingDetailPage({
         {/* Invoices Tab */}
         <TabsContent value="invoices" className="mt-6">
           <Card className="rounded-2xl shadow-card">
-            <CardHeader className="flex flex-row items-center justify-between">
+            {/* "Generate Proforma Invoice" is ~215px wide; forced onto the
+                title's row at 375px it overflowed the card. Stack below `sm`. */}
+            <CardHeader className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-base">
                 <span className="flex items-center gap-2">
                   <FileTextIcon className="size-4" />
                   Invoices
                 </span>
               </CardTitle>
-              <Button size="sm" asChild>
+              <Button size="sm" asChild className="w-full sm:w-auto">
                 <Link href={`/invoices/new?bookingId=${booking.id}`}>
                   <FileTextIcon className="mr-2 size-4" />
                   Generate Proforma Invoice
@@ -902,9 +909,12 @@ export default async function BookingDetailPage({
                       <Link
                         key={invoice.id}
                         href={`/invoices/${invoice.id}`}
-                        className="flex items-center justify-between gap-4 rounded-xl border p-3.5 transition-shadow hover:bg-muted/40 hover:shadow-card-hover"
+                        // flex-wrap: the money + status group is ~210px and left
+                        // the invoice number ~55px at 375px. It now drops to its
+                        // own line instead of squeezing the amount.
+                        className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl border p-3.5 transition-shadow hover:bg-muted/40 hover:shadow-card-hover"
                       >
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="numeric text-sm font-semibold">{invoice.invoiceNumber}</p>
                           <div className="mt-1 text-[13px] text-muted-foreground">
                             Issued{" "}
@@ -973,9 +983,11 @@ export default async function BookingDetailPage({
                     }) => (
                       <div
                         key={task.id}
-                        className="flex items-center justify-between gap-4 rounded-xl border p-3.5 transition-shadow hover:shadow-card-hover"
+                        // Same wrap treatment as the invoice rows — two status
+                        // pills plus the task title do not fit one 375px line.
+                        className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl border p-3.5 transition-shadow hover:shadow-card-hover"
                       >
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium">{task.title}</p>
                           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] text-muted-foreground">
                             {task.dueDate && (

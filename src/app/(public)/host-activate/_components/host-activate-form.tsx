@@ -41,7 +41,7 @@ export function HostActivateForm({ contactId, token, email }: { contactId: strin
   }
 
   return (
-    <div className="space-y-4 bg-card shadow-card rounded-2xl border p-6">
+    <div className="space-y-4 bg-card shadow-card rounded-2xl border p-5 sm:p-6">
       <div className="space-y-1.5">
         <Label className="text-sm">Your sign-in email</Label>
         <Input value={email} readOnly disabled className="bg-muted/50" />

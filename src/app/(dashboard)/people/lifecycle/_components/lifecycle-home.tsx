@@ -18,6 +18,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { StatusPill } from "@/components/shared/status-pill";
 import { formatDate } from "@/lib/utils";
 import { startOnboarding, startOffboarding } from "@/actions/hr-journey.actions";
+import { TAB_LIST_SCROLL } from "@/lib/mobile-tabs";
 
 interface EmpLite { id: string; firstName: string; lastName: string; empCode: string }
 interface Journey {
@@ -32,7 +33,7 @@ export function LifecycleHome({
 }) {
   return (
     <Tabs defaultValue="joining">
-      <TabsList>
+      <TabsList className={TAB_LIST_SCROLL}>
         <TabsTrigger value="joining" className="gap-1.5"><PlaneLanding className="size-3.5" /> Joining ({joining.filter((j) => j.status === "IN_PROGRESS").length})</TabsTrigger>
         <TabsTrigger value="exits" className="gap-1.5"><PlaneTakeoff className="size-3.5" /> Exits ({exits.filter((j) => j.status === "IN_PROGRESS").length})</TabsTrigger>
       </TabsList>

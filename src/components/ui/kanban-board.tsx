@@ -68,12 +68,31 @@ export function KanbanBoard<T>({
   className,
 }: KanbanBoardProps<T>) {
   return (
-    <div className={cn("overflow-x-auto pb-2", className)}>
-      <div className="flex min-w-max gap-4">
+    <div className={cn("min-w-0", className)}>
+      {/* Affordance: on a phone only the first column and a sliver of the next
+          are on screen, and a board with no visible edge reads as "the rest of
+          my pipeline is missing". One muted line is cheaper and more honest
+          than a gradient mask, which would fade the last column even when the
+          board is fully scrolled. */}
+      {columns.length > 1 && (
+        <p className="mb-2 flex items-center gap-1.5 text-[11.5px] text-muted-foreground md:hidden">
+          <span aria-hidden>←</span>
+          Swipe to see all {columns.length} stages
+          <span aria-hidden>→</span>
+        </p>
+      )}
+      {/* Scroll-snap so a swipe lands a column square in the viewport instead
+          of parking it half off-screen; `overscroll-x-contain` stops the swipe
+          from chaining into the browser's back gesture at the ends. */}
+      <div className="snap-x snap-mandatory overflow-x-auto overscroll-x-contain scroll-px-1 pb-2 md:snap-none">
+        <div className="flex min-w-max gap-4">
         {columns.map((col) => {
           const hue = col.hue ?? "slate";
           return (
-            <div key={col.id} className="flex w-[288px] shrink-0 flex-col gap-2.5">
+            // 82vw on a phone (~307px at 375) deliberately leaves the next
+            // column peeking, which is the real "there is more here" cue;
+            // capped at the desktop 288px so wide screens are unchanged.
+            <div key={col.id} className="flex w-[min(82vw,288px)] shrink-0 snap-start flex-col gap-2.5 sm:w-[288px]">
               <div className="flex items-center gap-2 px-0.5">
                 <span
                   className={cn(
@@ -107,6 +126,7 @@ export function KanbanBoard<T>({
             </div>
           );
         })}
+        </div>
       </div>
     </div>
   );

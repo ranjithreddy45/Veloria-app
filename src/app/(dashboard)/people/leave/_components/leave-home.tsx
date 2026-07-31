@@ -95,7 +95,9 @@ export function LeaveHome({
           const total = b.entitled + b.carriedForward;
           const available = total - b.used - b.pending;
           return (
-            <div key={b.id} className="rounded-2xl border border-border/70 bg-card p-5 shadow-card transition-shadow duration-200 hover:shadow-card-hover">
+            /* Two cards per row at 375px leaves ~165px each; p-5 would eat 40 of
+             * that and squeeze the day count against "of N days left". */
+            <div key={b.id} className="rounded-2xl border border-border/70 bg-card p-3.5 shadow-card transition-shadow duration-200 hover:shadow-card-hover sm:p-5">
               <div className="flex items-center justify-between">
                 <span className={cn("flex size-9 items-center justify-center rounded-lg", CHIP[b.leaveType.color] ?? CHIP.slate)}>
                   <CalendarDays className="size-4" />
@@ -104,8 +106,10 @@ export function LeaveHome({
               </div>
               <div className="mt-2.5 truncate text-[12.5px] font-medium" title={b.leaveType.name}>{b.leaveType.name}</div>
               <div className="mt-1.5">
-                <div className="flex items-baseline gap-1">
-                  <span className="numeric text-[26px] font-semibold leading-none">{available}</span>
+                {/* Wraps so "of N days left" drops under the figure rather than
+                  * overflowing the half-width card on a phone. */}
+                <div className="flex flex-wrap items-baseline gap-x-1 gap-y-0.5">
+                  <span className="numeric text-[22px] font-semibold leading-none sm:text-[26px]">{available}</span>
                   <span className="text-[12.5px] text-muted-foreground">of {total} days left</span>
                 </div>
                 <div className="mt-1.5 flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
@@ -177,9 +181,11 @@ export function LeaveHome({
               {requests.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell><StatusPill label={r.leaveType.code} hue={r.leaveType.color as never} size="xs" /></TableCell>
-                  <TableCell className="text-[13px]">
-                    <span className="numeric text-[12.5px]">{formatDate(r.startDate)}</span>{r.endDate !== r.startDate ? ` → ${formatDate(r.endDate)}` : ""}
-                    {r.reason && <div className="text-[12px] text-muted-foreground">{r.reason}</div>}
+                  {/* Free-text reason in a whitespace-nowrap cell used to widen
+                    * the table to the length of the sentence. Cap and wrap it. */}
+                  <TableCell className="max-w-[220px] whitespace-normal text-[13px]">
+                    <span className="whitespace-nowrap"><span className="numeric text-[12.5px]">{formatDate(r.startDate)}</span>{r.endDate !== r.startDate ? ` → ${formatDate(r.endDate)}` : ""}</span>
+                    {r.reason && <div className="text-[12px] break-words text-muted-foreground">{r.reason}</div>}
                   </TableCell>
                   <TableCell className="numeric text-right font-medium">{r.days}</TableCell>
                   <TableCell className="text-[13px] text-muted-foreground">

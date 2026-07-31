@@ -34,8 +34,10 @@ export default function GuestLayout({
   return (
     <div className="min-h-screen bg-muted/30">
       <div className="relative mx-auto flex min-h-screen max-w-md flex-col bg-background shadow-sm">
-        {/* Content — bottom padding leaves room for the tab bar */}
-        <main className="flex-1 pb-24">{children}</main>
+        {/* Content — bottom padding clears the tab bar. The bar is ~66px tall
+            PLUS the home-indicator inset it pads itself with, so a flat pb-24
+            (96px) left the last card clipped on an iPhone with a home bar. */}
+        <main className="flex-1 pb-[calc(6rem+var(--sab))]">{children}</main>
         <BottomNav />
       </div>
     </div>

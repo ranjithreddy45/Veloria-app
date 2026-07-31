@@ -161,7 +161,10 @@ export default async function ContactDetailPage({
 
       {/* Tabs */}
       <Tabs defaultValue="overview">
-        <TabsList>
+        {/* TabsList is `inline-flex w-fit` with nowrap triggers — five of them
+            run well past 375px and dragged the whole page sideways. Full width
+            plus a contained scroll keeps the overflow inside the strip. */}
+        <TabsList className="w-full justify-start overflow-x-auto [scrollbar-width:none] sm:w-fit [&::-webkit-scrollbar]:hidden">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="leads">
             Leads <span className="numeric text-muted-foreground">{contact.leads.length}</span>
@@ -204,10 +207,12 @@ export default async function ContactDetailPage({
                 </div>
                 {contact.email && (
                   <div className="flex items-center gap-3">
-                    <MailIcon className="text-muted-foreground size-4" />
-                    <div>
+                    <MailIcon className="text-muted-foreground size-4 shrink-0" />
+                    {/* min-w-0 + break-all: an address is one unbreakable token
+                        and would otherwise widen the card past the viewport. */}
+                    <div className="min-w-0">
                       <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Email</p>
-                      <p className="text-sm">{contact.email}</p>
+                      <p className="break-all text-sm">{contact.email}</p>
                     </div>
                   </div>
                 )}
@@ -327,7 +332,10 @@ export default async function ContactDetailPage({
                   {contact.leads.map((lead: { id: string; title: string; status: string; source: string; eventType: string | null; eventDate: Date | string | null; assignedTo: { name: string | null } | null }) => (
                     <div
                       key={lead.id}
-                      className="flex items-center justify-between gap-4 rounded-2xl border bg-card p-4 shadow-card transition-shadow hover:shadow-card-hover"
+                      // flex-wrap: the money + status group is ~210px of the
+                      // ~263px card interior at 375px, leaving the title ~50px.
+                      // It now drops to its own line instead of being crushed.
+                      className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-2xl border bg-card p-4 shadow-card transition-shadow hover:shadow-card-hover"
                     >
                       <div className="min-w-0">
                         <Link
@@ -397,7 +405,10 @@ export default async function ContactDetailPage({
                   {contact.bookings.map((booking: any) => (
                     <div
                       key={booking.id}
-                      className="flex items-center justify-between gap-4 rounded-2xl border bg-card p-4 shadow-card transition-shadow hover:shadow-card-hover"
+                      // flex-wrap: the money + status group is ~210px of the
+                      // ~263px card interior at 375px, leaving the title ~50px.
+                      // It now drops to its own line instead of being crushed.
+                      className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-2xl border bg-card p-4 shadow-card transition-shadow hover:shadow-card-hover"
                     >
                       <div className="min-w-0">
                         <p className="text-sm font-semibold tracking-[-0.01em]">{booking.eventName}</p>
@@ -446,7 +457,10 @@ export default async function ContactDetailPage({
                   {contact.invoices.map((invoice: any) => (
                     <div
                       key={invoice.id}
-                      className="flex items-center justify-between gap-4 rounded-2xl border bg-card p-4 shadow-card transition-shadow hover:shadow-card-hover"
+                      // flex-wrap: the money + status group is ~210px of the
+                      // ~263px card interior at 375px, leaving the title ~50px.
+                      // It now drops to its own line instead of being crushed.
+                      className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-2xl border bg-card p-4 shadow-card transition-shadow hover:shadow-card-hover"
                     >
                       <div className="min-w-0">
                         <p className="numeric text-sm font-semibold tracking-[-0.01em]">{invoice.invoiceNumber}</p>

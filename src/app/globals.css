@@ -754,3 +754,117 @@
   .dark ::-webkit-scrollbar-thumb { background: oklch(1 0 0 / 12%); }
   .dark ::-webkit-scrollbar-thumb:hover { background: oklch(1 0 0 / 22%); }
 }
+
+/* ============================================================
+ * TOUCH ERGONOMICS — applied only on coarse-pointer devices.
+ * ------------------------------------------------------------
+ * Measured on a 375px viewport: the primary "Sign in" button was 39px tall,
+ * text inputs 39px, the password "Show" toggle 36×16, and "Forgot?" 40×17.
+ * Apple's HIG minimum is 44×44pt and Material's is 48dp — everything the thumb
+ * has to hit was under it, which is a large part of why the app "feels bad" on
+ * a phone: taps land next to controls rather than on them.
+ *
+ * WHY A MEDIA QUERY RATHER THAN CHANGING THE VARIANTS: the app is a dense
+ * desktop ERP, and bumping `h-9` to `h-11` everywhere would blow up table rows,
+ * toolbars and filter bars on the screens people use all day. `pointer: coarse`
+ * matches finger input only — a mouse keeps today's density, a phone or tablet
+ * gets thumb-sized controls, and no component file has to change.
+ *
+ * Scoped by `data-slot`, which every shadcn primitive emits, so this cannot leak
+ * onto inline links in prose (a 44px min-height on every <a> would wreck body
+ * copy). Purely additive: it raises a minimum, never fixes a height, so controls
+ * that are already large keep their size.
+ * ============================================================ */
+@layer base {
+  /* Inside `base` on purpose: Tailwind utilities live in a LATER layer, so any
+   * explicit utility on an element (h-*, min-h-*, block, flex, grid) still wins.
+   * Unlayered, these declarations would beat every layered utility regardless of
+   * specificity — which silently broke anchor layout on touch devices. */
+  @media (pointer: coarse) {
+    /* Targeted by ELEMENT, not just by data-slot. Measuring the sign-in page showed
+     * data-slot alone covered only 3 of 8 undersized controls — much of the app
+     * uses plain <button>/<input> rather than the shadcn wrappers, so a slot-only
+     * rule would have looked correct and fixed almost nothing. These element
+     * selectors are safe: none of them can match inline prose.
+     * Opt out with `.tap-exempt` where a control is deliberately tiny and
+     * absolutely positioned (e.g. a remove-badge on an image thumbnail), since a
+     * min-height there would burst its parent. */
+    button:not(.tap-exempt),
+    [role="button"]:not(.tap-exempt),
+    select:not(.tap-exempt),
+    [data-slot="select-trigger"],
+    [data-slot="dropdown-menu-item"],
+    [data-slot="dropdown-menu-trigger"],
+    [data-slot="tabs-trigger"],
+    [data-slot="select-item"] {
+      min-height: 44px;
+    }
+
+    /* Inputs also get 16px text: iOS Safari force-zooms the page on focus when a
+     * field's font-size is under 16px, which yanks the layout sideways mid-typing. */
+    input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not(.tap-exempt),
+    textarea:not(.tap-exempt),
+    [data-slot="input"],
+    [data-slot="textarea"] {
+      min-height: 44px;
+      font-size: max(16px, 1em);
+    }
+
+    /* Icon-only buttons are square, so they need the width too or they stay a
+     * 36px-wide sliver that is hard to hit. */
+    button:not(.tap-exempt):has(> svg:only-child),
+    [data-slot="button"]:has(> svg:only-child) {
+      min-width: 44px;
+    }
+
+    /* Standalone action links ("Forgot?", "Sign up") are tap targets too. A bare
+     * min-height does nothing on an inline box, so this also sets a display —
+     * which is exactly why the whole block lives in `@layer base` (see above).
+     * Unlayered, `display: inline-flex` beat Tailwind's `.block`/`.flex`
+     * utilities and collapsed every full-width card link to shrink-to-fit.
+     * Inside `base`, any display utility on the element wins, as it should. */
+    a:not(p a):not(.tap-exempt) {
+      min-height: 32px;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    /* Checkboxes/switches/radios stay visually small but get a padded hit area
+     * via a transparent ::after, so the control's look is unchanged. */
+    [data-slot="checkbox"],
+    [data-slot="switch"],
+    [data-slot="radio-group-item"] {
+      position: relative;
+    }
+    [data-slot="checkbox"]::after,
+    [data-slot="switch"]::after,
+    [data-slot="radio-group-item"]::after {
+      content: "";
+      position: absolute;
+      inset: 50% auto auto 50%;
+      width: 44px;
+      height: 44px;
+      transform: translate(-50%, -50%);
+    }
+  }
+}
+
+/* ============================================================
+ * SAFE AREAS — matters now that the app installs as a PWA.
+ * In standalone mode there is no browser chrome, so a sticky header sits under
+ * the notch/status bar and anything pinned to the bottom sits under the home
+ * indicator. The --sat/--sab variables were already defined but were used in
+ * only three places.
+ * ============================================================ */
+@utility pad-safe-top {
+  padding-top: max(var(--sat), 0px);
+}
+@utility pad-safe-bottom {
+  padding-bottom: max(var(--sab), 0px);
+}
+@utility inset-safe {
+  padding-top: max(var(--sat), 0px);
+  padding-bottom: max(var(--sab), 0px);
+  padding-left: max(var(--sal), 0px);
+  padding-right: max(var(--sar), 0px);
+}

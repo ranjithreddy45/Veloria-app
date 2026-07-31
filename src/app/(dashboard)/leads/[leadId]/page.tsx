@@ -163,7 +163,11 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
             contactEmail={lead.contact.email}
             alreadyConverted={!!lead.deal}
           />
-          <Button size="sm" asChild>
+          {/* Nine controls wrap into a five-row block on a phone, which buries
+              the one action this page exists for. On mobile the primary CTA is
+              pulled to the top of the wrap and stretched full-width so it's the
+              obvious, thumb-reachable target; from `sm` it sits inline as before. */}
+          <Button size="sm" asChild className="order-first w-full sm:order-none sm:w-auto">
             <Link href={`/quotations/new?leadId=${lead.id}`}>
               <FileTextIcon className="mr-2 size-4" />
               Create Quotation
@@ -308,17 +312,19 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
             </CardHeader>
             <CardContent>
               <div className="flex items-start gap-4">
-                <div className="bg-muted flex size-10 items-center justify-center rounded-full">
+                <div className="bg-muted flex size-10 shrink-0 items-center justify-center rounded-full">
                   <UserIcon className="size-5" />
                 </div>
-                <div className="space-y-1.5">
+                {/* min-w-0 + break-all: a long address (e.g. a 40-char company
+                    email) otherwise pushes the whole card past the viewport. */}
+                <div className="min-w-0 space-y-1.5">
                   <p className="text-[15px] font-semibold tracking-[-0.01em]">
                     {lead.contact.firstName} {lead.contact.lastName}
                   </p>
                   {lead.contact.email && (
                     <div className="flex items-center gap-2">
-                      <MailIcon className="text-muted-foreground size-3.5" />
-                      <span className="text-[13px] text-muted-foreground">
+                      <MailIcon className="text-muted-foreground size-3.5 shrink-0" />
+                      <span className="min-w-0 break-all text-[13px] text-muted-foreground">
                         {lead.contact.email}
                       </span>
                     </div>
@@ -384,7 +390,10 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                           {format(new Date(q.createdAt), "dd MMM yyyy")}
                         </p>
                       </div>
-                      <div className="flex items-center gap-3">
+                      {/* shrink-0 so the money is never squeezed; stacked over
+                          the status pill on a phone where a row of both plus
+                          the quote number does not fit. */}
+                      <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-3">
                         <span className="numeric text-sm font-semibold">
                           {formatCurrency(q.grandTotal)}
                         </span>

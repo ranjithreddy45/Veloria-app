@@ -125,7 +125,7 @@ export default async function GuestConfirmPage({
       </header>
 
       {/* Event summary */}
-      <div className="bg-card shadow-card space-y-4 rounded-2xl border p-6">
+      <div className="bg-card shadow-card space-y-4 rounded-2xl border p-5 sm:p-6">
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="font-editorial text-foreground text-[20px] font-semibold">
             {data.eventName || data.eventType || "Your event"}
@@ -166,7 +166,7 @@ export default async function GuestConfirmPage({
 
       {/* Your services */}
       {(noteRows.length > 0 || packages.length > 0) && (
-        <div className="bg-card shadow-card space-y-5 rounded-2xl border p-6">
+        <div className="bg-card shadow-card space-y-5 rounded-2xl border p-5 sm:p-6">
           <div className="flex items-center gap-2">
             <Sparkles className="text-muted-foreground/60 size-4" />
             <h2 className="font-editorial text-foreground text-[20px] font-semibold">
@@ -248,7 +248,7 @@ export default async function GuestConfirmPage({
 
       {/* Terms & Conditions */}
       {terms.length > 0 && (
-        <div className="bg-card shadow-card space-y-5 rounded-2xl border p-6">
+        <div className="bg-card shadow-card space-y-5 rounded-2xl border p-5 sm:p-6">
           <div className="flex items-center gap-2">
             <ShieldCheck className="text-muted-foreground/60 size-4" />
             <h2 className="font-editorial text-foreground text-[20px] font-semibold">

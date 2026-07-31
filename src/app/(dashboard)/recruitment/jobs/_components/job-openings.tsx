@@ -218,7 +218,6 @@ export function JobOpenings({
           items={openings}
           facets={facets}
           onChange={handleFiltered}
-          className="hidden lg:block"
         />
 
         <div className="min-w-0 flex-1">

@@ -57,7 +57,9 @@ export function LeaveCalendar({
 
   return (
     <div className="rounded-xl border bg-card">
-      <div className="flex items-center justify-between border-b px-4 py-3">
+      {/* Month title + Prev/Today/Next (44px each on touch) is tight at 375px;
+        * wrapping keeps the Next arrow inside the card. */}
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b px-4 py-3">
         <h3 className="text-[15px] font-semibold">{MONTHS[month]} {year}</h3>
         <div className="flex gap-1.5">
           <Button variant="outline" size="icon" className="size-8" onClick={() => go(-1)}><ChevronLeft className="size-4" /></Button>

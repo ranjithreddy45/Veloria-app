@@ -131,7 +131,7 @@ function BookingCard({ booking, isPast }: BookingCardProps) {
   const eventDate = new Date(booking.date);
 
   return (
-    <Link href={`/portal/bookings/${booking.id}`} className="block">
+    <Link href={`/portal/bookings/${booking.id}`} className="block w-full">
       <Card
         className={`group shadow-card hover:shadow-card-hover h-full overflow-hidden rounded-2xl py-0 transition-all duration-200 ${
           isPast ? "opacity-70 hover:opacity-100" : ""
@@ -201,7 +201,9 @@ function BookingCard({ booking, isPast }: BookingCardProps) {
             <span className="numeric text-muted-foreground/60 text-[11px]">
               {booking.bookingNumber}
             </span>
-            <span className="text-primary flex items-center gap-1 text-xs font-medium opacity-0 transition-opacity group-hover:opacity-100">
+            {/* Visible by default on touch: there is no hover on a phone, so
+                the only "this card is tappable" affordance never appeared. */}
+            <span className="text-primary flex items-center gap-1 text-xs font-medium transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
               View details
               <ArrowUpRight className="size-3" />
             </span>

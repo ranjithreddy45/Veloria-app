@@ -85,7 +85,7 @@ export function GuestConfirmForm({
   }
 
   return (
-    <div className="space-y-4 bg-card shadow-card rounded-2xl border p-6">
+    <div className="space-y-4 bg-card shadow-card rounded-2xl border p-5 sm:p-6">
       <div>
         <h2 className="font-editorial text-foreground text-[20px] font-semibold">
           Confirmation &amp; declaration

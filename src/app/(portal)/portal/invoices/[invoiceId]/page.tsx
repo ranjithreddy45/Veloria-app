@@ -125,9 +125,14 @@ export default async function PortalInvoiceDetailPage({
         </div>
       </div>
 
+      {/* On a phone the two columns stack, and the right one holds the "Settle
+          your balance" CTA and the payment schedule. Left in source order that
+          buried the Pay button under the entire invoice document plus payment
+          history — several screens of scrolling before the one action the
+          customer opened the page to take. Order is flipped below lg only. */}
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Left Column */}
-        <div className="space-y-6 lg:col-span-2">
+        <div className="order-2 space-y-6 lg:order-1 lg:col-span-2">
           {/* Invoice Document */}
           <Card className="shadow-card overflow-hidden rounded-2xl py-0">
             {/* Invoice Meta */}
@@ -208,7 +213,34 @@ export default async function PortalInvoiceDetailPage({
             {/* Line Items */}
             <div className="p-6">
               <h2 className={`${LABEL} mb-3`}>What you&apos;re paying for</h2>
-              <div className="overflow-x-auto">
+
+              {/* Mobile: stacked rows. The four-column table squeezed the
+                  description to ~105px at 375px, wrapping every line item over
+                  three or four lines and making the invoice unreadable. */}
+              <div className="divide-border/60 divide-y sm:hidden">
+                {invoice.lineItems.map((item) => (
+                  <div key={item.id} className="py-3 first:pt-0">
+                    <p className="text-foreground text-sm leading-snug">
+                      {item.description}
+                    </p>
+                    {item.sacCode && (
+                      <p className="numeric text-muted-foreground/70 mt-0.5 text-xs">
+                        SAC {item.sacCode}
+                      </p>
+                    )}
+                    <div className="mt-1.5 flex items-baseline justify-between gap-3">
+                      <span className="numeric text-muted-foreground text-xs">
+                        {item.quantity} &times; {formatINR(item.unitPrice)}
+                      </span>
+                      <span className="numeric text-foreground shrink-0 text-sm font-medium">
+                        {formatINR(item.amount)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="hidden overflow-x-auto sm:block">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b">
@@ -449,7 +481,7 @@ export default async function PortalInvoiceDetailPage({
         </div>
 
         {/* Right Column */}
-        <div className="space-y-6">
+        <div className="order-1 space-y-6 lg:order-2">
           {/* Payment CTA */}
           {isPayable && (
             <Card className="shadow-card border-primary/20 bg-primary/[0.04] rounded-2xl py-0">

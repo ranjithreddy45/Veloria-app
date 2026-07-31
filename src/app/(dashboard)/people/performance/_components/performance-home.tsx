@@ -20,6 +20,7 @@ import { formatDate } from "@/lib/utils";
 import {
   addGoal, updateGoal, deleteGoal, submitReview, createCycle, setCycleStatus,
 } from "@/actions/hr-performance.actions";
+import { TAB_LIST_SCROLL } from "@/lib/mobile-tabs";
 
 interface Cycle { id: string; name: string; status: string; startDate: string; endDate: string; ratingMax: number }
 interface Goal { id: string; title: string; description: string | null; weight: number; status: string; selfRating: number | null; managerRating: number | null }
@@ -41,7 +42,7 @@ export function PerformanceHome({
 
   return (
     <Tabs defaultValue="mine">
-      <TabsList>
+      <TabsList className={TAB_LIST_SCROLL}>
         <TabsTrigger value="mine" className="gap-1.5"><Target className="size-3.5" /> My appraisal</TabsTrigger>
         <TabsTrigger value="team" className="gap-1.5"><Users className="size-3.5" /> Team reviews{reviewQueue.filter((r) => !r.reviewed).length ? ` (${reviewQueue.filter((r) => !r.reviewed).length})` : ""}</TabsTrigger>
         {canAdmin && <TabsTrigger value="cycles" className="gap-1.5"><Settings2 className="size-3.5" /> Cycles</TabsTrigger>}

@@ -18,6 +18,7 @@ import {
   upsertLegalEntity, deleteLegalEntity,
   upsertBusinessVertical, deleteBusinessVertical,
 } from "@/actions/hr-config.actions";
+import { TAB_LIST_SCROLL } from "@/lib/mobile-tabs";
 
 // Mirror of OrgConfigListItem from hr-config.actions.
 export interface OrgItem {
@@ -95,7 +96,7 @@ export function OrgConfigAdmin({ data }: { data: OrgConfigData }) {
       </div>
 
       <Tabs defaultValue="department">
-        <TabsList className="mb-3">
+        <TabsList className={`${TAB_LIST_SCROLL} mb-3`}>
           {KINDS.map((k) => (
             <TabsTrigger key={k.key} value={k.key}>{k.tab}</TabsTrigger>
           ))}

@@ -31,6 +31,7 @@ import type {
   UninvoicedBooking,
   PayoutStatement,
 } from "@/actions/finance-revenue.actions";
+import { TAB_LIST_SCROLL } from "@/lib/mobile-tabs";
 
 const DATE_FMT = new Intl.DateTimeFormat("en-IN", {
   day: "2-digit",
@@ -62,7 +63,7 @@ export function RevenueWorkspace({
 
   return (
     <Tabs defaultValue="auto-invoice">
-      <TabsList>
+      <TabsList className={TAB_LIST_SCROLL}>
         <TabsTrigger value="auto-invoice" className="gap-1.5">
           <Receipt className="size-3.5" /> Auto-invoice
         </TabsTrigger>

@@ -24,7 +24,10 @@ export default function AuthLayout({
         className="pointer-events-none absolute -top-24 left-1/2 size-[420px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,oklch(0.45_0.11_162/0.10),transparent_70%)] blur-2xl dark:bg-[radial-gradient(circle,oklch(0.66_0.13_163/0.18),transparent_70%)]"
       />
 
-      <div className="animate-rise-in relative z-10 flex w-full max-w-[400px] flex-col items-center px-6 py-12">
+      {/* Safe-area insets folded into the vertical padding: installed as a PWA
+          the brand lockup otherwise sits under the notch and the copyright
+          line under the home indicator. */}
+      <div className="animate-rise-in relative z-10 flex w-full max-w-[400px] flex-col items-center px-5 pb-[calc(3rem+var(--sab))] pt-[calc(3rem+var(--sat))] sm:px-6">
         {/* Brand lockup — full wordmark, falls back to ring-glow mark + text */}
         <div className="mb-9 flex flex-col items-center gap-3.5">
           <BrandLogo
@@ -48,7 +51,8 @@ export default function AuthLayout({
         </div>
 
         {/* Card — elevated premium surface with hairline border + frosted blur */}
-        <div className="shadow-premium w-full rounded-2xl border border-border/70 bg-card/85 p-8 backdrop-blur-xl">
+        {/* p-6 on phones: at 375px, px-5 + p-8 left the fields only 263px wide. */}
+        <div className="shadow-premium w-full rounded-2xl border border-border/70 bg-card/85 p-6 backdrop-blur-xl sm:p-8">
           {children}
         </div>
 

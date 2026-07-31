@@ -277,7 +277,9 @@ export function BookingCalendar({
           {DAY_NAMES.map((day) => (
             <div
               key={day}
-              className="px-2 py-2.5 text-center text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground"
+              // px-2 + 0.08em tracking makes "WED" ~46px inside a ~49px cell on
+              // a 375px phone — one character of drift from clipping.
+              className="px-0.5 py-2 text-center text-[10px] font-medium uppercase tracking-normal text-muted-foreground sm:px-2 sm:py-2.5 sm:text-[11px] sm:tracking-[0.08em]"
             >
               {day}
             </div>
@@ -327,7 +329,12 @@ export function BookingCalendar({
               <div
                 key={i}
                 className={cn(
-                  "relative min-h-[124px] cursor-pointer border-b border-r p-2 transition-colors",
+                  // A 7-column month grid gives each cell ~49px on a 375px
+                  // phone, so a 124px-tall cell is mostly empty and the event
+                  // pills truncate to 2-3 useless characters. Below `sm` the
+                  // cell shrinks and shows dots instead (see below); the full
+                  // desktop cell is unchanged from `sm` up.
+                  "relative min-h-[68px] cursor-pointer border-b border-r p-1 transition-colors sm:min-h-[124px] sm:p-2",
                   !isCurrentMonth && "bg-muted/30",
                   isCurrentMonth && "hover:bg-accent/40",
                   isSelected && "bg-indigo-50 ring-1 ring-inset ring-indigo-200",
@@ -336,10 +343,10 @@ export function BookingCalendar({
                 )}
                 onClick={() => handleDayClick(day)}
               >
-                <div className="mb-1.5 flex items-center justify-between">
+                <div className="mb-1 flex items-center justify-between sm:mb-1.5">
                   <span
                     className={cn(
-                      "inline-flex size-7 items-center justify-center text-[13px] tabular-nums",
+                      "inline-flex size-6 items-center justify-center text-[12px] tabular-nums sm:size-7 sm:text-[13px]",
                       !isCurrentMonth && "text-muted-foreground/40",
                       isCurrentMonth && "font-medium text-foreground",
                       isTodayDate &&
@@ -349,21 +356,53 @@ export function BookingCalendar({
                     {format(day, "d")}
                   </span>
                   {hasBlackouts && isCurrentMonth && (
-                    <span className="text-[10.5px] font-semibold uppercase tracking-wide text-red-500">
-                      Blocked
-                    </span>
+                    <>
+                      {/* "Blocked" doesn't fit a 49px cell — a dot stands in. */}
+                      <span
+                        className="size-1.5 rounded-full bg-destructive sm:hidden"
+                        aria-label="Blocked"
+                      />
+                      <span className="hidden text-[10.5px] font-semibold uppercase tracking-wide text-red-500 sm:inline">
+                        Blocked
+                      </span>
+                    </>
                   )}
                 </div>
 
                 {isCurrentMonth && (
-                  <div className="space-y-1">
-                    {pills.slice(0, 3)}
-                    {hiddenCount > 0 && (
-                      <div className="pl-1 text-[10.5px] font-medium text-muted-foreground">
-                        +{hiddenCount} more
-                      </div>
-                    )}
-                  </div>
+                  <>
+                    {/* Mobile: dot density — tap the day to read the detail
+                        panel below, which already lists every event in full. */}
+                    <div className="flex flex-wrap items-center gap-0.5 sm:hidden">
+                      {dayBookings.slice(0, 4).map((b) => (
+                        <span
+                          key={`d-b-${b.id}`}
+                          className="size-1.5 rounded-full bg-success"
+                        />
+                      ))}
+                      {/* sky matches the "Lead (enquiry)" legend swatch above —
+                          there is no semantic token for the lead hue. */}
+                      {dayLeads.slice(0, 4 - Math.min(4, dayBookings.length)).map((l) => (
+                        <span
+                          key={`d-l-${l.id}`}
+                          className="size-1.5 rounded-full bg-sky-400"
+                        />
+                      ))}
+                      {pills.length > 4 && (
+                        <span className="text-[9px] font-medium leading-none text-muted-foreground">
+                          +{pills.length - 4}
+                        </span>
+                      )}
+                    </div>
+                    <div className="hidden space-y-1 sm:block">
+                      {pills.slice(0, 3)}
+                      {hiddenCount > 0 && (
+                        <div className="pl-1 text-[10.5px] font-medium text-muted-foreground">
+                          +{hiddenCount} more
+                        </div>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
             );

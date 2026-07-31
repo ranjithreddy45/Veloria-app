@@ -82,7 +82,7 @@ export default async function HoldConfirmationPage({
       </header>
 
       {/* Summary card */}
-      <div className="bg-card shadow-card space-y-3.5 rounded-2xl border p-6">
+      <div className="bg-card shadow-card space-y-3.5 rounded-2xl border p-5 sm:p-6">
         <Row
           icon={<MapPin className="text-muted-foreground/60 size-4" />}
           label="Venue"

@@ -25,6 +25,7 @@ import {
   type StatutoryConfigInput,
   type PtSlabInput,
 } from "@/actions/hr-statutory-config.actions";
+import { TAB_LIST_SCROLL } from "@/lib/mobile-tabs";
 
 type EntityRow = {
   id: string;
@@ -363,7 +364,7 @@ export function StatutoryConfigForm({
           </Card>
 
           <Tabs defaultValue="pf">
-            <TabsList className="flex-wrap">
+            <TabsList className={TAB_LIST_SCROLL}>
               <TabsTrigger value="pf">PF</TabsTrigger>
               <TabsTrigger value="esi">ESI</TabsTrigger>
               <TabsTrigger value="pt">PT</TabsTrigger>

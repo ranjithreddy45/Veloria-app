@@ -128,7 +128,7 @@ export function WhiteLabelShell({
       </div>
 
       {/* Venue card */}
-      <div className="bg-card shadow-card rounded-2xl border p-6">
+      <div className="bg-card shadow-card rounded-2xl border p-5 sm:p-6">
         <div className="flex items-center justify-between">
           <div>
             <p className="font-editorial text-foreground text-[18px] font-semibold">
@@ -170,7 +170,7 @@ export function WhiteLabelShell({
       />
 
       {/* Enquiry */}
-      <div className="bg-card shadow-card rounded-2xl border p-6">
+      <div className="bg-card shadow-card rounded-2xl border p-5 sm:p-6">
         {submitted ? (
           <div className="flex flex-col items-center py-8 text-center">
             <CheckCircle2

@@ -238,7 +238,9 @@ export function AcqSchedulePanel({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+      {/* "Calls, site visits & meetings" plus the open/total counter is wider
+        * than a phone card, so the header wraps instead of overflowing. */}
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-x-3 gap-y-1 space-y-0">
         <CardTitle className="flex items-center gap-2 text-[13px] tracking-[-0.01em]">
           <CalendarClock className="size-4 text-primary" />
           Calls, site visits &amp; meetings
@@ -305,7 +307,7 @@ export function AcqSchedulePanel({
               <Label className="text-[11.5px]">Agenda (optional)</Label>
               <Input value={agenda} onChange={(e) => setAgenda(e.target.value)} placeholder="What to cover" />
             </div>
-            <div className="flex items-center justify-between gap-2 sm:col-span-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 sm:col-span-2">
               <p className="text-[11px] text-muted-foreground">
                 It appears on the assignee&apos;s calendar and can be logged with notes afterwards.
               </p>
@@ -466,11 +468,14 @@ function ScheduleRow({
 
       {rescheduling && canWrite && (
         <div className="mt-2 flex flex-wrap items-end gap-2 rounded-lg border border-border/60 bg-muted/20 p-2">
-          <div className="space-y-1">
+          {/* Full-width on a phone: a datetime-local renders its own
+            * "dd/mm/yyyy, --:-- --" text, which at the 16px minimum iOS forces
+            * on inputs no longer fits a fixed 220px box. */}
+          <div className="w-full space-y-1 sm:w-auto">
             <Label className="text-[11px]">New date &amp; time</Label>
             <Input
               type="datetime-local"
-              className="h-8 w-[220px] text-[12.5px]"
+              className="h-8 w-full text-[12.5px] sm:w-[220px]"
               value={newWhen}
               onChange={(ev) => setNewWhen(ev.target.value)}
             />

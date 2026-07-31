@@ -32,6 +32,10 @@ export function PayAmountPicker({ invoiceId, invoiceNumber, nextDue, balanceDue,
   const [payFull, setPayFull] = useState(!hasChoice);
   const amount = payFull || !nextDue ? balanceDue : nextDue.amount;
 
+  // Two side-by-side options stay side-by-side on a phone — this is a
+  // comparison, and stacking them pushes the Pay button below the fold. The
+  // cells are sized so a 9-10 character INR figure still fits at 375px:
+  // p-2.5 leaves ~124px of inner width against ~95px of glyphs.
   return (
     <div className="space-y-3">
       {hasChoice && nextDue && (
@@ -42,17 +46,19 @@ export function PayAmountPicker({ invoiceId, invoiceNumber, nextDue, balanceDue,
             aria-checked={!payFull}
             onClick={() => setPayFull(false)}
             className={cn(
-              "rounded-xl border p-3 text-left transition",
+              "rounded-xl border p-2.5 text-left transition sm:p-3",
               !payFull
                 ? "border-primary bg-primary/5 ring-1 ring-primary/30"
                 : "border-border hover:border-primary/40"
             )}
           >
-            <span className="flex items-center justify-between text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <span className="flex items-center justify-between gap-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
               Due now
-              {!payFull && <Check className="size-3.5 text-primary" />}
+              {!payFull && <Check className="size-3.5 shrink-0 text-primary" />}
             </span>
-            <span className="mt-1 block text-[17px] font-semibold tabular-nums text-foreground">{inr(nextDue.amount)}</span>
+            <span className="mt-1 block text-[16px] font-semibold tabular-nums text-foreground sm:text-[17px]">
+              {inr(nextDue.amount)}
+            </span>
             <span className="block truncate text-[11.5px] text-muted-foreground">{nextDue.label}</span>
           </button>
           <button
@@ -61,17 +67,19 @@ export function PayAmountPicker({ invoiceId, invoiceNumber, nextDue, balanceDue,
             aria-checked={payFull}
             onClick={() => setPayFull(true)}
             className={cn(
-              "rounded-xl border p-3 text-left transition",
+              "rounded-xl border p-2.5 text-left transition sm:p-3",
               payFull
                 ? "border-primary bg-primary/5 ring-1 ring-primary/30"
                 : "border-border hover:border-primary/40"
             )}
           >
-            <span className="flex items-center justify-between text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <span className="flex items-center justify-between gap-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
               Full balance
-              {payFull && <Check className="size-3.5 text-primary" />}
+              {payFull && <Check className="size-3.5 shrink-0 text-primary" />}
             </span>
-            <span className="mt-1 block text-[17px] font-semibold tabular-nums text-foreground">{inr(balanceDue)}</span>
+            <span className="mt-1 block text-[16px] font-semibold tabular-nums text-foreground sm:text-[17px]">
+              {inr(balanceDue)}
+            </span>
             <span className="block text-[11.5px] text-muted-foreground">Clear it in one go</span>
           </button>
         </div>

@@ -317,7 +317,6 @@ export function PaymentsTable({ data, canCancel = false, isManager = false }: Pa
         items={data}
         facets={PAYMENT_FACETS}
         onChange={setFaceted}
-        className="hidden lg:block"
       />
       <div className="min-w-0 flex-1">
         <DataTable

@@ -21,6 +21,7 @@ import { formatDate } from "@/lib/utils";
 import {
   createDocument, acknowledgeDocument, upsertDocumentTemplate, renderTemplate, getAckCoverage,
 } from "@/actions/hr-documents.actions";
+import { TAB_LIST_SCROLL } from "@/lib/mobile-tabs";
 
 interface Category { id: string; name: string; scope: string }
 interface EmpLite { id: string; firstName: string; lastName: string; empCode: string }
@@ -51,7 +52,7 @@ export function DocumentsHome({
 }) {
   return (
     <Tabs defaultValue="org">
-      <TabsList>
+      <TabsList className={TAB_LIST_SCROLL}>
         <TabsTrigger value="org">Org documents</TabsTrigger>
         <TabsTrigger value="expiring">
           Expiring soon{expiring.length > 0 ? ` (${expiring.length})` : ""}

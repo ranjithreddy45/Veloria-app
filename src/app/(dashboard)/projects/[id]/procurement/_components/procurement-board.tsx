@@ -39,7 +39,7 @@ export function ProcurementBoard({ projectId, workPackages, purchaseOrders, vend
           <div className="flex items-center gap-2 text-[12px] font-medium text-muted-foreground">
             {overBudget ? <TrendingUp className="size-4 text-red-600" /> : <TrendingDown className="size-4 text-emerald-600" />} vs estimate
           </div>
-          <div className={cn("mt-2 text-2xl font-semibold tabular-nums", overBudget ? "text-red-700" : "text-emerald-700")}>
+          <div className={cn("mt-2 text-xl font-semibold tabular-nums break-words sm:text-2xl", overBudget ? "text-red-700" : "text-emerald-700")}>
             {overBudget ? "−" : "+"}{formatINR(Math.abs(variance.vsEstimate))}
           </div>
           {variance.vsEstimatePct != null && <div className="mt-0.5 text-[11.5px] text-muted-foreground">{Math.abs(variance.vsEstimatePct)}% {overBudget ? "over committed" : "headroom"}</div>}
@@ -80,7 +80,10 @@ export function ProcurementBoard({ projectId, workPackages, purchaseOrders, vend
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-xl border bg-card p-4"><div className="text-[12px] font-medium text-muted-foreground">{label}</div><div className="mt-2 text-2xl font-semibold tabular-nums">{value}</div></div>;
+  // text-xl on a phone: these tiles sit 2-up at 375px (~133px of inner width),
+  // and a rupee figure like ₹1,25,00,000 at text-2xl overflows the card. Budget
+  // numbers must stay whole, so the type steps down instead of being cut.
+  return <div className="rounded-xl border bg-card p-4"><div className="text-[12px] font-medium text-muted-foreground">{label}</div><div className="mt-2 text-xl font-semibold tabular-nums break-words sm:text-2xl">{value}</div></div>;
 }
 
 function WPRow({ wp, canManage }: { wp: WP; canManage: boolean }) {

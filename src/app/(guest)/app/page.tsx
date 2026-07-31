@@ -83,7 +83,7 @@ export default async function GuestHomePage() {
       <section className="px-4 pt-4">
         <Link
           href="/app/book"
-          className="sheen-sweep hover-lift relative block overflow-hidden rounded-2xl bg-gradient-to-r from-fuchsia-600 to-violet-600 p-4 text-white shadow-md"
+          className="sheen-sweep hover-lift relative block w-full overflow-hidden rounded-2xl bg-gradient-to-r from-fuchsia-600 to-violet-600 p-4 text-white shadow-md"
         >
           <div
             aria-hidden
@@ -111,7 +111,10 @@ export default async function GuestHomePage() {
         <h2 className="text-[16px] font-extrabold tracking-tight text-zinc-900">
           Book by occasion
         </h2>
-        <div className="mt-3 grid grid-cols-4 gap-2.5">
+        {/* 3 columns, not 4: there are six occasions, so 4-up left a ragged
+            row of two, and at 375px each 4-up cell was only 78px — narrower
+            than the "Engagement" label it had to hold. */}
+        <div className="mt-3 grid grid-cols-3 gap-2.5">
           {OCCASIONS.map((o) => {
             const Icon = o.icon;
             return (
@@ -158,7 +161,7 @@ export default async function GuestHomePage() {
               <Link
                 key={v.id}
                 href={`/app/venues/${v.id}`}
-                className="sheen-sweep hover-lift block overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-zinc-100 transition active:scale-[0.99]"
+                className="sheen-sweep hover-lift block w-full overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-zinc-100 transition active:scale-[0.99]"
               >
                 <div className="relative">
                   <VenueImage

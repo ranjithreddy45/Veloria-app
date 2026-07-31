@@ -342,8 +342,12 @@ function StatusTabs({
   }, [data]);
 
   return (
+    // 8 status chips wrap into a 4-row block on a 375px phone (taller still
+    // once the coarse-pointer rule pushes each to 44px). Below `md` they stay
+    // on one line inside their own snap-scrolling strip — the page itself never
+    // scrolls sideways — and go back to wrapping from `md` up.
     <div
-      className="flex flex-wrap items-center gap-0.5 rounded-xl border border-border bg-card p-1 shadow-card"
+      className="flex snap-x snap-mandatory items-center gap-0.5 overflow-x-auto rounded-xl border border-border bg-card p-1 shadow-card [scrollbar-width:none] md:flex-wrap md:overflow-visible [&::-webkit-scrollbar]:hidden"
       role="tablist"
       aria-label="Lead status filter"
     >
@@ -357,7 +361,7 @@ function StatusTabs({
             aria-selected={isActive}
             onClick={() => onChange(tab.id)}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12.5px] font-medium transition-colors",
+              "inline-flex shrink-0 snap-start items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12.5px] font-medium transition-colors",
               isActive
                 ? "bg-muted text-foreground"
                 : "text-muted-foreground hover:bg-muted/60 hover:text-foreground/90"
@@ -789,7 +793,6 @@ export function LeadsTable({ data, statusFiltered = false }: LeadsTableProps) {
       )}
       <div className="flex items-start gap-4">
         <FacetFilterRail
-          className="hidden lg:block"
           items={filtered}
           facets={leadFacets}
           onChange={setFacetFiltered}

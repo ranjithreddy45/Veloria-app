@@ -31,6 +31,7 @@ import { CustomFieldsCard, RequestEditButton, type ActiveFieldDef } from "./_com
 import { ProfileDetailsPanel } from "./_components/profile-details-panel";
 import { EmployeePayslips, type EmployeePayslipRow } from "./_components/employee-payslips";
 import { EmployeeUserLink } from "./_components/employee-user-link";
+import { TAB_LIST_SCROLL } from "@/lib/mobile-tabs";
 
 export const metadata: Metadata = { title: "Employee" };
 
@@ -172,7 +173,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
       </div>
 
       <Tabs defaultValue="overview" className="gap-5">
-        <TabsList className="max-w-full overflow-x-auto">
+        <TabsList className={TAB_LIST_SCROLL}>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="team">Team</TabsTrigger>

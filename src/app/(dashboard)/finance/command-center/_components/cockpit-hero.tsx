@@ -28,7 +28,13 @@ export function CockpitHero({ fy, cashPosition, mtdRevenue, mtdExpense, mtdNet }
             <p className="text-[11.5px] font-medium uppercase tracking-[0.08em] text-white/60">
               Cash position · all bank accounts
             </p>
-            <p className="mt-1.5 text-4xl font-semibold numeric leading-none sm:text-5xl">
+            {/* The hero band is overflow-hidden, so an over-long figure is
+              * silently CLIPPED rather than pushed out — unacceptable for the
+              * headline cash number. At 375px there is ~295px inside the p-6
+              * band; text-4xl only fits about 12 characters, and a crore-scale
+              * balance is longer than that. Step the type down on phones and
+              * allow a break as the last resort. */}
+            <p className="mt-1.5 text-[28px] font-semibold numeric leading-none break-words sm:text-4xl lg:text-5xl">
               {formatINR(cashPosition)}
             </p>
             <p className="mt-2 text-[13px] text-white/60">

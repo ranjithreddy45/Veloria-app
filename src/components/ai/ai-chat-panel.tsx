@@ -414,7 +414,7 @@ export function AIChatPanel() {
       {/* Floating trigger button */}
       <Button
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-primary hover:bg-primary/90"
+        className="fixed bottom-[calc(5.75rem+max(var(--sab),0px))] right-4 z-50 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-primary hover:bg-primary/90 sm:bottom-[calc(1.5rem+max(var(--sab),0px))] sm:right-6"
         size="icon"
         aria-label="Open Veloria AI Assistant"
       >

@@ -53,6 +53,60 @@ export function QuotationsTable({ rows }: { rows: QuotationListRow[] }) {
 
   return (
     <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
+      {/* This screen does NOT use the shared DataTable (it renders a plain
+          <Table>), so it does not inherit the shell's stacked-card treatment.
+          Seven columns force a sideways drag at 375px and push the Grand Total
+          off-screen, so below `md` each quote becomes a tappable card. */}
+      <ul className="divide-y md:hidden">
+        {rows.map((r) => {
+          const client =
+            r.clientName ||
+            [r.contact?.firstName, r.contact?.lastName].filter(Boolean).join(" ") ||
+            "—";
+          return (
+            <li key={r.id}>
+              <Link
+                href={`/quotations/${r.id}`}
+                className="block space-y-2 p-3.5 transition-colors active:bg-muted/50"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="numeric text-[13px] font-semibold">
+                      {r.quoteNumber}
+                    </p>
+                    <p className="truncate text-[13px] font-medium text-foreground/90">
+                      {client}
+                    </p>
+                  </div>
+                  {/* shrink-0: the grand total is the reason this list exists —
+                      it must never be the thing that gets clipped. */}
+                  <p className="numeric shrink-0 text-[15px] font-semibold">
+                    {inr(Number(r.grandTotal))}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-muted-foreground">
+                  <StatusPill {...statusMeta(r.status)} size="xs" />
+                  {r.occasion && <span className="truncate">{r.occasion}</span>}
+                  {r.eventDate && (
+                    <span className="numeric">
+                      {new Date(r.eventDate).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </span>
+                  )}
+                  {r.guestCount ? (
+                    <span className="numeric">{r.guestCount} guests</span>
+                  ) : null}
+                </div>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+
+      <div className="hidden md:block">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/40 hover:bg-muted/40">
@@ -101,6 +155,7 @@ export function QuotationsTable({ rows }: { rows: QuotationListRow[] }) {
           })}
         </TableBody>
       </Table>
+      </div>
     </div>
   );
 }

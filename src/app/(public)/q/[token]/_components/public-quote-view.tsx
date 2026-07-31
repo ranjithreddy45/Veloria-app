@@ -45,19 +45,23 @@ function TierCard({
         </div>
       )}
 
-      <div className="flex flex-1 flex-col p-6">
+      {/* p-5 on phones: this quote is opened almost entirely from a WhatsApp
+          link on a 375px screen, where p-6 inside the page gutter left the
+          line-item column only ~287px before the amount column. */}
+      <div className="flex flex-1 flex-col p-5 sm:p-6">
         {!isOnly && (
           <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.16em]">
             {tier.displayName}
           </p>
         )}
 
-        {/* Headline price */}
-        <div className="mt-3">
-          <span className="numeric text-foreground text-[30px] font-semibold leading-none">
+        {/* Headline price. flex-wrap + baseline so a crore-scale figure pushes
+            "all inclusive" onto its own line instead of overflowing. */}
+        <div className="mt-3 flex flex-wrap items-baseline gap-x-2">
+          <span className="numeric text-foreground text-[27px] font-semibold leading-none sm:text-[30px]">
             {inr(tier.grandTotal)}
           </span>
-          <span className="text-muted-foreground ml-2 text-[12px]">
+          <span className="text-muted-foreground text-[12px]">
             all inclusive
           </span>
         </div>

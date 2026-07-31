@@ -162,7 +162,7 @@ export default async function PortalPage() {
         {summaryCards.map((card) => {
           const Icon = card.icon;
           return (
-            <Link key={card.title} href={card.href} className="block">
+            <Link key={card.title} href={card.href} className="block w-full">
               <Card className="group shadow-card hover:shadow-card-hover h-full rounded-2xl py-0 transition-all duration-200">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between gap-4">
@@ -289,7 +289,7 @@ export default async function PortalPage() {
                 <Link
                   key={booking.id}
                   href={`/portal/bookings/${booking.id}`}
-                  className="block"
+                  className="block w-full"
                 >
                   <div className="hover:bg-muted/60 flex items-center gap-4 rounded-xl border p-4 transition-colors">
                     <div className="bg-primary/10 flex size-10 shrink-0 items-center justify-center rounded-xl">
@@ -359,7 +359,7 @@ export default async function PortalPage() {
           ].map((action) => {
             const Icon = action.icon;
             return (
-              <Link key={action.title} href={action.href} className="block">
+              <Link key={action.title} href={action.href} className="block w-full">
                 <Card className="group shadow-card hover:shadow-card-hover h-full rounded-2xl py-0 transition-all duration-200">
                   <CardContent className="flex items-center gap-4 p-5">
                     <div
