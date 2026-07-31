@@ -84,8 +84,13 @@ export async function POST(request: NextRequest) {
     const isTest = body.is_test === true;
 
     const leadId = (body.lead_id as string) || (body.leadId as string) || "";
+    // NOT Record<string, string>: that cast was a lie about untrusted input, and
+    // it is what let a boolean through. Google sent `string_value: false` for an
+    // unfilled column; `??` only skips null/undefined so `false` survived into
+    // String(false) === "false", which is truthy — and "false" was saved as the
+    // customer's phone number.
     const userColumnData = (body.user_column_data || body.userColumnData || []) as Array<
-      Record<string, string>
+      Record<string, unknown>
     >;
 
     let name = "";
@@ -96,7 +101,10 @@ export async function POST(request: NextRequest) {
 
     for (const col of Array.isArray(userColumnData) ? userColumnData : []) {
       const columnId = String(col.column_id ?? col.columnId ?? "").toUpperCase();
-      const value = String(col.string_value ?? col.stringValue ?? "").trim();
+      // Only accept a genuine string. Coercing an arbitrary type is how "false"
+      // (and would-be "true"/"null"/"[object Object]") reached the CRM.
+      const rawValue = col.string_value ?? col.stringValue;
+      const value = typeof rawValue === "string" ? rawValue.trim() : "";
       if (!value) continue;
       // Google's documented column ids: FULL_NAME, FIRST_NAME, LAST_NAME,
       // EMAIL, PHONE_NUMBER, POSTAL_CODE, CITY, COMPANY_NAME, JOB_TITLE…

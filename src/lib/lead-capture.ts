@@ -6,6 +6,37 @@ import { evaluateAssignmentRules } from "@/actions/assignment-rule.actions";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
 import { runLeadIntake, leadSlaDeadline } from "@/lib/lead-pipeline";
 import { attachAttributionToLead, type AttributionInput } from "@/lib/attribution";
+import { normalizePhone } from "@/lib/sales/lead-import";
+import { coarseContactWhere, matchesContactKey, phoneDigits } from "@/lib/dedup";
+
+/**
+ * An email is only worth storing if it could plausibly be delivered to. Same
+ * reasoning as normalizePhone: a junk value ("false", "-", "N/A") looks real in
+ * the CRM and costs someone a wasted follow-up, so drop it instead.
+ */
+function normalizeExternalEmail(raw?: string): string | undefined {
+  const v = (raw ?? "").trim();
+  if (!v) return undefined;
+  // Deliberately loose — this rejects nonsense, it does not police RFC 5322.
+  return /^[^\s@]+@[^\s@.]+\.[^\s@]{2,}$/.test(v) ? v : undefined;
+}
+
+/**
+ * One stable way to write a phone number. `phoneDigits` gives us the last-10
+ * key used for MATCHING; this gives the form we STORE. Indian 10-digit numbers
+ * gain +91 so an ad lead (which arrives E.164) and a manually-typed number end
+ * up identical in the CRM instead of looking like two different people.
+ */
+function canonicalPhone(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return raw.trim();
+  if (raw.trim().startsWith("+")) return `+${digits}`;
+  const local = digits.replace(/^0+/, "");
+  if (local.length === 10) return `+91${local}`;
+  if (local.length === 12 && local.startsWith("91")) return `+${local}`;
+  // Unknown shape (landline, foreign) — keep the digits rather than guess a code.
+  return local;
+}
 
 interface ExternalLeadData {
   name: string;
@@ -74,6 +105,42 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
       }
     }
 
+    // ------------------------------------------------------------
+    // Sanitise contact details BEFORE they touch the CRM.
+    //
+    // This is the single choke point every external capture goes through
+    // (Google Ads, Facebook, the public widget, the partner API), so the guard
+    // belongs here rather than in each webhook. A real case: the Google Ads
+    // lead-form payload carried `string_value: false` for an unfilled column,
+    // the webhook coerced it with String(...) — `??` only skips null/undefined,
+    // so `false` survived — and the literal text "false" was saved as the
+    // customer's phone number. Staff then tried to ring it.
+    //
+    // normalizePhone requires >= 7 digits and returns null for anything else,
+    // so "false"/"null"/"undefined"/"N/A" are all dropped rather than stored.
+    // Dropping is the right call: a blank phone is obviously missing, whereas a
+    // junk phone looks real and wastes someone's time.
+    // ------------------------------------------------------------
+    // normalizePhone rejects junk (needs >= 7 digits) but preserves whatever
+    // shape a "+" number arrived in — "+91 96113 60491" keeps its spaces. Store
+    // the CANONICAL form instead, so the CRM shows one consistent number and a
+    // later exact-match lookup elsewhere in the app has a stable value to hit.
+    // An Indian 10-digit number is stored as +91XXXXXXXXXX; anything already
+    // country-coded keeps its code.
+    const validPhone = normalizePhone(data.phone);
+    const cleanPhone = validPhone ? canonicalPhone(validPhone) : undefined;
+    const cleanEmail = normalizeExternalEmail(data.email);
+    if (data.phone && !cleanPhone) {
+      console.warn(
+        `[LeadCapture] Dropped an unusable phone from "${data.source}": ${JSON.stringify(data.phone)}`
+      );
+    }
+    if (data.email && !cleanEmail) {
+      console.warn(
+        `[LeadCapture] Dropped an unusable email from "${data.source}": ${JSON.stringify(data.email)}`
+      );
+    }
+
     // Parse the name into first/last
     const nameParts = data.name.trim().split(/\s+/);
     const firstName = nameParts[0] || "Unknown";
@@ -82,16 +149,26 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
     // Find or create contact
     let contact = null;
 
-    if (data.email) {
-      contact = await prisma.contact.findFirst({
-        where: { email: data.email },
-      });
-    }
-
-    if (!contact && data.phone) {
-      contact = await prisma.contact.findFirst({
-        where: { phone: data.phone },
-      });
+    // Match an EXISTING contact format-insensitively.
+    //
+    // A plain `where: { phone }` equality match is wrong here, because the same
+    // person arrives written several ways: Google Ads sends E.164 ("+919611360491"),
+    // the widget and manual entry usually hold ten bare digits, and imports carry
+    // spaces, dashes or a leading 0. An exact match misses all of those, so an ad
+    // lead from an existing customer silently created a SECOND contact.
+    //
+    // `phoneDigits` reduces any of those to the same last-10-digit key, and this
+    // is the same coarse-filter-then-exact-match pattern the rest of the app's
+    // dedupe already uses — so legacy rows in any format still match.
+    if (cleanEmail || cleanPhone) {
+      const where = coarseContactWhere(cleanEmail, cleanPhone);
+      if (where) {
+        const candidates = await prisma.contact.findMany({
+          where: { ...where, deletedAt: null },
+          take: 25,
+        });
+        contact = matchesContactKey(candidates, cleanEmail, cleanPhone)[0] ?? null;
+      }
     }
 
     if (!contact) {
@@ -99,8 +176,8 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
         data: {
           firstName,
           lastName,
-          email: data.email || null,
-          phone: data.phone || null,
+          email: cleanEmail || null,
+          phone: cleanPhone || null,
           tags: [data.source.toLowerCase()],
         },
       });
@@ -349,8 +426,8 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
             leadId: lead.id,
             contactId: contact.id,
             prospectName: data.name,
-            prospectPhone: data.phone ?? null,
-            prospectEmail: data.email ?? null,
+            prospectPhone: cleanPhone ?? null,
+            prospectEmail: cleanEmail ?? null,
             eventType: data.eventType ?? null,
             eventDate: data.eventDate ? new Date(data.eventDate) : null,
             guestCount: data.guestCount ?? null,
