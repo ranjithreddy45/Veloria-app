@@ -70,3 +70,57 @@ describe("phone reaching the CRM", () => {
     expect(phoneDigits("+919611360491")).not.toBe(phoneDigits("+919611360492"));
   });
 });
+
+// ============================================================
+// International enquiries. The first fix assumed every bare 10-digit number was
+// Indian — which silently turned a US "4155552671" into "+914155552671", a
+// number nobody can ring. India reserves 10-digit mobiles starting 6-9, so that
+// range is a safe inference and everything else must NOT be guessed.
+// ============================================================
+function canonicalPhone(raw: string): string {
+  const trimmed = raw.trim();
+  const digits = trimmed.replace(/\D/g, "");
+  if (!digits) return trimmed;
+  if (trimmed.startsWith("+")) return `+${digits}`;
+  if (digits.startsWith("00")) return `+${digits.slice(2)}`;
+  const local = digits.replace(/^0+/, "");
+  if (/^[6-9]\d{9}$/.test(local)) return `+91${local}`;
+  if (local.length === 12 && local.startsWith("91")) return `+${local}`;
+  return local;
+}
+
+describe("international enquiries", () => {
+  it("never invents +91 for a number that cannot be an Indian mobile", () => {
+    // US/UK area codes start 2-5; India's mobile range is 6-9.
+    expect(canonicalPhone("4155552671")).toBe("4155552671");
+    expect(canonicalPhone("2125551234")).toBe("2125551234");
+    expect(canonicalPhone("4155552671")).not.toContain("+91");
+  });
+
+  it("trusts an explicit country code, whatever it is", () => {
+    expect(canonicalPhone("+1 415 555 2671")).toBe("+14155552671");
+    expect(canonicalPhone("+44 20 7946 0958")).toBe("+442079460958");
+    expect(canonicalPhone("+971 50 123 4567")).toBe("+971501234567");
+    expect(canonicalPhone("+65 6123 4567")).toBe("+6561234567");
+    // 00 is the international prefix typed instead of "+".
+    expect(canonicalPhone("001 415 555 2671")).toBe("+14155552671");
+  });
+
+  it("still canonicalises every Indian spelling to one value", () => {
+    for (const v of ["9611360491", "+919611360491", "09611360491", "+91 96113 60491", "+91-96113-60491"]) {
+      expect(canonicalPhone(v)).toBe("+919611360491");
+    }
+  });
+
+  it("keeps different countries apart even when the last 10 digits collide", () => {
+    // This is the dangerous case: phoneDigits() reduces both to 4155552671, so
+    // without a country check two different people would be MERGED — which loses
+    // data, unlike a duplicate.
+    const us = canonicalPhone("+1 415 555 2671");
+    const india = canonicalPhone("+91 41555 52671");
+    expect(phoneDigits(us)).toBe(phoneDigits(india)); // the collision is real
+    expect(us).not.toBe(india);                        // but the stored values differ
+    expect(us.startsWith("+1")).toBe(true);
+    expect(india.startsWith("+91")).toBe(true);
+  });
+});

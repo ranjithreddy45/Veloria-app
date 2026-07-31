@@ -22,21 +22,62 @@ function normalizeExternalEmail(raw?: string): string | undefined {
 }
 
 /**
- * One stable way to write a phone number. `phoneDigits` gives us the last-10
- * key used for MATCHING; this gives the form we STORE. Indian 10-digit numbers
- * gain +91 so an ad lead (which arrives E.164) and a manually-typed number end
- * up identical in the CRM instead of looking like two different people.
+ * One stable way to write a phone number.
+ *
+ * WHY THIS IS CAREFUL ABOUT COUNTRY CODES: an earlier version prepended +91 to
+ * ANY bare 10-digit number. A US enquiry typed as "4155552671" — also exactly
+ * ten digits — was silently stored as "+914155552671", a wrong Indian number
+ * nobody can ring. Guessing a country code is worse than admitting we don't
+ * know one.
+ *
+ * The rules, in order of confidence:
+ *   1. Already E.164 ("+…") or an international prefix ("00…") → trust the code
+ *      the caller gave. Google/Meta lead forms always send this shape, so every
+ *      foreign AD lead lands here and is safe.
+ *   2. Bare 10 digits starting 6-9 → an Indian mobile (that range is reserved
+ *      for them), so +91 is a safe inference.
+ *   3. Anything else → keep the digits EXACTLY as given and invent nothing.
+ *
+ * Residual ambiguity, stated plainly: a bare US number in the 6-9 area-code
+ * range (e.g. 917…) is indistinguishable from an Indian mobile without a country
+ * hint, and will still be read as Indian. Only a country selector on the form
+ * can close that, which is a product change, not a parsing one.
  */
 function canonicalPhone(raw: string): string {
-  const digits = raw.replace(/\D/g, "");
-  if (!digits) return raw.trim();
-  if (raw.trim().startsWith("+")) return `+${digits}`;
+  const trimmed = raw.trim();
+  const digits = trimmed.replace(/\D/g, "");
+  if (!digits) return trimmed;
+
+  // 1. Explicit international form — trust it.
+  if (trimmed.startsWith("+")) return `+${digits}`;
+  if (digits.startsWith("00")) return `+${digits.slice(2)}`;
+
   const local = digits.replace(/^0+/, "");
-  if (local.length === 10) return `+91${local}`;
+  // 2. Indian mobile: exactly 10 digits, first digit 6-9.
+  if (/^[6-9]\d{9}$/.test(local)) return `+91${local}`;
+  // 12 digits already country-coded as 91.
   if (local.length === 12 && local.startsWith("91")) return `+${local}`;
-  // Unknown shape (landline, foreign) — keep the digits rather than guess a code.
+  // 3. Unknown country — store what we were given rather than guess.
   return local;
 }
+
+/** The country code of an E.164 number, or null when it carries none. */
+function countryCodeOf(phone: string | null | undefined): string | null {
+  const v = (phone ?? "").trim();
+  if (!v.startsWith("+")) return null;
+  const digits = v.replace(/\D/g, "");
+  // Longest-first so +971 isn't read as +97; 1-3 digit codes cover E.164.
+  for (const len of [3, 2, 1]) {
+    const head = digits.slice(0, len);
+    if (KNOWN_COUNTRY_CODES.has(head)) return head;
+  }
+  return digits.slice(0, 2); // unknown code — compare on a stable prefix
+}
+
+/** Codes we actually see. Only used to compare two numbers, never to assign one. */
+const KNOWN_COUNTRY_CODES = new Set([
+  "91", "1", "44", "971", "65", "61", "60", "966", "974", "968", "973", "94", "977", "880", "92", "49", "33", "39", "31", "27", "254", "255", "234", "64", "81", "82", "86", "7",
+]);
 
 interface ExternalLeadData {
   name: string;
@@ -167,7 +208,22 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
           where: { ...where, deletedAt: null },
           take: 25,
         });
-        contact = matchesContactKey(candidates, cleanEmail, cleanPhone)[0] ?? null;
+        const matched = matchesContactKey(candidates, cleanEmail, cleanPhone);
+        // COUNTRY GUARD. matchesContactKey compares the LAST 10 DIGITS, which is
+        // right for +91 / 0 / spacing variants of one Indian number but collides
+        // across countries: US "+1 415 555 2671" and a bare "4155552671" both
+        // reduce to 4155552671. Merging two different people is worse than
+        // creating a duplicate — you lose data and ring a stranger. So when BOTH
+        // numbers state a country and the countries differ, reject the match.
+        // (An email match is unambiguous and is never rejected by this.)
+        const incomingCc = countryCodeOf(cleanPhone);
+        contact =
+          matched.find((c) => {
+            if (cleanEmail && normalizeExternalEmail(c.email ?? undefined) === cleanEmail) return true;
+            const candidateCc = countryCodeOf(c.phone);
+            if (incomingCc && candidateCc && incomingCc !== candidateCc) return false;
+            return true;
+          }) ?? null;
       }
     }
 

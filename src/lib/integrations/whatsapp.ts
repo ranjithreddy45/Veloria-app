@@ -77,8 +77,10 @@ function normalizePhone(phone: string): string {
     cleaned = "91" + cleaned.slice(1);
   }
 
-  // If it's 10 digits, assume Indian number
-  if (cleaned.length === 10 && /^\d+$/.test(cleaned)) {
+  // Only a 10-digit number in India's mobile range (first digit 6-9) may be
+  // assumed Indian. A US/UK number is also 10 digits but starts 2-5, and
+  // prepending 91 to it sends the message to a different person's phone.
+  if (/^[6-9]\d{9}$/.test(cleaned)) {
     cleaned = "91" + cleaned;
   }
 
