@@ -8,6 +8,7 @@ import { contactSchema, type ContactInput } from "@/schemas/contact.schema";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
 import { coarseContactWhere, matchesContactKey } from "@/lib/dedup";
+import { isEnquirySource } from "@/lib/enquiry-source";
 
 // ============================================================
 // Enquiry status (Sales CRM) — the pipeline state of an enquiry (Contact).
@@ -67,6 +68,8 @@ export async function getContacts(params?: {
   enquiryStatus?: string;
   /** Hall/Property filter. "UNASSIGNED" matches enquiries with no venue. */
   venueId?: string;
+  /** Marketing-channel filter. "NONE" matches enquiries with no source yet. */
+  enquirySource?: string;
 }) {
   try {
     const session = await auth();
@@ -108,6 +111,14 @@ export async function getContacts(params?: {
       where.enquiryVenueId = null;
     } else if (venueId) {
       where.enquiryVenueId = venueId;
+    }
+
+    // Marketing channel. "NONE" is the not-yet-recorded bucket.
+    const src = params?.enquirySource?.trim();
+    if (src === "NONE") {
+      where.enquirySource = null;
+    } else if (isEnquirySource(src)) {
+      where.enquirySource = src;
     }
 
     if (search) {
@@ -263,6 +274,7 @@ export async function createContact(data: ContactInput) {
         notes: contactData.notes || null,
         tags: contactData.tags,
         enquiryVenueId: contactData.enquiryVenueId || null,
+        enquirySource: contactData.enquirySource || null,
       },
     });
 
@@ -354,6 +366,7 @@ export async function updateContact(id: string, data: ContactInput) {
         notes: contactData.notes || null,
         tags: contactData.tags,
         enquiryVenueId: contactData.enquiryVenueId || null,
+        enquirySource: contactData.enquirySource || null,
       },
     });
 
@@ -500,6 +513,76 @@ export async function assignEnquiryVenue(contactId: string, venueId: string | nu
   } catch (error) {
     console.error("[ASSIGN_ENQUIRY_VENUE_ERROR]", error);
     return { success: false as const, error: "Failed to assign Hall / Property" };
+  }
+}
+
+// ============================================================
+// Assign Lead Source (marketing channel)
+// ============================================================
+
+/**
+ * Set (or clear) the channel this enquiry is credited to.
+ *
+ * Kept separate from updateContact so the detail page can save on change
+ * without round-tripping the whole contact form — same shape as
+ * assignEnquiryVenue.
+ */
+export async function assignEnquirySource(contactId: string, source: string | null) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+
+    // Gated like every other contact write.
+    if (!hasPermission(session.user.role, "contacts:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
+    if (!contactId || typeof contactId !== "string") {
+      return { success: false as const, error: "Invalid enquiry" };
+    }
+
+    // enquirySource is a free String column, so an unvalidated value would
+    // persist straight through Prisma and poison channel reporting.
+    if (source !== null && !isEnquirySource(source)) {
+      return { success: false as const, error: "Unknown lead source" };
+    }
+
+    const existing = await prisma.contact.findFirst({
+      where: { id: contactId, deletedAt: null },
+      select: { id: true, enquirySource: true },
+    });
+    if (!existing) {
+      return { success: false as const, error: "Contact not found" };
+    }
+
+    // No-op guard.
+    if (existing.enquirySource === source) {
+      return { success: true as const, data: { id: contactId, enquirySource: source } };
+    }
+
+    const contact = await prisma.contact.update({
+      where: { id: contactId },
+      data: { enquirySource: source },
+      select: { id: true, enquirySource: true },
+    });
+
+    // Attribution is a money question — log who changed it and from what.
+    await logActivity({
+      userId: session.user.id as string,
+      action: "updated",
+      entityType: "Contact",
+      entityId: contactId,
+      changes: { enquirySource: { from: existing.enquirySource, to: source } },
+    });
+
+    revalidatePath("/contacts");
+    revalidatePath(`/contacts/${contactId}`);
+    return { success: true as const, data: serialize(contact) };
+  } catch (error) {
+    console.error("[ASSIGN_ENQUIRY_SOURCE_ERROR]", error);
+    return { success: false as const, error: "Failed to update lead source" };
   }
 }
 

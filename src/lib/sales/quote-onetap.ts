@@ -437,7 +437,13 @@ export async function finalizeOneTapBlock(
       const name = (q.clientName || "Guest").trim();
       const [firstName, ...rest] = name.split(/\s+/);
       const created = await prisma.contact.create({
-        data: { firstName: firstName || "Guest", lastName: rest.join(" ") || "", phone: q.clientPhone || null, email: q.clientEmail || null },
+        data: {
+          firstName: firstName || "Guest",
+          lastName: rest.join(" ") || "",
+          phone: q.clientPhone || null,
+          email: q.clientEmail || null,
+          enquirySource: "DIRECT", // staff-entered during one-tap finalise
+        },
         select: { id: true },
       });
       contactId = created.id;

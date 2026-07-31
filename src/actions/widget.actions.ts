@@ -141,6 +141,7 @@ export async function processInquiry(id: string) {
           phone: inquiry.phone || null,
           type: "INDIVIDUAL",
           notes: `Created from widget inquiry: ${inquiry.message}`,
+          enquirySource: "LEAD_FORM", // arrived through a form we host
         },
       }).catch(async (e) => {
         // Conversion failed before producing a lead — release our claim so the

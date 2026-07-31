@@ -1016,7 +1016,13 @@ async function createLeadEnquiryTool(
   let contactCreated = false;
   if (!contact) {
     contact = await prisma.contact.create({
-      data: { firstName, lastName: lastName || "—", phone, email },
+      data: {
+        firstName,
+        lastName: lastName || "—",
+        phone,
+        email,
+        enquirySource: "DIRECT", // logged by staff through the assistant
+      },
       select: { id: true },
     });
     contactCreated = true;

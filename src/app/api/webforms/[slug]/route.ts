@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { toEnquirySource } from "@/lib/enquiry-source";
 import { webformSubmissionSchema } from "@/schemas/webform.schema";
 import { notify } from "@/lib/notify";
 import { calculateLeadScore } from "@/lib/lead-scoring";
@@ -188,6 +189,9 @@ export async function POST(
               lastName: lastName || "",
               email,
               phone,
+              // Credit the channel this form is configured for (a form wired to
+              // a Facebook campaign is Paid Social, not a generic lead form).
+              enquirySource: toEnquirySource(webform.defaultSource || "WEBSITE"),
             },
           });
           contactId = newContact.id;
@@ -201,6 +205,7 @@ export async function POST(
             firstName: firstName || "Unknown",
             lastName: lastName || "",
             phone,
+            enquirySource: toEnquirySource(webform.defaultSource || "WEBSITE"),
           },
         });
         contactId = newContact.id;

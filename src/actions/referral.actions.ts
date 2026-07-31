@@ -347,6 +347,7 @@ export async function processReferral(id: string) {
         email: referral.referredEmail || null,
         phone: referral.referredPhone || null,
         notes: `Referred by ${referral.referrerContact.firstName} ${referral.referrerContact.lastName}`,
+        enquirySource: "DIRECT", // word of mouth, not a bought channel
       },
     });
 

@@ -8,6 +8,7 @@ import { runLeadIntake, leadSlaDeadline } from "@/lib/lead-pipeline";
 import { attachAttributionToLead, type AttributionInput } from "@/lib/attribution";
 import { normalizePhone } from "@/lib/sales/lead-import";
 import { coarseContactWhere, matchesContactKey, phoneDigits } from "@/lib/dedup";
+import { toEnquirySource } from "@/lib/enquiry-source";
 
 /**
  * An email is only worth storing if it could plausibly be delivered to. Same
@@ -234,9 +235,23 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
           lastName,
           email: cleanEmail || null,
           phone: cleanPhone || null,
+          // Credit the marketing channel at the moment of capture — this is the
+          // only point where we still know which integration delivered it.
+          enquirySource: toEnquirySource(data.source),
           tags: [data.source.toLowerCase()],
         },
       });
+    }
+
+    // An existing contact re-enquiring through a paid channel must record it.
+    // Only fill a BLANK source: overwriting would let a later Direct walk-in
+    // erase the Google Ads credit that actually won the customer.
+    if (contact && !contact.enquirySource) {
+      const channel = toEnquirySource(data.source);
+      await prisma.contact
+        .update({ where: { id: contact.id }, data: { enquirySource: channel } })
+        .catch(() => {}); // best-effort: never fail a capture over attribution
+      contact.enquirySource = channel;
     }
 
     // Evaluate assignment rules to auto-assign

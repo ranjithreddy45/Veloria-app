@@ -432,6 +432,7 @@ export async function createPublicHold(
           email,
           phone,
           tags: ["website", "public-hold"],
+          enquirySource: "LEAD_FORM", // public website hold form
         },
         select: { id: true },
       });

@@ -19,11 +19,17 @@ export const metadata: Metadata = { title: "Enquiry" };
 // ============================================================
 
 interface ContactsPageProps {
-  searchParams: Promise<{ from?: string; to?: string; status?: string; venue?: string }>;
+  searchParams: Promise<{
+    from?: string;
+    to?: string;
+    status?: string;
+    venue?: string;
+    source?: string;
+  }>;
 }
 
 export default async function ContactsPage({ searchParams }: ContactsPageProps) {
-  const { from, to, status, venue } = await searchParams;
+  const { from, to, status, venue, source } = await searchParams;
 
   // Ceiling lets the client table page through rows without the default-50
   // cutoff, while keeping the payload far lighter than 1000.
@@ -34,6 +40,7 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
       createdTo: to,
       enquiryStatus: status,
       venueId: venue,
+      enquirySource: source,
     }),
     getVenues({ activeOnly: true }),
   ]);
@@ -41,7 +48,7 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
   const venues = venuesResult.success
     ? venuesResult.data.map((v) => ({ id: v.id, name: v.name }))
     : [];
-  const isFiltered = !!from || !!to || !!status || !!venue;
+  const isFiltered = !!from || !!to || !!status || !!venue || !!source;
 
   const corporate = contacts.filter((c) => c.type === "CORPORATE").length;
   const individual = contacts.filter((c) => c.type === "INDIVIDUAL").length;

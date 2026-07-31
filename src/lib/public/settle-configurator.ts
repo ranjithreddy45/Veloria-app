@@ -110,7 +110,13 @@ export async function settleConfiguratorPayment(invoiceId: string): Promise<void
       const name = (draft.customerName || "Guest").trim();
       const [firstName, ...rest] = name.split(/\s+/);
       const c = await prisma.contact.create({
-        data: { firstName: firstName || "Guest", lastName: rest.join(" ") || "", phone, email },
+        data: {
+          firstName: firstName || "Guest",
+          lastName: rest.join(" ") || "",
+          phone,
+          email,
+          enquirySource: "LEAD_FORM", // public configurator is a form we host
+        },
         select: { id: true },
       });
       contactId = c.id;

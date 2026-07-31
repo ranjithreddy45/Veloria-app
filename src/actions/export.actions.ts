@@ -5,6 +5,7 @@ import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/utils";
 import { ENQUIRY_STATUS_LABEL, type EnquiryStatus } from "@/lib/enquiry-status";
+import { enquirySourceLabel } from "@/lib/enquiry-source";
 
 // ============================================================
 // Export Actions — Fetch ALL data (no pagination) for CSV export
@@ -112,6 +113,7 @@ export async function exportContacts() {
         type: true,
         enquiryStatus: true,
         enquiryVenue: { select: { name: true } },
+        enquirySource: true,
         createdAt: true,
       },
     });
@@ -175,6 +177,7 @@ export async function exportContacts() {
       "State",
       "Type",
       "Hall / Property",
+      "Lead Source",
       "Enquiry Status",
       "Notes",
       "Calls",
@@ -198,6 +201,7 @@ export async function exportContacts() {
         c.state || "",
         c.type || "",
         c.enquiryVenue?.name || "",
+        enquirySourceLabel(c.enquirySource),
         enquiryStatusLabel(c.enquiryStatus),
         t.notes,
         t.calls,

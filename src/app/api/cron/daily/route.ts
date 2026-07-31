@@ -55,6 +55,7 @@ const JOBS = [
   "referral-payouts", // accrue converted-referral payouts + refresh partner rollups (after franchise-revshare)
   "hr-reminders", // fire active HR reminder rules (birthday / work-anniversary / doc-expiry)
   "handover-sla", // nag booking owners when a Sales→Ops handover is past its 24h SLA
+  "enquiry-source-backfill", // fill blank Contact.enquirySource from the contact's first lead
 ] as const;
 
 export async function GET(request: Request) {

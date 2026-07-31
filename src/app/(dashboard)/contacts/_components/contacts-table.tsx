@@ -51,6 +51,12 @@ import { toCSV, downloadCSV } from "@/lib/csv-export";
 import { BulkWhatsAppDialog } from "@/components/shared/bulk-whatsapp-dialog";
 import { cn } from "@/lib/utils";
 import { enquiryStatusOption } from "./enquiry-status";
+import {
+  ENQUIRY_SOURCE_HUE,
+  ENQUIRY_SOURCE_SHORT,
+  enquirySourceLabel,
+  isEnquirySource,
+} from "@/lib/enquiry-source";
 
 // ============================================================
 // Types
@@ -77,6 +83,7 @@ interface Contact {
   enquiryStatusAt: Date | string | null;
   enquiryVenueId: string | null;
   enquiryVenue: { id: string; name: string } | null;
+  enquirySource: string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
 }
@@ -87,6 +94,7 @@ const CONTACT_FACETS: FacetDef<Contact>[] = [
   // narrows within whatever the server returned.
   { key: "enquiryStatus", label: "Enquiry status", get: (c) => enquiryStatusOption(c.enquiryStatus).label },
   { key: "enquiryVenue", label: "Hall / Property", get: (c) => c.enquiryVenue?.name ?? "Unassigned", max: 12 },
+  { key: "enquirySource", label: "Lead source", get: (c) => enquirySourceLabel(c.enquirySource) },
   { key: "status", label: "Status", get: (c) => (c.isActive ? "Active" : "Inactive") },
   { key: "city", label: "City", get: (c) => c.city, max: 8 },
   { key: "state", label: "State", get: (c) => c.state, max: 8 },
@@ -364,6 +372,23 @@ const columns: ColumnDef<Contact>[] = [
     cell: ({ row }) => {
       const opt = enquiryStatusOption(row.original.enquiryStatus);
       return <StatusPill label={opt.label} hue={opt.hue} size="xs" />;
+    },
+  },
+  {
+    id: "enquirySource",
+    accessorFn: (row) => enquirySourceLabel(row.enquirySource),
+    header: "Lead source",
+    cell: ({ row }) => {
+      const src = row.original.enquirySource;
+      return isEnquirySource(src) ? (
+        <StatusPill
+          label={ENQUIRY_SOURCE_SHORT[src]}
+          hue={ENQUIRY_SOURCE_HUE[src]}
+          size="xs"
+        />
+      ) : (
+        <span className="text-muted-foreground/60 text-[12px]">—</span>
+      );
     },
   },
   {

@@ -65,6 +65,12 @@ export const contactSchema = z.object({
     .string()
     .optional()
     .or(z.literal("")),
+  // Marketing channel to credit. Captured enquiries set this automatically;
+  // this is the manual path for walk-ins and phone calls.
+  enquirySource: z
+    .enum(["DIRECT", "GOOGLE_ADS", "PAID_SOCIAL", "LEAD_FORM"])
+    .optional()
+    .or(z.literal("")),
 });
 
 export type ContactInput = z.infer<typeof contactSchema>;

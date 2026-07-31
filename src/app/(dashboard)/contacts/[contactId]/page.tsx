@@ -48,6 +48,7 @@ import { SmartSuggestions } from "@/components/ai/smart-suggestions";
 import { SentimentTrendChart } from "@/components/ai/sentiment-trend-chart";
 import { EnquiryStatusSelect } from "./_components/enquiry-status-select";
 import { EnquiryVenueSelect } from "./_components/enquiry-venue-select";
+import { EnquirySourceSelect } from "./_components/enquiry-source-select";
 import { getVenues } from "@/actions/booking.actions";
 import { EnquiryNotesPanel } from "./_components/enquiry-notes-panel";
 import { EnquiryRemindersPanel } from "./_components/enquiry-reminders-panel";
@@ -133,6 +134,10 @@ export default async function ContactDetailPage({
             contactId={contact.id}
             currentVenueId={contact.enquiryVenueId ?? null}
             venues={venues}
+          />
+          <EnquirySourceSelect
+            contactId={contact.id}
+            currentSource={contact.enquirySource ?? null}
           />
           <AIEmailComposer
             contactId={contact.id}

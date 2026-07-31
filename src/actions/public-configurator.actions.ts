@@ -349,6 +349,7 @@ export async function priceAndCreateAdvanceLink(
           email: email || null,
           phone,
           tags: ["configurator"],
+          enquirySource: "LEAD_FORM", // public configurator is a form we host
         },
       });
     }

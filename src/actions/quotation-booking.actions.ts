@@ -209,6 +209,7 @@ export async function blockSlotFromQuotation(
         lastName: rest.join(" ") || "",
         phone: q.clientPhone || null,
         email: q.clientEmail || null,
+        enquirySource: "DIRECT", // staff-entered during quotation conversion
       },
       select: { id: true },
     });

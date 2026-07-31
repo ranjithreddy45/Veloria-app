@@ -28,10 +28,13 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { ENQUIRY_STATUS_OPTIONS } from "./enquiry-status";
+import { ENQUIRY_SOURCE_OPTIONS } from "@/lib/enquiry-source";
 
 const ALL_STATUSES = "ALL";
 const ALL_VENUES = "ALL";
 const UNASSIGNED_VENUE = "UNASSIGNED";
+const ALL_SOURCES = "ALL";
+const NO_SOURCE = "NONE";
 
 export function EnquiryFilterBar({
   venues,
@@ -49,11 +52,13 @@ export function EnquiryFilterBar({
   const to = sp.get("to") ?? "";
   const status = sp.get("status") ?? ALL_STATUSES;
   const venue = sp.get("venue") ?? ALL_VENUES;
+  const source = sp.get("source") ?? ALL_SOURCES;
   const activeCount =
     (from ? 1 : 0) +
     (to ? 1 : 0) +
     (status !== ALL_STATUSES ? 1 : 0) +
-    (venue !== ALL_VENUES ? 1 : 0);
+    (venue !== ALL_VENUES ? 1 : 0) +
+    (source !== ALL_SOURCES ? 1 : 0);
   const isFiltered = activeCount > 0;
 
   const push = useCallback(
@@ -72,7 +77,7 @@ export function EnquiryFilterBar({
   );
 
   const clearAll = () =>
-    push({ from: null, to: null, status: null, venue: null });
+    push({ from: null, to: null, status: null, venue: null, source: null });
 
   const controls = (
     <>
@@ -130,6 +135,20 @@ export function EnquiryFilterBar({
           {venues.map((v) => (
             <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
           ))}
+        </SelectContent>
+      </Select>
+
+      {/* Lead source (marketing channel) */}
+      <Select value={source} onValueChange={(v) => push({ source: v === ALL_SOURCES ? null : v })}>
+        <SelectTrigger className="h-9 w-full md:w-[200px]" aria-label="Lead source filter">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={ALL_SOURCES}>All lead sources</SelectItem>
+          {ENQUIRY_SOURCE_OPTIONS.map((o) => (
+            <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+          ))}
+          <SelectItem value={NO_SOURCE}>Not recorded</SelectItem>
         </SelectContent>
       </Select>
     </>

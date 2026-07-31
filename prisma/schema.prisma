@@ -500,6 +500,13 @@ model Contact {
   enquiryStatus    String?
   // Hall/Property this enquiry is about (Sales CRM). Null = not yet assigned.
   enquiryVenueId   String?
+  // Where this enquiry came from, as a MARKETING CHANNEL:
+  // DIRECT | GOOGLE_ADS | PAID_SOCIAL | LEAD_FORM.
+  // Deliberately coarser than Lead.source (17 values): that enum records the
+  // precise origin, while this answers "which channel do we credit?" — the
+  // question the team actually asks of an enquiry. Set automatically on every
+  // captured enquiry and editable by hand for walk-ins and phone calls.
+  enquirySource    String?
   enquiryStatusAt  DateTime?
   // Customer 360 (spec §3.2) — vipCustomer/anniversary set by staff;
   // customerType, lifetimeBookings, totalRevenue, lastEventDate are
@@ -536,6 +543,7 @@ model Contact {
   @@index([firstName, lastName])
   @@index([deletedAt, createdAt]) // hot list query: not-deleted, newest first
   @@index([enquiryVenueId]) // filter enquiries by Hall/Property
+  @@index([enquirySource]) // channel reporting + list filter
 }
 
 model Lead {

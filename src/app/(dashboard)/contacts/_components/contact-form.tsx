@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Loader2Icon } from "lucide-react";
 import { contactSchema, type ContactInput } from "@/schemas/contact.schema";
+import { ENQUIRY_SOURCE_OPTIONS } from "@/lib/enquiry-source";
 import { createContact, updateContact } from "@/actions/contact.actions";
 import { INDIAN_STATES } from "@/lib/constants";
 
@@ -40,6 +41,8 @@ import { Label } from "@/components/ui/label";
 // Sentinel for the "no hall assigned" option — a shadcn SelectItem can't hold
 // value="" (empty maps to placeholder), so we map this to a stored null.
 const NO_VENUE = "NONE";
+// Same sentinel trick for the source select — "" is not a legal SelectItem value.
+const NO_SOURCE = "NONE";
 
 // ============================================================
 // ContactForm Props
@@ -61,6 +64,7 @@ interface ContactData {
   notes: string | null;
   tags: string[];
   enquiryVenueId: string | null;
+  enquirySource: string | null;
 }
 
 interface ContactFormProps {
@@ -97,6 +101,9 @@ export function ContactForm({ contact, venues }: ContactFormProps) {
       notes: contact?.notes ?? "",
       tags: contact?.tags ?? [],
       enquiryVenueId: contact?.enquiryVenueId ?? "",
+      // Blank on a NEW contact so whoever enters it makes a deliberate choice,
+      // rather than every walk-in silently defaulting to "Direct".
+      enquirySource: (contact?.enquirySource as ContactInput["enquirySource"]) ?? "",
     },
   });
 
@@ -237,6 +244,37 @@ export function ContactForm({ contact, venues }: ContactFormProps) {
                       {venues.map((v) => (
                         <SelectItem key={v.id} value={v.id}>
                           {v.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            {/* Lead source — the marketing channel to credit. Captured
+                enquiries (ads, website form) set this automatically; this is
+                the manual path for walk-ins and phone calls. */}
+            <FormField
+              control={form.control}
+              name="enquirySource"
+              render={({ field }) => (
+                <FormItem className="sm:col-span-2">
+                  <FormLabel>Lead source</FormLabel>
+                  <Select
+                    onValueChange={(v) => field.onChange(v === NO_SOURCE ? "" : v)}
+                    value={field.value ? field.value : NO_SOURCE}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select lead source" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value={NO_SOURCE}>Not recorded</SelectItem>
+                      {ENQUIRY_SOURCE_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>
+                          {o.label}
                         </SelectItem>
                       ))}
                     </SelectContent>

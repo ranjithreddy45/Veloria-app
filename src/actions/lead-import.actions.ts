@@ -165,6 +165,7 @@ export async function importSalesLeads(
                 company: r.company?.trim() || null,
                 type: r.company?.trim() ? "CORPORATE" : "INDIVIDUAL",
                 customerType: "New",
+                enquirySource: "DIRECT", // imported sheet carries no channel
               },
               select: { id: true },
             });
