@@ -21,17 +21,43 @@ import { captureLeadFromExternal } from "@/lib/lead-capture";
 import { clientIpFromHeaders } from "@/lib/hr/geo";
 import { checkRateLimit } from "@/lib/rate-limit";
 
-/** Origins allowed to post (the marketing site + the app itself). */
-const ALLOWED_ORIGINS = new Set([
-  "https://veloriagrand.com",
-  "https://www.veloriagrand.com",
-  "https://app.theveloriagrand.com",
-]);
+/**
+ * Origins allowed to post.
+ *
+ * BOTH spellings of the brand are live sites: veloriagrand.com AND
+ * theveloriagrand.com. Only the first was listed, so a form on
+ * theveloriagrand.com received `Access-Control-Allow-Origin: veloriagrand.com`,
+ * the browser refused the response, and the enquiry was silently lost — the
+ * failure is invisible on the page, which is the worst kind.
+ *
+ * Add more without a deploy via LANDING_LEAD_ORIGINS (comma-separated), e.g. a
+ * new campaign microsite or a page builder's preview domain.
+ */
+const ALLOWED_ORIGINS = new Set(
+  [
+    "https://veloriagrand.com",
+    "https://www.veloriagrand.com",
+    "https://theveloriagrand.com",
+    "https://www.theveloriagrand.com",
+    "https://app.theveloriagrand.com",
+    ...(process.env.LANDING_LEAD_ORIGINS ?? "")
+      .split(",")
+      .map((o) => o.trim().replace(/\/$/, ""))
+      .filter(Boolean),
+  ].map((o) => o.toLowerCase())
+);
 
 function corsHeaders(origin: string | null): Record<string, string> {
   // Echo only known origins; fall back to the primary site rather than "*" so
   // this endpoint isn't a free lead-injection surface for any website.
-  const allow = origin && ALLOWED_ORIGINS.has(origin) ? origin : "https://veloriagrand.com";
+  const normalized = origin?.trim().toLowerCase().replace(/\/$/, "") ?? "";
+  // In development, echo any localhost origin — otherwise the embeddable form
+  // can never be tested from a locally-served page, which is exactly how it will
+  // be integrated. Production is unaffected: the allowlist still governs there.
+  const isLocalDev =
+    process.env.NODE_ENV !== "production" && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalized);
+  const allow =
+    normalized && (ALLOWED_ORIGINS.has(normalized) || isLocalDev) ? origin! : "https://veloriagrand.com";
   return {
     "Access-Control-Allow-Origin": allow,
     "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -77,12 +103,36 @@ export async function POST(req: Request) {
   }
 
   const name = String(body.name ?? "").trim();
-  const phoneRaw = String(body.phone ?? "").replace(/\D/g, "");
-  // Accept 10-digit Indian mobiles, tolerating a 91/0 prefix from autofill.
-  const phone = phoneRaw.length > 10 ? phoneRaw.slice(-10) : phoneRaw;
   if (!name) return NextResponse.json({ ok: false, error: "Name is required." }, { status: 422, headers: cors });
-  if (!/^[6-9]\d{9}$/.test(phone)) {
-    return NextResponse.json({ ok: false, error: "A valid 10-digit mobile number is required." }, { status: 422, headers: cors });
+
+  // Phone. This previously required /^[6-9]\d{9}$/ AND did `slice(-10)`, which
+  // BOTH rejected every overseas enquiry outright and destroyed the country code
+  // of anyone who typed one. Veloria takes destination-wedding and NRI business,
+  // so a UK or UAE number must be accepted, not 422'd.
+  //
+  // We keep a leading "+" (or a 00 prefix) so captureLeadFromExternal can
+  // canonicalise it properly; a bare 10-digit Indian mobile still works exactly
+  // as before. Validation is now "plausibly a phone" (E.164 allows 7-15 digits).
+  const rawPhone = String(body.phone ?? "").trim();
+  const digits = rawPhone.replace(/\D/g, "");
+  const hasCountryCode = rawPhone.startsWith("+") || digits.startsWith("00");
+  const phone = hasCountryCode
+    ? `+${digits.replace(/^00/, "")}`
+    : digits.replace(/^0+/, "");
+
+  if (digits.length < 7 || digits.length > 15) {
+    return NextResponse.json(
+      { ok: false, error: "Please enter a valid phone number (include your country code if you're outside India)." },
+      { status: 422, headers: cors }
+    );
+  }
+  // A bare number with no country code must still look like an Indian mobile —
+  // that is the only case where we can safely infer +91 downstream.
+  if (!hasCountryCode && !/^[6-9]\d{9}$/.test(phone)) {
+    return NextResponse.json(
+      { ok: false, error: "Enter a 10-digit Indian mobile, or include your country code (e.g. +44…)." },
+      { status: 422, headers: cors }
+    );
   }
 
   const eventType = String(body.eventType ?? "").trim() || undefined;
