@@ -348,7 +348,8 @@ export async function priceAndCreateAdvanceLink(
           lastName,
           email: email || null,
           phone,
-          tags: ["configurator"],
+          // Channel goes in enquirySource, not tags — see lead-capture.
+          tags: [],
           enquirySource: "LEAD_FORM", // public configurator is a form we host
         },
       });

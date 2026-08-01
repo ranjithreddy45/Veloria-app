@@ -238,7 +238,12 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
           // Credit the marketing channel at the moment of capture — this is the
           // only point where we still know which integration delivered it.
           enquirySource: toEnquirySource(data.source),
-          tags: [data.source.toLowerCase()],
+          // NOT tagged with the source as well. Tags are for what STAFF choose
+          // to label a customer ("Marriage", "Corporate"); stamping the channel
+          // there too filled every row with a "google_ads"/"website" chip and
+          // crowded the real tags out of the list. The channel lives in
+          // enquirySource, which has its own column, filter and export.
+          tags: [],
         },
       });
     }

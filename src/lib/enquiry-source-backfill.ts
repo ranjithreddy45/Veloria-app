@@ -1,39 +1,104 @@
 import { prisma } from "@/lib/prisma";
 import { toEnquirySource } from "@/lib/enquiry-source";
+import { usableValue } from "@/lib/webhook-field";
 
 // ============================================================
-// Backfill Contact.enquirySource from the contact's FIRST lead.
+// Repair pass for enquiry (Contact) attribution data.
 //
-// Why a cron backstop rather than a migration: the column ships empty on every
-// existing row, and a one-off script can't be run against production from here.
-// Registering it in the daily lane makes the fill happen by itself, and keeps
-// happening — so a contact created by some path that forgets to stamp the
-// channel still gets attributed rather than sitting blank forever.
+// Why a cron backstop rather than a migration: there is no way to run a one-off
+// script against the production database from the dev machine, and Vercel's
+// build only runs `prisma db push`. Registering this in the daily lane means
+// the repair happens by itself, and keeps happening — so a row created by some
+// path that forgets to stamp the channel still gets fixed rather than sitting
+// wrong forever.
 //
-// ATTRIBUTION RULE: only ever derive from a lead's own recorded `source`, which
-// is real captured data. A contact with NO leads is left NULL and reads as
-// "Not recorded" — inventing "Direct" for it would put a fabricated number in a
-// channel report someone spends money against.
+// It does three things, all idempotent and all narrowly scoped:
 //
-// Idempotent: only touches rows where enquirySource IS NULL, so a second run
-// over the same data is a no-op.
+//   1. FILLS a blank enquirySource from evidence we already hold.
+//   2. STRIPS the channel word out of `tags`, where captures used to write it.
+//   3. CLEARS junk phone values ("FALSE", "N/A") left by the old ad-webhook bug.
+//
+// ATTRIBUTION RULE: only ever derive from something real — the channel tag
+// written at capture, or the first lead's own recorded source. A contact with
+// neither is left NULL and reads "Not recorded". Inventing "Direct" would put a
+// fabricated number in a channel report someone spends money against.
 // ============================================================
 
 /** Cap per run so one pass can't blow the cron's time budget on a big table. */
 const BATCH = 2000;
 
-export async function backfillEnquirySource(): Promise<{
+/**
+ * Tag values that are really a capture channel, not a label a person chose.
+ *
+ * An EXACT-MATCH allowlist on purpose. A prefix or `includes` rule would eat
+ * staff tags — "Website shoot", "Walk-in visit" — and tags are hand-entered
+ * data that cannot be regenerated. Anything not on this list is left alone.
+ *
+ * Sources: `data.source.toLowerCase()` from captureLeadFromExternal, plus the
+ * literals the configurator and public-hold forms used.
+ */
+const CHANNEL_TAGS = new Set([
+  "google_ads",
+  "google ads",
+  "googleads",
+  "facebook_ads",
+  "facebook ads",
+  "facebookads",
+  "instagram",
+  "meta",
+  "paid_social",
+  "website",
+  "widget",
+  "web_form",
+  "webform",
+  "landing_page",
+  "configurator",
+  "public-hold",
+  "walk_in",
+  "walkin",
+  "justdial",
+  "indiamart",
+  "wedmegood",
+  "weddingwire",
+]);
+
+/** True when this tag is a capture channel rather than a human label. */
+export function isChannelTag(tag: string): boolean {
+  return CHANNEL_TAGS.has(tag.trim().toLowerCase());
+}
+
+export interface EnquiryRepairResult {
   scanned: number;
-  filled: number;
-  skippedNoLead: number;
-}> {
+  /** enquirySource filled in. */
+  sourceFilled: number;
+  /** Contacts that had at least one channel tag removed. */
+  tagsCleaned: number;
+  /** Junk phone values ("FALSE", "N/A") cleared. */
+  phonesCleared: number;
+  /** Left NULL on purpose — no tag and no lead to derive from. */
+  skippedNoEvidence: number;
+}
+
+export async function backfillEnquirySource(): Promise<EnquiryRepairResult> {
+  // Anything that still needs one of the three repairs. A row that is already
+  // clean matches none of these and is never re-read.
   const contacts = await prisma.contact.findMany({
-    where: { enquirySource: null, deletedAt: null },
+    where: {
+      deletedAt: null,
+      OR: [
+        { enquirySource: null },
+        { tags: { isEmpty: false } },
+        { phone: { not: null } },
+      ],
+    },
     select: {
       id: true,
-      // The FIRST lead is the one that won the customer — a later lead may have
-      // arrived through a different channel, but the credit belongs to the one
-      // that brought them in.
+      tags: true,
+      phone: true,
+      enquirySource: true,
+      // The FIRST lead is the one that won the customer — a later lead may
+      // have arrived through a different channel, but the credit belongs to
+      // the one that brought them in.
       leads: {
         where: { deletedAt: null },
         orderBy: { createdAt: "asc" },
@@ -44,29 +109,56 @@ export async function backfillEnquirySource(): Promise<{
     take: BATCH,
   });
 
-  let filled = 0;
-  let skippedNoLead = 0;
+  const result: EnquiryRepairResult = {
+    scanned: contacts.length,
+    sourceFilled: 0,
+    tagsCleaned: 0,
+    phonesCleared: 0,
+    skippedNoEvidence: 0,
+  };
 
   for (const c of contacts) {
-    const leadSource = c.leads[0]?.source;
-    if (!leadSource) {
-      skippedNoLead++;
-      continue;
+    const data: Record<string, unknown> = {};
+
+    // ---- 1 + 2. Channel tags: read the evidence, THEN drop the tag ----
+    const channelTags = c.tags.filter(isChannelTag);
+    const keptTags = c.tags.filter((t) => !isChannelTag(t));
+
+    if (!c.enquirySource) {
+      // Prefer the tag: it was written at capture from the same string that now
+      // feeds enquirySource, so it is first-hand evidence and survives even
+      // when the lead row is gone. Fall back to the first lead's source.
+      const evidence = channelTags[0] ?? c.leads[0]?.source ?? null;
+      if (evidence) {
+        data.enquirySource = toEnquirySource(evidence);
+      } else {
+        result.skippedNoEvidence++;
+      }
     }
-    await prisma.contact
-      .update({
-        // Re-assert the null guard so a concurrent write (someone setting it by
-        // hand while this runs) is never overwritten.
-        where: { id: c.id, enquirySource: null },
-        data: { enquirySource: toEnquirySource(leadSource) },
-      })
-      .then(() => {
-        filled++;
-      })
-      .catch(() => {
-        /* row changed under us — leave whatever the other writer chose */
-      });
+
+    // Only write tags when something actually changes — an unconditional write
+    // would churn every row on every nightly run.
+    if (channelTags.length > 0) data.tags = keptTags;
+
+    // ---- 3. Junk phone left by the old ad-webhook bug ----
+    // usableValue is the same rule the webhooks now apply on the way in, so
+    // "FALSE"/"N/A"/"-" are recognised as absent. Clearing is right: a blank
+    // phone is obviously missing, whereas "FALSE" looks real and gets dialled.
+    const junkPhone = c.phone !== null && usableValue(c.phone) === null;
+    if (junkPhone) data.phone = null;
+
+    if (Object.keys(data).length === 0) continue;
+
+    try {
+      await prisma.contact.update({ where: { id: c.id }, data });
+      if (data.enquirySource) result.sourceFilled++;
+      if (data.tags) result.tagsCleaned++;
+      if (junkPhone) result.phonesCleared++;
+    } catch {
+      // Row changed under us (someone editing it in the app) — skip; the next
+      // nightly run picks it up again.
+    }
   }
 
-  return { scanned: contacts.length, filled, skippedNoLead };
+  return result;
 }

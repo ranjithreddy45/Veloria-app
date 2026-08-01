@@ -68,9 +68,12 @@ describe("captureLeadFromExternal records the marketing channel", () => {
 
     const contact = await prisma.contact.findUnique({
       where: { id: res.contactId! },
-      select: { enquirySource: true },
+      select: { enquirySource: true, tags: true },
     });
     expect(contact?.enquirySource).toBe(expected);
+    // The channel must NOT also be dumped into tags — that filled every row
+    // with a "google_ads"/"website" chip and crowded out the staff's own tags.
+    expect(contact?.tags).toEqual([]);
   });
 
   it("does not overwrite an existing credit when the same person re-enquires", async () => {
@@ -101,7 +104,7 @@ describe("captureLeadFromExternal records the marketing channel", () => {
   });
 });
 
-describe("backfillEnquirySource", () => {
+describe("backfillEnquirySource — repair pass", () => {
   it("fills a blank contact from its first lead, and leaves lead-less ones alone", async () => {
     // A legacy contact: has a lead, but no channel recorded on the contact.
     const withLead = await prisma.contact.create({
@@ -124,15 +127,15 @@ describe("backfillEnquirySource", () => {
     });
     leadIds.push(lead.id);
 
-    // A contact with no lead at all — nothing real to derive from.
-    const noLead = await prisma.contact.create({
+    // A contact with no lead and no channel tag — nothing real to derive from.
+    const noEvidence = await prisma.contact.create({
       data: { firstName: "Legacy", lastName: `NoLead ${U}`, phone: phoneFor(7) },
       select: { id: true },
     });
-    contactIds.push(noLead.id);
+    contactIds.push(noEvidence.id);
 
     const result = await backfillEnquirySource();
-    expect(result.filled).toBeGreaterThanOrEqual(1);
+    expect(result.sourceFilled).toBeGreaterThanOrEqual(1);
 
     expect(
       (await prisma.contact.findUnique({ where: { id: withLead.id }, select: { enquirySource: true } }))
@@ -141,17 +144,82 @@ describe("backfillEnquirySource", () => {
 
     // Left NULL on purpose: guessing "Direct" would fabricate attribution.
     expect(
-      (await prisma.contact.findUnique({ where: { id: noLead.id }, select: { enquirySource: true } }))
+      (await prisma.contact.findUnique({ where: { id: noEvidence.id }, select: { enquirySource: true } }))
         ?.enquirySource
     ).toBeNull();
   });
 
+  it("moves a channel TAG into the source column and removes only that tag", async () => {
+    // Exactly the shape in the screenshot: a "google_ads" chip sitting in the
+    // tags column next to a real, hand-typed tag.
+    const c = await prisma.contact.create({
+      data: {
+        firstName: "Tagged",
+        lastName: `Ads ${U}`,
+        phone: phoneFor(3),
+        tags: ["google_ads", "Marriage", "Baby shower"],
+      },
+      select: { id: true },
+    });
+    contactIds.push(c.id);
+
+    await backfillEnquirySource();
+
+    const after = await prisma.contact.findUnique({
+      where: { id: c.id },
+      select: { enquirySource: true, tags: true },
+    });
+    // The tag was EVIDENCE — the channel is preserved, not just deleted.
+    expect(after?.enquirySource).toBe("GOOGLE_ADS");
+    // The staff's own tags survive untouched, in order.
+    expect(after?.tags).toEqual(["Marriage", "Baby shower"]);
+  });
+
+  it("never eats a staff tag that merely resembles a channel", async () => {
+    // The allowlist is exact-match for this reason: a `includes("website")`
+    // rule would silently destroy hand-entered labels no one can regenerate.
+    const c = await prisma.contact.create({
+      data: {
+        firstName: "Tagged",
+        lastName: `Safe ${U}`,
+        phone: phoneFor(4),
+        tags: ["Website shoot", "Walk-in visit", "Referral partner"],
+      },
+      select: { id: true },
+    });
+    contactIds.push(c.id);
+
+    await backfillEnquirySource();
+
+    const after = await prisma.contact.findUnique({
+      where: { id: c.id },
+      select: { tags: true, enquirySource: true },
+    });
+    expect(after?.tags).toEqual(["Website shoot", "Walk-in visit", "Referral partner"]);
+    // No channel evidence either — those are labels, not sources.
+    expect(after?.enquirySource).toBeNull();
+  });
+
+  it("clears a junk phone left by the old ad-webhook bug", async () => {
+    const c = await prisma.contact.create({
+      // The literal value seen in the CRM: staff were ringing "FALSE".
+      data: { firstName: "Junk", lastName: `Phone ${U}`, phone: "FALSE" },
+      select: { id: true },
+    });
+    contactIds.push(c.id);
+
+    const result = await backfillEnquirySource();
+    expect(result.phonesCleared).toBeGreaterThanOrEqual(1);
+
+    expect(
+      (await prisma.contact.findUnique({ where: { id: c.id }, select: { phone: true } }))?.phone
+    ).toBeNull();
+  });
+
   it("is idempotent — a second pass changes nothing", async () => {
-    const before = await prisma.contact.count({ where: { enquirySource: { not: null } } });
     const second = await backfillEnquirySource();
-    const after = await prisma.contact.count({ where: { enquirySource: { not: null } } });
-    expect(after).toBe(before + second.filled);
-    // Nothing new to fill on the rows the first pass already handled.
-    expect(second.filled).toBe(0);
+    expect(second.sourceFilled).toBe(0);
+    expect(second.tagsCleaned).toBe(0);
+    expect(second.phonesCleared).toBe(0);
   });
 });

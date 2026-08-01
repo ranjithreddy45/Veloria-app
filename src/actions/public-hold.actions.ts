@@ -431,7 +431,8 @@ export async function createPublicHold(
           lastName,
           email,
           phone,
-          tags: ["website", "public-hold"],
+          // Channel goes in enquirySource, not tags — see lead-capture.
+          tags: [],
           enquirySource: "LEAD_FORM", // public website hold form
         },
         select: { id: true },
