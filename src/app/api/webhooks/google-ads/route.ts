@@ -3,6 +3,7 @@ import { timingSafeEqual } from "crypto";
 import { captureLeadFromExternal } from "@/lib/lead-capture";
 import { parseAttributionFromRequest } from "@/lib/attribution";
 import { prisma } from "@/lib/prisma";
+import { fieldValue, LEAD_VALUE_KEYS } from "@/lib/webhook-field";
 
 /**
  * POST /api/webhooks/google-ads — Google Ads **lead form extension** webhook.
@@ -101,10 +102,14 @@ export async function POST(request: NextRequest) {
 
     for (const col of Array.isArray(userColumnData) ? userColumnData : []) {
       const columnId = String(col.column_id ?? col.columnId ?? "").toUpperCase();
-      // Only accept a genuine string. Coercing an arbitrary type is how "false"
-      // (and would-be "true"/"null"/"[object Object]") reached the CRM.
-      const rawValue = col.string_value ?? col.stringValue;
-      const value = typeof rawValue === "string" ? rawValue.trim() : "";
+      // fieldValue takes strings AND unquoted numbers, rejects booleans, and
+      // tries every key spelling rather than stopping at the first one that
+      // merely EXISTS. Both halves matter here:
+      //   - `string_value: false` (unfilled column) must not become "false";
+      //   - a phone delivered as a JSON number (9611360491, no quotes) must
+      //     still be read. An earlier string-only guard dropped exactly that,
+      //     turning a wrong phone number into a missing one.
+      const value = fieldValue(col, LEAD_VALUE_KEYS);
       if (!value) continue;
       // Google's documented column ids: FULL_NAME, FIRST_NAME, LAST_NAME,
       // EMAIL, PHONE_NUMBER, POSTAL_CODE, CITY, COMPANY_NAME, JOB_TITLE…
@@ -118,9 +123,13 @@ export async function POST(request: NextRequest) {
     if (!name) name = [firstName, lastName].filter(Boolean).join(" ").trim();
 
     // Top-level overrides (defensive; some integrations flatten the payload).
-    if (typeof body.name === "string" && body.name) name = body.name;
-    if (typeof body.email === "string" && body.email) email = body.email;
-    if (typeof body.phone === "string" && body.phone) phone = body.phone;
+    // Same coercion rules — a flattened numeric phone is just as real.
+    const topName = fieldValue(body, ["name", "full_name", "fullName"]);
+    const topEmail = fieldValue(body, ["email", "email_address", "emailAddress"]);
+    const topPhone = fieldValue(body, ["phone", "phone_number", "phoneNumber"]);
+    if (topName) name = topName;
+    if (topEmail) email = topEmail;
+    if (topPhone) phone = topPhone;
 
     if (!name) name = "Google Ads Lead";
     // Make a test lead unmistakable in the pipeline.

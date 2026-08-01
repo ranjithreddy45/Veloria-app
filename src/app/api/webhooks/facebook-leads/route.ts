@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { captureLeadFromExternal } from "@/lib/lead-capture";
 import { parseAttributionFromRequest } from "@/lib/attribution";
 import { prisma } from "@/lib/prisma";
+import { firstUsable } from "@/lib/webhook-field";
 
 export const runtime = "nodejs";
 
@@ -139,14 +140,19 @@ export async function POST(request: NextRequest) {
                   const fieldData = fbData.field_data || [];
 
                   for (const field of fieldData) {
-                    if (field.name === "full_name" || field.name === "name") {
-                      leadData.name = field.values?.[0] || leadData.name;
-                    }
-                    if (field.name === "email") {
-                      leadData.email = field.values?.[0] || "";
-                    }
-                    if (field.name === "phone_number" || field.name === "phone") {
-                      leadData.phone = field.values?.[0] || "";
+                    // firstUsable skips [], [null] and [false] — an unfilled
+                    // field — and accepts a phone returned as a number. Taking
+                    // values[0] raw could hand a non-string straight to the
+                    // capture pipeline.
+                    const value = firstUsable(field?.values);
+                    if (!value) continue;
+                    const fieldName = String(field?.name ?? "").toLowerCase();
+                    if (fieldName === "full_name" || fieldName === "name") {
+                      leadData.name = value;
+                    } else if (fieldName.includes("email")) {
+                      leadData.email = value;
+                    } else if (fieldName.includes("phone")) {
+                      leadData.phone = value;
                     }
                   }
                 }
