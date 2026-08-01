@@ -2,6 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PlusIcon, UsersIcon, UserIcon, Building2Icon, ContactIcon } from "lucide-react";
 
+import { auth } from "@/../auth";
+import { hasPermission } from "@/lib/permissions";
+import { prisma } from "@/lib/prisma";
+import { CHANNEL_TAG_LIST } from "@/lib/enquiry-source-backfill";
+import { EnquiryRepairButton } from "./_components/enquiry-repair-button";
 import { getContacts } from "@/actions/contact.actions";
 import { getVenues } from "@/actions/booking.actions";
 import { PageHeader } from "@/components/layout/page-header";
@@ -33,7 +38,8 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
 
   // Ceiling lets the client table page through rows without the default-50
   // cutoff, while keeping the payload far lighter than 1000.
-  const [result, venuesResult] = await Promise.all([
+  const [session, result, venuesResult] = await Promise.all([
+    auth(),
     getContacts({
       limit: 500,
       createdFrom: from,
@@ -45,6 +51,20 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
     getVenues({ activeOnly: true }),
   ]);
   const contacts = result.success ? result.data.data : [];
+
+  // Only offer the one-off tidy-up to an admin, and only while there is
+  // something left to tidy — otherwise it is a button that does nothing.
+  // No session → no role → no repair button. Fail closed.
+  const canRepair =
+    !!session?.user?.role && hasPermission(session.user.role, "settings:update");
+  const repairable = canRepair
+    ? await prisma.contact.count({
+        where: {
+          deletedAt: null,
+          OR: [{ enquirySource: null }, { tags: { hasSome: CHANNEL_TAG_LIST } }],
+        },
+      })
+    : 0;
   const venues = venuesResult.success
     ? venuesResult.data.map((v) => ({ id: v.id, name: v.name }))
     : [];
@@ -95,6 +115,7 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
         }
         description="Your people. Every conversation, deal, and booking ties back here."
       >
+        {repairable > 0 && <EnquiryRepairButton affected={repairable} />}
         <Button asChild>
           <Link href="/contacts/new">
             <PlusIcon className="size-3.5" strokeWidth={2.5} />

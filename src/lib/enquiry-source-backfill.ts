@@ -62,6 +62,9 @@ const CHANNEL_TAGS = new Set([
   "weddingwire",
 ]);
 
+/** The same set as an array, for `tags: { hasSome: [...] }` count queries. */
+export const CHANNEL_TAG_LIST: string[] = [...CHANNEL_TAGS];
+
 /** True when this tag is a capture channel rather than a human label. */
 export function isChannelTag(tag: string): boolean {
   return CHANNEL_TAGS.has(tag.trim().toLowerCase());
