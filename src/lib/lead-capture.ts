@@ -8,7 +8,7 @@ import { runLeadIntake, leadSlaDeadline } from "@/lib/lead-pipeline";
 import { attachAttributionToLead, type AttributionInput } from "@/lib/attribution";
 import { normalizePhone } from "@/lib/sales/lead-import";
 import { coarseContactWhere, matchesContactKey, phoneDigits } from "@/lib/dedup";
-import { toEnquirySource } from "@/lib/enquiry-source";
+import { toEnquirySource, eventTypeTag } from "@/lib/enquiry-source";
 
 /**
  * An email is only worth storing if it could plausibly be delivered to. Same
@@ -228,6 +228,9 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
       }
     }
 
+    // Normalised once — used for the contact tag below.
+    const eventTag = eventTypeTag(data.eventType);
+
     if (!contact) {
       contact = await prisma.contact.create({
         data: {
@@ -238,12 +241,12 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
           // Credit the marketing channel at the moment of capture — this is the
           // only point where we still know which integration delivered it.
           enquirySource: toEnquirySource(data.source),
-          // NOT tagged with the source as well. Tags are for what STAFF choose
-          // to label a customer ("Marriage", "Corporate"); stamping the channel
-          // there too filled every row with a "google_ads"/"website" chip and
-          // crowded the real tags out of the list. The channel lives in
-          // enquirySource, which has its own column, filter and export.
-          tags: [],
+          // Tags carry WHAT THE EVENT IS — "Wedding", "Baby Shower" — which is
+          // what staff scan the list for. The capture CHANNEL used to be
+          // stamped here instead, filling every row with a "google_ads" chip
+          // and crowding the useful label out; the channel now has its own
+          // column (enquirySource) with its own filter and export.
+          tags: eventTag ? [eventTag] : [],
         },
       });
     }

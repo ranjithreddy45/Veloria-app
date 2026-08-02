@@ -39,10 +39,13 @@ export function EnquiryRepairButton({ affected }: { affected: number }) {
         toast.error(res.error);
         return;
       }
-      const { sourceFilled, tagsCleaned, phonesCleared } = res.data;
+      const { sourceFilled, tagsCleaned, tagsRetyped, phonesCleared } = res.data;
       const parts = [
         sourceFilled ? `${sourceFilled} lead source${sourceFilled === 1 ? "" : "s"} recorded` : null,
-        tagsCleaned ? `${tagsCleaned} source tag${tagsCleaned === 1 ? "" : "s"} removed` : null,
+        tagsRetyped ? `${tagsRetyped} tag${tagsRetyped === 1 ? "" : "s"} set to the event type` : null,
+        tagsCleaned - tagsRetyped > 0
+          ? `${tagsCleaned - tagsRetyped} source tag${tagsCleaned - tagsRetyped === 1 ? "" : "s"} removed`
+          : null,
         phonesCleared ? `${phonesCleared} bad phone number${phonesCleared === 1 ? "" : "s"} cleared` : null,
       ].filter(Boolean);
       toast.success(parts.length ? parts.join(" · ") : "Everything was already tidy");
@@ -68,8 +71,12 @@ export function EnquiryRepairButton({ affected }: { affected: number }) {
               <ul className="list-disc space-y-1 pl-4">
                 <li>
                   Moves channel tags like <code>google_ads</code> into the Lead source
-                  column, so the tag is <strong>read before it is removed</strong> — nothing
+                  column, so the tag is <strong>read before it is replaced</strong> — nothing
                   is lost.
+                </li>
+                <li>
+                  Puts the <strong>event type</strong> there instead &mdash; &ldquo;Wedding&rdquo;,
+                  &ldquo;Baby Shower&rdquo; &mdash; which is what a tag is for.
                 </li>
                 <li>
                   Leaves your own tags alone. Labels such as &ldquo;Marriage&rdquo; or

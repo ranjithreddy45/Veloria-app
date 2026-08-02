@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { toEnquirySource } from "@/lib/enquiry-source";
+import { toEnquirySource, eventTypeTag } from "@/lib/enquiry-source";
 import { usableValue } from "@/lib/webhook-field";
 
 // ============================================================
@@ -15,7 +15,8 @@ import { usableValue } from "@/lib/webhook-field";
 // It does three things, all idempotent and all narrowly scoped:
 //
 //   1. FILLS a blank enquirySource from evidence we already hold.
-//   2. STRIPS the channel word out of `tags`, where captures used to write it.
+//   2. REPLACES the channel word in `tags` with the EVENT TYPE — what the tag
+//      is actually for ("Wedding", "Baby Shower"), and what staff scan for.
 //   3. CLEARS junk phone values ("FALSE", "N/A") left by the old ad-webhook bug.
 //
 // ATTRIBUTION RULE: only ever derive from something real — the channel tag
@@ -76,6 +77,8 @@ export interface EnquiryRepairResult {
   sourceFilled: number;
   /** Contacts that had at least one channel tag removed. */
   tagsCleaned: number;
+  /** Channel tags that were REPLACED with the event type, not just dropped. */
+  tagsRetyped: number;
   /** Junk phone values ("FALSE", "N/A") cleared. */
   phonesCleared: number;
   /** Left NULL on purpose — no tag and no lead to derive from. */
@@ -106,7 +109,7 @@ export async function backfillEnquirySource(): Promise<EnquiryRepairResult> {
         where: { deletedAt: null },
         orderBy: { createdAt: "asc" },
         take: 1,
-        select: { source: true },
+        select: { source: true, eventType: true },
       },
     },
     take: BATCH,
@@ -116,6 +119,7 @@ export async function backfillEnquirySource(): Promise<EnquiryRepairResult> {
     scanned: contacts.length,
     sourceFilled: 0,
     tagsCleaned: 0,
+    tagsRetyped: 0,
     phonesCleared: 0,
     skippedNoEvidence: 0,
   };
@@ -139,9 +143,25 @@ export async function backfillEnquirySource(): Promise<EnquiryRepairResult> {
       }
     }
 
-    // Only write tags when something actually changes — an unconditional write
-    // would churn every row on every nightly run.
-    if (channelTags.length > 0) data.tags = keptTags;
+    // Put the EVENT TYPE where the channel word used to be. Only for rows that
+    // actually carried a channel tag: those are the captured enquiries that
+    // should have been labelled with the event all along. Contacts that
+    // deliberately have no tags are left with none — this is a correction, not
+    // a licence to tag everybody.
+    let retyped = false;
+    if (channelTags.length > 0) {
+      const eventTag = eventTypeTag(c.leads[0]?.eventType);
+      // Don't duplicate a label the staff already added themselves.
+      const alreadyLabelled = keptTags.some(
+        (t) => t.trim().toLowerCase() === eventTag?.toLowerCase()
+      );
+      if (eventTag && !alreadyLabelled) {
+        data.tags = [eventTag, ...keptTags];
+        retyped = true;
+      } else {
+        data.tags = keptTags;
+      }
+    }
 
     // ---- 3. Junk phone left by the old ad-webhook bug ----
     // usableValue is the same rule the webhooks now apply on the way in, so
@@ -156,6 +176,7 @@ export async function backfillEnquirySource(): Promise<EnquiryRepairResult> {
       await prisma.contact.update({ where: { id: c.id }, data });
       if (data.enquirySource) result.sourceFilled++;
       if (data.tags) result.tagsCleaned++;
+      if (retyped) result.tagsRetyped++;
       if (junkPhone) result.phonesCleared++;
     } catch {
       // Row changed under us (someone editing it in the app) — skip; the next

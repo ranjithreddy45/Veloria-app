@@ -85,3 +85,34 @@ export const ENQUIRY_SOURCE_OPTIONS = ENQUIRY_SOURCES.map((value) => ({
   value,
   label: ENQUIRY_SOURCE_LABEL[value],
 }));
+
+// ============================================================
+// Event-type tag.
+//
+// Tags on an enquiry are for WHAT THE EVENT IS — "Wedding", "Baby Shower",
+// "Corporate Event". That is the thing staff scan the list for. The capture
+// channel deliberately does NOT go here; it has its own column.
+//
+// Event type reaches us as free text from a dozen forms ("wedding", "WEDDING",
+// " baby shower "), so it is normalised to one Title Case shape — otherwise the
+// same event produces three different chips and the tag filter fragments.
+// ============================================================
+
+/** Longest sensible event label; anything beyond this is a message, not a type. */
+const MAX_EVENT_TAG = 40;
+
+/**
+ * Normalise a raw event type into a tag, or null when there isn't a usable one.
+ * Returns null rather than a placeholder — an enquiry with no stated event type
+ * should carry no tag, not a "Unknown" chip.
+ */
+export function eventTypeTag(raw: string | null | undefined): string | null {
+  const v = (raw ?? "").trim().replace(/[_-]+/g, " ").replace(/\s+/g, " ");
+  if (!v || v.length > MAX_EVENT_TAG) return null;
+  // Reject values that carry no letters ("123", "--").
+  if (!/[a-z]/i.test(v)) return null;
+  return v
+    .split(" ")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
+}

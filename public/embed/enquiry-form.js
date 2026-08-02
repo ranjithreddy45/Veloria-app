@@ -178,6 +178,9 @@
       '<div class="vg-row"><label for="vg-phone">Mobile number</label>' +
         '<input id="vg-phone" name="phone" inputmode="tel" autocomplete="tel" placeholder="10-digit mobile"></div>' +
 
+      '<div class="vg-row"><label for="vg-email">Email address</label>' +
+        '<input id="vg-email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com"></div>' +
+
       '<div class="vg-row vg-two">' +
         '<div><label for="vg-event">Occasion</label>' +
           '<div class="vg-sel"><select id="vg-event" name="eventType">' + optionsHtml(EVENTS, "Select") + "</select></div></div>" +
@@ -211,7 +214,7 @@
     if (target && target.classList) target.classList.toggle("vg-bad", !!bad);
   }
   // Clear the error styling as soon as the visitor starts correcting it.
-  ["name", "phone", "eventType", "guests", "date"].forEach(function (n) {
+  ["name", "phone", "email", "eventType", "guests", "date"].forEach(function (n) {
     var el = form[n];
     // "change" as well as "input": a <select> in Safari fires only change.
     ["input", "change"].forEach(function (evt) {
@@ -230,7 +233,7 @@
     errEl.textContent = "";
     // Clear EVERY previous outline, not just name/phone — otherwise a field
     // flagged on an earlier attempt stays red after the visitor has fixed it.
-    ["name", "phone", "eventType", "guests", "date"].forEach(function (n) {
+    ["name", "phone", "email", "eventType", "guests", "date"].forEach(function (n) {
       markBad(form[n], false);
     });
 
@@ -257,6 +260,13 @@
       errEl.textContent = "Enter a 10-digit Indian mobile, or include your country code (e.g. +44…).";
       markBad(form.phone, true); form.phone.focus(); return;
     }
+    var email = form.email.value.trim();
+    // Same shape the server accepts, checked here so the visitor is corrected
+    // before a round-trip rather than after one.
+    if (!email || !/^[^\s@]+@[^\s@.]+\.[^\s@]{2,}$/.test(email)) {
+      errEl.textContent = "Please enter a valid email address.";
+      markBad(form.email, true); form.email.focus(); return;
+    }
     if (!form.eventType.value) {
       errEl.textContent = "Please choose the occasion.";
       markBad(form.eventType, true); form.eventType.focus(); return;
@@ -280,6 +290,7 @@
       body: JSON.stringify({
         name: name,
         phone: phone,
+        email: email,
         eventType: form.eventType.value,
         guests: form.guests.value,
         date: form.date.value,

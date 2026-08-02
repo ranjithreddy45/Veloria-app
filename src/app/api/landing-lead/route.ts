@@ -135,6 +135,22 @@ export async function POST(req: Request) {
     );
   }
 
+  // Email. This endpoint previously did not read `body.email` AT ALL — the
+  // site could send one and it was dropped on the floor, so every website
+  // enquiry reached the CRM with a phone and no email address.
+  //
+  // Deliberately NOT mandatory here: the landing page's own form may not ask
+  // for one, and refusing a lead that arrived with a real phone number would
+  // lose business to enforce a field the visitor was never shown. A malformed
+  // value is dropped rather than 422'd, for the same reason — the lead is
+  // still worth having.
+  const rawEmail = [body.email, body.email_address, body.emailAddress]
+    .map((v) => (typeof v === "string" ? v.trim() : ""))
+    .find(Boolean);
+  // Loose on purpose: rejects nonsense, does not police RFC 5322.
+  const email =
+    rawEmail && /^[^\s@]+@[^\s@.]+\.[^\s@]{2,}$/.test(rawEmail) ? rawEmail : undefined;
+
   const eventType = String(body.eventType ?? "").trim() || undefined;
   const eventDate = String(body.date ?? "").trim() || undefined;
   const guestCount = parseGuests(body.guests);
@@ -148,6 +164,7 @@ export async function POST(req: Request) {
     const res = await captureLeadFromExternal({
       name,
       phone,
+      email,
       source: "WEBSITE",
       eventType,
       eventDate,

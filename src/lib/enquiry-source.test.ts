@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  eventTypeTag,
   ENQUIRY_SOURCES,
   ENQUIRY_SOURCE_OPTIONS,
   enquirySourceLabel,
@@ -75,5 +76,34 @@ describe("toEnquirySource — integration strings → channel", () => {
     for (const s of ["!!!", "google", "FACEBOOK/META", "unknown-thing"]) {
       expect(isEnquirySource(toEnquirySource(s))).toBe(true);
     }
+  });
+});
+
+describe("eventTypeTag — the tag is the EVENT, not the channel", () => {
+  it("normalises the many spellings of one event to a single chip", () => {
+    // Without this, "wedding" / "WEDDING" / "Wedding" become three separate
+    // chips and the tag filter fragments across them.
+    for (const v of ["wedding", "WEDDING", " Wedding ", "wEdDiNg"]) {
+      expect(eventTypeTag(v)).toBe("Wedding");
+    }
+    expect(eventTypeTag("baby shower")).toBe("Baby Shower");
+    expect(eventTypeTag("BIRTHDAY PARTY")).toBe("Birthday Party");
+  });
+
+  it("treats separators as spaces, so form values match typed ones", () => {
+    expect(eventTypeTag("corporate_event")).toBe("Corporate Event");
+    expect(eventTypeTag("baby-shower")).toBe("Baby Shower");
+  });
+
+  it("returns null when there is no usable event type", () => {
+    // No tag at all beats an "Unknown" chip on every untyped enquiry.
+    for (const v of ["", "   ", null, undefined, "123", "--"]) {
+      expect(eventTypeTag(v)).toBeNull();
+    }
+  });
+
+  it("refuses a whole message pasted into the event field", () => {
+    const essay = "We are planning a wedding reception for about 400 guests in December";
+    expect(eventTypeTag(essay)).toBeNull();
   });
 });

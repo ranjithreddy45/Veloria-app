@@ -20,6 +20,7 @@
 // ============================================================
 
 import { prisma } from "@/lib/prisma";
+import { eventTypeTag } from "@/lib/enquiry-source";
 import { Prisma, type TimeSlot } from "@prisma/client";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
@@ -431,8 +432,9 @@ export async function createPublicHold(
           lastName,
           email,
           phone,
-          // Channel goes in enquirySource, not tags — see lead-capture.
-          tags: [],
+          // Tag = what the event IS. Channel goes in enquirySource — see
+          // lead-capture for why it is not duplicated here.
+          tags: [eventTypeTag(data.eventType)].filter(Boolean) as string[],
           enquirySource: "LEAD_FORM", // public website hold form
         },
         select: { id: true },

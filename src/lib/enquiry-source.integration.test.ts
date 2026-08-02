@@ -149,6 +149,25 @@ describe("backfillEnquirySource — repair pass", () => {
     ).toBeNull();
   });
 
+  it("labels a captured enquiry with its EVENT TYPE, never the channel", async () => {
+    const res = await captureLeadFromExternal({
+      name: `Event Tagged ${U}`,
+      phone: phoneFor(5),
+      source: "google_ads",
+      eventType: "baby shower",
+    });
+    expect(res.success).toBe(true);
+    await track(res.contactId!);
+
+    const contact = await prisma.contact.findUnique({
+      where: { id: res.contactId! },
+      select: { tags: true, enquirySource: true },
+    });
+    // The tag says what the event is; the channel lives in its own column.
+    expect(contact?.tags).toEqual(["Baby Shower"]);
+    expect(contact?.enquirySource).toBe("GOOGLE_ADS");
+  });
+
   it("moves a channel TAG into the source column and removes only that tag", async () => {
     // Exactly the shape in the screenshot: a "google_ads" chip sitting in the
     // tags column next to a real, hand-typed tag.
@@ -173,6 +192,39 @@ describe("backfillEnquirySource — repair pass", () => {
     expect(after?.enquirySource).toBe("GOOGLE_ADS");
     // The staff's own tags survive untouched, in order.
     expect(after?.tags).toEqual(["Marriage", "Baby shower"]);
+  });
+
+  it("swaps an old channel tag for the event type from its lead", async () => {
+    // Exactly the screenshot: a "google_ads" chip where "Wedding" belongs.
+    const c = await prisma.contact.create({
+      data: { firstName: "Retype", lastName: `Me ${U}`, phone: phoneFor(2), tags: ["google_ads"] },
+      select: { id: true },
+    });
+    contactIds.push(c.id);
+    const someUser = await prisma.user.findFirst({ select: { id: true } });
+    const lead = await prisma.lead.create({
+      data: {
+        title: `Retype lead ${U}`,
+        contact: { connect: { id: c.id } },
+        createdBy: { connect: { id: someUser!.id } },
+        source: "GOOGLE_ADS",
+        eventType: "wedding",
+        status: "NEW",
+      },
+      select: { id: true },
+    });
+    leadIds.push(lead.id);
+
+    const res = await backfillEnquirySource();
+    expect(res.tagsRetyped).toBeGreaterThanOrEqual(1);
+
+    const after = await prisma.contact.findUnique({
+      where: { id: c.id },
+      select: { tags: true, enquirySource: true },
+    });
+    // The channel moved to its column; the tag now says what the event IS.
+    expect(after?.tags).toEqual(["Wedding"]);
+    expect(after?.enquirySource).toBe("GOOGLE_ADS");
   });
 
   it("never eats a staff tag that merely resembles a channel", async () => {

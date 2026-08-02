@@ -20,6 +20,7 @@
 import { randomBytes } from "crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { eventTypeTag } from "@/lib/enquiry-source";
 import {
   computeQuotation,
   validateQuotationInput,
@@ -348,8 +349,9 @@ export async function priceAndCreateAdvanceLink(
           lastName,
           email: email || null,
           phone,
-          // Channel goes in enquirySource, not tags — see lead-capture.
-          tags: [],
+          // Tag = what the event IS. Channel goes in enquirySource — see
+          // lead-capture for why it is not duplicated here.
+          tags: [eventTypeTag(row.occasion)].filter(Boolean) as string[],
           enquirySource: "LEAD_FORM", // public configurator is a form we host
         },
       });
