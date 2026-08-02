@@ -102,8 +102,8 @@ export default async function MyPayslipsPage() {
               <Card key={p.id} className="gap-4 p-5 shadow-card transition-shadow hover:shadow-card-hover">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="truncate text-[15px] font-semibold tracking-[-0.01em]">{label}</div>
-                    <div className="numeric mt-0.5 text-[12px] text-muted-foreground">FY {p.run.fy}</div>
+                    <div className="truncate text-copy font-semibold tracking-[-0.01em]">{label}</div>
+                    <div className="numeric mt-0.5 text-detail text-muted-foreground">FY {p.run.fy}</div>
                   </div>
                   <StatusPill
                     label={p.run.status === "PAID" ? "Paid" : "Finalised"}
@@ -112,8 +112,8 @@ export default async function MyPayslipsPage() {
                   />
                 </div>
                 <div className="mt-auto">
-                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Net pay</div>
-                  <div className="numeric mt-1 text-[26px] font-semibold leading-none">
+                  <div className="text-meta uppercase tracking-wide text-muted-foreground">Net pay</div>
+                  <div className="numeric mt-1 text-h2 font-semibold leading-none">
                     {inr.format(Number(p.net))}
                   </div>
                 </div>

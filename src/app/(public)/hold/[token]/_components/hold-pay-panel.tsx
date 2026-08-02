@@ -52,7 +52,7 @@ export function HoldPayPanel({
           <p className="text-sm text-success">
             Payment of {inr(tokenAmount)} received — this date is now blocked for you.
           </p>
-          <p className="mt-1 flex items-center justify-center gap-1.5 text-[12.5px] font-medium text-success">
+          <p className="mt-1 flex items-center justify-center gap-1.5 text-detail font-medium text-success">
             <PhoneCall className="size-3.5" /> Your coordinator will call you within 24 hours.
           </p>
         </div>

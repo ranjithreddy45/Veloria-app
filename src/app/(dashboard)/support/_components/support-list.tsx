@@ -176,7 +176,7 @@ export function SupportList({
                           <span className="line-clamp-1">{t.subject}</span>
                         </Link>
                         {t.category && (
-                          <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                          <span className="mt-0.5 block text-meta text-muted-foreground">
                             {t.category}
                           </span>
                         )}

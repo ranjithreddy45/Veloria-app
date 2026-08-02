@@ -232,7 +232,7 @@ export function WhatsAppQuickSendDialog({
                   </p>
                   <div className="flex flex-wrap gap-1">
                     {currentTemplate.params.map((param) => (
-                      <Badge key={param} variant="secondary" className="text-[10px]">
+                      <Badge key={param} variant="secondary" className="text-meta">
                         {`{{${param}}}`}: {templateParams[param] || "—"}
                       </Badge>
                     ))}

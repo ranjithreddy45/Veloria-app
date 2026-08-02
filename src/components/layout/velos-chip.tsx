@@ -70,7 +70,7 @@ export function VelosChip() {
           href="/performance/velos"
           aria-label={`Velos: ${data.points} points this month, rank ${rankLabel}`}
           className={cn(
-            "group/velos hidden items-center gap-2 rounded-full border border-border/70 bg-card/70 px-2.5 py-1 text-[12.5px] font-semibold shadow-card backdrop-blur transition-all duration-200 hover:-translate-y-px hover:border-primary/40 hover:shadow-[0_4px_14px_oklch(0.45_0.11_162/0.18)] hover:ring-1 hover:ring-primary/20 active:scale-[0.97] sm:inline-flex"
+            "group/velos hidden items-center gap-2 rounded-full border border-border/70 bg-card/70 px-2.5 py-1 text-detail font-semibold shadow-card backdrop-blur transition-all duration-200 hover:-translate-y-px hover:border-primary/40 hover:shadow-[0_4px_14px_oklch(0.45_0.11_162/0.18)] hover:ring-1 hover:ring-primary/20 active:scale-[0.97] sm:inline-flex"
           )}
         >
           <Sparkles className="size-3.5 text-primary transition-transform duration-200 group-hover/velos:scale-110" />
@@ -79,7 +79,7 @@ export function VelosChip() {
           </span>
           <span className="hidden text-muted-foreground md:inline">pts</span>
           {data.rank && (
-            <span className="inline-flex items-center gap-0.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary">
+            <span className="inline-flex items-center gap-0.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-meta text-primary">
               <Trophy className="size-3" />
               {rankLabel}
             </span>

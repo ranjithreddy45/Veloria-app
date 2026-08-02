@@ -91,18 +91,18 @@ function FlaggedCard({ punch, canClear }: { punch: FlaggedPunch; canClear: boole
             <Link href={`/people/${punch.employeeId}`} className="font-medium hover:underline">
               {punch.name}
             </Link>
-            <span className="text-[12px] text-muted-foreground">{punch.empCode}</span>
-            <span className="text-[12px] text-muted-foreground">·</span>
-            <span className="text-[13px] text-muted-foreground">{fmtUtcDate(punch.date)}</span>
+            <span className="text-detail text-muted-foreground">{punch.empCode}</span>
+            <span className="text-detail text-muted-foreground">·</span>
+            <span className="text-body text-muted-foreground">{fmtUtcDate(punch.date)}</span>
           </div>
 
           {/* Why it's flagged — the headline of the card. */}
-          <div className="flex items-start gap-2 rounded-lg bg-warning/10 px-2.5 py-1.5 text-[13px] text-warning ring-1 ring-inset ring-warning/20">
+          <div className="flex items-start gap-2 rounded-lg bg-warning/10 px-2.5 py-1.5 text-body text-warning ring-1 ring-inset ring-warning/20">
             <ShieldAlert className="mt-0.5 size-4 shrink-0" />
             <span>{punch.flagReason ?? "Needs review."}</span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-body text-muted-foreground">
             <span>In: <span className="text-foreground">{fmtIstTime(punch.checkInAt)}</span></span>
             <span>Out: <span className="text-foreground">{fmtIstTime(punch.checkOutAt)}</span></span>
             <span>Site: <span className="text-foreground">{punch.siteName ?? "—"}</span></span>
@@ -114,7 +114,7 @@ function FlaggedCard({ punch, canClear }: { punch: FlaggedPunch; canClear: boole
             {punch.accuracyM != null && (
               <span
                 className={cn(
-                  "inline-flex items-center rounded-full px-2 py-0.5 text-[11.5px] font-medium ring-1 ring-inset",
+                  "inline-flex items-center rounded-full px-2 py-0.5 text-meta font-medium ring-1 ring-inset",
                   accuracyHigh
                     ? "bg-warning/10 text-warning ring-warning/20"
                     : "bg-muted text-muted-foreground ring-border"
@@ -128,7 +128,7 @@ function FlaggedCard({ punch, canClear }: { punch: FlaggedPunch; canClear: boole
                 href={`https://www.google.com/maps?q=${punch.lat},${punch.lng}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-[12.5px] font-medium text-blue-600 hover:underline dark:text-blue-400"
+                className="inline-flex items-center gap-1 text-detail font-medium text-blue-600 hover:underline dark:text-blue-400"
               >
                 <MapPin className="size-3.5" /> Map <ExternalLink className="size-3" />
               </a>

@@ -173,13 +173,13 @@ export function SellDownBoard({
 
         <div className="flex items-center gap-2">
           <Switch id="peakOnly" checked={peakOnly} onCheckedChange={setPeakOnly} />
-          <Label htmlFor="peakOnly" className="cursor-pointer text-[13px]">
+          <Label htmlFor="peakOnly" className="cursor-pointer text-body">
             Peak dates only
           </Label>
         </div>
 
         <div className="ml-auto flex items-center gap-3">
-          <span className="text-[12px] text-muted-foreground">
+          <span className="text-detail text-muted-foreground">
             Updated {fmtAgo(data?.computedAt ?? null)}
           </span>
           <Button size="sm" variant="outline" className="h-9" onClick={refreshNow} disabled={refreshing}>
@@ -196,8 +196,8 @@ export function SellDownBoard({
         </div>
       ) : targets.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border/70 bg-card p-10 text-center">
-          <p className="text-[15px] font-medium">No low-occupancy slots in this window.</p>
-          <p className="mt-1 text-[13px] text-muted-foreground">
+          <p className="text-copy font-medium">No low-occupancy slots in this window.</p>
+          <p className="mt-1 text-body text-muted-foreground">
             Everything in range is well booked, or no targets have been computed yet. Try “Refresh now”.
           </p>
         </div>

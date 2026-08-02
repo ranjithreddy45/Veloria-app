@@ -35,7 +35,7 @@ function InvalidCard() {
       <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-warning/12 text-warning">
         <AlertTriangle className="size-6" />
       </div>
-      <p className="font-editorial text-foreground mt-5 text-[24px] font-semibold">
+      <p className="font-editorial text-foreground mt-5 text-h2 font-semibold">
         This quote link isn&apos;t valid
       </p>
       <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm leading-relaxed">
@@ -102,10 +102,10 @@ function BrandHero() {
         </span>
       </div>
       {/* Visually a wordmark, not the page heading — the quote headline owns h1. */}
-      <p className="large-title text-foreground mt-4 text-[28px]">
+      <p className="large-title text-foreground mt-4 text-h2">
         Veloria Grand
       </p>
-      <p className="text-muted-foreground/80 mt-2 text-[11px] uppercase tracking-[0.14em]">
+      <p className="text-muted-foreground/80 mt-2 text-meta uppercase tracking-[0.14em]">
         {COMPANY_LEGAL_LINE}
       </p>
     </header>
@@ -115,10 +115,10 @@ function BrandHero() {
 function TrustFooter() {
   return (
     <footer className="mt-12 space-y-1.5 border-t pt-6 text-center">
-      <p className="text-muted-foreground text-[11px]">
+      <p className="text-muted-foreground text-meta">
         256-bit secure payment · powered by Razorpay
       </p>
-      <p className="text-muted-foreground/70 text-[11px]">
+      <p className="text-muted-foreground/70 text-meta">
         Veloria Grand · A Unit of Billion Events Hospitality Services Pvt Ltd
       </p>
     </footer>

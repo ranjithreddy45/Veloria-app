@@ -95,7 +95,7 @@ export function SlaCountdown({
     >
       {formatRemaining(remainingMs)}
       {band === "BREACHED" && (
-        <span className="ml-1 text-[10px] font-bold uppercase tracking-wide">
+        <span className="ml-1 text-meta font-bold uppercase tracking-wide">
           Breached
         </span>
       )}

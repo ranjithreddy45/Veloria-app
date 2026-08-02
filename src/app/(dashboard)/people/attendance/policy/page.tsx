@@ -22,7 +22,7 @@ export default async function AttendancePolicyPage() {
     <div className="space-y-6">
       <Link
         href="/people/attendance"
-        className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground"
+        className="inline-flex items-center gap-1.5 text-body text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-3.5" /> Back to attendance
       </Link>
@@ -33,7 +33,7 @@ export default async function AttendancePolicyPage() {
         description="Define grace periods, half/full-day thresholds, weekly-offs, late-mark-to-LOP rules and overtime settings. One policy is the organisation default."
       />
 
-      <p className="rounded-lg border border-dashed bg-muted/30 px-3.5 py-2.5 text-[12.5px] text-muted-foreground">
+      <p className="rounded-lg border border-dashed bg-muted/30 px-3.5 py-2.5 text-detail text-muted-foreground">
         Policy application into the LOP/attendance calculation is wired separately.
       </p>
 

@@ -103,7 +103,7 @@ export function LeaveApplyCalendar({
   return (
     <div className="rounded-xl border border-border/70 bg-card p-4 shadow-card">
       <div className="mb-3 flex items-center justify-between">
-        <div className="text-[13px] font-semibold">
+        <div className="text-body font-semibold">
           {MONTHS[view.month]} {view.year}
         </div>
         <div className="flex items-center gap-1">
@@ -111,7 +111,7 @@ export function LeaveApplyCalendar({
             <ChevronLeft className="size-4" />
           </Button>
           <Button
-            variant="ghost" size="sm" className="h-7 px-2 text-[12px]"
+            variant="ghost" size="sm" className="h-7 px-2 text-detail"
             onClick={() => setView({ year: now.getUTCFullYear(), month: now.getUTCMonth() })}
           >
             Today
@@ -124,7 +124,7 @@ export function LeaveApplyCalendar({
 
       <div className="grid grid-cols-7 gap-1 text-center">
         {WEEKDAYS.map((w) => (
-          <div key={w} className="pb-1 text-[11px] font-medium text-muted-foreground">{w}</div>
+          <div key={w} className="pb-1 text-meta font-medium text-muted-foreground">{w}</div>
         ))}
         {cells.map((day, i) => {
           if (day == null) return <div key={`b${i}`} />;
@@ -141,7 +141,7 @@ export function LeaveApplyCalendar({
               onClick={() => pick(key)}
               title={isHoliday ? "Holiday" : isWeekend ? "Weekend" : undefined}
               className={cn(
-                "relative flex h-9 items-center justify-center rounded-md text-[13px] tabular-nums transition-colors",
+                "relative flex h-9 items-center justify-center rounded-md text-body tabular-nums transition-colors",
                 disabled && "cursor-not-allowed text-muted-foreground/40 line-through",
                 !disabled && !selected && "hover:bg-muted",
                 selected && "bg-primary/15 text-foreground",
@@ -155,7 +155,7 @@ export function LeaveApplyCalendar({
         })}
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11.5px] text-muted-foreground">
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-meta text-muted-foreground">
         <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-primary" /> Selected</span>
         <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-muted-foreground/30" /> Weekend / holiday</span>
         <span>Click a day to start, click another to set the range.</span>

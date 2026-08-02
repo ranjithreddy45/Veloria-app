@@ -63,14 +63,14 @@ export function UpcomingEvents({ events }: UpcomingEventsProps) {
     <Card className="card-hover-tint rounded-2xl border bg-card shadow-card transition-shadow hover:shadow-card-hover">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div>
-          <CardTitle className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          <CardTitle className="text-meta font-medium uppercase tracking-wide text-muted-foreground">
             Upcoming events
           </CardTitle>
-          <p className="mt-1 text-[13px] text-muted-foreground">Next 7 days</p>
+          <p className="mt-1 text-body text-muted-foreground">Next 7 days</p>
         </div>
         <Link
           href="/bookings"
-          className="inline-flex items-center gap-1 text-[12px] font-medium text-primary transition-colors hover:underline"
+          className="inline-flex items-center gap-1 text-detail font-medium text-primary transition-colors hover:underline"
         >
           View all
           <ArrowUpRight className="size-3" />
@@ -86,7 +86,7 @@ export function UpcomingEvents({ events }: UpcomingEventsProps) {
             action={
               <Link
                 href="/bookings/new"
-                className="inline-flex items-center gap-1.5 rounded-lg border bg-background px-3 py-1.5 text-[13px] font-medium text-foreground transition-colors hover:bg-muted"
+                className="inline-flex items-center gap-1.5 rounded-lg border bg-background px-3 py-1.5 text-body font-medium text-foreground transition-colors hover:bg-muted"
               >
                 <CalendarCheck className="size-3.5" strokeWidth={2} />
                 New booking
@@ -109,16 +109,16 @@ export function UpcomingEvents({ events }: UpcomingEventsProps) {
                     <CalendarCheck className="size-3.5 text-muted-foreground" strokeWidth={2} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13.5px] font-medium leading-tight text-foreground">
+                    <p className="truncate text-body font-medium leading-tight text-foreground">
                       {event.eventName}
                     </p>
-                    <div className="mt-1 flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                    <div className="mt-1 flex items-center gap-1.5 text-detail text-muted-foreground">
                       <Clock className="size-3 shrink-0" />
                       <span>
                         {format(new Date(event.date), "MMM d")} · {TIME_SLOT_SHORT[event.timeSlot] || event.timeSlot}
                       </span>
                     </div>
-                    <div className="mt-0.5 flex items-center gap-3 text-[11.5px] text-muted-foreground/80">
+                    <div className="mt-0.5 flex items-center gap-3 text-meta text-muted-foreground/80">
                       <span className="inline-flex items-center gap-1">
                         <MapPin className="size-3" />
                         {event.venue.name}
@@ -133,7 +133,7 @@ export function UpcomingEvents({ events }: UpcomingEventsProps) {
                     <Badge
                       variant="outline"
                       className={cn(
-                        "border-border px-1.5 py-0 text-[10.5px] font-medium",
+                        "border-border px-1.5 py-0 text-meta font-medium",
                         BOOKING_STATUS_COLORS[event.status]
                       )}
                     >
@@ -141,7 +141,7 @@ export function UpcomingEvents({ events }: UpcomingEventsProps) {
                     </Badge>
                     <span
                       className={cn(
-                        "numeric text-[10.5px] font-medium",
+                        "numeric text-meta font-medium",
                         daysRemaining <= 0
                           ? "text-destructive"
                           : daysRemaining <= 2

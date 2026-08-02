@@ -23,10 +23,10 @@ const PALETTE = [
 ] as const;
 
 const SIZE_CLASSES = {
-  xs: "size-5 text-[9.5px]",
-  sm: "size-6 text-[10px]",
-  md: "size-7 text-[10.5px]",
-  lg: "size-9 text-[12px]",
+  xs: "size-5 text-meta",
+  sm: "size-6 text-meta",
+  md: "size-7 text-meta",
+  lg: "size-9 text-detail",
 } as const;
 
 type Size = keyof typeof SIZE_CLASSES;

@@ -41,8 +41,8 @@ export function GradesAdmin({ grades }: { grades: GradeListItem[] }) {
             <Layers className="size-4.5" />
           </div>
           <div>
-            <h3 className="text-[14px] font-semibold">Pay grades</h3>
-            <p className="text-[12.5px] text-muted-foreground">
+            <h3 className="text-copy font-semibold">Pay grades</h3>
+            <p className="text-detail text-muted-foreground">
               Grades and salary bands available when compensating employees.
             </p>
           </div>
@@ -70,7 +70,7 @@ export function GradesAdmin({ grades }: { grades: GradeListItem[] }) {
             <TableBody>
               {grades.map((g) => (
                 <TableRow key={g.id}>
-                  <TableCell className="font-mono text-[13px] font-medium">{g.code}</TableCell>
+                  <TableCell className="font-mono text-body font-medium">{g.code}</TableCell>
                   <TableCell className="font-medium">{g.name}</TableCell>
                   <TableCell className="text-right tabular-nums">{g.level}</TableCell>
                   <TableCell className="text-right tabular-nums text-muted-foreground">
@@ -246,11 +246,11 @@ function GradeDialog({ existing }: { existing?: GradeListItem }) {
         <div className="space-y-3 py-2">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Code</Label>
+              <Label className="text-detail">Code</Label>
               <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="e.g. L3" autoFocus />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Level</Label>
+              <Label className="text-detail">Level</Label>
               <Input
                 type="number"
                 min={0}
@@ -261,12 +261,12 @@ function GradeDialog({ existing }: { existing?: GradeListItem }) {
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Name</Label>
+            <Label className="text-detail">Name</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Senior Executive" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Min CTC (₹)</Label>
+              <Label className="text-detail">Min CTC (₹)</Label>
               <Input
                 type="number"
                 min={0}
@@ -277,7 +277,7 @@ function GradeDialog({ existing }: { existing?: GradeListItem }) {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Max CTC (₹)</Label>
+              <Label className="text-detail">Max CTC (₹)</Label>
               <Input
                 type="number"
                 min={0}
@@ -288,7 +288,7 @@ function GradeDialog({ existing }: { existing?: GradeListItem }) {
               />
             </div>
           </div>
-          <label className="flex items-center justify-between gap-2 text-[13px]">
+          <label className="flex items-center justify-between gap-2 text-body">
             <span>Active</span>
             <Switch checked={isActive} onCheckedChange={setIsActive} />
           </label>

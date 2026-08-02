@@ -118,7 +118,7 @@ export function AvailabilityToggle() {
           variant="ghost"
           size="sm"
           className={cn(
-            "h-9 gap-1.5 rounded-full border border-border/70 bg-muted/40 px-2.5 text-[12.5px] font-medium transition-all duration-200 hover:bg-muted/70 active:scale-[0.97]",
+            "h-9 gap-1.5 rounded-full border border-border/70 bg-muted/40 px-2.5 text-detail font-medium transition-all duration-200 hover:bg-muted/70 active:scale-[0.97]",
             meta.text
           )}
           title="Set your routing availability"
@@ -145,7 +145,7 @@ export function AvailabilityToggle() {
             <Circle className={cn("size-2.5", STATUS_META[s].dot)} />
             <span>{STATUS_META[s].label}</span>
             {s === status && (
-              <span className="ml-auto text-[10px] text-muted-foreground">
+              <span className="ml-auto text-meta text-muted-foreground">
                 current
               </span>
             )}

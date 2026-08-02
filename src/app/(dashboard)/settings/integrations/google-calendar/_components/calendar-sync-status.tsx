@@ -81,7 +81,7 @@ export function CalendarSyncStatus() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">{log.action}</span>
-                  <Badge variant="secondary" className="text-[10px]">
+                  <Badge variant="secondary" className="text-meta">
                     {log.status}
                   </Badge>
                 </div>

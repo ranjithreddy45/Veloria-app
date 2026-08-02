@@ -123,7 +123,7 @@ export default async function IndividualPerformancePage({
       {/* Score History */}
       <Card className="gap-0 py-0">
         <CardContent className="space-y-3 px-5 py-5">
-          <h2 className="text-[13px] font-semibold tracking-[-0.01em] text-foreground">
+          <h2 className="text-body font-semibold tracking-[-0.01em] text-foreground">
             Score history (last 12 months)
           </h2>
           {scores.length === 0 ? (
@@ -193,7 +193,7 @@ export default async function IndividualPerformancePage({
           <span className="flex size-7 items-center justify-center rounded-lg bg-warning/15 text-warning">
             <AwardIcon className="size-4" />
           </span>
-          <h2 className="text-[15px] font-semibold tracking-[-0.01em]">Badges Earned</h2>
+          <h2 className="text-copy font-semibold tracking-[-0.01em]">Badges Earned</h2>
         </div>
         {badges.length === 0 ? (
           <Card className="gap-0 py-0">
@@ -246,7 +246,7 @@ export default async function IndividualPerformancePage({
           <span className="flex size-7 items-center justify-center rounded-lg bg-success/15 text-success">
             <GiftIcon className="size-4" />
           </span>
-          <h2 className="text-[15px] font-semibold tracking-[-0.01em]">Incentives</h2>
+          <h2 className="text-copy font-semibold tracking-[-0.01em]">Incentives</h2>
         </div>
         {incentives.length === 0 ? (
           <Card className="gap-0 py-0">

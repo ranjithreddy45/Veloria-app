@@ -197,7 +197,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                 <div className="flex items-start gap-3">
                   <TagIcon className="text-muted-foreground mt-0.5 size-4" />
                   <div className="space-y-1">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Source</p>
+                    <p className="text-meta uppercase tracking-wide text-muted-foreground">Source</p>
                     <StatusBadge
                       status={lead.source}
                       colorMap={{
@@ -220,7 +220,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                   <div className="flex items-start gap-3">
                     <CalendarIcon className="text-muted-foreground mt-0.5 size-4" />
                     <div className="space-y-1">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Event Type</p>
+                      <p className="text-meta uppercase tracking-wide text-muted-foreground">Event Type</p>
                       <p className="text-sm font-medium">{lead.eventType}</p>
                     </div>
                   </div>
@@ -229,7 +229,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                   <div className="flex items-start gap-3">
                     <CalendarIcon className="text-muted-foreground mt-0.5 size-4" />
                     <div className="space-y-1">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Event Date</p>
+                      <p className="text-meta uppercase tracking-wide text-muted-foreground">Event Date</p>
                       <p className="numeric text-sm font-medium">
                         {format(new Date(lead.eventDate), "dd MMM yyyy")}
                       </p>
@@ -240,7 +240,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                   <div className="flex items-start gap-3">
                     <UsersIcon className="text-muted-foreground mt-0.5 size-4" />
                     <div className="space-y-1">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Guest Count</p>
+                      <p className="text-meta uppercase tracking-wide text-muted-foreground">Guest Count</p>
                       <p className="numeric text-sm font-medium">
                         {lead.guestCount.toLocaleString("en-IN")}
                       </p>
@@ -251,7 +251,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                   <div className="flex items-start gap-3">
                     <IndianRupeeIcon className="text-muted-foreground mt-0.5 size-4" />
                     <div className="space-y-1">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                      <p className="text-meta uppercase tracking-wide text-muted-foreground">
                         Estimated Value
                       </p>
                       <p className="numeric text-sm font-semibold">
@@ -264,7 +264,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                   <div className="flex items-start gap-3">
                     <ClockIcon className="text-muted-foreground mt-0.5 size-4" />
                     <div className="space-y-1">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Follow-up Date</p>
+                      <p className="text-meta uppercase tracking-wide text-muted-foreground">Follow-up Date</p>
                       <p className="numeric text-sm font-medium">
                         {format(new Date(lead.followUpDate), "dd MMM yyyy")}
                       </p>
@@ -276,7 +276,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
               {/* Inline (auto-save) editors — owner + next follow-up. Quick
                   edits without opening the full Edit form. */}
               <Separator className="my-4" />
-              <p className="mb-3 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              <p className="mb-3 text-meta font-medium uppercase tracking-wide text-muted-foreground">
                 Quick edit
               </p>
               <LeadInlineFields
@@ -290,8 +290,8 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                 <>
                   <Separator className="my-4" />
                   <div>
-                    <p className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">Description</p>
-                    <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-muted-foreground">
+                    <p className="mb-2 text-meta uppercase tracking-wide text-muted-foreground">Description</p>
+                    <p className="whitespace-pre-wrap text-body leading-relaxed text-muted-foreground">
                       {lead.description}
                     </p>
                   </div>
@@ -318,13 +318,13 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                 {/* min-w-0 + break-all: a long address (e.g. a 40-char company
                     email) otherwise pushes the whole card past the viewport. */}
                 <div className="min-w-0 space-y-1.5">
-                  <p className="text-[15px] font-semibold tracking-[-0.01em]">
+                  <p className="text-copy font-semibold tracking-[-0.01em]">
                     {lead.contact.firstName} {lead.contact.lastName}
                   </p>
                   {lead.contact.email && (
                     <div className="flex items-center gap-2">
                       <MailIcon className="text-muted-foreground size-3.5 shrink-0" />
-                      <span className="min-w-0 break-all text-[13px] text-muted-foreground">
+                      <span className="min-w-0 break-all text-body text-muted-foreground">
                         {lead.contact.email}
                       </span>
                     </div>
@@ -332,13 +332,13 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                   {lead.contact.phone && (
                     <div className="flex items-center gap-2">
                       <PhoneIcon className="text-muted-foreground size-3.5" />
-                      <span className="numeric text-[13px] text-muted-foreground">
+                      <span className="numeric text-body text-muted-foreground">
                         {lead.contact.phone}
                       </span>
                     </div>
                   )}
                   {lead.contact.company && (
-                    <p className="text-[13px] text-muted-foreground">
+                    <p className="text-body text-muted-foreground">
                       {lead.contact.designation
                         ? `${lead.contact.designation} at `
                         : ""}
@@ -386,7 +386,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                             </span>
                           )}
                         </p>
-                        <p className="text-[13px] text-muted-foreground numeric">
+                        <p className="text-body text-muted-foreground numeric">
                           {format(new Date(q.createdAt), "dd MMM yyyy")}
                         </p>
                       </div>
@@ -472,8 +472,8 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
               <CardContent>
                 <div className="flex items-center justify-between gap-4">
                   <div className="min-w-0">
-                    <p className="truncate text-[15px] font-semibold tracking-[-0.01em]">{lead.deal.title}</p>
-                    <p className="text-[13px] text-muted-foreground">
+                    <p className="truncate text-copy font-semibold tracking-[-0.01em]">{lead.deal.title}</p>
+                    <p className="text-body text-muted-foreground">
                       {lead.deal.stage.name} ·{" "}
                       <span className="numeric">{lead.deal.probability}%</span> probability
                     </p>
@@ -528,7 +528,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
               <Separator className="my-4" />
 
               <div className="space-y-2">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                <p className="text-meta font-medium uppercase tracking-wide text-muted-foreground">
                   Score Breakdown
                 </p>
                 {scoreBreakdown.factors.map((factor, index) => (

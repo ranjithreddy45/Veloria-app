@@ -52,8 +52,8 @@ export function LeaveTypesAdmin({ types }: { types: LeaveTypeRow[] }) {
     <div className="rounded-xl border bg-card p-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-[14px] font-semibold">Leave catalogue</h3>
-          <p className="text-[12.5px] text-muted-foreground">
+          <h3 className="text-copy font-semibold">Leave catalogue</h3>
+          <p className="text-detail text-muted-foreground">
             {types.length} type{types.length === 1 ? "" : "s"} configured. Deactivated types stay on historic records but can&rsquo;t be applied for.
           </p>
         </div>
@@ -66,9 +66,9 @@ export function LeaveTypesAdmin({ types }: { types: LeaveTypeRow[] }) {
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-[13px]">
+          <table className="w-full text-body">
             <thead>
-              <tr className="border-b text-left text-[12px] text-muted-foreground">
+              <tr className="border-b text-left text-detail text-muted-foreground">
                 <th className="py-2 pr-3 font-medium">Type</th>
                 <th className="py-2 pr-3 font-medium">Code</th>
                 <th className="py-2 pr-3 text-right font-medium">Per year</th>
@@ -122,7 +122,7 @@ export function LeaveTypesAdmin({ types }: { types: LeaveTypeRow[] }) {
 function Tag({ children, on }: { children: React.ReactNode; on?: boolean }) {
   return (
     <span className={cn(
-      "inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-medium",
+      "inline-flex items-center rounded px-1.5 py-0.5 text-meta font-medium",
       on
         ? "bg-muted text-foreground"
         : "border border-dashed text-muted-foreground",
@@ -225,11 +225,11 @@ function LeaveTypeDialog({ existing, nextOrder }: { existing?: LeaveTypeRow; nex
         <div className="space-y-3.5 py-2">
           <div className="grid grid-cols-3 gap-3">
             <div className="col-span-2 space-y-1.5">
-              <Label className="text-[12.5px]">Name</Label>
+              <Label className="text-detail">Name</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Casual Leave" />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Code</Label>
+              <Label className="text-detail">Code</Label>
               <Input
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
@@ -245,21 +245,21 @@ function LeaveTypeDialog({ existing, nextOrder }: { existing?: LeaveTypeRow; nex
             * read the value in. Two-up on a phone, three-up from sm:. */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Days / year</Label>
+              <Label className="text-detail">Days / year</Label>
               <Input type="number" min={0} step="0.5" value={accrual} onChange={(e) => setAccrual(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Carry-forward cap</Label>
+              <Label className="text-detail">Carry-forward cap</Label>
               <Input type="number" min={0} step="0.5" value={carry} onChange={(e) => setCarry(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Order</Label>
+              <Label className="text-detail">Order</Label>
               <Input type="number" min={0} step="1" value={order} onChange={(e) => setOrder(e.target.value)} />
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Colour</Label>
+            <Label className="text-detail">Colour</Label>
             <Select value={color} onValueChange={setColor}>
               <SelectTrigger>
                 <SelectValue />
@@ -302,8 +302,8 @@ function ToggleRow({
   return (
     <label className="flex items-center justify-between gap-3">
       <span>
-        <span className="block text-[13px] font-medium">{label}</span>
-        <span className="block text-[11.5px] text-muted-foreground">{hint}</span>
+        <span className="block text-body font-medium">{label}</span>
+        <span className="block text-meta text-muted-foreground">{hint}</span>
       </span>
       <Switch checked={checked} onCheckedChange={onChange} />
     </label>

@@ -117,7 +117,7 @@ export default async function ReferralPartnerDetailPage({
             <CardTitle className="flex items-center justify-between text-base">
               Share link & QR
               {partner.issuedFromReviewId && (
-                <Badge variant="outline" className="text-[10px]">from review</Badge>
+                <Badge variant="outline" className="text-meta">from review</Badge>
               )}
             </CardTitle>
           </CardHeader>

@@ -57,7 +57,7 @@ function EventRow({ ev }: { ev: AccountEvent }) {
       </div>
       <div className="shrink-0 text-right">
         <div className="font-medium tabular-nums">{inr(ev.totalAmount)}</div>
-        <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+        <div className="text-meta uppercase tracking-wide text-muted-foreground">
           {ev.status}
         </div>
       </div>

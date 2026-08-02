@@ -327,14 +327,14 @@ export function BookingActions({ bookingId, currentStatus, canOverride = false }
               </p>
               <ul className="space-y-1.5">
                 {gateFailures.map((f) => (
-                  <li key={f} className="flex gap-2 text-[13px] text-warning">
+                  <li key={f} className="flex gap-2 text-body text-warning">
                     <span aria-hidden className="mt-0.5">•</span>
                     <span>{f}</span>
                   </li>
                 ))}
               </ul>
               {canOverride && (
-                <p className="text-[12px] text-muted-foreground">
+                <p className="text-detail text-muted-foreground">
                   As a super admin you may override and complete anyway. Overridden
                   completions are recorded and do not earn quality points.
                 </p>

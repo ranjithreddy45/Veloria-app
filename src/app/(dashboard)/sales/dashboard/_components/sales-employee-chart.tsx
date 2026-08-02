@@ -64,7 +64,7 @@ export function SalesEmployeeChart({ employees }: { employees: SalesEmployeeRow[
               onClick={() => setMetricKey(m.key)}
               aria-pressed={active}
               className={cn(
-                "rounded-full border px-2.5 py-1 text-[12px] font-medium transition-colors duration-200",
+                "rounded-full border px-2.5 py-1 text-detail font-medium transition-colors duration-200",
                 active
                   ? "border-transparent text-white shadow-card"
                   : "border-border/70 bg-muted/30 text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground"

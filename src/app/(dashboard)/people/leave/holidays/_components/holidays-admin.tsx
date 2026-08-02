@@ -35,8 +35,8 @@ export function HolidaysAdmin({ holidays, year }: { holidays: Holiday[]; year: n
     <div className="rounded-xl border bg-card p-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-[14px] font-semibold">Public holidays</h3>
-          <p className="text-[12.5px] text-muted-foreground">
+          <h3 className="text-copy font-semibold">Public holidays</h3>
+          <p className="text-detail text-muted-foreground">
             {holidays.length} holiday{holidays.length === 1 ? "" : "s"} in {year}. Add movable festivals and future years here.
           </p>
         </div>
@@ -44,7 +44,7 @@ export function HolidaysAdmin({ holidays, year }: { holidays: Holiday[]; year: n
           <select
             value={year}
             onChange={(e) => router.push(`/people/leave/holidays?year=${e.target.value}`)}
-            className="h-9 rounded-md border bg-background px-2.5 text-[13px] outline-none focus:ring-2 focus:ring-ring"
+            className="h-9 rounded-md border bg-background px-2.5 text-body outline-none focus:ring-2 focus:ring-ring"
           >
             {years.map((y) => (
               <option key={y} value={y}>{y}</option>
@@ -65,7 +65,7 @@ export function HolidaysAdmin({ holidays, year }: { holidays: Holiday[]; year: n
               <CalendarDays className="size-4 shrink-0 text-muted-foreground" />
               <div className="min-w-0 flex-1">
                 <div className="font-medium">{h.name}</div>
-                <span className="text-[12px] text-muted-foreground">{fmtDate(h.date)}</span>
+                <span className="text-detail text-muted-foreground">{fmtDate(h.date)}</span>
               </div>
               <HolidayDialog existing={h} defaultYear={year} />
               <DeleteHolidayButton id={h.id} name={h.name} />
@@ -117,11 +117,11 @@ function HolidayDialog({ existing, defaultYear }: { existing?: Holiday; defaultY
         <DialogHeader><DialogTitle>{existing ? "Edit holiday" : "New holiday"}</DialogTitle></DialogHeader>
         <div className="space-y-3 py-2">
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Name</Label>
+            <Label className="text-detail">Name</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Deepavali" />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Date</Label>
+            <Label className="text-detail">Date</Label>
             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </div>
         </div>

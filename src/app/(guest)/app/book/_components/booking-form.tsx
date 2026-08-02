@@ -89,15 +89,15 @@ export function BookingForm({ venues }: { venues: VenueOption[] }) {
         <span className="flex size-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
           <CheckCircle2 className="size-9" />
         </span>
-        <h1 className="mt-5 font-serif text-[24px] font-semibold tracking-tight text-foreground">
+        <h1 className="mt-5 font-serif text-h2 font-semibold tracking-tight text-foreground">
           Request received!
         </h1>
-        <p className="mt-2 max-w-xs text-[13.5px] leading-relaxed text-muted-foreground">
+        <p className="mt-2 max-w-xs text-body leading-relaxed text-muted-foreground">
           Thank you, {form.name.split(" ")[0] || "there"}. Our events team will
           reach out shortly to confirm availability and share a personalised
           quote.
         </p>
-        <p className="mt-3 inline-flex max-w-xs items-center gap-1.5 rounded-full bg-emerald-50 px-3.5 py-1.5 text-[12.5px] font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+        <p className="mt-3 inline-flex max-w-xs items-center gap-1.5 rounded-full bg-emerald-50 px-3.5 py-1.5 text-detail font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
           <Clock className="size-3.5" /> Our team will call you within 2 hours
           (10am–8pm).
         </p>
@@ -110,7 +110,7 @@ export function BookingForm({ venues }: { venues: VenueOption[] }) {
         />
         <Link
           href="/app"
-          className="mt-4 text-[13px] font-bold text-violet-600"
+          className="mt-4 text-body font-bold text-violet-600"
         >
           Back to home
         </Link>
@@ -120,15 +120,15 @@ export function BookingForm({ venues }: { venues: VenueOption[] }) {
 
   // ---- Form ----
   const inputClass =
-    "w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-3 text-[14px] text-zinc-900 placeholder:text-zinc-400 focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20";
-  const labelClass = "mb-1.5 block text-[12.5px] font-bold text-zinc-700";
+    "w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-3 text-copy text-zinc-900 placeholder:text-zinc-400 focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20";
+  const labelClass = "mb-1.5 block text-detail font-bold text-zinc-700";
 
   return (
     <div className="bg-aura bg-grid-faint min-h-screen bg-zinc-50 px-5 pt-[calc(var(--sat)+1.25rem)]">
-      <h1 className="large-title text-ink-gradient text-[26px]">
+      <h1 className="large-title text-ink-gradient text-h2">
         Request a callback
       </h1>
-      <p className="mt-1 text-[13px] text-zinc-500">
+      <p className="mt-1 text-body text-zinc-500">
         Tell us about your event — our team will confirm availability and send a
         personalised quote. No payment now.
       </p>
@@ -240,7 +240,7 @@ export function BookingForm({ venues }: { venues: VenueOption[] }) {
         </div>
 
         {error && (
-          <p className="rounded-lg bg-destructive/10 px-3 py-2 text-[12.5px] text-destructive">
+          <p className="rounded-lg bg-destructive/10 px-3 py-2 text-detail text-destructive">
             {error}
           </p>
         )}
@@ -248,7 +248,7 @@ export function BookingForm({ venues }: { venues: VenueOption[] }) {
         <button
           type="submit"
           disabled={submitting}
-          className="sheen-sweep relative inline-flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-5 py-3.5 text-[15px] font-extrabold text-white shadow-md shadow-violet-600/25 transition active:scale-[0.99] disabled:opacity-60"
+          className="sheen-sweep relative inline-flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-5 py-3.5 text-copy font-extrabold text-white shadow-md shadow-violet-600/25 transition active:scale-[0.99] disabled:opacity-60"
         >
           {submitting ? (
             <>
@@ -261,7 +261,7 @@ export function BookingForm({ venues }: { venues: VenueOption[] }) {
           )}
         </button>
 
-        <p className="pb-2 text-center text-[11.5px] text-muted-foreground">
+        <p className="pb-2 text-center text-meta text-muted-foreground">
           By submitting, you agree to be contacted by Veloria Grand about your
           enquiry.
         </p>

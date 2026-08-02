@@ -128,7 +128,7 @@ function Section<T>({
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           {icon}
-          <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{title}</h3>
+          <h3 className="text-meta font-semibold uppercase tracking-[0.12em] text-muted-foreground">{title}</h3>
         </div>
         {canWrite && (
           <>
@@ -140,7 +140,7 @@ function Section<T>({
         )}
       </div>
       {items.length === 0 ? (
-        <p className="rounded-xl border border-dashed px-4 py-6 text-center text-[13px] text-muted-foreground">{empty}</p>
+        <p className="rounded-xl border border-dashed px-4 py-6 text-center text-body text-muted-foreground">{empty}</p>
       ) : (
         <div className="divide-y">{items.map((it) => renderItem(it, canWrite))}</div>
       )}
@@ -177,9 +177,9 @@ function RowLine({
   return (
     <div className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
       <div className="min-w-0">
-        <p className="truncate text-[13.5px] font-medium">{primary}</p>
+        <p className="truncate text-body font-medium">{primary}</p>
         {secondary && (
-          <p className="mt-0.5 inline-flex items-center gap-1.5 truncate text-[12.5px] text-muted-foreground">
+          <p className="mt-0.5 inline-flex items-center gap-1.5 truncate text-detail text-muted-foreground">
             {secondaryIcon}{secondary}
           </p>
         )}
@@ -214,7 +214,7 @@ function EF({
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-[12.5px]">
+      <Label className="text-detail">
         {label}{required && <span className="text-destructive"> *</span>}
       </Label>
       <Input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />

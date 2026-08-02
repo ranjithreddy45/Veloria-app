@@ -95,7 +95,7 @@ export function ProcurementDetail({
             <span className="text-sm font-semibold tabular-nums text-muted-foreground">{pr.prNumber}</span>
             <StatusPill label={PR_STATUS_LABEL[pr.status]} hue={prStatusHue(pr.status)} size="sm" />
           </div>
-          <h1 className="text-[24px] font-medium leading-[1.15] tracking-[-0.01em]">{pr.title}</h1>
+          <h1 className="text-h2 font-medium leading-[1.15] tracking-[-0.01em]">{pr.title}</h1>
         </div>
 
         {canWrite && (
@@ -247,7 +247,7 @@ function Meta({ icon, label, value }: { icon: React.ReactNode; label: string; va
         {icon}
       </span>
       <div className="min-w-0">
-        <div className="text-[11px] font-medium text-muted-foreground">{label}</div>
+        <div className="text-meta font-medium text-muted-foreground">{label}</div>
         <div className="truncate text-sm font-medium">{value}</div>
       </div>
     </div>

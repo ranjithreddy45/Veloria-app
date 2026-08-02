@@ -140,8 +140,8 @@ export function RecurringTable({ rows }: { rows: RecurringListRow[] }) {
     <div className="rounded-xl border bg-card">
       <div className="flex items-center justify-between border-b px-5 py-3.5">
         <div>
-          <h3 className="text-[14px] font-semibold">Recurring components</h3>
-          <p className="text-[12.5px] text-muted-foreground">
+          <h3 className="text-copy font-semibold">Recurring components</h3>
+          <p className="text-detail text-muted-foreground">
             Earnings add to salary; deductions subtract. Paused components are skipped by payroll.
           </p>
         </div>
@@ -174,11 +174,11 @@ export function RecurringTable({ rows }: { rows: RecurringListRow[] }) {
                 <TableRow key={r.id} className={r.active ? undefined : "opacity-60"}>
                   <TableCell>
                     <div className="font-medium">{r.employeeName}</div>
-                    <div className="text-[12px] text-muted-foreground">{r.empCode}</div>
+                    <div className="text-detail text-muted-foreground">{r.empCode}</div>
                   </TableCell>
                   <TableCell>
                     <div className="font-medium">{r.name}</div>
-                    <div className="font-mono text-[12px] text-muted-foreground">{r.code}</div>
+                    <div className="font-mono text-detail text-muted-foreground">{r.code}</div>
                   </TableCell>
                   <TableCell>
                     <StatusPill
@@ -195,11 +195,11 @@ export function RecurringTable({ rows }: { rows: RecurringListRow[] }) {
                       {r.esiApplicable && <Tag label="ESI" hue="sky" />}
                       {r.ptApplicable && <Tag label="PT" hue="violet" />}
                       {!r.taxable && !r.pfApplicable && !r.esiApplicable && !r.ptApplicable && (
-                        <span className="text-[12px] text-muted-foreground">—</span>
+                        <span className="text-detail text-muted-foreground">—</span>
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="text-[12.5px] text-muted-foreground">
+                  <TableCell className="text-detail text-muted-foreground">
                     <div>{startLabel(r)}</div>
                     <div>→ {endLabel(r)}</div>
                   </TableCell>
@@ -254,13 +254,13 @@ export function RecurringTable({ rows }: { rows: RecurringListRow[] }) {
           <DialogHeader>
             <DialogTitle>Set end date</DialogTitle>
           </DialogHeader>
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-body text-muted-foreground">
             {endTarget ? `${endTarget.name} · ${endTarget.employeeName}` : ""} stops applying after
             this month. It still applies up to and including it.
           </p>
           <div className="grid grid-cols-2 gap-3 py-1">
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">FY</Label>
+              <Label className="text-detail">FY</Label>
               <Select value={endFy} onValueChange={setEndFy}>
                 <SelectTrigger>
                   <SelectValue />
@@ -275,7 +275,7 @@ export function RecurringTable({ rows }: { rows: RecurringListRow[] }) {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Month</Label>
+              <Label className="text-detail">Month</Label>
               <Select value={endMonth} onValueChange={setEndMonth}>
                 <SelectTrigger>
                   <SelectValue />

@@ -190,7 +190,7 @@ export function ScoringRuleSetsTable({ initialData }: Props) {
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-body text-muted-foreground">
           <span className="numeric font-medium text-foreground">
             {ruleSets.length}
           </span>{" "}
@@ -232,7 +232,7 @@ export function ScoringRuleSetsTable({ initialData }: Props) {
                     <div className="flex flex-wrap items-center gap-2">
                       <Link
                         href={`/settings/scoring-rules/${set.id}`}
-                        className="text-[15px] font-semibold tracking-[-0.01em] hover:underline"
+                        className="text-copy font-semibold tracking-[-0.01em] hover:underline"
                       >
                         {set.name}
                       </Link>
@@ -249,12 +249,12 @@ export function ScoringRuleSetsTable({ initialData }: Props) {
                     </div>
 
                     {set.description && (
-                      <p className="mt-1 line-clamp-1 text-[13px] text-muted-foreground">
+                      <p className="mt-1 line-clamp-1 text-body text-muted-foreground">
                         {set.description}
                       </p>
                     )}
 
-                    <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                    <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-meta uppercase tracking-wide text-muted-foreground">
                       <span>
                         <span className="numeric font-medium text-foreground">
                           {set._count?.rules ?? 0}

@@ -63,7 +63,7 @@ export function AgentMetricsCards({ stats }: Props) {
           className="rounded-2xl border bg-card p-5 shadow-card transition-shadow hover:shadow-card-hover"
         >
           <div className="flex items-center justify-between gap-3">
-            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="text-meta font-medium uppercase tracking-wide text-muted-foreground">
               {card.title}
             </p>
             <span
@@ -75,7 +75,7 @@ export function AgentMetricsCards({ stats }: Props) {
               <card.icon className={cn("size-4", card.color)} />
             </span>
           </div>
-          <div className="numeric mt-3 text-[26px] font-semibold leading-none">
+          <div className="numeric mt-3 text-h2 font-semibold leading-none">
             {card.value}
           </div>
         </div>

@@ -81,7 +81,7 @@ export default async function LeaveReportsIndexPage() {
                   {r.title}
                   <ArrowRight className="size-3.5 -translate-x-1 opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100" />
                 </div>
-                <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">{r.desc}</p>
+                <p className="mt-1 text-detail leading-relaxed text-muted-foreground">{r.desc}</p>
               </div>
             </Link>
           );

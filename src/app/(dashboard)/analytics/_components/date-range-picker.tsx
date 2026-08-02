@@ -128,7 +128,7 @@ export function DateRangePicker({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap">
           <div className="flex items-center gap-1.5 text-muted-foreground">
             <CalendarIcon className="size-3.5" />
-            <span className="text-[11px] font-medium uppercase tracking-wide">
+            <span className="text-meta font-medium uppercase tracking-wide">
               Period
             </span>
           </div>
@@ -139,7 +139,7 @@ export function DateRangePicker({
                 key={preset.key}
                 variant={activePreset === preset.key && !showCustom ? "default" : "outline"}
                 size="sm"
-                className="h-7 rounded-lg text-[12px]"
+                className="h-7 rounded-lg text-detail"
                 onClick={() => handlePreset(preset.key)}
               >
                 {preset.label}
@@ -148,7 +148,7 @@ export function DateRangePicker({
             <Button
               variant={showCustom ? "default" : "outline"}
               size="sm"
-              className="h-7 rounded-lg text-[12px]"
+              className="h-7 rounded-lg text-detail"
               onClick={() => setShowCustom((prev) => !prev)}
             >
               Custom
@@ -158,25 +158,25 @@ export function DateRangePicker({
           {showCustom && (
             <div className="flex items-end gap-2 mt-1 sm:mt-0">
               <div className="space-y-1">
-                <Label htmlFor="dr-start" className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                <Label htmlFor="dr-start" className="text-meta uppercase tracking-wide text-muted-foreground">
                   From
                 </Label>
                 <Input
                   id="dr-start"
                   type="date"
-                  className="numeric h-7 w-[140px] text-[12px]"
+                  className="numeric h-7 w-[140px] text-detail"
                   value={value.startDate ?? ""}
                   onChange={(e) => handleCustomChange("startDate", e.target.value)}
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="dr-end" className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                <Label htmlFor="dr-end" className="text-meta uppercase tracking-wide text-muted-foreground">
                   To
                 </Label>
                 <Input
                   id="dr-end"
                   type="date"
-                  className="numeric h-7 w-[140px] text-[12px]"
+                  className="numeric h-7 w-[140px] text-detail"
                   value={value.endDate ?? ""}
                   onChange={(e) => handleCustomChange("endDate", e.target.value)}
                 />

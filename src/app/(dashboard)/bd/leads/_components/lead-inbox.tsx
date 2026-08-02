@@ -249,7 +249,7 @@ export function LeadInbox({
   );
 
   return (
-    <div className="flex flex-col gap-4 text-[13px]">
+    <div className="flex flex-col gap-4 text-body">
       {/* Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {/* Six status chips, each 44px tall on touch, would wrap into three
@@ -278,7 +278,7 @@ export function LeadInbox({
                 {label}
                 <span
                   className={cn(
-                    "rounded-md px-1 text-[11px] tabular-nums",
+                    "rounded-md px-1 text-meta tabular-nums",
                     active
                       ? "bg-foreground/10 text-foreground"
                       : "bg-muted text-muted-foreground"
@@ -298,7 +298,7 @@ export function LeadInbox({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search owner, property, city…"
-              className="h-8 w-full pl-9 text-[13px] sm:w-[230px]"
+              className="h-8 w-full pl-9 text-body sm:w-[230px]"
             />
           </div>
           <Button
@@ -313,7 +313,7 @@ export function LeadInbox({
       </div>
 
       {query.trim() && (
-        <p className="text-[12px] text-muted-foreground">
+        <p className="text-detail text-muted-foreground">
           Showing {filtered.length} of {leads.length} loaded lead
           {leads.length === 1 ? "" : "s"}
           {activeTab !== "ALL" ? ` in ${STATUS_LABEL[activeTab]}` : ""}.
@@ -324,7 +324,7 @@ export function LeadInbox({
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full min-w-[720px] border-collapse">
           <thead>
-            <tr className="border-b border-border bg-muted/40 text-left text-[11.5px] font-medium uppercase tracking-wide text-muted-foreground">
+            <tr className="border-b border-border bg-muted/40 text-left text-meta font-medium uppercase tracking-wide text-muted-foreground">
               <th className="px-3 py-2 font-medium">Owner / Property</th>
               <th className="px-3 py-2 font-medium">City · Locality</th>
               <th className="px-3 py-2 font-medium">Source</th>
@@ -411,7 +411,7 @@ function LeadRow({
         >
           {lead.propertyName}
         </Link>
-        <div className="text-[12px] text-muted-foreground">
+        <div className="text-detail text-muted-foreground">
           {lead.ownerName} · {propertyTypeLabel(lead.propertyType)}
         </div>
       </td>
@@ -674,7 +674,7 @@ function CreateLeadDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="grid gap-4 text-[13px]">
+        <form onSubmit={handleSubmit} className="grid gap-4 text-body">
           {duplicate && (
             <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-amber-800">
               <AlertTriangle className="mt-0.5 size-4 shrink-0" />
@@ -720,7 +720,7 @@ function CreateLeadDialog({
                 className={mobileInvalid ? "border-red-500 focus-visible:ring-red-500" : undefined}
               />
               {mobileInvalid && (
-                <p className="mt-1 text-[12px] text-red-600">Enter a valid mobile number (10–15 digits).</p>
+                <p className="mt-1 text-detail text-red-600">Enter a valid mobile number (10–15 digits).</p>
               )}
             </Field>
             <Field label="Alternate mobile">
@@ -816,7 +816,7 @@ function CreateLeadDialog({
                       key={opt}
                       type="button"
                       onClick={() => set("parkingAvailable", opt)}
-                      className={`rounded-md px-3 py-1.5 text-[13px] font-medium transition ${
+                      className={`rounded-md px-3 py-1.5 text-body font-medium transition ${
                         form.parkingAvailable === opt
                           ? "bg-primary text-primary-foreground"
                           : "text-muted-foreground hover:text-foreground"
@@ -832,7 +832,7 @@ function CreateLeadDialog({
             {/* Referral / broker — only when the lead source is a referral or broker. */}
             {(form.leadSource === "REFERRAL" || form.leadSource === "BROKER") && (
             <div className="grid gap-4 rounded-xl border border-border bg-muted/20 p-3 sm:col-span-2 sm:grid-cols-2">
-              <p className="text-[12px] font-medium text-muted-foreground sm:col-span-2">
+              <p className="text-detail font-medium text-muted-foreground sm:col-span-2">
                 Referral / broker (only if relevant)
               </p>
               <Field label="Referrer name">
@@ -896,7 +896,7 @@ function CreateLeadDialog({
           </div>
 
           {ownerMatch?.found && (
-            <div className="rounded-xl bg-primary/5 px-3 py-2.5 text-[12.5px] text-foreground">
+            <div className="rounded-xl bg-primary/5 px-3 py-2.5 text-detail text-foreground">
               <p>
                 Owner already exists:{" "}
                 <span className="font-medium">
@@ -1076,7 +1076,7 @@ function QualifyLeadDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 text-[13px]">
+        <div className="grid gap-4 text-body">
           {error && (
             <div className="flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-red-700">
               <XCircle className="mt-0.5 size-4 shrink-0" />
@@ -1115,14 +1115,14 @@ function QualifyLeadDialog({
             Convert to Deal
           </Button>
 
-          <div className="flex items-center gap-3 text-[11.5px] uppercase tracking-wide text-muted-foreground">
+          <div className="flex items-center gap-3 text-meta uppercase tracking-wide text-muted-foreground">
             <span className="h-px flex-1 bg-border" />
             or disqualify
             <span className="h-px flex-1 bg-border" />
           </div>
 
           <div className="grid gap-2">
-            <Label className="text-[12px] text-muted-foreground">
+            <Label className="text-detail text-muted-foreground">
               Disqualify reason
             </Label>
             <div className="flex items-center gap-2">
@@ -1229,7 +1229,7 @@ function LogContactDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 text-[13px]">
+        <div className="grid gap-4 text-body">
           {error && (
             <div className="flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-red-700">
               <XCircle className="mt-0.5 size-4 shrink-0" />
@@ -1238,7 +1238,7 @@ function LogContactDialog({
           )}
 
           <div className="grid gap-1.5">
-            <Label className="text-[12px] text-muted-foreground">
+            <Label className="text-detail text-muted-foreground">
               Next follow-up <span className="text-red-500">*</span>
             </Label>
             <Input
@@ -1246,7 +1246,7 @@ function LogContactDialog({
               value={followupAt}
               onChange={(e) => setFollowupAt(e.target.value)}
             />
-            <p className="text-[11.5px] text-muted-foreground">
+            <p className="text-meta text-muted-foreground">
               Must be in the future. Logging contact also marks the lead as
               Contacted.
             </p>
@@ -1294,7 +1294,7 @@ function Field({
 }) {
   return (
     <div className={cn("grid gap-1.5", className)}>
-      <Label className="text-[12px] text-muted-foreground">
+      <Label className="text-detail text-muted-foreground">
         {label}
         {required && <span className="text-red-500"> *</span>}
       </Label>

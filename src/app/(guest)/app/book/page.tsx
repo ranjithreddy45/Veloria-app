@@ -11,7 +11,7 @@ export default async function BookPage() {
   return (
     <Suspense
       fallback={
-        <div className="px-5 pt-[calc(var(--sat)+1.25rem)] text-[13px] text-muted-foreground">
+        <div className="px-5 pt-[calc(var(--sat)+1.25rem)] text-body text-muted-foreground">
           Loading…
         </div>
       }

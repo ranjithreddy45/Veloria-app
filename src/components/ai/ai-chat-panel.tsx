@@ -184,7 +184,7 @@ function InlinePieChart({ chart }: { chart: ChartData }) {
             iconType="circle"
             iconSize={8}
             formatter={(value: string) => (
-              <span className="text-[11px] text-muted-foreground">{value}</span>
+              <span className="text-meta text-muted-foreground">{value}</span>
             )}
           />
         </PieChart>
@@ -579,9 +579,9 @@ export function AIChatPanel() {
                 )}
               </Button>
             </div>
-            <p className="text-[10px] text-muted-foreground text-center">
+            <p className="text-meta text-muted-foreground text-center">
               Press Enter to send, Shift+Enter for new line.{" "}
-              <kbd className="px-1 py-0.5 rounded bg-muted text-[9px] font-mono">
+              <kbd className="px-1 py-0.5 rounded bg-muted text-meta font-mono">
                 {typeof navigator !== "undefined" &&
                 navigator.platform?.includes("Mac")
                   ? "Cmd"

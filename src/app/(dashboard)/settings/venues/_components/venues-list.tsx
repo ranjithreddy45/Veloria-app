@@ -208,14 +208,14 @@ export function VenuesList({ venues }: VenuesListProps) {
                     {venue.isActive ? (
                       <Badge
                         variant="outline"
-                        className="bg-success/15 text-success border-success/20 text-[10px]"
+                        className="bg-success/15 text-success border-success/20 text-meta"
                       >
                         Active
                       </Badge>
                     ) : (
                       <Badge
                         variant="outline"
-                        className="bg-muted text-muted-foreground border-border text-[10px]"
+                        className="bg-muted text-muted-foreground border-border text-meta"
                       >
                         Inactive
                       </Badge>
@@ -228,7 +228,7 @@ export function VenuesList({ venues }: VenuesListProps) {
                   <div className="flex items-center gap-2">
                     <UsersIcon className="text-muted-foreground size-4" />
                     <div>
-                      <p className="text-muted-foreground text-[10px]">
+                      <p className="text-muted-foreground text-meta">
                         Capacity
                       </p>
                       <p className="text-sm font-medium">{venue.capacity}</p>
@@ -237,7 +237,7 @@ export function VenuesList({ venues }: VenuesListProps) {
                   <div className="flex items-center gap-2">
                     <IndianRupeeIcon className="text-muted-foreground size-4" />
                     <div>
-                      <p className="text-muted-foreground text-[10px]">
+                      <p className="text-muted-foreground text-meta">
                         Price/Slot
                       </p>
                       <p className="text-sm font-medium">
@@ -253,7 +253,7 @@ export function VenuesList({ venues }: VenuesListProps) {
                       <Badge
                         key={amenity}
                         variant="secondary"
-                        className="text-[10px]"
+                        className="text-meta"
                       >
                         {amenity}
                       </Badge>

@@ -53,10 +53,10 @@ export default async function DuplicatesPage() {
                   <ul className="divide-y divide-border/60">
                     {g.members.map((m) => (
                       <li key={m.id} className="flex items-center justify-between py-2">
-                        <span className="text-[13px]">{m.label}</span>
+                        <span className="text-body">{m.label}</span>
                         <Link
                           href={m.href}
-                          className="text-[13px] font-medium text-primary hover:underline"
+                          className="text-body font-medium text-primary hover:underline"
                         >
                           Open →
                         </Link>

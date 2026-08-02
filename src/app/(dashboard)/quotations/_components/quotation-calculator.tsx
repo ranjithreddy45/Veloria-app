@@ -784,7 +784,7 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
               )}
               <div className="flex justify-between"><span className="text-muted-foreground">Tax (5%)</span><span className="numeric">{inr(result.tax)}</span></div>
               <div className="mt-1 flex items-baseline justify-between gap-4 border-t pt-3">
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Grand Total</span>
+                <span className="text-meta font-semibold uppercase tracking-wide text-muted-foreground">Grand Total</span>
                 <span className="numeric text-lg font-bold tracking-[-0.02em]">{inr(result.grandTotal)}</span>
               </div>
             </div>

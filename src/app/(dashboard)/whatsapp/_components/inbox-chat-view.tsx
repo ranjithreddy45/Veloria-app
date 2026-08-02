@@ -215,7 +215,7 @@ export function InboxChatView({ conversation, onBack }: InboxChatViewProps) {
           <p className="text-xs text-muted-foreground">
             {conversation.contactPhone}
             {!loading && !error && lastSyncedAt && (
-              <span className="ml-2 text-[10px] text-muted-foreground/70">
+              <span className="ml-2 text-meta text-muted-foreground/70">
                 Synced {format(lastSyncedAt, "HH:mm:ss")}
               </span>
             )}
@@ -280,7 +280,7 @@ export function InboxChatView({ conversation, onBack }: InboxChatViewProps) {
                   {msg.templateName && (
                     <div className="mb-1 flex items-center gap-1">
                       <FileText className="size-3 opacity-70" />
-                      <span className="text-[10px] font-medium opacity-70">
+                      <span className="text-meta font-medium opacity-70">
                         {msg.templateName}
                       </span>
                     </div>
@@ -296,7 +296,7 @@ export function InboxChatView({ conversation, onBack }: InboxChatViewProps) {
                   {msg.direction === "OUTBOUND" &&
                     msg.status === "FAILED" &&
                     msg.failureReason && (
-                      <div className="mt-1.5 flex items-start gap-1 rounded bg-red-50 px-2 py-1 text-[11px] leading-snug text-red-700 dark:bg-red-950/40 dark:text-red-300">
+                      <div className="mt-1.5 flex items-start gap-1 rounded bg-red-50 px-2 py-1 text-meta leading-snug text-red-700 dark:bg-red-950/40 dark:text-red-300">
                         <XCircle className="mt-0.5 size-3 shrink-0" />
                         <span>{msg.failureReason}</span>
                       </div>
@@ -311,7 +311,7 @@ export function InboxChatView({ conversation, onBack }: InboxChatViewProps) {
                         : "text-zinc-400 dark:text-zinc-500"
                     )}
                   >
-                    <span className="text-[10px]">
+                    <span className="text-meta">
                       {format(new Date(msg.sentAt), "dd MMM, HH:mm")}
                     </span>
                     {msg.direction === "OUTBOUND" && (

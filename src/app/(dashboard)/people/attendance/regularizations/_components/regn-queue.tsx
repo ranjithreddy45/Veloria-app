@@ -22,7 +22,7 @@ export function RegnQueue({ rows }: { rows: Row[] }) {
       <div className="rounded-xl border border-dashed p-12 text-center">
         <ClipboardCheck className="mx-auto size-8 text-muted-foreground/50" />
         <p className="mt-3 text-sm font-medium">No regularization requests</p>
-        <p className="mt-1 text-[13px] text-muted-foreground">Attendance corrections routed to you appear here.</p>
+        <p className="mt-1 text-body text-muted-foreground">Attendance corrections routed to you appear here.</p>
       </div>
     );
   }
@@ -51,13 +51,13 @@ function Card({ row }: { row: Row }) {
           <Link href={`/people/${row.employee.id}`} className="font-medium hover:underline">
             {row.employee.firstName} {row.employee.lastName}
           </Link>
-          <span className="ml-2 text-[12px] text-muted-foreground">{row.employee.empCode}</span>
-          <div className="mt-1 flex items-center gap-2 text-[13px]">
+          <span className="ml-2 text-detail text-muted-foreground">{row.employee.empCode}</span>
+          <div className="mt-1 flex items-center gap-2 text-body">
             <span>{formatDate(row.date)}</span>
             <span>→</span>
             <StatusPill label={ATTENDANCE_STATUS_LABELS[row.requestedStatus]} hue={ATTENDANCE_STATUS_HUE[row.requestedStatus] as never} size="xs" />
           </div>
-          <p className="mt-1 text-[12.5px] text-muted-foreground">“{row.reason}”</p>
+          <p className="mt-1 text-detail text-muted-foreground">“{row.reason}”</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" className="gap-1.5" disabled={!!busy} onClick={() => decide("REJECTED")}>

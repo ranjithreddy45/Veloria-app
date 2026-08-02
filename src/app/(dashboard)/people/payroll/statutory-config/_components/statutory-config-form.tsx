@@ -299,7 +299,7 @@ export function StatutoryConfigForm({
   return (
     <div className="space-y-5">
       {/* Prominent, always-on explainer. */}
-      <div className="flex gap-3 rounded-xl border border-warning/25 bg-warning/[0.06] p-4 text-[13px] leading-relaxed text-warning">
+      <div className="flex gap-3 rounded-xl border border-warning/25 bg-warning/[0.06] p-4 text-body leading-relaxed text-warning">
         <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" />
         <p>
           These values drive every payslip&apos;s statutory maths. Changing them affects the{" "}
@@ -311,7 +311,7 @@ export function StatutoryConfigForm({
       {/* Entity picker. */}
       <div className="flex flex-wrap items-end gap-3">
         <div className="space-y-1.5">
-          <Label className="text-[12.5px]">Legal entity</Label>
+          <Label className="text-detail">Legal entity</Label>
           <Select value={entityId} onValueChange={onPickEntity} disabled={loading}>
             <SelectTrigger className="min-w-[16rem]">
               <SelectValue placeholder="Select an entity…" />
@@ -328,14 +328,14 @@ export function StatutoryConfigForm({
           </Select>
         </div>
         {loading && (
-          <span className="flex items-center gap-1.5 pb-2 text-[12.5px] text-muted-foreground">
+          <span className="flex items-center gap-1.5 pb-2 text-detail text-muted-foreground">
             <Loader2 className="size-3.5 animate-spin" /> Loading…
           </span>
         )}
       </div>
 
       {!entityId && (
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-body text-muted-foreground">
           Pick a legal entity above to view or edit its statutory configuration.
         </p>
       )}
@@ -343,7 +343,7 @@ export function StatutoryConfigForm({
       {entityId && !loading && (
         <>
           {!hasConfig && (
-            <div className="flex gap-3 rounded-xl border border-warning/30 bg-warning/[0.08] p-4 text-[13px] leading-relaxed text-warning">
+            <div className="flex gap-3 rounded-xl border border-warning/30 bg-warning/[0.08] p-4 text-body leading-relaxed text-warning">
               <Info className="mt-0.5 size-4 shrink-0 text-warning" />
               <p>
                 This entity has no saved statutory configuration — payroll is using the built-in
@@ -430,7 +430,7 @@ export function StatutoryConfigForm({
                   <NumField label="Employer LWF (₹)" step="1" value={form.lwfEmployer} disabled={disabled} onChange={(v) => set("lwfEmployer", v)} />
                 </div>
                 <div className="mt-5 space-y-2">
-                  <Label className="text-[12.5px]">Deduction months</Label>
+                  <Label className="text-detail">Deduction months</Label>
                   <div className="flex flex-wrap gap-1.5">
                     {MONTHS.map((label, i) => {
                       const m = i + 1;
@@ -443,7 +443,7 @@ export function StatutoryConfigForm({
                           aria-pressed={on}
                           onClick={() => toggleMonth(m)}
                           className={cn(
-                            "rounded-lg border px-2.5 py-1.5 text-[12.5px] font-medium transition-colors",
+                            "rounded-lg border px-2.5 py-1.5 text-detail font-medium transition-colors",
                             on
                               ? "border-success/40 bg-success/12 text-success"
                               : "border-border bg-card text-muted-foreground hover:text-foreground",
@@ -455,7 +455,7 @@ export function StatutoryConfigForm({
                       );
                     })}
                   </div>
-                  <p className="text-[12px] text-muted-foreground">
+                  <p className="text-detail text-muted-foreground">
                     LWF is deducted only in the selected calendar months.
                   </p>
                 </div>
@@ -507,7 +507,7 @@ function NumField({
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-[12.5px]">{label}</Label>
+      <Label className="text-detail">{label}</Label>
       <Input
         type="number"
         inputMode="decimal"
@@ -517,7 +517,7 @@ function NumField({
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
       />
-      {help && <p className="text-[11.5px] leading-snug text-muted-foreground">{help}</p>}
+      {help && <p className="text-meta leading-snug text-muted-foreground">{help}</p>}
     </div>
   );
 }
@@ -537,7 +537,7 @@ function TextField({
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-[12.5px]">{label}</Label>
+      <Label className="text-detail">{label}</Label>
       <Input
         value={value}
         disabled={disabled}
@@ -561,7 +561,7 @@ function SwitchField({
 }) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-xl border bg-card px-3.5 py-2.5">
-      <Label className="text-[12.5px]">{label}</Label>
+      <Label className="text-detail">{label}</Label>
       <Switch checked={checked} disabled={disabled} onCheckedChange={onChange} />
     </div>
   );
@@ -580,7 +580,7 @@ function ToggleTile({
 }) {
   return (
     <div className="flex items-center justify-between gap-2 rounded-xl border bg-card px-3.5 py-3">
-      <span className="text-[13px] font-semibold">{label}</span>
+      <span className="text-body font-semibold">{label}</span>
       <Switch checked={checked} disabled={disabled} onCheckedChange={onChange} aria-label={`${label} applicable`} />
     </div>
   );
@@ -611,8 +611,8 @@ function PtSlabsEditor({
     <div className="mt-6 space-y-3">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h4 className="text-[13px] font-semibold">PT salary slabs</h4>
-          <p className="text-[12px] text-muted-foreground">
+          <h4 className="text-body font-semibold">PT salary slabs</h4>
+          <p className="text-detail text-muted-foreground">
             Optional per-band rates. Leave the last band&apos;s “To” blank for “and above”. Bands
             must not overlap.
           </p>
@@ -625,12 +625,12 @@ function PtSlabsEditor({
       </div>
 
       {slabs.length === 0 ? (
-        <p className="rounded-lg border border-dashed p-4 text-center text-[12.5px] text-muted-foreground">
+        <p className="rounded-lg border border-dashed p-4 text-center text-detail text-muted-foreground">
           No slabs — the flat PT amount above is used.
         </p>
       ) : (
         <div className="space-y-2">
-          <div className="hidden grid-cols-[1fr_1fr_1fr_1fr_auto] gap-2 px-1 text-[11.5px] font-medium text-muted-foreground sm:grid">
+          <div className="hidden grid-cols-[1fr_1fr_1fr_1fr_auto] gap-2 px-1 text-meta font-medium text-muted-foreground sm:grid">
             <span>From (₹)</span>
             <span>To (₹, blank = and above)</span>
             <span>PT amount (₹)</span>

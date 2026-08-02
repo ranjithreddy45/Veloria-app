@@ -84,7 +84,7 @@ export function ReportFilterBar({
 
       {showDateRange && (
         <div className="flex flex-col gap-1">
-          <span className="text-[11px] font-medium text-muted-foreground">{dateLabel}</span>
+          <span className="text-meta font-medium text-muted-foreground">{dateLabel}</span>
           <div className="flex items-center gap-1.5">
             <Input
               type="date"
@@ -127,7 +127,7 @@ function FilterSelect({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-[11px] font-medium text-muted-foreground">{label}</span>
+      <span className="text-meta font-medium text-muted-foreground">{label}</span>
       <Select value={value} onValueChange={onChange}>
         <SelectTrigger className="h-9 w-auto min-w-[8.5rem] gap-1.5">
           <SelectValue placeholder={label} />

@@ -31,7 +31,7 @@ export function CashFlowTable({
       <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
         <div>
           <h2 className="text-sm font-medium">Weekly forecast</h2>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-meta text-muted-foreground">
             Starting from {formatINR(cashNow)} cash now · {formatINR(openReceivables)} open receivables
             {stress ? " · stress mode" : ""}
           </p>
@@ -42,13 +42,13 @@ export function CashFlowTable({
         * must never be truncated, so the forecast keeps its horizontal scroll.
         * Cell padding drops to px-2.5 below sm: (worth ~60px, roughly one more
         * column visible) and the scroll is announced rather than discovered. */}
-      <p className="px-4 pt-2 text-[12px] text-muted-foreground sm:hidden">
+      <p className="px-4 pt-2 text-detail text-muted-foreground sm:hidden">
         Swipe the forecast sideways to reach Net and Running balance.
       </p>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b text-[11px] uppercase tracking-wide text-muted-foreground">
+            <tr className="border-b text-meta uppercase tracking-wide text-muted-foreground">
               <th className="px-2.5 py-2 sm:px-4 text-left font-medium">Week</th>
               <th className="px-2.5 py-2 sm:px-4 text-right font-medium">Inflow</th>
               <th className="px-2.5 py-2 sm:px-4 text-right font-medium">Outflow</th>
@@ -70,7 +70,7 @@ export function CashFlowTable({
                 >
                   <td className="whitespace-nowrap px-2.5 py-2.5 sm:px-4">
                     <span className="font-medium">W{i + 1}</span>
-                    <span className="ml-2 text-[11px] text-muted-foreground">
+                    <span className="ml-2 text-meta text-muted-foreground">
                       {fmtWeek(r.weekStart)}
                     </span>
                   </td>

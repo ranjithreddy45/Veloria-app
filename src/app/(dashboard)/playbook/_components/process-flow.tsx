@@ -39,7 +39,7 @@ export function ValueChain() {
   return (
     <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-premium">
       <h2 className="text-sm font-semibold tracking-tight">How the company works, end to end</h2>
-      <p className="mt-1 text-[13px] text-muted-foreground">
+      <p className="mt-1 text-body text-muted-foreground">
         Six processes, connected. We acquire venues, ready them, sell events, deliver them, and record the money — and our people run all of it.
       </p>
       <div className="mt-4 flex flex-col gap-2 lg:flex-row lg:items-stretch lg:gap-1.5">
@@ -53,9 +53,9 @@ export function ValueChain() {
                   <span className={cn("flex size-7 items-center justify-center rounded-lg", a.chipBg)}>
                     <Icon className="size-4" />
                   </span>
-                  <span className={cn("text-[13px] font-semibold", a.text)}>{v.name}</span>
+                  <span className={cn("text-body font-semibold", a.text)}>{v.name}</span>
                 </div>
-                <p className="mt-1.5 text-[12px] leading-snug text-muted-foreground">{v.sub}</p>
+                <p className="mt-1.5 text-detail leading-snug text-muted-foreground">{v.sub}</p>
               </div>
               {i < VALUE_CHAIN.length - 1 && (
                 <ArrowRight className="hidden size-4 shrink-0 text-muted-foreground/50 lg:block" />
@@ -75,7 +75,7 @@ function Step({ step, index, accent, isLast }: { step: ProcessStep; index: numbe
     <li className="relative flex gap-4">
       {/* timeline rail */}
       <div className="flex flex-col items-center">
-        <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold text-white shadow-sm", a.dot)}>
+        <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-full text-body font-semibold text-white shadow-sm", a.dot)}>
           {index + 1}
         </span>
         {!isLast && <span className="mt-1 w-px flex-1 bg-border" aria-hidden />}
@@ -84,19 +84,19 @@ function Step({ step, index, accent, isLast }: { step: ProcessStep; index: numbe
       {/* content */}
       <div className="min-w-0 flex-1 pb-6">
         <div className="flex flex-wrap items-center gap-2">
-          <h4 className="text-[15px] font-semibold tracking-tight">{step.title}</h4>
-          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+          <h4 className="text-copy font-semibold tracking-tight">{step.title}</h4>
+          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-meta font-medium text-muted-foreground">
             <CircleUserRound className="size-3" /> {step.who}
           </span>
           {step.status && (
-            <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium", a.chipBg)}>{step.status}</span>
+            <span className={cn("rounded-full px-2 py-0.5 text-meta font-medium", a.chipBg)}>{step.status}</span>
           )}
         </div>
 
-        <p className="mt-1.5 text-[13.5px] leading-relaxed text-foreground/80">{step.what}</p>
+        <p className="mt-1.5 text-body leading-relaxed text-foreground/80">{step.what}</p>
 
         {step.gate && (
-          <div className="mt-2.5 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12.5px] text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+          <div className="mt-2.5 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-detail text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
             <ShieldCheck className="mt-0.5 size-3.5 shrink-0" />
             <span><span className="font-semibold">Approval gate:</span> {step.gate}</span>
           </div>
@@ -105,7 +105,7 @@ function Step({ step, index, accent, isLast }: { step: ProcessStep; index: numbe
         {step.auto && step.auto.length > 0 && (
           <ul className="mt-2.5 space-y-1">
             {step.auto.map((t, i) => (
-              <li key={i} className="flex items-start gap-2 text-[12.5px] text-muted-foreground">
+              <li key={i} className="flex items-start gap-2 text-detail text-muted-foreground">
                 <Zap className="mt-0.5 size-3.5 shrink-0 text-violet-500" />
                 <span><span className="font-medium text-foreground/70">Automatic:</span> {t}</span>
               </li>
@@ -130,13 +130,13 @@ export function ProcessCard({ process }: { process: Process }) {
         </span>
         <div className="min-w-0">
           <h3 className="text-lg font-bold tracking-tight">{process.name}</h3>
-          <p className="mt-0.5 text-[13px] text-muted-foreground">{process.tagline}</p>
+          <p className="mt-0.5 text-body text-muted-foreground">{process.tagline}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {process.handoffIn && (
-              <span className="rounded-full bg-background/70 px-2 py-0.5 text-[11px] text-muted-foreground ring-1 ring-border">↳ in: {process.handoffIn}</span>
+              <span className="rounded-full bg-background/70 px-2 py-0.5 text-meta text-muted-foreground ring-1 ring-border">↳ in: {process.handoffIn}</span>
             )}
             {process.handoffOut && (
-              <span className="rounded-full bg-background/70 px-2 py-0.5 text-[11px] text-muted-foreground ring-1 ring-border">out ↦ {process.handoffOut}</span>
+              <span className="rounded-full bg-background/70 px-2 py-0.5 text-meta text-muted-foreground ring-1 ring-border">out ↦ {process.handoffOut}</span>
             )}
           </div>
         </div>
@@ -155,7 +155,7 @@ export function ProcessCard({ process }: { process: Process }) {
 // ---- Legend -----------------------------------------------------------
 export function Legend() {
   return (
-    <div className="flex flex-wrap items-center gap-4 rounded-xl border border-border/60 bg-muted/30 px-4 py-2.5 text-[12px] text-muted-foreground">
+    <div className="flex flex-wrap items-center gap-4 rounded-xl border border-border/60 bg-muted/30 px-4 py-2.5 text-detail text-muted-foreground">
       <span className="font-medium text-foreground/70">How to read this:</span>
       <span className="inline-flex items-center gap-1.5"><CircleUserRound className="size-3.5" /> who does it</span>
       <span className="inline-flex items-center gap-1.5"><Zap className="size-3.5 text-violet-500" /> the system does it automatically</span>
@@ -174,7 +174,7 @@ export function ProcessFlows() {
         {PROCESSES.map((p) => {
           const a = ACCENT[p.accent];
           return (
-            <a key={p.key} href={`#${p.key}`} className={cn("rounded-full px-3 py-1 text-[12.5px] font-medium ring-1 transition-colors hover:opacity-80", a.chipBg, a.ring)}>
+            <a key={p.key} href={`#${p.key}`} className={cn("rounded-full px-3 py-1 text-detail font-medium ring-1 transition-colors hover:opacity-80", a.chipBg, a.ring)}>
               {p.name.split(" — ")[0]}
             </a>
           );

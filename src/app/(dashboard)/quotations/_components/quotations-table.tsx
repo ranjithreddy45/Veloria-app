@@ -71,20 +71,20 @@ export function QuotationsTable({ rows }: { rows: QuotationListRow[] }) {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="numeric text-[13px] font-semibold">
+                    <p className="numeric text-body font-semibold">
                       {r.quoteNumber}
                     </p>
-                    <p className="truncate text-[13px] font-medium text-foreground/90">
+                    <p className="truncate text-body font-medium text-foreground/90">
                       {client}
                     </p>
                   </div>
                   {/* shrink-0: the grand total is the reason this list exists —
                       it must never be the thing that gets clipped. */}
-                  <p className="numeric shrink-0 text-[15px] font-semibold">
+                  <p className="numeric shrink-0 text-copy font-semibold">
                     {inr(Number(r.grandTotal))}
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-detail text-muted-foreground">
                   <StatusPill {...statusMeta(r.status)} size="xs" />
                   {r.occasion && <span className="truncate">{r.occasion}</span>}
                   {r.eventDate && (
@@ -133,8 +133,8 @@ export function QuotationsTable({ rows }: { rows: QuotationListRow[] }) {
                   </Link>
                 </TableCell>
                 <TableCell className="font-medium">{client}</TableCell>
-                <TableCell className="text-[13px] text-muted-foreground">{r.occasion || "—"}</TableCell>
-                <TableCell className="numeric text-[13px] text-muted-foreground">
+                <TableCell className="text-body text-muted-foreground">{r.occasion || "—"}</TableCell>
+                <TableCell className="numeric text-body text-muted-foreground">
                   {r.eventDate
                     ? new Date(r.eventDate).toLocaleDateString("en-IN", {
                         day: "numeric",

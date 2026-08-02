@@ -11,7 +11,7 @@ export function VersionBadge({ className }: { className?: string }) {
   return (
     <span
       className={
-        "select-none text-[11px] font-normal tabular-nums text-muted-foreground/70" +
+        "select-none text-meta font-normal tabular-nums text-muted-foreground/70" +
         (className ? ` ${className}` : "")
       }
     >

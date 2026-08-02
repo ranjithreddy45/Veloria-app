@@ -66,7 +66,7 @@ export function EnquiryRepairButton({ affected }: { affected: number }) {
         <AlertDialogHeader>
           <AlertDialogTitle>Tidy up {affected} enquir{affected === 1 ? "y" : "ies"}?</AlertDialogTitle>
           <AlertDialogDescription asChild>
-            <div className="space-y-2 text-[13px] leading-relaxed">
+            <div className="space-y-2 text-body leading-relaxed">
               <p>This cleans up data left behind by older versions of the app:</p>
               <ul className="list-disc space-y-1 pl-4">
                 <li>

@@ -167,9 +167,9 @@ export function ContractsDashboard({
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-[13px] font-semibold tracking-[-0.01em] text-foreground">
+        <h2 className="text-body font-semibold tracking-[-0.01em] text-foreground">
           Contracts by status
-          <span className="ml-2 text-[11.5px] font-normal text-muted-foreground">click a tile to filter</span>
+          <span className="ml-2 text-meta font-normal text-muted-foreground">click a tile to filter</span>
         </h2>
         <div className="flex items-center gap-2">
           <div className="relative w-full sm:w-72">
@@ -216,11 +216,11 @@ export function ContractsDashboard({
         {/* Contract list */}
         <Card className="gap-0 overflow-hidden py-0 lg:col-span-2">
           <CardContent className="px-0 py-0">
-            <h2 className="px-5 py-4 text-[13px] font-semibold tracking-[-0.01em] text-foreground">Contracts</h2>
+            <h2 className="px-5 py-4 text-body font-semibold tracking-[-0.01em] text-foreground">Contracts</h2>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[640px] border-collapse text-[13px]">
+              <table className="w-full min-w-[640px] border-collapse text-body">
                 <thead>
-                  <tr className="border-b border-border bg-muted/40 text-left text-[11.5px] uppercase tracking-wide text-muted-foreground">
+                  <tr className="border-b border-border bg-muted/40 text-left text-meta uppercase tracking-wide text-muted-foreground">
                     <th className="px-3 py-2 font-medium">Contract</th>
                     <th className="px-3 py-2 font-medium">Phase</th>
                     <th className="px-3 py-2 font-medium">Status</th>
@@ -238,7 +238,7 @@ export function ContractsDashboard({
                           <Link href={`/bd/contracts/${c.id}`} className="font-medium text-foreground hover:underline">
                             {c.title}
                           </Link>
-                          <div className="text-[11.5px] text-muted-foreground">
+                          <div className="text-meta text-muted-foreground">
                             {c.contractNumber ? `${c.contractNumber} · ` : ""}{c.propertyName} · {c.ownerName}
                           </div>
                         </td>
@@ -260,15 +260,15 @@ export function ContractsDashboard({
         {/* Right column: signing calendar + activity */}
         <div className="flex flex-col gap-5">
           <Card className="gap-0 py-0">
-            <CardContent className="space-y-3 px-5 py-5 text-[13px]">
-              <h2 className="text-[13px] font-semibold tracking-[-0.01em] text-foreground">Signing calendar</h2>
+            <CardContent className="space-y-3 px-5 py-5 text-body">
+              <h2 className="text-body font-semibold tracking-[-0.01em] text-foreground">Signing calendar</h2>
               <MonthCalendar signings={stats?.upcomingSignings ?? []} />
               <div className="space-y-1.5 border-t border-border/50 pt-2">
                 {stats && stats.upcomingSignings.length > 0 ? (
                   stats.upcomingSignings.slice(0, 6).map((s) => (
                     <Link key={s.id} href={`/bd/contracts/${s.id}`} className="flex items-center justify-between rounded-md px-1.5 py-1 hover:bg-muted/40">
                       <span className="truncate pr-2 text-foreground">{s.title}</span>
-                      <span className="shrink-0 text-[11px] text-muted-foreground">{fmtDate(s.signByDate)}</span>
+                      <span className="shrink-0 text-meta text-muted-foreground">{fmtDate(s.signByDate)}</span>
                     </Link>
                   ))
                 ) : (
@@ -278,8 +278,8 @@ export function ContractsDashboard({
             </CardContent>
           </Card>
           <Card className="gap-0 py-0">
-            <CardContent className="space-y-1.5 px-5 py-5 text-[13px]">
-              <h2 className="pb-1.5 text-[13px] font-semibold tracking-[-0.01em] text-foreground">Activity (90 days)</h2>
+            <CardContent className="space-y-1.5 px-5 py-5 text-body">
+              <h2 className="pb-1.5 text-body font-semibold tracking-[-0.01em] text-foreground">Activity (90 days)</h2>
               {stats && Object.keys(stats.activityByType).length > 0 ? (
                 Object.entries(stats.activityByType).map(([type, count]) => (
                   <div key={type} className="flex items-center justify-between">
@@ -324,10 +324,10 @@ function MonthCalendar({ signings }: { signings: { id: string; title: string; si
 
   return (
     <div>
-      <div className="pb-1.5 text-center text-[12px] font-medium text-foreground">
+      <div className="pb-1.5 text-center text-detail font-medium text-foreground">
         {first.toLocaleDateString(undefined, { month: "long", year: "numeric" })}
       </div>
-      <div className="grid grid-cols-7 gap-0.5 text-center text-[10px] text-muted-foreground">
+      <div className="grid grid-cols-7 gap-0.5 text-center text-meta text-muted-foreground">
         {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (<div key={i} className="py-0.5">{d}</div>))}
         {cells.map((d, i) => {
           if (d === null) return <div key={i} />;
@@ -336,7 +336,7 @@ function MonthCalendar({ signings }: { signings: { id: string; title: string; si
           return (
             <div
               key={i}
-              className={`relative rounded py-1 text-[11px] ${count > 0 ? "bg-violet-100 font-semibold text-violet-700 dark:bg-violet-950/50 dark:text-violet-300" : isToday ? "bg-muted font-medium text-foreground" : "text-muted-foreground"}`}
+              className={`relative rounded py-1 text-meta ${count > 0 ? "bg-violet-100 font-semibold text-violet-700 dark:bg-violet-950/50 dark:text-violet-300" : isToday ? "bg-muted font-medium text-foreground" : "text-muted-foreground"}`}
               title={count > 0 ? `${count} signing${count > 1 ? "s" : ""}` : undefined}
             >
               {d}
@@ -422,14 +422,14 @@ function CreateContractDialog({ deals, open, onOpenChange }: { deals: DealOption
               <SelectTrigger className="w-full"><SelectValue placeholder="Select an agreed deal (optional)…" /></SelectTrigger>
               <SelectContent>
                 {deals.length === 0 ? (
-                  <div className="px-2 py-1.5 text-[12.5px] text-muted-foreground">No agreed deals yet.</div>
+                  <div className="px-2 py-1.5 text-detail text-muted-foreground">No agreed deals yet.</div>
                 ) : (
                   deals.map((d) => (<SelectItem key={d.id} value={d.id}>{d.propertyName} — {d.name}</SelectItem>))
                 )}
               </SelectContent>
             </Select>
             {selectedDeal && (
-              <p className="rounded-md bg-muted/50 px-2.5 py-1.5 text-[12px] text-muted-foreground">
+              <p className="rounded-md bg-muted/50 px-2.5 py-1.5 text-detail text-muted-foreground">
                 Inheriting from deal:{" "}
                 <span className="font-medium text-foreground">{selectedDeal.model ?? "model —"}</span>
                 {" · "}base {selectedDeal.baseFeePct != null ? `${selectedDeal.baseFeePct}%` : "—"}

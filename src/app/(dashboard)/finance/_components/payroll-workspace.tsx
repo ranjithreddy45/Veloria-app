@@ -207,7 +207,7 @@ export function PayrollWorkspace({
                     <TableRow key={r.id}>
                       <TableCell>
                         <div className="font-medium">{r.label}</div>
-                        <div className="text-[11px] text-muted-foreground">
+                        <div className="text-meta text-muted-foreground">
                           {r.fy} · P{r.period} · {r.payslipCount} payslip{r.payslipCount === 1 ? "" : "s"}
                         </div>
                       </TableCell>
@@ -231,9 +231,9 @@ export function PayrollWorkspace({
                             }
                           />
                         ) : r.journalEntryId ? (
-                          <span className="text-[11px] text-muted-foreground">Posted</span>
+                          <span className="text-meta text-muted-foreground">Posted</span>
                         ) : (
-                          <span className="text-[11px] text-muted-foreground">—</span>
+                          <span className="text-meta text-muted-foreground">—</span>
                         )}
                       </TableCell>
                     </TableRow>

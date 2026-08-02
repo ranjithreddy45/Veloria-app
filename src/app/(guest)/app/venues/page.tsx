@@ -12,13 +12,13 @@ export default async function VenuesPage() {
 
   return (
     <div className="bg-aura bg-grid-faint min-h-screen bg-zinc-50 px-4 pt-[calc(var(--sat)+1.25rem)]">
-      <h1 className="large-title text-ink-gradient text-[24px]">Our halls</h1>
-      <p className="mt-1 text-[13px] text-zinc-500">
+      <h1 className="large-title text-ink-gradient text-h2">Our halls</h1>
+      <p className="mt-1 text-body text-zinc-500">
         Pick the space that fits your celebration.
       </p>
 
       {venues.length === 0 ? (
-        <p className="mt-6 rounded-2xl border border-dashed border-zinc-300 bg-white p-6 text-center text-[13px] text-zinc-500">
+        <p className="mt-6 rounded-2xl border border-dashed border-zinc-300 bg-white p-6 text-center text-body text-zinc-500">
           No venues published yet.
         </p>
       ) : (
@@ -36,28 +36,28 @@ export default async function VenuesPage() {
                   priority={i === 0}
                   className="h-40 w-full"
                 />
-                <h2 className="absolute bottom-3 left-3 text-[17px] font-extrabold text-white drop-shadow">
+                <h2 className="absolute bottom-3 left-3 text-lede font-extrabold text-white drop-shadow">
                   {v.name}
                 </h2>
               </div>
               <div className="flex items-center justify-between p-3.5">
                 <div className="min-w-0">
-                  <span className="inline-flex items-center gap-1.5 text-[12.5px] text-zinc-500">
+                  <span className="inline-flex items-center gap-1.5 text-detail text-zinc-500">
                     <Users className="size-3.5" /> Up to {v.capacity} guests
                   </span>
                   {v.description && (
-                    <p className="mt-0.5 line-clamp-1 text-[12px] text-zinc-400">
+                    <p className="mt-0.5 line-clamp-1 text-detail text-zinc-400">
                       {v.description}
                     </p>
                   )}
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <div className="text-right">
-                    <div className="text-[10.5px] text-zinc-400">from</div>
-                    <div className="text-[15px] font-extrabold text-violet-700">
+                    <div className="text-meta text-zinc-400">from</div>
+                    <div className="text-copy font-extrabold text-violet-700">
                       {formatPrice(v.pricePerSlot)}
                     </div>
-                    <div className="text-[9.5px] leading-tight text-zinc-400">
+                    <div className="text-meta leading-tight text-zinc-400">
                       / slot · rental
                     </div>
                   </div>

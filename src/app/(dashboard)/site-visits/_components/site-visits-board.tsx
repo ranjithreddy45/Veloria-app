@@ -176,10 +176,10 @@ function VisitCard({
             <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
               {row.customerName}
             </span>
-            <Badge variant="secondary" className="text-[10px]">
+            <Badge variant="secondary" className="text-meta">
               {row.kindLabel}
             </Badge>
-            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${badge.cls}`}>
+            <span className={`rounded-full px-2 py-0.5 text-meta font-semibold ${badge.cls}`}>
               {badge.label}
             </span>
           </div>
@@ -210,7 +210,7 @@ function VisitCard({
           {row.leadId && (
             <a
               href={`/leads/${row.leadId}`}
-              className="inline-block text-[11px] font-medium text-violet-600 hover:underline"
+              className="inline-block text-meta font-medium text-violet-600 hover:underline"
             >
               View lead →
             </a>

@@ -96,14 +96,14 @@ export function BeoDetailView({ beo, canWrite }: { beo: BeoDetail; canWrite: boo
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1.5">
-          <Link href="/beo" className="inline-flex items-center gap-1 text-[12.5px] text-muted-foreground hover:text-foreground">
+          <Link href="/beo" className="inline-flex items-center gap-1 text-detail text-muted-foreground hover:text-foreground">
             <ArrowLeft className="size-3.5" /> Function sheets
           </Link>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-[24px] font-medium leading-tight tracking-[-0.01em] text-foreground">{beo.beoNumber}</h1>
+            <h1 className="text-h2 font-medium leading-tight tracking-[-0.01em] text-foreground">{beo.beoNumber}</h1>
             <StatusPill label={STATUS_LABEL[beo.status] ?? beo.status} hue={STATUS_HUE[beo.status] ?? "slate"} />
           </div>
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-body text-muted-foreground">
             {beo.eventName ?? "—"}
             {beo.eventType ? ` · ${beo.eventType}` : ""}
             {beo.venueName ? ` · ${beo.venueName}` : ""}
@@ -111,7 +111,7 @@ export function BeoDetailView({ beo, canWrite }: { beo: BeoDetail; canWrite: boo
             {beo.covers != null ? ` · ${beo.covers} covers` : ""}
           </p>
           {beo.publishedAt && (
-            <p className="text-[11.5px] text-muted-foreground">Published {fmtDateTime(beo.publishedAt)}</p>
+            <p className="text-meta text-muted-foreground">Published {fmtDateTime(beo.publishedAt)}</p>
           )}
         </div>
         {canWrite && (
@@ -132,7 +132,7 @@ export function BeoDetailView({ beo, canWrite }: { beo: BeoDetail; canWrite: boo
               </>
             )}
             {locked && (
-              <span className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/50 px-2.5 py-1.5 text-[12px] text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/50 px-2.5 py-1.5 text-detail text-muted-foreground">
                 <Lock className="size-3.5" /> Locked — read only
               </span>
             )}
@@ -180,7 +180,7 @@ function CoversCard({ beo, editable }: { beo: BeoDetail; editable: boolean }) {
 
   return (
     <Card>
-      <CardHeader><CardTitle className="text-[15px]">Covers</CardTitle></CardHeader>
+      <CardHeader><CardTitle className="text-copy">Covers</CardTitle></CardHeader>
       <CardContent className="flex items-end gap-2">
         <div className="space-y-1.5">
           <Label>Confirmed covers</Label>
@@ -239,7 +239,7 @@ function RunOfShowCard({ beo, editable }: { beo: BeoDetail; editable: boolean })
   return (
     <Card>
       <CardHeader className="flex-row items-center justify-between space-y-0">
-        <CardTitle className="text-[15px]">Run of show</CardTitle>
+        <CardTitle className="text-copy">Run of show</CardTitle>
         {editable && (
           <div className="flex items-center gap-2">
             <Button size="sm" variant="ghost" onClick={add}><Plus className="size-3.5" /> Add row</Button>
@@ -249,10 +249,10 @@ function RunOfShowCard({ beo, editable }: { beo: BeoDetail; editable: boolean })
       </CardHeader>
       <CardContent>
         {rows.length === 0 ? (
-          <p className="py-6 text-center text-[13px] text-muted-foreground">No timeline yet.{editable ? " Add the first row." : ""}</p>
+          <p className="py-6 text-center text-body text-muted-foreground">No timeline yet.{editable ? " Add the first row." : ""}</p>
         ) : (
           <div className="space-y-2">
-            <div className="hidden grid-cols-[90px_1fr_140px_1fr_32px] gap-2 px-1 text-[11px] uppercase tracking-wide text-muted-foreground sm:grid">
+            <div className="hidden grid-cols-[90px_1fr_140px_1fr_32px] gap-2 px-1 text-meta uppercase tracking-wide text-muted-foreground sm:grid">
               <span>Time</span><span>Activity</span><span>Owner</span><span>Notes</span><span />
             </div>
             {rows.map((r, i) => (
@@ -283,7 +283,7 @@ function RunOfShowCard({ beo, editable }: { beo: BeoDetail; editable: boolean })
 function SectionsCard({ beo, editable }: { beo: BeoDetail; editable: boolean }) {
   return (
     <Card>
-      <CardHeader><CardTitle className="text-[15px]">Department briefs</CardTitle></CardHeader>
+      <CardHeader><CardTitle className="text-copy">Department briefs</CardTitle></CardHeader>
       <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {SECTIONS.map((s) => (
           <SectionField key={s.key} beoId={beo.id} field={s.key} label={s.label} placeholder={s.placeholder} value={(beo[s.key] as string | null) ?? ""} editable={editable} />
@@ -332,7 +332,7 @@ function SectionField({
       <div className="flex items-center justify-between">
         <Label>{label}</Label>
         {editable && dirty && (
-          <Button size="sm" variant="ghost" className="h-6 px-2 text-[11.5px]" onClick={save} disabled={busy}>{busy ? "Saving…" : "Save"}</Button>
+          <Button size="sm" variant="ghost" className="h-6 px-2 text-meta" onClick={save} disabled={busy}>{busy ? "Saving…" : "Save"}</Button>
         )}
       </div>
       <Textarea
@@ -341,7 +341,7 @@ function SectionField({
         placeholder={placeholder}
         rows={3}
         disabled={!editable}
-        className="resize-y text-[13px]"
+        className="resize-y text-body"
       />
     </div>
   );
@@ -369,15 +369,15 @@ function IncidentLog({ beo, canWrite }: { beo: BeoDetail; canWrite: boolean }) {
   return (
     <Card>
       <CardHeader className="flex-row items-center justify-between space-y-0">
-        <CardTitle className="flex items-center gap-2 text-[15px]">
+        <CardTitle className="flex items-center gap-2 text-copy">
           <AlertTriangle className="size-4 text-rose-500" /> Incident log
-          {openCount > 0 && <span className="rounded-md bg-rose-100 px-1.5 text-[11px] font-medium text-rose-700">{openCount} open</span>}
+          {openCount > 0 && <span className="rounded-md bg-rose-100 px-1.5 text-meta font-medium text-rose-700">{openCount} open</span>}
         </CardTitle>
         {canWrite && <Button size="sm" variant="outline" onClick={() => setOpen(true)}><Plus className="size-3.5" /> Log</Button>}
       </CardHeader>
       <CardContent className="space-y-2.5">
         {beo.incidents.length === 0 ? (
-          <p className="py-6 text-center text-[13px] text-muted-foreground">No incidents logged.</p>
+          <p className="py-6 text-center text-body text-muted-foreground">No incidents logged.</p>
         ) : (
           beo.incidents.map((i) => (
             <div key={i.id} className="rounded-lg border border-border/70 p-2.5">
@@ -391,15 +391,15 @@ function IncidentLog({ beo, canWrite }: { beo: BeoDetail; canWrite: boolean }) {
                       <StatusPill label="Open" hue="rose" size="xs" />
                     )}
                   </div>
-                  <p className="mt-1.5 text-[13px] font-medium text-foreground">{i.title}</p>
-                  {i.description && <p className="mt-0.5 text-[12px] text-muted-foreground">{i.description}</p>}
+                  <p className="mt-1.5 text-body font-medium text-foreground">{i.title}</p>
+                  {i.description && <p className="mt-0.5 text-detail text-muted-foreground">{i.description}</p>}
                   {i.photoUrl && (
-                    <a href={i.photoUrl} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block text-[11.5px] text-indigo-600 hover:underline">View photo</a>
+                    <a href={i.photoUrl} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block text-meta text-indigo-600 hover:underline">View photo</a>
                   )}
-                  <p className="mt-1 text-[11px] text-muted-foreground">{i.reporterName ?? "—"} · {fmtDateTime(i.createdAt)}</p>
+                  <p className="mt-1 text-meta text-muted-foreground">{i.reporterName ?? "—"} · {fmtDateTime(i.createdAt)}</p>
                 </div>
                 {canWrite && i.status === "OPEN" && (
-                  <Button size="sm" variant="ghost" className="h-7 shrink-0 px-2 text-[11.5px]" onClick={() => resolve(i.id)}>
+                  <Button size="sm" variant="ghost" className="h-7 shrink-0 px-2 text-meta" onClick={() => resolve(i.id)}>
                     <CheckCircle2 className="size-3.5" /> Resolve
                   </Button>
                 )}

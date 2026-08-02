@@ -42,9 +42,9 @@ export function HelpHint({ title, children, label, className }: HelpHintProps) {
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        className="w-80 text-[13px] leading-relaxed"
+        className="w-80 text-body leading-relaxed"
       >
-        <p className="mb-1.5 text-[13.5px] font-semibold text-foreground">
+        <p className="mb-1.5 text-body font-semibold text-foreground">
           {title}
         </p>
         <div className="space-y-2 text-muted-foreground">{children}</div>

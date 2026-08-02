@@ -19,13 +19,13 @@ export default async function CareersPage() {
       <div className="mx-auto max-w-5xl px-6 py-12 sm:py-16">
         {/* Hero */}
         <div className="max-w-2xl">
-          <p className="text-[12.5px] font-medium uppercase tracking-[0.14em] text-primary">
+          <p className="text-detail font-medium uppercase tracking-[0.14em] text-primary">
             Join us
           </p>
-          <h1 className="mt-2 text-[28px] font-semibold leading-[1.15] tracking-[-0.025em] text-foreground sm:text-[34px]">
+          <h1 className="mt-2 text-h2 font-semibold leading-[1.15] tracking-[-0.025em] text-foreground sm:text-h1">
             Build unforgettable moments at Veloria Grand
           </h1>
-          <p className="mt-3 text-[14px] leading-relaxed text-muted-foreground">
+          <p className="mt-3 text-copy leading-relaxed text-muted-foreground">
             We&apos;re a team of hospitality, events, and operations specialists crafting premium
             experiences. If that sounds like you, we&apos;d love to hear from you.
           </p>
@@ -33,7 +33,7 @@ export default async function CareersPage() {
 
         {/* Roles */}
         <div className="mt-10">
-          <h2 className="text-[13px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
+          <h2 className="text-body font-medium uppercase tracking-[0.1em] text-muted-foreground">
             Open roles {roles.length > 0 && <span className="text-foreground/70">· {roles.length}</span>}
           </h2>
 
@@ -42,10 +42,10 @@ export default async function CareersPage() {
               <span className="flex size-11 items-center justify-center rounded-full bg-muted text-muted-foreground">
                 <Briefcase className="size-5" />
               </span>
-              <h3 className="text-[14.5px] font-semibold tracking-[-0.01em] text-foreground">
+              <h3 className="text-copy font-semibold tracking-[-0.01em] text-foreground">
                 No open roles right now
               </h3>
-              <p className="max-w-sm text-[13px] leading-relaxed text-muted-foreground">
+              <p className="max-w-sm text-body leading-relaxed text-muted-foreground">
                 We don&apos;t have any openings at the moment — but we&apos;re always growing. Please
                 check back soon.
               </p>

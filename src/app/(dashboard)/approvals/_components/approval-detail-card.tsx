@@ -113,16 +113,16 @@ export function ApprovalDetailCard({ request }: ApprovalDetailCardProps) {
                       {step.order + 1}
                     </div>
                     <div className="text-center max-w-20">
-                      <p className="text-[10px] text-muted-foreground leading-tight">
+                      <p className="text-meta text-muted-foreground leading-tight">
                         {step.approverType === "USER" ? "User" : "Role"}
                       </p>
-                      <p className="text-[10px] font-medium text-foreground truncate">
+                      <p className="text-meta font-medium text-foreground truncate">
                         {step.approverId}
                       </p>
                       {step.isOptional && (
                         <Badge
                           variant="outline"
-                          className="text-[8px] px-1 py-0 mt-0.5 border-border"
+                          className="text-meta px-1 py-0 mt-0.5 border-border"
                         >
                           Optional
                         </Badge>

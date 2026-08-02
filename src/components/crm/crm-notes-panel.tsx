@@ -116,7 +116,7 @@ export function CrmNotesPanel({ leadId, inquiryId }: { leadId?: string; inquiryI
               <li key={n.id} className="rounded-lg border p-2.5 text-sm">
                 <div className="mb-1 flex items-center gap-2 text-xs text-muted-foreground">
                   {n.kind === "CALL" ? <Phone className="size-3.5 text-blue-600" /> : <StickyNote className="size-3.5" />}
-                  {n.kind === "CALL" && n.callOutcome && <Badge variant="outline" className="h-4 px-1 text-[10px]">{CALL_OUTCOMES.find((o) => o.v === n.callOutcome)?.l ?? n.callOutcome}</Badge>}
+                  {n.kind === "CALL" && n.callOutcome && <Badge variant="outline" className="h-4 px-1 text-meta">{CALL_OUTCOMES.find((o) => o.v === n.callOutcome)?.l ?? n.callOutcome}</Badge>}
                   <span>{n.authorName ?? "Someone"}</span>
                   <span>· {timeAgo(n.createdAt)}</span>
                   {n.editedAt && <span className="italic">(edited)</span>}

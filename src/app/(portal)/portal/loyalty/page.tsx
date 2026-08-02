@@ -35,7 +35,7 @@ export const metadata: Metadata = {
 };
 
 // Customer-facing empty states keep the editorial serif headline.
-const PORTAL_EMPTY = "[&_p:first-of-type]:font-editorial [&_p:first-of-type]:text-[18px]";
+const PORTAL_EMPTY = "[&_p:first-of-type]:font-editorial [&_p:first-of-type]:text-lede";
 
 // ============================================================
 // Tier Thresholds
@@ -162,15 +162,15 @@ export default async function PortalLoyaltyPage() {
         <div className="relative">
           <div className="text-warning flex items-center gap-2">
             <Sparkles className="size-3.5" />
-            <span className="text-[11px] font-semibold uppercase tracking-[0.14em]">
+            <span className="text-meta font-semibold uppercase tracking-[0.14em]">
               Your account
             </span>
           </div>
-          <h1 className="large-title text-foreground mt-2.5 text-[28px] leading-tight sm:text-[32px]">
+          <h1 className="large-title text-foreground mt-2.5 text-h2 leading-tight sm:text-h1">
             Loyalty &amp; Rewards
           </h1>
           <div className="mt-3 flex items-baseline gap-2.5">
-            <span className="numeric text-foreground text-[40px] font-semibold leading-none sm:text-[48px]">
+            <span className="numeric text-foreground text-display font-semibold leading-none sm:text-display">
               {account.points.toLocaleString("en-IN")}
             </span>
             <span className="text-muted-foreground text-base">
@@ -198,7 +198,7 @@ export default async function PortalLoyaltyPage() {
                   style={{ width: `${tierProgress.progress}%` }}
                 />
               </div>
-              <div className="text-muted-foreground/70 flex max-w-xs justify-between text-[10px] font-semibold uppercase tracking-[0.12em]">
+              <div className="text-muted-foreground/70 flex max-w-xs justify-between text-meta font-semibold uppercase tracking-[0.12em]">
                 <span>{account.tier}</span>
                 <span>{tierProgress.nextTierName}</span>
               </div>
@@ -213,10 +213,10 @@ export default async function PortalLoyaltyPage() {
           <CardContent className="p-6">
             <div className="flex items-start justify-between gap-3">
               <div className="space-y-2">
-                <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
+                <p className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.14em]">
                   Available
                 </p>
-                <p className="numeric text-foreground text-[26px] font-semibold leading-none">
+                <p className="numeric text-foreground text-h2 font-semibold leading-none">
                   {account.points.toLocaleString("en-IN")}
                 </p>
               </div>
@@ -231,10 +231,10 @@ export default async function PortalLoyaltyPage() {
           <CardContent className="p-6">
             <div className="flex items-start justify-between gap-3">
               <div className="space-y-2">
-                <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
+                <p className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.14em]">
                   Earned to date
                 </p>
-                <p className="numeric text-foreground text-[26px] font-semibold leading-none">
+                <p className="numeric text-foreground text-h2 font-semibold leading-none">
                   {account.totalEarned.toLocaleString("en-IN")}
                 </p>
               </div>
@@ -249,10 +249,10 @@ export default async function PortalLoyaltyPage() {
           <CardContent className="p-6">
             <div className="flex items-start justify-between gap-3">
               <div className="space-y-2">
-                <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
+                <p className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.14em]">
                   Redeemed
                 </p>
-                <p className="numeric text-foreground text-[26px] font-semibold leading-none">
+                <p className="numeric text-foreground text-h2 font-semibold leading-none">
                   {account.totalRedeemed.toLocaleString("en-IN")}
                 </p>
               </div>
@@ -267,7 +267,7 @@ export default async function PortalLoyaltyPage() {
       {/* Tier Breakdown */}
       <Card className="shadow-card rounded-2xl py-0">
         <CardHeader className="px-6 pt-6 pb-4">
-          <CardTitle className="font-editorial text-foreground text-[20px] font-semibold">
+          <CardTitle className="font-editorial text-foreground text-title font-semibold">
             How the tiers work
           </CardTitle>
         </CardHeader>
@@ -291,7 +291,7 @@ export default async function PortalLoyaltyPage() {
                       : `${t.min.toLocaleString("en-IN")} – ${t.max.toLocaleString("en-IN")} pts`}
                 </p>
                 {t.tier === account.tier && (
-                  <span className="text-warning text-[10px] font-semibold uppercase tracking-[0.12em]">
+                  <span className="text-warning text-meta font-semibold uppercase tracking-[0.12em]">
                     You&apos;re here
                   </span>
                 )}
@@ -304,7 +304,7 @@ export default async function PortalLoyaltyPage() {
       {/* Transaction History */}
       <Card className="shadow-card rounded-2xl py-0">
         <CardHeader className="px-6 pt-6 pb-4">
-          <CardTitle className="font-editorial text-foreground text-[20px] font-semibold">
+          <CardTitle className="font-editorial text-foreground text-title font-semibold">
             Recent activity
           </CardTitle>
         </CardHeader>
@@ -340,7 +340,7 @@ export default async function PortalLoyaltyPage() {
                       </p>
                       <Badge
                         variant="outline"
-                        className={`shrink-0 border text-[10px] font-medium ${
+                        className={`shrink-0 border text-meta font-medium ${
                           TRANSACTION_TYPE_COLORS[tx.type] ?? ""
                         }`}
                       >

@@ -39,21 +39,21 @@ export function BrochureMicrosite({ brochure }: { brochure: PublicBrochureDTO })
           <div className="h-40 w-full bg-zinc-950 sm:h-52" />
         )}
         <div className="px-6 py-9 text-center">
-          <h1 className="text-foreground text-[30px] sm:text-[36px]">
+          <h1 className="text-foreground text-h1 sm:text-h1">
             {brochure.title}
           </h1>
           {brochure.subtitle && (
-            <p className="text-muted-foreground mx-auto mt-3 max-w-md text-[15px] leading-relaxed">
+            <p className="text-muted-foreground mx-auto mt-3 max-w-md text-copy leading-relaxed">
               {brochure.subtitle}
             </p>
           )}
           {brochure.startingFromAmount != null && (
             <div className="bg-muted mt-6 inline-flex items-baseline gap-2 rounded-full px-4 py-2">
-              <span className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.14em]">
+              <span className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.14em]">
                 Starting from
               </span>
               <span
-                className="numeric text-[16px] font-semibold"
+                className="numeric text-lede font-semibold"
                 style={{ color: "var(--brand)" }}
               >
                 {formatINR(brochure.startingFromAmount)}
@@ -130,7 +130,7 @@ export function BrochureMicrosite({ brochure }: { brochure: PublicBrochureDTO })
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="font-editorial text-foreground mb-5 text-center text-[24px] font-semibold">
+    <h2 className="font-editorial text-foreground mb-5 text-center text-h2 font-semibold">
       {children}
     </h2>
   );
@@ -149,7 +149,7 @@ function EmbedFrame({
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border bg-black">
-      <div className="flex items-center gap-1.5 bg-zinc-900 px-3.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-300">
+      <div className="flex items-center gap-1.5 bg-zinc-900 px-3.5 py-2.5 text-meta font-semibold uppercase tracking-[0.12em] text-zinc-300">
         {icon} {label}
       </div>
       <div className="aspect-video w-full">

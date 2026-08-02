@@ -166,11 +166,11 @@ export function RoutingBoard({
       <section className="rounded-2xl border bg-card shadow-card">
         <div className="flex items-start justify-between gap-3 border-b px-5 py-4">
           <div className="min-w-0">
-            <h3 className="flex items-center gap-2 text-[15px] font-semibold tracking-[-0.01em]">
+            <h3 className="flex items-center gap-2 text-copy font-semibold tracking-[-0.01em]">
               <Users className="size-4 text-muted-foreground" />
               Team availability
             </h3>
-            <p className="mt-1 text-[13px] text-muted-foreground">
+            <p className="mt-1 text-body text-muted-foreground">
               Each rep&apos;s status, capacity and skills — the inputs SMART
               routing weighs when picking an owner.
             </p>
@@ -328,11 +328,11 @@ export function RoutingBoard({
       {/* Routing decision audit feed */}
       <section className="rounded-2xl border bg-card shadow-card">
         <div className="border-b px-5 py-4">
-          <h3 className="flex items-center gap-2 text-[15px] font-semibold tracking-[-0.01em]">
+          <h3 className="flex items-center gap-2 text-copy font-semibold tracking-[-0.01em]">
             <History className="size-4 text-muted-foreground" />
             Routing decisions
           </h3>
-          <p className="mt-1 text-[13px] text-muted-foreground">
+          <p className="mt-1 text-body text-muted-foreground">
             An audit trail of who each lead went to and why.
           </p>
         </div>
@@ -354,7 +354,7 @@ export function RoutingBoard({
                   hue={dec.method === "SMART" ? "violet" : "slate"}
                   size="xs"
                 />
-                <span className="text-[13px] font-medium">
+                <span className="text-body font-medium">
                   {dec.assignedTo?.name ||
                     dec.assignedTo?.email ||
                     (dec.assignedToId ? dec.assignedToId : "Unassigned")}

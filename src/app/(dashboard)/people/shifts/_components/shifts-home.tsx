@@ -51,7 +51,7 @@ export function ShiftsHome({
       {/* MY SHIFTS */}
       <TabsContent value="mine" className="space-y-3">
         {myShifts.length === 0 ? (
-          <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground">No upcoming shifts assigned.</div>
+          <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-body text-muted-foreground">No upcoming shifts assigned.</div>
         ) : (
           <div className="space-y-2.5">
             {myShifts.map((s) => (
@@ -59,8 +59,8 @@ export function ShiftsHome({
                 <div className="flex items-center gap-3">
                   <span className={cn("size-2.5 rounded-full", HUE_DOT[s.shift.color] ?? "bg-zinc-500")} />
                   <div>
-                    <div className="font-medium">{s.shift.name} <span className="text-[12px] font-normal text-muted-foreground">{s.shift.startTime}–{s.shift.endTime}</span></div>
-                    <div className="text-[12.5px] text-muted-foreground">{formatDate(s.date)}</div>
+                    <div className="font-medium">{s.shift.name} <span className="text-detail font-normal text-muted-foreground">{s.shift.startTime}–{s.shift.endTime}</span></div>
+                    <div className="text-detail text-muted-foreground">{formatDate(s.date)}</div>
                   </div>
                 </div>
                 <SwapDialog assignmentId={s.id} colleagues={colleagues} />
@@ -78,7 +78,7 @@ export function ShiftsHome({
       {/* SWAPS */}
       <TabsContent value="swaps" className="space-y-3">
         {swaps.length === 0 ? (
-          <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground">No pending swap requests.</div>
+          <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-body text-muted-foreground">No pending swap requests.</div>
         ) : (
           swaps.map((s) => <SwapRowCard key={s.id} row={s} />)
         )}
@@ -89,7 +89,7 @@ export function ShiftsHome({
         <TabsContent value="types" className="space-y-3">
           <div className="flex justify-end"><ShiftTypeDialog /></div>
           {shifts.length === 0 ? (
-            <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground">No shift types yet. Add Morning, General, Night…</div>
+            <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-body text-muted-foreground">No shift types yet. Add Morning, General, Night…</div>
           ) : (
             <div className="space-y-2.5">
               {shifts.map((sh) => (
@@ -97,7 +97,7 @@ export function ShiftsHome({
                   <div className="flex items-center gap-3">
                     <span className={cn("size-2.5 rounded-full", HUE_DOT[sh.color] ?? "bg-zinc-500")} />
                     <span className="font-medium">{sh.name}</span>
-                    <span className="text-[12.5px] text-muted-foreground">{sh.startTime}–{sh.endTime}</span>
+                    <span className="text-detail text-muted-foreground">{sh.startTime}–{sh.endTime}</span>
                   </div>
                   <ShiftTypeDialog existing={sh} />
                 </div>
@@ -128,20 +128,20 @@ function RosterGrid({
   return (
     <div className="rounded-xl border bg-card">
       <div className="flex items-center justify-between border-b px-4 py-2.5">
-        <span className="text-[13px] font-semibold">Week of {formatDate(weekStart)}</span>
+        <span className="text-body font-semibold">Week of {formatDate(weekStart)}</span>
         <div className="flex gap-1.5">
           <Button variant="outline" size="icon" className="size-8" onClick={() => shiftWeek(-1)}><ChevronLeft className="size-4" /></Button>
           <Button variant="outline" size="icon" className="size-8" onClick={() => shiftWeek(1)}><ChevronRight className="size-4" /></Button>
         </div>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] text-[12.5px]">
+        <table className="w-full min-w-[720px] text-detail">
           <thead>
             <tr className="border-b bg-muted/40">
               <th className="sticky left-0 bg-muted/40 px-3 py-2 text-left font-medium">Employee</th>
               {weekDays.map((d, i) => (
                 <th key={d} className="px-2 py-2 text-center font-medium">
-                  {DOW[i]}<div className="text-[10.5px] font-normal text-muted-foreground">{d.slice(8)}</div>
+                  {DOW[i]}<div className="text-meta font-normal text-muted-foreground">{d.slice(8)}</div>
                 </th>
               ))}
             </tr>
@@ -151,7 +151,7 @@ function RosterGrid({
               <tr key={e.id} className="border-b last:border-0">
                 <td className="sticky left-0 bg-card px-3 py-1.5">
                   <div className="font-medium">{e.firstName} {e.lastName}</div>
-                  <div className="text-[10.5px] text-muted-foreground">{e.empCode}</div>
+                  <div className="text-meta text-muted-foreground">{e.empCode}</div>
                 </td>
                 {weekDays.map((d) => {
                   const a = byCell.get(`${e.id}|${d}`);
@@ -186,7 +186,7 @@ function RosterCell({
 
   if (!canWrite) {
     return assignment
-      ? <span className={cn("inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px]", HUE_DOT[assignment.shift.color] ? "" : "")}>
+      ? <span className={cn("inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-meta", HUE_DOT[assignment.shift.color] ? "" : "")}>
           <span className={cn("size-1.5 rounded-full", HUE_DOT[assignment.shift.color] ?? "bg-zinc-500")} />{assignment.shift.name}
         </span>
       : <span className="text-muted-foreground/30">—</span>;
@@ -194,7 +194,7 @@ function RosterCell({
 
   return (
     <Select value={assignment?.shiftId ?? ""} onValueChange={set} disabled={busy}>
-      <SelectTrigger className={cn("h-7 w-full justify-center gap-1 border-dashed px-1.5 text-[11px]", assignment && "border-solid")}>
+      <SelectTrigger className={cn("h-7 w-full justify-center gap-1 border-dashed px-1.5 text-meta", assignment && "border-solid")}>
         {busy ? <Loader2 className="size-3 animate-spin" /> : assignment
           ? <span className="flex items-center gap-1 truncate"><span className={cn("size-1.5 rounded-full", HUE_DOT[assignment.shift.color] ?? "bg-zinc-500")} />{assignment.shift.name}</span>
           : <span className="text-muted-foreground">+</span>}
@@ -230,13 +230,13 @@ function SwapDialog({ assignmentId, colleagues }: { assignmentId: string; collea
       <DialogContent className="sm:max-w-md">
         <DialogHeader><DialogTitle>Request shift swap</DialogTitle><DialogDescription>Your colleague approves the swap.</DialogDescription></DialogHeader>
         <div className="space-y-3 py-2">
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Swap with</Label>
+          <div className="space-y-1.5"><Label className="text-detail">Swap with</Label>
             <Select value={target} onValueChange={setTarget}>
               <SelectTrigger><SelectValue placeholder="Colleague" /></SelectTrigger>
               <SelectContent>{colleagues.map((c) => <SelectItem key={c.id} value={c.id}>{c.firstName} {c.lastName} · {c.empCode}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Reason (optional)</Label><Input value={reason} onChange={(e) => setReason(e.target.value)} /></div>
+          <div className="space-y-1.5"><Label className="text-detail">Reason (optional)</Label><Input value={reason} onChange={(e) => setReason(e.target.value)} /></div>
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
@@ -263,8 +263,8 @@ function SwapRowCard({ row }: { row: SwapRow }) {
     <div className="rounded-xl border bg-card p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div className="font-medium">{row.requester.firstName} {row.requester.lastName} <span className="text-[12px] font-normal text-muted-foreground">wants to swap</span></div>
-          <div className="text-[12.5px] text-muted-foreground">{row.shiftName} · {formatDate(row.dateKey)}{row.reason ? ` · “${row.reason}”` : ""}</div>
+          <div className="font-medium">{row.requester.firstName} {row.requester.lastName} <span className="text-detail font-normal text-muted-foreground">wants to swap</span></div>
+          <div className="text-detail text-muted-foreground">{row.shiftName} · {formatDate(row.dateKey)}{row.reason ? ` · “${row.reason}”` : ""}</div>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" className="gap-1.5" disabled={!!busy} onClick={() => decide("REJECTED")}>{busy === "REJECTED" ? <Loader2 className="size-3.5 animate-spin" /> : <X className="size-3.5" />} Decline</Button>
@@ -299,12 +299,12 @@ function ShiftTypeDialog({ existing }: { existing?: Shift }) {
       <DialogContent className="sm:max-w-md">
         <DialogHeader><DialogTitle>{existing ? "Edit shift" : "New shift"}</DialogTitle></DialogHeader>
         <div className="space-y-3 py-2">
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Morning" /></div>
+          <div className="space-y-1.5"><Label className="text-detail">Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Morning" /></div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5"><Label className="text-[12.5px]">Start</Label><Input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} /></div>
-            <div className="space-y-1.5"><Label className="text-[12.5px]">End</Label><Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} /></div>
+            <div className="space-y-1.5"><Label className="text-detail">Start</Label><Input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} /></div>
+            <div className="space-y-1.5"><Label className="text-detail">End</Label><Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} /></div>
           </div>
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Colour</Label>
+          <div className="space-y-1.5"><Label className="text-detail">Colour</Label>
             <Select value={color} onValueChange={setColor}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>{["blue", "emerald", "amber", "violet", "rose", "cyan", "slate"].map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>

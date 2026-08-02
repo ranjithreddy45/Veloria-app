@@ -28,7 +28,7 @@ export default async function PortalGuestBookingPage({ params }: { params: Promi
     <div className="space-y-10">
       <Link
         href="/portal/guests"
-        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-[13px] transition-colors"
+        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-body transition-colors"
       >
         <ArrowLeft className="size-3.5" /> All events
       </Link>

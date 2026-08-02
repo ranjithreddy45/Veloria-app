@@ -61,7 +61,7 @@ export default async function ReimbursementsPage() {
 
       <ReimbursementsTable rows={rows} />
 
-      <p className="text-[12px] text-muted-foreground">
+      <p className="text-detail text-muted-foreground">
         Approving a claim assigns it to a pay run (financial year + month). The claim is disbursed
         and stamped paid automatically when that payroll run is processed; this screen does not post
         any payment itself.

@@ -67,7 +67,7 @@ export default async function PortalInvoicesPage() {
           {/* Action Required */}
           {unpaidInvoices.length > 0 && (
             <section className="space-y-4">
-              <h2 className="text-muted-foreground flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em]">
+              <h2 className="text-muted-foreground flex items-center gap-2 text-meta font-semibold uppercase tracking-[0.14em]">
                 Action required
                 <span className="numeric text-muted-foreground/60">
                   {unpaidInvoices.length}
@@ -84,7 +84,7 @@ export default async function PortalInvoicesPage() {
           {/* Other Invoices */}
           {otherInvoices.length > 0 && (
             <section className="space-y-4">
-              <h2 className="text-muted-foreground flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em]">
+              <h2 className="text-muted-foreground flex items-center gap-2 text-meta font-semibold uppercase tracking-[0.14em]">
                 {unpaidInvoices.length > 0 ? "Other invoices" : "All invoices"}
                 <span className="numeric text-muted-foreground/60">
                   {otherInvoices.length}
@@ -160,7 +160,7 @@ function InvoiceRow({ invoice, showPayButton }: InvoiceRowProps) {
                   <StatusBadge
                     status={invoice.status}
                     colorMap={INVOICE_STATUS_COLORS}
-                    className="text-[10px]"
+                    className="text-meta"
                   />
                 </div>
                 <p className="text-muted-foreground mt-0.5 truncate text-xs">
@@ -183,7 +183,7 @@ function InvoiceRow({ invoice, showPayButton }: InvoiceRowProps) {
             {/* Amounts */}
             <div className="flex items-center gap-6 sm:gap-8">
               <div className="text-right">
-                <p className="text-muted-foreground/70 text-[10px] font-semibold uppercase tracking-[0.1em]">
+                <p className="text-muted-foreground/70 text-meta font-semibold uppercase tracking-[0.1em]">
                   Total
                 </p>
                 <p className="numeric text-foreground mt-0.5 text-sm font-semibold">
@@ -191,7 +191,7 @@ function InvoiceRow({ invoice, showPayButton }: InvoiceRowProps) {
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-muted-foreground/70 text-[10px] font-semibold uppercase tracking-[0.1em]">
+                <p className="text-muted-foreground/70 text-meta font-semibold uppercase tracking-[0.1em]">
                   Paid
                 </p>
                 <p className="numeric mt-0.5 text-sm font-medium text-success">
@@ -199,7 +199,7 @@ function InvoiceRow({ invoice, showPayButton }: InvoiceRowProps) {
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-muted-foreground/70 text-[10px] font-semibold uppercase tracking-[0.1em]">
+                <p className="text-muted-foreground/70 text-meta font-semibold uppercase tracking-[0.1em]">
                   Balance
                 </p>
                 <p

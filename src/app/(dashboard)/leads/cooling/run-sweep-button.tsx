@@ -45,7 +45,7 @@ export function RunSweepButton() {
         )}
         Run sweep now
       </Button>
-      {msg && <p className="text-[11px] text-muted-foreground">{msg}</p>}
+      {msg && <p className="text-meta text-muted-foreground">{msg}</p>}
     </div>
   );
 }

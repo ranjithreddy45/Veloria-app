@@ -114,7 +114,7 @@ export function AvailabilityBoard({ initialDate }: { initialDate: string }) {
                     <tr key={v.venueId} className="border-t">
                       <td className="px-2 py-2">
                         <div className="font-medium">{v.venueName}</div>
-                        <div className="text-[11px] text-muted-foreground">cap {v.capacity}</div>
+                        <div className="text-meta text-muted-foreground">cap {v.capacity}</div>
                       </td>
                       {SLOT_COLS.map((s) => {
                         const cell = v.slots[s.key];
@@ -151,7 +151,7 @@ export function AvailabilityBoard({ initialDate }: { initialDate: string }) {
           ) : (
             <>
               <div className="overflow-x-auto">
-                <table className="text-[10px]">
+                <table className="text-meta">
                   <thead>
                     <tr>
                       <th className="sticky left-0 bg-background px-2 py-1 text-left font-medium">Venue</th>
@@ -178,7 +178,7 @@ export function AvailabilityBoard({ initialDate }: { initialDate: string }) {
                   </tbody>
                 </table>
               </div>
-              <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+              <div className="mt-3 flex flex-wrap items-center gap-3 text-meta text-muted-foreground">
                 <span className="flex items-center gap-1"><span className="h-3 w-3 rounded-sm bg-emerald-100" /> free</span>
                 <span className="flex items-center gap-1"><span className="h-3 w-3 rounded-sm bg-amber-300" /> 1 slot</span>
                 <span className="flex items-center gap-1"><span className="h-3 w-3 rounded-sm bg-orange-400" /> 2 slots</span>

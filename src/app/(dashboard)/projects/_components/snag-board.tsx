@@ -202,7 +202,7 @@ function SummaryTile({
         active ? cn("ring-2 ring-inset", a.ring, a.tint) : "hover:bg-muted/40",
       )}
     >
-      <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+      <span className="flex items-center gap-1.5 text-meta font-medium text-muted-foreground">
         <span className={cn("inline-block size-1.5 shrink-0 rounded-full", a.dot)} aria-hidden />
         {label}
       </span>
@@ -345,9 +345,9 @@ function PhotoThumb({ p, tag, onOpen }: { p: Photo; tag: string; onOpen: () => v
         // eslint-disable-next-line @next/next/no-img-element
         <img src={p.url} alt={tag} className="h-full w-full object-cover" />
       ) : (
-        <span className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground">PDF</span>
+        <span className="flex h-full w-full items-center justify-center text-meta text-muted-foreground">PDF</span>
       )}
-      <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-center text-[9px] text-white">{tag}</span>
+      <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-center text-meta text-white">{tag}</span>
     </button>
   );
 }

@@ -21,7 +21,7 @@ export default function PortalError({
       <div className="flex size-16 items-center justify-center rounded-2xl bg-warning/10">
         <AlertTriangle className="size-8 text-warning" />
       </div>
-      <h2 className="font-editorial text-foreground mt-5 text-[22px] font-semibold">
+      <h2 className="font-editorial text-foreground mt-5 text-title font-semibold">
         This page didn&apos;t load
       </h2>
       <p className="text-muted-foreground mt-2 max-w-md text-sm leading-relaxed">
@@ -29,7 +29,7 @@ export default function PortalError({
         to your portal and we&apos;ll pick up where you left off.
       </p>
       {error.digest && (
-        <p className="numeric text-muted-foreground/60 mt-3 text-[11px]">
+        <p className="numeric text-muted-foreground/60 mt-3 text-meta">
           Reference {error.digest}
         </p>
       )}

@@ -31,7 +31,7 @@ export default async function ReferralPortalPage({
   if (!partner.found) {
     return (
       <div className="bg-card shadow-card mx-auto max-w-lg rounded-2xl border p-10 text-center">
-        <h1 className="text-foreground text-[24px]">
+        <h1 className="text-foreground text-h2">
           This referral link isn’t active
         </h1>
         <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm leading-relaxed">
@@ -56,14 +56,14 @@ export default async function ReferralPortalPage({
         <div className="bg-primary/10 text-primary mx-auto mb-6 flex size-12 items-center justify-center rounded-2xl">
           <Gift className="size-6" />
         </div>
-        <p className="text-muted-foreground inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em]">
+        <p className="text-muted-foreground inline-flex items-center gap-1.5 text-meta font-semibold uppercase tracking-[0.16em]">
           <Sparkles className="size-3" />
           Referred by {partner.referrerDisplayName}
         </p>
-        <h1 className="text-foreground mt-4 text-[30px] sm:text-[36px]">
+        <h1 className="text-foreground mt-4 text-h1 sm:text-h1">
           Plan your event at {partner.venueName}
         </h1>
-        <p className="text-muted-foreground mx-auto mt-4 max-w-md text-[15px] leading-relaxed">
+        <p className="text-muted-foreground mx-auto mt-4 max-w-md text-copy leading-relaxed">
           {partner.referrerDisplayName} thought you’d love Veloria Grand for your
           celebration. Tell us a little about your day and our team will come
           back with bespoke options — no obligation.

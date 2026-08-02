@@ -121,7 +121,7 @@ export function ConversationList({
                     {conv.lastMessageAt && (
                       <span
                         className={cn(
-                          "shrink-0 text-[10px]",
+                          "shrink-0 text-meta",
                           needsReply
                             ? "font-medium text-emerald-700 dark:text-emerald-400"
                             : "text-muted-foreground"
@@ -146,7 +146,7 @@ export function ConversationList({
                     )}
                     {conv.lastMessage || "No messages"}
                   </p>
-                  <p className="mt-0.5 text-[10px] text-muted-foreground/70">
+                  <p className="mt-0.5 text-meta text-muted-foreground/70">
                     {conv.contactPhone} · {conv.messageCount} message
                     {conv.messageCount !== 1 ? "s" : ""}
                   </p>

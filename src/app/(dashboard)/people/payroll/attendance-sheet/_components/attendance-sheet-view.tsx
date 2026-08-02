@@ -170,14 +170,14 @@ export function AttendanceSheetView({
       {/* Controls */}
       <div className="flex flex-wrap items-end gap-3">
         <div className="w-40">
-          <label className="mb-1 block text-[12px] font-medium text-muted-foreground">Financial year</label>
+          <label className="mb-1 block text-detail font-medium text-muted-foreground">Financial year</label>
           <Select value={fy} onValueChange={onFy}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>{fys.map((f) => <SelectItem key={f} value={f}>FY {f}</SelectItem>)}</SelectContent>
           </Select>
         </div>
         <div className="w-40">
-          <label className="mb-1 block text-[12px] font-medium text-muted-foreground">Month</label>
+          <label className="mb-1 block text-detail font-medium text-muted-foreground">Month</label>
           <Select value={month} onValueChange={onMonth}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>{MONTHS.map((m) => <SelectItem key={m.v} value={String(m.v)}>{m.label}</SelectItem>)}</SelectContent>
@@ -234,7 +234,7 @@ export function AttendanceSheetView({
       </div>
 
       {/* Payroll hint */}
-      <div className="flex items-start gap-2 rounded-lg border border-indigo-200/60 bg-indigo-50/60 px-3.5 py-2.5 text-[12.5px] text-indigo-900 dark:border-indigo-900/40 dark:bg-indigo-950/30 dark:text-indigo-200">
+      <div className="flex items-start gap-2 rounded-lg border border-indigo-200/60 bg-indigo-50/60 px-3.5 py-2.5 text-detail text-indigo-900 dark:border-indigo-900/40 dark:bg-indigo-950/30 dark:text-indigo-200">
         <Info className="mt-0.5 size-4 shrink-0" />
         <span>
           <strong>LOP days feed payroll.</strong> When you finalise, each employee&apos;s loss-of-pay days flow straight
@@ -282,7 +282,7 @@ export function AttendanceSheetView({
                       <div className="flex items-center gap-2">
                         <div>
                           <div className="font-medium">{r.name}</div>
-                          <div className="font-mono text-[11.5px] text-muted-foreground">{r.empCode}</div>
+                          <div className="font-mono text-meta text-muted-foreground">{r.empCode}</div>
                         </div>
                         {r.edited && <StatusPill label="edited" hue="amber" size="xs" />}
                         {isFinal && <StatusPill label="final" hue="emerald" size="xs" />}
@@ -304,7 +304,7 @@ export function AttendanceSheetView({
                         disabled={isFinal || d.saving}
                         placeholder="—"
                         onChange={(e) => editField(r, "note", e.target.value)}
-                        className="h-8 min-w-[9rem] text-[12.5px]"
+                        className="h-8 min-w-[9rem] text-detail"
                       />
                     </TableCell>
                     <TableCell className="text-right">

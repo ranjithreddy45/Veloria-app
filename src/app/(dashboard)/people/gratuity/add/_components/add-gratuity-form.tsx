@@ -74,7 +74,7 @@ export function AddGratuityForm({ rows }: { rows: GratuityRow[] }) {
       <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-premium">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
-            <Label className="text-[12.5px]">Employee</Label>
+            <Label className="text-detail">Employee</Label>
             <Select value={employeeId} onValueChange={pickEmployee}>
               <SelectTrigger>
                 <SelectValue placeholder="Select an employee" />
@@ -90,7 +90,7 @@ export function AddGratuityForm({ rows }: { rows: GratuityRow[] }) {
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Settlement date</Label>
+            <Label className="text-detail">Settlement date</Label>
             <Input
               type="date"
               value={settlementDate}
@@ -99,7 +99,7 @@ export function AddGratuityForm({ rows }: { rows: GratuityRow[] }) {
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Amount (₹)</Label>
+            <Label className="text-detail">Amount (₹)</Label>
             <Input
               type="number"
               min={0}
@@ -113,14 +113,14 @@ export function AddGratuityForm({ rows }: { rows: GratuityRow[] }) {
               }}
             />
             {selected?.projectedPayout != null && (
-              <p className="text-[11.5px] text-muted-foreground">
+              <p className="text-meta text-muted-foreground">
                 Calculated projection: {formatInr(selected.projectedPayout)} (editable).
               </p>
             )}
           </div>
 
           <div className="space-y-1.5 sm:col-span-2">
-            <Label className="text-[12.5px]">Reason / note</Label>
+            <Label className="text-detail">Reason / note</Label>
             <Textarea
               rows={3}
               placeholder="Why this manual settlement / override?"
@@ -141,8 +141,8 @@ export function AddGratuityForm({ rows }: { rows: GratuityRow[] }) {
       <aside className="space-y-3">
         {selected && (
           <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-premium">
-            <p className="text-[12.5px] font-semibold">{selected.name}</p>
-            <dl className="mt-2 space-y-1.5 text-[12.5px]">
+            <p className="text-detail font-semibold">{selected.name}</p>
+            <dl className="mt-2 space-y-1.5 text-detail">
               <div className="flex justify-between gap-3">
                 <dt className="text-muted-foreground">Years of service</dt>
                 <dd className="tabular-nums">{selected.yearsOfService.toFixed(2)}</dd>
@@ -165,7 +165,7 @@ export function AddGratuityForm({ rows }: { rows: GratuityRow[] }) {
               </div>
             </dl>
             {selected.lastBasic == null && (
-              <p className="mt-2 text-[11.5px] text-warning">
+              <p className="mt-2 text-meta text-warning">
                 No current salary structure — projection unavailable. You can still record a manual
                 amount.
               </p>
@@ -173,7 +173,7 @@ export function AddGratuityForm({ rows }: { rows: GratuityRow[] }) {
           </div>
         )}
 
-        <div className="flex gap-2 rounded-2xl border border-border/60 bg-muted/30 p-4 text-[12px] text-muted-foreground">
+        <div className="flex gap-2 rounded-2xl border border-border/60 bg-muted/30 p-4 text-detail text-muted-foreground">
           <Info className="mt-0.5 size-4 shrink-0" />
           <p>
             Recorded settlements are stored as an audit-log entry (there is no dedicated gratuity

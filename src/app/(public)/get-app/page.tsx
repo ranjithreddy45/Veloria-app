@@ -19,13 +19,13 @@ export default function GetAppPage() {
   return (
     <div className="mx-auto max-w-lg space-y-8">
       <header className="text-center">
-        <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.18em]">
+        <p className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.18em]">
           Veloria Grand
         </p>
-        <h1 className="text-foreground mt-3 text-[30px] sm:text-[34px]">
+        <h1 className="text-foreground mt-3 text-h1 sm:text-h1">
           Take your event with you
         </h1>
-        <p className="text-muted-foreground mx-auto mt-3 max-w-md text-[15px] leading-relaxed">
+        <p className="text-muted-foreground mx-auto mt-3 max-w-md text-copy leading-relaxed">
           Install Veloria Grand on your phone — it opens full-screen with its own icon,
           just like an app from the store.
         </p>
@@ -38,7 +38,7 @@ export default function GetAppPage() {
           <li key={p.title} className="bg-card shadow-card rounded-2xl border p-4">
             <p.icon className="text-primary size-5" />
             <p className="text-foreground mt-3 text-sm font-semibold">{p.title}</p>
-            <p className="text-muted-foreground mt-1 text-[13px] leading-relaxed">{p.body}</p>
+            <p className="text-muted-foreground mt-1 text-body leading-relaxed">{p.body}</p>
           </li>
         ))}
       </ul>

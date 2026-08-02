@@ -142,7 +142,7 @@ export function TaskSubtasks({ taskId, subtasks }: TaskSubtasksProps) {
                   <Badge
                     variant="outline"
                     className={cn(
-                      "border text-[10px] font-medium",
+                      "border text-meta font-medium",
                       TASK_PRIORITY_COLORS[subtask.priority]
                     )}
                   >
@@ -151,7 +151,7 @@ export function TaskSubtasks({ taskId, subtasks }: TaskSubtasksProps) {
                   <Badge
                     variant="outline"
                     className={cn(
-                      "border text-[10px] font-medium",
+                      "border text-meta font-medium",
                       STATUS_COLORS[subtask.status]
                     )}
                   >
@@ -160,7 +160,7 @@ export function TaskSubtasks({ taskId, subtasks }: TaskSubtasksProps) {
                   {subtask.dueDate && (
                     <span
                       className={cn(
-                        "text-[11px]",
+                        "text-meta",
                         isOverdue ? "text-destructive font-medium" : "text-muted-foreground"
                       )}
                     >

@@ -68,8 +68,8 @@ export function EmployeeUserLink({ employeeId, employeeName, linkedUser, canAdmi
           <ShieldCheck className="size-4" />
         </span>
         <div>
-          <p className="text-[13px] font-semibold">Login account</p>
-          <p className="text-[11.5px] text-muted-foreground">
+          <p className="text-body font-semibold">Login account</p>
+          <p className="text-meta text-muted-foreground">
             Required for attendance, leave, payslips and the help desk.
           </p>
         </div>
@@ -78,8 +78,8 @@ export function EmployeeUserLink({ employeeId, employeeName, linkedUser, canAdmi
       {linkedUser ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
           <div className="min-w-0">
-            <p className="truncate text-[13px] font-medium">{linkedUser.email}</p>
-            <p className="text-[11.5px] text-muted-foreground">
+            <p className="truncate text-body font-medium">{linkedUser.email}</p>
+            <p className="text-meta text-muted-foreground">
               {linkedUser.role}
               {!linkedUser.isActive && " · deactivated"}
             </p>
@@ -92,7 +92,7 @@ export function EmployeeUserLink({ employeeId, employeeName, linkedUser, canAdmi
         </div>
       ) : (
         <div className="space-y-2.5">
-          <div className="flex items-start gap-2 rounded-lg border border-warning/25 bg-warning/10 px-3 py-2 text-[12px] text-warning">
+          <div className="flex items-start gap-2 rounded-lg border border-warning/25 bg-warning/10 px-3 py-2 text-detail text-warning">
             <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
             <span>No login linked — this employee can&rsquo;t check in, apply for leave, or see payslips.</span>
           </div>
@@ -111,7 +111,7 @@ export function EmployeeUserLink({ employeeId, employeeName, linkedUser, canAdmi
                     </SelectItem>
                   ))}
                   {users !== null && users.length === 0 && (
-                    <div className="px-2 py-1.5 text-[12px] text-muted-foreground">
+                    <div className="px-2 py-1.5 text-detail text-muted-foreground">
                       No unlinked active logins available.
                     </div>
                   )}
@@ -122,7 +122,7 @@ export function EmployeeUserLink({ employeeId, employeeName, linkedUser, canAdmi
               </Button>
             </div>
           ) : (
-            <p className="text-[12px] text-muted-foreground">Ask an HR admin to link this employee&rsquo;s login.</p>
+            <p className="text-detail text-muted-foreground">Ask an HR admin to link this employee&rsquo;s login.</p>
           )}
         </div>
       )}

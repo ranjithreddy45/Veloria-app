@@ -66,9 +66,9 @@ export function MyReimbursementsList({ claims }: { claims: ReimbursementClaim[] 
   return (
     <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
       <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
-        <span className="text-[13px] font-semibold">My claims</span>
+        <span className="text-body font-semibold">My claims</span>
         {claims.length > 0 && (
-          <span className="text-[13px] text-muted-foreground">
+          <span className="text-body text-muted-foreground">
             <span className="numeric font-medium text-foreground">{claims.length}</span>{" "}
             {claims.length === 1 ? "claim" : "claims"}
           </span>
@@ -101,36 +101,36 @@ export function MyReimbursementsList({ claims }: { claims: ReimbursementClaim[] 
                     * rejection reason used to stretch the row to its full text
                     * width and drag the whole table sideways. Cap the column and
                     * let the free-text lines wrap instead. */}
-                  <TableCell className="max-w-[220px] whitespace-normal text-[13px]">
+                  <TableCell className="max-w-[220px] whitespace-normal text-body">
                     <div className="flex items-center gap-1.5 font-medium break-words">
                       {c.title}
                       {c.hasBill && (
                         <Paperclip className="size-3.5 shrink-0 text-muted-foreground" aria-label="Bill attached" />
                       )}
                     </div>
-                    {c.note && <div className="text-[12px] break-words text-muted-foreground">{c.note}</div>}
+                    {c.note && <div className="text-detail break-words text-muted-foreground">{c.note}</div>}
                     {c.status === "REJECTED" && c.decisionNote && (
-                      <div className="mt-0.5 text-[12px] break-words text-destructive">{c.decisionNote}</div>
+                      <div className="mt-0.5 text-detail break-words text-destructive">{c.decisionNote}</div>
                     )}
                     {c.status === "PAID" && c.paidAt && (
-                      <div className="mt-0.5 text-[12px] text-success">
+                      <div className="mt-0.5 text-detail text-success">
                         Paid {formatDate(c.paidAt)}
                       </div>
                     )}
                     {c.status === "APPROVED" && c.payFy && c.payMonth && (
-                      <div className="mt-0.5 text-[12px] text-muted-foreground">
+                      <div className="mt-0.5 text-detail text-muted-foreground">
                         Scheduled in {c.payFy} pay run (month {c.payMonth})
                       </div>
                     )}
                   </TableCell>
-                  <TableCell className="text-[13px]">
+                  <TableCell className="text-body">
                     {CATEGORY_LABELS[c.category] ?? c.category}
                     {c.taxable && (
-                      <span className="ml-1 text-[11px] text-warning">· taxable</span>
+                      <span className="ml-1 text-meta text-warning">· taxable</span>
                     )}
                   </TableCell>
-                  <TableCell className="numeric text-[12.5px] text-muted-foreground whitespace-nowrap">{formatDate(c.claimDate)}</TableCell>
-                  <TableCell className="numeric text-right text-[13px] font-medium">{INR.format(c.amount)}</TableCell>
+                  <TableCell className="numeric text-detail text-muted-foreground whitespace-nowrap">{formatDate(c.claimDate)}</TableCell>
+                  <TableCell className="numeric text-right text-body font-medium">{INR.format(c.amount)}</TableCell>
                   <TableCell>
                     <StatusBadge status={c.status} />
                   </TableCell>
@@ -172,7 +172,7 @@ function WithdrawButton({ id }: { id: string; label: string }) {
       >
         {pending ? <Loader2 className="size-3.5 animate-spin" /> : <X className="size-3.5" />} Withdraw
       </Button>
-      {error && <span className="text-[11px] text-destructive">{error}</span>}
+      {error && <span className="text-meta text-destructive">{error}</span>}
     </div>
   );
 }

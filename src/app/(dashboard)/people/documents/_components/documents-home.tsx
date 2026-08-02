@@ -127,10 +127,10 @@ function OrgDocCard({ doc, canRead, totalActive }: { doc: OrgDoc; canRead: boole
           <div>
             <div className="flex items-center gap-2">
               <span className="font-medium">{doc.title}</span>
-              <span className="text-[11px] text-muted-foreground">v{doc.version}</span>
+              <span className="text-meta text-muted-foreground">v{doc.version}</span>
               {doc.requiresAck && <StatusPill label="Ack required" hue="amber" size="xs" />}
             </div>
-            <div className="mt-0.5 text-[12px] text-muted-foreground">
+            <div className="mt-0.5 text-detail text-muted-foreground">
               {doc.category?.name ?? "Uncategorised"}
               {doc.expiryDate ? ` · expires ${formatDate(doc.expiryDate)}` : ""}
               {canRead && doc.requiresAck ? ` · ${doc._count.acknowledgements}/${totalActive} acknowledged` : ""}
@@ -148,7 +148,7 @@ function OrgDocCard({ doc, canRead, totalActive }: { doc: OrgDoc; canRead: boole
           )}
           {doc.requiresAck && (
             acked ? (
-              <span className="inline-flex items-center gap-1 text-[13px] font-medium text-success"><CheckCheck className="size-4" /> Acknowledged</span>
+              <span className="inline-flex items-center gap-1 text-body font-medium text-success"><CheckCheck className="size-4" /> Acknowledged</span>
             ) : (
               <Button size="sm" className="gap-1.5" disabled={busy} onClick={ack}>
                 {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />} Acknowledge
@@ -175,7 +175,7 @@ function ExpiringSection({ expiring }: { expiring: ExpiringDoc[] }) {
   }
   return (
     <div className="space-y-2.5">
-      <div className="flex items-center gap-2 text-[12.5px] text-muted-foreground">
+      <div className="flex items-center gap-2 text-detail text-muted-foreground">
         <CalendarClock className="size-4" />
         {expiring.length} document{expiring.length === 1 ? "" : "s"} expiring within 30 days (or already expired).
       </div>
@@ -193,7 +193,7 @@ function ExpiringSection({ expiring }: { expiring: ExpiringDoc[] }) {
               <Clock className={`mt-0.5 size-4 ${expired ? "text-destructive" : left <= 14 ? "text-warning" : "text-muted-foreground"}`} />
               <div>
                 <div className="font-medium">{d.title}</div>
-                <div className="mt-0.5 text-[12px] text-muted-foreground">
+                <div className="mt-0.5 text-detail text-muted-foreground">
                   {d.category?.name ?? "Uncategorised"}
                   {d.employee ? ` · ${d.employee.firstName} ${d.employee.lastName}` : ""}
                   {` · expires ${formatDate(d.expiryDate)}`}
@@ -254,23 +254,23 @@ function AckCoverageDialog({
           <div className="flex justify-center py-8"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
         ) : (
           <div className="space-y-4 py-1">
-            <div className="flex items-center gap-2 text-[13px]">
+            <div className="flex items-center gap-2 text-body">
               <StatusPill label={`${data.acked.length}/${data.totalActive} acknowledged`} hue="emerald" size="sm" />
               {data.pending.length > 0 && <StatusPill label={`${data.pending.length} pending`} hue="amber" size="sm" />}
             </div>
 
             <div className="space-y-1.5">
-              <div className="flex items-center gap-1.5 text-[12px] font-medium text-success">
+              <div className="flex items-center gap-1.5 text-detail font-medium text-success">
                 <CheckCheck className="size-3.5" /> Acknowledged
               </div>
               {data.acked.length === 0 ? (
-                <p className="text-[12.5px] text-muted-foreground">Nobody has acknowledged this yet.</p>
+                <p className="text-detail text-muted-foreground">Nobody has acknowledged this yet.</p>
               ) : (
                 <ul className="max-h-40 space-y-1 overflow-y-auto">
                   {data.acked.map((e) => (
-                    <li key={e.id} className="flex items-center justify-between rounded-md bg-muted/40 px-2.5 py-1.5 text-[12.5px]">
+                    <li key={e.id} className="flex items-center justify-between rounded-md bg-muted/40 px-2.5 py-1.5 text-detail">
                       <span>{e.firstName} {e.lastName} <span className="text-muted-foreground">· {e.empCode}</span></span>
-                      <span className="text-[11px] text-muted-foreground">{formatDate(e.acknowledgedAt)}</span>
+                      <span className="text-meta text-muted-foreground">{formatDate(e.acknowledgedAt)}</span>
                     </li>
                   ))}
                 </ul>
@@ -278,15 +278,15 @@ function AckCoverageDialog({
             </div>
 
             <div className="space-y-1.5">
-              <div className="flex items-center gap-1.5 text-[12px] font-medium text-warning">
+              <div className="flex items-center gap-1.5 text-detail font-medium text-warning">
                 <Clock className="size-3.5" /> Pending
               </div>
               {data.pending.length === 0 ? (
-                <p className="text-[12.5px] text-muted-foreground">Everyone has acknowledged. 🎉</p>
+                <p className="text-detail text-muted-foreground">Everyone has acknowledged. 🎉</p>
               ) : (
                 <ul className="max-h-40 space-y-1 overflow-y-auto">
                   {data.pending.map((e) => (
-                    <li key={e.id} className="rounded-md bg-muted/40 px-2.5 py-1.5 text-[12.5px]">
+                    <li key={e.id} className="rounded-md bg-muted/40 px-2.5 py-1.5 text-detail">
                       {e.firstName} {e.lastName} <span className="text-muted-foreground">· {e.empCode}</span>
                     </li>
                   ))}
@@ -340,10 +340,10 @@ export function AddDocDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader><DialogTitle>Add document</DialogTitle></DialogHeader>
         <div className="space-y-3 py-2">
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Title</Label>
+          <div className="space-y-1.5"><Label className="text-detail">Title</Label>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Leave Policy 2026" /></div>
           {!forEmployeeId && (
-            <div className="space-y-1.5"><Label className="text-[12.5px]">Scope</Label>
+            <div className="space-y-1.5"><Label className="text-detail">Scope</Label>
               <Select value={scope} onValueChange={setScope}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -354,7 +354,7 @@ export function AddDocDialog({
             </div>
           )}
           {scope === "EMPLOYEE" && !forEmployeeId && (
-            <div className="space-y-1.5"><Label className="text-[12.5px]">Employee</Label>
+            <div className="space-y-1.5"><Label className="text-detail">Employee</Label>
               <Select value={employeeId} onValueChange={setEmployeeId}>
                 <SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger>
                 <SelectContent>
@@ -364,7 +364,7 @@ export function AddDocDialog({
             </div>
           )}
           {categories.length > 0 && (
-            <div className="space-y-1.5"><Label className="text-[12.5px]">Category</Label>
+            <div className="space-y-1.5"><Label className="text-detail">Category</Label>
               <Select value={categoryId} onValueChange={setCategoryId}>
                 <SelectTrigger><SelectValue placeholder="Optional" /></SelectTrigger>
                 <SelectContent>
@@ -373,12 +373,12 @@ export function AddDocDialog({
               </Select>
             </div>
           )}
-          <div className="space-y-1.5"><Label className="text-[12.5px]">File link (Drive / storage URL)</Label>
+          <div className="space-y-1.5"><Label className="text-detail">File link (Drive / storage URL)</Label>
             <Input value={fileUrl} onChange={(e) => setFileUrl(e.target.value)} placeholder="https://…" /></div>
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Expiry date (optional)</Label>
+          <div className="space-y-1.5"><Label className="text-detail">Expiry date (optional)</Label>
             <Input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} /></div>
           {scope === "ORG" && (
-            <label className="flex items-center gap-2 text-[13px]">
+            <label className="flex items-center gap-2 text-body">
               <input type="checkbox" checked={requiresAck} onChange={(e) => setRequiresAck(e.target.checked)} className="size-4" />
               Require read-acknowledgement from everyone
             </label>
@@ -424,10 +424,10 @@ function TemplateDialog({ existing }: { existing?: Template }) {
           <DialogDescription>Use merge fields like {"{{firstName}}"}, {"{{designation}}"}, {"{{legalEntity}}"}, {"{{dateOfJoining}}"}.</DialogDescription>
         </DialogHeader>
         <div className="space-y-3 py-2">
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Name</Label>
+          <div className="space-y-1.5"><Label className="text-detail">Name</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Offer letter" /></div>
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Body</Label>
-            <textarea value={body} onChange={(e) => setBody(e.target.value)} className="h-52 w-full resize-y rounded-lg border bg-background p-3 text-[13px] outline-none focus:ring-2 focus:ring-ring" /></div>
+          <div className="space-y-1.5"><Label className="text-detail">Body</Label>
+            <textarea value={body} onChange={(e) => setBody(e.target.value)} className="h-52 w-full resize-y rounded-lg border bg-background p-3 text-body outline-none focus:ring-2 focus:ring-ring" /></div>
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
@@ -473,7 +473,7 @@ function RenderDialog({ template, employees }: { template: Template; employees: 
           {busy ? (
             <div className="flex justify-center py-6"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
           ) : text ? (
-            <div className="rounded-lg border bg-muted/30 p-3 text-[13px] whitespace-pre-wrap">{text}</div>
+            <div className="rounded-lg border bg-muted/30 p-3 text-body whitespace-pre-wrap">{text}</div>
           ) : null}
         </div>
         {text && (

@@ -20,7 +20,7 @@ export default async function HostActivatePage({
     return (
       <div className="bg-card shadow-card mx-auto max-w-md rounded-2xl border p-10 text-center">
         <ShieldAlert className="mx-auto size-8 text-warning" />
-        <h1 className="text-foreground mt-4 text-[24px]">
+        <h1 className="text-foreground mt-4 text-h2">
           {preview.reason === "expired"
             ? "This link has expired"
             : "This link is invalid"}
@@ -39,13 +39,13 @@ export default async function HostActivatePage({
         <div className="bg-primary text-primary-foreground mx-auto flex size-12 items-center justify-center rounded-2xl">
           <PartyPopper className="size-[22px]" />
         </div>
-        <p className="text-muted-foreground mt-5 text-[11px] font-semibold uppercase tracking-[0.18em]">
+        <p className="text-muted-foreground mt-5 text-meta font-semibold uppercase tracking-[0.18em]">
           Welcome, {preview.name}
         </p>
-        <h1 className="text-foreground mt-3 text-[30px] sm:text-[34px]">
+        <h1 className="text-foreground mt-3 text-h1 sm:text-h1">
           Activate your event portal
         </h1>
-        <p className="text-muted-foreground mx-auto mt-3 max-w-sm text-[15px] leading-relaxed">
+        <p className="text-muted-foreground mx-auto mt-3 max-w-sm text-copy leading-relaxed">
           Choose a password, and your bookings, invoices, guest list and
           documents will all be waiting for you in one place.
         </p>

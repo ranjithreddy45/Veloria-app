@@ -87,7 +87,7 @@ export default async function ContractTemplatesPage() {
 
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {template.category && (
-                    <Badge variant="secondary" className="text-[10px]">
+                    <Badge variant="secondary" className="text-meta">
                       {template.category}
                     </Badge>
                   )}
@@ -95,13 +95,13 @@ export default async function ContractTemplatesPage() {
                     <Badge
                       key={v}
                       variant="outline"
-                      className="text-[10px] font-mono"
+                      className="text-meta font-mono"
                     >
                       {`{{${v}}}`}
                     </Badge>
                   ))}
                   {template.variables.length > 4 && (
-                    <Badge variant="outline" className="text-[10px]">
+                    <Badge variant="outline" className="text-meta">
                       +{template.variables.length - 4} more
                     </Badge>
                   )}

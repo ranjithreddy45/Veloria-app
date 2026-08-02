@@ -18,8 +18,8 @@ export default async function CandidatePortalPage({ params }: { params: Promise<
             <Gem className="size-4" strokeWidth={2.5} />
           </div>
           <div>
-            <div className="text-[14px] font-semibold tracking-tight">PropertyPlush Group</div>
-            <div className="text-[11px] text-white/60">Pre-joining</div>
+            <div className="text-copy font-semibold tracking-tight">PropertyPlush Group</div>
+            <div className="text-meta text-white/60">Pre-joining</div>
           </div>
         </div>
 
@@ -36,7 +36,7 @@ export default async function CandidatePortalPage({ params }: { params: Promise<
           ) : (
             <>
               <h1 className="text-xl font-semibold tracking-tight">Welcome, {result.employee.firstName}! 🎉</h1>
-              <p className="mt-1 text-[13px] text-muted-foreground">
+              <p className="mt-1 text-body text-muted-foreground">
                 We’re excited to have you join {result.employee.legalEntity?.name ?? "the team"}. Please confirm your
                 contact details to get started.
               </p>

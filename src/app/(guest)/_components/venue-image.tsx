@@ -79,7 +79,7 @@ export function VenueImage({
       />
       <Building2 className="relative size-9 opacity-90 drop-shadow-sm" strokeWidth={1.8} />
       {label && (
-        <span className="relative mt-2 max-w-[85%] truncate px-3 text-center font-serif text-[17px] font-semibold drop-shadow-sm">
+        <span className="relative mt-2 max-w-[85%] truncate px-3 text-center font-serif text-lede font-semibold drop-shadow-sm">
           {label}
         </span>
       )}

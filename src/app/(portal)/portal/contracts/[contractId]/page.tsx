@@ -41,7 +41,7 @@ export default async function PortalContractDetailPage({
       {/* Back Button */}
       <Link
         href="/portal/contracts"
-        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-2 text-[13px] transition-colors"
+        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-2 text-body transition-colors"
       >
         <ArrowLeft className="size-3.5" />
         Back to contracts
@@ -50,11 +50,11 @@ export default async function PortalContractDetailPage({
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
-          <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
+          <p className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.14em]">
             Your agreement
           </p>
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="large-title text-foreground text-[28px] leading-tight sm:text-[32px]">
+            <h1 className="large-title text-foreground text-h2 leading-tight sm:text-h1">
               {contract.title}
             </h1>
             <StatusBadge
@@ -63,7 +63,7 @@ export default async function PortalContractDetailPage({
             />
           </div>
           {contract.booking && (
-            <p className="text-muted-foreground text-[15px]">
+            <p className="text-muted-foreground text-copy">
               {contract.booking.eventName}
               {contract.booking.bookingNumber && (
                 <>
@@ -86,7 +86,7 @@ export default async function PortalContractDetailPage({
             {/* Meta Info */}
             <div className="bg-muted/30 grid grid-cols-2 gap-4 border-b p-6 sm:grid-cols-3">
               <div>
-                <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
+                <p className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.14em]">
                   Sent
                 </p>
                 <p className="numeric text-foreground mt-1.5 text-sm font-medium">
@@ -101,7 +101,7 @@ export default async function PortalContractDetailPage({
               </div>
               {contract.expiresAt && (
                 <div>
-                  <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
+                  <p className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.14em]">
                     Expires
                   </p>
                   <p
@@ -119,7 +119,7 @@ export default async function PortalContractDetailPage({
               )}
               {contract.signerName && (
                 <div>
-                  <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
+                  <p className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.14em]">
                     Signer
                   </p>
                   <p className="text-foreground mt-1.5 text-sm font-medium">
@@ -131,7 +131,7 @@ export default async function PortalContractDetailPage({
 
             {/* Contact Info */}
             <div className="border-b p-6">
-              <div className="text-muted-foreground flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em]">
+              <div className="text-muted-foreground flex items-center gap-2 text-meta font-semibold uppercase tracking-[0.14em]">
                 <User className="size-3.5" />
                 Parties
               </div>
@@ -149,7 +149,7 @@ export default async function PortalContractDetailPage({
 
             {/* Contract Body */}
             <div className="p-6">
-              <h3 className="text-muted-foreground mb-3 text-[11px] font-semibold uppercase tracking-[0.14em]">
+              <h3 className="text-muted-foreground mb-3 text-meta font-semibold uppercase tracking-[0.14em]">
                 The agreement
               </h3>
               <div className="bg-muted/40 text-foreground/80 max-w-none whitespace-pre-wrap rounded-xl border p-6 text-sm leading-relaxed">
@@ -176,7 +176,7 @@ export default async function PortalContractDetailPage({
                 <div className="bg-destructive/12 flex size-14 items-center justify-center rounded-2xl">
                   <Clock className="text-destructive size-7" />
                 </div>
-                <h3 className="font-editorial text-foreground mt-4 text-[20px] font-semibold">
+                <h3 className="font-editorial text-foreground mt-4 text-title font-semibold">
                   This one has expired
                 </h3>
                 <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
@@ -194,7 +194,7 @@ export default async function PortalContractDetailPage({
                 <div className="bg-success/12 flex size-14 items-center justify-center rounded-2xl">
                   <CheckCircle2 className="text-success size-7" />
                 </div>
-                <h3 className="font-editorial text-foreground mt-4 text-[20px] font-semibold">
+                <h3 className="font-editorial text-foreground mt-4 text-title font-semibold">
                   Signed and settled
                 </h3>
                 <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
@@ -211,7 +211,7 @@ export default async function PortalContractDetailPage({
                 </p>
                 {contract.signatureData && (
                   <div className="bg-card border-success/20 mt-4 w-full rounded-xl border p-4">
-                    <p className="text-muted-foreground/70 mb-1 text-[10px] font-semibold uppercase tracking-[0.14em]">
+                    <p className="text-muted-foreground/70 mb-1 text-meta font-semibold uppercase tracking-[0.14em]">
                       Signature
                     </p>
                     <p className="font-editorial text-foreground text-xl italic">
@@ -226,7 +226,7 @@ export default async function PortalContractDetailPage({
           {/* Contract Summary */}
           <Card className="shadow-card rounded-2xl py-0">
             <CardHeader className="px-6 pt-6 pb-4">
-              <CardTitle className="font-editorial text-foreground text-[20px] font-semibold">
+              <CardTitle className="font-editorial text-foreground text-title font-semibold">
                 At a glance
               </CardTitle>
             </CardHeader>
@@ -237,7 +237,7 @@ export default async function PortalContractDetailPage({
                   <StatusBadge
                     status={contract.status}
                     colorMap={CONTRACT_STATUS_COLORS}
-                    className="text-[10px]"
+                    className="text-meta"
                   />
                 </div>
                 {contract.booking && (

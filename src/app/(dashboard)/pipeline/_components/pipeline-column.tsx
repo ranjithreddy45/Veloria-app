@@ -100,23 +100,23 @@ export function PipelineColumn({
             style={{ backgroundColor: stage.color }}
             aria-hidden
           />
-          <h3 className="truncate text-[12px] font-semibold uppercase tracking-[0.04em] text-foreground">
+          <h3 className="truncate text-detail font-semibold uppercase tracking-[0.04em] text-foreground">
             {stage.name}
           </h3>
           <Badge
             variant="outline"
-            className="h-4.5 min-w-[18px] justify-center rounded px-1 text-[10.5px] font-medium tabular-nums text-muted-foreground border-border bg-background"
+            className="h-4.5 min-w-[18px] justify-center rounded px-1 text-meta font-medium tabular-nums text-muted-foreground border-border bg-background"
           >
             {deals.length}
           </Badge>
         </div>
         {totalValue > 0 && (
           <span className="flex flex-col items-end leading-tight">
-            <span className="text-[11.5px] font-semibold tabular-nums text-foreground/80">
+            <span className="text-meta font-semibold tabular-nums text-foreground/80">
               ₹{formatIndianCurrency(totalValue)}
             </span>
             {weightedValue > 0 && (
-              <span className="text-[10px] tabular-nums text-indigo-500" title="Probability-weighted forecast">
+              <span className="text-meta tabular-nums text-indigo-500" title="Probability-weighted forecast">
                 ~₹{formatIndianCurrency(Math.round(weightedValue))}
               </span>
             )}
@@ -142,7 +142,7 @@ export function PipelineColumn({
 
         {deals.length === 0 && (
           <div className="flex flex-1 items-center justify-center rounded-md border border-dashed border-border py-8">
-            <p className="text-[11.5px] text-muted-foreground/70">Drop deals here</p>
+            <p className="text-meta text-muted-foreground/70">Drop deals here</p>
           </div>
         )}
       </div>
@@ -153,7 +153,7 @@ export function PipelineColumn({
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 w-full justify-start gap-1.5 text-[12px] text-muted-foreground hover:text-foreground"
+            className="h-7 w-full justify-start gap-1.5 text-detail text-muted-foreground hover:text-foreground"
             onClick={() => setAddDialogOpen(true)}
           >
             <Plus className="size-3.5" />

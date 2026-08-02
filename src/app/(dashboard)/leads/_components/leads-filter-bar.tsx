@@ -231,7 +231,7 @@ export function LeadsFilterBar({ canViewAll, scope, venues, unassignedCount = 0 
               <SlidersHorizontal className="size-4" />
               Filters
               {filtersActive && (
-                <span className="numeric ml-auto rounded-full bg-primary/12 px-2 py-0.5 text-[11px] font-semibold text-primary">
+                <span className="numeric ml-auto rounded-full bg-primary/12 px-2 py-0.5 text-meta font-semibold text-primary">
                   {activeCount}
                 </span>
               )}
@@ -330,7 +330,7 @@ function DateRangeField({
     <div className="flex flex-col gap-1.5 md:flex-row md:items-center">
       <div className="flex items-center gap-1.5">
         {icon}
-        <span className="text-[12px] font-medium text-muted-foreground">
+        <span className="text-detail font-medium text-muted-foreground">
           {label}
         </span>
       </div>

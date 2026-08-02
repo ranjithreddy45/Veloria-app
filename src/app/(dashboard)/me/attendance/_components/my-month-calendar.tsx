@@ -203,10 +203,10 @@ export function MyMonthCalendar({
             <CalendarDays className="size-4" />
           </span>
           <div>
-            <h2 className="text-[15px] font-semibold leading-tight tracking-[-0.01em]">
+            <h2 className="text-copy font-semibold leading-tight tracking-[-0.01em]">
               {MONTH_NAMES[month]} <span className="numeric">{year}</span>
             </h2>
-            <p className="text-[13px] text-muted-foreground">My attendance calendar</p>
+            <p className="text-body text-muted-foreground">My attendance calendar</p>
           </div>
           {pending && <Loader2 className="ml-1 size-4 animate-spin text-muted-foreground" />}
         </div>
@@ -226,7 +226,7 @@ export function MyMonthCalendar({
       {/* Weekday headers */}
       <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
         {WEEKDAYS.map((w) => (
-          <div key={w} className="pb-1 text-center text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          <div key={w} className="pb-1 text-center text-meta font-medium uppercase tracking-wide text-muted-foreground">
             {w}
           </div>
         ))}
@@ -265,11 +265,11 @@ export function MyMonthCalendar({
                 "hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
               )}
             >
-              <span className={cn("numeric text-[15px] font-semibold", isToday && "underline underline-offset-2")}>
+              <span className={cn("numeric text-copy font-semibold", isToday && "underline underline-offset-2")}>
                 {day}
               </span>
               {rec && rec.workedMinutes > 0 && (
-                <span className="numeric hidden text-[10px] leading-none opacity-80 sm:block">
+                <span className="numeric hidden text-meta leading-none opacity-80 sm:block">
                   {workedLabel(rec.workedMinutes)}
                 </span>
               )}
@@ -280,13 +280,13 @@ export function MyMonthCalendar({
 
       {/* Selected-day detail line */}
       {selectedRec ? (
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl border bg-muted/40 px-3.5 py-2.5 text-[12.5px]">
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl border bg-muted/40 px-3.5 py-2.5 text-detail">
           <span className="font-medium">
             {new Date(selectedRec.date).toLocaleDateString("en-IN", {
               weekday: "short", day: "numeric", month: "short", timeZone: "UTC",
             })}
           </span>
-          <span className={cn("rounded px-1.5 py-0.5 text-[11px] font-semibold", STATUS_META[selectedRec.status].cell)}>
+          <span className={cn("rounded px-1.5 py-0.5 text-meta font-semibold", STATUS_META[selectedRec.status].cell)}>
             {STATUS_META[selectedRec.status].label}
           </span>
           <span className="text-muted-foreground">
@@ -306,7 +306,7 @@ export function MyMonthCalendar({
               <span className="text-muted-foreground">
                 Site: <span className="text-foreground">{selectedRec.siteName ?? "—"}</span>
               </span>
-              <span className={cn("rounded px-1.5 py-0.5 text-[11px] font-semibold", verifyMeta(selectedRec.locationVerified).cell)}>
+              <span className={cn("rounded px-1.5 py-0.5 text-meta font-semibold", verifyMeta(selectedRec.locationVerified).cell)}>
                 {verifyMeta(selectedRec.locationVerified).label}
               </span>
               {selectedRec.lat != null && selectedRec.lng != null && (
@@ -325,13 +325,13 @@ export function MyMonthCalendar({
           )}
         </div>
       ) : selected != null ? (
-        <div className="mt-3 rounded-lg border bg-muted/40 px-3 py-2 text-[12.5px] text-muted-foreground">
+        <div className="mt-3 rounded-lg border bg-muted/40 px-3 py-2 text-detail text-muted-foreground">
           No attendance recorded for day {selected}.
         </div>
       ) : null}
 
       {/* Legend */}
-      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t pt-3 text-[11.5px] text-muted-foreground">
+      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t pt-3 text-meta text-muted-foreground">
         {(Object.keys(STATUS_META) as AttendanceStatus[]).map((k) => (
           <span key={k} className="inline-flex items-center gap-1.5">
             <span className={cn("inline-block size-3 rounded", STATUS_META[k].cell)} />

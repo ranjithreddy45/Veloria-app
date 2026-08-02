@@ -114,8 +114,8 @@ export function AdvancesTable({ rows }: { rows: AdvanceListRow[] }) {
     <div className="rounded-xl border bg-card">
       <div className="flex items-center justify-between border-b px-5 py-3.5">
         <div>
-          <h3 className="text-[14px] font-semibold">Advances</h3>
-          <p className="text-[12.5px] text-muted-foreground">
+          <h3 className="text-copy font-semibold">Advances</h3>
+          <p className="text-detail text-muted-foreground">
             Outstanding is amount minus what has been recovered so far.
           </p>
         </div>
@@ -148,7 +148,7 @@ export function AdvancesTable({ rows }: { rows: AdvanceListRow[] }) {
                 <TableRow key={r.id}>
                   <TableCell>
                     <div className="font-medium">{r.employeeName}</div>
-                    <div className="text-[12px] text-muted-foreground">{r.empCode}</div>
+                    <div className="text-detail text-muted-foreground">{r.empCode}</div>
                   </TableCell>
                   <TableCell className="text-right tabular-nums">{inr(r.amount)}</TableCell>
                   <TableCell className="text-right tabular-nums">{inr(r.monthlyInstallment)}</TableCell>
@@ -157,7 +157,7 @@ export function AdvancesTable({ rows }: { rows: AdvanceListRow[] }) {
                   <TableCell>
                     <StatusPill label={r.status} hue={STATUS_HUE[r.status] ?? "slate"} size="xs" />
                   </TableCell>
-                  <TableCell className="text-[12.5px] text-muted-foreground">{startLabel(r)}</TableCell>
+                  <TableCell className="text-detail text-muted-foreground">{startLabel(r)}</TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -204,11 +204,11 @@ export function AdvancesTable({ rows }: { rows: AdvanceListRow[] }) {
               <div className="flex items-start justify-between">
                 <div>
                   <div className="font-medium">{detail.employeeName}</div>
-                  <div className="text-[12px] text-muted-foreground">{detail.empCode}</div>
+                  <div className="text-detail text-muted-foreground">{detail.empCode}</div>
                 </div>
                 <StatusPill label={detail.status} hue={STATUS_HUE[detail.status] ?? "slate"} size="sm" />
               </div>
-              <div className="grid grid-cols-2 gap-3 text-[13px]">
+              <div className="grid grid-cols-2 gap-3 text-body">
                 <Field label="Amount" value={inr(detail.amount)} />
                 <Field label="Monthly instalment" value={inr(detail.monthlyInstallment)} />
                 <Field label="Recovered" value={inr(detail.recovered)} />
@@ -217,17 +217,17 @@ export function AdvancesTable({ rows }: { rows: AdvanceListRow[] }) {
                 <Field label="Recoveries" value={String(detail.recoveryCount)} />
               </div>
               {detail.reason && (
-                <div className="text-[13px]">
-                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Reason</div>
+                <div className="text-body">
+                  <div className="text-meta uppercase tracking-wide text-muted-foreground">Reason</div>
                   <div>{detail.reason}</div>
                 </div>
               )}
               <div>
-                <div className="mb-1.5 text-[11px] uppercase tracking-wide text-muted-foreground">
+                <div className="mb-1.5 text-meta uppercase tracking-wide text-muted-foreground">
                   Recovery history
                 </div>
                 {detail.recoveries.length === 0 ? (
-                  <p className="text-[12.5px] text-muted-foreground">
+                  <p className="text-detail text-muted-foreground">
                     No instalments recovered yet. Instalments are deducted automatically when
                     payroll is processed.
                   </p>
@@ -244,9 +244,9 @@ export function AdvancesTable({ rows }: { rows: AdvanceListRow[] }) {
                       <TableBody>
                         {detail.recoveries.map((rec) => (
                           <TableRow key={rec.id}>
-                            <TableCell className="font-mono text-[12px]">{rec.runId}</TableCell>
+                            <TableCell className="font-mono text-detail">{rec.runId}</TableCell>
                             <TableCell className="text-right tabular-nums">{inr(rec.amount)}</TableCell>
-                            <TableCell className="text-[12.5px] text-muted-foreground">
+                            <TableCell className="text-detail text-muted-foreground">
                               {new Date(rec.createdAt).toLocaleDateString("en-IN")}
                             </TableCell>
                           </TableRow>
@@ -269,12 +269,12 @@ export function AdvancesTable({ rows }: { rows: AdvanceListRow[] }) {
           <DialogHeader>
             <DialogTitle>Cancel advance</DialogTitle>
           </DialogHeader>
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-body text-muted-foreground">
             Cancelling stops future recovery of {cancelTarget ? cancelTarget.employeeName : "this employee"}’s
             advance. Instalments already recovered are kept.
           </p>
           <div className="space-y-1.5 py-1">
-            <Label className="text-[12.5px]">Reason (optional)</Label>
+            <Label className="text-detail">Reason (optional)</Label>
             <Textarea value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} rows={2} />
           </div>
           <DialogFooter>
@@ -313,7 +313,7 @@ export function AdvancesTable({ rows }: { rows: AdvanceListRow[] }) {
 function Field({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
     <div>
-      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="text-meta uppercase tracking-wide text-muted-foreground">{label}</div>
       <div className={strong ? "font-semibold tabular-nums" : "tabular-nums"}>{value}</div>
     </div>
   );

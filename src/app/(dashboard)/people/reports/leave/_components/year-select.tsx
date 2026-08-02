@@ -17,12 +17,12 @@ export function YearSelect({ years, value }: { years: number[]; value: number })
   }
 
   return (
-    <label className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-muted-foreground">
+    <label className="inline-flex items-center gap-1.5 text-detail font-medium text-muted-foreground">
       Year
       <select
         value={value}
         onChange={onChange}
-        className="h-8 rounded-lg border border-border/70 bg-background px-2 text-[12.5px] font-medium text-foreground shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+        className="h-8 rounded-lg border border-border/70 bg-background px-2 text-detail font-medium text-foreground shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
       >
         {years.map((y) => (
           <option key={y} value={y}>

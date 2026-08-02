@@ -91,7 +91,7 @@ export function EntityActivityTimeline({
 
   if (failed) {
     return (
-      <p className="py-6 text-center text-[13px] text-muted-foreground">
+      <p className="py-6 text-center text-body text-muted-foreground">
         Couldn&rsquo;t load activity right now — please retry in a moment.
       </p>
     );
@@ -99,7 +99,7 @@ export function EntityActivityTimeline({
 
   if (!logs || logs.length === 0) {
     return (
-      <p className="py-6 text-center text-[13px] text-muted-foreground">
+      <p className="py-6 text-center text-body text-muted-foreground">
         No activity yet.
       </p>
     );
@@ -114,19 +114,19 @@ export function EntityActivityTimeline({
         >
           <Avatar className="size-7">
             <AvatarImage src={l.user?.image || undefined} alt={l.user?.name || ""} />
-            <AvatarFallback className="bg-primary/10 text-[10px] text-primary">
+            <AvatarFallback className="bg-primary/10 text-meta text-primary">
               {initials(l.user?.name)}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] leading-tight">
+            <p className="truncate text-body leading-tight">
               <span className="font-medium text-foreground">
                 {l.user?.name || "Someone"}
               </span>{" "}
               <span className="text-muted-foreground">{pretty(l.action)}</span>
             </p>
           </div>
-          <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+          <span className="shrink-0 text-meta tabular-nums text-muted-foreground">
             {formatDistanceToNow(new Date(l.createdAt), { addSuffix: true })}
           </span>
         </li>

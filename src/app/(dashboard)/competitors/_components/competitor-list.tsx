@@ -204,7 +204,7 @@ function CompetitorCard({
               {competitor.name}
             </CardTitle>
             {competitor.location && (
-              <div className="flex items-center gap-1 text-[12.5px] text-muted-foreground">
+              <div className="flex items-center gap-1 text-detail text-muted-foreground">
                 <MapPinIcon className="size-3.5" />
                 {competitor.location}
               </div>

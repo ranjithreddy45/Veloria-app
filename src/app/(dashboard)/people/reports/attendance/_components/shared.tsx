@@ -80,11 +80,11 @@ export function DateRangeControls({
         <CalendarRange className="size-4" />
       </div>
       <label className="flex flex-col gap-1">
-        <span className="text-[11px] font-medium text-muted-foreground">From</span>
+        <span className="text-meta font-medium text-muted-foreground">From</span>
         <Input type="date" value={f} max={t} onChange={(e) => setF(e.target.value)} className="h-9 w-[9.5rem]" />
       </label>
       <label className="flex flex-col gap-1">
-        <span className="text-[11px] font-medium text-muted-foreground">To</span>
+        <span className="text-meta font-medium text-muted-foreground">To</span>
         <Input type="date" value={t} min={f} onChange={(e) => setT(e.target.value)} className="h-9 w-[9.5rem]" />
       </label>
       <Button size="sm" className="h-9" disabled={loading || !f || !t} onClick={() => onApply(f, t)}>
@@ -117,7 +117,7 @@ export function MonthControls({
         <SelectTrigger className="h-9 w-[8.5rem]"><SelectValue /></SelectTrigger>
         <SelectContent>{MONTHS.map((label, i) => <SelectItem key={i} value={String(i + 1)}>{label}</SelectItem>)}</SelectContent>
       </Select>
-      {loading && <span className="text-[12px] text-muted-foreground">Loading…</span>}
+      {loading && <span className="text-detail text-muted-foreground">Loading…</span>}
     </div>
   );
 }
@@ -125,7 +125,7 @@ export function MonthControls({
 /** A muted "how this is measured" note strip. */
 export function MethodNote({ children }: { children: React.ReactNode }) {
   return (
-    <p className="rounded-xl border border-border/60 bg-muted/30 px-3.5 py-2.5 text-[12px] leading-relaxed text-muted-foreground">
+    <p className="rounded-xl border border-border/60 bg-muted/30 px-3.5 py-2.5 text-detail leading-relaxed text-muted-foreground">
       {children}
     </p>
   );

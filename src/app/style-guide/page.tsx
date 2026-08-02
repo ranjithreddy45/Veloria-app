@@ -120,11 +120,11 @@ export default function StyleGuidePage() {
             getKey={(c) => c.id}
             renderCard={(c) => (
               <div className="space-y-2">
-                <p className="text-[13px] font-semibold leading-snug">{c.title}</p>
-                <p className="text-[11.5px] text-muted-foreground">{c.when} · {c.pax} pax</p>
+                <p className="text-body font-semibold leading-snug">{c.title}</p>
+                <p className="text-meta text-muted-foreground">{c.when} · {c.pax} pax</p>
                 <div className="flex items-center justify-between gap-2">
                   {c.tag ? <StatusPill label={c.tag} hue={c.tagHue} size="xs" /> : <span />}
-                  <span className="text-[12px] font-bold tabular-nums">{c.amount}</span>
+                  <span className="text-detail font-bold tabular-nums">{c.amount}</span>
                 </div>
               </div>
             )}
@@ -204,7 +204,7 @@ export default function StyleGuidePage() {
               tone={readinessTone(it.status) as ChecklistTone}
               options={READINESS_OPTIONS}
               onChange={(v) => setStatus(it.id, v)}
-              badge={it.id === "1" ? <span className="inline-flex items-center gap-0.5 rounded bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-rose-600"><ShieldAlert className="size-3" /> critical</span> : undefined}
+              badge={it.id === "1" ? <span className="inline-flex items-center gap-0.5 rounded bg-rose-50 px-1.5 py-0.5 text-meta font-semibold uppercase text-rose-600"><ShieldAlert className="size-3" /> critical</span> : undefined}
             />
           ))}
         </CategorySection>

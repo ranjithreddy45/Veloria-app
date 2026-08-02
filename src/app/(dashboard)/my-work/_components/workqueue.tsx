@@ -109,14 +109,14 @@ function TaskRow({ t, onOpen }: { t: WorkqueueTask; onOpen: () => void }) {
       <TableCell className="font-medium">{t.title}</TableCell>
       <TableCell>
         <span className={
-          due.tone === "late" ? "text-[13px] font-medium text-rose-600 dark:text-rose-400"
-            : due.tone === "today" ? "text-[13px] font-medium text-amber-600 dark:text-amber-400"
-            : "text-[13px] text-muted-foreground"
+          due.tone === "late" ? "text-body font-medium text-rose-600 dark:text-rose-400"
+            : due.tone === "today" ? "text-body font-medium text-amber-600 dark:text-amber-400"
+            : "text-body text-muted-foreground"
         }>{due.text}</span>
       </TableCell>
       <TableCell><StatusPill label={STATUS_LABEL[t.status] ?? t.status} hue={STATUS_HUE[t.status] ?? "slate"} size="xs" /></TableCell>
       <TableCell><StatusPill label={t.priority[0] + t.priority.slice(1).toLowerCase()} hue={PRIORITY_HUE[t.priority] ?? "slate"} size="xs" /></TableCell>
-      <TableCell className="max-w-[260px] truncate text-[13px] text-muted-foreground" title={t.related ?? undefined}>
+      <TableCell className="max-w-[260px] truncate text-body text-muted-foreground" title={t.related ?? undefined}>
         {t.related ?? "—"}
       </TableCell>
     </TableRow>
@@ -125,7 +125,7 @@ function TaskRow({ t, onOpen }: { t: WorkqueueTask; onOpen: () => void }) {
 
 function QuickLink({ href, label }: { href: string; label: string }) {
   return (
-    <Link href={href} className="group inline-flex items-center gap-1.5 rounded-lg border border-border/70 bg-card px-3 py-1.5 text-[13px] font-medium shadow-card transition-premium hover:shadow-card-hover">
+    <Link href={href} className="group inline-flex items-center gap-1.5 rounded-lg border border-border/70 bg-card px-3 py-1.5 text-body font-medium shadow-card transition-premium hover:shadow-card-hover">
       {label}
       <ArrowRight className="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
     </Link>

@@ -155,7 +155,7 @@ function getColumns(
           <div className="flex items-center gap-2">
             <Avatar className="size-6">
               <AvatarImage src={assignee.image ?? undefined} />
-              <AvatarFallback className="text-[10px] bg-indigo-100 text-indigo-700">
+              <AvatarFallback className="text-meta bg-indigo-100 text-indigo-700">
                 {initials}
               </AvatarFallback>
             </Avatar>

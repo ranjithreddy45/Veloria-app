@@ -520,7 +520,7 @@ function ContactTab({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-[13px] tracking-[-0.01em]">
+        <CardTitle className="flex items-center gap-2 text-body tracking-[-0.01em]">
           <Users className="size-4" /> Owner contact
         </CardTitle>
         <CardDescription>
@@ -529,7 +529,7 @@ function ContactTab({
       </CardHeader>
       <CardContent className="space-y-4">
         {!lead ? (
-          <p className="text-[12.5px] text-muted-foreground">
+          <p className="text-detail text-muted-foreground">
             Contact details are captured on the deal&apos;s originating lead, which
             isn&apos;t available for this deal.
           </p>
@@ -661,7 +661,7 @@ function StagePanel({
     <div className="lg:sticky lg:top-4 lg:self-start">
       <Card>
         <CardHeader className="pb-3">
-          <CardDescription className="text-[11px] uppercase tracking-[0.08em]">
+          <CardDescription className="text-meta uppercase tracking-[0.08em]">
             Current stage
           </CardDescription>
           <div className="pt-1">
@@ -678,12 +678,12 @@ function StagePanel({
             const remaining = step.reqs.filter((r) => !r.met).length;
             return (
               <div className="mb-1 rounded-lg border border-border bg-muted/40 p-2.5">
-                <p className="mb-1.5 text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                <p className="mb-1.5 text-meta font-medium uppercase tracking-[0.06em] text-muted-foreground">
                   To reach {ACQ_DEAL_STAGE_LABEL[step.stage]}
                 </p>
                 <ul className="space-y-1">
                   {step.reqs.map((r) => (
-                    <li key={r.label} className="flex items-start gap-1.5 text-[12px]">
+                    <li key={r.label} className="flex items-start gap-1.5 text-detail">
                       {r.met ? (
                         <CheckCircle2 className="mt-px size-3.5 shrink-0 text-emerald-600" />
                       ) : (
@@ -695,14 +695,14 @@ function StagePanel({
                     </li>
                   ))}
                 </ul>
-                <p className={`mt-1.5 text-[11.5px] font-medium ${remaining === 0 ? "text-emerald-600" : "text-amber-600"}`}>
+                <p className={`mt-1.5 text-meta font-medium ${remaining === 0 ? "text-emerald-600" : "text-amber-600"}`}>
                   {remaining === 0 ? "✓ Ready to advance" : `${remaining} requirement${remaining > 1 ? "s" : ""} left`}
                 </p>
               </div>
             );
           })()}
           {targets.length === 0 ? (
-            <p className="text-[12px] text-muted-foreground">
+            <p className="text-detail text-muted-foreground">
               This stage is terminal — no further transitions.
             </p>
           ) : (
@@ -725,7 +725,7 @@ function StagePanel({
             ))
           )}
           {deal.lostReason && (
-            <p className="pt-1 text-[11.5px] text-muted-foreground">
+            <p className="pt-1 text-meta text-muted-foreground">
               Lost reason: {deal.lostReason.replaceAll("_", " ")}
             </p>
           )}
@@ -734,7 +734,7 @@ function StagePanel({
               with the reason, and the guarded action still has the final say. */}
           {targets.length > 0 && (
             <div className="space-y-2 border-t border-border/60 pt-3">
-              <Label className="text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
+              <Label className="text-meta uppercase tracking-[0.06em] text-muted-foreground">
                 Change stage
               </Label>
               <Select value={target} onValueChange={(v) => setTarget(v as AcqDealStage)}>
@@ -776,7 +776,7 @@ function StagePanel({
           )}
 
           {refusal && (
-            <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-2.5 text-[12px] text-destructive">
+            <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-2.5 text-detail text-destructive">
               <AlertTriangle className="mt-px size-3.5 shrink-0" />
               <span>
                 <strong>Stage change refused.</strong> {refusal}
@@ -841,13 +841,13 @@ function StagePanel({
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="space-y-0.5">
-      <dt className="text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
+      <dt className="text-meta uppercase tracking-[0.06em] text-muted-foreground">
         {label}
       </dt>
       {/* Emails and long owner names have no break opportunity, and this dl runs
         * two columns (~165px) on a phone — without break-words they push the
         * card past the viewport edge. */}
-      <dd className="text-[13px] break-words text-foreground">{value || "—"}</dd>
+      <dd className="text-body break-words text-foreground">{value || "—"}</dd>
     </div>
   );
 }
@@ -891,7 +891,7 @@ function OverviewTab({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-[13px] tracking-[-0.01em]">Overview</CardTitle>
+        <CardTitle className="text-body tracking-[-0.01em]">Overview</CardTitle>
         {canEdit && (
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             <Pencil className="size-3.5" /> Edit
@@ -924,7 +924,7 @@ function OverviewTab({
 
         <div className="rounded-md border border-border/60 bg-muted/30 p-3">
           {deal.bdHeadApprovedById ? (
-            <div className="flex items-center gap-2 text-[13px] text-foreground">
+            <div className="flex items-center gap-2 text-body text-foreground">
               <BadgeCheck className="size-4 text-emerald-600" />
               BD Head approved
               {deal.bdHeadApprovedBy?.name
@@ -933,7 +933,7 @@ function OverviewTab({
             </div>
           ) : (
             <div className="flex items-center justify-between gap-3">
-              <span className="text-[12.5px] text-muted-foreground">
+              <span className="text-detail text-muted-foreground">
                 {canApprove
                   ? "Not yet approved by BD Head."
                   : "Not yet approved by BD Head. Only a BD Head can approve."}
@@ -951,7 +951,7 @@ function OverviewTab({
         {/* Deal preview — full lead-stage details captured at lead stage */}
         <div className="space-y-3 rounded-md border border-border/60 bg-muted/20 p-3.5">
           <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-            <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+            <div className="text-meta font-medium uppercase tracking-[0.06em] text-muted-foreground">
               Deal preview · lead details
             </div>
             {canEdit && lead && (
@@ -1004,7 +1004,7 @@ function OverviewTab({
               )}
 
               <div className="border-t border-border/50 pt-3">
-                <div className="mb-1.5 text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
+                <div className="mb-1.5 text-meta uppercase tracking-[0.06em] text-muted-foreground">
                   Qualification checklist
                 </div>
                 <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2">
@@ -1014,7 +1014,7 @@ function OverviewTab({
                     { label: "Agrees to renovate", met: lead.qualAgreeRenovate },
                     { label: "Photos ready", met: lead.qualPhotosReady },
                   ].map((q) => (
-                    <li key={q.label} className="flex items-center gap-1.5 text-[12.5px]">
+                    <li key={q.label} className="flex items-center gap-1.5 text-detail">
                       {q.met ? (
                         <CheckCircle2 className="size-3.5 shrink-0 text-emerald-600" />
                       ) : (
@@ -1027,14 +1027,14 @@ function OverviewTab({
               </div>
             </>
           ) : (
-            <p className="text-[12.5px] text-muted-foreground">No linked lead record.</p>
+            <p className="text-detail text-muted-foreground">No linked lead record.</p>
           )}
         </div>
 
         {/* Commercial dates & TA fees (deal-level) */}
         <div className="space-y-3 rounded-md border border-border/60 p-3.5">
           <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-            <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+            <div className="text-meta font-medium uppercase tracking-[0.06em] text-muted-foreground">
               Signing &amp; collection
             </div>
             {canEdit && (
@@ -1055,17 +1055,17 @@ function OverviewTab({
 
         {/* Transparent change log */}
         <div className="space-y-2">
-          <div className="text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
+          <div className="text-meta uppercase tracking-[0.06em] text-muted-foreground">
             Change log
           </div>
           {changeLog.length === 0 ? (
-            <p className="text-[12.5px] text-muted-foreground">No edits yet.</p>
+            <p className="text-detail text-muted-foreground">No edits yet.</p>
           ) : (
             <ul className="space-y-2">
               {changeLog.map((n) => (
-                <li key={n.id} className="rounded-md border border-border/60 p-2.5 text-[12.5px]">
+                <li key={n.id} className="rounded-md border border-border/60 p-2.5 text-detail">
                   <pre className="whitespace-pre-wrap font-sans text-foreground">{n.body}</pre>
-                  <div className="pt-1 text-[11px] text-muted-foreground">
+                  <div className="pt-1 text-meta text-muted-foreground">
                     {n.author?.name ?? "—"} · {fmtDate(n.createdAt)}
                   </div>
                 </li>
@@ -1143,7 +1143,7 @@ function DealImagesSection({
   return (
     <div className="space-y-3 rounded-md border border-border/60 p-3.5">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+        <div className="flex items-center gap-2 text-meta font-medium uppercase tracking-[0.06em] text-muted-foreground">
           <Camera className="size-3.5" /> Property photos
         </div>
         {canEdit && dirty && (
@@ -1158,7 +1158,7 @@ function DealImagesSection({
           <LeadImagesField value={images} onChange={setImages} />
         </div>
       ) : images.length === 0 ? (
-        <p className="text-[12.5px] text-muted-foreground">No photos yet.</p>
+        <p className="text-detail text-muted-foreground">No photos yet.</p>
       ) : (
         <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
           {images.map((src, idx) => (
@@ -1681,7 +1681,7 @@ function EconomicsTab({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-[13px] tracking-[-0.01em]">Economics &amp; Model</CardTitle>
+        <CardTitle className="text-body tracking-[-0.01em]">Economics &amp; Model</CardTitle>
         <CardDescription>
           {model === "REVENUE_MARGIN"
             ? "Revenue Margin quotes absolute prices — the % floors don't apply. Lock-in ≥ 3 yrs still needs BD Head approval when shorter."
@@ -1754,7 +1754,7 @@ function EconomicsTab({
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-[11.5px] text-muted-foreground">
+                <p className="text-meta text-muted-foreground">
                   {rmPriceBasis === "PER_PAX"
                     ? "Priced per head — pax multiplies the gross, capped by hall capacity."
                     : "Priced per event — pax is not a multiplier."}
@@ -1835,8 +1835,8 @@ function EconomicsTab({
 
         <div className="flex items-center justify-between gap-3 rounded-md border border-border/60 p-3">
           <div className="space-y-0.5">
-            <Label className="text-[13px]">Exclusive</Label>
-            <p className="text-[11.5px] text-muted-foreground">
+            <Label className="text-body">Exclusive</Label>
+            <p className="text-meta text-muted-foreground">
               Venue committed exclusively to Veloria.
             </p>
           </div>
@@ -1851,11 +1851,11 @@ function EconomicsTab({
           )}
         >
           <div className="space-y-0.5">
-            <Label className="flex items-center gap-1.5 text-[13px]">
+            <Label className="flex items-center gap-1.5 text-body">
               {frozen && <Lock className="size-3.5 text-emerald-600" />}
               {frozen ? "Economics frozen" : "Freeze economics"}
             </Label>
-            <p className="text-[11.5px] text-muted-foreground">
+            <p className="text-meta text-muted-foreground">
               {frozen
                 ? "Base fee, incentive and term are locked at the agreed terms."
                 : "Lock base fee, incentive and term once agreed with the owner."}
@@ -1875,7 +1875,7 @@ function EconomicsTab({
         </div>
 
         {anyBelowFloor && (
-          <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50/70 p-3 text-[12.5px] text-amber-800">
+          <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50/70 p-3 text-detail text-amber-800">
             <AlertTriangle className="mt-0.5 size-4 shrink-0" />
             <span>
               One or more terms are below floor. You can save these, but the deal will
@@ -1885,7 +1885,7 @@ function EconomicsTab({
         )}
 
         {rmErrors.length > 0 && (
-          <ul className="space-y-1 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-[12px] text-destructive">
+          <ul className="space-y-1 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-detail text-destructive">
             {rmErrors.map((e) => (
               <li key={e}>• {e}</li>
             ))}
@@ -1893,7 +1893,7 @@ function EconomicsTab({
         )}
 
         {model === "REVENUE_MARGIN" && rmErrors.length === 0 && (
-          <p className="text-[11.5px] text-muted-foreground">
+          <p className="text-meta text-muted-foreground">
             Save, then see the <strong>Projection</strong> tab for the annualised
             gross revenue and the base-to-best margin.
           </p>
@@ -1934,7 +1934,7 @@ function NumField({
         className={warn ? "border-amber-500 focus-visible:ring-amber-500" : undefined}
         onChange={(e) => onChange(e.target.value)}
       />
-      {warn && <p className="text-[11.5px] text-amber-700">{warn}</p>}
+      {warn && <p className="text-meta text-amber-700">{warn}</p>}
     </div>
   );
 }
@@ -2010,7 +2010,7 @@ function EvaluationTab({
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle className="text-[13px] tracking-[-0.01em]">Evaluation scorecard</CardTitle>
+          <CardTitle className="text-body tracking-[-0.01em]">Evaluation scorecard</CardTitle>
           <CardDescription>Score each criterion 1–5.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -2059,7 +2059,7 @@ function EvaluationTab({
               {deal.evaluations.map((ev) => (
                 <div
                   key={ev.id}
-                  className="flex items-center justify-between rounded-md border border-border/60 px-3 py-2 text-[12.5px]"
+                  className="flex items-center justify-between rounded-md border border-border/60 px-3 py-2 text-detail"
                 >
                   <span className="text-muted-foreground">
                     {fmtDate(ev.createdAt)}
@@ -2110,16 +2110,16 @@ function PhotoGrid({
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-[13px] tracking-[-0.01em]">
+        <CardTitle className="flex items-center gap-2 text-body tracking-[-0.01em]">
           <Camera className="size-4" /> Photos
-          <span className="text-[12px] font-normal text-muted-foreground">
+          <span className="text-detail font-normal text-muted-foreground">
             {photos.length}/8 required
           </span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         {photos.length === 0 ? (
-          <p className="text-[12.5px] text-muted-foreground">
+          <p className="text-detail text-muted-foreground">
             No photos uploaded yet.
           </p>
         ) : (
@@ -2148,7 +2148,7 @@ function PhotoGrid({
             accept="image/png,image/jpeg,image/webp"
             label="Upload photo"
           />
-          <span className="text-[12px] text-muted-foreground">
+          <span className="text-detail text-muted-foreground">
             {remaining > 0 ? `${remaining} more required` : "✓ Minimum met"}
           </span>
         </div>
@@ -2187,7 +2187,7 @@ function AttachmentAdder({
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-[13px] tracking-[-0.01em]">
+        <CardTitle className="flex items-center gap-2 text-body tracking-[-0.01em]">
           <Paperclip className="size-4" /> Documents
         </CardTitle>
         <CardDescription>Attach GPA, agreement or other documents.</CardDescription>
@@ -2198,7 +2198,7 @@ function AttachmentAdder({
             {docs.map((d) => (
               <li
                 key={d.id}
-                className="flex items-center justify-between gap-2 rounded-md border border-border/60 px-3 py-2 text-[12.5px]"
+                className="flex items-center justify-between gap-2 rounded-md border border-border/60 px-3 py-2 text-detail"
               >
                 <a
                   href={d.url}
@@ -2277,7 +2277,7 @@ function NegotiationTab({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-[13px] tracking-[-0.01em]">Negotiation notes</CardTitle>
+        <CardTitle className="text-body tracking-[-0.01em]">Negotiation notes</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
@@ -2319,7 +2319,7 @@ function NegotiationTab({
         return (
         <div className="space-y-2 border-t border-border/60 pt-3">
           {humanNotes.length === 0 ? (
-            <p className="text-[12.5px] text-muted-foreground">No notes yet.</p>
+            <p className="text-detail text-muted-foreground">No notes yet.</p>
           ) : (
             humanNotes.map((n) => (
               <div
@@ -2332,11 +2332,11 @@ function NegotiationTab({
                     hue={NOTE_TYPE_HUE[n.noteType] ?? "slate"}
                     size="xs"
                   />
-                  <span className="text-[11px] text-muted-foreground">
+                  <span className="text-meta text-muted-foreground">
                     {n.author?.name ?? "—"} · {fmtDate(n.createdAt)}
                   </span>
                 </div>
-                <p className="whitespace-pre-wrap text-[12.5px] text-foreground">
+                <p className="whitespace-pre-wrap text-detail text-foreground">
                   {n.body}
                 </p>
               </div>
@@ -2385,8 +2385,8 @@ function ContractDocuments({
 
   return (
     <div className="space-y-2 rounded-md border border-border/60 p-3">
-      <Label className="text-[13px]">Agreement documents</Label>
-      <p className="text-[11.5px] text-muted-foreground">
+      <Label className="text-body">Agreement documents</Label>
+      <p className="text-meta text-muted-foreground">
         Upload the owner&apos;s KYC and property papers needed for the agreement.
       </p>
       <div className="space-y-2 pt-1">
@@ -2394,7 +2394,7 @@ function ContractDocuments({
           const existing = docs.find((d) => d.label === label);
           return (
             <div key={label} className="flex flex-col gap-1.5 sm:flex-row sm:items-center">
-              <span className="flex w-full items-center gap-1.5 text-[12.5px] sm:w-52">
+              <span className="flex w-full items-center gap-1.5 text-detail sm:w-52">
                 {existing ? (
                   <CheckCircle2 className="size-3.5 shrink-0 text-emerald-600" />
                 ) : (
@@ -2407,7 +2407,7 @@ function ContractDocuments({
                   href={existing.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[12.5px] text-primary hover:underline"
+                  className="text-detail text-primary hover:underline"
                 >
                   View uploaded
                 </a>
@@ -2432,7 +2432,7 @@ function ContractDocuments({
                 href={d.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block text-[12.5px] text-primary hover:underline"
+                className="block text-detail text-primary hover:underline"
               >
                 {d.label ?? "Document"}
               </a>
@@ -2521,7 +2521,7 @@ function ContractTab({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-[13px] tracking-[-0.01em]">Contract</CardTitle>
+        <CardTitle className="text-body tracking-[-0.01em]">Contract</CardTitle>
         <CardDescription className="flex items-center gap-2">
           Status:
           <StatusPill
@@ -2534,10 +2534,10 @@ function ContractTab({
       <CardContent className="space-y-4">
         <div className="flex items-center justify-between gap-3 rounded-md border border-border/60 p-3">
           <div className="space-y-0.5">
-            <Label className="flex items-center gap-2 text-[13px]">
+            <Label className="flex items-center gap-2 text-body">
               <ShieldCheck className="size-4" /> Signatory authority verified
             </Label>
-            <p className="text-[11.5px] text-muted-foreground">
+            <p className="text-meta text-muted-foreground">
               Required before a contract can be sent.
             </p>
           </div>
@@ -2557,7 +2557,7 @@ function ContractTab({
                 href={deal.gpaDocumentUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-[12.5px] text-primary hover:underline"
+                className="inline-flex items-center gap-1 text-detail text-primary hover:underline"
               >
                 <CheckCircle2 className="size-3.5 text-emerald-600" /> View uploaded GPA
               </a>
@@ -2569,7 +2569,7 @@ function ContractTab({
         <ContractDocuments deal={deal} onMutate={onMutate} />
 
         <div className="flex items-center justify-between gap-3 rounded-md border border-border/60 p-3">
-          <div className="flex items-center gap-2 text-[12.5px] text-muted-foreground">
+          <div className="flex items-center gap-2 text-detail text-muted-foreground">
             {deal.contractStatus === "SIGNED" ? (
               <CheckCircle2 className="size-4 text-emerald-600" />
             ) : (
@@ -2668,9 +2668,9 @@ function AlignTeamsPanel({
     <div className="space-y-3 rounded-lg border border-emerald-300 bg-emerald-50/50 p-4">
       <div className="flex items-center gap-2">
         <Rocket className="size-4 text-emerald-600" />
-        <h3 className="text-[14px] font-semibold text-foreground">Align teams &amp; convert</h3>
+        <h3 className="text-copy font-semibold text-foreground">Align teams &amp; convert</h3>
       </div>
-      <p className="text-[12.5px] text-muted-foreground">
+      <p className="text-detail text-muted-foreground">
         The contract is signed. Convert this deal into a project and bring Design, Projects, Sales and Operations together with an introduction meeting.
       </p>
 
@@ -2682,7 +2682,7 @@ function AlignTeamsPanel({
             </Link>
           </Button>
         ) : alreadyConverted ? (
-          <span className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-emerald-700">
+          <span className="inline-flex items-center gap-1.5 text-detail font-medium text-emerald-700">
             <CheckCircle2 className="size-3.5" /> Already converted to a project
           </span>
         ) : (
@@ -2698,13 +2698,13 @@ function AlignTeamsPanel({
 
       {/* Existing meetings */}
       <div className="space-y-2 border-t border-emerald-200/70 pt-3">
-        <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+        <div className="flex items-center gap-1.5 text-meta font-medium uppercase tracking-[0.06em] text-muted-foreground">
           <Users className="size-3.5" /> Introduction meetings
         </div>
         {loadingMeetings ? (
-          <p className="text-[12.5px] text-muted-foreground">Loading…</p>
+          <p className="text-detail text-muted-foreground">Loading…</p>
         ) : meetings.length === 0 ? (
-          <p className="text-[12.5px] text-muted-foreground">No meetings scheduled yet.</p>
+          <p className="text-detail text-muted-foreground">No meetings scheduled yet.</p>
         ) : (
           <ul className="space-y-2">
             {meetings.map((m) => (
@@ -2762,7 +2762,7 @@ function MeetingRow({
   const open = meeting.status !== "COMPLETED" && meeting.status !== "CANCELLED";
 
   return (
-    <li className="rounded-md border border-border/60 bg-background p-2.5 text-[12.5px]">
+    <li className="rounded-md border border-border/60 bg-background p-2.5 text-detail">
       <div className="flex items-center justify-between gap-2">
         <span className="font-medium text-foreground">{fmtDateTime(meeting.scheduledAt)}</span>
         <StatusPill label={meeting.status.replaceAll("_", " ")} hue={hue} size="xs" />
@@ -2872,7 +2872,7 @@ function ScheduleMeetingDialog({
               {TEAMS.map((t) => (
                 <label
                   key={t.key}
-                  className="flex cursor-pointer items-center justify-between gap-2 rounded-md border border-border/60 px-3 py-2 text-[12.5px]"
+                  className="flex cursor-pointer items-center justify-between gap-2 rounded-md border border-border/60 px-3 py-2 text-detail"
                 >
                   <span>{t.label}</span>
                   <Switch

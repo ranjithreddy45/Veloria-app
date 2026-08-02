@@ -74,7 +74,7 @@ export function PtRegisterView({
         <RegisterToolbar onCsv={onCsv} onPrint={onPrint} disabled={!hasData} />
       </div>
 
-      <p className="text-[12px] font-medium text-muted-foreground">
+      <p className="text-detail font-medium text-muted-foreground">
         Professional Tax register — for reconciliation, not the PT challan. Grouped by the entity&apos;s PT state.
       </p>
 
@@ -93,20 +93,20 @@ export function PtRegisterView({
               {reg.groups.map((g) => (
                 <React.Fragment key={g.state}>
                   <TableRow className="bg-muted/40">
-                    <TableCell colSpan={4} className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    <TableCell colSpan={4} className="text-detail font-semibold uppercase tracking-wide text-muted-foreground">
                       State: {g.state} · {g.rows.length} employee{g.rows.length === 1 ? "" : "s"}
                     </TableCell>
                   </TableRow>
                   {g.rows.map((r) => (
                     <TableRow key={r.employeeId}>
                       <TableCell className="text-muted-foreground">{g.state}</TableCell>
-                      <TableCell className="font-mono text-[12px]">{r.empCode}</TableCell>
+                      <TableCell className="font-mono text-detail">{r.empCode}</TableCell>
                       <TableCell>{r.name}</TableCell>
                       <TableCell className="text-right tabular-nums">{inr(r.pt)}</TableCell>
                     </TableRow>
                   ))}
                   <TableRow>
-                    <TableCell colSpan={3} className="text-right text-[12.5px] font-medium">{g.state} subtotal</TableCell>
+                    <TableCell colSpan={3} className="text-right text-detail font-medium">{g.state} subtotal</TableCell>
                     <TableCell className="text-right font-medium tabular-nums">{inr(g.subtotal)}</TableCell>
                   </TableRow>
                 </React.Fragment>

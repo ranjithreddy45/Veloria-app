@@ -41,7 +41,7 @@ function Field({
 }) {
   return (
     <div>
-      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+      <p className="text-meta uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
       <div className={`mt-1 text-sm${mono ? " numeric" : ""}`}>{children}</div>
@@ -126,10 +126,10 @@ export default async function ReferralDetailPage({
             Referred person
             ============================================================ */}
         <section className="rounded-2xl border bg-card p-5 shadow-card">
-          <h2 className="text-[15px] font-semibold tracking-[-0.01em]">
+          <h2 className="text-copy font-semibold tracking-[-0.01em]">
             Referred person
           </h2>
-          <p className="mt-0.5 text-[13px] text-muted-foreground">
+          <p className="mt-0.5 text-body text-muted-foreground">
             Who to reach out to, and what the referral is worth.
           </p>
 
@@ -176,10 +176,10 @@ export default async function ReferralDetailPage({
         <section className="rounded-2xl border bg-card p-5 shadow-card">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h2 className="text-[15px] font-semibold tracking-[-0.01em]">
+              <h2 className="text-copy font-semibold tracking-[-0.01em]">
                 Referrer
               </h2>
-              <p className="mt-0.5 text-[13px] text-muted-foreground">
+              <p className="mt-0.5 text-body text-muted-foreground">
                 The advocate who sent this business your way.
               </p>
             </div>
@@ -220,17 +220,17 @@ export default async function ReferralDetailPage({
             Progress
             ============================================================ */}
         <section className="rounded-2xl border bg-card p-5 shadow-card">
-          <h2 className="text-[15px] font-semibold tracking-[-0.01em]">
+          <h2 className="text-copy font-semibold tracking-[-0.01em]">
             Progress
           </h2>
-          <p className="mt-0.5 text-[13px] text-muted-foreground">
+          <p className="mt-0.5 text-body text-muted-foreground">
             How far this referral has moved through the funnel.
           </p>
 
           {isExpired ? (
             <div className="mt-5 rounded-xl border bg-muted/40 p-4">
               <p className="text-sm font-medium">Expired</p>
-              <p className="mt-1 text-[13px] text-muted-foreground">
+              <p className="mt-1 text-body text-muted-foreground">
                 This referral lapsed before it could be converted.
               </p>
             </div>
@@ -252,7 +252,7 @@ export default async function ReferralDetailPage({
                       />
                     )}
                     <span
-                      className={`relative z-[1] flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
+                      className={`relative z-[1] flex size-7 shrink-0 items-center justify-center rounded-full text-meta font-semibold ${
                         step.reached
                           ? isCurrent
                             ? "bg-primary text-primary-foreground ring-4 ring-primary/15"
@@ -274,7 +274,7 @@ export default async function ReferralDetailPage({
                       >
                         {step.label}
                       </p>
-                      <p className="mt-0.5 text-[12.5px] text-muted-foreground">
+                      <p className="mt-0.5 text-detail text-muted-foreground">
                         {step.hint}
                       </p>
                     </div>
@@ -289,10 +289,10 @@ export default async function ReferralDetailPage({
             Record
             ============================================================ */}
         <section className="rounded-2xl border bg-card p-5 shadow-card">
-          <h2 className="text-[15px] font-semibold tracking-[-0.01em]">
+          <h2 className="text-copy font-semibold tracking-[-0.01em]">
             Record
           </h2>
-          <p className="mt-0.5 text-[13px] text-muted-foreground">
+          <p className="mt-0.5 text-body text-muted-foreground">
             Timestamps and any notes captured on this referral.
           </p>
 
@@ -306,7 +306,7 @@ export default async function ReferralDetailPage({
           </div>
 
           <div className="mt-5 border-t pt-4">
-            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            <p className="text-meta uppercase tracking-wide text-muted-foreground">
               Notes
             </p>
             {referral.notes ? (

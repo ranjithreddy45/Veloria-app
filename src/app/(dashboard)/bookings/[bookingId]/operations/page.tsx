@@ -137,7 +137,7 @@ export default async function OperationsPage({ params }: OperationsPageProps) {
           >
             <Link href={href}>
               <Icon className="size-4 shrink-0" />
-              <span className="truncate text-left text-[13px] font-medium">{label}</span>
+              <span className="truncate text-left text-body font-medium">{label}</span>
             </Link>
           </Button>
         ))}

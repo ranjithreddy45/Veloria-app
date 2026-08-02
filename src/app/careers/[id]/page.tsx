@@ -42,10 +42,10 @@ export default async function CareerRolePage({
 
         {/* Role header */}
         <header>
-          <h1 className="text-[26px] font-semibold leading-[1.15] tracking-[-0.025em] text-foreground sm:text-[30px]">
+          <h1 className="text-h2 font-semibold leading-[1.15] tracking-[-0.025em] text-foreground sm:text-h1">
             {role.title}
           </h1>
-          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-muted-foreground">
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-body text-muted-foreground">
             {role.department && (
               <span className="inline-flex items-center gap-1.5">
                 <Building2 className="size-4" />
@@ -67,7 +67,7 @@ export default async function CareerRolePage({
 
         {/* Description */}
         {role.description && (
-          <div className="mt-8 whitespace-pre-line text-[14px] leading-relaxed text-foreground/85">
+          <div className="mt-8 whitespace-pre-line text-copy leading-relaxed text-foreground/85">
             {role.description}
           </div>
         )}

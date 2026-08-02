@@ -118,11 +118,11 @@ function IdentityCell({ contact }: { contact: Contact }) {
       <div className="min-w-0 leading-tight">
         <Link
           href={`/contacts/${contact.id}`}
-          className="block truncate text-[13px] font-medium text-foreground hover:underline"
+          className="block truncate text-body font-medium text-foreground hover:underline"
         >
           {fullName}
         </Link>
-        <span className="block truncate text-[11.5px] text-muted-foreground">
+        <span className="block truncate text-meta text-muted-foreground">
           {subtitle}
         </span>
       </div>
@@ -164,7 +164,7 @@ function QuickActions({ contact }: { contact: Contact }) {
               <MailIcon className="size-3.5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="top" className="text-[11px]">
+          <TooltipContent side="top" className="text-meta">
             Email {contact.email}
           </TooltipContent>
         </Tooltip>
@@ -184,7 +184,7 @@ function QuickActions({ contact }: { contact: Contact }) {
               <PhoneIcon className="size-3.5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="top" className="text-[11px]">
+          <TooltipContent side="top" className="text-meta">
             Call {contact.phone}
           </TooltipContent>
         </Tooltip>
@@ -283,7 +283,7 @@ function TypeTabs({
             key={tab.id}
             onClick={() => onChange(tab.id)}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12.5px] font-medium transition-colors",
+              "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-detail font-medium transition-colors",
               isActive
                 ? "bg-muted text-foreground"
                 : "text-muted-foreground hover:bg-muted/60 hover:text-foreground/90"
@@ -292,7 +292,7 @@ function TypeTabs({
             {tab.label}
             <span
               className={cn(
-                "rounded px-1 text-[10.5px] numeric",
+                "rounded px-1 text-meta numeric",
                 isActive
                   ? "bg-background text-foreground/70 ring-1 ring-border"
                   : "text-muted-foreground/70"
@@ -326,11 +326,11 @@ const columns: ColumnDef<Contact>[] = [
     header: "Email",
     cell: ({ row }) => {
       const email = row.original.email;
-      if (!email) return <span className="text-muted-foreground/60 text-[12px]">—</span>;
+      if (!email) return <span className="text-muted-foreground/60 text-detail">—</span>;
       return (
         <a
           href={`mailto:${email}`}
-          className="text-[12.5px] text-muted-foreground hover:text-foreground hover:underline truncate inline-block max-w-[200px]"
+          className="text-detail text-muted-foreground hover:text-foreground hover:underline truncate inline-block max-w-[200px]"
           onClick={(e) => e.stopPropagation()}
         >
           {email}
@@ -343,9 +343,9 @@ const columns: ColumnDef<Contact>[] = [
     header: "Phone",
     cell: ({ row }) => {
       const phone = row.original.phone;
-      if (!phone) return <span className="text-muted-foreground/60 text-[12px]">—</span>;
+      if (!phone) return <span className="text-muted-foreground/60 text-detail">—</span>;
       return (
-        <span className="text-[12.5px] text-muted-foreground numeric">{phone}</span>
+        <span className="text-detail text-muted-foreground numeric">{phone}</span>
       );
     },
   },
@@ -387,7 +387,7 @@ const columns: ColumnDef<Contact>[] = [
           size="xs"
         />
       ) : (
-        <span className="text-muted-foreground/60 text-[12px]">—</span>
+        <span className="text-muted-foreground/60 text-detail">—</span>
       );
     },
   },
@@ -398,9 +398,9 @@ const columns: ColumnDef<Contact>[] = [
     cell: ({ row }) => {
       const name = row.original.enquiryVenue?.name;
       return name ? (
-        <span className="text-[12.5px] text-foreground/90">{name}</span>
+        <span className="text-detail text-foreground/90">{name}</span>
       ) : (
-        <span className="text-muted-foreground/60 text-[12px]">—</span>
+        <span className="text-muted-foreground/60 text-detail">—</span>
       );
     },
   },
@@ -410,7 +410,7 @@ const columns: ColumnDef<Contact>[] = [
     cell: ({ row }) => {
       const tags = row.original.tags;
       if (!tags || tags.length === 0) {
-        return <span className="text-muted-foreground/60 text-[12px]">—</span>;
+        return <span className="text-muted-foreground/60 text-detail">—</span>;
       }
       return (
         <div className="flex flex-wrap gap-1">
@@ -418,7 +418,7 @@ const columns: ColumnDef<Contact>[] = [
             <StatusPill key={tag} label={tag} hue="neutral" size="xs" noDot />
           ))}
           {tags.length > 2 && (
-            <span className="text-[11px] text-muted-foreground">
+            <span className="text-meta text-muted-foreground">
               +{tags.length - 2}
             </span>
           )}
@@ -432,7 +432,7 @@ const columns: ColumnDef<Contact>[] = [
       <DataTableColumnHeader column={column} title="Added" />
     ),
     cell: ({ row }) => (
-      <span className="text-[12px] text-muted-foreground">
+      <span className="text-detail text-muted-foreground">
         {formatDistanceToNow(new Date(row.original.createdAt), { addSuffix: true })}
       </span>
     ),

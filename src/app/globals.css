@@ -101,7 +101,7 @@
    * Brand: deep emerald + gold on white.
    * WHY emerald carries `primary` and gold does not: `text-primary` is used on
    * ~256 call sites, and not decoratively — it colours 11-13px links and money
-   * figures (e.g. `text-[15px] font-bold text-primary` on netPayable), plus
+   * figures (e.g. `text-copy font-bold text-primary` on netPayable), plus
    * avatar initials sitting on a `bg-primary/10` tint. True metallic gold
    * (#d6a62e) scores 2.25:1 on white; a salary figure in it is unreadable, and
    * gold dark enough to pass 4.5:1 is no longer gold, it is brown. So emerald
@@ -263,14 +263,14 @@
    * keep their density and legibility. */
   h1 {
     font-family: var(--brand-serif);
-    font-size: 1.9rem;
+    font-size: 34px; /* text-h1 */
     line-height: 1.12;
     letter-spacing: -0.018em;
     font-weight: 600;
     font-optical-sizing: auto;
   }
-  h2 { font-family: var(--brand-sans); font-size: 1.3rem; line-height: 1.2; letter-spacing: -0.018em; font-weight: 600; }
-  h3 { font-family: var(--brand-sans); font-size: 0.95rem; line-height: 1.35; letter-spacing: -0.012em; font-weight: 600; }
+  h2 { font-family: var(--brand-sans); font-size: 26px; line-height: 1.25; letter-spacing: -0.018em; font-weight: 600; } /* text-h2 */
+  h3 { font-family: var(--brand-sans); font-size: 20px; line-height: 1.35; letter-spacing: -0.012em; font-weight: 600; } /* text-title */
   /* Numerals: tabular + slashed zero so money/IDs align in columns and 0≠O. */
   .tabular-nums, [class*="tabular"] {
     font-variant-numeric: tabular-nums slashed-zero;
@@ -468,10 +468,21 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-@utility animate-stagger-1 { animation: fade-in-scale 0.3s ease-out 0.04s both; }
-@utility animate-stagger-2 { animation: fade-in-scale 0.3s ease-out 0.08s both; }
-@utility animate-stagger-3 { animation: fade-in-scale 0.3s ease-out 0.12s both; }
-@utility animate-stagger-4 { animation: fade-in-scale 0.3s ease-out 0.16s both; }
+/* Stagger delays are DELIBERATELY tiny.
+ *
+ * These were 0.3s duration on top of delays up to 0.16s, so the last card on a
+ * dashboard finished settling ~460ms after paint. You could watch the page
+ * assemble itself, which reads as a slow app no matter how fast the data
+ * actually arrived — and any screenshot taken in that window catches
+ * half-transparent cards.
+ *
+ * Now the whole sequence completes in ~260ms: present enough to feel alive,
+ * short enough that nobody perceives it as waiting. The easing is a gentle
+ * overshoot-free curve; motion at this speed should be felt, not watched. */
+@utility animate-stagger-1 { animation: fade-in-scale 0.2s cubic-bezier(0.22, 1, 0.36, 1) 0.02s both; }
+@utility animate-stagger-2 { animation: fade-in-scale 0.2s cubic-bezier(0.22, 1, 0.36, 1) 0.04s both; }
+@utility animate-stagger-3 { animation: fade-in-scale 0.2s cubic-bezier(0.22, 1, 0.36, 1) 0.06s both; }
+@utility animate-stagger-4 { animation: fade-in-scale 0.2s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both; }
 
 @keyframes fade-in-up {
   from { opacity: 0; transform: translateY(6px); }
@@ -479,7 +490,7 @@
 }
 
 @utility animate-fade-in-up {
-  animation: fade-in-up 0.3s ease-out both;
+  animation: fade-in-up 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes slide-in-left {
@@ -867,4 +878,116 @@
   padding-bottom: max(var(--sab), 0px);
   padding-left: max(var(--sal), 0px);
   padding-right: max(var(--sar), 0px);
+}
+
+/* ============================================================
+   TYPE SCALE
+   ------------------------------------------------------------
+   Nine steps. Every piece of text in the app should land on one
+   of them.
+
+   WHY THIS EXISTS: the app had grown 3,317 hard-coded
+   `text-[Npx]` values across 510 files, in 34 distinct sizes —
+   10px, 10.5px, 11px, 11.5px, 12px, 12.5px, 13px, 13.5px… A
+   single dashboard rendered seventeen different font sizes.
+   Nothing looks more amateur than that: sizes half a pixel
+   apart read as sloppiness rather than hierarchy, and no reader
+   can perceive a 0.5px step as *meaning* anything.
+
+   The steps are spaced far enough apart to be legible as
+   hierarchy (roughly a 1.2 ratio at the top, tightening at the
+   bottom where dense tables need finer control).
+
+   Line height RISES as size falls — small text needs air to stay
+   readable; large text needs tightness to stay coherent.
+
+   Letter-spacing goes NEGATIVE as size rises. This is optical
+   correction, not decoration: at display sizes the gaps between
+   letters visually widen, so type set at a "normal" tracking
+   looks loose and cheap. Every serious typeface specimen does
+   this. It is most of the difference between a headline that
+   looks designed and one that looks default.
+   ============================================================ */
+
+/* 11px — micro. Uppercase eyebrows, table meta, chip labels.
+   This is the FLOOR. Anything smaller was unreadable and read as
+   cheap; 8-10px text is also below any reasonable a11y bar. */
+@utility text-meta {
+  font-size: 11px;
+  line-height: 1.45;
+  letter-spacing: 0.006em; /* small text needs a touch MORE tracking */
+}
+
+/* 12px — secondary labels, helper text, dense table cells. */
+@utility text-detail {
+  font-size: 12px;
+  line-height: 1.5;
+  letter-spacing: 0.002em;
+}
+
+/* 13px — the workhorse for dense data tables. */
+@utility text-body {
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+/* 14px — default reading size for forms, prose, descriptions. */
+@utility text-copy {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* 16px — lede paragraphs, card titles, section intros. */
+@utility text-lede {
+  font-size: 16px;
+  line-height: 1.5;
+  letter-spacing: -0.005em;
+}
+
+/* 20px — card/section headings. Tracking goes negative here. */
+@utility text-title {
+  font-size: 20px;
+  line-height: 1.35;
+  letter-spacing: -0.012em;
+}
+
+/* 26px — page headings. */
+@utility text-h2 {
+  font-size: 26px;
+  line-height: 1.25;
+  letter-spacing: -0.018em;
+}
+
+/* 34px — hero headings and primary KPI figures. */
+@utility text-h1 {
+  font-size: 34px;
+  line-height: 1.15;
+  letter-spacing: -0.022em;
+}
+
+/* 44px — the single biggest number on a page. Use sparingly:
+   if everything is a display figure, nothing is. */
+@utility text-display {
+  font-size: 44px;
+  line-height: 1.05;
+  letter-spacing: -0.028em;
+}
+
+
+/* ============================================================
+   Reduced motion.
+   Someone who has asked their OS to stop animating things has
+   usually done so because motion makes them ill. Honouring it is
+   not a nicety. Transitions are collapsed rather than removed so
+   that state changes still register.
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

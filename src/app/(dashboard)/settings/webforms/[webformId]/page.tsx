@@ -109,7 +109,7 @@ export default async function WebformDetailPage({
               { label: "Spam Blocked", value: stats.spam, accent: true },
             ].map((s) => (
               <div key={s.label} className="px-5 py-4">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                <p className="text-meta font-medium uppercase tracking-wide text-muted-foreground">
                   {s.label}
                 </p>
                 <p

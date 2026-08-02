@@ -103,15 +103,15 @@ export default async function VendorPortalPage() {
       <section className="space-y-3">
         <div className="flex items-center gap-2 text-teal-700 dark:text-teal-300">
           <Sparkles className="size-3.5" />
-          <span className="text-[11px] font-semibold uppercase tracking-[0.16em]">
+          <span className="text-meta font-semibold uppercase tracking-[0.16em]">
             {VENDOR_CATEGORY_LABELS[data.vendorCategory] || data.vendorCategory}
             {" "}Partner
           </span>
         </div>
-        <h1 className="large-title text-[30px] leading-tight text-foreground sm:text-[38px]">
+        <h1 className="large-title text-h1 leading-tight text-foreground sm:text-h1">
           {data.vendorName}
         </h1>
-        <p className="max-w-xl text-[15px] leading-relaxed text-muted-foreground">
+        <p className="max-w-xl text-copy leading-relaxed text-muted-foreground">
           Welcome back, {session.user.name || "partner"}. Here is where your
           events, bids, and payments with Veloria Grand stand today.
         </p>
@@ -127,13 +127,13 @@ export default async function VendorPortalPage() {
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1.5">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                      <p className="text-meta font-semibold uppercase tracking-[0.1em] text-muted-foreground">
                         {card.title}
                       </p>
-                      <p className="numeric text-[26px] font-semibold leading-none tracking-[-0.02em] text-foreground">
+                      <p className="numeric text-h2 font-semibold leading-none tracking-[-0.02em] text-foreground">
                         {card.value}
                       </p>
-                      <p className="text-[12px] leading-relaxed text-muted-foreground">
+                      <p className="text-detail leading-relaxed text-muted-foreground">
                         {card.description}
                       </p>
                     </div>
@@ -153,7 +153,7 @@ export default async function VendorPortalPage() {
       {/* Recent Assignments */}
       <Card className="rounded-2xl border bg-card shadow-card">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-[15px] font-semibold">
+          <CardTitle className="text-copy font-semibold">
             Recent assignments
           </CardTitle>
           <Link
@@ -195,7 +195,7 @@ export default async function VendorPortalPage() {
                     <CalendarCheck className="size-[18px]" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[14px] font-medium text-foreground">
+                    <p className="truncate text-copy font-medium text-foreground">
                       {assignment.booking.eventName}
                     </p>
                     <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
@@ -225,7 +225,7 @@ export default async function VendorPortalPage() {
       {/* Pending Bids */}
       <Card className="rounded-2xl border bg-card shadow-card">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-[15px] font-semibold">Pending bids</CardTitle>
+          <CardTitle className="text-copy font-semibold">Pending bids</CardTitle>
           <Link
             href="/vendor-portal/bids"
             className="flex items-center gap-1 text-xs font-medium text-teal-700 transition-colors hover:text-teal-600 dark:text-teal-300"
@@ -264,7 +264,7 @@ export default async function VendorPortalPage() {
                     <Gavel className="size-[18px]" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[14px] font-medium text-foreground">
+                    <p className="truncate text-copy font-medium text-foreground">
                       {bid.booking.eventName}
                     </p>
                     <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
@@ -274,7 +274,7 @@ export default async function VendorPortalPage() {
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-1.5">
-                    <span className="numeric text-[15px] font-semibold text-foreground">
+                    <span className="numeric text-copy font-semibold text-foreground">
                       {formatINR(bid.amount)}
                     </span>
                     <StatusBadge

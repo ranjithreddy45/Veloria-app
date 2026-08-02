@@ -84,7 +84,7 @@ export default async function CadenceDetailPage({
           },
         ].map((s) => (
           <div key={s.label} className="bg-card p-5">
-            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            <p className="text-meta uppercase tracking-wide text-muted-foreground">
               {s.label}
             </p>
             <p className="numeric mt-1.5 text-2xl font-semibold tracking-tight">

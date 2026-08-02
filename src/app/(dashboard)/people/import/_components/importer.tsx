@@ -90,7 +90,7 @@ export function Importer() {
     <div className="space-y-4">
       <div className="rounded-xl border bg-card p-5">
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <h3 className="flex items-center gap-2 text-body font-semibold uppercase tracking-wide text-muted-foreground">
             <FileSpreadsheet className="size-4" /> Paste or upload CSV
           </h3>
           <div className="flex gap-2">
@@ -107,9 +107,9 @@ export function Importer() {
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder={`Columns: ${IMPORT_COLUMNS.join(", ")}`}
-          className="h-44 w-full resize-y rounded-lg border bg-background p-3 font-mono text-[12px] outline-none focus:ring-2 focus:ring-ring"
+          className="h-44 w-full resize-y rounded-lg border bg-background p-3 font-mono text-detail outline-none focus:ring-2 focus:ring-ring"
         />
-        <p className="mt-2 text-[12px] text-muted-foreground">
+        <p className="mt-2 text-detail text-muted-foreground">
           Required: <code>firstName</code>, <code>lastName</code>, <code>legalEntity</code> (name or short code).
           Optional columns are matched leniently. Manager is referenced by their employee code.
         </p>
@@ -117,18 +117,18 @@ export function Importer() {
           <Button onClick={runPreview} disabled={busy || !text.trim()} className="gap-1.5">
             {busy && !preview ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" />} Validate
           </Button>
-          {done && <span className="text-[13px] text-success">{done}</span>}
+          {done && <span className="text-body text-success">{done}</span>}
         </div>
       </div>
 
       {preview && (
         <div className="rounded-xl border bg-card p-5">
           <div className="mb-3 flex flex-wrap items-center gap-3">
-            <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-success">
+            <span className="inline-flex items-center gap-1.5 text-body font-medium text-success">
               <CheckCircle2 className="size-4" /> {preview.validCount} ready
             </span>
             {preview.invalidCount > 0 && (
-              <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-destructive">
+              <span className="inline-flex items-center gap-1.5 text-body font-medium text-destructive">
                 <XCircle className="size-4" /> {preview.invalidCount} with errors
               </span>
             )}
@@ -143,7 +143,7 @@ export function Importer() {
           </div>
 
           <div className="max-h-[420px] overflow-y-auto rounded-lg border">
-            <table className="w-full text-[13px]">
+            <table className="w-full text-body">
               <thead className="sticky top-0 bg-muted/60">
                 <tr className="text-left">
                   <th className="px-3 py-2 font-medium">#</th>
@@ -164,7 +164,7 @@ export function Importer() {
                         <span className="inline-flex items-center gap-1 text-destructive"><XCircle className="size-3.5" /> Error</span>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-[12px] text-muted-foreground">
+                    <td className="px-3 py-2 text-detail text-muted-foreground">
                       {r.errors.map((e, i) => (
                         <div key={`e${i}`} className="text-destructive">{e}</div>
                       ))}

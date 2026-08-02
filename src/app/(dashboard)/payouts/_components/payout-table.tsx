@@ -77,7 +77,7 @@ const columns: ColumnDef<PayoutRow, unknown>[] = [
     cell: ({ row }) => (
       <Link
         href={`/payouts/${row.original.id}`}
-        className="numeric text-[13px] font-medium text-foreground underline-offset-4 hover:text-primary hover:underline"
+        className="numeric text-body font-medium text-foreground underline-offset-4 hover:text-primary hover:underline"
       >
         {row.original.referenceNumber || row.original.id.slice(0, 8)}
       </Link>
@@ -112,7 +112,7 @@ const columns: ColumnDef<PayoutRow, unknown>[] = [
       return (
         <Link
           href={`/vendors/${vendor.id}`}
-          className="text-[13px] font-medium underline-offset-4 hover:text-primary hover:underline"
+          className="text-body font-medium underline-offset-4 hover:text-primary hover:underline"
         >
           {vendor.name}
         </Link>
@@ -128,7 +128,7 @@ const columns: ColumnDef<PayoutRow, unknown>[] = [
       return (
         <Link
           href={`/bookings/${booking.id}`}
-          className="numeric text-[12.5px] underline-offset-4 hover:text-primary hover:underline"
+          className="numeric text-detail underline-offset-4 hover:text-primary hover:underline"
         >
           {booking.bookingNumber}
         </Link>
@@ -146,8 +146,8 @@ const columns: ColumnDef<PayoutRow, unknown>[] = [
       <div
         className={
           row.original.status === "PAID"
-            ? "numeric text-right text-[13px] font-semibold text-success"
-            : "numeric text-right text-[13px] font-semibold text-foreground"
+            ? "numeric text-right text-body font-semibold text-success"
+            : "numeric text-right text-body font-semibold text-foreground"
         }
       >
         {formatINR(row.original.amount)}
@@ -175,7 +175,7 @@ const columns: ColumnDef<PayoutRow, unknown>[] = [
       const paidAt = row.original.paidAt;
       if (!paidAt) return <span className="text-muted-foreground">—</span>;
       return (
-        <span className="numeric text-[12.5px] text-muted-foreground">
+        <span className="numeric text-detail text-muted-foreground">
           {format(new Date(paidAt), "dd MMM yyyy")}
         </span>
       );

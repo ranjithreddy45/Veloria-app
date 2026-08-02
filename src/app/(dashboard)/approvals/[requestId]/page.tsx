@@ -89,16 +89,16 @@ export default async function ApprovalRequestPage({
 
           {/* Details */}
           <section className="rounded-2xl border bg-card p-5 shadow-card">
-            <h2 className="text-[15px] font-semibold tracking-[-0.01em]">
+            <h2 className="text-copy font-semibold tracking-[-0.01em]">
               Request details
             </h2>
-            <p className="mt-0.5 text-[13px] text-muted-foreground">
+            <p className="mt-0.5 text-body text-muted-foreground">
               Where this request sits in the approval chain.
             </p>
 
             <dl className="mt-5 space-y-4">
               <div>
-                <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                <dt className="text-meta uppercase tracking-wide text-muted-foreground">
                   Status
                 </dt>
                 <dd className="mt-1.5">
@@ -107,7 +107,7 @@ export default async function ApprovalRequestPage({
               </div>
 
               <div>
-                <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                <dt className="text-meta uppercase tracking-wide text-muted-foreground">
                   Submitted by
                 </dt>
                 <dd className="mt-1 text-sm">
@@ -118,7 +118,7 @@ export default async function ApprovalRequestPage({
               </div>
 
               <div>
-                <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                <dt className="text-meta uppercase tracking-wide text-muted-foreground">
                   Submitted at
                 </dt>
                 <dd className="numeric mt-1 text-sm">
@@ -128,7 +128,7 @@ export default async function ApprovalRequestPage({
 
               {request.resolvedAt && (
                 <div>
-                  <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  <dt className="text-meta uppercase tracking-wide text-muted-foreground">
                     Resolved at
                   </dt>
                   <dd className="numeric mt-1 text-sm">
@@ -139,7 +139,7 @@ export default async function ApprovalRequestPage({
 
               <div className="grid grid-cols-2 gap-4 border-t pt-4">
                 <div>
-                  <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  <dt className="text-meta uppercase tracking-wide text-muted-foreground">
                     Current step
                   </dt>
                   <dd className="numeric mt-1 text-sm">
@@ -147,7 +147,7 @@ export default async function ApprovalRequestPage({
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  <dt className="text-meta uppercase tracking-wide text-muted-foreground">
                     Decisions
                   </dt>
                   <dd className="numeric mt-1 text-sm">

@@ -56,9 +56,9 @@ export function GettingStarted({ steps, doneCount, total }: { steps: OnboardingS
               <Sparkles className="size-4" />
             </div>
             <div>
-              <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-foreground">Getting started</h2>
+              <h2 className="text-copy font-semibold tracking-[-0.01em] text-foreground">Getting started</h2>
               {/* Goal-gradient: as the gap shrinks, name the small remainder to pull it closed. */}
-              <p className="text-[13px] text-muted-foreground">
+              <p className="text-body text-muted-foreground">
                 {doneCount === total
                   ? "You're all set — nicely done!"
                   : total - doneCount === 1
@@ -84,7 +84,7 @@ export function GettingStarted({ steps, doneCount, total }: { steps: OnboardingS
           <div className="h-2 overflow-hidden rounded-full bg-muted">
             <div className="h-full rounded-full bg-gradient-to-r from-primary to-violet-500 transition-all duration-500" style={{ width: `${pct}%` }} />
           </div>
-          <div className="flex justify-between text-[11px] text-muted-foreground">
+          <div className="flex justify-between text-meta text-muted-foreground">
             <span className="numeric">{pct}% complete</span>
             {nextStep && <span>Next: {nextStep.label}</span>}
           </div>
@@ -112,13 +112,13 @@ export function GettingStarted({ steps, doneCount, total }: { steps: OnboardingS
                     {s.done ? <Check className="size-4" /> : <Icon className="size-4" />}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className={cn("truncate text-[13px] font-medium", s.done ? "text-muted-foreground line-through" : "text-foreground")}>
+                    <p className={cn("truncate text-body font-medium", s.done ? "text-muted-foreground line-through" : "text-foreground")}>
                       {s.label}
                     </p>
-                    <p className="truncate text-[11.5px] text-muted-foreground">{s.hint}</p>
+                    <p className="truncate text-meta text-muted-foreground">{s.hint}</p>
                   </div>
                   {!s.done && (
-                    <span className="flex shrink-0 items-center gap-1 text-[12px] font-medium text-primary opacity-0 transition group-hover:opacity-100">
+                    <span className="flex shrink-0 items-center gap-1 text-detail font-medium text-primary opacity-0 transition group-hover:opacity-100">
                       {s.cta} <ArrowRight className="size-3.5" />
                     </span>
                   )}

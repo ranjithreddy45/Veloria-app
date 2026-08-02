@@ -53,7 +53,7 @@ export function PackageStatusControl({
 
   return (
     <div className="space-y-3 rounded-2xl border bg-card p-4 shadow-card">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+      <p className="text-meta font-semibold uppercase tracking-[0.1em] text-muted-foreground">
         Status control
       </p>
 
@@ -61,7 +61,7 @@ export function PackageStatusControl({
         {currentStatus !== "ACTIVE" && currentStatus !== "ARCHIVED" && (
           <Button
             size="sm"
-            className="h-8 w-full text-[12px] bg-success hover:bg-success/90 text-white"
+            className="h-8 w-full text-detail bg-success hover:bg-success/90 text-white"
             onClick={() => handleTransition("ACTIVE")}
             disabled={isPending}
           >
@@ -73,7 +73,7 @@ export function PackageStatusControl({
           <Button
             size="sm"
             variant="outline"
-            className="h-8 w-full text-[12px]"
+            className="h-8 w-full text-detail"
             onClick={() => handleTransition("DRAFT")}
             disabled={isPending}
           >
@@ -85,7 +85,7 @@ export function PackageStatusControl({
           <Button
             size="sm"
             variant="outline"
-            className="h-8 w-full text-[12px] text-muted-foreground hover:text-destructive"
+            className="h-8 w-full text-detail text-muted-foreground hover:text-destructive"
             onClick={() => handleTransition("ARCHIVED")}
             disabled={isPending}
           >
@@ -97,7 +97,7 @@ export function PackageStatusControl({
           <Button
             size="sm"
             variant="outline"
-            className="h-8 w-full text-[12px]"
+            className="h-8 w-full text-detail"
             onClick={() => handleTransition("DRAFT")}
             disabled={isPending}
           >
@@ -109,11 +109,11 @@ export function PackageStatusControl({
       {/* Unmet activation requirements */}
       {unmet.length > 0 && (
         <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 space-y-1">
-          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-destructive">
+          <div className="flex items-center gap-1.5 text-meta font-semibold text-destructive">
             <AlertCircleIcon className="size-3.5" />
             Not yet ready to activate:
           </div>
-          <ul className="list-disc list-inside space-y-0.5 text-[11px] text-destructive/80">
+          <ul className="list-disc list-inside space-y-0.5 text-meta text-destructive/80">
             {unmet.map((u, i) => (
               <li key={i}>{u}</li>
             ))}

@@ -131,12 +131,12 @@ export function CapexCalculator({ projectId, capexId, initialInput, initialNotes
                   {l.included && (
                     <div className="mt-2 grid grid-cols-2 gap-2 pl-6 sm:grid-cols-3">
                       <div className="space-y-1">
-                        <Label className="text-[11px] text-muted-foreground">Rate (₹ {c.unitLabel})</Label>
+                        <Label className="text-meta text-muted-foreground">Rate (₹ {c.unitLabel})</Label>
                         <Input type="number" min={0} value={l.rate ?? c.defaultRate} onChange={(e) => setLine(c.key, { rate: e.target.value === "" ? undefined : num(e.target.value) })} disabled={readOnly} className="h-8" />
                       </div>
                       {c.basis !== "LUMPSUM" && (
                         <div className="space-y-1">
-                          <Label className="text-[11px] text-muted-foreground">
+                          <Label className="text-meta text-muted-foreground">
                             {c.basis === "AREA" ? "Area (sq ft)" : "Quantity"}
                           </Label>
                           <Input
@@ -147,7 +147,7 @@ export function CapexCalculator({ projectId, capexId, initialInput, initialNotes
                           />
                         </div>
                       )}
-                      <p className="col-span-2 text-[11px] text-muted-foreground sm:col-span-1 sm:self-end">{c.note}</p>
+                      <p className="col-span-2 text-meta text-muted-foreground sm:col-span-1 sm:self-end">{c.note}</p>
                     </div>
                   )}
                 </div>
@@ -206,7 +206,7 @@ export function CapexCalculator({ projectId, capexId, initialInput, initialNotes
                   </div>
                 );
               })}
-              <p className="pt-1 text-[11px] text-muted-foreground">Target ~{result.estimatedWeeks} weeks once parallelised; civil/HVAC/lift are the critical path.</p>
+              <p className="pt-1 text-meta text-muted-foreground">Target ~{result.estimatedWeeks} weeks once parallelised; civil/HVAC/lift are the critical path.</p>
             </CardContent>
           </Card>
         )}

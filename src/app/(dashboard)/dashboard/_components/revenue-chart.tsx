@@ -70,19 +70,19 @@ export function RevenueChart({ data }: RevenueChartProps) {
     <Card className="card-hover-tint rounded-2xl border bg-card shadow-card transition-shadow hover:shadow-card-hover">
       <CardHeader className="flex flex-row items-end justify-between pb-2">
         <div>
-          <CardTitle className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          <CardTitle className="text-meta font-medium uppercase tracking-wide text-muted-foreground">
             Revenue
           </CardTitle>
           <div className="mt-1.5 flex items-baseline gap-2">
-            <span className="numeric text-[26px] font-semibold leading-none text-foreground">
+            <span className="numeric text-h2 font-semibold leading-none text-foreground">
               ₹{formatYAxis(total).replace("₹", "")}
             </span>
             {change !== 0 && (
               <span
                 className={
                   change >= 0
-                    ? "numeric text-[12px] font-medium text-emerald-600 dark:text-emerald-400"
-                    : "numeric text-[12px] font-medium text-destructive"
+                    ? "numeric text-detail font-medium text-emerald-600 dark:text-emerald-400"
+                    : "numeric text-detail font-medium text-destructive"
                 }
               >
                 {change >= 0 ? "+" : ""}
@@ -91,7 +91,7 @@ export function RevenueChart({ data }: RevenueChartProps) {
             )}
           </div>
         </div>
-        <p className="text-[13px] text-muted-foreground">Last 12 months</p>
+        <p className="text-body text-muted-foreground">Last 12 months</p>
       </CardHeader>
       <CardContent className="px-2 pb-4">
         <ChartContainer config={chartConfig} className="h-[260px] w-full">

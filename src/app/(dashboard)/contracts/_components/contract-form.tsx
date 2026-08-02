@@ -290,7 +290,7 @@ export function ContractForm({
                         {template.category && (
                           <Badge
                             variant="outline"
-                            className="mt-2 text-[10px]"
+                            className="mt-2 text-meta"
                           >
                             {template.category}
                           </Badge>

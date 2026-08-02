@@ -175,7 +175,7 @@ export function DispatchBoard({
                         <span className="truncate">{routeLabel(d)}</span>
                       </div>
                       {d.eventDate && (
-                        <span className="text-[11px] text-muted-foreground">
+                        <span className="text-meta text-muted-foreground">
                           {formatDate(d.eventDate)}
                         </span>
                       )}
@@ -186,7 +186,7 @@ export function DispatchBoard({
                     <TableCell className="text-muted-foreground">
                       {d.driverName || "—"}
                       {d.vehicleNo ? (
-                        <span className="text-[11px]"> · {d.vehicleNo}</span>
+                        <span className="text-meta"> · {d.vehicleNo}</span>
                       ) : null}
                     </TableCell>
                     <TableCell>

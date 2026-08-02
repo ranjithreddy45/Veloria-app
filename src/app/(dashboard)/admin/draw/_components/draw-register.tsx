@@ -380,7 +380,7 @@ export function DrawRegister({ isAdmin, currentMonth }: { isAdmin: boolean; curr
                 Host: <span className="text-foreground">{winner.entry.host_name}</span> ·{" "}
                 {winner.entry.event_type_label} · {fmtDate(winner.entry.event_date)}
               </p>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-meta text-muted-foreground">
                 Drawn from a pool of {winner.pool_size} · {fmtDateTime(winner.drawn_at)}
               </p>
             </div>
@@ -484,7 +484,7 @@ export function DrawRegister({ isAdmin, currentMonth }: { isAdmin: boolean; curr
             ) : (
               rows.map((r) => (
                 <TableRow key={r.id} className={r.opted_out ? "opacity-60" : undefined}>
-                  <TableCell className="font-mono text-[12px]">{r.entry_code}</TableCell>
+                  <TableCell className="font-mono text-detail">{r.entry_code}</TableCell>
                   <TableCell className="font-medium">
                     <span className="flex items-center gap-2">
                       {r.guest_name}
@@ -494,13 +494,13 @@ export function DrawRegister({ isAdmin, currentMonth }: { isAdmin: boolean; curr
                   <TableCell className="font-mono tabular-nums">{r.phone}</TableCell>
                   <TableCell>
                     <div className="text-sm">{r.host_name}</div>
-                    <div className="text-[11px] text-muted-foreground">{r.event_type_label}</div>
+                    <div className="text-meta text-muted-foreground">{r.event_type_label}</div>
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-sm">{fmtDate(r.event_date)}</TableCell>
                   <TableCell>
                     <Badge variant="outline">{SOURCE_LABEL[r.source] ?? r.source}</Badge>
                   </TableCell>
-                  <TableCell className="whitespace-nowrap text-[12px] text-muted-foreground">{fmtDateTime(r.created_at)}</TableCell>
+                  <TableCell className="whitespace-nowrap text-detail text-muted-foreground">{fmtDateTime(r.created_at)}</TableCell>
                   {isAdmin && (
                     <TableCell className="text-right">
                       {!r.opted_out && (

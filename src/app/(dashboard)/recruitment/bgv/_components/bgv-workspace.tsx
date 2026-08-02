@@ -289,12 +289,12 @@ function StatusCell({
 
   return (
     <Select value={status} onValueChange={onChange} disabled={pending}>
-      <SelectTrigger size="sm" className="h-7 w-[140px] text-[12.5px]">
+      <SelectTrigger size="sm" className="h-7 w-[140px] text-detail">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
         {BGV_STATUSES.map((s) => (
-          <SelectItem key={s} value={s} className="text-[12.5px]">
+          <SelectItem key={s} value={s} className="text-detail">
             {STATUS_LABEL[s]}
           </SelectItem>
         ))}
@@ -340,7 +340,7 @@ function AttachmentCell({
           href={row.attachmentUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-[12.5px] font-medium text-primary hover:underline"
+          className="inline-flex items-center gap-1 text-detail font-medium text-primary hover:underline"
         >
           <FileText className="size-3.5" /> Report
         </a>
@@ -375,7 +375,7 @@ function AttachmentCell({
     );
   }
 
-  return <span className="text-[12.5px] text-muted-foreground">—</span>;
+  return <span className="text-detail text-muted-foreground">—</span>;
 }
 
 // ============================================================
@@ -470,7 +470,7 @@ export function BgvWorkspace({
       </div>
 
       <div className="flex items-center justify-between gap-3">
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-body text-muted-foreground">
           {checks.length} check{checks.length === 1 ? "" : "s"} across{" "}
           {new Set(checks.map((c) => c.candidateId)).size} candidate
           {new Set(checks.map((c) => c.candidateId)).size === 1 ? "" : "s"}
@@ -518,33 +518,33 @@ export function BgvWorkspace({
                       <div className="min-w-0 leading-tight">
                         <a
                           href={`/recruitment/candidates/${row.candidateId}`}
-                          className="block truncate text-[13px] font-medium text-foreground hover:text-primary hover:underline"
+                          className="block truncate text-body font-medium text-foreground hover:text-primary hover:underline"
                         >
                           {row.candidateName}
                         </a>
                         {row.candidateEmail && (
-                          <span className="block truncate text-[11.5px] text-muted-foreground">
+                          <span className="block truncate text-meta text-muted-foreground">
                             {row.candidateEmail}
                           </span>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-[13px] text-foreground/80">
+                    <TableCell className="text-body text-foreground/80">
                       {TYPE_LABEL[row.type as BgvType] ?? row.type}
                     </TableCell>
                     <TableCell>
                       <StatusCell row={row} canWrite={canWrite} onChanged={refresh} />
                     </TableCell>
-                    <TableCell className="text-[13px] text-foreground/80">
+                    <TableCell className="text-body text-foreground/80">
                       {row.vendor || "—"}
                     </TableCell>
                     <TableCell>
                       <AttachmentCell row={row} canWrite={canWrite} onChanged={refresh} />
                     </TableCell>
-                    <TableCell className="text-right text-[12.5px] tabular-nums text-muted-foreground">
+                    <TableCell className="text-right text-detail tabular-nums text-muted-foreground">
                       {formatDate(row.requestedAt)}
                     </TableCell>
-                    <TableCell className="text-right text-[12.5px] tabular-nums text-muted-foreground">
+                    <TableCell className="text-right text-detail tabular-nums text-muted-foreground">
                       {row.completedAt ? formatDate(row.completedAt) : "—"}
                     </TableCell>
                     {canWrite && (

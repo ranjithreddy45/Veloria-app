@@ -122,7 +122,7 @@ function useColumns(): ColumnDef<InvoiceRow, unknown>[] {
       cell: ({ row }) => (
         <Link
           href={`/invoices/${row.original.id}`}
-          className="numeric text-[13px] font-medium text-foreground underline-offset-4 hover:text-primary hover:underline"
+          className="numeric text-body font-medium text-foreground underline-offset-4 hover:text-primary hover:underline"
         >
           {row.original.invoiceNumber}
         </Link>
@@ -135,11 +135,11 @@ function useColumns(): ColumnDef<InvoiceRow, unknown>[] {
         const c = row.original.contact;
         return (
           <div className="min-w-0">
-            <div className="truncate text-[13px] font-medium">
+            <div className="truncate text-body font-medium">
               {c.firstName} {c.lastName}
             </div>
             {c.company && (
-              <div className="truncate text-[12px] text-muted-foreground">
+              <div className="truncate text-detail text-muted-foreground">
                 {c.company}
               </div>
             )}
@@ -155,8 +155,8 @@ function useColumns(): ColumnDef<InvoiceRow, unknown>[] {
         if (!b) return <span className="text-muted-foreground">—</span>;
         return (
           <div className="min-w-0">
-            <div className="numeric text-[12.5px]">{b.bookingNumber}</div>
-            <div className="truncate text-[12px] text-muted-foreground">
+            <div className="numeric text-detail">{b.bookingNumber}</div>
+            <div className="truncate text-detail text-muted-foreground">
               {b.eventName}
             </div>
           </div>
@@ -169,7 +169,7 @@ function useColumns(): ColumnDef<InvoiceRow, unknown>[] {
         <DataTableColumnHeader column={column} title="Issue Date" />
       ),
       cell: ({ row }) => (
-        <span className="numeric text-[12.5px] text-muted-foreground">
+        <span className="numeric text-detail text-muted-foreground">
           {row.original.issueDate
             ? format(new Date(row.original.issueDate), "dd MMM yyyy")
             : "—"}
@@ -182,7 +182,7 @@ function useColumns(): ColumnDef<InvoiceRow, unknown>[] {
         <DataTableColumnHeader column={column} title="Due Date" />
       ),
       cell: ({ row }) => (
-        <span className="numeric text-[12.5px] text-muted-foreground">
+        <span className="numeric text-detail text-muted-foreground">
           {row.original.dueDate
             ? format(new Date(row.original.dueDate), "dd MMM yyyy")
             : "—"}
@@ -197,7 +197,7 @@ function useColumns(): ColumnDef<InvoiceRow, unknown>[] {
         </div>
       ),
       cell: ({ row }) => (
-        <div className="numeric text-right text-[13px] font-semibold text-foreground">
+        <div className="numeric text-right text-body font-semibold text-foreground">
           {formatINR(row.original.totalAmount)}
         </div>
       ),
@@ -211,8 +211,8 @@ function useColumns(): ColumnDef<InvoiceRow, unknown>[] {
           <div
             className={
               paid > 0
-                ? "numeric text-right text-[13px] text-success"
-                : "numeric text-right text-[13px] text-muted-foreground"
+                ? "numeric text-right text-body text-success"
+                : "numeric text-right text-body text-muted-foreground"
             }
           >
             {formatINR(row.original.paidAmount)}
@@ -229,8 +229,8 @@ function useColumns(): ColumnDef<InvoiceRow, unknown>[] {
           <div
             className={
               balance > 0
-                ? "numeric text-right text-[13px] font-semibold text-destructive"
-                : "numeric text-right text-[13px] text-muted-foreground"
+                ? "numeric text-right text-body font-semibold text-destructive"
+                : "numeric text-right text-body text-muted-foreground"
             }
           >
             {formatINR(row.original.balanceDue)}

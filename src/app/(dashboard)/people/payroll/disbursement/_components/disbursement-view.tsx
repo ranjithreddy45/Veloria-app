@@ -164,8 +164,8 @@ export function DisbursementView({
           <div className="rounded-xl border bg-card">
             <div className="flex flex-col gap-3 border-b px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h3 className="text-[14px] font-semibold">Bank advice</h3>
-                <p className="text-[12.5px] text-muted-foreground">
+                <h3 className="text-copy font-semibold">Bank advice</h3>
+                <p className="text-detail text-muted-foreground">
                   Net pay per employee. Hold a salary to remove it from the disbursement.
                 </p>
               </div>
@@ -173,7 +173,7 @@ export function DisbursementView({
                 <Button size="sm" variant="outline" className="gap-1.5" onClick={exportBankAdvice}>
                   <Download className="size-4" /> Export bank advice (CSV)
                 </Button>
-                <p className="inline-flex items-center gap-1 text-[11px] text-warning">
+                <p className="inline-flex items-center gap-1 text-meta text-warning">
                   <Info className="size-3" /> Held salaries are excluded from the bank advice.
                 </p>
               </div>
@@ -196,7 +196,7 @@ export function DisbursementView({
                     <TableRow key={r.payslipId} className={r.onHold ? "bg-warning/5" : undefined}>
                       <TableCell>
                         <div className="font-medium">{r.name}</div>
-                        <div className="text-[11.5px] text-muted-foreground">{r.empCode}</div>
+                        <div className="text-meta text-muted-foreground">{r.empCode}</div>
                       </TableCell>
                       <TableCell className="tabular-nums text-muted-foreground">
                         {r.bankAccountMasked ?? <span className="text-destructive">No bank a/c</span>}

@@ -266,14 +266,14 @@ export function CommissionRuleForm({ initialRules }: CommissionRuleFormProps) {
                   {rule.name}
                 </span>
                 {!rule.isActive && (
-                  <Badge variant="secondary" className="text-[10px]">
+                  <Badge variant="secondary" className="text-meta">
                     Inactive
                   </Badge>
                 )}
                 {rule.role && (
                   <Badge
                     variant="outline"
-                    className="text-[10px] bg-blue-50 text-blue-700 border-blue-200"
+                    className="text-meta bg-blue-50 text-blue-700 border-blue-200"
                   >
                     {rule.role}
                   </Badge>
@@ -281,7 +281,7 @@ export function CommissionRuleForm({ initialRules }: CommissionRuleFormProps) {
                 {rule.bookingType && (
                   <Badge
                     variant="outline"
-                    className="text-[10px] bg-purple-50 text-purple-700 border-purple-200"
+                    className="text-meta bg-purple-50 text-purple-700 border-purple-200"
                   >
                     {rule.bookingType}
                   </Badge>

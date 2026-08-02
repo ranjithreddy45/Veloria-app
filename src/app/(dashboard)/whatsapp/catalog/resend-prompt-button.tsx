@@ -48,7 +48,7 @@ export function ResendPromptButton() {
       <PopoverContent align="end" className="w-72 space-y-3">
         <div className="space-y-1">
           <p className="text-sm font-medium">Resend catalog prompt</p>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-meta text-muted-foreground">
             Re-sends the event-type picker to a number. Only works inside their
             24h WhatsApp window.
           </p>
@@ -67,7 +67,7 @@ export function ResendPromptButton() {
           )}
           Send prompt
         </Button>
-        {msg && <p className="text-[11px] text-muted-foreground">{msg}</p>}
+        {msg && <p className="text-meta text-muted-foreground">{msg}</p>}
       </PopoverContent>
     </Popover>
   );

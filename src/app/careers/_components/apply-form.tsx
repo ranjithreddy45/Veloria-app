@@ -54,10 +54,10 @@ export function ApplyForm({ jobOpeningId, roleTitle }: { jobOpeningId: string; r
         <span className="flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary">
           <CheckCircle2 className="size-6" />
         </span>
-        <h3 className="text-[15px] font-semibold tracking-[-0.01em] text-foreground">
+        <h3 className="text-copy font-semibold tracking-[-0.01em] text-foreground">
           Thanks — we&apos;ll be in touch
         </h3>
-        <p className="max-w-sm text-[13px] leading-relaxed text-muted-foreground">
+        <p className="max-w-sm text-body leading-relaxed text-muted-foreground">
           Your application for <span className="font-medium text-foreground">{roleTitle}</span> has
           been received. Our team will review it and reach out if there&apos;s a fit.
         </p>
@@ -70,10 +70,10 @@ export function ApplyForm({ jobOpeningId, roleTitle }: { jobOpeningId: string; r
       onSubmit={handleSubmit}
       className="rounded-xl border border-border/80 bg-card/90 p-6 shadow-[0_1px_2px_oklch(0_0_0/4%),0_4px_24px_oklch(0_0_0/3%)] backdrop-blur-sm"
     >
-      <h3 className="text-[14.5px] font-semibold tracking-[-0.01em] text-foreground">
+      <h3 className="text-copy font-semibold tracking-[-0.01em] text-foreground">
         Apply for this role
       </h3>
-      <p className="mt-1 text-[12.5px] text-muted-foreground">
+      <p className="mt-1 text-detail text-muted-foreground">
         Tell us a little about you. Fields marked * are required.
       </p>
 
@@ -132,7 +132,7 @@ export function ApplyForm({ jobOpeningId, roleTitle }: { jobOpeningId: string; r
           <Label>Resume</Label>
           {resume ? (
             <div className="flex items-center justify-between gap-2 rounded-md border border-border/80 bg-muted/40 px-3 py-2">
-              <span className="flex min-w-0 items-center gap-2 text-[12.5px] text-foreground">
+              <span className="flex min-w-0 items-center gap-2 text-detail text-foreground">
                 <FileText className="size-4 shrink-0 text-muted-foreground" />
                 <span className="truncate">{resume.name}</span>
               </span>
@@ -158,7 +158,7 @@ export function ApplyForm({ jobOpeningId, roleTitle }: { jobOpeningId: string; r
               onUploaded={(dataUrl, file) => setResume({ url: dataUrl, name: file.name })}
             />
           )}
-          <p className="text-[11.5px] text-muted-foreground">Optional. PDF or image, up to ~1 MB.</p>
+          <p className="text-meta text-muted-foreground">Optional. PDF or image, up to ~1 MB.</p>
         </div>
       </div>
 

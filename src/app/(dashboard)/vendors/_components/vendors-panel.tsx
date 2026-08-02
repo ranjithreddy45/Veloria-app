@@ -133,12 +133,12 @@ function VendorCard({ vendor, categories, venues }: VendorCardProps) {
         <div className="min-w-0">
           <Link
             href={`/vendors/${vendor.id}`}
-            className="block truncate text-[14px] font-semibold tracking-[-0.01em] text-foreground hover:underline"
+            className="block truncate text-copy font-semibold tracking-[-0.01em] text-foreground hover:underline"
           >
             {vendor.name}
           </Link>
           {vendor.city && (
-            <p className="mt-0.5 flex items-center gap-1 text-[12px] text-muted-foreground">
+            <p className="mt-0.5 flex items-center gap-1 text-detail text-muted-foreground">
               <MapPinIcon className="size-3 shrink-0" />
               {vendor.city}
             </p>
@@ -148,7 +148,7 @@ function VendorCard({ vendor, categories, venues }: VendorCardProps) {
         <Badge
           variant="outline"
           className={cn(
-            "shrink-0 gap-1 border text-[11px] font-medium",
+            "shrink-0 gap-1 border text-meta font-medium",
             EMPANELMENT_COLORS[empanelStatus] ?? "bg-muted text-foreground border-border"
           )}
         >
@@ -164,7 +164,7 @@ function VendorCard({ vendor, categories, venues }: VendorCardProps) {
             <span
               key={cat}
               className={cn(
-                "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
+                "inline-flex items-center rounded-full border px-2 py-0.5 text-meta font-medium",
                 CATEGORY_HUE[cat] ?? "bg-muted text-muted-foreground border-border"
               )}
             >
@@ -175,7 +175,7 @@ function VendorCard({ vendor, categories, venues }: VendorCardProps) {
       )}
 
       {/* ── Vendor type + venue scope ── */}
-      <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-1.5 text-meta text-muted-foreground">
         <span className="rounded-full border border-border bg-muted/50 px-2 py-0.5 font-medium">
           {VENDOR_TYPE_LABELS[vendor.vendorType ?? "EXTERNAL"] ?? "External vendor"}
         </span>
@@ -189,7 +189,7 @@ function VendorCard({ vendor, categories, venues }: VendorCardProps) {
         {vendor.email && (
           <a
             href={`mailto:${vendor.email}`}
-            className="flex items-center gap-1.5 truncate text-[12px] text-muted-foreground hover:text-foreground"
+            className="flex items-center gap-1.5 truncate text-detail text-muted-foreground hover:text-foreground"
             onClick={(e) => e.stopPropagation()}
           >
             <MailIcon className="size-3 shrink-0" />
@@ -197,20 +197,20 @@ function VendorCard({ vendor, categories, venues }: VendorCardProps) {
           </a>
         )}
         {vendor.phone && (
-          <p className="numeric flex items-center gap-1.5 text-[12px] text-muted-foreground">
+          <p className="numeric flex items-center gap-1.5 text-detail text-muted-foreground">
             <PhoneIcon className="size-3 shrink-0" />
             {vendor.phone}
           </p>
         )}
         {!vendor.email && !vendor.phone && (
-          <p className="text-[12px] text-muted-foreground/50">No contact info</p>
+          <p className="text-detail text-muted-foreground/50">No contact info</p>
         )}
       </div>
 
       {/* ── Footer: package count + quality score ── */}
       <div className="mt-auto flex items-center justify-between gap-2 border-t pt-3">
         <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1 text-[12px] text-muted-foreground">
+          <span className="flex items-center gap-1 text-detail text-muted-foreground">
             <PackageIcon className="size-3 shrink-0" />
             <span className="numeric font-medium text-foreground">{vendor.packageCount}</span>
             {vendor.packageCount === 1 ? " package" : " packages"}
@@ -220,7 +220,7 @@ function VendorCard({ vendor, categories, venues }: VendorCardProps) {
         {vendor.qualityScore !== null && (
           <Badge
             variant="outline"
-            className="border-teal-500/25 bg-teal-500/12 text-[11px] font-semibold text-teal-700 dark:text-teal-300"
+            className="border-teal-500/25 bg-teal-500/12 text-meta font-semibold text-teal-700 dark:text-teal-300"
           >
             QS <span className="numeric ml-1">{vendor.qualityScore}</span>
           </Badge>
@@ -237,7 +237,7 @@ function VendorCard({ vendor, categories, venues }: VendorCardProps) {
             <Button
               variant="outline"
               size="sm"
-              className="h-7 flex-1 text-[12px]"
+              className="h-7 flex-1 text-detail"
             >
               Edit
             </Button>
@@ -248,7 +248,7 @@ function VendorCard({ vendor, categories, venues }: VendorCardProps) {
           <Button
             variant="outline"
             size="sm"
-            className="h-7 gap-1 text-[12px] text-muted-foreground"
+            className="h-7 gap-1 text-detail text-muted-foreground"
             onClick={handleRestore}
             disabled={pending}
           >
@@ -261,7 +261,7 @@ function VendorCard({ vendor, categories, venues }: VendorCardProps) {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-7 gap-1 text-[12px] text-muted-foreground hover:text-destructive"
+                className="h-7 gap-1 text-detail text-muted-foreground hover:text-destructive"
                 disabled={pending}
               >
                 <ArchiveIcon className="size-3" />
@@ -338,7 +338,7 @@ export function VendorsPanel({ vendors, search, category, categories, venues }: 
             checked={showArchived}
             onCheckedChange={setShowArchived}
           />
-          <Label htmlFor="show-archived" className="cursor-pointer text-[13px] text-muted-foreground">
+          <Label htmlFor="show-archived" className="cursor-pointer text-body text-muted-foreground">
             Show archived vendors
           </Label>
         </div>

@@ -86,12 +86,12 @@ function Section({
       className={cn("rounded-2xl border bg-card shadow-card", className)}
     >
       <div className="border-b px-5 py-4">
-        <h3 className="flex items-center gap-2 text-[15px] font-semibold tracking-[-0.01em]">
+        <h3 className="flex items-center gap-2 text-copy font-semibold tracking-[-0.01em]">
           {icon}
           {title}
         </h3>
         {description && (
-          <p className="mt-1 text-[13px] text-muted-foreground">{description}</p>
+          <p className="mt-1 text-body text-muted-foreground">{description}</p>
         )}
       </div>
       <div className="px-5 py-5">{children}</div>
@@ -186,7 +186,7 @@ export function WebformDetailTabs({
                   title="Native form — your own design"
                   description="Best for a landing page: real HTML you can restyle to match your brand."
                 >
-                  <p className="mb-3 text-[13px] leading-relaxed text-muted-foreground">
+                  <p className="mb-3 text-body leading-relaxed text-muted-foreground">
                     No iframe, so every element is yours to style (each class is
                     prefixed <code>vg-</code>). Leads still land in this app and
                     Google click ids are read straight from the landing-page URL.
@@ -207,7 +207,7 @@ export function WebformDetailTabs({
                 title="JavaScript Embed"
                 description="Recommended for ad traffic — carries attribution through to the lead."
               >
-                <p className="mb-3 text-[13px] leading-relaxed text-muted-foreground">
+                <p className="mb-3 text-body leading-relaxed text-muted-foreground">
                   Forwards gclid / gbraid / wbraid / fbclid and UTM params from
                   the landing page into the form, auto-sizes the iframe, and can
                   fire a Google Ads conversion on submit.

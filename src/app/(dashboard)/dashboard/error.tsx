@@ -24,10 +24,10 @@ export default function DashboardError({
             <AlertTriangle className="size-6" />
           </div>
           <div className="space-y-1.5">
-            <h2 className="font-editorial text-[19px] font-semibold">
+            <h2 className="font-editorial text-title font-semibold">
               Something went wrong
             </h2>
-            <p className="text-[13px] leading-relaxed text-muted-foreground">
+            <p className="text-body leading-relaxed text-muted-foreground">
               We couldn&apos;t load the dashboard. This is usually temporary —
               try again in a moment.
             </p>

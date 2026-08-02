@@ -164,29 +164,29 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
         {/* Header — issuer block (left) vs document block (right) */}
         <div className="flex flex-col gap-6 sm:flex-row sm:justify-between">
           <div>
-            <div className="font-editorial text-[30px] font-semibold leading-tight text-zinc-900">
+            <div className="font-editorial text-h1 font-semibold leading-tight text-zinc-900">
               Veloria Grand
             </div>
-            <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
+            <p className="mt-1 text-meta font-semibold uppercase tracking-[0.08em] text-zinc-500">
               {COMPANY_LEGAL_LINE}
             </p>
-            <p className="mt-1.5 text-[13px] text-zinc-500">
+            <p className="mt-1.5 text-body text-zinc-500">
               Premium Event &amp; Banquet Services
             </p>
-            <p className="mt-2.5 text-[12px] leading-relaxed text-zinc-500">
+            <p className="mt-2.5 text-detail leading-relaxed text-zinc-500">
               {COMPANY_ADDRESS}
               <br />
               GSTIN: <span className="numeric">{COMPANY_GSTIN || "Not Configured"}</span>
             </p>
           </div>
           <div className="shrink-0 text-left sm:text-right">
-            <h2 className="text-[13px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+            <h2 className="text-body font-semibold uppercase tracking-[0.14em] text-zinc-400">
               {docTitle}
             </h2>
-            <p className="numeric mt-1.5 text-[20px] font-semibold text-zinc-900">
+            <p className="numeric mt-1.5 text-title font-semibold text-zinc-900">
               {invoice.invoiceNumber}
             </p>
-            <div className="mt-3 space-y-1 text-[12.5px] text-zinc-600">
+            <div className="mt-3 space-y-1 text-detail text-zinc-600">
               <p className="sm:flex sm:justify-end sm:gap-3">
                 <span className="text-zinc-400">Issue date</span>
                 <span className="numeric">
@@ -216,17 +216,17 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
         {/* Bill To & Invoice Details */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div className="rounded-xl bg-zinc-50/80 p-4 print:bg-transparent print:p-0">
-            <h3 className="mb-2 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
+            <h3 className="mb-2 text-meta font-semibold uppercase tracking-[0.12em] text-zinc-400">
               Bill To
             </h3>
-            <p className="text-[15px] font-semibold text-zinc-900">
+            <p className="text-copy font-semibold text-zinc-900">
               {invoice.contact.firstName} {invoice.contact.lastName}
             </p>
             {invoice.contact.company && (
-              <p className="text-[13px] text-zinc-600">{invoice.contact.company}</p>
+              <p className="text-body text-zinc-600">{invoice.contact.company}</p>
             )}
             {invoice.contact.address && (
-              <p className="mt-1 text-[13px] leading-relaxed text-zinc-500">
+              <p className="mt-1 text-body leading-relaxed text-zinc-500">
                 {invoice.contact.address}
                 {invoice.contact.city && `, ${invoice.contact.city}`}
                 {invoice.contact.state && `, ${invoice.contact.state}`}
@@ -236,25 +236,25 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
             {invoice.contact.email && (
               // break-all: a long address is one unbreakable token and would
               // otherwise widen the whole invoice sheet past the viewport.
-              <p className="break-all text-[13px] text-zinc-500">{invoice.contact.email}</p>
+              <p className="break-all text-body text-zinc-500">{invoice.contact.email}</p>
             )}
             {invoice.contact.phone && (
-              <p className="numeric text-[13px] text-zinc-500">
+              <p className="numeric text-body text-zinc-500">
                 {invoice.contact.phone}
               </p>
             )}
             {invoice.gstin && (
-              <p className="mt-1 text-[13px] text-zinc-500">
+              <p className="mt-1 text-body text-zinc-500">
                 <span className="font-medium">GSTIN:</span>{" "}
                 <span className="numeric">{invoice.gstin}</span>
               </p>
             )}
           </div>
           <div className="rounded-xl bg-zinc-50/80 p-4 print:bg-transparent print:p-0">
-            <h3 className="mb-2 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
+            <h3 className="mb-2 text-meta font-semibold uppercase tracking-[0.12em] text-zinc-400">
               Invoice Details
             </h3>
-            <div className="space-y-1 text-[13px]">
+            <div className="space-y-1 text-body">
               {invoice.placeOfSupply && (
                 <p>
                   <span className="text-zinc-500">Place of Supply:</span>{" "}
@@ -312,15 +312,15 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
               className="rounded-xl border border-zinc-200 p-3"
             >
               <div className="flex items-start justify-between gap-3">
-                <p className="min-w-0 text-[13px] font-medium text-zinc-800">
+                <p className="min-w-0 text-body font-medium text-zinc-800">
                   <span className="numeric text-zinc-400">{index + 1}.</span>{" "}
                   {item.description}
                 </p>
-                <p className="numeric shrink-0 text-[13px] font-semibold text-zinc-900">
+                <p className="numeric shrink-0 text-body font-semibold text-zinc-900">
                   {formatINR(item.amount)}
                 </p>
               </div>
-              <p className="numeric mt-1 text-[12px] text-zinc-500">
+              <p className="numeric mt-1 text-detail text-zinc-500">
                 {toNum(item.quantity)} × {formatINR(item.unitPrice)}
                 {item.sacCode ? ` · SAC ${item.sacCode}` : ""}
               </p>
@@ -330,27 +330,27 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
 
         {/* Line Items Table */}
         <div className="mt-8 hidden overflow-x-auto sm:block print:block">
-          <table className="w-full text-[13px]">
+          <table className="w-full text-body">
             <thead>
               <tr className="border-b border-zinc-300">
-                <th className="w-8 pb-2 text-left text-[10.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
+                <th className="w-8 pb-2 text-left text-meta font-semibold uppercase tracking-[0.1em] text-zinc-400">
                   #
                 </th>
-                <th className="pb-2 text-left text-[10.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
+                <th className="pb-2 text-left text-meta font-semibold uppercase tracking-[0.1em] text-zinc-400">
                   Description
                 </th>
                 {invoice.lineItems[0]?.sacCode && (
-                  <th className="pb-2 text-left text-[10.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
+                  <th className="pb-2 text-left text-meta font-semibold uppercase tracking-[0.1em] text-zinc-400">
                     SAC
                   </th>
                 )}
-                <th className="w-16 pb-2 text-right text-[10.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
+                <th className="w-16 pb-2 text-right text-meta font-semibold uppercase tracking-[0.1em] text-zinc-400">
                   Qty
                 </th>
-                <th className="w-32 pb-2 text-right text-[10.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
+                <th className="w-32 pb-2 text-right text-meta font-semibold uppercase tracking-[0.1em] text-zinc-400">
                   Unit Price
                 </th>
-                <th className="w-36 pb-2 text-right text-[10.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
+                <th className="w-36 pb-2 text-right text-meta font-semibold uppercase tracking-[0.1em] text-zinc-400">
                   Amount
                 </th>
               </tr>
@@ -384,7 +384,7 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
 
         {/* Totals */}
         <div className="mt-6 flex justify-end">
-          <div className="w-full max-w-xs rounded-xl border border-zinc-200 bg-zinc-50/70 p-4 text-[13px] print:border-0 print:bg-transparent print:p-0">
+          <div className="w-full max-w-xs rounded-xl border border-zinc-200 bg-zinc-50/70 p-4 text-body print:border-0 print:bg-transparent print:p-0">
             <div className="space-y-2">
               <div className="flex items-baseline justify-between gap-4">
                 <span className="text-zinc-500">Subtotal</span>
@@ -437,7 +437,7 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
               )}
             </div>
 
-            <div className="mt-3 flex items-baseline justify-between gap-4 border-t border-zinc-300 pt-3 text-[15px] font-semibold">
+            <div className="mt-3 flex items-baseline justify-between gap-4 border-t border-zinc-300 pt-3 text-copy font-semibold">
               <span className="text-zinc-900">Total</span>
               <span className="numeric text-zinc-900">
                 {formatINR(invoice.totalAmount)}
@@ -447,7 +447,7 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
               <span>Paid</span>
               <span className="numeric">{formatINR(invoice.paidAmount)}</span>
             </div>
-            <div className="mt-2 flex items-baseline justify-between gap-4 border-t border-zinc-200 pt-2.5 text-[17px] font-bold">
+            <div className="mt-2 flex items-baseline justify-between gap-4 border-t border-zinc-200 pt-2.5 text-lede font-bold">
               <span className="text-zinc-900">Balance Due</span>
               <span
                 className={
@@ -462,7 +462,7 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
 
             {/* Goal-gradient: collection progress (screen only, not printed) */}
             <div className="pt-3 print:hidden">
-              <div className="flex items-center justify-between text-[10.5px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
+              <div className="flex items-center justify-between text-meta font-semibold uppercase tracking-[0.1em] text-zinc-400">
                 <span>Collection progress</span>
                 <span className="numeric tracking-normal">{paidPct}%</span>
               </div>
@@ -475,11 +475,11 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
                 />
               </div>
               {fullyPaid ? (
-                <p className="mt-2 text-[12px] font-medium text-emerald-600">
+                <p className="mt-2 text-detail font-medium text-emerald-600">
                   Fully paid
                 </p>
               ) : almostThere ? (
-                <p className="mt-2 text-[12px] font-medium text-amber-600">
+                <p className="mt-2 text-detail font-medium text-amber-600">
                   Almost there —{" "}
                   <span className="numeric text-emerald-700">
                     {inr(balanceNum)}
@@ -487,7 +487,7 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
                   to go
                 </p>
               ) : (
-                <p className="mt-2 text-[12px] text-zinc-500">
+                <p className="mt-2 text-detail text-zinc-500">
                   <span className="numeric font-semibold text-zinc-700">
                     {inr(balanceNum)}
                   </span>{" "}
@@ -559,14 +559,14 @@ This is a Proforma Invoice for advance/part payment and is not a tax document. A
               {invoice.payments.map((payment) => (
                 <li key={payment.id} className="space-y-1.5 p-3">
                   <div className="flex items-start justify-between gap-3">
-                    <span className="numeric min-w-0 text-[13px] font-medium">
+                    <span className="numeric min-w-0 text-body font-medium">
                       {payment.receiptNumber || "—"}
                     </span>
-                    <span className="numeric shrink-0 text-[13px] font-semibold text-success">
+                    <span className="numeric shrink-0 text-body font-semibold text-success">
                       {formatINR(payment.amount)}
                     </span>
                   </div>
-                  <div className="flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-1.5 text-detail text-muted-foreground">
                     <span className="numeric">
                       {payment.paidAt
                         ? format(new Date(payment.paidAt), "dd MMM yyyy")
@@ -583,7 +583,7 @@ This is a Proforma Invoice for advance/part payment and is not a tax document. A
                     </Badge>
                   </div>
                   {payment.transactionId && (
-                    <p className="numeric break-all text-[12px] text-muted-foreground">
+                    <p className="numeric break-all text-detail text-muted-foreground">
                       Txn {payment.transactionId}
                     </p>
                   )}
@@ -591,9 +591,9 @@ This is a Proforma Invoice for advance/part payment and is not a tax document. A
               ))}
             </ul>
             <div className="hidden overflow-x-auto sm:block">
-              <table className="w-full text-[13px]">
+              <table className="w-full text-body">
                 <thead>
-                  <tr className="border-b bg-muted/30 text-[11px] font-medium uppercase tracking-[0.05em] text-muted-foreground">
+                  <tr className="border-b bg-muted/30 text-meta font-medium uppercase tracking-[0.05em] text-muted-foreground">
                     <th className="px-3 py-2.5 text-left">Receipt #</th>
                     <th className="px-3 py-2.5 text-left">Date</th>
                     <th className="px-3 py-2.5 text-left">Method</th>
@@ -654,14 +654,14 @@ This is a Proforma Invoice for advance/part payment and is not a tax document. A
               {invoice.installments.map((inst) => (
                 <li key={inst.id} className="space-y-1.5 p-3">
                   <div className="flex items-start justify-between gap-3">
-                    <span className="min-w-0 text-[13px] font-medium">
+                    <span className="min-w-0 text-body font-medium">
                       {inst.label}
                     </span>
-                    <span className="numeric shrink-0 text-[13px] font-semibold">
+                    <span className="numeric shrink-0 text-body font-semibold">
                       {formatINR(inst.amount)}
                     </span>
                   </div>
-                  <div className="flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-1.5 text-detail text-muted-foreground">
                     <span className="numeric">
                       Due {format(new Date(inst.dueDate), "dd MMM yyyy")}
                     </span>
@@ -676,9 +676,9 @@ This is a Proforma Invoice for advance/part payment and is not a tax document. A
               ))}
             </ul>
             <div className="hidden overflow-x-auto sm:block">
-              <table className="w-full text-[13px]">
+              <table className="w-full text-body">
                 <thead>
-                  <tr className="border-b bg-muted/30 text-[11px] font-medium uppercase tracking-[0.05em] text-muted-foreground">
+                  <tr className="border-b bg-muted/30 text-meta font-medium uppercase tracking-[0.05em] text-muted-foreground">
                     <th className="px-3 py-2.5 text-left">Installment</th>
                     <th className="px-3 py-2.5 text-left">Due Date</th>
                     <th className="px-3 py-2.5 text-right">Amount</th>

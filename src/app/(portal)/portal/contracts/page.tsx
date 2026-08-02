@@ -65,7 +65,7 @@ export default async function PortalContractsPage() {
           {/* Pending Signature */}
           {pendingContracts.length > 0 && (
             <section className="space-y-4">
-              <h2 className="text-muted-foreground flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em]">
+              <h2 className="text-muted-foreground flex items-center gap-2 text-meta font-semibold uppercase tracking-[0.14em]">
                 Awaiting your signature
                 <span className="numeric text-muted-foreground/60">
                   {pendingContracts.length}
@@ -86,7 +86,7 @@ export default async function PortalContractsPage() {
           {/* Other Contracts */}
           {otherContracts.length > 0 && (
             <section className="space-y-4">
-              <h2 className="text-muted-foreground flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em]">
+              <h2 className="text-muted-foreground flex items-center gap-2 text-meta font-semibold uppercase tracking-[0.14em]">
                 {pendingContracts.length > 0
                   ? "Other contracts"
                   : "All contracts"}
@@ -175,7 +175,7 @@ function ContractRow({ contract, showSignButton }: ContractRowProps) {
                   <StatusBadge
                     status={contract.status}
                     colorMap={CONTRACT_STATUS_COLORS}
-                    className="text-[10px]"
+                    className="text-meta"
                   />
                 </div>
                 <p className="text-muted-foreground mt-0.5 truncate text-xs">
@@ -203,7 +203,7 @@ function ContractRow({ contract, showSignButton }: ContractRowProps) {
             <div className="flex items-center gap-5">
               {contract.signerName && (
                 <div className="text-right">
-                  <p className="text-muted-foreground/70 text-[10px] font-semibold uppercase tracking-[0.1em]">
+                  <p className="text-muted-foreground/70 text-meta font-semibold uppercase tracking-[0.1em]">
                     Signer
                   </p>
                   <p className="text-foreground mt-0.5 text-sm font-medium">

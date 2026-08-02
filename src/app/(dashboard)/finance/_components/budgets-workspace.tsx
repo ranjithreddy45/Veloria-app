@@ -102,7 +102,7 @@ export function BudgetsWorkspace({
           * 375px viewport. The group wraps and the select goes fluid on a
           * phone, keeping its desktop width from sm: up. */}
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-          <span className="text-[13px] text-muted-foreground">Budget</span>
+          <span className="text-body text-muted-foreground">Budget</span>
           <Select
             value={activeId ?? undefined}
             onValueChange={(v) => router.push(`/finance/budgets?budget=${v}`)}
@@ -179,7 +179,7 @@ export function BudgetsWorkspace({
                   <TableRow key={r.accountCode}>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span className="numeric text-[12px] text-muted-foreground">{r.accountCode}</span>
+                        <span className="numeric text-detail text-muted-foreground">{r.accountCode}</span>
                         <span>{r.accountName}</span>
                         <StatusPill label={r.type === "INCOME" ? "Income" : "Expense"} hue={r.type === "INCOME" ? "emerald" : "amber"} size="xs" />
                       </div>
@@ -198,7 +198,7 @@ export function BudgetsWorkspace({
                             style={{ width: `${barPct}%` }}
                           />
                         </div>
-                        <span className="w-9 shrink-0 text-right text-[11px] numeric text-muted-foreground">{barPct}%</span>
+                        <span className="w-9 shrink-0 text-right text-meta numeric text-muted-foreground">{barPct}%</span>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -225,7 +225,7 @@ export function BudgetsWorkspace({
       {/* Budget lines (with delete) */}
       {canManage && activeLines.length > 0 && (
         <Card className="overflow-hidden border-0 shadow-card">
-          <div className="border-b px-4 py-2.5 text-[13px] font-medium text-muted-foreground">Budget lines</div>
+          <div className="border-b px-4 py-2.5 text-body font-medium text-muted-foreground">Budget lines</div>
           <Table>
             <TableHeader>
               <TableRow>
@@ -239,10 +239,10 @@ export function BudgetsWorkspace({
               {activeLines.map((l) => (
                 <TableRow key={l.id}>
                   <TableCell>
-                    <span className="numeric text-[12px] text-muted-foreground">{l.accountCode}</span>
+                    <span className="numeric text-detail text-muted-foreground">{l.accountCode}</span>
                     <span className="ml-2">{accountName.get(l.accountCode) ?? ""}</span>
                   </TableCell>
-                  <TableCell className="text-[13px] text-muted-foreground">{PERIOD_LABELS[l.period] ?? `P${l.period}`}</TableCell>
+                  <TableCell className="text-body text-muted-foreground">{PERIOD_LABELS[l.period] ?? `P${l.period}`}</TableCell>
                   <TableCell className="text-right numeric">{formatINR(l.amount)}</TableCell>
                   <TableCell>
                     <DeleteLineButton id={l.id} onDone={() => router.refresh()} />
@@ -358,7 +358,7 @@ function AddLineDialog({ budgetId, accounts, onDone }: { budgetId: string; accou
               <SelectContent>
                 {accounts.map((a) => (
                   <SelectItem key={a.code} value={a.code}>
-                    <span className="numeric text-[12px] text-muted-foreground">{a.code}</span> {a.name}
+                    <span className="numeric text-detail text-muted-foreground">{a.code}</span> {a.name}
                   </SelectItem>
                 ))}
               </SelectContent>

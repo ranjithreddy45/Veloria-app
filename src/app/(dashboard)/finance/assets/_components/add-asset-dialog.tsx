@@ -64,36 +64,36 @@ export function AddAssetDialog() {
         </DialogHeader>
         <div className="space-y-3 py-2">
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Name</Label>
+            <Label className="text-detail">Name</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Banquet hall AV system" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Category</Label>
+              <Label className="text-detail">Category</Label>
               <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Equipment" />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Purchase date</Label>
+              <Label className="text-detail">Purchase date</Label>
               <Input type="date" value={purchaseDate} onChange={(e) => setPurchaseDate(e.target.value)} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Cost (₹)</Label>
+              <Label className="text-detail">Cost (₹)</Label>
               <Input value={cost} onChange={(e) => setCost(e.target.value)} placeholder="0" className="text-right numeric" inputMode="decimal" />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Salvage value (₹)</Label>
+              <Label className="text-detail">Salvage value (₹)</Label>
               <Input value={salvageValue} onChange={(e) => setSalvageValue(e.target.value)} placeholder="0" className="text-right numeric" inputMode="decimal" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Useful life (months)</Label>
+              <Label className="text-detail">Useful life (months)</Label>
               <Input value={usefulLifeMonths} onChange={(e) => setUsefulLifeMonths(e.target.value)} placeholder="60" className="text-right numeric" inputMode="numeric" />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Venue ID (optional)</Label>
+              <Label className="text-detail">Venue ID (optional)</Label>
               <Input value={venueId} onChange={(e) => setVenueId(e.target.value)} placeholder="—" />
             </div>
           </div>

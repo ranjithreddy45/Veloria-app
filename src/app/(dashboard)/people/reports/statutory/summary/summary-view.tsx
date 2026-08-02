@@ -63,7 +63,7 @@ export function StatutorySummaryView({
         <RegisterToolbar onCsv={onCsv} onPrint={onPrint} disabled={!hasData} />
       </div>
 
-      <p className="text-[12px] font-medium text-muted-foreground">
+      <p className="text-detail font-medium text-muted-foreground">
         Statutory summary — one row per statute for the run. Reconciliation view, not a filed return.
       </p>
 
@@ -81,7 +81,7 @@ export function StatutorySummaryView({
               {reg.rows.map((r) => (
                 <TableRow key={r.key}>
                   <TableCell className="font-medium">{r.statute}</TableCell>
-                  <TableCell className="text-[12.5px] text-muted-foreground">{r.note}</TableCell>
+                  <TableCell className="text-detail text-muted-foreground">{r.note}</TableCell>
                   <TableCell className="text-right tabular-nums">{inr(r.amount)}</TableCell>
                 </TableRow>
               ))}

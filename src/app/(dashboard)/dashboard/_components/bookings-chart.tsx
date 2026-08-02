@@ -46,10 +46,10 @@ export function BookingsChart({ data }: BookingsChartProps) {
   return (
     <Card className="card-hover-tint rounded-2xl border bg-card shadow-card transition-shadow hover:shadow-card-hover">
       <CardHeader className="pb-2">
-        <CardTitle className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        <CardTitle className="text-meta font-medium uppercase tracking-wide text-muted-foreground">
           Bookings by type
         </CardTitle>
-        <p className="mt-1 text-[13px] text-muted-foreground">
+        <p className="mt-1 text-body text-muted-foreground">
           <span className="numeric font-semibold text-foreground">
             {totalBookings}
           </span>{" "}
@@ -104,7 +104,7 @@ export function BookingsChart({ data }: BookingsChartProps) {
                             <tspan
                               x={viewBox.cx}
                               y={(viewBox.cy || 0) + 20}
-                              className="fill-muted-foreground text-[11px] uppercase tracking-wide"
+                              className="fill-muted-foreground text-meta uppercase tracking-wide"
                             >
                               Total
                             </tspan>
@@ -125,10 +125,10 @@ export function BookingsChart({ data }: BookingsChartProps) {
                     className="size-2.5 shrink-0 rounded-full"
                     style={{ backgroundColor: item.fill }}
                   />
-                  <span className="truncate text-[12px] text-muted-foreground">
+                  <span className="truncate text-detail text-muted-foreground">
                     {item.type}
                   </span>
-                  <span className="numeric ml-auto text-[12px] font-medium text-foreground">
+                  <span className="numeric ml-auto text-detail font-medium text-foreground">
                     {item.count}
                   </span>
                 </div>

@@ -177,7 +177,7 @@ function ScoreGauge({ score }: { score: number }) {
         <span className={cn("text-xl font-bold", getScoreColor(score))}>
           {score}
         </span>
-        <span className="text-[10px] text-zinc-400 font-medium">/ 100</span>
+        <span className="text-meta text-zinc-400 font-medium">/ 100</span>
       </div>
     </div>
   );
@@ -323,7 +323,7 @@ export function DealScoreCard({
           </div>
           <div className="flex items-center gap-1.5">
             {localScoredAt && (
-              <span className="flex items-center gap-1 text-[10px] text-zinc-400">
+              <span className="flex items-center gap-1 text-meta text-zinc-400">
                 <Clock className="size-3" />
                 {formatScoredAt(localScoredAt)}
               </span>
@@ -355,7 +355,7 @@ export function DealScoreCard({
             <div className="flex items-center gap-1.5 mb-1.5">
               <Badge
                 variant="outline"
-                className={cn("text-[10px] px-1.5 py-0", riskConfig!.className)}
+                className={cn("text-meta px-1.5 py-0", riskConfig!.className)}
               >
                 <RiskIcon className="size-3 mr-0.5" />
                 {riskConfig!.label}
@@ -378,7 +378,7 @@ export function DealScoreCard({
           <div>
             <button
               onClick={() => setShowDetails(!showDetails)}
-              className="flex items-center gap-1 text-[11px] font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
+              className="flex items-center gap-1 text-meta font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
             >
               {showDetails ? "Hide details" : "Show factor breakdown"}
               <svg
@@ -411,12 +411,12 @@ export function DealScoreCard({
                       {getImpactIcon(factor.impact)}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-medium text-zinc-700">
+                          <span className="text-meta font-medium text-zinc-700">
                             {factor.name}
                           </span>
                           <span
                             className={cn(
-                              "text-[10px] font-semibold tabular-nums",
+                              "text-meta font-semibold tabular-nums",
                               factor.impact === "POSITIVE"
                                 ? "text-green-600"
                                 : factor.impact === "NEGATIVE"
@@ -427,7 +427,7 @@ export function DealScoreCard({
                             +{factor.score}
                           </span>
                         </div>
-                        <p className="text-[10px] text-zinc-500 leading-relaxed mt-0.5">
+                        <p className="text-meta text-zinc-500 leading-relaxed mt-0.5">
                           {factor.description}
                         </p>
                       </div>
@@ -440,7 +440,7 @@ export function DealScoreCard({
                   <div>
                     <div className="flex items-center gap-1.5 mb-1.5">
                       <Lightbulb className="size-3 text-amber-500" />
-                      <span className="text-[11px] font-medium text-zinc-600">
+                      <span className="text-meta font-medium text-zinc-600">
                         Recommendations
                       </span>
                     </div>
@@ -448,7 +448,7 @@ export function DealScoreCard({
                       {recommendations.map((rec, i) => (
                         <li
                           key={i}
-                          className="flex items-start gap-1.5 text-[10px] text-zinc-600 leading-relaxed"
+                          className="flex items-start gap-1.5 text-meta text-zinc-600 leading-relaxed"
                         >
                           <CheckCircle2 className="size-3 text-indigo-400 mt-0.5 shrink-0" />
                           {rec}

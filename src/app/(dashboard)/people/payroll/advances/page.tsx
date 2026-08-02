@@ -71,7 +71,7 @@ export default async function AdvancesPage() {
 
       <AdvancesTable rows={advances} />
 
-      <p className="text-[12px] text-muted-foreground">
+      <p className="text-detail text-muted-foreground">
         Instalments are deducted automatically when payroll is processed. This screen records and
         tracks advances; it does not itself post any recovery.
       </p>

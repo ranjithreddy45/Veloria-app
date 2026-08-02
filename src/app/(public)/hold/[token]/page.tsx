@@ -32,7 +32,7 @@ export default async function HoldConfirmationPage({
   if (!res.success) {
     return (
       <div className="bg-card shadow-card mx-auto max-w-lg rounded-2xl border p-10 text-center">
-        <h1 className="text-foreground text-[24px]">
+        <h1 className="text-foreground text-h2">
           We couldn&apos;t find this hold
         </h1>
         <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm leading-relaxed">
@@ -73,10 +73,10 @@ export default async function HoldConfirmationPage({
   return (
     <div className="space-y-6">
       <header className="pb-1 text-center">
-        <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.18em]">
+        <p className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.18em]">
           For {h.customerFirstName}
         </p>
-        <h1 className="text-foreground mt-3 text-[30px] sm:text-[36px]">
+        <h1 className="text-foreground mt-3 text-h1 sm:text-h1">
           {paid ? "Your date is secured" : "Your date is on hold"}
         </h1>
       </header>
@@ -109,14 +109,14 @@ export default async function HoldConfirmationPage({
         <div className="space-y-3">
           <div className="flex flex-col items-center gap-2 rounded-2xl border border-success/25 bg-success/[0.07] p-8 text-center">
             <CheckCircle2 className="size-9 text-success" />
-            <p className="font-editorial mt-1 text-[22px] font-semibold text-success">
+            <p className="font-editorial mt-1 text-title font-semibold text-success">
               Your date is secured
             </p>
             <p className="text-sm text-success/85">
               <span className="numeric">{inr(h.tokenAmount)}</span> received ·{" "}
               {dateLabel} · {h.slotLabel}
             </p>
-            <p className="mt-2 flex items-center justify-center gap-1.5 text-[12.5px] font-medium text-success">
+            <p className="mt-2 flex items-center justify-center gap-1.5 text-detail font-medium text-success">
               <PhoneCall className="size-3.5" /> Your coordinator will call you
               within 24 hours.
             </p>
@@ -125,7 +125,7 @@ export default async function HoldConfirmationPage({
         </div>
       ) : expired || released ? (
         <div className="bg-card shadow-card rounded-2xl border p-8 text-center">
-          <p className="font-editorial text-foreground text-[22px] font-semibold">
+          <p className="font-editorial text-foreground text-title font-semibold">
             {released ? "This hold was released" : "This hold has expired"}
           </p>
           <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm leading-relaxed">

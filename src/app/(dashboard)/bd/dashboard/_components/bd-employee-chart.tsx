@@ -57,7 +57,7 @@ export function BdEmployeeChart({ employees }: { employees: BdEmployeeRow[] }) {
             type="button"
             onClick={() => setMetricKey(m.key)}
             className={cn(
-              "rounded-full border px-2.5 py-1 text-[12px] font-medium transition",
+              "rounded-full border px-2.5 py-1 text-detail font-medium transition",
               metricKey === m.key
                 ? "border-transparent text-white"
                 : "border-border bg-muted/30 text-muted-foreground hover:bg-muted"
@@ -70,7 +70,7 @@ export function BdEmployeeChart({ employees }: { employees: BdEmployeeRow[] }) {
       </div>
 
       {data.length === 0 ? (
-        <p className="py-10 text-center text-[13px] text-muted-foreground">
+        <p className="py-10 text-center text-body text-muted-foreground">
           No data for the selected period / employees.
         </p>
       ) : (

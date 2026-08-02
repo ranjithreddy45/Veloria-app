@@ -249,7 +249,7 @@ export function IncidentList({ incidents, protocols }: IncidentListProps) {
                   )}
 
                   {incident.bookingId && (
-                    <Badge variant="outline" className="text-[10px]">
+                    <Badge variant="outline" className="text-meta">
                       Booking: {incident.bookingId.slice(0, 8)}...
                     </Badge>
                   )}

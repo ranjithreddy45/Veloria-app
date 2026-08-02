@@ -53,7 +53,7 @@ export function VendorPortalNav({ userName }: VendorPortalNavProps) {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "flex items-center gap-2 rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors duration-200",
+                  "flex items-center gap-2 rounded-full px-3.5 py-2 text-body font-medium transition-colors duration-200",
                   isActive
                     ? "bg-teal-500/12 text-teal-700 dark:text-teal-300"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -78,7 +78,7 @@ export function VendorPortalNav({ userName }: VendorPortalNavProps) {
         </Button>
 
         <div className="ml-3 flex items-center gap-2 border-l pl-3">
-          <span className="hidden text-[13px] text-muted-foreground sm:inline">
+          <span className="hidden text-body text-muted-foreground sm:inline">
             {userName}
           </span>
           <Button

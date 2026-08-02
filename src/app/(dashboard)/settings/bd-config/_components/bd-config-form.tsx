@@ -220,7 +220,7 @@ export function BdConfigForm({ initialValues }: { initialValues: Values }) {
               const raw = values[f.key] ?? "";
               return (
                 <div key={f.key} className="space-y-1.5">
-                  <Label htmlFor={f.key} className="text-[13px] font-medium">
+                  <Label htmlFor={f.key} className="text-body font-medium">
                     {f.label}
                   </Label>
                   <div className="relative">
@@ -235,12 +235,12 @@ export function BdConfigForm({ initialValues }: { initialValues: Values }) {
                       className={f.unit ? "pr-16" : undefined}
                     />
                     {f.unit && (
-                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-muted-foreground">
+                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-detail text-muted-foreground">
                         {f.unit}
                       </span>
                     )}
                   </div>
-                  <p className="text-[11.5px] leading-snug text-muted-foreground">
+                  <p className="text-meta leading-snug text-muted-foreground">
                     {f.help}
                     {f.isRupees && (
                       <span className="ml-1 font-medium text-foreground">

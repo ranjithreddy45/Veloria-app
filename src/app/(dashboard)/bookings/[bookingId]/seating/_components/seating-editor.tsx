@@ -673,7 +673,7 @@ export function SeatingEditor({ bookingId, chart }: SeatingEditorProps) {
                           <span className="mt-0.5 text-xs font-semibold truncate max-w-full">
                             {table.label}
                           </span>
-                          <span className="text-[10px] text-muted-foreground">
+                          <span className="text-meta text-muted-foreground">
                             {table.guests.length}/{table.capacity}
                           </span>
                           {table.guests.length >= table.capacity && (
@@ -833,14 +833,14 @@ export function SeatingEditor({ bookingId, chart }: SeatingEditorProps) {
                             </p>
                             <div className="flex items-center gap-2">
                               {guest.seatNumber && (
-                                <span className="text-[10px] text-muted-foreground">
+                                <span className="text-meta text-muted-foreground">
                                   Seat #{guest.seatNumber}
                                 </span>
                               )}
                               {guest.category && (
                                 <Badge
                                   variant="outline"
-                                  className="h-4 text-[10px] px-1"
+                                  className="h-4 text-meta px-1"
                                 >
                                   {guest.category}
                                 </Badge>

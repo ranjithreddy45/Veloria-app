@@ -92,8 +92,8 @@ export function PropertyList({ properties }: PropertyListProps) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border py-16 text-center">
         <Building2 className="size-6 text-muted-foreground" />
-        <p className="text-[13px] font-medium text-foreground">No properties yet</p>
-        <p className="max-w-sm text-[12px] text-muted-foreground">
+        <p className="text-body font-medium text-foreground">No properties yet</p>
+        <p className="max-w-sm text-detail text-muted-foreground">
           Acquired venues appear here once a deal is won and onboarding begins.
         </p>
       </div>
@@ -131,10 +131,10 @@ export function PropertyList({ properties }: PropertyListProps) {
             <div className="flex flex-1 flex-col gap-2.5 p-4">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <div className="truncate text-[13px] font-semibold tracking-[-0.01em] text-foreground">
+                  <div className="truncate text-body font-semibold tracking-[-0.01em] text-foreground">
                     {p.propertyName}
                   </div>
-                  <div className="truncate text-[12px] text-muted-foreground">
+                  <div className="truncate text-detail text-muted-foreground">
                     {formatType(p.propertyType)}
                     {place ? ` · ${place}` : ""}
                   </div>
@@ -144,7 +144,7 @@ export function PropertyList({ properties }: PropertyListProps) {
                 </span>
               </div>
 
-              <div className="mt-auto flex items-center justify-between gap-2 border-t border-border/50 pt-2.5 text-[11.5px] text-muted-foreground">
+              <div className="mt-auto flex items-center justify-between gap-2 border-t border-border/50 pt-2.5 text-meta text-muted-foreground">
                 <span className="flex min-w-0 items-center gap-1.5">
                   <UserCog className="size-3.5 shrink-0" />
                   <span className="truncate">{managerName ?? "Unassigned"}</span>

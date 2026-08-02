@@ -238,14 +238,14 @@ export function ControlDashboard({
                   {readiness.canGoLive ? (
                     <Badge
                       variant="outline"
-                      className="text-[10px] px-1.5 py-0 bg-success/10 text-success border-success/20"
+                      className="text-meta px-1.5 py-0 bg-success/10 text-success border-success/20"
                     >
                       Ready to go live
                     </Badge>
                   ) : (
                     <Badge
                       variant="outline"
-                      className="text-[10px] px-1.5 py-0 bg-warning/10 text-warning border-warning/20"
+                      className="text-meta px-1.5 py-0 bg-warning/10 text-warning border-warning/20"
                     >
                       Blocking gates open
                     </Badge>
@@ -279,7 +279,7 @@ export function ControlDashboard({
                   <span
                     key={g.key}
                     title={g.detail ?? undefined}
-                    className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] ${
+                    className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-meta ${
                       g.ready
                         ? "bg-success/10 text-success border-success/20"
                         : g.required
@@ -388,7 +388,7 @@ export function ControlDashboard({
                       <span className="text-sm font-medium">{phase.name}</span>
                       <Badge
                         variant="outline"
-                        className={`text-[10px] px-1.5 py-0 ${EVENT_PHASE_COLORS[phase.phase] ?? ""}`}
+                        className={`text-meta px-1.5 py-0 ${EVENT_PHASE_COLORS[phase.phase] ?? ""}`}
                       >
                         {EVENT_PHASE_LABELS[phase.phase] ?? phase.phase}
                       </Badge>
@@ -451,15 +451,15 @@ export function ControlDashboard({
                         <div className="flex items-center gap-2 flex-wrap">
                           <Badge
                             variant="outline"
-                            className={`text-[10px] px-1.5 py-0 ${TASK_PRIORITY_COLORS[task.priority] ?? ""}`}
+                            className={`text-meta px-1.5 py-0 ${TASK_PRIORITY_COLORS[task.priority] ?? ""}`}
                           >
                             {task.priority}
                           </Badge>
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                          <Badge variant="outline" className="text-meta px-1.5 py-0">
                             {task.status?.replace("_", " ")}
                           </Badge>
                           {task.assignee && (
-                            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                            <span className="text-meta text-muted-foreground flex items-center gap-0.5">
                               <UserIcon className="size-2.5" />
                               {task.assignee.name ?? task.assignee.email}
                             </span>
@@ -506,12 +506,12 @@ export function ControlDashboard({
                         <div className="flex items-center gap-2 flex-wrap">
                           <Badge
                             variant="outline"
-                            className={`text-[10px] px-1.5 py-0 ${TASK_PRIORITY_COLORS[task.priority] ?? ""}`}
+                            className={`text-meta px-1.5 py-0 ${TASK_PRIORITY_COLORS[task.priority] ?? ""}`}
                           >
                             {task.priority}
                           </Badge>
                           {task.assignee && (
-                            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                            <span className="text-meta text-muted-foreground flex items-center gap-0.5">
                               <UserIcon className="size-2.5" />
                               {task.assignee.name ?? task.assignee.email}
                             </span>
@@ -524,7 +524,7 @@ export function ControlDashboard({
                           {task.slaStartBy && getCountdown(task.slaStartBy)}
                         </span>
                         {task.slaStartBy && (
-                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                          <p className="text-meta text-muted-foreground mt-0.5">
                             {new Date(task.slaStartBy).toLocaleTimeString("en-IN", {
                               hour: "2-digit",
                               minute: "2-digit",
@@ -562,11 +562,11 @@ export function ControlDashboard({
                   <div className="min-w-0 space-y-1">
                     <p className="text-sm font-medium truncate">{task.title}</p>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                      <Badge variant="outline" className="text-meta px-1.5 py-0">
                         {task.status?.replace("_", " ")}
                       </Badge>
                       {task.assignee && (
-                        <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                        <span className="text-meta text-muted-foreground flex items-center gap-0.5">
                           <UserIcon className="size-2.5" />
                           {task.assignee.name ?? task.assignee.email}
                         </span>
@@ -598,7 +598,7 @@ export function ControlDashboard({
                   <div className="flex items-center gap-2">
                     <Badge
                       variant="outline"
-                      className={`text-[10px] px-1.5 py-0 ${EVENT_PHASE_COLORS[phase.phase] ?? ""}`}
+                      className={`text-meta px-1.5 py-0 ${EVENT_PHASE_COLORS[phase.phase] ?? ""}`}
                     >
                       {EVENT_PHASE_LABELS[phase.phase] ?? phase.phase}
                     </Badge>
@@ -640,14 +640,14 @@ export function ControlDashboard({
                                     {task.title}
                                   </p>
                                   {isCurrent && (
-                                    <Badge className="text-[9px] px-1.5 py-0 bg-blue-600 hover:bg-blue-600">
+                                    <Badge className="text-meta px-1.5 py-0 bg-blue-600 hover:bg-blue-600">
                                       NOW
                                     </Badge>
                                   )}
                                   {isNext && (
                                     <Badge
                                       variant="outline"
-                                      className="text-[9px] px-1.5 py-0 border-indigo-300 text-indigo-600 dark:text-indigo-300"
+                                      className="text-meta px-1.5 py-0 border-indigo-300 text-indigo-600 dark:text-indigo-300"
                                     >
                                       NEXT
                                     </Badge>
@@ -656,7 +656,7 @@ export function ControlDashboard({
                                     <CameraIcon className="size-3 text-warning" />
                                   )}
                                 </div>
-                                <div className="flex items-center gap-2 flex-wrap text-[10px] text-muted-foreground">
+                                <div className="flex items-center gap-2 flex-wrap text-meta text-muted-foreground">
                                   <span className="flex items-center gap-0.5">
                                     <span
                                       className={`inline-block size-1.5 rounded-full ${TASK_STATUS_DOT[task.status] ?? "bg-zinc-300"}`}
@@ -673,25 +673,25 @@ export function ControlDashboard({
                               </div>
                               <div className="text-right shrink-0">
                                 {task.slaStartBy && (
-                                  <p className="text-[11px] font-medium tabular-nums">
+                                  <p className="text-meta font-medium tabular-nums">
                                     {fmtTime(task.slaStartBy)}
                                   </p>
                                 )}
                                 {task.status === "NOT_STARTED" &&
                                   task.slaStartBy && (
-                                    <p className="text-[10px] text-blue-600 dark:text-blue-400">
+                                    <p className="text-meta text-blue-600 dark:text-blue-400">
                                       starts {getCountdown(task.slaStartBy)}
                                     </p>
                                   )}
                                 {overdue && task.slaFinishBy && (
-                                  <p className="text-[10px] text-destructive font-semibold">
+                                  <p className="text-meta text-destructive font-semibold">
                                     {getOverdueTime(task.slaFinishBy)}
                                   </p>
                                 )}
                                 {!overdue &&
                                   task.status === "IN_PROGRESS" &&
                                   task.slaFinishBy && (
-                                    <p className="text-[10px] text-warning">
+                                    <p className="text-meta text-warning">
                                       due {getCountdown(task.slaFinishBy)}
                                     </p>
                                   )}
@@ -777,7 +777,7 @@ export function ControlDashboard({
                         </p>
                       )}
                       {esc.createdAt && (
-                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                        <p className="text-meta text-muted-foreground mt-0.5">
                           {getTimeAgo(esc.createdAt)}
                         </p>
                       )}

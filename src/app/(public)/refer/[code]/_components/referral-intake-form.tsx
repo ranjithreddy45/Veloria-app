@@ -220,7 +220,7 @@ export function ReferralIntakeForm({ code, utm }: ReferralIntakeFormProps) {
         )}
       </Button>
 
-      <p className="text-center text-[11px] text-muted-foreground">
+      <p className="text-center text-meta text-muted-foreground">
         By submitting, you agree that Veloria Grand may contact you about your
         event. We never share your details.
       </p>

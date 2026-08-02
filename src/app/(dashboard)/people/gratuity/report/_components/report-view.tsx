@@ -91,8 +91,8 @@ export function GratuityReportView({ rows }: { rows: GratuityRow[] }) {
       <div className="rounded-2xl border border-border/60 bg-card shadow-premium">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3.5">
           <div>
-            <h3 className="text-[14px] font-semibold">Accrued vs. payable</h3>
-            <p className="text-[12.5px] text-muted-foreground">
+            <h3 className="text-copy font-semibold">Accrued vs. payable</h3>
+            <p className="text-detail text-muted-foreground">
               The under/over-accrual column is projected payout minus what has already been booked —
               a positive value is a funding shortfall.
             </p>
@@ -111,9 +111,9 @@ export function GratuityReportView({ rows }: { rows: GratuityRow[] }) {
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-[13px]">
+            <table className="w-full text-body">
               <thead>
-                <tr className="border-b text-left text-[11.5px] uppercase tracking-wide text-muted-foreground">
+                <tr className="border-b text-left text-meta uppercase tracking-wide text-muted-foreground">
                   <th className="px-5 py-2.5 font-medium">Employee</th>
                   <th className="px-3 py-2.5 font-medium">Status</th>
                   <th className="px-3 py-2.5 text-right font-medium">Years</th>
@@ -129,7 +129,7 @@ export function GratuityReportView({ rows }: { rows: GratuityRow[] }) {
                     <tr key={r.id} className="transition-colors hover:bg-muted/40">
                       <td className="px-5 py-3">
                         <div className="font-medium">{r.name}</div>
-                        <div className="text-[11.5px] text-muted-foreground">{r.empCode}</div>
+                        <div className="text-meta text-muted-foreground">{r.empCode}</div>
                       </td>
                       <td className="px-3 py-3">
                         <StatusPill

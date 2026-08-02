@@ -125,7 +125,7 @@ function TimelineRow({ item, showContact }: { item: CommsTimelineItem; showConta
           <StatusPill label={meta.label} hue={meta.dot} size="xs" />
           <span
             className={cn(
-              "inline-flex items-center gap-0.5 text-[11px] font-medium",
+              "inline-flex items-center gap-0.5 text-meta font-medium",
               inbound ? "text-emerald-600" : "text-blue-600"
             )}
             title={inbound ? "Inbound" : "Outbound"}
@@ -136,12 +136,12 @@ function TimelineRow({ item, showContact }: { item: CommsTimelineItem; showConta
           {item.status && (
             <StatusPill label={statusLabel(item.status)} hue={statusHue(item.status)} size="xs" />
           )}
-          <span className="ml-auto text-[11px] text-muted-foreground" title={item.at}>
+          <span className="ml-auto text-meta text-muted-foreground" title={item.at}>
             {relativeTime(item.at)}
           </span>
         </div>
-        <p className="mt-1 text-[13px] leading-snug text-foreground">{item.summary}</p>
-        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11.5px] text-muted-foreground">
+        <p className="mt-1 text-body leading-snug text-foreground">{item.summary}</p>
+        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-meta text-muted-foreground">
           {showContact && item.contactName && (
             <span>
               with <span className="font-medium text-foreground/80">{item.contactName}</span>

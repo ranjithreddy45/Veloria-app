@@ -73,7 +73,7 @@ export function SellDownTargetCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="truncate text-[15px] font-semibold tracking-[-0.01em]">{target.venueName}</span>
+            <span className="truncate text-copy font-semibold tracking-[-0.01em]">{target.venueName}</span>
             {target.isPeakDate && (
               <Badge variant="warning" className="gap-1">
                 <Flame className="size-3" /> Peak date
@@ -81,7 +81,7 @@ export function SellDownTargetCard({
             )}
             <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
           </div>
-          <div className="mt-1 flex items-center gap-3 text-[12.5px] text-muted-foreground">
+          <div className="mt-1 flex items-center gap-3 text-detail text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <CalendarDays className="size-3.5" /> {fmtDate(target.dateISO)}
             </span>
@@ -90,8 +90,8 @@ export function SellDownTargetCard({
           </div>
         </div>
         <div className="shrink-0 text-right">
-          <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Occupancy</div>
-          <div className="text-[20px] font-bold tabular-nums leading-none">{pct}%</div>
+          <div className="text-meta font-medium uppercase tracking-wide text-muted-foreground">Occupancy</div>
+          <div className="text-title font-bold tabular-nums leading-none">{pct}%</div>
         </div>
       </div>
 
@@ -103,14 +103,14 @@ export function SellDownTargetCard({
       {/* Matched leads */}
       <div className="mt-3.5">
         {target.matchedLeads.length === 0 ? (
-          <p className="text-[12px] text-muted-foreground">No matching open leads yet — pull from the funnel.</p>
+          <p className="text-detail text-muted-foreground">No matching open leads yet — pull from the funnel.</p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {target.matchedLeads.slice(0, 6).map((lead) => (
               <Link
                 key={lead.id}
                 href={`/leads/${lead.id}`}
-                className="group inline-flex max-w-[15rem] items-center gap-1.5 rounded-full border border-border/70 bg-background px-2.5 py-1 text-[12px] transition-colors hover:border-violet-400 hover:bg-violet-50 dark:hover:bg-violet-950/30"
+                className="group inline-flex max-w-[15rem] items-center gap-1.5 rounded-full border border-border/70 bg-background px-2.5 py-1 text-detail transition-colors hover:border-violet-400 hover:bg-violet-50 dark:hover:bg-violet-950/30"
                 title={`${lead.title}${lead.contactName ? ` · ${lead.contactName}` : ""} · score ${lead.score}`}
               >
                 <span className="truncate font-medium">{lead.contactName ?? lead.title}</span>
@@ -120,13 +120,13 @@ export function SellDownTargetCard({
                     {lead.guestCount}
                   </span>
                 )}
-                <span className="rounded-full bg-violet-100 px-1.5 text-[10.5px] font-semibold tabular-nums text-violet-700 dark:bg-violet-900/50 dark:text-violet-300">
+                <span className="rounded-full bg-violet-100 px-1.5 text-meta font-semibold tabular-nums text-violet-700 dark:bg-violet-900/50 dark:text-violet-300">
                   {lead.score}
                 </span>
               </Link>
             ))}
             {target.matchedLeads.length > 6 && (
-              <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-1 text-[12px] text-muted-foreground">
+              <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-1 text-detail text-muted-foreground">
                 +{target.matchedLeads.length - 6} more
               </span>
             )}

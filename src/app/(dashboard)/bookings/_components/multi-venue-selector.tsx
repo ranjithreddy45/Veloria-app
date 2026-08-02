@@ -339,7 +339,7 @@ export function MultiVenueSelector({
                         {commonAvailableSlots.map((slot) => (
                           <Badge
                             key={slot}
-                            className="bg-green-100 text-green-700 border-green-200 text-[10px]"
+                            className="bg-green-100 text-green-700 border-green-200 text-meta"
                           >
                             {SLOT_LABELS[slot]}
                           </Badge>
@@ -421,7 +421,7 @@ export function MultiVenueSelector({
           <div className="border-t pt-3">
             <p className="text-xs text-muted-foreground">
               Venue Group ID:{" "}
-              <code className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono">
+              <code className="rounded bg-muted px-1.5 py-0.5 text-meta font-mono">
                 {venueGroupId}
               </code>
             </p>

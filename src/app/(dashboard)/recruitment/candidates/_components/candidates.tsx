@@ -144,10 +144,10 @@ function StageStrip({ counts }: { counts: Record<string, number> }) {
             key={stage}
             className={cn("flex flex-col gap-0.5 border-l-2 px-4 py-3.5", STAGE_CELL[stage])}
           >
-            <span className="text-[22px] font-semibold leading-none tabular-nums">
+            <span className="text-title font-semibold leading-none tabular-nums">
               {counts[stage] ?? 0}
             </span>
-            <span className="text-[11px] font-medium uppercase tracking-[0.05em] text-muted-foreground">
+            <span className="text-meta font-medium uppercase tracking-[0.05em] text-muted-foreground">
               {STAGE_LABEL[stage]}
             </span>
           </div>
@@ -176,7 +176,7 @@ function Rating({ value }: { value: number }) {
           />
         ))}
       </div>
-      <span className="text-[11px] tabular-nums text-muted-foreground">{v}/5</span>
+      <span className="text-meta tabular-nums text-muted-foreground">{v}/5</span>
     </div>
   );
 }
@@ -217,12 +217,12 @@ function StageCell({
 
   return (
     <Select value={row.stage} onValueChange={onChange} disabled={pending}>
-      <SelectTrigger size="sm" className="h-7 w-[140px] text-[12.5px]">
+      <SelectTrigger size="sm" className="h-7 w-[140px] text-detail">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
         {REC_CANDIDATE_STAGES.map((s) => (
-          <SelectItem key={s} value={s} className="text-[12.5px]">
+          <SelectItem key={s} value={s} className="text-detail">
             {STAGE_LABEL[s]}
           </SelectItem>
         ))}
@@ -265,7 +265,7 @@ function ResumeCell({
           href={row.resumeUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-[12.5px] font-medium text-primary hover:underline"
+          className="inline-flex items-center gap-1 text-detail font-medium text-primary hover:underline"
         >
           <FileText className="size-3.5" /> Resume
         </a>
@@ -300,7 +300,7 @@ function ResumeCell({
     );
   }
 
-  return <span className="text-[12.5px] text-muted-foreground">No resume</span>;
+  return <span className="text-detail text-muted-foreground">No resume</span>;
 }
 
 // ============================================================
@@ -423,7 +423,7 @@ function NewCandidateDialog() {
               <Label>Resume</Label>
               {resume ? (
                 <div className="flex items-center justify-between gap-2 rounded-md border border-border/80 bg-muted/40 px-3 py-2">
-                  <span className="flex min-w-0 items-center gap-2 text-[12.5px] text-foreground">
+                  <span className="flex min-w-0 items-center gap-2 text-detail text-foreground">
                     <FileText className="size-4 shrink-0 text-muted-foreground" />
                     <span className="truncate">{resume.name}</span>
                   </span>
@@ -562,7 +562,7 @@ export function Candidates({
                         <div className="flex items-center gap-2.5">
                           <Avatar size="sm">
                             <AvatarFallback
-                              className={cn("text-[10.5px] font-semibold", tintFor(row.id))}
+                              className={cn("text-meta font-semibold", tintFor(row.id))}
                             >
                               {initialsOf(row.name)}
                             </AvatarFallback>
@@ -570,19 +570,19 @@ export function Candidates({
                           <div className="min-w-0 leading-tight">
                             <a
                               href={`/recruitment/candidates/${row.id}`}
-                              className="block truncate text-[13px] font-medium text-foreground hover:text-primary hover:underline"
+                              className="block truncate text-body font-medium text-foreground hover:text-primary hover:underline"
                             >
                               {row.name}
                             </a>
                             {row.email && (
-                              <span className="block truncate text-[11.5px] text-muted-foreground">
+                              <span className="block truncate text-meta text-muted-foreground">
                                 {row.email}
                               </span>
                             )}
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-[13px] text-foreground/80">
+                      <TableCell className="text-body text-foreground/80">
                         {row.city || "—"}
                       </TableCell>
                       <TableCell>
@@ -591,13 +591,13 @@ export function Candidates({
                       <TableCell>
                         <ResumeCell row={row} canWrite={canWrite} onChanged={() => router.refresh()} />
                       </TableCell>
-                      <TableCell className="text-[13px] text-foreground/80">
+                      <TableCell className="text-body text-foreground/80">
                         {row.source || "—"}
                       </TableCell>
-                      <TableCell className="text-[13px] text-foreground/80">
+                      <TableCell className="text-body text-foreground/80">
                         {row.owner || "—"}
                       </TableCell>
-                      <TableCell className="text-right text-[12.5px] tabular-nums text-muted-foreground">
+                      <TableCell className="text-right text-detail tabular-nums text-muted-foreground">
                         {formatDate(row.modifiedAt)}
                       </TableCell>
                     </TableRow>

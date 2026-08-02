@@ -55,7 +55,7 @@ export function TrashList({ items }: TrashListProps) {
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-card">
-      <div className="flex items-center border-b border-border bg-muted/30 px-3 py-2 text-[11px] font-medium uppercase tracking-[0.05em] text-muted-foreground">
+      <div className="flex items-center border-b border-border bg-muted/30 px-3 py-2 text-meta font-medium uppercase tracking-[0.05em] text-muted-foreground">
         <div className="flex-1">Item</div>
         <div className="hidden w-36 text-right sm:block">Deleted</div>
         <div className="w-[180px] text-right">Actions</div>
@@ -83,11 +83,11 @@ export function TrashList({ items }: TrashListProps) {
                   strokeWidth={1.8}
                 />
                 <div className="min-w-0 leading-tight">
-                  <p className="truncate text-[13px] font-medium text-foreground">
+                  <p className="truncate text-body font-medium text-foreground">
                     {item.title}
                   </p>
                   {item.subtitle && (
-                    <p className="truncate text-[11.5px] text-muted-foreground">
+                    <p className="truncate text-meta text-muted-foreground">
                       {item.subtitle}
                     </p>
                   )}
@@ -96,7 +96,7 @@ export function TrashList({ items }: TrashListProps) {
 
               {/* Deleted timestamp — hidden on narrow screens */}
               <div className="hidden w-36 shrink-0 text-right sm:block">
-                <p className="text-[12px] text-muted-foreground">
+                <p className="text-detail text-muted-foreground">
                   {formatDistanceToNow(new Date(item.deletedAt), {
                     addSuffix: true,
                   })}
@@ -104,8 +104,8 @@ export function TrashList({ items }: TrashListProps) {
                 <p
                   className={
                     item.daysLeft <= 3
-                      ? "text-[11px] font-medium text-destructive"
-                      : "text-[11px] text-muted-foreground/70"
+                      ? "text-meta font-medium text-destructive"
+                      : "text-meta text-muted-foreground/70"
                   }
                 >
                   {item.daysLeft} day{item.daysLeft === 1 ? "" : "s"} left
@@ -117,7 +117,7 @@ export function TrashList({ items }: TrashListProps) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 gap-1.5 text-[12px]"
+                  className="h-7 gap-1.5 text-detail"
                   disabled={isBusy}
                   onClick={() => handleRestore(item)}
                 >
@@ -131,7 +131,7 @@ export function TrashList({ items }: TrashListProps) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 gap-1.5 text-[12px] text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  className="h-7 gap-1.5 text-detail text-destructive hover:bg-destructive/10 hover:text-destructive"
                   disabled={isBusy}
                   onClick={() => handlePurge(item)}
                 >

@@ -42,10 +42,10 @@ export default function ResetPasswordForm() {
           <AlertTriangle className="size-8 text-amber-600 dark:text-amber-400" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-ink-gradient large-title text-[24px]">
+          <h2 className="text-ink-gradient large-title text-h2">
             Invalid Reset Link
           </h2>
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-body text-muted-foreground">
             This password reset link is invalid or has expired. Please request a new one.
           </p>
         </div>
@@ -66,10 +66,10 @@ export default function ResetPasswordForm() {
           <CheckCircle2 className="size-8 text-green-600 dark:text-green-400" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-ink-gradient large-title text-[24px]">
+          <h2 className="text-ink-gradient large-title text-h2">
             Password Reset Successfully
           </h2>
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-body text-muted-foreground">
             Your password has been updated. You can now sign in with your new password.
           </p>
         </div>
@@ -103,10 +103,10 @@ export default function ResetPasswordForm() {
   return (
     <div className="space-y-6">
       <div className="space-y-1.5 text-center">
-        <h2 className="text-ink-gradient large-title text-[24px]">
+        <h2 className="text-ink-gradient large-title text-h2">
           Create New Password
         </h2>
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-body text-muted-foreground">
           Enter your new password below.
         </p>
       </div>

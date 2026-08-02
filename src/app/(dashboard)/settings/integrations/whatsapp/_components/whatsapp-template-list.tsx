@@ -54,7 +54,7 @@ export function WhatsAppTemplateList({ templates }: WhatsAppTemplateListProps) {
                     <Badge
                       key={param}
                       variant="secondary"
-                      className="text-[10px]"
+                      className="text-meta"
                     >
                       {`{{${param}}}`}
                     </Badge>

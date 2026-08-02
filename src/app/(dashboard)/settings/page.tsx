@@ -45,8 +45,8 @@ export default function SettingsPage() {
       <Card className="border-dashed">
         <CardContent className="flex flex-col items-start justify-between gap-4 py-1 sm:flex-row sm:items-center">
           <div>
-            <h3 className="text-[13.5px] font-semibold text-foreground">Demo data</h3>
-            <p className="mt-0.5 text-[12px] text-muted-foreground">
+            <h3 className="text-body font-semibold text-foreground">Demo data</h3>
+            <p className="mt-0.5 text-detail text-muted-foreground">
               Populate the app with realistic Indian sample contacts, leads, and
               calls to evaluate workflows. Safe to re-run; additive only.
             </p>

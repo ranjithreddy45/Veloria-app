@@ -317,7 +317,7 @@ export function VendorBidsClient({ initialData, availableBookings }: VendorBidsC
       {/* Bids Table */}
       <Card className="rounded-2xl border bg-card shadow-card">
         <CardHeader className="pb-2">
-          <CardTitle className="text-[15px] font-semibold">Bid history</CardTitle>
+          <CardTitle className="text-copy font-semibold">Bid history</CardTitle>
         </CardHeader>
         <CardContent>
           {data.data.length === 0 ? (
@@ -340,7 +340,7 @@ export function VendorBidsClient({ initialData, availableBookings }: VendorBidsC
               <div className="hidden md:block">
                 <Table>
                   <TableHeader>
-                    <TableRow className="[&>th]:text-[11px] [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-[0.1em] [&>th]:text-muted-foreground">
+                    <TableRow className="[&>th]:text-meta [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-[0.1em] [&>th]:text-muted-foreground">
                       <TableHead>Booking</TableHead>
                       <TableHead>Event</TableHead>
                       <TableHead>Event date</TableHead>
@@ -447,7 +447,7 @@ export function VendorBidsClient({ initialData, availableBookings }: VendorBidsC
                       <span>{bid.booking.venue.name}</span>
                     </div>
                     <div className="mt-3 flex items-center justify-between border-t pt-3">
-                      <span className="numeric text-[17px] font-semibold text-foreground">
+                      <span className="numeric text-lede font-semibold text-foreground">
                         {formatINR(bid.amount)}
                       </span>
                       <span className="text-xs text-muted-foreground">

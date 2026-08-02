@@ -40,10 +40,10 @@ export default async function ConfigurePage({
   return (
     <div className="space-y-6">
       <div className="space-y-1 text-center">
-        <h1 className="text-foreground text-[30px] sm:text-[34px]">
+        <h1 className="text-foreground text-h1 sm:text-h1">
           Plan your event
         </h1>
-        <p className="text-muted-foreground text-[15px] leading-relaxed">
+        <p className="text-muted-foreground text-copy leading-relaxed">
           Build your package, see a live price, and block your date with a small advance.
         </p>
       </div>

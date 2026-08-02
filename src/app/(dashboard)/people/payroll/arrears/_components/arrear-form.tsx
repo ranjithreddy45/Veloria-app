@@ -88,7 +88,7 @@ export function ArrearFormFields({
   return (
     <div className="space-y-3 py-2">
       <div className="space-y-1.5">
-        <Label className="text-[12.5px]">Employee</Label>
+        <Label className="text-detail">Employee</Label>
         <Select value={state.employeeId} onValueChange={(v) => set("employeeId", v)} disabled={lockEmployee}>
           <SelectTrigger>
             <SelectValue placeholder="Select employee" />
@@ -105,7 +105,7 @@ export function ArrearFormFields({
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <Label className="text-[12.5px]">Arrear name</Label>
+          <Label className="text-detail">Arrear name</Label>
           <Input
             value={state.name}
             onChange={(e) => set("name", e.target.value)}
@@ -113,7 +113,7 @@ export function ArrearFormFields({
           />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-[12.5px]">Amount (₹)</Label>
+          <Label className="text-detail">Amount (₹)</Label>
           <Input
             type="number"
             inputMode="numeric"
@@ -127,7 +127,7 @@ export function ArrearFormFields({
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <Label className="text-[12.5px]">For period — FY (optional)</Label>
+          <Label className="text-detail">For period — FY (optional)</Label>
           <Select
             value={state.forFy || NONE}
             onValueChange={(v) => set("forFy", v === NONE ? "" : v)}
@@ -146,7 +146,7 @@ export function ArrearFormFields({
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label className="text-[12.5px]">For period — month (optional)</Label>
+          <Label className="text-detail">For period — month (optional)</Label>
           <Select
             value={state.forMonth || NONE}
             onValueChange={(v) => set("forMonth", v === NONE ? "" : v)}
@@ -168,7 +168,7 @@ export function ArrearFormFields({
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <Label className="text-[12.5px]">Pay in — FY</Label>
+          <Label className="text-detail">Pay in — FY</Label>
           <Select value={state.payFy} onValueChange={(v) => set("payFy", v)}>
             <SelectTrigger>
               <SelectValue />
@@ -183,7 +183,7 @@ export function ArrearFormFields({
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label className="text-[12.5px]">Pay in — month</Label>
+          <Label className="text-detail">Pay in — month</Label>
           <Select value={state.payMonth} onValueChange={(v) => set("payMonth", v)}>
             <SelectTrigger>
               <SelectValue />
@@ -200,7 +200,7 @@ export function ArrearFormFields({
       </div>
 
       <div className="rounded-lg border p-3">
-        <div className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">
+        <div className="mb-2 text-meta uppercase tracking-wide text-muted-foreground">
           Statutory treatment
         </div>
         <div className="space-y-2.5">
@@ -225,13 +225,13 @@ export function ArrearFormFields({
             onChange={(v) => set("ptApplicable", v)}
           />
         </div>
-        <p className="mt-2.5 text-[11.5px] text-muted-foreground">
+        <p className="mt-2.5 text-meta text-muted-foreground">
           These decide whether the arrear attracts PF / ESI / PT when the payroll run pays it.
         </p>
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-[12.5px]">Reason (optional)</Label>
+        <Label className="text-detail">Reason (optional)</Label>
         <Textarea
           value={state.reason}
           onChange={(e) => set("reason", e.target.value)}
@@ -254,7 +254,7 @@ function ToggleRow({
 }) {
   return (
     <div className="flex items-center justify-between">
-      <Label className="text-[13px] font-normal">{label}</Label>
+      <Label className="text-body font-normal">{label}</Label>
       <Switch checked={checked} onCheckedChange={onChange} />
     </div>
   );

@@ -94,7 +94,7 @@ export default async function PortalBookingDetailPage({
       {/* Back Button */}
       <Link
         href="/portal/bookings"
-        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-2 text-[13px] transition-colors"
+        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-2 text-body transition-colors"
       >
         <ArrowLeft className="size-3.5" />
         Back to my bookings
@@ -103,11 +103,11 @@ export default async function PortalBookingDetailPage({
       {/* Header */}
       <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
-          <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
+          <p className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.14em]">
             Your celebration
           </p>
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="large-title text-foreground text-[28px] leading-tight sm:text-[32px]">
+            <h1 className="large-title text-foreground text-h2 leading-tight sm:text-h1">
               {booking.eventName}
             </h1>
             <StatusBadge
@@ -116,7 +116,7 @@ export default async function PortalBookingDetailPage({
               label={BOOKING_STATUS_CLIENT_LABELS[booking.status]}
             />
           </div>
-          <p className="text-muted-foreground text-[15px]">
+          <p className="text-muted-foreground text-copy">
             {booking.eventType} &middot; Booking{" "}
             <span className="numeric">{booking.bookingNumber}</span>
           </p>
@@ -127,10 +127,10 @@ export default async function PortalBookingDetailPage({
           <div className="bg-primary/[0.06] border-primary/15 flex flex-shrink-0 items-center gap-3.5 rounded-2xl border px-5 py-4">
             <Timer className="text-primary size-5" />
             <div>
-              <p className="numeric text-foreground text-[20px] font-semibold leading-none">
+              <p className="numeric text-foreground text-title font-semibold leading-none">
                 {days} day{days !== 1 ? "s" : ""}
               </p>
-              <p className="text-muted-foreground mt-1 text-[11px] font-semibold uppercase tracking-[0.12em]">
+              <p className="text-muted-foreground mt-1 text-meta font-semibold uppercase tracking-[0.12em]">
                 Until your event
               </p>
             </div>
@@ -168,7 +168,7 @@ export default async function PortalBookingDetailPage({
                           were squeezing the connector lines out of existence
                           and wrapping mid-word. */}
                       <span
-                        className={`text-center text-[10px] font-semibold uppercase tracking-[0.04em] sm:text-[11px] sm:tracking-[0.1em] ${
+                        className={`text-center text-meta font-semibold uppercase tracking-[0.04em] sm:text-meta sm:tracking-[0.1em] ${
                           isCompleted
                             ? "text-primary"
                             : "text-muted-foreground/60"
@@ -200,7 +200,7 @@ export default async function PortalBookingDetailPage({
             <CardHeader className="px-6 pt-6 pb-4">
               <CardTitle className="flex items-center gap-2.5">
                 <CalendarCheck className="text-primary size-4" />
-                <span className="font-editorial text-foreground text-[20px] font-semibold">
+                <span className="font-editorial text-foreground text-title font-semibold">
                   Your day, in detail
                 </span>
               </CardTitle>
@@ -208,7 +208,7 @@ export default async function PortalBookingDetailPage({
             <CardContent className="px-6 pb-6">
               <div className="grid gap-5 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
+                  <p className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.14em]">
                     Date
                   </p>
                   <p className="numeric text-foreground text-sm font-medium">
@@ -221,7 +221,7 @@ export default async function PortalBookingDetailPage({
                   </p>
                 </div>
                 <div className="space-y-1.5">
-                  <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
+                  <p className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.14em]">
                     Time slot
                   </p>
                   <p className="text-foreground text-sm font-medium">
@@ -229,7 +229,7 @@ export default async function PortalBookingDetailPage({
                   </p>
                 </div>
                 <div className="space-y-1.5">
-                  <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
+                  <p className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.14em]">
                     Guests
                   </p>
                   <p className="text-foreground text-sm font-medium">
@@ -237,7 +237,7 @@ export default async function PortalBookingDetailPage({
                   </p>
                 </div>
                 <div className="space-y-1.5">
-                  <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
+                  <p className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.14em]">
                     Total
                   </p>
                   <p className="numeric text-foreground text-sm font-semibold">
@@ -250,7 +250,7 @@ export default async function PortalBookingDetailPage({
                 <div className="border-warning/30 bg-warning/[0.08] mt-6 rounded-xl border p-4">
                   <div className="text-warning flex items-center gap-2">
                     <MessageSquare className="size-3.5" />
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em]">
+                    <p className="text-meta font-semibold uppercase tracking-[0.14em]">
                       What you asked us for
                     </p>
                   </div>
@@ -267,7 +267,7 @@ export default async function PortalBookingDetailPage({
             <CardHeader className="px-6 pt-6 pb-4">
               <CardTitle className="flex items-center gap-2.5">
                 <MapPin className="text-primary size-4" />
-                <span className="font-editorial text-foreground text-[20px] font-semibold">
+                <span className="font-editorial text-foreground text-title font-semibold">
                   Where it happens
                 </span>
               </CardTitle>
@@ -331,7 +331,7 @@ export default async function PortalBookingDetailPage({
               <CardHeader className="px-6 pt-6 pb-4">
                 <CardTitle className="flex items-center gap-2.5">
                   <FileText className="text-primary size-4" />
-                  <span className="font-editorial text-foreground text-[20px] font-semibold">
+                  <span className="font-editorial text-foreground text-title font-semibold">
                     Invoices
                   </span>
                 </CardTitle>
@@ -379,7 +379,7 @@ export default async function PortalBookingDetailPage({
                         <StatusBadge
                           status={inv.status}
                           colorMap={INVOICE_STATUS_COLORS}
-                          className="text-[10px]"
+                          className="text-meta"
                         />
                       </div>
                     </Link>
@@ -396,7 +396,7 @@ export default async function PortalBookingDetailPage({
           {booking.coordinator && (
             <Card className="shadow-card rounded-2xl py-0">
               <CardHeader className="px-6 pb-4 pt-6">
-                <CardTitle className="font-editorial text-foreground text-[20px] font-semibold">
+                <CardTitle className="font-editorial text-foreground text-title font-semibold">
                   Your coordinator
                 </CardTitle>
               </CardHeader>
@@ -453,7 +453,7 @@ export default async function PortalBookingDetailPage({
             <CardHeader className="px-6 pb-4 pt-6">
               <CardTitle className="flex items-center gap-2.5">
                 <IndianRupee className="text-primary size-4" />
-                <span className="font-editorial text-foreground text-[20px] font-semibold">
+                <span className="font-editorial text-foreground text-title font-semibold">
                   Where you stand
                 </span>
               </CardTitle>
@@ -484,7 +484,7 @@ export default async function PortalBookingDetailPage({
                         Balance due
                       </span>
                       <span
-                        className={`numeric text-[17px] font-semibold ${
+                        className={`numeric text-lede font-semibold ${
                           booking.invoices.reduce(
                             (sum, inv) => sum + Number(inv.balanceDue),
                             0
@@ -519,7 +519,7 @@ export default async function PortalBookingDetailPage({
                           : 0;
                       return (
                         <div className="pt-1">
-                          <div className="text-muted-foreground mb-1.5 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.12em]">
+                          <div className="text-muted-foreground mb-1.5 flex items-center justify-between text-meta font-semibold uppercase tracking-[0.12em]">
                             <span>Settled</span>
                             <span className="numeric">{percent}%</span>
                           </div>
@@ -541,7 +541,7 @@ export default async function PortalBookingDetailPage({
           {/* Quick Info */}
           <Card className="shadow-card rounded-2xl py-0">
             <CardHeader className="px-6 pb-4 pt-6">
-              <CardTitle className="font-editorial text-foreground text-[20px] font-semibold">
+              <CardTitle className="font-editorial text-foreground text-title font-semibold">
                 At a glance
               </CardTitle>
             </CardHeader>

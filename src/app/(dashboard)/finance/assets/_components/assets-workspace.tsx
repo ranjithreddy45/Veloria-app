@@ -181,7 +181,7 @@ function PnlTable({
           <TableBody>
             {rows.map((r) => (
               <TableRow key={r.key}>
-                <TableCell className="numeric text-[12.5px] text-muted-foreground">{r.key}</TableCell>
+                <TableCell className="numeric text-detail text-muted-foreground">{r.key}</TableCell>
                 <TableCell className="text-right numeric text-success">{formatINR(r.income)}</TableCell>
                 <TableCell className="text-right numeric text-destructive">{formatINR(r.expense)}</TableCell>
                 <TableCell className={cn("text-right font-medium numeric", r.net >= 0 ? "text-success" : "text-destructive")}>{formatINR(r.net)}</TableCell>

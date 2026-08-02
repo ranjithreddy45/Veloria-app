@@ -87,8 +87,8 @@ export function ReimbursementsTable({ rows }: { rows: ReimbursementRow[] }) {
     <div className="rounded-xl border bg-card">
       <div className="flex items-center justify-between gap-3 border-b px-5 py-3.5">
         <div>
-          <h3 className="text-[14px] font-semibold">Claims</h3>
-          <p className="text-[12.5px] text-muted-foreground">
+          <h3 className="text-copy font-semibold">Claims</h3>
+          <p className="text-detail text-muted-foreground">
             Approve a pending claim onto a pay run, or reject it with a note.
           </p>
         </div>
@@ -132,22 +132,22 @@ export function ReimbursementsTable({ rows }: { rows: ReimbursementRow[] }) {
                 <TableRow key={r.id}>
                   <TableCell>
                     <div className="font-medium">{r.name}</div>
-                    <div className="text-[12px] text-muted-foreground">{r.empCode}</div>
+                    <div className="text-detail text-muted-foreground">{r.empCode}</div>
                   </TableCell>
-                  <TableCell className="text-[12.5px]">{r.category}</TableCell>
+                  <TableCell className="text-detail">{r.category}</TableCell>
                   <TableCell>
-                    <div className="text-[13px]">{r.title}</div>
+                    <div className="text-body">{r.title}</div>
                     {r.taxable && (
-                      <div className="text-[11px] font-medium text-warning">
+                      <div className="text-meta font-medium text-warning">
                         Taxable
                       </div>
                     )}
                   </TableCell>
                   <TableCell className="text-right font-semibold tabular-nums">{inr(r.amount)}</TableCell>
-                  <TableCell className="text-[12.5px] text-muted-foreground">
+                  <TableCell className="text-detail text-muted-foreground">
                     {new Date(r.claimDate).toLocaleDateString("en-IN")}
                   </TableCell>
-                  <TableCell className="text-[12.5px] text-muted-foreground">{payRunLabel(r)}</TableCell>
+                  <TableCell className="text-detail text-muted-foreground">{payRunLabel(r)}</TableCell>
                   <TableCell>
                     <StatusPill label={r.status} hue={STATUS_HUE[r.status] ?? "slate"} size="xs" />
                   </TableCell>
@@ -172,7 +172,7 @@ export function ReimbursementsTable({ rows }: { rows: ReimbursementRow[] }) {
                         </Button>
                       </div>
                     ) : (
-                      <span className="text-[12px] text-muted-foreground">—</span>
+                      <span className="text-detail text-muted-foreground">—</span>
                     )}
                   </TableCell>
                 </TableRow>

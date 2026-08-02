@@ -37,7 +37,7 @@ export function ScoreBar({
   className,
 }: ScoreBarProps) {
   if (score === null || score === undefined) {
-    return <span className="text-[12px] text-muted-foreground/60">—</span>;
+    return <span className="text-detail text-muted-foreground/60">—</span>;
   }
   const pct = Math.max(0, Math.min(100, (score / max) * 100));
   const colorBg = scoreColor(pct);
@@ -59,7 +59,7 @@ export function ScoreBar({
         />
       </div>
       {showValue && (
-        <span className={cn("text-[11.5px] font-medium tabular-nums leading-none", colorText)}>
+        <span className={cn("text-meta font-medium tabular-nums leading-none", colorText)}>
           {score}
         </span>
       )}

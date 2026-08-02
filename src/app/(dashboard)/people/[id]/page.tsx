@@ -101,7 +101,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
 
   return (
     <div className="space-y-6">
-      <Link href="/people" className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground">
+      <Link href="/people" className="inline-flex items-center gap-1.5 text-body text-muted-foreground transition-colors hover:text-foreground">
         <ArrowLeft className="size-3.5" /> All people
       </Link>
 
@@ -112,19 +112,19 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
           <AvatarFallback className="bg-primary/10 text-lg font-semibold text-primary">{initials || "?"}</AvatarFallback>
         </Avatar>
         <div className="min-w-0 flex-1">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <div className="text-meta font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             <span className="numeric tracking-[0.08em]">{emp.empCode}</span>
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-2.5">
-            <h1 className="text-[26px] leading-tight text-foreground sm:text-[30px]">{name}</h1>
+            <h1 className="text-h2 leading-tight text-foreground sm:text-h1">{name}</h1>
             <StatusPill label={EMPLOYEE_STATUS_LABELS[emp.status]} hue={EMPLOYEE_STATUS_HUE[emp.status]} size="sm" />
           </div>
           {(emp.designation?.name || emp.department?.name) && (
-            <p className="mt-1.5 text-[15px] text-muted-foreground">
+            <p className="mt-1.5 text-copy text-muted-foreground">
               {[emp.designation?.name, emp.department?.name].filter(Boolean).join(" · ")}
             </p>
           )}
-          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-[13px] text-muted-foreground">
+          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-body text-muted-foreground">
             <span className="inline-flex items-center gap-1.5"><Building2 className="size-3.5 shrink-0" />{emp.legalEntity?.name ?? "—"}</span>
             {emp.businessVertical && <span className="inline-flex items-center gap-1.5"><Briefcase className="size-3.5 shrink-0" />{emp.businessVertical.name}</span>}
             {emp.workLocation && <span className="inline-flex items-center gap-1.5"><MapPin className="size-3.5 shrink-0" />{emp.workLocation}</span>}
@@ -229,7 +229,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
               </InfoCard>
             ) : (
               <InfoCard title="App access" plain>
-                <p className="text-[13px] leading-relaxed text-muted-foreground">
+                <p className="text-body leading-relaxed text-muted-foreground">
                   No app login linked yet. App access &amp; role provisioning is set up during onboarding.
                 </p>
               </InfoCard>
@@ -238,7 +238,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
           <CustomFieldsCard employeeId={emp.id} defs={activeDefs} values={customValues} canWrite={canWrite} />
           {emp.notes && (
             <InfoCard title="Notes" plain>
-              <p className="whitespace-pre-line text-[13px] leading-relaxed text-muted-foreground">{emp.notes}</p>
+              <p className="whitespace-pre-line text-body leading-relaxed text-muted-foreground">{emp.notes}</p>
             </InfoCard>
           )}
         </TabsContent>
@@ -280,13 +280,13 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
                   <Link key={r.id} href={`/people/${r.id}`}
                     className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-3 first:pt-0 last:pb-0 transition-colors hover:bg-muted/50">
                     <Avatar size="sm">
-                      <AvatarFallback className="bg-primary/10 text-[10px] font-semibold text-primary">
+                      <AvatarFallback className="bg-primary/10 text-meta font-semibold text-primary">
                         {`${r.firstName[0] ?? ""}${r.lastName[0] ?? ""}`.toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{r.firstName} {r.lastName}</p>
-                      <p className="numeric truncate text-[11.5px] text-muted-foreground">{r.empCode}</p>
+                      <p className="numeric truncate text-meta text-muted-foreground">{r.empCode}</p>
                     </div>
                     <StatusPill label={EMPLOYEE_STATUS_LABELS[r.status]} hue={EMPLOYEE_STATUS_HUE[r.status]} size="xs" />
                   </Link>
@@ -294,7 +294,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
               </div>
             )}
           </InfoCard>
-          <p className="flex items-center gap-1.5 text-[12.5px] text-muted-foreground">
+          <p className="flex items-center gap-1.5 text-detail text-muted-foreground">
             <Users className="size-3.5" />
             The reporting line here drives approval routing across Leave, Attendance and Projects.
           </p>
@@ -327,14 +327,14 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
                         </span>
                         <div className="min-w-0">
                           <span className="block truncate text-sm font-medium">{d.title}</span>
-                          <div className="truncate text-[13px] text-muted-foreground">
+                          <div className="truncate text-body text-muted-foreground">
                             {d.category?.name ?? "Uncategorised"}{d.expiryDate ? ` · expires ${formatDate(d.expiryDate)}` : ""}
                           </div>
                         </div>
                       </div>
                       {d.fileUrl && (
                         <a href={d.fileUrl} target="_blank" rel="noopener noreferrer"
-                          className="inline-flex shrink-0 items-center gap-1 text-[13px] text-muted-foreground transition-colors hover:text-foreground">
+                          className="inline-flex shrink-0 items-center gap-1 text-body text-muted-foreground transition-colors hover:text-foreground">
                           <ExternalLink className="size-3.5" /> Open
                         </a>
                       )}
@@ -354,7 +354,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
                 href={`/api/hr/form16/${emp.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-[13px] font-medium text-muted-foreground shadow-card transition-colors hover:text-foreground"
+                className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-body font-medium text-muted-foreground shadow-card transition-colors hover:text-foreground"
               >
                 <FileText className="size-3.5" /> Download Form-16
               </a>
@@ -405,7 +405,7 @@ function InfoCard({
   return (
     <div className="rounded-2xl border bg-card p-5 shadow-card">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{title}</h3>
+        <h3 className="text-meta font-semibold uppercase tracking-[0.12em] text-muted-foreground">{title}</h3>
         {action}
       </div>
       {plain ? children : <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">{children}</dl>}
@@ -421,7 +421,7 @@ function Row({
 }) {
   return (
     <div className="min-w-0">
-      <dt className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-muted-foreground">
+      <dt className="flex items-center gap-1.5 text-meta uppercase tracking-wide text-muted-foreground">
         {icon}{label}
       </dt>
       <dd className="mt-1 text-sm">

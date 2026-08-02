@@ -80,16 +80,16 @@ export function ConversionFunnel({ data, className }: ConversionFunnelProps) {
           return (
             <div key={stage.stage} className="space-y-1.5">
               <div className="flex items-baseline justify-between gap-3">
-                <span className="text-[13px] font-medium text-foreground">
+                <span className="text-body font-medium text-foreground">
                   {STAGE_LABELS[stage.stage] ?? stage.stage}
                 </span>
                 <div className="flex items-baseline gap-2">
                   {conversionRate && (
-                    <span className="numeric text-[11.5px] text-muted-foreground">
+                    <span className="numeric text-meta text-muted-foreground">
                       {conversionRate}% from prev
                     </span>
                   )}
-                  <span className="numeric text-[13px] font-semibold text-foreground">
+                  <span className="numeric text-body font-semibold text-foreground">
                     {stage.count.toLocaleString("en-IN")}
                   </span>
                 </div>
@@ -111,10 +111,10 @@ export function ConversionFunnel({ data, className }: ConversionFunnelProps) {
         {lostStage && lostStage.count > 0 && (
           <div className="mt-4 space-y-1.5 border-t pt-4">
             <div className="flex items-baseline justify-between gap-3">
-              <span className="text-[13px] font-medium text-rose-600 dark:text-rose-400">
+              <span className="text-body font-medium text-rose-600 dark:text-rose-400">
                 Lost
               </span>
-              <span className="numeric text-[13px] font-semibold text-foreground">
+              <span className="numeric text-body font-semibold text-foreground">
                 {lostStage.count.toLocaleString("en-IN")}
               </span>
             </div>
@@ -133,10 +133,10 @@ export function ConversionFunnel({ data, className }: ConversionFunnelProps) {
         {funnelStages.length > 1 && (
           <div className="mt-4 border-t pt-4">
             <div className="flex items-baseline justify-between gap-3">
-              <span className="text-[13px] text-muted-foreground">
+              <span className="text-body text-muted-foreground">
                 Overall conversion — New to Won
               </span>
-              <span className="numeric text-[17px] font-semibold text-emerald-600 dark:text-emerald-400">
+              <span className="numeric text-lede font-semibold text-emerald-600 dark:text-emerald-400">
                 {funnelStages[0].count > 0
                   ? (
                       ((funnelStages[funnelStages.length - 1]?.count ?? 0) /

@@ -91,7 +91,7 @@ export function PageHeader({
         )}
         <div className="min-w-0 space-y-2">
           {eyebrow && (
-            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em]">
+            <div className="flex items-center gap-2 text-meta font-semibold uppercase tracking-[0.12em]">
               <span aria-hidden className="from-gold-bright to-gold h-3 w-[3px] rounded-full bg-gradient-to-b" />
               <span className="text-brand-gradient">{eyebrow}</span>
             </div>
@@ -99,13 +99,13 @@ export function PageHeader({
           {/* The help "?" must not be pushed off-screen by a long title, so the
               title takes the min-w-0/wrap and the hint stays shrink-0. */}
           <div className="flex min-w-0 items-center gap-2.5">
-            <h1 className="large-title min-w-0 break-words text-[24px] leading-tight text-foreground sm:text-[32px]">
+            <h1 className="large-title min-w-0 break-words text-h2 leading-tight text-foreground sm:text-h1">
               {title}
             </h1>
             {help && <span className="shrink-0">{help}</span>}
           </div>
           {description && (
-            <p className="max-w-2xl text-[13.5px] leading-relaxed text-muted-foreground sm:text-[15px]">{description}</p>
+            <p className="max-w-2xl text-body leading-relaxed text-muted-foreground sm:text-copy">{description}</p>
           )}
         </div>
       </div>

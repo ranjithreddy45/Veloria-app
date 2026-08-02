@@ -539,7 +539,7 @@ export function InvoiceForm({
                           />
                         </div>
                         <div className="flex items-center justify-end sm:col-span-2">
-                          <span className="numeric text-[13px] font-semibold">
+                          <span className="numeric text-body font-semibold">
                             {formatINR(lineAmount)}
                           </span>
                         </div>
@@ -853,7 +853,7 @@ export function InvoiceForm({
                         <span className="numeric">{formatINR(calculations.igstAmount)}</span>
                       </div>
                     )}
-                    <div className="mt-2 flex items-baseline justify-between border-t pt-2.5 text-[17px] font-bold">
+                    <div className="mt-2 flex items-baseline justify-between border-t pt-2.5 text-lede font-bold">
                       <span>Total</span>
                       <span className="numeric">{formatINR(calculations.totalAmount)}</span>
                     </div>

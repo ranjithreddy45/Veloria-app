@@ -71,10 +71,10 @@ export function GoogleConfig({ initialConfig }: Props) {
       <div className="border-b px-5 py-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h3 className="text-[15px] font-semibold tracking-[-0.01em]">
+            <h3 className="text-copy font-semibold tracking-[-0.01em]">
               Google Ads
             </h3>
-            <p className="mt-1 text-[13px] text-muted-foreground">
+            <p className="mt-1 text-body text-muted-foreground">
               Capture leads from Google Ads Lead Form extensions as they come in.
             </p>
           </div>

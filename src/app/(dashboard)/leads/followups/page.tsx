@@ -51,7 +51,7 @@ function Bucket({ title, hue, icon: Icon, leads }: { title: string; hue: "rose" 
             >
               <div className="min-w-0">
                 <div className="truncate font-medium tracking-[-0.01em]">{l.title}</div>
-                <div className="truncate text-[13px] text-muted-foreground">
+                <div className="truncate text-body text-muted-foreground">
                   {l.contact ? `${l.contact.firstName} ${l.contact.lastName}` : "—"}
                   {l.estimatedValue ? <> · <span className="numeric">{inr(l.estimatedValue)}</span></> : null}
                   {l.assignedTo?.name ? ` · ${l.assignedTo.name}` : ""}
@@ -59,7 +59,7 @@ function Bucket({ title, hue, icon: Icon, leads }: { title: string; hue: "rose" 
               </div>
               <div className="shrink-0 space-y-1 text-right">
                 <StatusPill label={l.status} hue="blue" size="xs" />
-                <div className={`numeric text-[11.5px] ${hue === "rose" ? "text-destructive" : "text-muted-foreground"}`}>{formatDate(l.followUpDate)}</div>
+                <div className={`numeric text-meta ${hue === "rose" ? "text-destructive" : "text-muted-foreground"}`}>{formatDate(l.followUpDate)}</div>
               </div>
             </Link>
           ))

@@ -455,7 +455,7 @@ export function TaskDetailSheet({
                     className="rounded-md border border-border p-2 text-sm"
                   >
                     <div className="flex items-center gap-2 mb-1">
-                      <Badge variant="secondary" className="text-[10px]">
+                      <Badge variant="secondary" className="text-meta">
                         {proof.type}
                       </Badge>
                       <span className="text-muted-foreground text-xs">
@@ -588,7 +588,7 @@ export function TaskDetailSheet({
                         >
                           {esc.status.replace("_", " ")}
                         </Badge>
-                        <Badge variant="secondary" className="text-[10px]">
+                        <Badge variant="secondary" className="text-meta">
                           {ESCALATION_LEVEL_LABELS[esc.level] ?? esc.level}
                         </Badge>
                       </div>

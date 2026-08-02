@@ -92,10 +92,10 @@ export function BeoPackageSnapshots({ beoId, locked }: { beoId: string; locked: 
   return (
     <Card>
       <CardHeader className="flex-row items-center justify-between space-y-0">
-        <CardTitle className="flex items-center gap-2 text-[15px]">
+        <CardTitle className="flex items-center gap-2 text-copy">
           <Package className="size-4 text-indigo-500" /> Vendor packages
           {snapshots.length > 0 && (
-            <span className="rounded-md bg-indigo-100 px-1.5 text-[11px] font-medium text-indigo-700">{snapshots.length}</span>
+            <span className="rounded-md bg-indigo-100 px-1.5 text-meta font-medium text-indigo-700">{snapshots.length}</span>
           )}
         </CardTitle>
         {!locked && (
@@ -106,22 +106,22 @@ export function BeoPackageSnapshots({ beoId, locked }: { beoId: string; locked: 
       </CardHeader>
       <CardContent className="space-y-2.5">
         {loading ? (
-          <p className="flex items-center justify-center gap-2 py-6 text-[13px] text-muted-foreground">
+          <p className="flex items-center justify-center gap-2 py-6 text-body text-muted-foreground">
             <Loader2 className="size-3.5 animate-spin" /> Loading…
           </p>
         ) : snapshots.length === 0 ? (
-          <p className="py-6 text-center text-[13px] text-muted-foreground">No vendor packages frozen onto this BEO yet.</p>
+          <p className="py-6 text-center text-body text-muted-foreground">No vendor packages frozen onto this BEO yet.</p>
         ) : (
           snapshots.map((s) => (
             <div key={s.snapshotId} className="rounded-lg border border-border/70 p-2.5">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="text-[13px] font-medium text-foreground">
+                  <p className="text-body font-medium text-foreground">
                     {s.vendorName} — {s.name}
                   </p>
                   <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                    <Badge variant="secondary" className="text-[11px]">{s.category}</Badge>
-                    <span className="text-[12px] text-muted-foreground">
+                    <Badge variant="secondary" className="text-meta">{s.category}</Badge>
+                    <span className="text-detail text-muted-foreground">
                       {fmtPrice(s.vendorPrice)} / {s.priceUnit}
                     </span>
                   </div>
@@ -142,14 +142,14 @@ export function BeoPackageSnapshots({ beoId, locked }: { beoId: string; locked: 
                 <div className="mt-2.5 space-y-2 border-t border-border/60 pt-2.5">
                   {s.sections.map((sec, si) => (
                     <div key={si} className="space-y-1">
-                      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{sec.title}</p>
+                      <p className="text-meta font-medium uppercase tracking-wide text-muted-foreground">{sec.title}</p>
                       <ul className="space-y-0.5">
                         {sec.items.map((it, ii) => (
-                          <li key={ii} className="flex flex-wrap items-baseline gap-x-1.5 text-[12px] text-foreground">
+                          <li key={ii} className="flex flex-wrap items-baseline gap-x-1.5 text-detail text-foreground">
                             <span>{it.name}</span>
-                            <span className="text-[11px] text-muted-foreground">· {it.type}</span>
+                            <span className="text-meta text-muted-foreground">· {it.type}</span>
                             {it.chosen && it.chosen.length > 0 && (
-                              <span className="text-[11.5px] text-indigo-600">→ {it.chosen.join(", ")}</span>
+                              <span className="text-meta text-indigo-600">→ {it.chosen.join(", ")}</span>
                             )}
                           </li>
                         ))}
@@ -158,7 +158,7 @@ export function BeoPackageSnapshots({ beoId, locked }: { beoId: string; locked: 
                   ))}
                 </div>
               )}
-              <p className="mt-2 text-[11px] text-muted-foreground">Captured {fmtDateTime(s.capturedAt)}</p>
+              <p className="mt-2 text-meta text-muted-foreground">Captured {fmtDateTime(s.capturedAt)}</p>
             </div>
           ))
         )}
@@ -245,7 +245,7 @@ function AddPackageDialog({
             </SelectContent>
           </Select>
           {!loadingPkgs && packages.length === 0 && (
-            <p className="text-[12px] text-muted-foreground">No active vendor packages available.</p>
+            <p className="text-detail text-muted-foreground">No active vendor packages available.</p>
           )}
         </div>
         <DialogFooter>

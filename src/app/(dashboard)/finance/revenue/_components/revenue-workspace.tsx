@@ -116,7 +116,7 @@ export function RevenueWorkspace({
                     <TableRow key={b.id}>
                       <TableCell>
                         <div className="font-medium">{b.eventName}</div>
-                        <div className="text-[11px] text-muted-foreground numeric">
+                        <div className="text-meta text-muted-foreground numeric">
                           {b.bookingNumber}
                         </div>
                       </TableCell>
@@ -222,7 +222,7 @@ function VendorRow({ v }: { v: PayoutStatement }) {
         </TableCell>
         <TableCell>
           <div className="font-medium">{v.vendor}</div>
-          <div className="text-[11px] text-muted-foreground numeric">
+          <div className="text-meta text-muted-foreground numeric">
             {v.count} payout{v.count === 1 ? "" : "s"}
           </div>
         </TableCell>

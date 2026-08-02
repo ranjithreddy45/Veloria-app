@@ -53,11 +53,11 @@ export default function WebsiteFormPage() {
           <CardTitle className="text-base">Paste this where the form should appear</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <pre className="overflow-x-auto rounded-xl border bg-muted/40 p-3 text-[12.5px] leading-relaxed">
+          <pre className="overflow-x-auto rounded-xl border bg-muted/40 p-3 text-detail leading-relaxed">
             <code>{snippet}</code>
           </pre>
           <CopyButtonClient text={snippet} />
-          <p className="text-muted-foreground text-[12.5px] leading-relaxed">
+          <p className="text-muted-foreground text-detail leading-relaxed">
             Works on any site — WordPress, Wix, Squarespace, Webflow or plain HTML. It renders a
             real form on your page rather than an iframe, so nothing is blocked by browser framing
             rules and the form sizes itself to your layout.
@@ -70,7 +70,7 @@ export default function WebsiteFormPage() {
           <CardTitle className="text-base">Optional — change the wording or colour</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <pre className="overflow-x-auto rounded-xl border bg-muted/40 p-3 text-[12.5px] leading-relaxed">
+          <pre className="overflow-x-auto rounded-xl border bg-muted/40 p-3 text-detail leading-relaxed">
             <code>{customised}</code>
           </pre>
           <CopyButtonClient text={customised} />
@@ -81,7 +81,7 @@ export default function WebsiteFormPage() {
         <CardHeader>
           <CardTitle className="text-base">What happens to a submission</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 text-[13px] leading-relaxed text-muted-foreground">
+        <CardContent className="space-y-2 text-body leading-relaxed text-muted-foreground">
           <p>
             <span className="text-foreground font-medium">It becomes a CRM lead immediately.</span>{" "}
             A contact is created (or matched to an existing one, ignoring how the phone number was

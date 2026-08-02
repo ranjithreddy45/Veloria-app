@@ -28,7 +28,7 @@ export function CompensationPanel({
         <div className="mb-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Wallet className="size-4 text-success" />
-            <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Current compensation</h3>
+            <h3 className="text-meta font-semibold uppercase tracking-[0.12em] text-muted-foreground">Current compensation</h3>
           </div>
           {canWrite && (
             <div className="flex items-center gap-2">
@@ -45,15 +45,15 @@ export function CompensationPanel({
               <Stat label="Monthly CTC" value={formatINR(current.monthlyCtc)} />
               <Stat label="Basic" value={`${current.basicPct}% of CTC`} />
             </div>
-            <p className="mt-2 text-[12px] text-muted-foreground">
+            <p className="mt-2 text-detail text-muted-foreground">
               Effective {formatDate(current.effectiveFrom)}{current.note ? ` · ${current.note}` : ""}
             </p>
 
             <div className="mt-5">
-              <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Monthly breakdown</h4>
+              <h4 className="mb-2 text-meta font-semibold uppercase tracking-wide text-muted-foreground">Monthly breakdown</h4>
               <div className="divide-y overflow-hidden rounded-xl border">
                 {current.lines.map((l) => (
-                  <div key={l.code} className="flex items-center justify-between gap-3 px-3.5 py-2.5 text-[13px]">
+                  <div key={l.code} className="flex items-center justify-between gap-3 px-3.5 py-2.5 text-body">
                     <span className="inline-flex items-center gap-2">
                       {l.name}
                       {l.kind === "DEDUCTION" && <StatusPill label="Deduction" hue="rose" size="xs" />}
@@ -62,12 +62,12 @@ export function CompensationPanel({
                     <span className="numeric font-medium">{formatINR(l.monthly)}</span>
                   </div>
                 ))}
-                <div className="flex items-center justify-between gap-3 border-t-2 bg-muted/50 px-3.5 py-3 text-[13px] font-semibold">
+                <div className="flex items-center justify-between gap-3 border-t-2 bg-muted/50 px-3.5 py-3 text-body font-semibold">
                   <span>Total monthly CTC</span>
-                  <span className="numeric text-[15px]">{formatINR(current.monthlyCtc)}</span>
+                  <span className="numeric text-copy">{formatINR(current.monthlyCtc)}</span>
                 </div>
               </div>
-              <p className="mt-2 text-[12px] text-muted-foreground">
+              <p className="mt-2 text-detail text-muted-foreground">
                 Statutory deductions (PF, ESI, PT, TDS) are computed by the payroll engine at each pay run — they are not shown in the CTC build-up.
               </p>
             </div>
@@ -90,18 +90,18 @@ export function CompensationPanel({
         <div className="rounded-2xl border bg-card p-5 shadow-card">
           <div className="mb-4 flex items-center gap-2">
             <History className="size-4 text-muted-foreground" />
-            <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Revision history</h3>
+            <h3 className="text-meta font-semibold uppercase tracking-[0.12em] text-muted-foreground">Revision history</h3>
           </div>
           <div className="divide-y">
             {history.map((h) => (
-              <div key={h.id} className="flex items-center justify-between gap-3 py-3 text-[13px] first:pt-0 last:pb-0">
+              <div key={h.id} className="flex items-center justify-between gap-3 py-3 text-body first:pt-0 last:pb-0">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="numeric font-medium">{formatINR(h.annualCtc)}</span>
                     <span className="text-muted-foreground">/yr</span>
                     {h.isCurrent && <StatusPill label="Current" hue="emerald" size="xs" />}
                   </div>
-                  <span className="text-[12px] text-muted-foreground">
+                  <span className="text-detail text-muted-foreground">
                     Effective {formatDate(h.effectiveFrom)} · Basic {h.basicPct}%{h.note ? ` · ${h.note}` : ""}
                   </span>
                 </div>
@@ -118,8 +118,8 @@ export function CompensationPanel({
 function Stat({ label, value, big }: { label: string; value: string; big?: boolean }) {
   return (
     <div className="rounded-xl border border-border/60 bg-muted/30 px-3.5 py-3">
-      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className={`numeric mt-1 font-semibold leading-none ${big ? "text-[22px]" : "text-[17px]"}`}>{value}</div>
+      <div className="text-meta uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className={`numeric mt-1 font-semibold leading-none ${big ? "text-title" : "text-lede"}`}>{value}</div>
     </div>
   );
 }
@@ -173,25 +173,25 @@ function ReviseDialog({ employeeId, current }: { employeeId: string; current: Sa
         </DialogHeader>
         <div className="grid gap-3 py-2 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Annual CTC (₹)</Label>
+            <Label className="text-detail">Annual CTC (₹)</Label>
             <Input type="number" inputMode="numeric" value={annualCtc} onChange={(e) => setAnnualCtc(e.target.value)} placeholder="1200000" />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Basic (% of CTC)</Label>
+            <Label className="text-detail">Basic (% of CTC)</Label>
             <Input type="number" inputMode="numeric" value={basicPct} onChange={(e) => setBasicPct(e.target.value)} placeholder="50" />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Effective from</Label>
+            <Label className="text-detail">Effective from</Label>
             <Input type="date" value={effectiveFrom} onChange={(e) => setEffectiveFrom(e.target.value)} />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Monthly CTC</Label>
-            <div className="flex h-9 items-center rounded-md border bg-muted/40 px-3 text-[13px] font-medium tabular-nums text-muted-foreground">
+            <Label className="text-detail">Monthly CTC</Label>
+            <div className="flex h-9 items-center rounded-md border bg-muted/40 px-3 text-body font-medium tabular-nums text-muted-foreground">
               {monthlyPreview > 0 ? formatINR(monthlyPreview) : "—"}
             </div>
           </div>
           <div className="space-y-1.5 sm:col-span-2">
-            <Label className="text-[12.5px]">Note (optional)</Label>
+            <Label className="text-detail">Note (optional)</Label>
             <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Annual increment, promotion, ..." />
           </div>
         </div>
@@ -266,19 +266,19 @@ function IncrementDialog({ employeeId, current }: { employeeId: string; current:
 
         <div className="grid gap-3 py-2 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
-            <Label className="text-[12.5px]">Method</Label>
+            <Label className="text-detail">Method</Label>
             <div className="flex rounded-md border p-0.5">
               <button
                 type="button"
                 onClick={() => setMode("PCT")}
-                className={`flex-1 rounded px-3 py-1.5 text-[12.5px] font-medium transition ${mode === "PCT" ? "bg-success text-white" : "text-muted-foreground hover:bg-muted"}`}
+                className={`flex-1 rounded px-3 py-1.5 text-detail font-medium transition ${mode === "PCT" ? "bg-success text-white" : "text-muted-foreground hover:bg-muted"}`}
               >
                 % raise
               </button>
               <button
                 type="button"
                 onClick={() => setMode("AMOUNT")}
-                className={`flex-1 rounded px-3 py-1.5 text-[12.5px] font-medium transition ${mode === "AMOUNT" ? "bg-success text-white" : "text-muted-foreground hover:bg-muted"}`}
+                className={`flex-1 rounded px-3 py-1.5 text-detail font-medium transition ${mode === "AMOUNT" ? "bg-success text-white" : "text-muted-foreground hover:bg-muted"}`}
               >
                 New amount
               </button>
@@ -287,24 +287,24 @@ function IncrementDialog({ employeeId, current }: { employeeId: string; current:
 
           {mode === "PCT" ? (
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Increment (%)</Label>
+              <Label className="text-detail">Increment (%)</Label>
               <Input type="number" inputMode="decimal" value={pct} onChange={(e) => setPct(e.target.value)} placeholder="10" />
             </div>
           ) : (
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">New annual CTC (₹)</Label>
+              <Label className="text-detail">New annual CTC (₹)</Label>
               <Input type="number" inputMode="numeric" value={newAmount} onChange={(e) => setNewAmount(e.target.value)} placeholder="1320000" />
             </div>
           )}
 
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Effective from</Label>
+            <Label className="text-detail">Effective from</Label>
             <Input type="date" value={effectiveFrom} onChange={(e) => setEffectiveFrom(e.target.value)} />
           </div>
 
           <div className="space-y-1.5 sm:col-span-2">
-            <Label className="text-[12.5px]">New annual CTC</Label>
-            <div className="flex h-9 items-center justify-between rounded-md border bg-muted/40 px-3 text-[13px] font-medium tabular-nums">
+            <Label className="text-detail">New annual CTC</Label>
+            <div className="flex h-9 items-center justify-between rounded-md border bg-muted/40 px-3 text-body font-medium tabular-nums">
               <span>{previewCtc > 0 ? formatINR(previewCtc) : "—"}</span>
               {previewCtc > 0 && delta !== 0 && (
                 <span className={delta > 0 ? "text-success" : "text-destructive"}>
@@ -315,9 +315,9 @@ function IncrementDialog({ employeeId, current }: { employeeId: string; current:
           </div>
 
           <div className="space-y-1.5 sm:col-span-2">
-            <Label className="text-[12.5px]">Reason / note</Label>
+            <Label className="text-detail">Reason / note</Label>
             <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Increment: 10% — FY25 appraisal" />
-            <p className="text-[11.5px] text-muted-foreground">
+            <p className="text-meta text-muted-foreground">
               Reference the appraisal outcome or KRA payout that drove this raise. Basic % ({current.basicPct}%) carries over from the current structure.
             </p>
           </div>

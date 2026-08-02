@@ -81,9 +81,9 @@ export function AbsentView({
           <EmptyState icon={<UserX />} title="No absences recorded" description="No ABSENT rows in this range. Widen the range to look further back." />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-[13px]">
+            <table className="w-full text-body">
               <thead>
-                <tr className="border-b text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+                <tr className="border-b text-left text-meta uppercase tracking-wide text-muted-foreground">
                   <th className="px-5 py-2.5 font-medium">Date</th>
                   <th className="px-3 py-2.5 font-medium">Employee</th>
                   <th className="px-3 py-2.5 font-medium">Department</th>
@@ -97,7 +97,7 @@ export function AbsentView({
                     <td className="px-5 py-2.5 whitespace-nowrap tabular-nums">{fmtDay(r.date)}</td>
                     <td className="px-3 py-2.5">
                       <div className="font-medium">{r.name}</div>
-                      <div className="text-[11.5px] text-muted-foreground">{r.empCode}</div>
+                      <div className="text-meta text-muted-foreground">{r.empCode}</div>
                     </td>
                     <td className="px-3 py-2.5">{r.department ?? <span className="text-muted-foreground">—</span>}</td>
                     <td className="px-3 py-2.5">
@@ -105,7 +105,7 @@ export function AbsentView({
                         ? <StatusPill label="Regularized" hue="emerald" size="xs" />
                         : <span className="text-muted-foreground">—</span>}
                     </td>
-                    <td className="px-3 py-2.5 pr-5 max-w-[20rem] text-[12.5px] text-muted-foreground">{r.note ?? ""}</td>
+                    <td className="px-3 py-2.5 pr-5 max-w-[20rem] text-detail text-muted-foreground">{r.note ?? ""}</td>
                   </tr>
                 ))}
               </tbody>

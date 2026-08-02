@@ -41,13 +41,13 @@ export function EventPipelineTracker({ stages }: { stages: PipelineStage[] }) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-sm font-semibold tracking-tight">Event lifecycle</h2>
-          <p className="mt-0.5 text-[13px] text-muted-foreground">
+          <p className="mt-0.5 text-body text-muted-foreground">
             {completed} of {stages.length} stages complete
           </p>
         </div>
         <div className="text-right">
           <div className={cn("text-2xl font-bold tabular-nums leading-none", healthColor)}>{health}%</div>
-          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">event health</div>
+          <div className="text-meta uppercase tracking-wide text-muted-foreground">event health</div>
         </div>
       </div>
 
@@ -80,8 +80,8 @@ export function EventPipelineTracker({ stages }: { stages: PipelineStage[] }) {
                 )}
               </div>
               <div className="min-w-0 pb-2 sm:mt-2 sm:px-1">
-                <p className="text-[12.5px] font-medium leading-tight">{s.name}</p>
-                <p className={cn("text-[11px] font-medium", m.text)}>{m.label}</p>
+                <p className="text-detail font-medium leading-tight">{s.name}</p>
+                <p className={cn("text-meta font-medium", m.text)}>{m.label}</p>
               </div>
             </li>
           );
@@ -94,15 +94,15 @@ export function EventPipelineTracker({ stages }: { stages: PipelineStage[] }) {
           const m = STATUS_META[s.status];
           return (
             <details key={s.name} className="group">
-              <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-2.5 text-[13px] hover:bg-muted/40">
+              <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-2.5 text-body hover:bg-muted/40">
                 <span className={cn("size-2 shrink-0 rounded-full", m.dot)} />
                 <span className="font-medium">{i + 1}. {s.name}</span>
-                <span className={cn("ml-auto text-[11px] font-medium", m.text)}>{m.label}</span>
+                <span className={cn("ml-auto text-meta font-medium", m.text)}>{m.label}</span>
                 <ChevronDown className="size-4 text-muted-foreground transition-transform group-open:rotate-180" />
               </summary>
-              <div className="space-y-1 px-4 pb-3 pl-9 text-[12.5px] text-muted-foreground">
+              <div className="space-y-1 px-4 pb-3 pl-9 text-detail text-muted-foreground">
                 {s.detail && <p>{s.detail}</p>}
-                <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[11.5px]">
+                <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-meta">
                   {s.who && <span>Owner: <span className="text-foreground/70">{s.who}</span></span>}
                   {s.at && <span>Updated: <span className="text-foreground/70">{format(new Date(s.at), "d MMM yyyy, h:mm a")}</span></span>}
                 </div>

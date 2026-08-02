@@ -92,7 +92,7 @@ export function OkrBoard({
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-body text-muted-foreground">
             {viewingOther ? (
               <>Viewing <span className="font-medium text-foreground">{ownerName}</span>&rsquo;s objectives.</>
             ) : (
@@ -101,7 +101,7 @@ export function OkrBoard({
           </p>
           {owners.length > 0 && (
             <Select value={ownerId} onValueChange={switchOwner}>
-              <SelectTrigger className="h-8 w-56 text-[13px]">
+              <SelectTrigger className="h-8 w-56 text-body">
                 <SelectValue placeholder="View someone…" />
               </SelectTrigger>
               <SelectContent>
@@ -148,7 +148,7 @@ export function OkrBoard({
         <div className="rounded-xl border border-dashed p-12 text-center">
           <Target className="mx-auto mb-3 size-8 text-muted-foreground/60" />
           <p className="text-sm font-medium">No objectives yet</p>
-          <p className="mt-1 text-[13px] text-muted-foreground">
+          <p className="mt-1 text-body text-muted-foreground">
             {viewingOther ? "This person hasn't set any objectives." : "Create your first objective to start tracking progress."}
           </p>
         </div>
@@ -201,12 +201,12 @@ function ObjectiveCard({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-[15px] font-semibold leading-tight text-foreground">{objective.title}</h3>
+              <h3 className="text-copy font-semibold leading-tight text-foreground">{objective.title}</h3>
               <Badge variant={meta.variant} className="shrink-0">{meta.label}</Badge>
               <Badge variant="outline" className="shrink-0 font-normal">{objective.period}</Badge>
             </div>
             {objective.description && (
-              <p className="text-[13px] leading-relaxed text-muted-foreground">{objective.description}</p>
+              <p className="text-body leading-relaxed text-muted-foreground">{objective.description}</p>
             )}
           </div>
           {canManage && (
@@ -228,7 +228,7 @@ function ObjectiveCard({
         </div>
 
         <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-[12px]">
+          <div className="flex items-center justify-between text-detail">
             <span className="font-medium text-muted-foreground">Overall progress</span>
             <span className="font-semibold tabular-nums text-foreground">{objective.progress}%</span>
           </div>
@@ -236,14 +236,14 @@ function ObjectiveCard({
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <span className="text-meta font-semibold uppercase tracking-wide text-muted-foreground">
             Key results ({objective.keyResults.length})
           </span>
           {canManage && <AddKeyResultDialog objectiveId={objective.id} onDone={onDone} />}
         </div>
 
         {objective.keyResults.length === 0 ? (
-          <p className="rounded-lg border border-dashed px-3 py-4 text-center text-[13px] text-muted-foreground">
+          <p className="rounded-lg border border-dashed px-3 py-4 text-center text-body text-muted-foreground">
             No key results yet.
           </p>
         ) : (
@@ -309,10 +309,10 @@ function KeyResultRow({
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           {kr.progress >= 100 && <CheckCircle2 className="size-4 shrink-0 text-success" />}
-          <span className="truncate text-[13px] font-medium text-foreground">{kr.title}</span>
+          <span className="truncate text-body font-medium text-foreground">{kr.title}</span>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <span className="text-[12px] font-semibold tabular-nums text-muted-foreground">{kr.progress}%</span>
+          <span className="text-detail font-semibold tabular-nums text-muted-foreground">{kr.progress}%</span>
           {canManage && (
             <Button variant="ghost" size="icon" className="size-7" title="Remove key result" disabled={pending} onClick={remove}>
               <Trash2 className="size-3.5 text-destructive" />
@@ -329,7 +329,7 @@ function KeyResultRow({
         />
       </div>
 
-      <div className="mt-2.5 flex flex-wrap items-center gap-2 text-[12px]">
+      <div className="mt-2.5 flex flex-wrap items-center gap-2 text-detail">
         <div className="flex items-center gap-1.5">
           <Input
             type="number"
@@ -462,7 +462,7 @@ function AddKeyResultDialog({ objectiveId, onDone }: { objectiveId: string; onDo
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="h-7 gap-1.5 text-[12px]"><Plus className="size-3.5" /> Add key result</Button>
+        <Button variant="outline" size="sm" className="h-7 gap-1.5 text-detail"><Plus className="size-3.5" /> Add key result</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

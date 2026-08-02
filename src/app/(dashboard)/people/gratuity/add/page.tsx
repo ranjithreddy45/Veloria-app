@@ -43,8 +43,8 @@ export default async function AddGratuityPage() {
 
       <div className="rounded-2xl border border-border/60 bg-card shadow-premium">
         <div className="border-b px-5 py-3.5">
-          <h3 className="text-[14px] font-semibold">Recently recorded settlements</h3>
-          <p className="text-[12.5px] text-muted-foreground">
+          <h3 className="text-copy font-semibold">Recently recorded settlements</h3>
+          <p className="text-detail text-muted-foreground">
             Persisted as audit-log entries (action GRATUITY_RECORDED). Newest first, last 25.
           </p>
         </div>
@@ -56,9 +56,9 @@ export default async function AddGratuityPage() {
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-[13px]">
+            <table className="w-full text-body">
               <thead>
-                <tr className="border-b text-left text-[11.5px] uppercase tracking-wide text-muted-foreground">
+                <tr className="border-b text-left text-meta uppercase tracking-wide text-muted-foreground">
                   <th className="px-5 py-2.5 font-medium">Employee</th>
                   <th className="px-3 py-2.5 font-medium">Settlement date</th>
                   <th className="px-3 py-2.5 text-right font-medium">Amount</th>
@@ -72,7 +72,7 @@ export default async function AddGratuityPage() {
                     <td className="px-5 py-3">
                       <div className="font-medium">{s.name || "—"}</div>
                       {s.empCode && (
-                        <div className="text-[11.5px] text-muted-foreground">{s.empCode}</div>
+                        <div className="text-meta text-muted-foreground">{s.empCode}</div>
                       )}
                     </td>
                     <td className="px-3 py-3 tabular-nums text-muted-foreground">

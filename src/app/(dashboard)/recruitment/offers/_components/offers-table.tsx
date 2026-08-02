@@ -118,23 +118,23 @@ export function OffersTable({ offers }: { offers: OfferRow[] }) {
                     <TableRow key={o.id} className="transition-premium hover:bg-muted/40">
                       <TableCell>
                         <div className="min-w-0 leading-tight">
-                          <span className="block truncate text-[13px] font-medium text-foreground">
+                          <span className="block truncate text-body font-medium text-foreground">
                             {o.candidateName}
                           </span>
                           {o.candidateEmail && (
-                            <span className="block truncate text-[11.5px] text-muted-foreground">
+                            <span className="block truncate text-meta text-muted-foreground">
                               {o.candidateEmail}
                             </span>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-[13px] text-foreground/80">
+                      <TableCell className="text-body text-foreground/80">
                         {o.jobTitle || "—"}
                       </TableCell>
-                      <TableCell className="text-right text-[13px] tabular-nums text-foreground">
+                      <TableCell className="text-right text-body tabular-nums text-foreground">
                         {inrFmt.format(Math.round(o.ctc))}
                       </TableCell>
-                      <TableCell className="text-[13px] text-foreground/80">
+                      <TableCell className="text-body text-foreground/80">
                         {o.joiningDate ? formatDate(o.joiningDate) : "—"}
                       </TableCell>
                       <TableCell>

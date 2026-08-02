@@ -25,7 +25,7 @@ export function CockpitHero({ fy, cashPosition, mtdRevenue, mtdExpense, mtdNet }
       <div className="grid gap-8 sm:grid-cols-[1.4fr_1fr] sm:items-center">
         <div className="space-y-6">
           <div>
-            <p className="text-[11.5px] font-medium uppercase tracking-[0.08em] text-white/60">
+            <p className="text-meta font-medium uppercase tracking-[0.08em] text-white/60">
               Cash position · all bank accounts
             </p>
             {/* The hero band is overflow-hidden, so an over-long figure is
@@ -34,10 +34,10 @@ export function CockpitHero({ fy, cashPosition, mtdRevenue, mtdExpense, mtdNet }
               * band; text-4xl only fits about 12 characters, and a crore-scale
               * balance is longer than that. Step the type down on phones and
               * allow a break as the last resort. */}
-            <p className="mt-1.5 text-[28px] font-semibold numeric leading-none break-words sm:text-4xl lg:text-5xl">
+            <p className="mt-1.5 text-h2 font-semibold numeric leading-none break-words sm:text-4xl lg:text-5xl">
               {formatINR(cashPosition)}
             </p>
-            <p className="mt-2 text-[13px] text-white/60">
+            <p className="mt-2 text-body text-white/60">
               Live balance from posted ledger movements
             </p>
           </div>
@@ -59,7 +59,7 @@ export function CockpitHero({ fy, cashPosition, mtdRevenue, mtdExpense, mtdNet }
             label={`${revShare}%`}
             ariaLabel={`Revenue is ${revShare}% of this month's gross flow`}
           />
-          <p className="text-center text-[12px] text-white/65">
+          <p className="text-center text-detail text-white/65">
             Revenue share of this month&apos;s gross flow · FY {fy}
           </p>
         </div>
@@ -71,9 +71,9 @@ export function CockpitHero({ fy, cashPosition, mtdRevenue, mtdExpense, mtdNet }
 function HeroStat({ label, value, accent, sub }: { label: string; value: string; accent: string; sub?: string }) {
   return (
     <div>
-      <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-white/55">{label}</p>
+      <p className="text-meta font-medium uppercase tracking-[0.06em] text-white/55">{label}</p>
       <p className={`mt-1 text-xl font-semibold numeric ${accent}`}>{value}</p>
-      {sub && <p className="mt-0.5 text-[10.5px] text-white/45">{sub}</p>}
+      {sub && <p className="mt-0.5 text-meta text-white/45">{sub}</p>}
     </div>
   );
 }

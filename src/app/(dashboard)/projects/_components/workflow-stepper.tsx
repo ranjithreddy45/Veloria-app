@@ -43,7 +43,7 @@ function Node({ step, index, isLast }: { step: Step; index: number; isLast: bool
     );
   }
   return (
-    <span className={cn(base, "size-[22px] border border-border bg-card text-[11px] text-muted-foreground")} aria-hidden>
+    <span className={cn(base, "size-[22px] border border-border bg-card text-meta text-muted-foreground")} aria-hidden>
       {index + 1}
     </span>
   );
@@ -111,7 +111,7 @@ export function WorkflowStepper({
               </span>
               <span
                 className={cn(
-                  "min-h-[2.4em] px-1 text-center text-[12px] leading-tight",
+                  "min-h-[2.4em] px-1 text-center text-detail leading-tight",
                   s.status === "upcoming" ? "font-normal text-muted-foreground" : "font-medium text-foreground",
                 )}
               >

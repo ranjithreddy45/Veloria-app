@@ -95,7 +95,7 @@ function signedPoints(type: string, points: number) {
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
-      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+      <p className="text-meta uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
       <div className="mt-1 text-sm">{value}</div>
@@ -182,10 +182,10 @@ export default async function LoyaltyAccountDetailPage({
             Tier progress
             ============================================================ */}
         <section className="rounded-2xl border bg-card p-5 shadow-card">
-          <h2 className="text-[15px] font-semibold tracking-[-0.01em]">
+          <h2 className="text-copy font-semibold tracking-[-0.01em]">
             Tier progress
           </h2>
-          <p className="mt-0.5 text-[13px] text-muted-foreground">
+          <p className="mt-0.5 text-body text-muted-foreground">
             {tierProgress.nextTierName
               ? `${tierProgress.pointsToNext.toLocaleString("en-IN")} more points to reach ${tierProgress.nextTierName}.`
               : "This member has reached the top tier."}
@@ -193,7 +193,7 @@ export default async function LoyaltyAccountDetailPage({
 
           <div className="mt-5 space-y-2">
             <Progress value={tierProgress.progress} className="h-2.5" />
-            <div className="flex justify-between text-[11px] uppercase tracking-wide text-muted-foreground">
+            <div className="flex justify-between text-meta uppercase tracking-wide text-muted-foreground">
               <span>{account.tier}</span>
               <span>{tierProgress.nextTierName ?? "Max tier"}</span>
             </div>
@@ -209,7 +209,7 @@ export default async function LoyaltyAccountDetailPage({
                 )}
               >
                 <StatusBadge status={t.tier} colorMap={LOYALTY_TIER_COLORS} />
-                <span className="numeric text-[11.5px] text-muted-foreground">
+                <span className="numeric text-meta text-muted-foreground">
                   {t.max === Infinity
                     ? `${t.min.toLocaleString("en-IN")}+`
                     : `${t.min.toLocaleString("en-IN")} – ${t.max.toLocaleString("en-IN")}`}
@@ -225,10 +225,10 @@ export default async function LoyaltyAccountDetailPage({
         <section className="rounded-2xl border bg-card p-5 shadow-card">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h2 className="text-[15px] font-semibold tracking-[-0.01em]">
+              <h2 className="text-copy font-semibold tracking-[-0.01em]">
                 Contact
               </h2>
-              <p className="mt-0.5 text-[13px] text-muted-foreground">
+              <p className="mt-0.5 text-body text-muted-foreground">
                 Who this loyalty account belongs to.
               </p>
             </div>
@@ -300,10 +300,10 @@ export default async function LoyaltyAccountDetailPage({
       <section className="overflow-hidden rounded-2xl border bg-card shadow-card">
         <div className="flex items-center justify-between gap-3 p-5">
           <div>
-            <h2 className="text-[15px] font-semibold tracking-[-0.01em]">
+            <h2 className="text-copy font-semibold tracking-[-0.01em]">
               Transaction history
             </h2>
-            <p className="mt-0.5 text-[13px] text-muted-foreground">
+            <p className="mt-0.5 text-body text-muted-foreground">
               Every point earned, redeemed, expired, or adjusted.
             </p>
           </div>
@@ -325,16 +325,16 @@ export default async function LoyaltyAccountDetailPage({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-[11px] uppercase tracking-wide">
+                  <TableHead className="text-meta uppercase tracking-wide">
                     Activity
                   </TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wide">
+                  <TableHead className="text-meta uppercase tracking-wide">
                     Type
                   </TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wide">
+                  <TableHead className="text-meta uppercase tracking-wide">
                     Date
                   </TableHead>
-                  <TableHead className="text-right text-[11px] uppercase tracking-wide">
+                  <TableHead className="text-right text-meta uppercase tracking-wide">
                     Points
                   </TableHead>
                 </TableRow>
@@ -355,7 +355,7 @@ export default async function LoyaltyAccountDetailPage({
                         <TableCell className="max-w-[24rem]">
                           <p className="truncate font-medium">{tx.description}</p>
                           {tx.referenceId && (
-                            <p className="numeric mt-0.5 text-[11.5px] text-muted-foreground">
+                            <p className="numeric mt-0.5 text-meta text-muted-foreground">
                               Ref {tx.referenceId}
                             </p>
                           )}
@@ -364,7 +364,7 @@ export default async function LoyaltyAccountDetailPage({
                           <Badge
                             variant="outline"
                             className={cn(
-                              "border text-[10.5px] font-medium",
+                              "border text-meta font-medium",
                               TRANSACTION_TYPE_COLORS[tx.type] ?? ""
                             )}
                           >

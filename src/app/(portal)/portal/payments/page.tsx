@@ -79,10 +79,10 @@ export default async function PortalPaymentsPage() {
                 <CheckCircle2 className="size-5 text-success" />
               </div>
               <div>
-                <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
+                <p className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.14em]">
                   Total paid
                 </p>
-                <p className="numeric text-foreground mt-1 text-[20px] font-semibold">
+                <p className="numeric text-foreground mt-1 text-title font-semibold">
                   {formatINR(totalPaid)}
                 </p>
               </div>
@@ -96,10 +96,10 @@ export default async function PortalPaymentsPage() {
                 <CreditCard className="text-primary size-5" />
               </div>
               <div>
-                <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
+                <p className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.14em]">
                   Settled
                 </p>
-                <p className="numeric text-foreground mt-1 text-[20px] font-semibold">
+                <p className="numeric text-foreground mt-1 text-title font-semibold">
                   {completedPayments.length}
                 </p>
               </div>
@@ -113,10 +113,10 @@ export default async function PortalPaymentsPage() {
                 <Clock className="size-5 text-warning" />
               </div>
               <div>
-                <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
+                <p className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.14em]">
                   In progress
                 </p>
-                <p className="numeric text-foreground mt-1 text-[20px] font-semibold">
+                <p className="numeric text-foreground mt-1 text-title font-semibold">
                   {pendingPayments.length}
                 </p>
               </div>
@@ -144,7 +144,7 @@ export default async function PortalPaymentsPage() {
       ) : (
         <Card className="shadow-card rounded-2xl py-0">
           <CardHeader className="px-6 pt-6 pb-4">
-            <CardTitle className="font-editorial text-foreground text-[20px] font-semibold">
+            <CardTitle className="font-editorial text-foreground text-title font-semibold">
               All payments
               <span className="numeric text-muted-foreground/60 ml-2 text-sm font-normal">
                 {payments.length}
@@ -157,28 +157,28 @@ export default async function PortalPaymentsPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-muted-foreground pb-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em]">
+                    <th className="text-muted-foreground pb-3 text-left text-meta font-semibold uppercase tracking-[0.14em]">
                       Date
                     </th>
-                    <th className="text-muted-foreground pb-3 text-right text-[11px] font-semibold uppercase tracking-[0.14em]">
+                    <th className="text-muted-foreground pb-3 text-right text-meta font-semibold uppercase tracking-[0.14em]">
                       Amount
                     </th>
-                    <th className="text-muted-foreground pb-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em]">
+                    <th className="text-muted-foreground pb-3 text-left text-meta font-semibold uppercase tracking-[0.14em]">
                       Method
                     </th>
-                    <th className="text-muted-foreground pb-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em]">
+                    <th className="text-muted-foreground pb-3 text-left text-meta font-semibold uppercase tracking-[0.14em]">
                       Receipt #
                     </th>
-                    <th className="text-muted-foreground pb-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em]">
+                    <th className="text-muted-foreground pb-3 text-left text-meta font-semibold uppercase tracking-[0.14em]">
                       Invoice
                     </th>
-                    <th className="text-muted-foreground pb-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em]">
+                    <th className="text-muted-foreground pb-3 text-left text-meta font-semibold uppercase tracking-[0.14em]">
                       Event
                     </th>
-                    <th className="text-muted-foreground pb-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em]">
+                    <th className="text-muted-foreground pb-3 text-left text-meta font-semibold uppercase tracking-[0.14em]">
                       Status
                     </th>
-                    <th className="text-muted-foreground pb-3 text-right text-[11px] font-semibold uppercase tracking-[0.14em]">
+                    <th className="text-muted-foreground pb-3 text-right text-meta font-semibold uppercase tracking-[0.14em]">
                       Receipt
                     </th>
                   </tr>
@@ -233,7 +233,7 @@ export default async function PortalPaymentsPage() {
                           <StatusBadge
                             status={payment.status}
                             colorMap={PAYMENT_STATUS_COLORS}
-                            className="text-[10px]"
+                            className="text-meta"
                           />
                         </td>
                         <td className="py-3.5 text-right">
@@ -297,7 +297,7 @@ export default async function PortalPaymentsPage() {
                       <StatusBadge
                         status={payment.status}
                         colorMap={PAYMENT_STATUS_COLORS}
-                        className="text-[10px]"
+                        className="text-meta"
                       />
                     </div>
                     <div className="text-muted-foreground mt-3 flex items-center justify-between text-xs">

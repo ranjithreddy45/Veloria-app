@@ -78,16 +78,16 @@ export function EmployeePayslips({ payslips }: { payslips: EmployeePayslipRow[] 
           <Card key={p.id} className="gap-4 p-5 shadow-card transition-shadow hover:shadow-card-hover">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="truncate text-[15px] font-semibold tracking-[-0.01em]">{label}</div>
-                <div className="numeric mt-0.5 text-[12px] text-muted-foreground">FY {p.run.fy}</div>
+                <div className="truncate text-copy font-semibold tracking-[-0.01em]">{label}</div>
+                <div className="numeric mt-0.5 text-detail text-muted-foreground">FY {p.run.fy}</div>
               </div>
               <StatusPill label={chip.label} hue={chip.hue} size="xs" />
             </div>
 
             <div className="mt-auto">
-              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Net pay</div>
-              <div className="numeric mt-1 text-[26px] font-semibold leading-none">{inr.format(p.net)}</div>
-              <div className="numeric mt-2 text-[11.5px] text-muted-foreground">
+              <div className="text-meta uppercase tracking-wide text-muted-foreground">Net pay</div>
+              <div className="numeric mt-1 text-h2 font-semibold leading-none">{inr.format(p.net)}</div>
+              <div className="numeric mt-2 text-meta text-muted-foreground">
                 Gross {inr.format(p.gross)} · {p.paidDays} paid
                 {p.lopDays > 0 ? ` · ${p.lopDays} LOP` : ""}
               </div>
@@ -98,7 +98,7 @@ export function EmployeePayslips({ payslips }: { payslips: EmployeePayslipRow[] 
                 <Button variant="outline" size="sm" className="w-full gap-1.5" disabled>
                   <Lock className="size-4" /> Draft — not downloadable
                 </Button>
-                <p className="mt-1 text-[10.5px] leading-tight text-muted-foreground">
+                <p className="mt-1 text-meta leading-tight text-muted-foreground">
                   Provisional figures from an unfinalised run.
                 </p>
               </div>

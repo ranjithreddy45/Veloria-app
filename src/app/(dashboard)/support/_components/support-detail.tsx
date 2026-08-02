@@ -125,7 +125,7 @@ export function SupportDetail({
             {canWrite && (
               <div className="flex shrink-0 flex-col gap-2 sm:items-end">
                 <div className="flex flex-col gap-1">
-                  <Label className="text-[11px] text-muted-foreground">Status</Label>
+                  <Label className="text-meta text-muted-foreground">Status</Label>
                   <Select value={ticket.status} onValueChange={changeStatus} disabled={busy}>
                     <SelectTrigger className="h-8 w-44">
                       <SelectValue />
@@ -140,7 +140,7 @@ export function SupportDetail({
                   </Select>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <Label className="text-[11px] text-muted-foreground">Assignee</Label>
+                  <Label className="text-meta text-muted-foreground">Assignee</Label>
                   <Select
                     value={ticket.assignedToId ?? UNASSIGNED}
                     onValueChange={changeAssignee}
@@ -211,12 +211,12 @@ export function SupportDetail({
                     <span className="flex items-center gap-2 text-xs font-medium">
                       {m.authorName}
                       {m.internal && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/50 dark:text-amber-300">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-meta font-medium text-amber-700 dark:bg-amber-900/50 dark:text-amber-300">
                           <Lock className="size-2.5" /> Internal note
                         </span>
                       )}
                     </span>
-                    <span className="text-[11px] text-muted-foreground tabular-nums">
+                    <span className="text-meta text-muted-foreground tabular-nums">
                       {fmtDateTime(m.createdAt)}
                     </span>
                   </div>

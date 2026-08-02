@@ -60,7 +60,7 @@ export function LeaveCalendar({
       {/* Month title + Prev/Today/Next (44px each on touch) is tight at 375px;
         * wrapping keeps the Next arrow inside the card. */}
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b px-4 py-3">
-        <h3 className="text-[15px] font-semibold">{MONTHS[month]} {year}</h3>
+        <h3 className="text-copy font-semibold">{MONTHS[month]} {year}</h3>
         <div className="flex gap-1.5">
           <Button variant="outline" size="icon" className="size-8" onClick={() => go(-1)}><ChevronLeft className="size-4" /></Button>
           <Button variant="outline" size="sm" onClick={() => { const now = new Date(); router.replace(`/people/leave/calendar?year=${now.getUTCFullYear()}&month=${now.getUTCMonth()}`); }}>Today</Button>
@@ -68,7 +68,7 @@ export function LeaveCalendar({
         </div>
       </div>
 
-      <div className="grid grid-cols-7 border-b text-center text-[11.5px] font-medium text-muted-foreground">
+      <div className="grid grid-cols-7 border-b text-center text-meta font-medium text-muted-foreground">
         {DOW.map((d) => <div key={d} className="py-2">{d}</div>)}
       </div>
 
@@ -83,17 +83,17 @@ export function LeaveCalendar({
           return (
             <div key={i} className={cn("min-h-24 border-b border-r p-1.5", isWeekend && "bg-muted/30", holiday && "bg-warning/10")}>
               <div className="flex items-center justify-between">
-                <span className={cn("text-[12px] font-medium", isWeekend && "text-muted-foreground")}>{d}</span>
+                <span className={cn("text-detail font-medium", isWeekend && "text-muted-foreground")}>{d}</span>
               </div>
-              {holiday && <div className="mt-0.5 truncate text-[10px] font-medium text-warning" title={holiday}>{holiday}</div>}
+              {holiday && <div className="mt-0.5 truncate text-meta font-medium text-warning" title={holiday}>{holiday}</div>}
               <div className="mt-1 space-y-0.5">
                 {onLeave.slice(0, 3).map((l) => (
-                  <div key={l.id} className="flex items-center gap-1 truncate text-[10.5px]" title={`${l.employee.firstName} ${l.employee.lastName} · ${l.leaveType.code}`}>
+                  <div key={l.id} className="flex items-center gap-1 truncate text-meta" title={`${l.employee.firstName} ${l.employee.lastName} · ${l.leaveType.code}`}>
                     <span className={cn("inline-block size-1.5 shrink-0 rounded-full", HUE_DOT[l.leaveType.color] ?? "bg-zinc-500")} />
                     <span className="truncate">{l.employee.firstName} {l.employee.lastName[0]}.</span>
                   </div>
                 ))}
-                {onLeave.length > 3 && <div className="text-[10px] text-muted-foreground">+{onLeave.length - 3} more</div>}
+                {onLeave.length > 3 && <div className="text-meta text-muted-foreground">+{onLeave.length - 3} more</div>}
               </div>
             </div>
           );

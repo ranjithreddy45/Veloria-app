@@ -38,8 +38,8 @@ export function EmptyState({
           {icon}
         </div>
       )}
-      <p className="text-[15px] font-semibold tracking-[-0.01em]">{title}</p>
-      {description && <p className="mt-1.5 max-w-sm text-[13px] leading-relaxed text-muted-foreground">{description}</p>}
+      <p className="text-copy font-semibold tracking-[-0.01em]">{title}</p>
+      {description && <p className="mt-1.5 max-w-sm text-body leading-relaxed text-muted-foreground">{description}</p>}
       {action && <div className="mt-5">{action}</div>}
     </div>
   );

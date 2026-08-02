@@ -52,7 +52,7 @@ export default async function PortalDocumentsPage() {
           <CardContent className="flex items-start gap-3.5 p-6">
             <ShieldAlert className="mt-0.5 size-5 flex-shrink-0 text-warning" />
             <div>
-              <h3 className="font-editorial text-foreground text-[20px] font-semibold">
+              <h3 className="font-editorial text-foreground text-title font-semibold">
                 One quick step first
               </h3>
               <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
@@ -84,7 +84,7 @@ export default async function PortalDocumentsPage() {
       {/* Contracts */}
       {docs.contracts.length > 0 && (
         <section className="space-y-4">
-          <h2 className="text-muted-foreground flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em]">
+          <h2 className="text-muted-foreground flex items-center gap-2 text-meta font-semibold uppercase tracking-[0.14em]">
             Contracts
             <span className="numeric text-muted-foreground/60">
               {docs.contracts.length}
@@ -125,7 +125,7 @@ export default async function PortalDocumentsPage() {
                       <StatusBadge
                         status={c.status}
                         colorMap={CONTRACT_STATUS_COLORS}
-                        className="text-[10px]"
+                        className="text-meta"
                       />
                       <ArrowUpRight className="text-muted-foreground/40 group-hover:text-primary size-4 flex-shrink-0 transition-colors" />
                     </CardContent>
@@ -140,7 +140,7 @@ export default async function PortalDocumentsPage() {
       {/* Invoices & Receipts */}
       {docs.invoices.length > 0 && (
         <section className="space-y-4">
-          <h2 className="text-muted-foreground flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em]">
+          <h2 className="text-muted-foreground flex items-center gap-2 text-meta font-semibold uppercase tracking-[0.14em]">
             Invoices &amp; receipts
             <span className="numeric text-muted-foreground/60">
               {docs.invoices.length}
@@ -175,7 +175,7 @@ export default async function PortalDocumentsPage() {
                   <StatusBadge
                     status={inv.status}
                     colorMap={INVOICE_STATUS_COLORS}
-                    className="text-[10px]"
+                    className="text-meta"
                   />
                   <a
                     href={`/portal/invoices/${inv.id}/pdf?auto=1`}

@@ -136,7 +136,7 @@ export default async function CommsInboxPage({
           <Card className="gap-0 py-0">
             <CardContent className="px-5 py-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h2 className="text-[13px] font-semibold tracking-[-0.01em]">Recent activity</h2>
+                <h2 className="text-body font-semibold tracking-[-0.01em]">Recent activity</h2>
                 <ChannelFilter active={channel ?? ""} />
               </div>
               <div className="mt-4">

@@ -217,7 +217,7 @@ export function TierBuilder({ baseQuotationId, baseInput, status, canBuild }: Pr
                     }`}
                   >
                     <div className="space-y-1">
-                      <Label className="text-[11px] text-muted-foreground">Tier name</Label>
+                      <Label className="text-meta text-muted-foreground">Tier name</Label>
                       <Input
                         value={t.displayName}
                         onChange={(e) => update(t.key, { displayName: e.target.value })}
@@ -225,7 +225,7 @@ export function TierBuilder({ baseQuotationId, baseInput, status, canBuild }: Pr
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[11px] text-muted-foreground">{leverLabel}</Label>
+                      <Label className="text-meta text-muted-foreground">{leverLabel}</Label>
                       <Input
                         type="number"
                         min={1}
@@ -235,7 +235,7 @@ export function TierBuilder({ baseQuotationId, baseInput, status, canBuild }: Pr
                       />
                     </div>
                     <div className="space-y-1 text-right">
-                      <Label className="text-[11px] text-muted-foreground">Grand total</Label>
+                      <Label className="text-meta text-muted-foreground">Grand total</Label>
                       <p className="h-8 text-sm font-semibold leading-8">{total > 0 ? inr(total) : "—"}</p>
                     </div>
                     <div className="flex items-center gap-1 pb-1.5">

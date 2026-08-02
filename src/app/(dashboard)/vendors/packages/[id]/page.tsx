@@ -112,7 +112,7 @@ export default async function PackageDetailPage({
         title={pkg.name}
         description={`Offered by ${pkg.vendor.name}`}
       >
-        <Button asChild size="sm" className="h-9 gap-1.5 text-[13px]">
+        <Button asChild size="sm" className="h-9 gap-1.5 text-body">
           <Link href={`/vendors/packages/${id}/edit`}>
             <EditIcon className="size-3.5" />
             Edit package
@@ -135,7 +135,7 @@ export default async function PackageDetailPage({
             ) : (
               <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-teal-500/10 via-muted to-muted">
                 <ImageIcon className="size-10 text-muted-foreground/50" />
-                <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground/60">
+                <span className="text-meta font-medium uppercase tracking-[0.14em] text-muted-foreground/60">
                   No photos on this package yet
                 </span>
               </div>
@@ -149,7 +149,7 @@ export default async function PackageDetailPage({
             {/* Category chip */}
             <span
               className={cn(
-                "absolute left-4 top-4 inline-flex items-center rounded-full border px-2.5 py-1 text-[12px] font-semibold backdrop-blur-md",
+                "absolute left-4 top-4 inline-flex items-center rounded-full border px-2.5 py-1 text-detail font-semibold backdrop-blur-md",
                 CATEGORY_HUE[pkg.category] ??
                   "border-border bg-background/85 text-foreground"
               )}
@@ -160,10 +160,10 @@ export default async function PackageDetailPage({
             {/* Price badge — over the photo only; the sidebar carries it otherwise */}
             {coverImage && (
               <div className="absolute bottom-4 left-4">
-                <p className="numeric text-[28px] font-semibold leading-none tracking-[-0.02em] text-white drop-shadow-md">
+                <p className="numeric text-h2 font-semibold leading-none tracking-[-0.02em] text-white drop-shadow-md">
                   {formatINR(pkg.price)}
                 </p>
-                <p className="mt-1 text-[13px] font-medium text-white/80">
+                <p className="mt-1 text-body font-medium text-white/80">
                   {priceUnitLabel}
                 </p>
               </div>
@@ -201,9 +201,9 @@ export default async function PackageDetailPage({
             <StatusBadge
               status={pkg.status}
               colorMap={PACKAGE_STATUS_COLORS}
-              className="text-[12px]"
+              className="text-detail"
             />
-            <span className="text-[13px] text-muted-foreground">
+            <span className="text-body text-muted-foreground">
               by{" "}
               <Link
                 href={`/vendors/${pkg.vendor.id}`}
@@ -216,7 +216,7 @@ export default async function PackageDetailPage({
 
           {/* Description */}
           {pkg.description && (
-            <p className="text-[14px] leading-relaxed text-muted-foreground">
+            <p className="text-copy leading-relaxed text-muted-foreground">
               {pkg.description}
             </p>
           )}
@@ -227,17 +227,17 @@ export default async function PackageDetailPage({
           <div className="space-y-5">
             <div className="flex items-center gap-2">
               <ListIcon className="size-4 text-muted-foreground" />
-              <h2 className="text-[16px] font-semibold text-foreground">
+              <h2 className="text-lede font-semibold text-foreground">
                 What's included
               </h2>
             </div>
 
             {pkg.sections.length === 0 ? (
               <div className="rounded-2xl border border-dashed bg-card/50 px-6 py-10 text-center">
-                <p className="text-[14px] font-medium text-foreground">
+                <p className="text-copy font-medium text-foreground">
                   Nothing spelled out yet
                 </p>
-                <p className="mx-auto mt-1.5 max-w-sm text-[13px] leading-relaxed text-muted-foreground">
+                <p className="mx-auto mt-1.5 max-w-sm text-body leading-relaxed text-muted-foreground">
                   Clients buy what they can picture. Add sections and items so
                   this package sells itself.
                 </p>
@@ -260,7 +260,7 @@ export default async function PackageDetailPage({
                     key={section.id}
                     className="space-y-3 rounded-2xl border bg-card p-4 shadow-card"
                   >
-                    <h3 className="text-[14px] font-semibold text-foreground">
+                    <h3 className="text-copy font-semibold text-foreground">
                       {section.title}
                     </h3>
 
@@ -269,13 +269,13 @@ export default async function PackageDetailPage({
                         <div key={item.id} className="space-y-1.5">
                           <div className="flex items-center gap-2">
                             <CheckIcon className="size-3.5 shrink-0 text-teal-600 dark:text-teal-400" />
-                            <span className="text-[13px] font-medium text-foreground">
+                            <span className="text-body font-medium text-foreground">
                               {item.name}
                             </span>
                           </div>
 
                           {item.type === "FIXED" && (
-                            <p className="ml-5.5 text-[12px] text-muted-foreground">
+                            <p className="ml-5.5 text-detail text-muted-foreground">
                               Included
                             </p>
                           )}
@@ -283,7 +283,7 @@ export default async function PackageDetailPage({
                           {item.type === "SINGLE_CHOICE" &&
                             item.options.length > 0 && (
                               <div className="ml-6 space-y-1">
-                                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                                <p className="text-meta font-medium text-muted-foreground uppercase tracking-wide">
                                   Choose one:
                                 </p>
                                 <div className="flex flex-wrap gap-1.5">
@@ -291,7 +291,7 @@ export default async function PackageDetailPage({
                                     <Badge
                                       key={oi}
                                       variant="outline"
-                                      className="text-[11px] border-border/60 bg-muted/50"
+                                      className="text-meta border-border/60 bg-muted/50"
                                     >
                                       {opt}
                                     </Badge>
@@ -303,7 +303,7 @@ export default async function PackageDetailPage({
                           {item.type === "MULTI_CHOICE" &&
                             item.options.length > 0 && (
                               <div className="ml-6 space-y-1">
-                                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                                <p className="text-meta font-medium text-muted-foreground uppercase tracking-wide">
                                   Choose {item.chooseCount ?? 1}:
                                 </p>
                                 <div className="flex flex-wrap gap-1.5">
@@ -311,7 +311,7 @@ export default async function PackageDetailPage({
                                     <Badge
                                       key={oi}
                                       variant="outline"
-                                      className="text-[11px] border-border/60 bg-muted/50"
+                                      className="text-meta border-border/60 bg-muted/50"
                                     >
                                       {opt}
                                     </Badge>
@@ -321,7 +321,7 @@ export default async function PackageDetailPage({
                             )}
 
                           {item.notes && (
-                            <p className="ml-6 text-[11px] italic text-muted-foreground">
+                            <p className="ml-6 text-meta italic text-muted-foreground">
                               {item.notes}
                             </p>
                           )}
@@ -339,18 +339,18 @@ export default async function PackageDetailPage({
         <div className="space-y-4">
           {/* Price card */}
           <div className="space-y-1 rounded-2xl border bg-card p-5 shadow-card">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+            <p className="text-meta font-semibold uppercase tracking-[0.1em] text-muted-foreground">
               Package price
             </p>
-            <p className="numeric text-[32px] font-semibold leading-tight tracking-[-0.02em] text-foreground">
+            <p className="numeric text-h1 font-semibold leading-tight tracking-[-0.02em] text-foreground">
               {formatINR(pkg.price)}
             </p>
-            <p className="text-[13px] text-muted-foreground">{priceUnitLabel}</p>
+            <p className="text-body text-muted-foreground">{priceUnitLabel}</p>
           </div>
 
           {/* Stats */}
           <div className="rounded-2xl border bg-card p-4 shadow-card">
-            <dl className="space-y-3 text-[13px]">
+            <dl className="space-y-3 text-body">
               <div className="flex items-center justify-between">
                 <dt className="text-muted-foreground">Sections</dt>
                 <dd className="numeric font-medium">{pkg.sections.length}</dd>

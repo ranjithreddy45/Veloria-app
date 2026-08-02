@@ -71,8 +71,8 @@ export default async function GratuityLedgerPage() {
 
       <div className="rounded-2xl border border-border/60 bg-card shadow-premium">
         <div className="border-b px-5 py-3.5">
-          <h3 className="text-[14px] font-semibold">Gratuity by employee</h3>
-          <p className="text-[12.5px] text-muted-foreground">
+          <h3 className="text-copy font-semibold">Gratuity by employee</h3>
+          <p className="text-detail text-muted-foreground">
             Projected payout is what would be owed if the employee separated today. Employees with no
             current salary structure show “—” and are excluded from the total.
           </p>
@@ -85,9 +85,9 @@ export default async function GratuityLedgerPage() {
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-[13px]">
+            <table className="w-full text-body">
               <thead>
-                <tr className="border-b text-left text-[11.5px] uppercase tracking-wide text-muted-foreground">
+                <tr className="border-b text-left text-meta uppercase tracking-wide text-muted-foreground">
                   <th className="px-5 py-2.5 font-medium">Employee</th>
                   <th className="px-3 py-2.5 font-medium">Status</th>
                   <th className="px-3 py-2.5 font-medium">DOJ</th>
@@ -102,7 +102,7 @@ export default async function GratuityLedgerPage() {
                   <tr key={r.id} className="transition-colors hover:bg-muted/40">
                     <td className="px-5 py-3">
                       <div className="font-medium">{r.name}</div>
-                      <div className="text-[11.5px] text-muted-foreground">{r.empCode}</div>
+                      <div className="text-meta text-muted-foreground">{r.empCode}</div>
                     </td>
                     <td className="px-3 py-3">
                       <StatusPill

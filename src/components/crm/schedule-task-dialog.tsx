@@ -113,7 +113,7 @@ export function ScheduleTaskDialog({ leadId, inquiryId }: { leadId?: string; inq
                     <label key={usr.id} className="flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 text-sm hover:bg-muted">
                       <input type="checkbox" checked={inviteeIds.includes(usr.id)} onChange={() => toggleInvitee(usr.id)} />
                       <span>{usr.name ?? usr.id}</span>
-                      <span className="ml-auto text-[10px] text-muted-foreground">{usr.role}</span>
+                      <span className="ml-auto text-meta text-muted-foreground">{usr.role}</span>
                     </label>
                   ))}
                   {!opts && <p className="px-1.5 py-1 text-xs text-muted-foreground">Loading team…</p>}

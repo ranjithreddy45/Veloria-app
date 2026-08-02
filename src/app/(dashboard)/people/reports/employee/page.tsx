@@ -88,7 +88,7 @@ export default async function EmployeeReportsIndex() {
                     <h3 className="font-semibold tracking-[-0.01em]">{r.title}</h3>
                     <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
                   </div>
-                  <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">{r.description}</p>
+                  <p className="mt-1.5 text-body leading-relaxed text-muted-foreground">{r.description}</p>
                 </div>
               </div>
             </Card>

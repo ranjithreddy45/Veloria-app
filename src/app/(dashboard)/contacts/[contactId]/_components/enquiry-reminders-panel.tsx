@@ -82,7 +82,7 @@ export function EnquiryRemindersPanel({ contactId }: { contactId: string }) {
       </CardHeader>
       <CardContent>
         {loading ? (
-          <p className="text-[13px] text-muted-foreground">Loading…</p>
+          <p className="text-body text-muted-foreground">Loading…</p>
         ) : tasks.length === 0 ? (
           <EmptyState
             className="py-8"
@@ -106,12 +106,12 @@ export function EnquiryRemindersPanel({ contactId }: { contactId: string }) {
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold", style.badge)}>
+                      <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-meta font-semibold", style.badge)}>
                         <Icon className="size-3" />
                         {style.label}
                       </span>
                       {t.isOverdue && (
-                        <span className="bg-destructive/12 text-destructive ring-destructive/25 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset">
+                        <span className="bg-destructive/12 text-destructive ring-destructive/25 inline-flex items-center rounded-full px-2 py-0.5 text-meta font-semibold ring-1 ring-inset">
                           Overdue
                         </span>
                       )}

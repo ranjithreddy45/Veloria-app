@@ -48,15 +48,15 @@ export function FnfHome({ settlements, employees, initialEmployeeId }: { settlem
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="truncate font-medium">{s.name}</span>
-                  <span className="text-[12px] text-muted-foreground">{s.empCode}</span>
+                  <span className="text-detail text-muted-foreground">{s.empCode}</span>
                 </div>
-                <div className="text-[12px] text-muted-foreground">
+                <div className="text-detail text-muted-foreground">
                   Last day {formatDate(s.lastWorkingDay)} · Gratuity {formatINR(s.gratuityAmt)} · Leave {formatINR(s.leaveEncashAmt)}
                 </div>
               </div>
               <div className="text-right">
                 <div className="font-semibold tabular-nums">{formatINR(s.netPayable)}</div>
-                <div className="text-[11px] text-muted-foreground">net payable</div>
+                <div className="text-meta text-muted-foreground">net payable</div>
               </div>
               <StatusPill label={s.status[0] + s.status.slice(1).toLowerCase()} hue={STATUS_HUE[s.status] ?? "slate"} size="xs" />
             </Link>
@@ -135,7 +135,7 @@ function NewSettlementDialog({ employees, initialEmployeeId }: { employees: EmpL
 
         <div className="grid gap-3 py-2 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
-            <Label className="text-[12.5px]">Employee</Label>
+            <Label className="text-detail">Employee</Label>
             <Select value={employeeId} onValueChange={(v) => { setEmployeeId(v); setPreview(null); }}>
               <SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger>
               <SelectContent>
@@ -147,31 +147,31 @@ function NewSettlementDialog({ employees, initialEmployeeId }: { employees: EmpL
               </SelectContent>
             </Select>
             {selected?.dateOfExit && (
-              <p className="text-[11.5px] text-muted-foreground">Recorded exit date: {formatDate(selected.dateOfExit)}</p>
+              <p className="text-meta text-muted-foreground">Recorded exit date: {formatDate(selected.dateOfExit)}</p>
             )}
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Last working day</Label>
+            <Label className="text-detail">Last working day</Label>
             <Input type="date" value={lastWorkingDay}
               onChange={(e) => { setLastWorkingDay(e.target.value); setPreview(null); }} />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Notice recovery (₹)</Label>
+            <Label className="text-detail">Notice recovery (₹)</Label>
             <Input type="number" min={0} value={noticeRecovery}
               onChange={(e) => { setNoticeRecovery(e.target.value); setPreview(null); }} placeholder="0" />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Other additions (₹)</Label>
+            <Label className="text-detail">Other additions (₹)</Label>
             <Input type="number" min={0} value={otherAdditions}
               onChange={(e) => { setOtherAdditions(e.target.value); setPreview(null); }} placeholder="0" />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Other deductions (₹)</Label>
+            <Label className="text-detail">Other deductions (₹)</Label>
             <Input type="number" min={0} value={otherDeductions}
               onChange={(e) => { setOtherDeductions(e.target.value); setPreview(null); }} placeholder="0" />
           </div>
           <div className="space-y-1.5 sm:col-span-2">
-            <Label className="text-[12.5px]">Note (optional)</Label>
+            <Label className="text-detail">Note (optional)</Label>
             <Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)}
               placeholder="Anything to record about this settlement…" />
           </div>
@@ -197,17 +197,17 @@ export function PreviewCard({ b }: { b: FnfBreakdown }) {
   const line = (label: string, value: string, sub?: string, sign?: "+" | "−") => (
     <div className="flex items-start justify-between gap-3 border-b border-dashed py-1.5 last:border-0">
       <div>
-        <div className="text-[13px]">{label}</div>
-        {sub && <div className="text-[11px] text-muted-foreground">{sub}</div>}
+        <div className="text-body">{label}</div>
+        {sub && <div className="text-meta text-muted-foreground">{sub}</div>}
       </div>
-      <div className="whitespace-nowrap text-[13px] font-medium tabular-nums">
+      <div className="whitespace-nowrap text-body font-medium tabular-nums">
         {sign && <span className="text-muted-foreground">{sign} </span>}{value}
       </div>
     </div>
   );
   return (
     <div className="rounded-xl border bg-muted/30 p-4">
-      <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Computation</div>
+      <div className="mb-2 text-meta font-semibold uppercase tracking-wide text-muted-foreground">Computation</div>
       {line("Gratuity", formatINR(b.gratuityAmt),
         `${b.gratuityEligibleYears} completed yr(s) · last-drawn basic ${formatINR(b.lastDrawnBasic)}`, "+")}
       {line("Leave encashment", formatINR(b.leaveEncashAmt),
@@ -218,11 +218,11 @@ export function PreviewCard({ b }: { b: FnfBreakdown }) {
       {b.noticeRecovery > 0 && line("Notice recovery", formatINR(b.noticeRecovery), undefined, "−")}
       {b.otherDeductions > 0 && line("Other deductions", formatINR(b.otherDeductions), undefined, "−")}
       <div className="mt-2 flex items-center justify-between rounded-lg bg-primary/10 px-3 py-2">
-        <span className="text-[13px] font-semibold text-primary">Net payable</span>
-        <span className="text-[15px] font-bold tabular-nums text-primary">{formatINR(b.netPayable)}</span>
+        <span className="text-body font-semibold text-primary">Net payable</span>
+        <span className="text-copy font-bold tabular-nums text-primary">{formatINR(b.netPayable)}</span>
       </div>
       {b.notes.length > 0 && (
-        <ul className="mt-3 space-y-1 text-[11px] text-muted-foreground">
+        <ul className="mt-3 space-y-1 text-meta text-muted-foreground">
           {b.notes.map((n, i) => <li key={i}>• {n}</li>)}
         </ul>
       )}

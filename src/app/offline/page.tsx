@@ -16,7 +16,7 @@ export default function OfflinePage() {
         <div className="bg-muted mx-auto flex size-12 items-center justify-center rounded-2xl">
           <WifiOff className="text-muted-foreground size-6" />
         </div>
-        <h1 className="text-foreground mt-5 text-[26px]">You&apos;re offline</h1>
+        <h1 className="text-foreground mt-5 text-h2">You&apos;re offline</h1>
         <p className="text-muted-foreground mx-auto mt-2 max-w-xs text-sm leading-relaxed">
           Veloria Grand needs a connection for live bookings and payments. Check your
           network — the app will pick up right where you left off.

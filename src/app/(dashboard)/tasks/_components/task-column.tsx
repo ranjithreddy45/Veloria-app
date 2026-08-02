@@ -93,7 +93,7 @@ export function TaskColumn({ status, tasks }: TaskColumnProps) {
           </h3>
           <Badge
             variant="secondary"
-            className="h-5 min-w-[20px] justify-center px-1.5 text-[10px] font-semibold tabular-nums"
+            className="h-5 min-w-[20px] justify-center px-1.5 text-meta font-semibold tabular-nums"
           >
             {tasks.length}
           </Badge>
@@ -123,7 +123,7 @@ export function TaskColumn({ status, tasks }: TaskColumnProps) {
               style={{ backgroundColor: config.color, opacity: 0.5 }}
             />
             <p className="text-xs font-medium text-muted-foreground">No tasks</p>
-            <p className="text-[11px] text-muted-foreground">Drag a card here</p>
+            <p className="text-meta text-muted-foreground">Drag a card here</p>
           </div>
         )}
       </div>

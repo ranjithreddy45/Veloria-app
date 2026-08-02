@@ -115,7 +115,7 @@ export default async function CashFlowPage({
             stress={forecast.stress}
           />
 
-          <p className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
+          <p className="flex items-start gap-1.5 text-meta text-muted-foreground">
             <Info className="mt-px size-3.5 shrink-0" />
             <span>
               Outflow is an <span className="font-medium">estimate</span> — a flat

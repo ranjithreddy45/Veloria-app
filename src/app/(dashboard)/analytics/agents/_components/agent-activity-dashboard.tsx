@@ -86,7 +86,7 @@ export function AgentActivityDashboard({ initialData }: Props) {
       <Card className="rounded-2xl border bg-card shadow-card">
         <CardHeader>
           <CardTitle>Agent Rankings</CardTitle>
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-body text-muted-foreground">
             Calls, conversations and follow-through, ranked across the team.
           </p>
         </CardHeader>
@@ -94,25 +94,25 @@ export function AgentActivityDashboard({ initialData }: Props) {
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead className="h-9 text-[11px] font-medium uppercase tracking-wide text-muted-foreground w-[50px]">#</TableHead>
-                <TableHead className="h-9 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Agent</TableHead>
-                <TableHead className="h-9 text-[11px] font-medium uppercase tracking-wide text-muted-foreground text-right">
+                <TableHead className="h-9 text-meta font-medium uppercase tracking-wide text-muted-foreground w-[50px]">#</TableHead>
+                <TableHead className="h-9 text-meta font-medium uppercase tracking-wide text-muted-foreground">Agent</TableHead>
+                <TableHead className="h-9 text-meta font-medium uppercase tracking-wide text-muted-foreground text-right">
                   <Phone className="mr-1 inline size-3.5" />
                   Calls
                 </TableHead>
-                <TableHead className="h-9 text-[11px] font-medium uppercase tracking-wide text-muted-foreground text-right">
+                <TableHead className="h-9 text-meta font-medium uppercase tracking-wide text-muted-foreground text-right">
                   <MessageSquare className="mr-1 inline size-3.5" />
                   Comms
                 </TableHead>
-                <TableHead className="h-9 text-[11px] font-medium uppercase tracking-wide text-muted-foreground text-right">
+                <TableHead className="h-9 text-meta font-medium uppercase tracking-wide text-muted-foreground text-right">
                   <Users className="mr-1 inline size-3.5" />
                   Leads
                 </TableHead>
-                <TableHead className="h-9 text-[11px] font-medium uppercase tracking-wide text-muted-foreground text-right">
+                <TableHead className="h-9 text-meta font-medium uppercase tracking-wide text-muted-foreground text-right">
                   <CheckCircle className="mr-1 inline size-3.5" />
                   Tasks
                 </TableHead>
-                <TableHead className="h-9 text-[11px] font-medium uppercase tracking-wide text-muted-foreground text-right">Total Talk Time</TableHead>
+                <TableHead className="h-9 text-meta font-medium uppercase tracking-wide text-muted-foreground text-right">Total Talk Time</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -120,7 +120,7 @@ export function AgentActivityDashboard({ initialData }: Props) {
                 <TableRow>
                   <TableCell
                     colSpan={7}
-                    className="h-24 text-center text-[13px] text-muted-foreground"
+                    className="h-24 text-center text-body text-muted-foreground"
                   >
                     No agent activity recorded yet.
                   </TableCell>
@@ -152,10 +152,10 @@ export function AgentActivityDashboard({ initialData }: Props) {
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="text-[13px] font-medium">
+                          <p className="text-body font-medium">
                             {item.agent.name || item.agent.email}
                           </p>
-                          <Badge variant="outline" className="px-1.5 py-0 text-[10px] font-normal text-muted-foreground">
+                          <Badge variant="outline" className="px-1.5 py-0 text-meta font-normal text-muted-foreground">
                             {item.agent.role.replace("_", " ")}
                           </Badge>
                         </div>

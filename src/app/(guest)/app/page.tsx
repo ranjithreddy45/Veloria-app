@@ -56,11 +56,11 @@ export default async function GuestHomePage() {
               fallback={
                 <>
                   <MapPin className="size-4 text-white/90" />
-                  <div className="text-[13px] font-bold leading-tight">Veloria Grand</div>
+                  <div className="text-body font-bold leading-tight">Veloria Grand</div>
                 </>
               }
             />
-            <div className="text-[11px] leading-tight text-white/75">Bangalore · Premium venues</div>
+            <div className="text-meta leading-tight text-white/75">Bangalore · Premium venues</div>
           </div>
         </div>
 
@@ -71,7 +71,7 @@ export default async function GuestHomePage() {
         >
           <span className="flex items-center gap-2.5">
             <Building2 className="size-4.5 text-violet-600" />
-            <span className="text-[13.5px] font-medium text-zinc-700">
+            <span className="text-body font-medium text-zinc-700">
               Browse halls
             </span>
           </span>
@@ -90,16 +90,16 @@ export default async function GuestHomePage() {
             className="absolute -right-6 -top-8 size-32 rounded-full bg-white/10 blur-xl"
           />
           <div className="relative">
-            <div className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide">
+            <div className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2 py-0.5 text-meta font-bold uppercase tracking-wide">
               <Sparkles className="size-3" /> Now booking 2026
             </div>
-            <h2 className="mt-2 text-[18px] font-extrabold leading-tight">
+            <h2 className="mt-2 text-lede font-extrabold leading-tight">
               Plan your dream event in minutes
             </h2>
-            <p className="mt-0.5 text-[12.5px] text-white/85">
+            <p className="mt-0.5 text-detail text-white/85">
               Free site visit · personalised quote · best dates going fast
             </p>
-            <span className="mt-3 inline-flex items-center gap-1 rounded-full bg-white px-3.5 py-1.5 text-[12.5px] font-bold text-violet-700">
+            <span className="mt-3 inline-flex items-center gap-1 rounded-full bg-white px-3.5 py-1.5 text-detail font-bold text-violet-700">
               Enquire now <ArrowRight className="size-3.5" />
             </span>
           </div>
@@ -108,7 +108,7 @@ export default async function GuestHomePage() {
 
       {/* ---- Occasions ---- */}
       <section className="px-4 pt-5">
-        <h2 className="text-[16px] font-extrabold tracking-tight text-zinc-900">
+        <h2 className="text-lede font-extrabold tracking-tight text-zinc-900">
           Book by occasion
         </h2>
         {/* 3 columns, not 4: there are six occasions, so 4-up left a ragged
@@ -128,7 +128,7 @@ export default async function GuestHomePage() {
                 >
                   <Icon className="size-6" strokeWidth={2.2} />
                 </span>
-                <span className="text-[11px] font-semibold text-zinc-700">
+                <span className="text-meta font-semibold text-zinc-700">
                   {o.label}
                 </span>
               </Link>
@@ -140,19 +140,19 @@ export default async function GuestHomePage() {
       {/* ---- Venues ---- */}
       <section className="px-4 pt-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-[16px] font-extrabold tracking-tight text-zinc-900">
+          <h2 className="text-lede font-extrabold tracking-tight text-zinc-900">
             Our halls
           </h2>
           <Link
             href="/app/venues"
-            className="inline-flex items-center gap-0.5 text-[12.5px] font-bold text-violet-600"
+            className="inline-flex items-center gap-0.5 text-detail font-bold text-violet-600"
           >
             See all <ChevronRight className="size-4" />
           </Link>
         </div>
 
         {venues.length === 0 ? (
-          <p className="mt-4 rounded-2xl border border-dashed border-zinc-300 bg-white p-6 text-center text-[13px] text-zinc-500">
+          <p className="mt-4 rounded-2xl border border-dashed border-zinc-300 bg-white p-6 text-center text-body text-zinc-500">
             Venues will appear here once published.
           </p>
         ) : (
@@ -171,33 +171,33 @@ export default async function GuestHomePage() {
                     className="h-44 w-full"
                   />
                   {i === 0 && (
-                    <span className="absolute right-3 top-3 rounded-full bg-fuchsia-600 px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-white shadow-sm">
+                    <span className="absolute right-3 top-3 rounded-full bg-fuchsia-600 px-2 py-0.5 text-meta font-bold uppercase tracking-wide text-white shadow-sm">
                       Popular
                     </span>
                   )}
                   <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between">
-                    <h3 className="text-[17px] font-extrabold text-white drop-shadow">
+                    <h3 className="text-lede font-extrabold text-white drop-shadow">
                       {v.name}
                     </h3>
                   </div>
                 </div>
                 <div className="flex items-center justify-between p-3.5">
                   <div className="min-w-0">
-                    <div className="flex items-center gap-1.5 text-[12.5px] text-zinc-500">
+                    <div className="flex items-center gap-1.5 text-detail text-zinc-500">
                       <Users className="size-3.5" /> Up to {v.capacity} guests
                     </div>
                     {v.description && (
-                      <p className="mt-0.5 line-clamp-1 text-[12px] text-zinc-400">
+                      <p className="mt-0.5 line-clamp-1 text-detail text-zinc-400">
                         {v.description}
                       </p>
                     )}
                   </div>
                   <div className="shrink-0 text-right">
-                    <div className="text-[10.5px] text-zinc-400">from</div>
-                    <div className="text-[15px] font-extrabold text-violet-700">
+                    <div className="text-meta text-zinc-400">from</div>
+                    <div className="text-copy font-extrabold text-violet-700">
                       {formatPrice(v.pricePerSlot)}
                     </div>
-                    <div className="text-[9.5px] leading-tight text-zinc-400">
+                    <div className="text-meta leading-tight text-zinc-400">
                       / slot · rental
                     </div>
                   </div>
@@ -219,10 +219,10 @@ export default async function GuestHomePage() {
                 className="hover-lift rounded-2xl bg-white p-3 text-center shadow-sm ring-1 ring-zinc-100"
               >
                 <Icon className="mx-auto size-5 text-violet-600" strokeWidth={2.2} />
-                <div className="mt-1.5 text-[11.5px] font-bold leading-tight text-zinc-800">
+                <div className="mt-1.5 text-meta font-bold leading-tight text-zinc-800">
                   {t.label}
                 </div>
-                <div className="mt-0.5 text-[10px] leading-tight text-zinc-400">
+                <div className="mt-0.5 text-meta leading-tight text-zinc-400">
                   {t.sub}
                 </div>
               </div>
@@ -238,7 +238,7 @@ export default async function GuestHomePage() {
         ) : (
           <Link
             href="/app/book"
-            className="flex items-center justify-center gap-2 rounded-2xl border-2 border-violet-200 bg-violet-50 px-5 py-3 text-[13.5px] font-bold text-violet-700"
+            className="flex items-center justify-center gap-2 rounded-2xl border-2 border-violet-200 bg-violet-50 px-5 py-3 text-body font-bold text-violet-700"
           >
             Talk to our events team <ArrowRight className="size-4" />
           </Link>

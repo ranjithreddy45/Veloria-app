@@ -71,7 +71,7 @@ function FacetSection<T>({
         className="flex w-full items-center justify-between text-left focus-ring rounded"
         aria-expanded={open}
       >
-        <span className="text-[11.5px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">{facet.label}</span>
+        <span className="text-meta font-semibold uppercase tracking-[0.05em] text-muted-foreground">{facet.label}</span>
         <ChevronDown className={cn("size-3.5 text-muted-foreground transition-transform", !open && "-rotate-90")} />
       </button>
       {open && (
@@ -79,7 +79,7 @@ function FacetSection<T>({
           {shown.map((o) => {
             const checked = selected.has(o.value);
             return (
-              <label key={o.value} className="flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1 text-[13px] transition-premium hover:bg-muted/50">
+              <label key={o.value} className="flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1 text-body transition-premium hover:bg-muted/50">
                 <input
                   type="checkbox"
                   checked={checked}
@@ -87,12 +87,12 @@ function FacetSection<T>({
                   className="size-3.5 shrink-0 accent-primary"
                 />
                 <span className={cn("min-w-0 flex-1 truncate", checked ? "font-medium text-foreground" : "text-foreground/80")}>{o.label}</span>
-                <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{o.count}</span>
+                <span className="shrink-0 text-meta tabular-nums text-muted-foreground">{o.count}</span>
               </label>
             );
           })}
           {options.length > max && (
-            <button type="button" onClick={() => setShowAll((v) => !v)} className="px-1.5 pt-1 text-[11.5px] font-medium text-primary hover:underline">
+            <button type="button" onClick={() => setShowAll((v) => !v)} className="px-1.5 pt-1 text-meta font-medium text-primary hover:underline">
               {showAll ? "Show less" : `Show ${options.length - max} more`}
             </button>
           )}
@@ -159,7 +159,7 @@ export function FacetFilterRail<T>({
 
   const clearButton =
     activeCount > 0 ? (
-      <Button variant="ghost" size="sm" className="h-6 px-1.5 text-[11px]" onClick={() => setSelected({})}>
+      <Button variant="ghost" size="sm" className="h-6 px-1.5 text-meta" onClick={() => setSelected({})}>
         <X className="size-3" /> Clear ({activeCount})
       </Button>
     ) : null;
@@ -176,7 +176,7 @@ export function FacetFilterRail<T>({
         )}
       >
         <div className="flex items-center justify-between pb-1">
-          <span className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold">
+          <span className="inline-flex items-center gap-1.5 text-detail font-semibold">
             <SlidersHorizontal className="size-3.5 text-muted-foreground" /> Filter by
           </span>
           {clearButton}
@@ -194,7 +194,7 @@ export function FacetFilterRail<T>({
                 <SlidersHorizontal className="size-3.5" />
                 Filter by
                 {activeCount > 0 && (
-                  <span className="bg-primary text-primary-foreground numeric ml-0.5 inline-flex min-w-4 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none">
+                  <span className="bg-primary text-primary-foreground numeric ml-0.5 inline-flex min-w-4 items-center justify-center rounded-full px-1.5 py-0.5 text-meta font-semibold leading-none">
                     {activeCount}
                   </span>
                 )}
@@ -212,7 +212,7 @@ export function FacetFilterRail<T>({
             className="max-h-[85dvh] overflow-y-auto pb-[max(1.25rem,env(safe-area-inset-bottom))]"
           >
             <SheetHeader>
-              <SheetTitle className="flex items-center gap-2 text-[15px]">
+              <SheetTitle className="flex items-center gap-2 text-copy">
                 <SlidersHorizontal className="size-4" /> Filter by
               </SheetTitle>
             </SheetHeader>

@@ -157,8 +157,8 @@ export function ArrearsTable({
     <div className="rounded-xl border bg-card">
       <div className="flex items-center justify-between border-b px-5 py-3.5">
         <div>
-          <h3 className="text-[14px] font-semibold">Arrears</h3>
-          <p className="text-[12.5px] text-muted-foreground">
+          <h3 className="text-copy font-semibold">Arrears</h3>
+          <p className="text-detail text-muted-foreground">
             Pending arrears are paid by the payroll run for their pay month. Paid arrears are locked.
           </p>
         </div>
@@ -191,19 +191,19 @@ export function ArrearsTable({
                 <TableRow key={r.id}>
                   <TableCell>
                     <div className="font-medium">{r.employeeName}</div>
-                    <div className="text-[12px] text-muted-foreground">{r.empCode}</div>
+                    <div className="text-detail text-muted-foreground">{r.empCode}</div>
                   </TableCell>
                   <TableCell className="max-w-[180px]">
                     <div className="truncate">{r.name}</div>
                     {r.taxable ? null : (
-                      <div className="text-[11px] text-muted-foreground">Non-taxable</div>
+                      <div className="text-meta text-muted-foreground">Non-taxable</div>
                     )}
                   </TableCell>
                   <TableCell className="text-right font-semibold tabular-nums">{inr(r.amount)}</TableCell>
-                  <TableCell className="text-[12.5px] text-muted-foreground">
+                  <TableCell className="text-detail text-muted-foreground">
                     {periodLabel(r.forMonth, r.forFy)}
                   </TableCell>
-                  <TableCell className="text-[12.5px] text-muted-foreground">
+                  <TableCell className="text-detail text-muted-foreground">
                     {periodLabel(r.payMonth, r.payFy)}
                   </TableCell>
                   <TableCell>
@@ -212,7 +212,7 @@ export function ArrearsTable({
                       {r.esiApplicable && <StatusPill label="ESI" hue="cyan" size="xs" noDot />}
                       {r.ptApplicable && <StatusPill label="PT" hue="violet" size="xs" noDot />}
                       {!r.pfApplicable && !r.esiApplicable && !r.ptApplicable && (
-                        <span className="text-[12px] text-muted-foreground">—</span>
+                        <span className="text-detail text-muted-foreground">—</span>
                       )}
                     </div>
                   </TableCell>
@@ -237,7 +237,7 @@ export function ArrearsTable({
                         </DropdownMenuContent>
                       </DropdownMenu>
                     ) : (
-                      <span className="pl-2 text-[11px] text-muted-foreground">Locked</span>
+                      <span className="pl-2 text-meta text-muted-foreground">Locked</span>
                     )}
                   </TableCell>
                 </TableRow>

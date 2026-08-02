@@ -50,7 +50,7 @@ export default function ForgotPasswordForm() {
           <CheckCircle2 className="size-8 text-green-600 dark:text-green-400" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-ink-gradient large-title text-[24px]">
+          <h2 className="text-ink-gradient large-title text-h2">
             Check your email
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -71,10 +71,10 @@ export default function ForgotPasswordForm() {
   return (
     <div className="space-y-6">
       <div className="space-y-1.5 text-center">
-        <h2 className="text-ink-gradient large-title text-[24px]">
+        <h2 className="text-ink-gradient large-title text-h2">
           Forgot your password?
         </h2>
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-body text-muted-foreground">
           Enter your email address and we&apos;ll send you a link to reset your password.
         </p>
       </div>

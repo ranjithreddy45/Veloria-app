@@ -128,7 +128,7 @@ export function TaskCard({ task, isOverlay = false }: TaskCardProps) {
             <Badge
               variant="outline"
               className={cn(
-                "shrink-0 border text-[10px] font-medium px-1.5 py-0",
+                "shrink-0 border text-meta font-medium px-1.5 py-0",
                 priorityColor
               )}
             >
@@ -155,7 +155,7 @@ export function TaskCard({ task, isOverlay = false }: TaskCardProps) {
                   )}
                 >
                   <CalendarIcon className="size-3" />
-                  <span className="text-[11px] font-medium">
+                  <span className="text-meta font-medium">
                     {formatDate(task.dueDate)}
                   </span>
                 </div>
@@ -172,7 +172,7 @@ export function TaskCard({ task, isOverlay = false }: TaskCardProps) {
                         : "text-muted-foreground"
                     )}
                   />
-                  <span className="text-[11px] text-muted-foreground">
+                  <span className="text-meta text-muted-foreground">
                     {completedChecklist}/{totalChecklist}
                   </span>
                   {/* Mini progress bar */}
@@ -194,7 +194,7 @@ export function TaskCard({ task, isOverlay = false }: TaskCardProps) {
               {task._count.subtasks > 0 && (
                 <div className="flex items-center gap-1 text-muted-foreground">
                   <GitBranchIcon className="size-3" />
-                  <span className="text-[11px]">
+                  <span className="text-meta">
                     {task._count.subtasks}
                   </span>
                 </div>
@@ -205,7 +205,7 @@ export function TaskCard({ task, isOverlay = false }: TaskCardProps) {
             {task.assignee && (
               <Avatar className="size-5">
                 <AvatarImage src={task.assignee.image ?? undefined} />
-                <AvatarFallback className="text-[9px] bg-indigo-100 text-indigo-700">
+                <AvatarFallback className="text-meta bg-indigo-100 text-indigo-700">
                   {getInitials(task.assignee.name)}
                 </AvatarFallback>
               </Avatar>

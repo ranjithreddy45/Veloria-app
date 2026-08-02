@@ -173,10 +173,10 @@ function Kpi({ icon, label, value, sub, accent }: { icon: React.ReactNode; label
     <div className="rounded-xl border bg-card p-4">
       <div className="flex items-center gap-2 text-muted-foreground">
         <span className={accent ? "text-primary" : ""}>{icon}</span>
-        <span className="text-[12px] font-medium">{label}</span>
+        <span className="text-detail font-medium">{label}</span>
       </div>
       <div className="mt-2 text-2xl font-semibold tabular-nums tracking-tight">{value}</div>
-      {sub && <div className="mt-0.5 text-[11.5px] text-muted-foreground">{sub}</div>}
+      {sub && <div className="mt-0.5 text-meta text-muted-foreground">{sub}</div>}
     </div>
   );
 }
@@ -184,7 +184,7 @@ function Kpi({ icon, label, value, sub, accent }: { icon: React.ReactNode; label
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="rounded-xl border bg-card p-4">
-      <h3 className="mb-3 text-[13px] font-semibold">{title}</h3>
+      <h3 className="mb-3 text-body font-semibold">{title}</h3>
       {children}
     </div>
   );

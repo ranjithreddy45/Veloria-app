@@ -57,11 +57,11 @@ function Section({
     <section className="rounded-2xl border bg-card p-5 shadow-card">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-[15px] font-semibold tracking-[-0.01em]">
+          <h2 className="text-copy font-semibold tracking-[-0.01em]">
             {title}
           </h2>
           {description && (
-            <p className="mt-0.5 text-[13px] text-muted-foreground">
+            <p className="mt-0.5 text-body text-muted-foreground">
               {description}
             </p>
           )}
@@ -84,7 +84,7 @@ function Field({
 }) {
   return (
     <div>
-      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+      <p className="text-meta uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
       <div className={cn("mt-1 text-sm", mono && "numeric")}>{children}</div>
@@ -231,7 +231,7 @@ export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
               totalChecklist > 0 ? (
                 <div className="flex w-28 items-center gap-2">
                   <Progress value={checklistProgress} className="h-1.5 flex-1" />
-                  <span className="numeric text-[11px] text-muted-foreground">
+                  <span className="numeric text-meta text-muted-foreground">
                     {checklistProgress}%
                   </span>
                 </div>

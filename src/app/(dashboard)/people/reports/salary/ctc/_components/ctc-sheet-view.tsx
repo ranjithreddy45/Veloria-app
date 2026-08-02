@@ -86,7 +86,7 @@ export function CtcSheetView({
             <TableBody>
               {rows.map((r) => (
                 <TableRow key={r.employeeId}>
-                  <TableCell className="font-mono text-[12px]">{r.empCode}</TableCell>
+                  <TableCell className="font-mono text-detail">{r.empCode}</TableCell>
                   <TableCell className="whitespace-nowrap">{r.name}</TableCell>
                   <TableCell className="text-right tabular-nums">{inr(r.gross)}</TableCell>
                   <TableCell className="text-right tabular-nums">{inr(r.employerPf)}</TableCell>

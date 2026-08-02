@@ -128,7 +128,7 @@ export function ReportToolbar({
 
       {runStatus && <StatusPill label={runStatus} hue={RUN_HUE[runStatus] ?? "slate"} size="sm" />}
 
-      <label className="flex items-center gap-2 text-[12.5px] text-muted-foreground">
+      <label className="flex items-center gap-2 text-detail text-muted-foreground">
         <Switch checked={includeDraft} onCheckedChange={onToggleDraft} />
         Show draft runs
       </label>
@@ -168,7 +168,7 @@ export function ReportEmpty({
   }
   if (draftHidden) {
     return (
-      <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground">
+      <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-body text-muted-foreground">
         This period&apos;s run is still a <span className="font-medium">draft</span>. Draft figures are
         withheld from reports until the run is locked.
         <div className="mt-3">

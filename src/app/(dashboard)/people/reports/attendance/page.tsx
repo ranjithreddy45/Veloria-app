@@ -87,11 +87,11 @@ export default async function AttendanceReportsIndex() {
                 <Icon strokeWidth={2} />
               </span>
               <div>
-                <h3 className="flex items-center gap-1.5 text-[15px] font-semibold">
+                <h3 className="flex items-center gap-1.5 text-copy font-semibold">
                   {r.title}
                   <ArrowRight className="size-4 -translate-x-1 opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100" />
                 </h3>
-                <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">{r.desc}</p>
+                <p className="mt-1 text-detail leading-relaxed text-muted-foreground">{r.desc}</p>
               </div>
             </Link>
           );

@@ -56,7 +56,7 @@ function ChartTooltip({
 }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-xl border border-border/70 bg-popover px-3 py-2 text-[12px] shadow-card">
+    <div className="rounded-xl border border-border/70 bg-popover px-3 py-2 text-detail shadow-card">
       <p className="mb-1 font-medium text-foreground">{label}</p>
       {payload.map((p, i) => (
         <p key={i} className="flex items-center gap-1.5 tabular-nums text-muted-foreground">
@@ -87,10 +87,10 @@ function ParetoPanel({ ctqId }: { ctqId: string }) {
   return (
     <Card className="border-border/70 shadow-card">
       <CardHeader className="pb-2">
-        <CardTitle className="text-[14px] font-semibold tracking-[-0.01em]">
+        <CardTitle className="text-copy font-semibold tracking-[-0.01em]">
           Defect Pareto
         </CardTitle>
-        <p className="text-[12px] text-muted-foreground">
+        <p className="text-detail text-muted-foreground">
           Where the defects come from — bars are counts, the line is the running
           cumulative share.
         </p>
@@ -180,10 +180,10 @@ function ControlPanel({ ctqId }: { ctqId: string }) {
   return (
     <Card className="border-border/70 shadow-card">
       <CardHeader className="pb-2">
-        <CardTitle className="text-[14px] font-semibold tracking-[-0.01em]">
+        <CardTitle className="text-copy font-semibold tracking-[-0.01em]">
           Control chart
         </CardTitle>
-        <p className="text-[12px] text-muted-foreground">
+        <p className="text-detail text-muted-foreground">
           Process behaviour over time against its mean and ±3σ control limits.
         </p>
       </CardHeader>
@@ -249,7 +249,7 @@ function ControlPanel({ ctqId }: { ctqId: string }) {
           )}
         </div>
         {!isLoading && !isError && points.length > 0 && (
-          <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 border-t border-border/60 pt-3 text-[11.5px]">
+          <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 border-t border-border/60 pt-3 text-meta">
             <LegendDot color={COLOR.primary} label="Measured value" />
             <LegendDot color={COLOR.success} label={`Mean ${mean.toFixed(2)}`} />
             <LegendDot color={COLOR.destructive} label={`Limits ${lcl.toFixed(2)} – ${ucl.toFixed(2)}`} />
@@ -272,7 +272,7 @@ function LegendDot({ color, label }: { color: string; label: string }) {
 function EmptyChart({ message }: { message: string }) {
   return (
     <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-border/70 bg-muted/30">
-      <p className="text-[13px] text-muted-foreground">{message}</p>
+      <p className="text-body text-muted-foreground">{message}</p>
     </div>
   );
 }
@@ -287,10 +287,10 @@ export function QualityDetail({ ctqs }: QualityDetailProps) {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-foreground">
+          <h2 className="text-lede font-semibold tracking-[-0.02em] text-foreground">
             Drill-down
           </h2>
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-body text-muted-foreground">
             Pick a metric to inspect its defect breakdown and process control.
           </p>
         </div>
@@ -311,7 +311,7 @@ export function QualityDetail({ ctqs }: QualityDetailProps) {
               aria-selected={isActive}
               onClick={() => setSelected(c.id)}
               className={cn(
-                "rounded-xl px-3.5 py-1.5 text-[12.5px] font-medium tracking-[-0.01em] transition-premium",
+                "rounded-xl px-3.5 py-1.5 text-detail font-medium tracking-[-0.01em] transition-premium",
                 isActive
                   ? "bg-card text-foreground shadow-card"
                   : "text-muted-foreground hover:text-foreground"
@@ -326,8 +326,8 @@ export function QualityDetail({ ctqs }: QualityDetailProps) {
       {/* Active metric strip */}
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border border-border/70 bg-card px-5 py-3.5 shadow-card">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground">{active.domain}</p>
-          <p className="text-[14px] font-semibold text-foreground">{active.label}</p>
+          <p className="text-meta uppercase tracking-[0.08em] text-muted-foreground">{active.domain}</p>
+          <p className="text-copy font-semibold text-foreground">{active.label}</p>
         </div>
         <div className="h-8 w-px bg-border/70" />
         <Metric label="Sigma" value={`${active.sigma.toFixed(2)}σ`} />
@@ -347,8 +347,8 @@ export function QualityDetail({ ctqs }: QualityDetailProps) {
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[11px] text-muted-foreground">{label}</p>
-      <p className="text-[14px] font-semibold tabular-nums text-foreground">{value}</p>
+      <p className="text-meta text-muted-foreground">{label}</p>
+      <p className="text-copy font-semibold tabular-nums text-foreground">{value}</p>
     </div>
   );
 }

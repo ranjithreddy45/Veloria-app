@@ -56,25 +56,25 @@ export function VelosSurface({
       {pace && (
         <div className="overflow-hidden rounded-2xl border-0 bg-gradient-to-br from-[#2D1B3D] to-[#43295c] p-5 text-white shadow-card">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[12.5px] font-medium text-white/70"><TrendingUp className="size-4" /> Your pace this month</div>
+            <div className="flex items-center gap-2 text-detail font-medium text-white/70"><TrendingUp className="size-4" /> Your pace this month</div>
             <StatusPill label={pace.onTrack ? "On track" : "Push needed"} hue={pace.onTrack ? "emerald" : "amber"} size="sm" />
           </div>
           <div className="mt-4 flex flex-wrap items-center justify-between gap-6">
             <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
               <div>
-                <div className="text-[40px] font-bold leading-none tabular-nums">{pace.thisPeriod}</div>
-                <div className="mt-1 text-[11.5px] text-white/60">Velos this month</div>
+                <div className="text-display font-bold leading-none tabular-nums">{pace.thisPeriod}</div>
+                <div className="mt-1 text-meta text-white/60">Velos this month</div>
               </div>
               <div>
                 <div className="text-xl font-semibold tabular-nums text-white/90">{pace.lastPeriod}</div>
-                <div className="text-[11.5px] text-white/60">Your last month</div>
+                <div className="text-meta text-white/60">Your last month</div>
               </div>
               <div>
                 <div className="flex items-center gap-1 text-xl font-semibold tabular-nums text-white/90">
                   {pace.projected}
                   {pace.projected > pace.lastPeriod && <ArrowUp className="size-4 text-emerald-300" />}
                 </div>
-                <div className="text-[11.5px] text-white/60">Projected end of month</div>
+                <div className="text-meta text-white/60">Projected end of month</div>
               </div>
             </div>
             {/* Goal ring — the at-a-glance "am I winning?" signal */}
@@ -85,7 +85,7 @@ export function VelosSurface({
                 colorClass="text-[#C9A96E]" trackClass="stroke-white/15"
                 ariaLabel={`${pace.pctOfGoal}% of your goal`}
               />
-              <div className="text-[11.5px] leading-tight text-white/70">
+              <div className="text-meta leading-tight text-white/70">
                 <div className="font-medium text-white/90">Goal {pace.goal}</div>
                 <div>{pace.pctOfGoal}% there</div>
                 <div className="mt-0.5 text-white/55">{Math.max(0, pace.goal - pace.thisPeriod)} to go</div>
@@ -99,41 +99,41 @@ export function VelosSurface({
         {/* Identity arc */}
         {identity && (
           <div className="rounded-xl border bg-card p-5">
-            <div className="mb-3 flex items-center gap-2 text-[12.5px] font-semibold text-muted-foreground"><Sparkles className="size-4 text-[#C9A96E]" /> Your journey</div>
+            <div className="mb-3 flex items-center gap-2 text-detail font-semibold text-muted-foreground"><Sparkles className="size-4 text-[#C9A96E]" /> Your journey</div>
             <div className="flex items-center gap-3">
               <div className={cn("flex size-12 items-center justify-center rounded-xl ring-1 ring-inset", TIER_HUE[identity.tierKey])}>
                 <Gem className="size-5" />
               </div>
               <div>
                 <div className="text-lg font-semibold">{identity.identity}</div>
-                <div className="text-[12px] text-muted-foreground">{identity.tierKey[0] + identity.tierKey.slice(1).toLowerCase()} · {identity.lifetime} lifetime Velos</div>
+                <div className="text-detail text-muted-foreground">{identity.tierKey[0] + identity.tierKey.slice(1).toLowerCase()} · {identity.lifetime} lifetime Velos</div>
               </div>
             </div>
-            <p className="mt-3 text-[12.5px] text-muted-foreground">Unlocked: <span className="text-foreground">{identity.unlock}</span></p>
+            <p className="mt-3 text-detail text-muted-foreground">Unlocked: <span className="text-foreground">{identity.unlock}</span></p>
             {identity.next ? (
               <div className="mt-4 flex items-center gap-3">
                 <Donut value={identity.pctToNext} size={52} thickness={6} colorClass="text-primary" ariaLabel={`${identity.pctToNext}% to ${identity.next.identity}`} />
                 <div className="min-w-0 flex-1">
-                  <div className="flex justify-between text-[11px] text-muted-foreground"><span>Next: <span className="font-medium text-foreground">{identity.next.identity}</span></span><span>{identity.next.toNext} to go</span></div>
-                  <p className="mt-1 text-[11.5px] text-muted-foreground">Unlocks: {identity.next.unlock}</p>
+                  <div className="flex justify-between text-meta text-muted-foreground"><span>Next: <span className="font-medium text-foreground">{identity.next.identity}</span></span><span>{identity.next.toNext} to go</span></div>
+                  <p className="mt-1 text-meta text-muted-foreground">Unlocks: {identity.next.unlock}</p>
                 </div>
               </div>
-            ) : <p className="mt-3 text-[12.5px] font-medium text-violet-700">Top tier reached — Rainmaker 🏆</p>}
+            ) : <p className="mt-3 text-detail font-medium text-violet-700">Top tier reached — Rainmaker 🏆</p>}
           </div>
         )}
 
         {/* Team vs Target */}
         {team && (
           <div className="rounded-xl border bg-card p-5 shadow-card">
-            <div className="mb-3 flex items-center gap-2 text-[12.5px] font-semibold text-muted-foreground"><Target className="size-4" /> Team vs target</div>
+            <div className="mb-3 flex items-center gap-2 text-detail font-semibold text-muted-foreground"><Target className="size-4" /> Team vs target</div>
             <div className="flex items-center gap-4">
               <Donut value={Math.min(100, team.pct)} size={64} thickness={7} colorClass={team.pct >= 100 ? "text-emerald-500" : team.pct >= 60 ? "text-[#C9A96E]" : "text-amber-500"} ariaLabel={`${team.pct}% of team target`} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-end justify-between">
                   <div className="text-3xl font-bold tabular-nums">{team.team}</div>
-                  <div className="text-[12.5px] text-muted-foreground">target {team.target}</div>
+                  <div className="text-detail text-muted-foreground">target {team.target}</div>
                 </div>
-                <p className="mt-1.5 text-[12px] text-muted-foreground">{team.pct}% of the team&rsquo;s shared goal — we hit this together.</p>
+                <p className="mt-1.5 text-detail text-muted-foreground">{team.pct}% of the team&rsquo;s shared goal — we hit this together.</p>
               </div>
             </div>
           </div>
@@ -142,7 +142,7 @@ export function VelosSurface({
 
       {/* Leaderboard (light touch) */}
       <div className="rounded-xl border bg-card">
-        <div className="flex items-center gap-2 border-b px-4 py-3 text-[13px] font-semibold"><Trophy className="size-4 text-[#C9A96E]" /> This month (recognition)</div>
+        <div className="flex items-center gap-2 border-b px-4 py-3 text-body font-semibold"><Trophy className="size-4 text-[#C9A96E]" /> This month (recognition)</div>
         {leaderboard.length === 0 ? (
           <div className="p-8 text-center text-sm text-muted-foreground">No Velos earned yet this month. As the team works the pipeline, leads and tasks, points appear here.</div>
         ) : (
@@ -162,17 +162,17 @@ export function VelosSurface({
               return (
                 <div key={r.userId} className={cn("px-4 py-2.5 transition-premium hover:bg-muted/30", isMe && "bg-amber-50/70 dark:bg-amber-400/10")}>
                   <div className="flex items-center gap-3">
-                    <span className="flex w-5 items-center justify-center text-[13px] font-semibold text-muted-foreground tabular-nums">
+                    <span className="flex w-5 items-center justify-center text-body font-semibold text-muted-foreground tabular-nums">
                       {medal ? <Medal className={cn("size-4", medal)} /> : i + 1}
                     </span>
-                    <Avatar size="sm"><AvatarImage src={r.image || undefined} /><AvatarFallback className="bg-primary/10 text-[10px] text-primary">{r.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}</AvatarFallback></Avatar>
-                    <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium">{r.name}{isMe && <span className="ml-1.5 text-[11px] text-muted-foreground">(you)</span>}</span>
+                    <Avatar size="sm"><AvatarImage src={r.image || undefined} /><AvatarFallback className="bg-primary/10 text-meta text-primary">{r.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}</AvatarFallback></Avatar>
+                    <span className="min-w-0 flex-1 truncate text-body font-medium">{r.name}{isMe && <span className="ml-1.5 text-meta text-muted-foreground">(you)</span>}</span>
                     {mostImproved && <StatusPill label="Most improved" hue="emerald" size="xs" />}
-                    {r.delta !== 0 && <span className={cn("inline-flex items-center gap-0.5 text-[11.5px]", r.delta > 0 ? "text-success" : "text-muted-foreground")}>{r.delta > 0 && <ArrowUp className="size-3" />}{r.delta > 0 ? `+${r.delta}` : r.delta}</span>}
-                    <span className="w-12 text-right text-[14px] font-semibold tabular-nums">{r.points}</span>
+                    {r.delta !== 0 && <span className={cn("inline-flex items-center gap-0.5 text-meta", r.delta > 0 ? "text-success" : "text-muted-foreground")}>{r.delta > 0 && <ArrowUp className="size-3" />}{r.delta > 0 ? `+${r.delta}` : r.delta}</span>}
+                    <span className="w-12 text-right text-copy font-semibold tabular-nums">{r.points}</span>
                   </div>
                   {chase && (
-                    <div className={cn("mt-0.5 pl-8 text-[11px] font-medium tabular-nums", chase.leading ? "text-success" : "text-warning")}>
+                    <div className={cn("mt-0.5 pl-8 text-meta font-medium tabular-nums", chase.leading ? "text-success" : "text-warning")}>
                       {chase.leading ? chase.text : <>▲ {chase.text}</>}
                     </div>
                   )}
@@ -203,7 +203,7 @@ function QuestsBoard({ quests, canManage, silverPlus, configMetrics }: { quests:
   return (
     <div className="rounded-xl border bg-card">
       <div className="flex items-center justify-between border-b px-4 py-3">
-        <div className="flex items-center gap-2 text-[13px] font-semibold"><TargetIcon className="size-4 text-[#C9A96E]" /> Quests &amp; team goals</div>
+        <div className="flex items-center gap-2 text-body font-semibold"><TargetIcon className="size-4 text-[#C9A96E]" /> Quests &amp; team goals</div>
         {canManage && <CreateQuestControls configMetrics={configMetrics} hasQuests={quests.length > 0} />}
       </div>
       {quests.length === 0 ? (
@@ -218,7 +218,7 @@ function QuestsBoard({ quests, canManage, silverPlus, configMetrics }: { quests:
                 {q.scope === "TEAM" && <StatusPill label="Team" hue="violet" size="xs" />}
                 {q.isRecovery && <StatusPill label="Recovery" hue="emerald" size="xs" />}
                 {q.completed && <StatusPill label="Done" hue="emerald" size="xs" />}
-                <span className="ml-auto text-[12px] text-muted-foreground">
+                <span className="ml-auto text-detail text-muted-foreground">
                   {q.rewardPoints > 0 ? `+${q.rewardPoints}` : ""}{q.rewardNote ? ` · ${q.rewardNote}` : ""}
                 </span>
               </div>
@@ -226,13 +226,13 @@ function QuestsBoard({ quests, canManage, silverPlus, configMetrics }: { quests:
                 <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
                   <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${q.pct}%` }} />
                 </div>
-                <span className="w-14 text-right text-[11.5px] tabular-nums text-muted-foreground">{q.current}/{q.target}</span>
+                <span className="w-14 text-right text-meta tabular-nums text-muted-foreground">{q.current}/{q.target}</span>
                 {q.selfSelectable && !q.joined && q.scope === "INDIVIDUAL" && (
                   <Button size="sm" className="h-7" disabled={!silverPlus || busy === q.id} onClick={() => join(q.id)} title={silverPlus ? "" : "Reach Silver to opt in"}>
                     {busy === q.id ? <Loader2 className="size-3.5 animate-spin" /> : "Join"}
                   </Button>
                 )}
-                {q.joined && q.scope === "INDIVIDUAL" && <span className="text-[11.5px] text-success">Joined</span>}
+                {q.joined && q.scope === "INDIVIDUAL" && <span className="text-meta text-success">Joined</span>}
               </div>
             </div>
           ))}
@@ -294,7 +294,7 @@ function CreateQuestControls({ configMetrics, hasQuests }: { configMetrics: { ev
               <Input value={rewardNote} onChange={(e) => setRewardNote(e.target.value)} placeholder="Reward note" />
             </div>
             {scope === "INDIVIDUAL" && (
-              <label className="flex items-center gap-2 text-[13px]"><input type="checkbox" checked={selfSel} onChange={(e) => setSelfSel(e.target.checked)} className="size-4" /> Self-selectable (Silver+ can opt in)</label>
+              <label className="flex items-center gap-2 text-body"><input type="checkbox" checked={selfSel} onChange={(e) => setSelfSel(e.target.checked)} className="size-4" /> Self-selectable (Silver+ can opt in)</label>
             )}
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
@@ -312,7 +312,7 @@ function KudosWall({ feed, remaining, teammates }: { feed: KudosItem[]; remainin
   return (
     <div className="rounded-xl border bg-card">
       <div className="flex items-center justify-between border-b px-4 py-3">
-        <div className="flex items-center gap-2 text-[13px] font-semibold"><Heart className="size-4 text-rose-500" /> Kudos wall</div>
+        <div className="flex items-center gap-2 text-body font-semibold"><Heart className="size-4 text-rose-500" /> Kudos wall</div>
         <GiveKudosDialog remaining={remaining} teammates={teammates} />
       </div>
       {feed.length === 0 ? (
@@ -321,10 +321,10 @@ function KudosWall({ feed, remaining, teammates }: { feed: KudosItem[]; remainin
         <div className="divide-y">
           {feed.map((k) => (
             <div key={k.id} className="flex items-start gap-3 px-4 py-2.5">
-              <Avatar size="sm"><AvatarImage src={k.fromImg || undefined} /><AvatarFallback className="bg-primary/10 text-[10px] text-primary">{k.from.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}</AvatarFallback></Avatar>
-              <div className="min-w-0 flex-1 text-[13px]">
+              <Avatar size="sm"><AvatarImage src={k.fromImg || undefined} /><AvatarFallback className="bg-primary/10 text-meta text-primary">{k.from.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}</AvatarFallback></Avatar>
+              <div className="min-w-0 flex-1 text-body">
                 <span className="font-medium">{k.from}</span> <span className="text-muted-foreground">recognised</span> <span className="font-medium">{k.to}</span>
-                <p className="text-[12.5px] text-muted-foreground">“{k.note}”</p>
+                <p className="text-detail text-muted-foreground">“{k.note}”</p>
               </div>
             </div>
           ))}
@@ -394,7 +394,7 @@ function SeedPanel() {
       <h3 className="mt-4 text-lg font-semibold">Set up Velos</h3>
       <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">Seed the default point values for every trigger (pipeline, lead-SLA, ops, finance, peer, recovery). All tunable afterwards.</p>
       <Button onClick={run} disabled={busy} className="mt-5 gap-1.5">{busy ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />} Set up Velos</Button>
-      {msg && <p className="mt-3 text-[13px] text-muted-foreground">{msg}</p>}
+      {msg && <p className="mt-3 text-body text-muted-foreground">{msg}</p>}
     </div>
   );
 }
@@ -402,7 +402,7 @@ function SeedPanel() {
 function ConfigPanel({ config }: { config: Cfg[] }) {
   return (
     <div className="rounded-xl border bg-card p-5">
-      <div className="mb-3 flex items-center gap-2 text-[13px] font-semibold"><Settings2 className="size-4" /> Point configuration <span className="text-[11.5px] font-normal text-muted-foreground">— retune anytime, no redeploy</span></div>
+      <div className="mb-3 flex items-center gap-2 text-body font-semibold"><Settings2 className="size-4" /> Point configuration <span className="text-meta font-normal text-muted-foreground">— retune anytime, no redeploy</span></div>
       <div className="grid gap-2 sm:grid-cols-2">
         {config.map((c) => <ConfigRow key={c.id} cfg={c} />)}
       </div>
@@ -421,8 +421,8 @@ function ConfigRow({ cfg }: { cfg: Cfg }) {
   return (
     <div className="flex items-center gap-2 rounded-lg bg-muted/30 px-3 py-2">
       <div className="min-w-0 flex-1">
-        <div className="truncate text-[12.5px] font-medium">{cfg.label}</div>
-        <div className="text-[10.5px] text-muted-foreground">{cfg.category}{cfg.isEffort ? " · effort" : ""}{cfg.clawbackEligible ? " · clawback" : ""}</div>
+        <div className="truncate text-detail font-medium">{cfg.label}</div>
+        <div className="text-meta text-muted-foreground">{cfg.category}{cfg.isEffort ? " · effort" : ""}{cfg.clawbackEligible ? " · clawback" : ""}</div>
       </div>
       <Input value={points} onChange={(e) => setPoints(e.target.value)} className="h-7 w-16 text-center" />
       {dirty && <Button size="sm" className="h-7" disabled={busy} onClick={save}>{busy ? <Loader2 className="size-3.5 animate-spin" /> : "Save"}</Button>}

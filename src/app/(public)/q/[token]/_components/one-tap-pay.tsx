@@ -212,7 +212,7 @@ export function OneTapPay({
             Your date is secured
           </p>
           {eventFacts && (
-            <p className="text-[12.5px] font-medium text-success">
+            <p className="text-detail font-medium text-success">
               {eventFacts}
             </p>
           )}
@@ -221,7 +221,7 @@ export function OneTapPay({
               ? `Payment of ${inr(paidAmount)} received — your date is now blocked for you.`
               : "Your booking advance is received and the date is now blocked for you."}
           </p>
-          <p className="mt-1 flex items-center justify-center gap-1.5 text-[12.5px] font-medium text-success">
+          <p className="mt-1 flex items-center justify-center gap-1.5 text-detail font-medium text-success">
             <PhoneCall className="size-3.5" /> Your coordinator will call you within 24 hours.
           </p>
         </div>
@@ -244,7 +244,7 @@ export function OneTapPay({
             {" "}— but this slot was just taken. Our team will call you to sort it out or refund you in full.
           </p>
           {error && (
-            <p className="text-[12px] text-warning/80">{error}</p>
+            <p className="text-detail text-warning/80">{error}</p>
           )}
         </div>
         <HelpChip variant="banner" />
@@ -274,7 +274,7 @@ export function OneTapPay({
       </Button>
 
       {!slotBusy && status !== "securing" && (
-        <p className="text-center text-[12.5px] text-muted-foreground">
+        <p className="text-center text-detail text-muted-foreground">
           Just the 20% booking advance now — it instantly blocks your date.
         </p>
       )}
@@ -289,10 +289,10 @@ export function OneTapPay({
       )}
 
       <div className="flex items-center justify-center gap-2 pt-1">
-        <span className="flex items-center gap-1.5 rounded-full bg-muted/60 px-3 py-1 text-[11.5px] font-medium text-muted-foreground">
+        <span className="flex items-center gap-1.5 rounded-full bg-muted/60 px-3 py-1 text-meta font-medium text-muted-foreground">
           <Lock className="size-3" /> Secured by Razorpay
         </span>
-        <span className="flex items-center gap-1.5 rounded-full bg-muted/60 px-3 py-1 text-[11.5px] font-medium text-muted-foreground">
+        <span className="flex items-center gap-1.5 rounded-full bg-muted/60 px-3 py-1 text-meta font-medium text-muted-foreground">
           <ShieldCheck className="size-3 text-success" /> UPI · Card · Net banking
         </span>
       </div>

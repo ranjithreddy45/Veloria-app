@@ -43,14 +43,14 @@ export function HelpdeskHome({
         <div className="flex justify-end"><RaiseDialog categories={categories} /></div>
         {isAgent && assigned.length > 0 && (
           <div>
-            <div className="mb-1.5 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">Assigned to you</div>
+            <div className="mb-1.5 text-detail font-semibold uppercase tracking-wide text-muted-foreground">Assigned to you</div>
             <TicketList tickets={assigned} />
           </div>
         )}
         <div>
-          {isAgent && <div className="mb-1.5 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">Raised by you</div>}
+          {isAgent && <div className="mb-1.5 text-detail font-semibold uppercase tracking-wide text-muted-foreground">Raised by you</div>}
           {mine.length === 0 ? (
-            <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground">No tickets yet. Raise one and HR will pick it up.</div>
+            <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-body text-muted-foreground">No tickets yet. Raise one and HR will pick it up.</div>
           ) : <TicketList tickets={mine} />}
         </div>
       </TabsContent>
@@ -58,7 +58,7 @@ export function HelpdeskHome({
       {isAgent && (
         <TabsContent value="queue" className="space-y-3">
           {queue.length === 0 ? (
-            <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground"><Inbox className="mx-auto size-7 text-muted-foreground/40" /><p className="mt-2">Queue is clear 🎉</p></div>
+            <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-body text-muted-foreground"><Inbox className="mx-auto size-7 text-muted-foreground/40" /><p className="mt-2">Queue is clear 🎉</p></div>
           ) : <TicketList tickets={queue} showRequester requesters={requesters} />}
         </TabsContent>
       )}
@@ -66,13 +66,13 @@ export function HelpdeskHome({
       <TabsContent value="kb" className="space-y-3">
         {canAdmin && <div className="flex justify-end"><Button variant="outline" size="sm" asChild><Link href="/people/helpdesk?kb=new">Manage articles</Link></Button></div>}
         {articles.length === 0 ? (
-          <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground">No articles yet. {canAdmin ? "Publish FAQs so staff self-serve." : ""}</div>
+          <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-body text-muted-foreground">No articles yet. {canAdmin ? "Publish FAQs so staff self-serve." : ""}</div>
         ) : (
           <div className="space-y-2.5">
             {articles.map((a) => (
               <details key={a.id} className="rounded-xl border bg-card p-4">
-                <summary className="cursor-pointer font-medium">{a.title}{a.category ? <span className="ml-2 text-[12px] font-normal text-muted-foreground">{a.category.name}</span> : null}{!a.isPublished && <StatusPill label="Draft" hue="slate" size="xs" className="ml-2" />}</summary>
-                <p className="mt-2 whitespace-pre-wrap text-[13px] text-muted-foreground">{a.body}</p>
+                <summary className="cursor-pointer font-medium">{a.title}{a.category ? <span className="ml-2 text-detail font-normal text-muted-foreground">{a.category.name}</span> : null}{!a.isPublished && <StatusPill label="Draft" hue="slate" size="xs" className="ml-2" />}</summary>
+                <p className="mt-2 whitespace-pre-wrap text-body text-muted-foreground">{a.body}</p>
               </details>
             ))}
           </div>
@@ -87,10 +87,10 @@ function TicketList({ tickets, showRequester, requesters }: { tickets: Ticket[];
     <div className="overflow-hidden rounded-xl border bg-card divide-y">
       {tickets.map((t) => (
         <Link key={t.id} href={`/people/helpdesk/${t.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/40">
-          <span className="text-[11.5px] font-medium text-muted-foreground tabular-nums">#{t.number}</span>
+          <span className="text-meta font-medium text-muted-foreground tabular-nums">#{t.number}</span>
           <div className="min-w-0 flex-1">
             <div className="truncate font-medium">{t.subject}</div>
-            <div className="text-[12px] text-muted-foreground">
+            <div className="text-detail text-muted-foreground">
               {t.category?.name ?? "Uncategorised"}{showRequester && requesters?.[t.requesterId ?? ""] ? ` · ${requesters[t.requesterId!].name}` : ""} · {formatDate(t.createdAt)}
             </div>
           </div>
@@ -131,7 +131,7 @@ function RaiseDialog({ categories }: { categories: Cat[] }) {
         <DialogHeader><DialogTitle>Raise an HR ticket</DialogTitle><DialogDescription>Payroll, leave, IT access, documents — we’ll route it to the right person.</DialogDescription></DialogHeader>
         <div className="space-y-3 py-2">
           <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Subject" />
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe your request…" className="h-28 w-full resize-y rounded-md border bg-background p-2.5 text-[13px] outline-none focus:ring-2 focus:ring-ring" />
+          <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe your request…" className="h-28 w-full resize-y rounded-md border bg-background p-2.5 text-body outline-none focus:ring-2 focus:ring-ring" />
           <div className="grid grid-cols-2 gap-3">
             <Select value={categoryId} onValueChange={setCategoryId}>
               <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>

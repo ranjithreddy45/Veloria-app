@@ -52,16 +52,16 @@ export default async function PortalGuestsPage() {
                   <CardContent className="p-0">
                     <div className="bg-primary/[0.05] flex items-center gap-4 px-5 py-4">
                       <div className="text-center">
-                        <p className="numeric text-primary text-[26px] font-semibold leading-none">
+                        <p className="numeric text-primary text-h2 font-semibold leading-none">
                           {eventDate.getDate()}
                         </p>
-                        <p className="text-primary/70 mt-1 text-[10px] font-semibold uppercase tracking-[0.12em]">
+                        <p className="text-primary/70 mt-1 text-meta font-semibold uppercase tracking-[0.12em]">
                           {eventDate.toLocaleDateString("en-IN", { month: "short" })}
                         </p>
                       </div>
                       <div className="bg-border h-9 w-px" />
                       <div className="min-w-0 flex-1">
-                        <p className="font-editorial text-foreground truncate text-[16px] font-semibold">
+                        <p className="font-editorial text-foreground truncate text-lede font-semibold">
                           {b.eventName}
                         </p>
                         <p className="text-muted-foreground truncate text-xs">

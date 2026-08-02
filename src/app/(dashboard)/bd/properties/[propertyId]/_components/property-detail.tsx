@@ -223,10 +223,10 @@ export function PropertyDetail({ property, managers, userRole }: PropertyDetailP
                 <Building2 className="size-4 text-muted-foreground" />
               </div>
               <div className="flex flex-col">
-                <span className="text-[14px] font-medium text-foreground">
+                <span className="text-copy font-medium text-foreground">
                   {property.propertyName}
                 </span>
-                <span className="text-[12.5px] text-muted-foreground">
+                <span className="text-detail text-muted-foreground">
                   {formatType(property.propertyType)}
                 </span>
               </div>
@@ -240,10 +240,10 @@ export function PropertyDetail({ property, managers, userRole }: PropertyDetailP
           <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
             {/* Owner links back to its originating deal when one exists. */}
             <div className="flex flex-col gap-0.5">
-              <dt className="text-[11px] uppercase tracking-[0.04em] text-muted-foreground">
+              <dt className="text-meta uppercase tracking-[0.04em] text-muted-foreground">
                 Owner
               </dt>
-              <dd className="text-[12.5px] text-foreground">
+              <dd className="text-detail text-foreground">
                 {property.deal ? (
                   <Link
                     href={`/bd/deals/${property.deal.id}`}
@@ -276,7 +276,7 @@ export function PropertyDetail({ property, managers, userRole }: PropertyDetailP
       {/* Sales-notification banner */}
       <div className="flex items-start gap-3 rounded-xl border border-amber-200/80 bg-amber-50 px-4 py-3 dark:border-amber-900/50 dark:bg-amber-950/30">
         <Megaphone className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
-        <p className="text-[12.5px] leading-relaxed text-amber-800 dark:text-amber-200">
+        <p className="text-detail leading-relaxed text-amber-800 dark:text-amber-200">
           <span className="font-semibold">
             Sales is notified ONLY when this property is marked Available.
           </span>{" "}
@@ -288,17 +288,17 @@ export function PropertyDetail({ property, managers, userRole }: PropertyDetailP
         {/* Onboarding checklist */}
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="flex items-center gap-2 text-[13px] tracking-[-0.01em]">
+            <CardTitle className="flex items-center gap-2 text-body tracking-[-0.01em]">
               <CheckCircle2 className="size-4 text-muted-foreground" />
               Onboarding checklist
             </CardTitle>
-            <span className="text-[12px] tabular-nums text-muted-foreground">
+            <span className="text-detail tabular-nums text-muted-foreground">
               {doneTasks}/{totalTasks} done
             </span>
           </CardHeader>
           <CardContent className="flex flex-col gap-1">
             {totalTasks === 0 ? (
-              <p className="py-6 text-center text-[12.5px] text-muted-foreground">
+              <p className="py-6 text-center text-detail text-muted-foreground">
                 No onboarding tasks for this property.
               </p>
             ) : (
@@ -320,7 +320,7 @@ export function PropertyDetail({ property, managers, userRole }: PropertyDetailP
                     <div className="flex min-w-0 flex-1 flex-col">
                       <span
                         className={cn(
-                          "truncate text-[13px]",
+                          "truncate text-body",
                           task.done
                             ? "text-muted-foreground line-through"
                             : "text-foreground"
@@ -329,7 +329,7 @@ export function PropertyDetail({ property, managers, userRole }: PropertyDetailP
                         {task.title}
                       </span>
                       {task.assignee?.name && (
-                        <span className="text-[11.5px] text-muted-foreground">
+                        <span className="text-meta text-muted-foreground">
                           {task.assignee.name}
                         </span>
                       )}
@@ -348,13 +348,13 @@ export function PropertyDetail({ property, managers, userRole }: PropertyDetailP
         <div className="flex flex-col gap-5">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-[13px] tracking-[-0.01em]">
+              <CardTitle className="flex items-center gap-2 text-body tracking-[-0.01em]">
                 <UserCog className="size-4 text-muted-foreground" />
                 Property Manager
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
-              <div className="text-[12.5px]">
+              <div className="text-detail">
                 <span className="text-muted-foreground">Current: </span>
                 {currentManagerName ? (
                   <span className="font-medium text-foreground">
@@ -401,7 +401,7 @@ export function PropertyDetail({ property, managers, userRole }: PropertyDetailP
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-[13px] tracking-[-0.01em]">Publish to Sales</CardTitle>
+              <CardTitle className="text-body tracking-[-0.01em]">Publish to Sales</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
               <Button
@@ -413,7 +413,7 @@ export function PropertyDetail({ property, managers, userRole }: PropertyDetailP
                 Mark Available
               </Button>
               {!canMarkAvailable && property.status === "ONBOARDING" && (
-                <p className="text-[11.5px] leading-relaxed text-muted-foreground">
+                <p className="text-meta leading-relaxed text-muted-foreground">
                   {!allTasksDone && "Complete every onboarding task"}
                   {!allTasksDone && !hasManager && " and "}
                   {!hasManager && "assign a property manager"}
@@ -421,7 +421,7 @@ export function PropertyDetail({ property, managers, userRole }: PropertyDetailP
                 </p>
               )}
               {property.status !== "ONBOARDING" && (
-                <p className="text-[11.5px] text-muted-foreground">
+                <p className="text-meta text-muted-foreground">
                   This property is already{" "}
                   {STATUS_LABEL[property.status] ?? property.status}.
                 </p>
@@ -452,14 +452,14 @@ function PropertyPhotos({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
-        <CardTitle className="flex items-center gap-2 text-[13px] tracking-[-0.01em]">
+        <CardTitle className="flex items-center gap-2 text-body tracking-[-0.01em]">
           <ImageIcon className="size-4 text-muted-foreground" />
           Property images
         </CardTitle>
         {deal && (
           <Link
             href={`/bd/deals/${deal.id}`}
-            className="text-[12px] font-medium text-primary hover:underline"
+            className="text-detail font-medium text-primary hover:underline"
           >
             Manage photos
           </Link>
@@ -467,7 +467,7 @@ function PropertyPhotos({
       </CardHeader>
       <CardContent>
         {photos.length === 0 ? (
-          <p className="text-[12.5px] text-muted-foreground">
+          <p className="text-detail text-muted-foreground">
             No images yet. Photos uploaded on the acquisition deal appear here.
           </p>
         ) : (
@@ -549,7 +549,7 @@ function PropertyStatutoryDocs({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-[13px] tracking-[-0.01em]">
+        <CardTitle className="flex items-center gap-2 text-body tracking-[-0.01em]">
           <ShieldCheck className="size-4 text-muted-foreground" />
           Statutory documents
         </CardTitle>
@@ -647,26 +647,26 @@ function StatutoryDocRow({
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-border/60 p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-[13px] font-medium text-foreground">{title}</span>
+        <span className="text-body font-medium text-foreground">{title}</span>
         {state.kind === "missing" && (
-          <span className="text-[11.5px] font-medium text-muted-foreground">Not uploaded</span>
+          <span className="text-meta font-medium text-muted-foreground">Not uploaded</span>
         )}
         {state.kind === "no-expiry" && (
-          <span className="text-[11.5px] font-medium text-warning">No expiry recorded</span>
+          <span className="text-meta font-medium text-warning">No expiry recorded</span>
         )}
         {state.kind === "valid" && (
-          <span className="text-[11.5px] font-medium text-muted-foreground">
+          <span className="text-meta font-medium text-muted-foreground">
             Valid until {fmtCalendarDate(expiry)}
           </span>
         )}
         {state.kind === "soon" && (
-          <span className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-warning">
+          <span className="inline-flex items-center gap-1 text-meta font-semibold text-warning">
             <AlertTriangle className="size-3.5" />
             Expires in {state.days} day{state.days === 1 ? "" : "s"}
           </span>
         )}
         {state.kind === "expired" && (
-          <span className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-destructive">
+          <span className="inline-flex items-center gap-1 text-meta font-semibold text-destructive">
             <AlertTriangle className="size-3.5" />
             Expired {fmtCalendarDate(expiry)}
           </span>
@@ -678,36 +678,36 @@ function StatutoryDocRow({
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex w-fit items-center gap-1 text-[12.5px] font-medium text-primary hover:underline"
+          className="inline-flex w-fit items-center gap-1 text-detail font-medium text-primary hover:underline"
         >
           <FileText className="size-3.5" />
           View document
         </a>
       ) : (
-        <p className="text-[12px] text-muted-foreground">
+        <p className="text-detail text-muted-foreground">
           Upload the certificate as a PDF or image, and record its number and expiry.
         </p>
       )}
 
       <div className="grid gap-2 sm:grid-cols-2">
         <div className="flex flex-col gap-1">
-          <label className="text-[11px] uppercase tracking-[0.04em] text-muted-foreground">{numberLabel}</label>
+          <label className="text-meta uppercase tracking-[0.04em] text-muted-foreground">{numberLabel}</label>
           <Input
             value={num}
             onChange={(e) => setNum(e.target.value)}
             placeholder="e.g. TL/2026/00123"
             disabled={!canEdit || busy}
-            className="h-8 text-[12.5px]"
+            className="h-8 text-detail"
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-[11px] uppercase tracking-[0.04em] text-muted-foreground">Expiry date</label>
+          <label className="text-meta uppercase tracking-[0.04em] text-muted-foreground">Expiry date</label>
           <Input
             type="date"
             value={exp}
             onChange={(e) => setExp(e.target.value)}
             disabled={!canEdit || busy}
-            className="h-8 text-[12.5px]"
+            className="h-8 text-detail"
           />
         </div>
       </div>
@@ -745,13 +745,13 @@ function StatutoryDocRow({
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <dt className="text-[11px] uppercase tracking-[0.04em] text-muted-foreground">
+      <dt className="text-meta uppercase tracking-[0.04em] text-muted-foreground">
         {label}
       </dt>
       {/* Emails, URLs and long owner names have no break opportunity, and this
         * dl runs two columns (~165px) on a phone — without break-words they
         * push the card past the viewport edge. */}
-      <dd className="text-[12.5px] break-words text-foreground">{value}</dd>
+      <dd className="text-detail break-words text-foreground">{value}</dd>
     </div>
   );
 }

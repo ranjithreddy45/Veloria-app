@@ -56,8 +56,8 @@ const HUE_CLASSES: Record<Hue, { bg: string; text: string; ring: string; dot: st
 };
 
 const SIZE_CLASSES: Record<Size, string> = {
-  xs: "h-5 px-1.5 text-[10.5px] gap-1",
-  sm: "h-6 px-2 text-[11.5px] gap-1.5",
+  xs: "h-5 px-1.5 text-meta gap-1",
+  sm: "h-6 px-2 text-meta gap-1.5",
 };
 
 export function StatusPill({

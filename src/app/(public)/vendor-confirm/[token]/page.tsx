@@ -33,7 +33,7 @@ export default async function VendorConfirmPage({
   if (!res.success) {
     return (
       <div className="bg-card shadow-card mx-auto max-w-lg rounded-2xl border p-10 text-center">
-        <h1 className="text-foreground text-[24px]">
+        <h1 className="text-foreground text-h2">
           We couldn&apos;t find this request
         </h1>
         <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm leading-relaxed">
@@ -49,10 +49,10 @@ export default async function VendorConfirmPage({
   return (
     <div className="space-y-6">
       <header className="pb-1 text-center">
-        <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.18em]">
+        <p className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.18em]">
           For {a.vendorName}
         </p>
-        <h1 className="text-foreground mt-3 text-[30px] sm:text-[34px]">
+        <h1 className="text-foreground mt-3 text-h1 sm:text-h1">
           {a.status === "CONFIRMED"
             ? "You're confirmed"
             : a.status === "DECLINED"

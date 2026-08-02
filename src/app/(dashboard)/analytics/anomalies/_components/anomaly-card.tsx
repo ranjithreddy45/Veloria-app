@@ -183,20 +183,20 @@ export function AnomalyCard({ anomaly, onUpdate }: AnomalyCardProps) {
             </div>
             <div className="space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-[14.5px] font-semibold leading-none tracking-[-0.01em]">
+                <h3 className="text-copy font-semibold leading-none tracking-[-0.01em]">
                   {anomaly.title}
                 </h3>
                 <Badge
                   variant="outline"
-                  className={`text-[11px] font-medium ${severityStyle}`}
+                  className={`text-meta font-medium ${severityStyle}`}
                 >
                   {anomaly.severity}
                 </Badge>
-                <Badge variant="secondary" className="text-[11px] font-medium">
+                <Badge variant="secondary" className="text-meta font-medium">
                   {typeLabel}
                 </Badge>
               </div>
-              <p className="text-[12px] text-muted-foreground">
+              <p className="text-detail text-muted-foreground">
                 Detected{" "}
                 {formatDistanceToNow(new Date(anomaly.detectedAt), {
                   addSuffix: true,
@@ -270,7 +270,7 @@ export function AnomalyCard({ anomaly, onUpdate }: AnomalyCardProps) {
 
         {/* Metric Info */}
         {(anomaly.expectedValue !== null || anomaly.actualValue !== null) && (
-          <div className="flex flex-wrap gap-x-6 gap-y-2 rounded-xl bg-muted/50 p-3.5 text-[13px]">
+          <div className="flex flex-wrap gap-x-6 gap-y-2 rounded-xl bg-muted/50 p-3.5 text-body">
             {anomaly.expectedValue !== null && (
               <div>
                 <span className="text-muted-foreground">Expected </span>

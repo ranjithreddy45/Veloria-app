@@ -47,7 +47,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
         aria-hidden
         className="h-3.5 w-[3px] rounded-full bg-gradient-to-b from-violet-500 to-violet-400"
       />
-      <h2 className="text-brand-gradient text-[11px] font-semibold uppercase tracking-[0.12em]">
+      <h2 className="text-brand-gradient text-meta font-semibold uppercase tracking-[0.12em]">
         {children}
       </h2>
     </div>
@@ -136,7 +136,7 @@ export default async function DashboardPage() {
           </Avatar>
           <div className="flex min-w-0 flex-col gap-2.5">
             {/* Contextual eyebrow — today's date with a live pulse */}
-            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em]">
+            <div className="flex items-center gap-2 text-meta font-semibold uppercase tracking-[0.12em]">
               <span className="relative inline-flex size-1.5">
                 <span className="absolute inset-0 animate-ping rounded-full bg-emerald-500/60 opacity-75" />
                 <span className="relative size-1.5 rounded-full bg-emerald-500" />
@@ -144,7 +144,7 @@ export default async function DashboardPage() {
               <span className="text-brand-gradient">{today}</span>
             </div>
             {/* Greeting — large-title display type */}
-            <h1 className="large-title text-[30px] leading-[1.05] text-foreground sm:text-[36px]">
+            <h1 className="large-title text-h1 leading-[1.05] text-foreground sm:text-h1">
               {greeting},{" "}
               <span className="text-brand-gradient">{userName}</span>
             </h1>
@@ -153,7 +153,7 @@ export default async function DashboardPage() {
               {briefing.map((b, i) => (
                 <span
                   key={i}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/70 px-2.5 py-1 text-[12.5px] backdrop-blur-sm"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/70 px-2.5 py-1 text-detail backdrop-blur-sm"
                 >
                   <b.icon className="size-3.5 text-violet-500/80" strokeWidth={2} />
                   <span className="text-foreground/80">
@@ -167,7 +167,7 @@ export default async function DashboardPage() {
               {velos && velos.players > 0 && (
                 <Link
                   href="/performance/velos"
-                  className="hover-lift inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-violet-500/15 to-violet-400/15 px-2.5 py-1 text-[12.5px] font-semibold text-violet-600 ring-1 ring-inset ring-violet-500/20 transition-colors hover:from-violet-500/20 hover:to-violet-400/20 dark:text-violet-300"
+                  className="hover-lift inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-violet-500/15 to-violet-400/15 px-2.5 py-1 text-detail font-semibold text-violet-600 ring-1 ring-inset ring-violet-500/20 transition-colors hover:from-violet-500/20 hover:to-violet-400/20 dark:text-violet-300"
                 >
                   <Trophy className="size-3.5" strokeWidth={2} />
                   <span className="numeric">

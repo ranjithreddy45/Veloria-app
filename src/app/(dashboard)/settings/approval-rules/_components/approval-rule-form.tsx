@@ -164,10 +164,10 @@ export function ApprovalRuleForm({ rule, users }: ApprovalRuleFormProps) {
   return (
     <section className="rounded-2xl border bg-card shadow-card">
       <div className="border-b px-5 py-4">
-        <h3 className="text-[15px] font-semibold tracking-[-0.01em]">
+        <h3 className="text-copy font-semibold tracking-[-0.01em]">
           Rule Details
         </h3>
-        <p className="mt-1 text-[13px] text-muted-foreground">
+        <p className="mt-1 text-body text-muted-foreground">
           Name the rule, pick what it watches, and set the conditions that make
           it fire.
         </p>
@@ -216,7 +216,7 @@ export function ApprovalRuleForm({ rule, users }: ApprovalRuleFormProps) {
         <div className="flex items-center justify-between gap-4 px-5 py-3.5">
           <div className="min-w-0">
             <Label className="text-sm">Priority</Label>
-            <p className="mt-0.5 text-[12.5px] text-muted-foreground">
+            <p className="mt-0.5 text-detail text-muted-foreground">
               Lower values are evaluated first.
             </p>
           </div>
@@ -231,7 +231,7 @@ export function ApprovalRuleForm({ rule, users }: ApprovalRuleFormProps) {
         <div className="flex items-center justify-between gap-4 px-5 py-3.5">
           <div className="min-w-0">
             <Label className="text-sm">Active</Label>
-            <p className="mt-0.5 text-[12.5px] text-muted-foreground">
+            <p className="mt-0.5 text-detail text-muted-foreground">
               {isActive
                 ? "This rule is live — matching requests will need approval."
                 : "Paused. Matching requests go through without approval."}
@@ -251,7 +251,7 @@ export function ApprovalRuleForm({ rule, users }: ApprovalRuleFormProps) {
           <div className="flex items-center justify-between gap-3">
             <div>
               <Label>Conditions</Label>
-              <p className="mt-0.5 text-[12.5px] text-muted-foreground">
+              <p className="mt-0.5 text-detail text-muted-foreground">
                 All conditions must match for the rule to fire.
               </p>
             </div>
@@ -267,7 +267,7 @@ export function ApprovalRuleForm({ rule, users }: ApprovalRuleFormProps) {
           </div>
 
           {conditions.length === 0 && (
-            <p className="rounded-lg border border-dashed px-3 py-2.5 text-[13px] text-muted-foreground">
+            <p className="rounded-lg border border-dashed px-3 py-2.5 text-body text-muted-foreground">
               No conditions yet — this rule will match every{" "}
               {entityType.toLowerCase()}.
             </p>

@@ -96,7 +96,7 @@ export function NewReimbursementButton({ categories }: { categories: readonly st
 
         <div className="space-y-3 py-2">
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Category</Label>
+            <Label className="text-detail">Category</Label>
             <Select value={category} onValueChange={setCategory}>
               <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
               <SelectContent>
@@ -108,7 +108,7 @@ export function NewReimbursementButton({ categories }: { categories: readonly st
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Description</Label>
+            <Label className="text-detail">Description</Label>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -119,7 +119,7 @@ export function NewReimbursementButton({ categories }: { categories: readonly st
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Amount (₹)</Label>
+              <Label className="text-detail">Amount (₹)</Label>
               <Input
                 type="number"
                 inputMode="decimal"
@@ -131,7 +131,7 @@ export function NewReimbursementButton({ categories }: { categories: readonly st
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Claim date</Label>
+              <Label className="text-detail">Claim date</Label>
               <Input
                 type="date"
                 value={claimDate}
@@ -142,20 +142,20 @@ export function NewReimbursementButton({ categories }: { categories: readonly st
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Receipt (optional)</Label>
+            <Label className="text-detail">Receipt (optional)</Label>
             <div className="flex items-center gap-2">
               <FileUpload
                 label={billUrl ? "Replace bill" : "Attach bill"}
                 onUploaded={(dataUrl, file) => { setBillUrl(dataUrl); setBillName(file.name); }}
               />
               {billName && (
-                <span className="flex min-w-0 items-center gap-1 text-[12px] text-success">
+                <span className="flex min-w-0 items-center gap-1 text-detail text-success">
                   <Check className="size-3.5 shrink-0" />
                   <span className="truncate">{billName}</span>
                 </span>
               )}
               {!billName && (
-                <span className="flex items-center gap-1 text-[12px] text-muted-foreground">
+                <span className="flex items-center gap-1 text-detail text-muted-foreground">
                   <Paperclip className="size-3.5" /> Image or PDF, up to 5 MB
                 </span>
               )}
@@ -163,7 +163,7 @@ export function NewReimbursementButton({ categories }: { categories: readonly st
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Note (optional)</Label>
+            <Label className="text-detail">Note (optional)</Label>
             <Textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}

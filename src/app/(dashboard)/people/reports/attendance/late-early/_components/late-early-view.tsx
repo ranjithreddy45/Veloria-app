@@ -84,11 +84,11 @@ export function LateEarlyView({
         <div className="flex flex-wrap items-end gap-2.5">
           <DateRangeControls from={from} to={to} onApply={(f, tt) => load(f, tt, expIn, expOut)} loading={loading} />
           <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-medium text-muted-foreground">Expected in</span>
+            <span className="text-meta font-medium text-muted-foreground">Expected in</span>
             <Input type="time" value={expIn} onChange={(e) => setExpIn(e.target.value)} className="h-9 w-[7.5rem]" />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-medium text-muted-foreground">Expected out</span>
+            <span className="text-meta font-medium text-muted-foreground">Expected out</span>
             <Input type="time" value={expOut} onChange={(e) => setExpOut(e.target.value)} className="h-9 w-[7.5rem]" />
           </label>
           <Button size="sm" variant="secondary" className="h-9" disabled={loading} onClick={() => load(from, to, expIn, expOut)}>
@@ -123,9 +123,9 @@ export function LateEarlyView({
           <EmptyState icon={<Timer />} title="Nobody late or short here" description="Every worked day in this range met the expected window. Adjust the window or range to review more." />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-[13px]">
+            <table className="w-full text-body">
               <thead>
-                <tr className="border-b text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+                <tr className="border-b text-left text-meta uppercase tracking-wide text-muted-foreground">
                   <th className="px-5 py-2.5 font-medium">Date</th>
                   <th className="px-3 py-2.5 font-medium">Employee</th>
                   <th className="px-3 py-2.5 font-medium">Status</th>
@@ -141,7 +141,7 @@ export function LateEarlyView({
                     <td className="px-5 py-2.5 whitespace-nowrap tabular-nums">{fmtDay(r.date)}</td>
                     <td className="px-3 py-2.5">
                       <div className="font-medium">{r.name}</div>
-                      <div className="text-[11.5px] text-muted-foreground">{r.empCode}</div>
+                      <div className="text-meta text-muted-foreground">{r.empCode}</div>
                     </td>
                     <td className="px-3 py-2.5"><StatusBadge status={r.status} /></td>
                     <td className="px-3 py-2.5 tabular-nums">{fmtTimeIst(r.checkInAt) || "—"}</td>

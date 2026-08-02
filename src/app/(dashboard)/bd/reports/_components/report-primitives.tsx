@@ -36,8 +36,8 @@ export function ReportSection({
     <Card className="gap-0 py-0">
       <CardContent className="space-y-4 px-5 py-5">
         <div className="space-y-0.5">
-          <h2 className="text-[13px] font-semibold tracking-[-0.01em] text-foreground">{title}</h2>
-          {description && <p className="text-[12px] text-muted-foreground">{description}</p>}
+          <h2 className="text-body font-semibold tracking-[-0.01em] text-foreground">{title}</h2>
+          {description && <p className="text-detail text-muted-foreground">{description}</p>}
         </div>
         {children}
       </CardContent>
@@ -46,7 +46,7 @@ export function ReportSection({
 }
 
 export function EmptyLine({ children }: { children: React.ReactNode }) {
-  return <p className="text-[13px] text-muted-foreground">{children}</p>;
+  return <p className="text-body text-muted-foreground">{children}</p>;
 }
 
 /** A scroll-x wrapper for tables on mobile. */
@@ -58,7 +58,7 @@ export function Th({ children, className }: { children?: React.ReactNode; classN
   return (
     <th
       className={cn(
-        "whitespace-nowrap px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground",
+        "whitespace-nowrap px-3 py-2 text-left text-meta font-semibold uppercase tracking-[0.04em] text-muted-foreground",
         className
       )}
     >
@@ -68,5 +68,5 @@ export function Th({ children, className }: { children?: React.ReactNode; classN
 }
 
 export function Td({ children, className }: { children?: React.ReactNode; className?: string }) {
-  return <td className={cn("whitespace-nowrap px-3 py-2 text-[13px] text-foreground", className)}>{children}</td>;
+  return <td className={cn("whitespace-nowrap px-3 py-2 text-body text-foreground", className)}>{children}</td>;
 }

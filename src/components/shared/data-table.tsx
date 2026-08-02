@@ -292,7 +292,7 @@ export function DataTable<TData, TValue>({
                       </div>
                     )}
                     {primaryCell && (
-                      <div className="min-w-0 flex-1 text-[14px] font-semibold leading-snug text-foreground">
+                      <div className="min-w-0 flex-1 text-copy font-semibold leading-snug text-foreground">
                         {flexRender(
                           primaryCell.column.columnDef.cell,
                           primaryCell.getContext()
@@ -320,10 +320,10 @@ export function DataTable<TData, TValue>({
                     <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2.5 border-t border-border/60 pt-3">
                       {detailCells.map((cell) => (
                         <div key={cell.id} className="min-w-0">
-                          <dt className="text-[10.5px] font-medium uppercase tracking-[0.05em] text-muted-foreground">
+                          <dt className="text-meta font-medium uppercase tracking-[0.05em] text-muted-foreground">
                             {mobileLabelFor(cell.column)}
                           </dt>
-                          <dd className="mt-0.5 text-[13px] leading-snug text-foreground">
+                          <dd className="mt-0.5 text-body leading-snug text-foreground">
                             {flexRender(
                               cell.column.columnDef.cell,
                               cell.getContext()
@@ -337,7 +337,7 @@ export function DataTable<TData, TValue>({
               );
             })
           ) : (
-            <div className="rounded-xl border border-dashed border-border bg-card px-4 py-10 text-center text-[13px] text-muted-foreground">
+            <div className="rounded-xl border border-dashed border-border bg-card px-4 py-10 text-center text-body text-muted-foreground">
               No results.
             </div>
           )}
@@ -361,7 +361,7 @@ export function DataTable<TData, TValue>({
                 {headerGroup.headers.map((header) => (
                   <TableHead
                     key={header.id}
-                    className="h-9 px-3 text-[11px] font-medium uppercase tracking-[0.05em] text-muted-foreground"
+                    className="h-9 px-3 text-meta font-medium uppercase tracking-[0.05em] text-muted-foreground"
                   >
                     {header.isPlaceholder
                       ? null
@@ -396,7 +396,7 @@ export function DataTable<TData, TValue>({
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className="h-32 text-center text-[13px] text-muted-foreground"
+                  className="h-32 text-center text-body text-muted-foreground"
                 >
                   No results.
                 </TableCell>
@@ -408,7 +408,7 @@ export function DataTable<TData, TValue>({
 
       {/* Pagination — wraps at 375px instead of pushing the page sideways
           (four 44px touch targets + two labels do not fit on one phone line). */}
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-1 text-[12px] text-muted-foreground">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-1 text-detail text-muted-foreground">
         <div>
           {enableRowSelection && Object.keys(rowSelection).length > 0 ? (
             <span>
@@ -497,7 +497,7 @@ export function DataTableColumnHeader<TData, TValue>({
   return (
     <button
       type="button"
-      className="-ml-1 inline-flex items-center gap-1 rounded px-1 py-0.5 text-[11px] font-medium uppercase tracking-[0.05em] text-muted-foreground hover:bg-muted hover:text-foreground/80 transition-colors"
+      className="-ml-1 inline-flex items-center gap-1 rounded px-1 py-0.5 text-meta font-medium uppercase tracking-[0.05em] text-muted-foreground hover:bg-muted hover:text-foreground/80 transition-colors"
       onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
     >
       {title}

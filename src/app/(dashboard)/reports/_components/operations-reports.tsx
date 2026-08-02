@@ -279,7 +279,7 @@ export function OperationsReports({ range }: OperationsReportsProps) {
                         {taskStatusData.map((s) => (
                           <div key={s.name} className="flex items-center gap-1.5">
                             <div className="size-2 shrink-0 rounded-full" style={{ backgroundColor: s.fill }} />
-                            <span className="text-[11px] text-zinc-600">{s.name}: {s.value}</span>
+                            <span className="text-meta text-zinc-600">{s.name}: {s.value}</span>
                           </div>
                         ))}
                       </div>

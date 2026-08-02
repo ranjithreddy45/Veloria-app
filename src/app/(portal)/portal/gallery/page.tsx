@@ -71,7 +71,7 @@ export default async function PortalGalleryPage() {
               <div key={booking.id} className="space-y-4">
                 <div className="flex items-center gap-2">
                   <CalendarCheck className="text-primary size-3.5" />
-                  <h2 className="text-muted-foreground flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em]">
+                  <h2 className="text-muted-foreground flex items-center gap-2 text-meta font-semibold uppercase tracking-[0.14em]">
                     {booking.eventName}
                     <span className="numeric text-muted-foreground/60">
                       {bookingItems.length}
@@ -130,7 +130,7 @@ export default async function PortalGalleryPage() {
                           <div className="absolute right-2 top-2">
                             <Badge
                               variant="secondary"
-                              className="border-transparent bg-black/55 text-[10px] font-medium tracking-[0.06em] text-white backdrop-blur-sm"
+                              className="border-transparent bg-black/55 text-meta font-medium tracking-[0.06em] text-white backdrop-blur-sm"
                             >
                               {MEDIA_TYPE_LABELS[item.mediaType] ||
                                 item.mediaType}
@@ -154,7 +154,7 @@ export default async function PortalGalleryPage() {
                                 <Badge
                                   key={tag}
                                   variant="outline"
-                                  className="text-muted-foreground px-1.5 py-0 text-[10px] font-normal"
+                                  className="text-muted-foreground px-1.5 py-0 text-meta font-normal"
                                 >
                                   <TagIcon className="mr-0.5 size-2" />
                                   {tag}
@@ -163,14 +163,14 @@ export default async function PortalGalleryPage() {
                               {item.tags.length > 3 && (
                                 <Badge
                                   variant="outline"
-                                  className="numeric text-muted-foreground/70 px-1.5 py-0 text-[10px] font-normal"
+                                  className="numeric text-muted-foreground/70 px-1.5 py-0 text-meta font-normal"
                                 >
                                   +{item.tags.length - 3}
                                 </Badge>
                               )}
                             </div>
                           )}
-                          <p className="numeric text-muted-foreground/60 mt-2.5 text-[10px]">
+                          <p className="numeric text-muted-foreground/60 mt-2.5 text-meta">
                             {new Date(item.createdAt).toLocaleDateString(
                               "en-IN",
                               {
@@ -199,7 +199,7 @@ export default async function PortalGalleryPage() {
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <GlobeIcon className="text-primary size-3.5" />
-                  <h2 className="text-muted-foreground flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em]">
+                  <h2 className="text-muted-foreground flex items-center gap-2 text-meta font-semibold uppercase tracking-[0.14em]">
                     From the venue
                     <span className="numeric text-muted-foreground/60">
                       {unbookedItems.length}
@@ -254,7 +254,7 @@ export default async function PortalGalleryPage() {
                           <div className="absolute right-2 top-2">
                             <Badge
                               variant="secondary"
-                              className="border-transparent bg-black/55 text-[10px] font-medium tracking-[0.06em] text-white backdrop-blur-sm"
+                              className="border-transparent bg-black/55 text-meta font-medium tracking-[0.06em] text-white backdrop-blur-sm"
                             >
                               {MEDIA_TYPE_LABELS[item.mediaType] ||
                                 item.mediaType}
@@ -270,7 +270,7 @@ export default async function PortalGalleryPage() {
                               {item.description}
                             </p>
                           )}
-                          <p className="numeric text-muted-foreground/60 mt-2.5 text-[10px]">
+                          <p className="numeric text-muted-foreground/60 mt-2.5 text-meta">
                             {new Date(item.createdAt).toLocaleDateString(
                               "en-IN",
                               {

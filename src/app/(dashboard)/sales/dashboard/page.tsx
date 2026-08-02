@@ -45,22 +45,22 @@ const pct = (n: number) => `${Math.round((n || 0) * 100)}%`;
 const inr = (n: number) => "₹" + Math.round(n || 0).toLocaleString("en-IN");
 
 /** Quiet card heading, shared by every panel on this page. */
-const PANEL_TITLE = "text-[13px] font-semibold tracking-[-0.01em] text-foreground";
+const PANEL_TITLE = "text-body font-semibold tracking-[-0.01em] text-foreground";
 /** Micro field label. */
-const MICRO_LABEL = "text-[11px] uppercase tracking-wide text-muted-foreground";
+const MICRO_LABEL = "text-meta uppercase tracking-wide text-muted-foreground";
 
 function FunnelBar({ label, count, max, conv }: { label: string; count: number; max: number; conv: string | null }) {
   const w = max > 0 ? Math.min(100, Math.round((count / max) * 100)) : 0;
   return (
     <div className="flex items-center gap-3">
-      <div className="w-28 shrink-0 truncate text-[13px] text-muted-foreground sm:w-36">{label}</div>
+      <div className="w-28 shrink-0 truncate text-body text-muted-foreground sm:w-36">{label}</div>
       <div className="relative h-8 flex-1 overflow-hidden rounded-lg border border-border/70 bg-muted/25">
         <div className="h-full bg-gradient-to-r from-violet-500/35 to-violet-500/10" style={{ width: `${w}%` }} />
-        <div className="numeric absolute inset-0 flex items-center px-3 text-[13px] font-medium text-foreground">
+        <div className="numeric absolute inset-0 flex items-center px-3 text-body font-medium text-foreground">
           {count.toLocaleString("en-IN")}
         </div>
       </div>
-      <div className="numeric w-12 shrink-0 text-right text-[12px] text-muted-foreground">{conv ?? "—"}</div>
+      <div className="numeric w-12 shrink-0 text-right text-detail text-muted-foreground">{conv ?? "—"}</div>
     </div>
   );
 }
@@ -130,7 +130,7 @@ export default async function SalesDashboardPage({
         description="Employee-wise sales funnel, activity and leaderboard."
         help={
           a ? (
-            <span className="numeric inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-muted/40 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+            <span className="numeric inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-muted/40 px-2.5 py-1 text-meta font-medium text-muted-foreground">
               <CalendarRange className="size-3.5" aria-hidden />
               {a.range.label}
             </span>
@@ -199,7 +199,7 @@ export default async function SalesDashboardPage({
                   {funnelStats.map((s) => (
                     <div key={s.label} className="space-y-1">
                       <div className={MICRO_LABEL}>{s.label}</div>
-                      <div className="numeric text-[15px] font-semibold text-foreground">{s.value}</div>
+                      <div className="numeric text-copy font-semibold text-foreground">{s.value}</div>
                     </div>
                   ))}
                 </div>
@@ -207,12 +207,12 @@ export default async function SalesDashboardPage({
                 {/* Goal-gradient: small remaining distance to beat last month's booked revenue */}
                 {a.lastMonthRevenue != null && a.lastMonthRevenue > 0 && (
                   t!.revenueBooked < a.lastMonthRevenue ? (
-                    <div className="numeric bg-warning/10 text-warning ring-warning/20 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-medium ring-1 ring-inset">
+                    <div className="numeric bg-warning/10 text-warning ring-warning/20 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-detail font-medium ring-1 ring-inset">
                       <TrendingUp className="size-3.5" aria-hidden />
                       {inr(a.lastMonthRevenue - t!.revenueBooked)} to beat last month
                     </div>
                   ) : (
-                    <div className="numeric bg-success/10 text-success ring-success/20 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-medium ring-1 ring-inset">
+                    <div className="numeric bg-success/10 text-success ring-success/20 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-detail font-medium ring-1 ring-inset">
                       🎉 Last month beaten by {inr(t!.revenueBooked - a.lastMonthRevenue)}
                     </div>
                   )
@@ -234,7 +234,7 @@ export default async function SalesDashboardPage({
                     description="Widen the date range or clear the employee filter to see how the team performed."
                   />
                 ) : (
-                  <Table className="text-[12.5px]">
+                  <Table className="text-detail">
                     <TableHeader>
                       <TableRow>
                         <TableHead className="px-3">Employee</TableHead>
@@ -291,7 +291,7 @@ export default async function SalesDashboardPage({
                       return (
                         <li
                           key={l.userId}
-                          className={`rounded-xl px-2.5 py-2 text-[13px] transition-colors hover:bg-muted/50 ${i === 0 ? "bg-amber-500/8" : "odd:bg-muted/25"}`}
+                          className={`rounded-xl px-2.5 py-2 text-body transition-colors hover:bg-muted/50 ${i === 0 ? "bg-amber-500/8" : "odd:bg-muted/25"}`}
                         >
                           <div className="flex items-center justify-between gap-3">
                             <span className="flex min-w-0 items-center gap-2">
@@ -301,7 +301,7 @@ export default async function SalesDashboardPage({
                             <span className="numeric shrink-0 font-semibold text-foreground">{l.salesScore.toLocaleString("en-IN")}</span>
                           </div>
                           {chaseGap !== null && (
-                            <div className="numeric pl-8 text-[11px] text-muted-foreground">▲ {chaseGap.toLocaleString("en-IN")} pts to #{i}</div>
+                            <div className="numeric pl-8 text-meta text-muted-foreground">▲ {chaseGap.toLocaleString("en-IN")} pts to #{i}</div>
                           )}
                         </li>
                       );
@@ -319,16 +319,16 @@ export default async function SalesDashboardPage({
                 <h2 className={PANEL_TITLE}>Leads by source</h2>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-xl border border-border/70 bg-muted/20 p-3.5 transition-shadow hover:shadow-card-hover">
-                    <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                    <div className="flex items-center gap-1.5 text-detail text-muted-foreground">
                       <Flame className="size-3.5 text-orange-500" aria-hidden /> Cold
                     </div>
-                    <div className="numeric mt-1.5 text-[22px] font-semibold leading-none text-foreground">{t!.enquiriesCold}</div>
+                    <div className="numeric mt-1.5 text-title font-semibold leading-none text-foreground">{t!.enquiriesCold}</div>
                   </div>
                   <div className="rounded-xl border border-border/70 bg-muted/20 p-3.5 transition-shadow hover:shadow-card-hover">
-                    <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                    <div className="flex items-center gap-1.5 text-detail text-muted-foreground">
                       <Megaphone className="size-3.5 text-indigo-500" aria-hidden /> Campaign
                     </div>
-                    <div className="numeric mt-1.5 text-[22px] font-semibold leading-none text-foreground">{t!.enquiriesCampaign}</div>
+                    <div className="numeric mt-1.5 text-title font-semibold leading-none text-foreground">{t!.enquiriesCampaign}</div>
                   </div>
                 </div>
                 {a.leadSources.length === 0 ? (
@@ -341,7 +341,7 @@ export default async function SalesDashboardPage({
                 ) : (
                   <ul className="divide-y divide-border/50">
                     {a.leadSources.map((s) => (
-                      <li key={s.source} className="flex items-center justify-between gap-3 py-2 text-[13px]">
+                      <li key={s.source} className="flex items-center justify-between gap-3 py-2 text-body">
                         <span className="truncate text-muted-foreground">{s.label}</span>
                         <span className="numeric font-medium text-foreground">{s.count.toLocaleString("en-IN")}</span>
                       </li>
@@ -365,7 +365,7 @@ export default async function SalesDashboardPage({
                 ) : (
                   <ul className="divide-y divide-border/50">
                     {a.lossReasons.map((r) => (
-                      <li key={r.reason} className="flex items-center justify-between gap-3 py-2 text-[13px]">
+                      <li key={r.reason} className="flex items-center justify-between gap-3 py-2 text-body">
                         <span className="truncate text-muted-foreground">{r.label}</span>
                         <span className="numeric font-medium text-foreground">{r.count} · {inr(r.value)}</span>
                       </li>

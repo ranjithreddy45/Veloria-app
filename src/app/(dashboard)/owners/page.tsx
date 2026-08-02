@@ -67,8 +67,8 @@ export default async function HallOwnersPage() {
           <span className="mb-1 flex size-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-600 dark:bg-violet-950/50 dark:text-violet-300">
             <Building2 className="size-6" strokeWidth={1.5} />
           </span>
-          <p className="text-[13.5px] font-medium text-foreground">No hall owners yet</p>
-          <p className="max-w-md text-[12px] text-muted-foreground">
+          <p className="text-body font-medium text-foreground">No hall owners yet</p>
+          <p className="max-w-md text-detail text-muted-foreground">
             Add prospective hall owners to start building your B2B acquisition pipeline.
           </p>
         </div>

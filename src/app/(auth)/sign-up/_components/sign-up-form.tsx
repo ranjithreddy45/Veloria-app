@@ -56,10 +56,10 @@ export default function SignUpForm() {
   return (
     <div className="space-y-6">
       <div className="space-y-1.5 text-center">
-        <h2 className="text-ink-gradient large-title text-[26px]">
+        <h2 className="text-ink-gradient large-title text-h2">
           Create an account
         </h2>
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-body text-muted-foreground">
           Enter your details to get started
         </p>
       </div>

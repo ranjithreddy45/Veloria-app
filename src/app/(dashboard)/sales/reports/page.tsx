@@ -28,7 +28,7 @@ import {
 } from "@/app/(dashboard)/bd/reports/_components/report-primitives";
 
 /** Micro sub-heading inside a report section. */
-const SUB_HEAD = "mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground";
+const SUB_HEAD = "mb-2 text-meta font-semibold uppercase tracking-wide text-muted-foreground";
 /** Shared body-row treatment for the hand-rolled report tables. */
 const ROW = "border-t border-border/60 transition-colors hover:bg-muted/40";
 
@@ -281,7 +281,7 @@ export default async function SalesReportsPage({
         title="Sales Reports"
         description="Funnel, bookings, revenue, follow-ups, losses, and team performance for the selected period."
         help={
-          <span className="numeric inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-muted/40 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+          <span className="numeric inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-muted/40 px-2.5 py-1 text-meta font-medium text-muted-foreground">
             <CalendarRange className="size-3.5" aria-hidden />
             {a.range.label}
           </span>
@@ -292,7 +292,7 @@ export default async function SalesReportsPage({
       <div className="sticky top-2 z-20 -mx-1 rounded-2xl border border-border/70 bg-card/80 px-3 py-2.5 shadow-card backdrop-blur supports-[backdrop-filter]:bg-card/70">
         <div className="flex items-center gap-2">
           <Filter className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-          <span className="hidden text-[11px] uppercase tracking-wide text-muted-foreground sm:inline">Filters</span>
+          <span className="hidden text-meta uppercase tracking-wide text-muted-foreground sm:inline">Filters</span>
           <BdFilterBar employees={execs} />
         </div>
       </div>
@@ -317,7 +317,7 @@ export default async function SalesReportsPage({
               const stepConv = prev && prev > 0 ? Math.round((row.count / prev) * 100) : null;
               return (
                 <div key={row.key} className="flex items-center gap-3">
-                  <div className="w-28 shrink-0 truncate text-[13px] text-muted-foreground sm:w-40">
+                  <div className="w-28 shrink-0 truncate text-body text-muted-foreground sm:w-40">
                     {row.label}
                   </div>
                   <div className="relative h-8 flex-1 overflow-hidden rounded-lg border border-border/70 bg-muted/25">
@@ -325,11 +325,11 @@ export default async function SalesReportsPage({
                       className="h-full bg-gradient-to-r from-violet-500/35 to-violet-500/10"
                       style={{ width: `${width}%` }}
                     />
-                    <div className="numeric absolute inset-0 flex items-center px-3 text-[13px] font-medium text-foreground">
+                    <div className="numeric absolute inset-0 flex items-center px-3 text-body font-medium text-foreground">
                       {row.count.toLocaleString("en-IN")}
                     </div>
                   </div>
-                  <div className="numeric w-16 shrink-0 text-right text-[12px] text-muted-foreground">
+                  <div className="numeric w-16 shrink-0 text-right text-detail text-muted-foreground">
                     {stepConv === null ? "—" : `${stepConv}%`}
                   </div>
                 </div>
@@ -581,18 +581,18 @@ export default async function SalesReportsPage({
             {alerts.overdue.map((it) => (
               <li key={it.id} className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5 transition-colors hover:bg-muted/40">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="truncate text-[13px] font-medium text-foreground">{it.client || "—"}</span>
-                  <span className="numeric text-destructive shrink-0 text-[12px] font-semibold">
+                  <span className="truncate text-body font-medium text-foreground">{it.client || "—"}</span>
+                  <span className="numeric text-destructive shrink-0 text-detail font-semibold">
                     {inr(it.amount)}
                   </span>
                 </div>
-                <div className="mt-1 flex items-center justify-between gap-2 text-[11.5px] text-muted-foreground">
+                <div className="mt-1 flex items-center justify-between gap-2 text-meta text-muted-foreground">
                   <span className="truncate">
                     {[it.ref, it.event].filter(Boolean).join(" · ") || "—"}
                   </span>
                   <span className="numeric shrink-0">{fmtDate(it.when)}</span>
                 </div>
-                <div className="mt-0.5 truncate text-[11.5px] text-muted-foreground">{it.owner || "—"}</div>
+                <div className="mt-0.5 truncate text-meta text-muted-foreground">{it.owner || "—"}</div>
               </li>
             ))}
           </AlertCard>
@@ -602,10 +602,10 @@ export default async function SalesReportsPage({
             {alerts.followups.map((it) => (
               <li key={it.id} className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5 transition-colors hover:bg-muted/40">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="truncate text-[13px] font-medium text-foreground">{it.client || "—"}</span>
-                  <span className="numeric shrink-0 text-[11px] text-muted-foreground">{fmtDate(it.when)}</span>
+                  <span className="truncate text-body font-medium text-foreground">{it.client || "—"}</span>
+                  <span className="numeric shrink-0 text-meta text-muted-foreground">{fmtDate(it.when)}</span>
                 </div>
-                <div className="mt-0.5 truncate text-[11.5px] text-muted-foreground">{it.owner || "—"}</div>
+                <div className="mt-0.5 truncate text-meta text-muted-foreground">{it.owner || "—"}</div>
               </li>
             ))}
           </AlertCard>
@@ -615,10 +615,10 @@ export default async function SalesReportsPage({
             {alerts.stale.map((it) => (
               <li key={it.id} className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5 transition-colors hover:bg-muted/40">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="truncate text-[13px] font-medium text-foreground">{it.client || "—"}</span>
-                  <span className="numeric shrink-0 text-[12px] font-semibold text-foreground">{inr(it.amount)}</span>
+                  <span className="truncate text-body font-medium text-foreground">{it.client || "—"}</span>
+                  <span className="numeric shrink-0 text-detail font-semibold text-foreground">{inr(it.amount)}</span>
                 </div>
-                <div className="mt-1 flex items-center justify-between gap-2 text-[11.5px] text-muted-foreground">
+                <div className="mt-1 flex items-center justify-between gap-2 text-meta text-muted-foreground">
                   <span className="truncate">
                     {[it.ref, it.event].filter(Boolean).join(" · ") || "—"}
                   </span>
@@ -709,7 +709,7 @@ export default async function SalesReportsPage({
                   const h = Math.max(4, Math.round((rate / 100) * 80));
                   return (
                     <div key={tr.month} className="group flex flex-1 flex-col items-center gap-1">
-                      <span className="numeric text-[10px] font-medium text-muted-foreground">
+                      <span className="numeric text-meta font-medium text-muted-foreground">
                         {Math.round(rate)}%
                       </span>
                       <div className="flex h-20 w-full items-end overflow-hidden rounded-md bg-muted/25">
@@ -718,7 +718,7 @@ export default async function SalesReportsPage({
                           style={{ height: `${h}px` }}
                         />
                       </div>
-                      <span className="numeric truncate text-[10px] text-muted-foreground">{tr.month}</span>
+                      <span className="numeric truncate text-meta text-muted-foreground">{tr.month}</span>
                     </div>
                   );
                 })}
@@ -839,7 +839,7 @@ export default async function SalesReportsPage({
                   return (
                     <li
                       key={l.userId}
-                      className={`flex items-center justify-between gap-3 rounded-xl border border-border/60 px-3 py-2 text-[13px] transition-colors hover:bg-muted/40 ${i === 0 ? "bg-amber-500/8" : "bg-muted/20"}`}
+                      className={`flex items-center justify-between gap-3 rounded-xl border border-border/60 px-3 py-2 text-body transition-colors hover:bg-muted/40 ${i === 0 ? "bg-amber-500/8" : "bg-muted/20"}`}
                     >
                       <span className="flex min-w-0 items-center gap-2">
                         <span className="numeric w-6 shrink-0 text-center text-muted-foreground">
@@ -888,7 +888,7 @@ function AlertCard({
   return (
     <Card className="gap-0 py-0 transition-shadow hover:shadow-card-hover">
       <CardContent className="space-y-3 px-4 py-4">
-        <div className={`flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide ${headTone}`}>
+        <div className={`flex items-center justify-between text-meta font-semibold uppercase tracking-wide ${headTone}`}>
           <span>{title}</span>
           <span className="numeric rounded-full bg-muted/60 px-2 py-0.5 text-foreground">{count}</span>
         </div>

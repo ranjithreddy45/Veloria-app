@@ -58,7 +58,7 @@ export function DemoDataButtons() {
         <CardTitle className="text-base">Sample engagement data</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <ul className="space-y-1.5 text-[13px] text-muted-foreground">
+        <ul className="space-y-1.5 text-body text-muted-foreground">
           <li>• Adds <strong className="text-foreground">100 Velos points</strong> to your account this month</li>
           <li>• Adds <strong className="text-foreground">6 recent activity items</strong> to the live feed</li>
           <li>• Lights up the points chip (top bar), the leaderboard standing, and the dashboard activity feed</li>
@@ -73,7 +73,7 @@ export function DemoDataButtons() {
             Clear demo data
           </Button>
         </div>
-        <p className="text-[12px] text-muted-foreground">
+        <p className="text-detail text-muted-foreground">
           After adding, open the <strong className="text-foreground">Dashboard</strong> to see it all. Everything here is tagged and only affects your account — “Clear” removes it completely.
         </p>
       </CardContent>

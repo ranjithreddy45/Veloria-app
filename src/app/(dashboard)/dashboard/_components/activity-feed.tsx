@@ -53,7 +53,7 @@ export function ActivityFeed() {
   return (
     <Card className="rounded-2xl border bg-card shadow-card">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-[15px]">
+        <CardTitle className="flex items-center gap-2 text-copy">
           <span className="relative inline-flex size-1.5">
             <span className="absolute inset-0 animate-ping rounded-full bg-success/60 opacity-75" />
             <span className="relative size-1.5 rounded-full bg-success" />
@@ -73,11 +73,11 @@ export function ActivityFeed() {
             ))}
           </div>
         ) : failed ? (
-          <p className="px-3 py-6 text-center text-[13px] text-muted-foreground">
+          <p className="px-3 py-6 text-center text-body text-muted-foreground">
             Couldn’t load activity right now — it’ll refresh automatically in a moment.
           </p>
         ) : logs.length === 0 ? (
-          <p className="px-3 py-6 text-center text-[13px] text-muted-foreground">
+          <p className="px-3 py-6 text-center text-body text-muted-foreground">
             No recent activity yet — it’ll show up here as your team works.
           </p>
         ) : (
@@ -89,12 +89,12 @@ export function ActivityFeed() {
               >
                 <Avatar className="size-7">
                   <AvatarImage src={l.user?.image || undefined} alt={l.user?.name || ""} />
-                  <AvatarFallback className="bg-primary/10 text-[10px] text-primary">
+                  <AvatarFallback className="bg-primary/10 text-meta text-primary">
                     {initials(l.user?.name)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] leading-tight">
+                  <p className="truncate text-body leading-tight">
                     <span className="font-medium text-foreground">
                       {l.user?.name || "Someone"}
                     </span>{" "}
@@ -104,7 +104,7 @@ export function ActivityFeed() {
                     </span>
                   </p>
                 </div>
-                <span className="numeric shrink-0 text-[11px] text-muted-foreground">
+                <span className="numeric shrink-0 text-meta text-muted-foreground">
                   {formatDistanceToNow(new Date(l.createdAt), { addSuffix: true })}
                 </span>
               </li>

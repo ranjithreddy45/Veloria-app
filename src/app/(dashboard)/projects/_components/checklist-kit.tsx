@@ -127,7 +127,7 @@ export function ChecklistItem({
                 aria-expanded={expanded}
                 aria-controls={descId}
                 onClick={() => setExpanded((v) => !v)}
-                className="mt-0.5 text-[11px] font-medium text-primary hover:underline focus-ring rounded"
+                className="mt-0.5 text-meta font-medium text-primary hover:underline focus-ring rounded"
               >
                 {expanded ? "less" : "more"}
               </button>

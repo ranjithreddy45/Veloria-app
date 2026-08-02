@@ -42,7 +42,7 @@ export default async function PortalLayout({
                   <div className="bg-foreground text-background flex size-8 items-center justify-center rounded-xl">
                     <Gem className="size-4" />
                   </div>
-                  <span className="font-editorial text-foreground text-[19px] font-semibold tracking-tight">
+                  <span className="font-editorial text-foreground text-title font-semibold tracking-tight">
                     Veloria Grand
                   </span>
                 </>
@@ -69,7 +69,7 @@ export default async function PortalLayout({
           the 2.5rem breathing room survives on devices with no home indicator. */}
       <footer className="mx-auto mt-8 max-w-6xl px-4 pb-[calc(2.5rem+var(--sab))] sm:px-8">
         <div className="text-muted-foreground/70 border-t pt-6 text-center text-xs">
-          <span className="font-editorial text-[13px]">Veloria Grand</span>
+          <span className="font-editorial text-body">Veloria Grand</span>
           <span className="mx-2">&middot;</span>
           Every detail, considered.
         </div>

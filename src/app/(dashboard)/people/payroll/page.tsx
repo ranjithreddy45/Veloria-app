@@ -45,8 +45,8 @@ export default async function PayrollPage() {
 
       <div className="rounded-xl border bg-card">
         <div className="border-b px-5 py-3.5">
-          <h3 className="text-[14px] font-semibold">Monthly runs</h3>
-          <p className="text-[12.5px] text-muted-foreground">Latest first. Open a run to compute payslips and manage its lifecycle.</p>
+          <h3 className="text-copy font-semibold">Monthly runs</h3>
+          <p className="text-detail text-muted-foreground">Latest first. Open a run to compute payslips and manage its lifecycle.</p>
         </div>
         {runs.length === 0 ? (
           <div className="p-10 text-center text-sm text-muted-foreground">
@@ -65,13 +65,13 @@ export default async function PayrollPage() {
                     <span className="font-medium">{r.label}</span>
                     <StatusPill label={r.status} hue={STATUS_HUE[r.status] ?? "slate"} size="xs" />
                   </div>
-                  <span className="text-[12px] text-muted-foreground">
+                  <span className="text-detail text-muted-foreground">
                     FY {r.fy} · {r.headcount} {r.headcount === 1 ? "employee" : "employees"}
                   </span>
                 </div>
                 <div className="hidden text-right sm:block">
-                  <div className="text-[13px] font-semibold tabular-nums">{inr(Number(r.totalNet))}</div>
-                  <div className="text-[11px] text-muted-foreground">net payable</div>
+                  <div className="text-body font-semibold tabular-nums">{inr(Number(r.totalNet))}</div>
+                  <div className="text-meta text-muted-foreground">net payable</div>
                 </div>
                 <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
               </Link>

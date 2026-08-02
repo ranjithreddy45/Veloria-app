@@ -87,7 +87,7 @@ export default async function SalaryReportsIndexPage() {
                 <div className="flex items-center gap-2">
                   <span className="font-medium">{r.title}</span>
                 </div>
-                <p className="mt-0.5 text-[12.5px] text-muted-foreground">{r.desc}</p>
+                <p className="mt-0.5 text-detail text-muted-foreground">{r.desc}</p>
               </div>
               <ArrowRight className="mt-1 size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
             </Link>

@@ -38,9 +38,9 @@ interface RequestRow {
 function PunctualityBadge({ onTime }: { onTime: boolean | null }) {
   if (onTime == null) return null;
   return onTime ? (
-    <span className="inline-flex items-center rounded-full bg-success/10 px-2 py-0.5 text-[11px] font-medium text-success">On time</span>
+    <span className="inline-flex items-center rounded-full bg-success/10 px-2 py-0.5 text-meta font-medium text-success">On time</span>
   ) : (
-    <span className="inline-flex items-center rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">Late</span>
+    <span className="inline-flex items-center rounded-full bg-destructive/10 px-2 py-0.5 text-meta font-medium text-destructive">Late</span>
   );
 }
 interface HolidayItem { id: string; name: string; date: string }
@@ -81,7 +81,7 @@ export function LeaveHome({
     <div className="space-y-5">
       {/* Summary line + apply */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px]">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-body">
           <span className="text-muted-foreground">Booked this year <span className="numeric font-semibold text-foreground">{bookedThisYear}</span></span>
           <span className="h-3 w-px bg-border" />
           <span className="text-muted-foreground">Pending <span className="numeric font-semibold text-foreground">{pendingTotal}</span></span>
@@ -104,15 +104,15 @@ export function LeaveHome({
                 </span>
                 <StatusPill label={b.leaveType.code} hue={b.leaveType.color as never} size="xs" />
               </div>
-              <div className="mt-2.5 truncate text-[12.5px] font-medium" title={b.leaveType.name}>{b.leaveType.name}</div>
+              <div className="mt-2.5 truncate text-detail font-medium" title={b.leaveType.name}>{b.leaveType.name}</div>
               <div className="mt-1.5">
                 {/* Wraps so "of N days left" drops under the figure rather than
                   * overflowing the half-width card on a phone. */}
                 <div className="flex flex-wrap items-baseline gap-x-1 gap-y-0.5">
-                  <span className="numeric text-[22px] font-semibold leading-none sm:text-[26px]">{available}</span>
-                  <span className="text-[12.5px] text-muted-foreground">of {total} days left</span>
+                  <span className="numeric text-title font-semibold leading-none sm:text-h2">{available}</span>
+                  <span className="text-detail text-muted-foreground">of {total} days left</span>
                 </div>
-                <div className="mt-1.5 flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+                <div className="mt-1.5 flex flex-wrap gap-x-2 gap-y-0.5 text-meta text-muted-foreground">
                   <span>{b.used} booked</span>
                   {b.pending > 0 && <span className="text-warning">· {b.pending} pending</span>}
                 </div>
@@ -130,16 +130,16 @@ export function LeaveHome({
 
         {holidays.length > 0 && (
           <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-card">
-            <div className="flex items-center gap-2 border-b px-4 py-3 text-[13px] font-semibold">
+            <div className="flex items-center gap-2 border-b px-4 py-3 text-body font-semibold">
               <PartyPopper className="size-4 text-[#C9A96E]" /> Upcoming holidays
             </div>
             <ul className="divide-y">
               {holidays.map((h) => (
                 <li key={h.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
-                  <span className="flex items-center gap-2.5 text-[13px] font-medium">
+                  <span className="flex items-center gap-2.5 text-body font-medium">
                     <CalendarDays className="size-3.5 text-muted-foreground" /> {h.name}
                   </span>
-                  <span className="text-[12.5px] text-muted-foreground">
+                  <span className="text-detail text-muted-foreground">
                     {new Date(h.date).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
                   </span>
                 </li>
@@ -158,7 +158,7 @@ export function LeaveHome({
       />
 
       <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
-        <div className="border-b px-4 py-3 text-[13px] font-semibold">My leave requests</div>
+        <div className="border-b px-4 py-3 text-body font-semibold">My leave requests</div>
         {requests.length === 0 ? (
           <EmptyState
             icon={<CalendarOff className="size-5" />}
@@ -183,12 +183,12 @@ export function LeaveHome({
                   <TableCell><StatusPill label={r.leaveType.code} hue={r.leaveType.color as never} size="xs" /></TableCell>
                   {/* Free-text reason in a whitespace-nowrap cell used to widen
                     * the table to the length of the sentence. Cap and wrap it. */}
-                  <TableCell className="max-w-[220px] whitespace-normal text-[13px]">
-                    <span className="whitespace-nowrap"><span className="numeric text-[12.5px]">{formatDate(r.startDate)}</span>{r.endDate !== r.startDate ? ` → ${formatDate(r.endDate)}` : ""}</span>
-                    {r.reason && <div className="text-[12px] break-words text-muted-foreground">{r.reason}</div>}
+                  <TableCell className="max-w-[220px] whitespace-normal text-body">
+                    <span className="whitespace-nowrap"><span className="numeric text-detail">{formatDate(r.startDate)}</span>{r.endDate !== r.startDate ? ` → ${formatDate(r.endDate)}` : ""}</span>
+                    {r.reason && <div className="text-detail break-words text-muted-foreground">{r.reason}</div>}
                   </TableCell>
                   <TableCell className="numeric text-right font-medium">{r.days}</TableCell>
-                  <TableCell className="text-[13px] text-muted-foreground">
+                  <TableCell className="text-body text-muted-foreground">
                     {r.approver ? `${r.approver.firstName} ${r.approver.lastName}` : "HR"}
                   </TableCell>
                   <TableCell>
@@ -284,7 +284,7 @@ function ApplyLeaveDialog({
         </DialogHeader>
         <div className="space-y-3 py-2">
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Leave type</Label>
+            <Label className="text-detail">Leave type</Label>
             <Select value={leaveTypeId} onValueChange={setLeaveTypeId}>
               <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
               <SelectContent>
@@ -293,15 +293,15 @@ function ApplyLeaveDialog({
             </Select>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5"><Label className="text-[12.5px]">From</Label>
+            <div className="space-y-1.5"><Label className="text-detail">From</Label>
               <Input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); if (!endDate) setEndDate(e.target.value); }} /></div>
-            <div className="space-y-1.5"><Label className="text-[12.5px]">To</Label>
+            <div className="space-y-1.5"><Label className="text-detail">To</Label>
               <Input type="date" value={endDate} min={startDate} onChange={(e) => setEndDate(e.target.value)} /></div>
           </div>
           {selected?.allowHalfDay && (
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-[12.5px]">{singleDay ? "Day" : "First day"}</Label>
+                <Label className="text-detail">{singleDay ? "Day" : "First day"}</Label>
                 <Select value={startPart} onValueChange={setStartPart}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -313,7 +313,7 @@ function ApplyLeaveDialog({
               </div>
               {!singleDay && (
                 <div className="space-y-1.5">
-                  <Label className="text-[12.5px]">Last day</Label>
+                  <Label className="text-detail">Last day</Label>
                   <Select value={endPart} onValueChange={setEndPart}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -326,7 +326,7 @@ function ApplyLeaveDialog({
             </div>
           )}
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Reason (optional)</Label>
+            <Label className="text-detail">Reason (optional)</Label>
             <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Family function, travel…" />
           </div>
         </div>

@@ -206,11 +206,11 @@ export function ChainBuilder({
     <section className="rounded-2xl border bg-card shadow-card">
       <div className="flex items-start justify-between gap-3 border-b px-5 py-4">
         <div className="min-w-0">
-          <h3 className="flex items-center gap-2 text-[15px] font-semibold tracking-[-0.01em]">
+          <h3 className="flex items-center gap-2 text-copy font-semibold tracking-[-0.01em]">
             <LinkIcon className="size-4 text-muted-foreground" />
             Approval Chain
           </h3>
-          <p className="mt-1 text-[13px] text-muted-foreground">
+          <p className="mt-1 text-body text-muted-foreground">
             Approvers sign off in this order. Drag to reorder — optional steps
             can be skipped.
           </p>
@@ -375,7 +375,7 @@ export function ChainBuilder({
         <div className="flex items-center justify-between gap-3 border-t bg-muted/30 px-5 py-3.5">
           {ruleId ? (
             <>
-              <p className="text-[12.5px] text-muted-foreground">
+              <p className="text-detail text-muted-foreground">
                 <span className="numeric font-medium text-foreground">
                   {steps.length}
                 </span>{" "}
@@ -387,7 +387,7 @@ export function ChainBuilder({
               </Button>
             </>
           ) : (
-            <p className="text-[12.5px] text-warning">
+            <p className="text-detail text-warning">
               Save the rule first, then this chain can be stored against it.
             </p>
           )}

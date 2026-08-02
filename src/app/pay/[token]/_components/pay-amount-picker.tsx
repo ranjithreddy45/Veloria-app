@@ -52,14 +52,14 @@ export function PayAmountPicker({ invoiceId, invoiceNumber, nextDue, balanceDue,
                 : "border-border hover:border-primary/40"
             )}
           >
-            <span className="flex items-center justify-between gap-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <span className="flex items-center justify-between gap-1 text-meta font-medium uppercase tracking-wide text-muted-foreground">
               Due now
               {!payFull && <Check className="size-3.5 shrink-0 text-primary" />}
             </span>
-            <span className="mt-1 block text-[16px] font-semibold tabular-nums text-foreground sm:text-[17px]">
+            <span className="mt-1 block text-lede font-semibold tabular-nums text-foreground sm:text-lede">
               {inr(nextDue.amount)}
             </span>
-            <span className="block truncate text-[11.5px] text-muted-foreground">{nextDue.label}</span>
+            <span className="block truncate text-meta text-muted-foreground">{nextDue.label}</span>
           </button>
           <button
             type="button"
@@ -73,14 +73,14 @@ export function PayAmountPicker({ invoiceId, invoiceNumber, nextDue, balanceDue,
                 : "border-border hover:border-primary/40"
             )}
           >
-            <span className="flex items-center justify-between gap-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <span className="flex items-center justify-between gap-1 text-meta font-medium uppercase tracking-wide text-muted-foreground">
               Full balance
               {payFull && <Check className="size-3.5 shrink-0 text-primary" />}
             </span>
-            <span className="mt-1 block text-[16px] font-semibold tabular-nums text-foreground sm:text-[17px]">
+            <span className="mt-1 block text-lede font-semibold tabular-nums text-foreground sm:text-lede">
               {inr(balanceDue)}
             </span>
-            <span className="block text-[11.5px] text-muted-foreground">Clear it in one go</span>
+            <span className="block text-meta text-muted-foreground">Clear it in one go</span>
           </button>
         </div>
       )}

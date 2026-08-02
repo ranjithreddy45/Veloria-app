@@ -96,17 +96,17 @@ export function BookingsViews({ data }: BookingsViewsProps) {
             return (
               <Link href={`/bookings/${b.id}`} className="block space-y-2">
                 <div className="flex items-start justify-between gap-2">
-                  <p className="text-[13px] font-semibold leading-snug text-foreground">
+                  <p className="text-body font-semibold leading-snug text-foreground">
                     {b.eventName}
                   </p>
                   {meta && (
                     <StatusPill label={meta.label} hue={meta.pillHue} size="xs" />
                   )}
                 </div>
-                <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                <p className="text-meta font-medium uppercase tracking-wide text-muted-foreground">
                   {b.bookingNumber}
                 </p>
-                <div className="space-y-1 text-[11.5px] text-muted-foreground">
+                <div className="space-y-1 text-meta text-muted-foreground">
                   <span className="flex items-center gap-1.5">
                     <CalendarIcon className="size-3.5 shrink-0" />
                     {format(new Date(b.date), "dd MMM yyyy")} · {timeSlotLabel(b.timeSlot)}
@@ -121,7 +121,7 @@ export function BookingsViews({ data }: BookingsViewsProps) {
                   </span>
                 </div>
                 <div className="flex items-center justify-end border-t border-border/50 pt-2">
-                  <span className="text-[12px] font-bold tabular-nums text-foreground">
+                  <span className="text-detail font-bold tabular-nums text-foreground">
                     {formatINR(b.totalAmount)}
                   </span>
                 </div>

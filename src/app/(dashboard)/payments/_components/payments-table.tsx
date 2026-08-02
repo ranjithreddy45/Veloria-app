@@ -104,7 +104,7 @@ function makeColumns(perms: {
       <DataTableColumnHeader column={column} title="Receipt #" />
     ),
     cell: ({ row }) => (
-      <span className="numeric text-[13px] font-medium">
+      <span className="numeric text-body font-medium">
         {row.original.receiptNumber || row.original.id.slice(0, 8)}
       </span>
     ),
@@ -115,7 +115,7 @@ function makeColumns(perms: {
     cell: ({ row }) => (
       <Link
         href={`/invoices/${row.original.invoice.id}`}
-        className="numeric text-[13px] font-medium text-foreground underline-offset-4 hover:text-primary hover:underline"
+        className="numeric text-body font-medium text-foreground underline-offset-4 hover:text-primary hover:underline"
       >
         {row.original.invoice.invoiceNumber}
       </Link>
@@ -128,11 +128,11 @@ function makeColumns(perms: {
       const c = row.original.invoice.contact;
       return (
         <div className="min-w-0">
-          <div className="truncate text-[13px] font-medium">
+          <div className="truncate text-body font-medium">
             {c.firstName} {c.lastName}
           </div>
           {c.company && (
-            <div className="truncate text-[12px] text-muted-foreground">
+            <div className="truncate text-detail text-muted-foreground">
               {c.company}
             </div>
           )}
@@ -151,8 +151,8 @@ function makeColumns(perms: {
       <div
         className={
           row.original.status === "COMPLETED"
-            ? "numeric text-right text-[13px] font-semibold text-success"
-            : "numeric text-right text-[13px] font-semibold text-foreground"
+            ? "numeric text-right text-body font-semibold text-success"
+            : "numeric text-right text-body font-semibold text-foreground"
         }
       >
         {formatINR(row.original.amount)}
@@ -201,7 +201,7 @@ function makeColumns(perms: {
     cell: ({ row }) => {
       const date = row.original.paidAt || row.original.createdAt;
       return (
-        <span className="numeric text-[12.5px] text-muted-foreground">
+        <span className="numeric text-detail text-muted-foreground">
           {format(new Date(date), "dd MMM yyyy")}
         </span>
       );
@@ -211,7 +211,7 @@ function makeColumns(perms: {
     accessorKey: "transactionId",
     header: "Transaction ID",
     cell: ({ row }) => (
-      <span className="numeric text-[12.5px] text-muted-foreground">
+      <span className="numeric text-detail text-muted-foreground">
         {row.original.transactionId || "—"}
       </span>
     ),

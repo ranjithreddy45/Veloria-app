@@ -67,7 +67,7 @@ export function PaymentGatewayStatus() {
               Payment gateway
               {health && (
                 <span
-                  className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                  className={`rounded-full px-2 py-0.5 text-meta font-medium ${
                     health.mode === "live"
                       ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
                       : health.mode === "test"
@@ -83,7 +83,7 @@ export function PaymentGatewayStatus() {
                 </span>
               )}
             </div>
-            <p className="mt-0.5 max-w-2xl text-[13px] text-muted-foreground">
+            <p className="mt-0.5 max-w-2xl text-body text-muted-foreground">
               {error
                 ? error
                 : health
@@ -105,7 +105,7 @@ export function PaymentGatewayStatus() {
       {health && (
         <ul className="mt-3 grid gap-1.5 border-t border-border/50 pt-3 sm:grid-cols-2">
           {health.checks.map((c: GatewayCheck) => (
-            <li key={c.label} className="flex items-start gap-2 text-[12.5px]">
+            <li key={c.label} className="flex items-start gap-2 text-detail">
               {c.level === "pass" ? (
                 <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
               ) : c.level === "fail" ? (

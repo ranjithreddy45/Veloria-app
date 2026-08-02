@@ -109,7 +109,7 @@ export function TasksBoardView({ tasks }: TasksBoardViewProps) {
         return (
           <Link href={`/tasks/${task.id}`} className="block space-y-2.5">
             {/* Title */}
-            <p className="text-[13px] font-semibold leading-snug text-foreground line-clamp-2">
+            <p className="text-body font-semibold leading-snug text-foreground line-clamp-2">
               {task.title}
             </p>
 
@@ -129,7 +129,7 @@ export function TasksBoardView({ tasks }: TasksBoardViewProps) {
 
             {/* Linked booking / enquiry */}
             {task.booking && (
-              <div className="flex items-center gap-1 text-[11.5px] text-muted-foreground">
+              <div className="flex items-center gap-1 text-meta text-muted-foreground">
                 <LinkIcon className="size-3 shrink-0" />
                 <span className="truncate">{task.booking.eventName}</span>
               </div>
@@ -140,7 +140,7 @@ export function TasksBoardView({ tasks }: TasksBoardViewProps) {
               {task.dueDate ? (
                 <span
                   className={cn(
-                    "inline-flex items-center gap-1 text-[11.5px] font-medium",
+                    "inline-flex items-center gap-1 text-meta font-medium",
                     urgency === "overdue"
                       ? "text-destructive"
                       : urgency === "soon"
@@ -159,11 +159,11 @@ export function TasksBoardView({ tasks }: TasksBoardViewProps) {
                 <div className="flex items-center gap-1.5 min-w-0">
                   <Avatar className="size-5 shrink-0">
                     <AvatarImage src={task.assignee.image ?? undefined} />
-                    <AvatarFallback className="text-[9px] bg-indigo-100 text-indigo-700">
+                    <AvatarFallback className="text-meta bg-indigo-100 text-indigo-700">
                       {getInitials(task.assignee.name, task.assignee.email)}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="truncate text-[11.5px] text-muted-foreground max-w-[96px]">
+                  <span className="truncate text-meta text-muted-foreground max-w-[96px]">
                     {task.assignee.name ?? task.assignee.email}
                   </span>
                 </div>

@@ -234,7 +234,7 @@ export function AnomaliesWorkspace({ canWrite, anomalies, stats, filter }: Props
                     <TableCell>
                       <span
                         className={cn(
-                          "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium",
+                          "inline-flex items-center rounded-full px-2 py-0.5 text-meta font-medium",
                           SEVERITY_PILL[sev],
                         )}
                       >
@@ -256,7 +256,7 @@ export function AnomaliesWorkspace({ canWrite, anomalies, stats, filter }: Props
                     <TableCell>
                       <span
                         className={cn(
-                          "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium",
+                          "inline-flex items-center rounded-full px-2 py-0.5 text-meta font-medium",
                           STATUS_PILL[a.status] ?? STATUS_PILL.OPEN,
                         )}
                       >

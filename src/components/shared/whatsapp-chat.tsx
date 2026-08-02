@@ -182,7 +182,7 @@ export function WhatsAppChat({ contactId, contactPhone }: WhatsAppChatProps) {
                   {msg.content}
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-meta text-muted-foreground">
                     {new Date(msg.sentAt).toLocaleString("en-IN", {
                       day: "2-digit",
                       month: "short",
@@ -193,7 +193,7 @@ export function WhatsAppChat({ contactId, contactPhone }: WhatsAppChatProps) {
                   <Badge
                     variant="outline"
                     className={cn(
-                      "border text-[9px] px-1 py-0",
+                      "border text-meta px-1 py-0",
                       WHATSAPP_STATUS_COLORS[msg.status] ??
                         "bg-muted text-foreground border-border"
                     )}

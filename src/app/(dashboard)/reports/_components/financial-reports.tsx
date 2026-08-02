@@ -270,7 +270,7 @@ export function FinancialReports({ range }: FinancialReportsProps) {
                         <Badge
                           variant="outline"
                           className={cn(
-                            "text-[10px]",
+                            "text-meta",
                             STATUS_BADGE_CLASSES[row.status] ?? "bg-zinc-100 text-zinc-500 border-zinc-200"
                           )}
                         >

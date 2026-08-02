@@ -36,7 +36,7 @@ export default async function LeaveTypesPage() {
     <div className="space-y-6">
       <Link
         href="/people/leave"
-        className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground"
+        className="inline-flex items-center gap-1.5 text-body text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-3.5" /> Back to leave
       </Link>

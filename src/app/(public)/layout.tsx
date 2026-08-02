@@ -20,7 +20,7 @@ export default function PublicLayout({
             <div className="bg-foreground text-background flex size-7 items-center justify-center rounded-lg">
               <Gem className="size-3.5" />
             </div>
-            <span className="font-editorial text-foreground text-[18px] font-semibold tracking-tight">
+            <span className="font-editorial text-foreground text-lede font-semibold tracking-tight">
               Veloria Grand
             </span>
           </div>
@@ -36,10 +36,10 @@ export default function PublicLayout({
 
       {/* Footer */}
       <footer className="border-t py-8 pb-[calc(2rem+var(--sab))] text-center">
-        <p className="font-editorial text-muted-foreground text-[13px]">
+        <p className="font-editorial text-muted-foreground text-body">
           Veloria Grand
         </p>
-        <p className="text-muted-foreground/60 mt-1 text-[11px] uppercase tracking-[0.16em]">
+        <p className="text-muted-foreground/60 mt-1 text-meta uppercase tracking-[0.16em]">
           Every detail, considered
         </p>
       </footer>

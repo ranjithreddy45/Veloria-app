@@ -149,7 +149,7 @@ function WarRoomRowItem({
           targetIso={row.firstContactDue}
           warnMinutes={warnMinutes}
           onBandChange={handleBandChange}
-          className="text-[13px]"
+          className="text-body"
         />
       </TableCell>
       <TableCell>
@@ -206,7 +206,7 @@ export function WarRoomBoard({ rows, warnMinutes, generatedAt }: WarRoomBoardPro
           <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs numeric text-muted-foreground">
             {visible.length}
           </span>
-          <span className="ml-auto text-[11px] font-normal text-muted-foreground">
+          <span className="ml-auto text-meta font-normal text-muted-foreground">
             Snapshot{" "}
             <span className="numeric">
               {new Date(generatedAt).toLocaleTimeString("en-IN", {

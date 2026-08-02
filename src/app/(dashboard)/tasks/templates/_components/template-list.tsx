@@ -325,7 +325,7 @@ export function TemplateList({ templates }: TemplateListProps) {
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <CardTitle className="text-base">{template.name}</CardTitle>
-                    <Badge variant="secondary" className="text-[10px]">
+                    <Badge variant="secondary" className="text-meta">
                       {items.length} tasks
                     </Badge>
                   </div>
@@ -348,7 +348,7 @@ export function TemplateList({ templates }: TemplateListProps) {
                       </div>
                     ))}
                     {items.length > 4 && (
-                      <p className="text-[11px] text-muted-foreground pl-3.5">
+                      <p className="text-meta text-muted-foreground pl-3.5">
                         +{items.length - 4} more tasks
                       </p>
                     )}

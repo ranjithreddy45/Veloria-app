@@ -167,7 +167,7 @@ export function AppHeader() {
 
       {/* Breadcrumbs */}
       <Breadcrumb className="hidden md:flex">
-        <BreadcrumbList className="text-[12.5px] text-muted-foreground">
+        <BreadcrumbList className="text-detail text-muted-foreground">
           {breadcrumbs.map((crumb, index) => (
             <React.Fragment key={crumb.href}>
               {index > 0 && <BreadcrumbSeparator />}
@@ -226,12 +226,12 @@ export function AppHeader() {
         {/* Search trigger — opens command palette */}
         <Button
           variant="outline"
-          className="group/search relative hidden h-9 w-64 justify-start rounded-full border-border/70 bg-muted/40 pl-9 text-[13px] font-normal text-muted-foreground shadow-none transition-all duration-200 hover:border-primary/30 hover:bg-muted/70 hover:shadow-[0_0_0_3px_oklch(0.45_0.11_162/0.08)] lg:flex"
+          className="group/search relative hidden h-9 w-64 justify-start rounded-full border-border/70 bg-muted/40 pl-9! text-body font-normal text-muted-foreground shadow-none transition-all duration-200 hover:border-primary/30 hover:bg-muted/70 hover:shadow-[0_0_0_3px_oklch(0.45_0.11_162/0.08)] lg:flex"
           onClick={() => setCommandOpen(true)}
         >
           <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground transition-colors group-hover/search:text-primary" />
           Search...
-          <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 hidden h-5 select-none items-center gap-0.5 rounded-md border border-border bg-background/60 px-1.5 font-sans text-[10px] font-medium text-muted-foreground sm:flex">
+          <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 hidden h-5 select-none items-center gap-0.5 rounded-md border border-border bg-background/60 px-1.5 font-sans text-meta font-medium text-muted-foreground sm:flex">
             <span>⌘</span>K
           </kbd>
         </Button>
@@ -323,7 +323,7 @@ export function AppHeader() {
                 >
                   <Search className="mr-2 size-4" />
                   Search & shortcuts
-                  <kbd className="pointer-events-none ml-auto flex h-5 select-none items-center gap-0.5 rounded-md border border-border bg-background/60 px-1.5 font-sans text-[10px] font-medium text-muted-foreground">
+                  <kbd className="pointer-events-none ml-auto flex h-5 select-none items-center gap-0.5 rounded-md border border-border bg-background/60 px-1.5 font-sans text-meta font-medium text-muted-foreground">
                     <span>⌘</span>K
                   </kbd>
                 </DropdownMenuItem>
@@ -359,7 +359,7 @@ export function AppHeader() {
                   src={user?.image || undefined}
                   alt={user?.name || ""}
                 />
-                <AvatarFallback className="bg-primary text-[10px] text-primary-foreground">
+                <AvatarFallback className="bg-primary text-meta text-primary-foreground">
                   {user?.name
                     ?.split(" ")
                     .map((n) => n[0])

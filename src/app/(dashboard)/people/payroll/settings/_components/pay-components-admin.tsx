@@ -38,8 +38,8 @@ export function PayComponentsAdmin({ components }: { components: PayComponentRow
     <div className="rounded-xl border bg-card p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <h3 className="text-[14px] font-semibold">Pay components</h3>
-          <p className="text-[12.5px] text-muted-foreground">
+          <h3 className="text-copy font-semibold">Pay components</h3>
+          <p className="text-detail text-muted-foreground">
             The earning and deduction heads used to build salary structures.
           </p>
         </div>
@@ -70,7 +70,7 @@ export function PayComponentsAdmin({ components }: { components: PayComponentRow
                   {!c.taxable && <StatusPill label="Tax-free" hue="slate" size="xs" />}
                   {!c.active && <StatusPill label="Inactive" hue="slate" size="xs" />}
                 </div>
-                <span className="text-[12px] text-muted-foreground">
+                <span className="text-detail text-muted-foreground">
                   {c.code} · {CALC_LABELS[c.calcType] ?? c.calcType} · {rateLabel(c)}
                   {c.partOfCtc ? " · part of CTC" : " · over & above CTC"}
                 </span>
@@ -82,7 +82,7 @@ export function PayComponentsAdmin({ components }: { components: PayComponentRow
         </div>
       )}
 
-      <p className="mt-4 text-[12px] text-muted-foreground">
+      <p className="mt-4 text-detail text-muted-foreground">
         Statutory deductions — PF, ESI, Professional Tax and TDS — are calculated by the payroll engine from
         current law, not configured as components.
       </p>
@@ -179,15 +179,15 @@ function ComponentDialog({ existing }: { existing?: PayComponentRow }) {
         </DialogHeader>
         <div className="grid gap-3 py-2 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Code</Label>
+            <Label className="text-detail">Code</Label>
             <Input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="HRA" disabled={!!existing} />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Name</Label>
+            <Label className="text-detail">Name</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="House Rent Allowance" />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Kind</Label>
+            <Label className="text-detail">Kind</Label>
             <Select value={kind} onValueChange={(v) => setKind(v as typeof kind)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -196,7 +196,7 @@ function ComponentDialog({ existing }: { existing?: PayComponentRow }) {
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Calculation</Label>
+            <Label className="text-detail">Calculation</Label>
             <Select value={calcType} onValueChange={(v) => setCalcType(v as typeof calcType)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -206,18 +206,18 @@ function ComponentDialog({ existing }: { existing?: PayComponentRow }) {
           </div>
           {needsRate && (
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">{calcType === "FLAT" ? "Amount (₹/mo)" : "Rate (%)"}</Label>
+              <Label className="text-detail">{calcType === "FLAT" ? "Amount (₹/mo)" : "Rate (%)"}</Label>
               <Input type="number" inputMode="decimal" value={rate} onChange={(e) => setRate(e.target.value)} placeholder={calcType === "FLAT" ? "1600" : "40"} />
             </div>
           )}
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Order</Label>
+            <Label className="text-detail">Order</Label>
             <Input type="number" value={order} onChange={(e) => setOrder(e.target.value)} placeholder="50" />
           </div>
-          <label className="flex items-center gap-2 text-[13px] sm:col-span-2">
+          <label className="flex items-center gap-2 text-body sm:col-span-2">
             <Switch checked={taxable} onCheckedChange={setTaxable} /> Taxable
           </label>
-          <label className="flex items-center gap-2 text-[13px] sm:col-span-2">
+          <label className="flex items-center gap-2 text-body sm:col-span-2">
             <Switch checked={partOfCtc} onCheckedChange={setPartOfCtc} /> Part of CTC
           </label>
         </div>

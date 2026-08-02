@@ -281,7 +281,7 @@ function NewApplicationDialog({ options }: { options: Options }) {
               <Label className="text-xs font-medium text-muted-foreground">Applicant</Label>
               <button
                 type="button"
-                className="text-[11px] font-medium text-primary hover:underline"
+                className="text-meta font-medium text-primary hover:underline"
                 onClick={() => setMode((m) => (m === "pick" ? "type" : "pick"))}
               >
                 {mode === "pick" ? "Type a name instead" : "Pick from talent pool"}
@@ -308,7 +308,7 @@ function NewApplicationDialog({ options }: { options: Options }) {
                   placeholder="e.g. Karthik Kumar"
                   autoFocus
                 />
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-meta text-muted-foreground">
                   A new candidate will be created and linked to this opening.
                 </p>
               </>
@@ -446,11 +446,11 @@ export function Applications({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-[11px] uppercase tracking-wide">Application Name</TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wide">Candidate Name</TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wide">Application Stage</TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wide">Status</TableHead>
-                  <TableHead className="text-right text-[11px] uppercase tracking-wide">Change Stage</TableHead>
+                  <TableHead className="text-meta uppercase tracking-wide">Application Name</TableHead>
+                  <TableHead className="text-meta uppercase tracking-wide">Candidate Name</TableHead>
+                  <TableHead className="text-meta uppercase tracking-wide">Application Stage</TableHead>
+                  <TableHead className="text-meta uppercase tracking-wide">Status</TableHead>
+                  <TableHead className="text-right text-meta uppercase tracking-wide">Change Stage</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -459,7 +459,7 @@ export function Applications({
                     <TableCell>
                       <div className="flex items-center gap-2.5">
                         <Avatar className="size-8 shrink-0">
-                          <AvatarFallback className="text-[11px] font-medium">
+                          <AvatarFallback className="text-meta font-medium">
                             {initials(a.candidateName)}
                           </AvatarFallback>
                         </Avatar>

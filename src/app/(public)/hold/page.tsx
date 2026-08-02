@@ -24,10 +24,10 @@ export default async function PublicHoldPage() {
   return (
     <div className="space-y-6">
       <header className="text-center">
-        <h1 className="text-foreground text-[30px] sm:text-[34px]">
+        <h1 className="text-foreground text-h1 sm:text-h1">
           Check availability &amp; hold your date
         </h1>
-        <p className="text-muted-foreground mx-auto mt-3 max-w-md text-[15px] leading-relaxed">
+        <p className="text-muted-foreground mx-auto mt-3 max-w-md text-copy leading-relaxed">
           Pick a venue and date to see open slots in real time, then hold your
           date instantly with a small token.
         </p>

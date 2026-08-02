@@ -24,7 +24,7 @@ export function LapsedView({ rows, year }: { rows: LapsedRow[]; year: number }) 
     <div className="space-y-5">
       {/* Honesty note — the schema does not model a year-end rollover event, so
           this is a forward-looking projection, not a booked lapse. */}
-      <div className="flex items-start gap-2.5 rounded-xl border border-warning/30 bg-warning/8 px-4 py-3 text-[12.5px] text-warning">
+      <div className="flex items-start gap-2.5 rounded-xl border border-warning/30 bg-warning/8 px-4 py-3 text-detail text-warning">
         <AlertTriangle className="mt-0.5 size-4 shrink-0" />
         <p>
           <span className="font-semibold">Projected lapse, not a booked lapse.</span> Year-end rollover
@@ -50,7 +50,7 @@ export function LapsedView({ rows, year }: { rows: LapsedRow[]; year: number }) 
         <div className="overflow-x-auto rounded-2xl border border-border/60 bg-card shadow-premium">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border/60 text-left text-[11.5px] uppercase tracking-wide text-muted-foreground">
+              <tr className="border-b border-border/60 text-left text-meta uppercase tracking-wide text-muted-foreground">
                 <th className="px-4 py-2.5 font-medium">Employee</th>
                 <th className="px-4 py-2.5 font-medium">Type</th>
                 <th className="px-4 py-2.5 text-right font-medium">Available</th>
@@ -63,7 +63,7 @@ export function LapsedView({ rows, year }: { rows: LapsedRow[]; year: number }) 
                 <tr key={`${r.empCode}-${r.leaveTypeCode}-${i}`} className="border-b border-border/40 last:border-0 hover:bg-muted/30">
                   <td className="px-4 py-2.5">
                     <div className="font-medium text-foreground">{r.name}</div>
-                    <div className="text-[11px] text-muted-foreground">{r.empCode}</div>
+                    <div className="text-meta text-muted-foreground">{r.empCode}</div>
                   </td>
                   <td className="px-4 py-2.5"><TypeChip code={r.leaveTypeCode} color={r.color} /></td>
                   <td className="px-4 py-2.5 text-right tabular-nums">{r.available}</td>

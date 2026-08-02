@@ -206,7 +206,7 @@ export function BookingCalendar({
           <Button variant="outline" size="icon" onClick={() => navigateMonth("prev")} disabled={isLoading}>
             <ChevronLeftIcon className="size-4" />
           </Button>
-          <h2 className="min-w-[140px] text-center text-[17px] font-semibold tracking-[-0.01em] tabular-nums sm:min-w-[180px]">
+          <h2 className="min-w-[140px] text-center text-lede font-semibold tracking-[-0.01em] tabular-nums sm:min-w-[180px]">
             {format(currentDate, "MMMM yyyy")}
           </h2>
           <Button variant="outline" size="icon" onClick={() => navigateMonth("next")} disabled={isLoading}>
@@ -219,7 +219,7 @@ export function BookingCalendar({
 
         <div className="flex flex-wrap items-center gap-2">
           {/* View toggle */}
-          <div className="inline-flex rounded-lg border border-border bg-card p-0.5 text-[13px]">
+          <div className="inline-flex rounded-lg border border-border bg-card p-0.5 text-body">
             {([
               { k: "all", label: "Both" },
               { k: "bookings", label: "Bookings" },
@@ -244,7 +244,7 @@ export function BookingCalendar({
             value={venueId}
             onChange={(e) => onVenueChange(e.target.value)}
             disabled={isLoading}
-            className="h-9 rounded-lg border border-border bg-card px-3 text-[13px] font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-9 rounded-lg border border-border bg-card px-3 text-body font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Filter by venue"
           >
             <option value="">All venues</option>
@@ -256,7 +256,7 @@ export function BookingCalendar({
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center gap-4 px-1 text-[13px] text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-4 px-1 text-body text-muted-foreground">
         <span className="inline-flex items-center gap-1.5">
           <span className="inline-block size-3 rounded border border-green-200 bg-green-100" /> Booked (confirmed event)
         </span>
@@ -279,7 +279,7 @@ export function BookingCalendar({
               key={day}
               // px-2 + 0.08em tracking makes "WED" ~46px inside a ~49px cell on
               // a 375px phone — one character of drift from clipping.
-              className="px-0.5 py-2 text-center text-[10px] font-medium uppercase tracking-normal text-muted-foreground sm:px-2 sm:py-2.5 sm:text-[11px] sm:tracking-[0.08em]"
+              className="px-0.5 py-2 text-center text-meta font-medium uppercase tracking-normal text-muted-foreground sm:px-2 sm:py-2.5 sm:text-meta sm:tracking-[0.08em]"
             >
               {day}
             </div>
@@ -303,7 +303,7 @@ export function BookingCalendar({
                 <div
                   key={`b-${b.id}`}
                   className={cn(
-                    "truncate rounded-md border px-1.5 py-[3px] text-[11.5px] font-medium leading-tight",
+                    "truncate rounded-md border px-1.5 py-[3px] text-meta font-medium leading-tight",
                     STATUS_PILL_COLORS[b.status] || "bg-muted text-muted-foreground"
                   )}
                   title={`Booking: ${b.eventName} (${b.venue.name})`}
@@ -316,7 +316,7 @@ export function BookingCalendar({
               pills.push(
                 <div
                   key={`l-${l.id}`}
-                  className="truncate rounded-md border border-dashed border-sky-300 bg-sky-50 px-1.5 py-[3px] text-[11.5px] font-medium leading-tight text-sky-700"
+                  className="truncate rounded-md border border-dashed border-sky-300 bg-sky-50 px-1.5 py-[3px] text-meta font-medium leading-tight text-sky-700"
                   title={`Lead: ${leadName(l)}${l.preferredVenue ? ` (${l.preferredVenue.name})` : ""}`}
                 >
                   ◦ {leadName(l)}
@@ -346,7 +346,7 @@ export function BookingCalendar({
                 <div className="mb-1 flex items-center justify-between sm:mb-1.5">
                   <span
                     className={cn(
-                      "inline-flex size-6 items-center justify-center text-[12px] tabular-nums sm:size-7 sm:text-[13px]",
+                      "inline-flex size-6 items-center justify-center text-detail tabular-nums sm:size-7 sm:text-body",
                       !isCurrentMonth && "text-muted-foreground/40",
                       isCurrentMonth && "font-medium text-foreground",
                       isTodayDate &&
@@ -362,7 +362,7 @@ export function BookingCalendar({
                         className="size-1.5 rounded-full bg-destructive sm:hidden"
                         aria-label="Blocked"
                       />
-                      <span className="hidden text-[10.5px] font-semibold uppercase tracking-wide text-red-500 sm:inline">
+                      <span className="hidden text-meta font-semibold uppercase tracking-wide text-red-500 sm:inline">
                         Blocked
                       </span>
                     </>
@@ -389,7 +389,7 @@ export function BookingCalendar({
                         />
                       ))}
                       {pills.length > 4 && (
-                        <span className="text-[9px] font-medium leading-none text-muted-foreground">
+                        <span className="text-meta font-medium leading-none text-muted-foreground">
                           +{pills.length - 4}
                         </span>
                       )}
@@ -397,7 +397,7 @@ export function BookingCalendar({
                     <div className="hidden space-y-1 sm:block">
                       {pills.slice(0, 3)}
                       {hiddenCount > 0 && (
-                        <div className="pl-1 text-[10.5px] font-medium text-muted-foreground">
+                        <div className="pl-1 text-meta font-medium text-muted-foreground">
                           +{hiddenCount} more
                         </div>
                       )}

@@ -119,7 +119,7 @@ export function BeoDashboard({
       </div>
 
       <Card>
-        <CardHeader><CardTitle className="text-[15px]">Function sheets</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-copy">Function sheets</CardTitle></CardHeader>
         <CardContent className="p-0">
           {beos.length === 0 ? (
             <EmptyState
@@ -133,9 +133,9 @@ export function BeoDashboard({
             />
           ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[680px] border-collapse text-[13px]">
+            <table className="w-full min-w-[680px] border-collapse text-body">
               <thead>
-                <tr className="border-b border-border bg-muted/40 text-left text-[11.5px] uppercase tracking-wide text-muted-foreground">
+                <tr className="border-b border-border bg-muted/40 text-left text-meta uppercase tracking-wide text-muted-foreground">
                   <th className="px-3 py-2 font-medium">BEO #</th>
                   <th className="px-3 py-2 font-medium">Event</th>
                   <th className="px-3 py-2 font-medium">Date</th>
@@ -156,7 +156,7 @@ export function BeoDashboard({
                       </td>
                       <td className="px-3 py-2.5">
                         <div className="font-medium text-foreground">{b.eventName ?? "—"}</div>
-                        <div className="text-[11.5px] text-muted-foreground">
+                        <div className="text-meta text-muted-foreground">
                           {[b.eventType, b.venueName].filter(Boolean).join(" · ") || "—"}
                         </div>
                       </td>
@@ -184,10 +184,10 @@ function StatusChip({ label, count, active, onClick }: { label: string; count: n
   return (
     <button
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[12.5px] font-medium ${active ? "border-foreground/15 bg-muted text-foreground" : "border-border bg-background text-muted-foreground hover:bg-muted/50"}`}
+      className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-detail font-medium ${active ? "border-foreground/15 bg-muted text-foreground" : "border-border bg-background text-muted-foreground hover:bg-muted/50"}`}
     >
       {label}
-      <span className="rounded-md bg-foreground/10 px-1 text-[11px] tabular-nums">{count}</span>
+      <span className="rounded-md bg-foreground/10 px-1 text-meta tabular-nums">{count}</span>
     </button>
   );
 }
@@ -240,7 +240,7 @@ function CreateBeoDialog({ events, open, onOpenChange }: { events: BookableEvent
               <SelectTrigger className="w-full"><SelectValue placeholder="Select an event…" /></SelectTrigger>
               <SelectContent>
                 {events.length === 0 ? (
-                  <div className="px-2 py-1.5 text-[12.5px] text-muted-foreground">No confirmed events.</div>
+                  <div className="px-2 py-1.5 text-detail text-muted-foreground">No confirmed events.</div>
                 ) : (
                   events.map((e) => (
                     <SelectItem key={e.id} value={e.id} disabled={e.hasBeo}>
@@ -251,7 +251,7 @@ function CreateBeoDialog({ events, open, onOpenChange }: { events: BookableEvent
               </SelectContent>
             </Select>
             {selected?.hasBeo && (
-              <p className="text-[12px] text-amber-600">This event already has a function sheet.</p>
+              <p className="text-detail text-amber-600">This event already has a function sheet.</p>
             )}
           </div>
           <div className="space-y-1.5">

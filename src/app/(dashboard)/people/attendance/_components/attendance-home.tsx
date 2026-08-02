@@ -65,7 +65,7 @@ export function AttendanceHome({
         {/* "Mark manually" + "Regularize" together are wider than 375px minus the
          * title, so the action pair drops to its own line on a phone. */}
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b px-4 py-3">
-          <span className="text-[13px] font-semibold">This month</span>
+          <span className="text-body font-semibold">This month</span>
           <div className="flex items-center gap-2">
             {canMarkManually && <MarkManuallyDialog employees={employees} />}
             <RegularizeDialog />
@@ -94,14 +94,14 @@ export function AttendanceHome({
             <TableBody className="[&_td]:py-3.5">
               {records.map((r) => (
                 <TableRow key={r.id}>
-                  <TableCell className="numeric text-[12.5px] whitespace-nowrap">{formatDate(r.date)}</TableCell>
-                  <TableCell className="numeric text-[12.5px]">{fmtTime(r.checkInAt)}</TableCell>
-                  <TableCell className="numeric text-[12.5px]">{fmtTime(r.checkOutAt)}</TableCell>
-                  <TableCell className="numeric text-right text-[12.5px] font-medium">{fmtDur(r.workedMinutes)}</TableCell>
+                  <TableCell className="numeric text-detail whitespace-nowrap">{formatDate(r.date)}</TableCell>
+                  <TableCell className="numeric text-detail">{fmtTime(r.checkInAt)}</TableCell>
+                  <TableCell className="numeric text-detail">{fmtTime(r.checkOutAt)}</TableCell>
+                  <TableCell className="numeric text-right text-detail font-medium">{fmtDur(r.workedMinutes)}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1.5">
                       <StatusPill label={ATTENDANCE_STATUS_LABELS[r.status]} hue={ATTENDANCE_STATUS_HUE[r.status] as never} size="xs" />
-                      {r.isRegularized && <span className="text-[10px] text-muted-foreground">(regularized)</span>}
+                      {r.isRegularized && <span className="text-meta text-muted-foreground">(regularized)</span>}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -117,8 +117,8 @@ export function AttendanceHome({
 function Stat({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="rounded-2xl border bg-card p-3 shadow-card sm:p-5">
-      <div className="text-[10.5px] uppercase leading-tight tracking-wide text-muted-foreground sm:text-[11px]">{label}</div>
-      <div className="numeric mt-2 text-[20px] font-semibold leading-none sm:mt-2.5 sm:text-[26px]">{value}</div>
+      <div className="text-meta uppercase leading-tight tracking-wide text-muted-foreground sm:text-meta">{label}</div>
+      <div className="numeric mt-2 text-title font-semibold leading-none sm:mt-2.5 sm:text-h2">{value}</div>
     </div>
   );
 }
@@ -217,19 +217,19 @@ function CheckInCard({ today }: { today: Rec | null }) {
 
   return (
     <div className="rounded-2xl border bg-gradient-to-br from-card to-muted/30 p-4 shadow-card sm:p-5">
-      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+      <div className="flex items-center gap-2 text-meta font-semibold uppercase tracking-[0.12em] text-muted-foreground">
         <Clock className="size-3.5" /> Today
       </div>
       {/* Wraps at 375px: in-time + out-time + the status pill overflow a phone
        * row, and an un-wrapped flex would push the pill off the card edge. */}
       <div className="mt-3 flex flex-wrap items-baseline gap-x-5 gap-y-3">
         <div>
-          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Check-in</div>
-          <div className="numeric mt-1 text-[19px] font-semibold leading-none">{fmtTime(today?.checkInAt ?? null)}</div>
+          <div className="text-meta uppercase tracking-wide text-muted-foreground">Check-in</div>
+          <div className="numeric mt-1 text-title font-semibold leading-none">{fmtTime(today?.checkInAt ?? null)}</div>
         </div>
         <div>
-          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Check-out</div>
-          <div className="numeric mt-1 text-[19px] font-semibold leading-none">{fmtTime(today?.checkOutAt ?? null)}</div>
+          <div className="text-meta uppercase tracking-wide text-muted-foreground">Check-out</div>
+          <div className="numeric mt-1 text-title font-semibold leading-none">{fmtTime(today?.checkOutAt ?? null)}</div>
         </div>
         {today && (
           <div className="ml-auto">
@@ -239,7 +239,7 @@ function CheckInCard({ today }: { today: Rec | null }) {
       </div>
       {!checkedIn && (
         <div className="mt-4 space-y-1.5">
-          <Label className="text-[11.5px] text-muted-foreground">Visit type</Label>
+          <Label className="text-meta text-muted-foreground">Visit type</Label>
           <Select value={visitType} onValueChange={(v) => setVisitType(v as VisitType)}>
             <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -256,8 +256,8 @@ function CheckInCard({ today }: { today: Rec | null }) {
               onUploaded={(dataUrl) => setSelfieUrl(dataUrl)}
             />
             {selfieUrl
-              ? <span className="text-[11px] font-medium text-success">Selfie attached ✓</span>
-              : <span className="text-[11px] text-muted-foreground">Optional</span>}
+              ? <span className="text-meta font-medium text-success">Selfie attached ✓</span>
+              : <span className="text-meta text-muted-foreground">Optional</span>}
           </div>
         </div>
       )}
@@ -266,35 +266,35 @@ function CheckInCard({ today }: { today: Rec | null }) {
          * phone, so it gets more than the 44px tap floor: a 52px hero target at
          * phone width, reverting to normal button density from sm: up. */}
         {!checkedIn ? (
-          <Button onClick={doCheckIn} disabled={busy} className="h-13 w-full gap-1.5 text-[15px] sm:h-9 sm:text-[13px]">
+          <Button onClick={doCheckIn} disabled={busy} className="h-13 w-full gap-1.5 text-copy sm:h-9 sm:text-body">
             {busy ? <Loader2 className="size-4 animate-spin" /> : <LogIn className="size-4" />} Check in
           </Button>
         ) : !checkedOut ? (
-          <Button onClick={doCheckOut} disabled={busy} variant="outline" className="h-13 w-full gap-1.5 text-[15px] sm:h-9 sm:text-[13px]">
+          <Button onClick={doCheckOut} disabled={busy} variant="outline" className="h-13 w-full gap-1.5 text-copy sm:h-9 sm:text-body">
             {busy ? <Loader2 className="size-4 animate-spin" /> : <LogOut className="size-4" />} Check out
           </Button>
         ) : (
-          <div className="rounded-lg bg-success/10 py-2 text-center text-[13px] font-medium text-success">
+          <div className="rounded-lg bg-success/10 py-2 text-center text-body font-medium text-success">
             All done for today ✓
           </div>
         )}
       </div>
       {needsGps ? (
-        <p className="mt-2 flex items-center gap-1 text-[11.5px] text-muted-foreground">
+        <p className="mt-2 flex items-center gap-1 text-meta text-muted-foreground">
           <MapPin className="size-3" /> Location is captured to verify on-site attendance.
         </p>
       ) : (
-        <p className="mt-2 flex items-center gap-1 text-[11.5px] text-muted-foreground">
+        <p className="mt-2 flex items-center gap-1 text-meta text-muted-foreground">
           <MapPin className="size-3" /> Client visit — no location tag required.
         </p>
       )}
       {needsGps && !done && pos?.accuracyM != null && (
-        <p className={`mt-1 text-[11.5px] ${poorFix ? "text-warning" : "text-muted-foreground"}`}>
+        <p className={`mt-1 text-meta ${poorFix ? "text-warning" : "text-muted-foreground"}`}>
           Location accuracy: ±{Math.round(pos.accuracyM)}m
           {poorFix && ` — this punch will be flagged for review.`}
         </p>
       )}
-      {msg && <p className="mt-1.5 text-[12.5px] text-muted-foreground">{msg}</p>}
+      {msg && <p className="mt-1.5 text-detail text-muted-foreground">{msg}</p>}
     </div>
   );
 }
@@ -333,9 +333,9 @@ function RegularizeDialog() {
           <DialogDescription>Forgot to check in, or worked off-system? Request a correction — your manager approves it.</DialogDescription>
         </DialogHeader>
         <div className="space-y-3 py-2">
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Date</Label>
+          <div className="space-y-1.5"><Label className="text-detail">Date</Label>
             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Mark as</Label>
+          <div className="space-y-1.5"><Label className="text-detail">Mark as</Label>
             <Select value={status} onValueChange={setStatus}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -344,12 +344,12 @@ function RegularizeDialog() {
             </Select>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5"><Label className="text-[12.5px]">In (optional)</Label>
+            <div className="space-y-1.5"><Label className="text-detail">In (optional)</Label>
               <Input type="time" value={checkIn} onChange={(e) => setCheckIn(e.target.value)} /></div>
-            <div className="space-y-1.5"><Label className="text-[12.5px]">Out (optional)</Label>
+            <div className="space-y-1.5"><Label className="text-detail">Out (optional)</Label>
               <Input type="time" value={checkOut} onChange={(e) => setCheckOut(e.target.value)} /></div>
           </div>
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Reason</Label>
+          <div className="space-y-1.5"><Label className="text-detail">Reason</Label>
             <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Client visit, system down…" /></div>
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
@@ -400,7 +400,7 @@ function MarkManuallyDialog({ employees }: { employees: EmployeeOption[] }) {
           <DialogDescription>HR entry — set or override a day's attendance. Clears any auto-flag on that day.</DialogDescription>
         </DialogHeader>
         <div className="space-y-3 py-2">
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Employee</Label>
+          <div className="space-y-1.5"><Label className="text-detail">Employee</Label>
             <Select value={employeeId} onValueChange={setEmployeeId}>
               <SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger>
               <SelectContent>
@@ -410,9 +410,9 @@ function MarkManuallyDialog({ employees }: { employees: EmployeeOption[] }) {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Date</Label>
+          <div className="space-y-1.5"><Label className="text-detail">Date</Label>
             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Status</Label>
+          <div className="space-y-1.5"><Label className="text-detail">Status</Label>
             <Select value={status} onValueChange={setStatus}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -420,7 +420,7 @@ function MarkManuallyDialog({ employees }: { employees: EmployeeOption[] }) {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Note (optional)</Label>
+          <div className="space-y-1.5"><Label className="text-detail">Note (optional)</Label>
             <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Manual entry reason…" /></div>
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}

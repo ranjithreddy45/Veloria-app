@@ -108,7 +108,7 @@ export function NewAdvanceButton({ employees }: { employees: AdvanceEmployeeOpti
         </DialogHeader>
         <div className="space-y-3 py-2">
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Employee</Label>
+            <Label className="text-detail">Employee</Label>
             <Select value={employeeId} onValueChange={setEmployeeId}>
               <SelectTrigger>
                 <SelectValue placeholder="Select employee" />
@@ -125,7 +125,7 @@ export function NewAdvanceButton({ employees }: { employees: AdvanceEmployeeOpti
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Advance amount (₹)</Label>
+              <Label className="text-detail">Advance amount (₹)</Label>
               <Input
                 type="number"
                 inputMode="numeric"
@@ -136,7 +136,7 @@ export function NewAdvanceButton({ employees }: { employees: AdvanceEmployeeOpti
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Monthly instalment (₹)</Label>
+              <Label className="text-detail">Monthly instalment (₹)</Label>
               <Input
                 type="number"
                 inputMode="numeric"
@@ -150,7 +150,7 @@ export function NewAdvanceButton({ employees }: { employees: AdvanceEmployeeOpti
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Recovery starts — FY</Label>
+              <Label className="text-detail">Recovery starts — FY</Label>
               <Select value={fy} onValueChange={setFy}>
                 <SelectTrigger>
                   <SelectValue />
@@ -165,7 +165,7 @@ export function NewAdvanceButton({ employees }: { employees: AdvanceEmployeeOpti
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Month</Label>
+              <Label className="text-detail">Month</Label>
               <Select value={month} onValueChange={setMonth}>
                 <SelectTrigger>
                   <SelectValue />
@@ -182,7 +182,7 @@ export function NewAdvanceButton({ employees }: { employees: AdvanceEmployeeOpti
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Reason (optional)</Label>
+            <Label className="text-detail">Reason (optional)</Label>
             <Textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
@@ -191,7 +191,7 @@ export function NewAdvanceButton({ employees }: { employees: AdvanceEmployeeOpti
             />
           </div>
         </div>
-        <p className="text-[12px] text-muted-foreground">
+        <p className="text-detail text-muted-foreground">
           Instalments are deducted automatically when payroll is processed. An employee may hold
           only one active advance at a time.
         </p>

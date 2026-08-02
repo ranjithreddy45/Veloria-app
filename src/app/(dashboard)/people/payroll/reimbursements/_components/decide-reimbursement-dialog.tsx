@@ -114,12 +114,12 @@ export function DecideReimbursementDialog({
           <div className="rounded-lg border bg-muted/40 px-3.5 py-2.5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="text-[13px] font-medium">{claim.title}</div>
-                <div className="text-[12px] text-muted-foreground">
+                <div className="text-body font-medium">{claim.title}</div>
+                <div className="text-detail text-muted-foreground">
                   {claim.name} · {claim.empCode} · {claim.category}
                 </div>
               </div>
-              <div className="text-[14px] font-semibold tabular-nums">{inr(claim.amount)}</div>
+              <div className="text-copy font-semibold tabular-nums">{inr(claim.amount)}</div>
             </div>
           </div>
         )}
@@ -128,7 +128,7 @@ export function DecideReimbursementDialog({
           <div className="space-y-3 py-1">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-[12.5px]">Pay run — FY</Label>
+                <Label className="text-detail">Pay run — FY</Label>
                 <Select value={fy} onValueChange={setFy}>
                   <SelectTrigger>
                     <SelectValue />
@@ -143,7 +143,7 @@ export function DecideReimbursementDialog({
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-[12.5px]">Month</Label>
+                <Label className="text-detail">Month</Label>
                 <Select value={month} onValueChange={setMonth}>
                   <SelectTrigger>
                     <SelectValue />
@@ -166,8 +166,8 @@ export function DecideReimbursementDialog({
                 className="mt-0.5"
               />
               <span>
-                <span className="block text-[13px] font-medium">Taxable reimbursement</span>
-                <span className="block text-[12px] text-muted-foreground">
+                <span className="block text-body font-medium">Taxable reimbursement</span>
+                <span className="block text-detail text-muted-foreground">
                   Tax is deducted only if this reimbursement is taxable. Leave off for a standard
                   non-taxable expense claim.
                 </span>
@@ -175,17 +175,17 @@ export function DecideReimbursementDialog({
             </label>
 
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Note (optional)</Label>
+              <Label className="text-detail">Note (optional)</Label>
               <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} />
             </div>
           </div>
         ) : (
           <div className="space-y-3 py-1">
-            <p className="text-[13px] text-muted-foreground">
+            <p className="text-body text-muted-foreground">
               Rejecting closes this claim without payment. The employee can see your note.
             </p>
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Reason (optional)</Label>
+              <Label className="text-detail">Reason (optional)</Label>
               <Textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}

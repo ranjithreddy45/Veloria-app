@@ -65,15 +65,15 @@ function JourneyList({ journeys, emptyText }: { journeys: Journey[]; emptyText: 
             className="flex items-center gap-3 rounded-xl border bg-card p-4 hover:shadow-sm">
             <Avatar size="sm">
               <AvatarImage src={j.employee.photoUrl || undefined} alt={name} />
-              <AvatarFallback className="bg-primary/10 text-[10px] font-semibold text-primary">{initials}</AvatarFallback>
+              <AvatarFallback className="bg-primary/10 text-meta font-semibold text-primary">{initials}</AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <span className="truncate font-medium">{name}</span>
-                <span className="text-[12px] text-muted-foreground">{j.employee.empCode}</span>
-                {j.employee.legalEntity && <span className="text-[11.5px] text-muted-foreground">· {j.employee.legalEntity.shortCode || j.employee.legalEntity.name}</span>}
+                <span className="text-detail text-muted-foreground">{j.employee.empCode}</span>
+                {j.employee.legalEntity && <span className="text-meta text-muted-foreground">· {j.employee.legalEntity.shortCode || j.employee.legalEntity.name}</span>}
               </div>
-              <div className="text-[12px] text-muted-foreground">
+              <div className="text-detail text-muted-foreground">
                 {j.targetDate ? formatDate(j.targetDate) : "—"} · {j.done}/{j.total} tasks
               </div>
             </div>
@@ -83,7 +83,7 @@ function JourneyList({ journeys, emptyText }: { journeys: Journey[]; emptyText: 
                   <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${j.pct}%` }} />
                 </div>
               </div>
-              <span className="w-9 text-right text-[12px] font-medium tabular-nums">{j.pct}%</span>
+              <span className="w-9 text-right text-detail font-medium tabular-nums">{j.pct}%</span>
               {j.status === "COMPLETED"
                 ? <StatusPill label="Done" hue="emerald" size="xs" />
                 : <StatusPill label="In progress" hue="amber" size="xs" />}
@@ -124,7 +124,7 @@ function StartOnboardingDialog({ employees }: { employees: EmpLite[] }) {
           <DialogDescription>Creates a Day-1 checklist and moves the employee to Onboarding.</DialogDescription>
         </DialogHeader>
         <div className="space-y-3 py-2">
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Employee</Label>
+          <div className="space-y-1.5"><Label className="text-detail">Employee</Label>
             <Select value={employeeId} onValueChange={setEmployeeId}>
               <SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger>
               <SelectContent>
@@ -132,7 +132,7 @@ function StartOnboardingDialog({ employees }: { employees: EmpLite[] }) {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Joining date</Label>
+          <div className="space-y-1.5"><Label className="text-detail">Joining date</Label>
             <Input type="date" value={joiningDate} onChange={(e) => setJoiningDate(e.target.value)} /></div>
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
@@ -176,7 +176,7 @@ function StartOffboardingDialog({ employees }: { employees: EmpLite[] }) {
           <DialogDescription>Creates a clearance checklist. Access is revoked when the journey is completed.</DialogDescription>
         </DialogHeader>
         <div className="space-y-3 py-2">
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Employee</Label>
+          <div className="space-y-1.5"><Label className="text-detail">Employee</Label>
             <Select value={employeeId} onValueChange={setEmployeeId}>
               <SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger>
               <SelectContent>
@@ -184,9 +184,9 @@ function StartOffboardingDialog({ employees }: { employees: EmpLite[] }) {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Last working day</Label>
+          <div className="space-y-1.5"><Label className="text-detail">Last working day</Label>
             <Input type="date" value={lastDay} onChange={(e) => setLastDay(e.target.value)} /></div>
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Reason (optional)</Label>
+          <div className="space-y-1.5"><Label className="text-detail">Reason (optional)</Label>
             <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Resignation, end of contract…" /></div>
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}

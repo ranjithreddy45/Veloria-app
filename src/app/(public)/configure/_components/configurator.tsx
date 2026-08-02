@@ -415,12 +415,12 @@ export function Configurator({ catalog, venues, initialVenueId, resume }: Props)
                               {pkg.name}
                             </span>
                             {pkg.badge && (
-                              <span className="rounded-full bg-warning/10 px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-warning">
+                              <span className="rounded-full bg-warning/10 px-2 py-0.5 text-meta font-semibold uppercase tracking-wide text-warning">
                                 {pkg.badge}
                               </span>
                             )}
                           </div>
-                          <p className="mt-0.5 text-[12.5px] text-muted-foreground">
+                          <p className="mt-0.5 text-detail text-muted-foreground">
                             {pkg.tagline}
                           </p>
                         </div>
@@ -438,14 +438,14 @@ export function Configurator({ catalog, venues, initialVenueId, resume }: Props)
                         {pkg.highlights.map((h, i) => (
                           <li
                             key={i}
-                            className="flex items-center gap-2 text-[12.5px] text-foreground"
+                            className="flex items-center gap-2 text-detail text-foreground"
                           >
                             <Check className="size-3.5 shrink-0 text-success" /> {h}
                           </li>
                         ))}
                       </ul>
                       {food && (
-                        <p className="mt-3 text-[12px] text-muted-foreground">
+                        <p className="mt-3 text-detail text-muted-foreground">
                           Catering ₹{food.perPlate}/plate × {guestCount || 0} guests
                         </p>
                       )}
@@ -458,7 +458,7 @@ export function Configurator({ catalog, venues, initialVenueId, resume }: Props)
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <Label htmlFor="rooms" className="text-sm">Hotel rooms (optional)</Label>
-                  <p className="text-[12px] text-muted-foreground">For guests staying over.</p>
+                  <p className="text-detail text-muted-foreground">For guests staying over.</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
@@ -489,7 +489,7 @@ export function Configurator({ catalog, venues, initialVenueId, resume }: Props)
               </div>
 
               {/* Bespoke path — hall-only / custom menu stays a human conversation. */}
-              <p className="rounded-xl bg-muted/40 px-3.5 py-2.5 text-[12px] text-muted-foreground">
+              <p className="rounded-xl bg-muted/40 px-3.5 py-2.5 text-detail text-muted-foreground">
                 Want something bespoke — hall-only, a custom menu, or a different theme? Pick a
                 package to hold your date, and our team will tailor every detail with you after.
               </p>
@@ -592,19 +592,19 @@ export function Configurator({ catalog, venues, initialVenueId, resume }: Props)
         <div className="bg-background/95 supports-[backdrop-filter]:bg-background/85 fixed inset-x-0 bottom-0 z-40 border-t px-4 pb-[calc(0.75rem+var(--sab))] pt-3 backdrop-blur-xl lg:hidden">
           <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-muted-foreground text-[10.5px] font-semibold uppercase tracking-[0.14em]">
+              <p className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.14em]">
                 Your estimate
               </p>
-              <p className="tabular-nums text-foreground text-[19px] font-semibold leading-tight">
+              <p className="tabular-nums text-foreground text-title font-semibold leading-tight">
                 {inr(result.grandTotal)}
               </p>
             </div>
             {advance && advance.amount > 0 && (
               <div className="shrink-0 text-right">
-                <p className="text-muted-foreground text-[10.5px] font-semibold uppercase tracking-[0.14em]">
+                <p className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.14em]">
                   Pay now
                 </p>
-                <p className="tabular-nums text-primary text-[19px] font-semibold leading-tight">
+                <p className="tabular-nums text-primary text-title font-semibold leading-tight">
                   {inr(advance.amount)}
                 </p>
               </div>

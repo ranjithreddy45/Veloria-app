@@ -44,11 +44,11 @@ export function SentimentBadge({
   return (
     <Badge variant="outline" className={`gap-1 ${config.className}`}>
       <span>{config.emoji}</span>
-      <span className={size === "sm" ? "text-[10px]" : "text-xs"}>
+      <span className={size === "sm" ? "text-meta" : "text-xs"}>
         {config.label}
       </span>
       {size === "md" && score !== null && score !== undefined && (
-        <span className="text-[10px] opacity-70">
+        <span className="text-meta opacity-70">
           ({score > 0 ? "+" : ""}
           {score.toFixed(2)})
         </span>

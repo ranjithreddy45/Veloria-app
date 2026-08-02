@@ -205,7 +205,7 @@ export function TimesheetGrid({
         <CardContent className="space-y-4 px-5 py-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <h2 className="flex items-center gap-2 text-[13px] font-semibold tracking-[-0.01em] text-foreground">
+              <h2 className="flex items-center gap-2 text-body font-semibold tracking-[-0.01em] text-foreground">
                 <CalendarDays className="size-4 text-muted-foreground" />
                 {formatDate(weekStart)} <span className="text-muted-foreground">→</span> {formatDate(weekEnd)}
               </h2>
@@ -224,7 +224,7 @@ export function TimesheetGrid({
             </div>
           </div>
           {ts.status === "REJECTED" && ts.note && (
-            <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-[13px] text-destructive">
+            <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-body text-destructive">
               This timesheet was rejected. Update it and resubmit.
             </div>
           )}
@@ -232,7 +232,7 @@ export function TimesheetGrid({
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
-                <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+                <tr className="border-b border-border text-left text-meta uppercase tracking-wide text-muted-foreground">
                   <th className="w-32 py-2 pr-3 font-medium">Day</th>
                   <th className="w-28 py-2 pr-3 font-medium">Hours</th>
                   <th className="w-48 py-2 pr-3 font-medium">Project</th>
@@ -244,7 +244,7 @@ export function TimesheetGrid({
                   <tr key={r.date} className="border-b last:border-0">
                     <td className="py-2 pr-3 align-middle">
                       <div className="font-medium">{DOW[i]}</div>
-                      <div className="text-[12px] text-muted-foreground tabular-nums">{formatDate(r.date)}</div>
+                      <div className="text-detail text-muted-foreground tabular-nums">{formatDate(r.date)}</div>
                     </td>
                     <td className="py-2 pr-3 align-middle">
                       <Input
@@ -283,16 +283,16 @@ export function TimesheetGrid({
               </tbody>
               <tfoot>
                 <tr>
-                  <td className="py-2 pr-3 text-[13px] font-semibold">Total</td>
-                  <td className="py-2 pr-3 text-right text-[15px] font-semibold tabular-nums">{total.toFixed(2)}</td>
-                  <td colSpan={2} className="py-2 text-[12px] text-muted-foreground">hours this week</td>
+                  <td className="py-2 pr-3 text-body font-semibold">Total</td>
+                  <td className="py-2 pr-3 text-right text-copy font-semibold tabular-nums">{total.toFixed(2)}</td>
+                  <td colSpan={2} className="py-2 text-detail text-muted-foreground">hours this week</td>
                 </tr>
               </tfoot>
             </table>
           </div>
 
           <div>
-            <label className="mb-1 block text-[12px] font-medium text-muted-foreground">Week note</label>
+            <label className="mb-1 block text-detail font-medium text-muted-foreground">Week note</label>
             <Input
               value={note}
               disabled={!editable}
@@ -304,7 +304,7 @@ export function TimesheetGrid({
           <div className="flex flex-wrap items-center justify-between gap-3">
             {ts.status === "DRAFT" && filledDays > 0 ? (
               <p
-                className={`text-[12px] ${
+                className={`text-detail ${
                   filledDays >= 6
                     ? "font-medium text-success"
                     : "text-muted-foreground"
@@ -315,7 +315,7 @@ export function TimesheetGrid({
                   : `${filledDays} of 7 days filled — submit when ready`}
               </p>
             ) : (
-              <p className="text-[12px] text-muted-foreground">
+              <p className="text-detail text-muted-foreground">
                 {editable
                   ? "Draft — edit freely, then submit for approval."
                   : ts.status === "SUBMITTED"
@@ -355,11 +355,11 @@ function PendingApprovals({ initial }: { initial: PendingTimesheetDTO[] }) {
   return (
     <Card className="gap-0 py-0">
       <CardContent className="space-y-3 px-5 py-5">
-        <h2 className="flex items-center gap-2 text-[13px] font-semibold tracking-[-0.01em] text-foreground">
+        <h2 className="flex items-center gap-2 text-body font-semibold tracking-[-0.01em] text-foreground">
           <Inbox className="size-4 text-muted-foreground" /> Pending approvals
         </h2>
         {rows.length === 0 ? (
-          <div className="rounded-lg border border-dashed p-8 text-center text-[13px] text-muted-foreground">
+          <div className="rounded-lg border border-dashed p-8 text-center text-body text-muted-foreground">
             No timesheets waiting on you.
           </div>
         ) : (
@@ -396,20 +396,20 @@ function ApprovalRow({ row, onDone }: { row: PendingTimesheetDTO; onDone: () => 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="font-medium">{row.ownerName}</div>
-          <div className="mt-0.5 flex items-center gap-2 text-[13px] text-muted-foreground">
+          <div className="mt-0.5 flex items-center gap-2 text-body text-muted-foreground">
             <span>
               {formatDate(row.weekStart)} → {formatDate(weekEnd)}
             </span>
             <span className="font-semibold tabular-nums text-foreground">· {row.totalHours.toFixed(2)} h</span>
           </div>
-          {row.note && <p className="mt-1 text-[12.5px] text-muted-foreground">“{row.note}”</p>}
+          {row.note && <p className="mt-1 text-detail text-muted-foreground">“{row.note}”</p>}
         </div>
         <div className="flex items-center gap-2">
           <Input
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Reject reason (optional)"
-            className="h-8 w-48 text-[12.5px]"
+            className="h-8 w-48 text-detail"
           />
           <Button variant="outline" size="sm" className="gap-1.5" disabled={!!busy} onClick={() => decide("REJECTED")}>
             {busy === "REJECTED" ? <Loader2 className="size-3.5 animate-spin" /> : <X className="size-3.5" />} Reject
@@ -425,7 +425,7 @@ function ApprovalRow({ row, onDone }: { row: PendingTimesheetDTO; onDone: () => 
           {row.entries.map((e) => (
             <span
               key={e.date}
-              className="rounded-md border bg-muted/40 px-2 py-0.5 text-[11.5px] tabular-nums text-muted-foreground"
+              className="rounded-md border bg-muted/40 px-2 py-0.5 text-meta tabular-nums text-muted-foreground"
             >
               {formatDate(e.date)}: {e.hours}h{e.project ? ` · ${e.project}` : ""}
             </span>

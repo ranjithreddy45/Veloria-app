@@ -200,7 +200,7 @@ export default async function ContactDetailPage({
                 <div className="flex items-center gap-3">
                   <UserIcon className="text-muted-foreground size-4" />
                   <div>
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Type</p>
+                    <p className="text-meta uppercase tracking-wide text-muted-foreground">Type</p>
                     <StatusBadge
                       status={contact.type}
                       colorMap={{
@@ -216,7 +216,7 @@ export default async function ContactDetailPage({
                     {/* min-w-0 + break-all: an address is one unbreakable token
                         and would otherwise widen the card past the viewport. */}
                     <div className="min-w-0">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Email</p>
+                      <p className="text-meta uppercase tracking-wide text-muted-foreground">Email</p>
                       <p className="break-all text-sm">{contact.email}</p>
                     </div>
                   </div>
@@ -225,7 +225,7 @@ export default async function ContactDetailPage({
                   <div className="flex items-center gap-3">
                     <PhoneIcon className="text-muted-foreground size-4" />
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Phone</p>
+                      <p className="text-meta uppercase tracking-wide text-muted-foreground">Phone</p>
                       <p className="numeric text-sm">{contact.phone}</p>
                     </div>
                   </div>
@@ -234,7 +234,7 @@ export default async function ContactDetailPage({
                   <div className="flex items-center gap-3">
                     <BuildingIcon className="text-muted-foreground size-4" />
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Company</p>
+                      <p className="text-meta uppercase tracking-wide text-muted-foreground">Company</p>
                       <p className="text-sm">
                         {contact.company}
                         {contact.designation && ` (${contact.designation})`}
@@ -246,7 +246,7 @@ export default async function ContactDetailPage({
                   <div className="flex items-center gap-3">
                     <MapPinIcon className="text-muted-foreground size-4" />
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Address</p>
+                      <p className="text-meta uppercase tracking-wide text-muted-foreground">Address</p>
                       <p className="text-sm">
                         {[contact.address, contact.city, contact.state, contact.pincode]
                           .filter(Boolean)
@@ -258,7 +258,7 @@ export default async function ContactDetailPage({
                 <div className="flex items-center gap-3">
                   <CalendarIcon className="text-muted-foreground size-4" />
                   <div>
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Created</p>
+                    <p className="text-meta uppercase tracking-wide text-muted-foreground">Created</p>
                     <p className="numeric text-sm">
                       {format(new Date(contact.createdAt), "dd MMM yyyy")}
                     </p>
@@ -274,7 +274,7 @@ export default async function ContactDetailPage({
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <p className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">Tags</p>
+                  <p className="mb-2 text-meta uppercase tracking-wide text-muted-foreground">Tags</p>
                   {contact.tags.length > 0 ? (
                     <div className="flex flex-wrap gap-1">
                       {contact.tags.map((tag: string) => (
@@ -284,13 +284,13 @@ export default async function ContactDetailPage({
                       ))}
                     </div>
                   ) : (
-                    <p className="text-[13px] text-muted-foreground">No tags</p>
+                    <p className="text-body text-muted-foreground">No tags</p>
                   )}
                 </div>
                 <Separator />
                 <div>
-                  <p className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">Notes</p>
-                  <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-muted-foreground">
+                  <p className="mb-2 text-meta uppercase tracking-wide text-muted-foreground">Notes</p>
+                  <p className="whitespace-pre-wrap text-body leading-relaxed text-muted-foreground">
                     {contact.notes || "No notes"}
                   </p>
                 </div>
@@ -349,7 +349,7 @@ export default async function ContactDetailPage({
                         >
                           {lead.title}
                         </Link>
-                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] text-muted-foreground">
+                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-body text-muted-foreground">
                           {lead.eventType && <span>{lead.eventType}</span>}
                           {lead.eventDate && (
                             <span className="numeric">
@@ -417,7 +417,7 @@ export default async function ContactDetailPage({
                     >
                       <div className="min-w-0">
                         <p className="text-sm font-semibold tracking-[-0.01em]">{booking.eventName}</p>
-                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] text-muted-foreground">
+                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-body text-muted-foreground">
                           <span>{booking.eventType}</span>
                           <span className="numeric">
                             {format(new Date(booking.date), "dd MMM yyyy")}
@@ -469,7 +469,7 @@ export default async function ContactDetailPage({
                     >
                       <div className="min-w-0">
                         <p className="numeric text-sm font-semibold tracking-[-0.01em]">{invoice.invoiceNumber}</p>
-                        <div className="mt-1 text-[13px] text-muted-foreground">
+                        <div className="mt-1 text-body text-muted-foreground">
                           <span className="numeric">Issued {format(new Date(invoice.issueDate), "dd MMM yyyy")}</span>
                           {" · "}
                           <span className="numeric">Due {format(new Date(invoice.dueDate), "dd MMM yyyy")}</span>
@@ -481,7 +481,7 @@ export default async function ContactDetailPage({
                             {formatCurrency(invoice.totalAmount)}
                           </p>
                           {Number(invoice.balanceDue) > 0 && (
-                            <p className="numeric text-[11.5px] text-destructive">
+                            <p className="numeric text-meta text-destructive">
                               {formatCurrency(invoice.balanceDue)} due
                             </p>
                           )}

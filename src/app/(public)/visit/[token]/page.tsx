@@ -68,7 +68,7 @@ export default async function VisitManagePage({
   if (!res.success) {
     return (
       <div className="bg-card shadow-card mx-auto max-w-lg rounded-2xl border p-10 text-center">
-        <h1 className="text-foreground text-[24px]">
+        <h1 className="text-foreground text-h2">
           We couldn&apos;t find this visit
         </h1>
         <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm leading-relaxed">
@@ -91,10 +91,10 @@ export default async function VisitManagePage({
   return (
     <div className="space-y-6">
       <header className="pb-1 text-center">
-        <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.18em]">
+        <p className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.18em]">
           For {v.customerFirstName}
         </p>
-        <h1 className="text-foreground mt-3 text-[30px] sm:text-[34px]">
+        <h1 className="text-foreground mt-3 text-h1 sm:text-h1">
           {copy.title}
         </h1>
       </header>

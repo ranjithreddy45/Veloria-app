@@ -70,7 +70,7 @@ function Unit({ value, label }: { value: number; label: string }) {
       <span className="text-xl font-bold tabular-nums text-white">
         {String(value).padStart(2, "0")}
       </span>
-      <span className="text-[10px] font-medium uppercase tracking-wide text-white/70">
+      <span className="text-meta font-medium uppercase tracking-wide text-white/70">
         {label}
       </span>
     </div>

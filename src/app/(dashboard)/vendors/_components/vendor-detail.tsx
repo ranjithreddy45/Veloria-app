@@ -184,16 +184,16 @@ export function VendorDetail({ vendor, availableBookings, packages = [] }: Vendo
                     <div className="min-w-0">
                       <Link
                         href={`/vendors/packages/${pkg.id}`}
-                        className="text-[14px] font-medium tracking-[-0.01em] hover:underline"
+                        className="text-copy font-medium tracking-[-0.01em] hover:underline"
                       >
                         {pkg.name}
                       </Link>
-                      <p className="text-muted-foreground mt-0.5 text-[11px] font-semibold uppercase tracking-[0.1em]">
+                      <p className="text-muted-foreground mt-0.5 text-meta font-semibold uppercase tracking-[0.1em]">
                         {VENDOR_MODULE_CATEGORY_LABELS[pkg.category] ?? pkg.category}
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="numeric text-[14px] font-semibold text-foreground">
+                      <span className="numeric text-copy font-semibold text-foreground">
                         {formatINR(pkg.customerPrice ?? pkg.price)}
                       </span>
                       <StatusBadge status={pkg.status} colorMap={PACKAGE_STATUS_COLORS} />
@@ -384,7 +384,7 @@ export function VendorDetail({ vendor, availableBookings, packages = [] }: Vendo
                     <div>
                       <Link
                         href={`/bookings/${bv.booking.id}`}
-                        className="text-[14px] font-medium tracking-[-0.01em] hover:underline"
+                        className="text-copy font-medium tracking-[-0.01em] hover:underline"
                       >
                         {bv.booking.bookingNumber} — {bv.booking.eventName}
                       </Link>

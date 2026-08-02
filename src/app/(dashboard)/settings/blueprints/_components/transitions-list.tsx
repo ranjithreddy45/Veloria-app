@@ -198,10 +198,10 @@ export function TransitionsList({
     <section className="rounded-2xl border bg-card shadow-card">
       <div className="flex flex-row items-start justify-between gap-3 border-b px-5 py-4">
         <div className="min-w-0">
-          <h3 className="text-[15px] font-semibold tracking-[-0.01em]">
+          <h3 className="text-copy font-semibold tracking-[-0.01em]">
             Transitions
           </h3>
-          <p className="mt-1 text-[13px] text-muted-foreground">
+          <p className="mt-1 text-body text-muted-foreground">
             Which status changes are legal, who may make them, and what has to
             be filled in first.
           </p>
@@ -238,11 +238,11 @@ export function TransitionsList({
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="text-[11px] uppercase tracking-wide text-muted-foreground">Transition</TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wide text-muted-foreground">Name</TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wide text-muted-foreground">Requirements</TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wide text-muted-foreground">Roles</TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wide text-muted-foreground">Active</TableHead>
+                  <TableHead className="text-meta uppercase tracking-wide text-muted-foreground">Transition</TableHead>
+                  <TableHead className="text-meta uppercase tracking-wide text-muted-foreground">Name</TableHead>
+                  <TableHead className="text-meta uppercase tracking-wide text-muted-foreground">Requirements</TableHead>
+                  <TableHead className="text-meta uppercase tracking-wide text-muted-foreground">Roles</TableHead>
+                  <TableHead className="text-meta uppercase tracking-wide text-muted-foreground">Active</TableHead>
                   <TableHead className="w-[50px]" />
                 </TableRow>
               </TableHeader>

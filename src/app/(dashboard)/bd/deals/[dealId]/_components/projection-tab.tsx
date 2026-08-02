@@ -241,9 +241,9 @@ function GridTable({
 
   return (
     <div className="space-y-2">
-      <h4 className="text-[12.5px] font-medium text-foreground">{title}</h4>
+      <h4 className="text-detail font-medium text-foreground">{title}</h4>
       <div className="overflow-x-auto rounded-md border border-border/60">
-        <table className="w-full min-w-[520px] border-collapse text-[12px]">
+        <table className="w-full min-w-[520px] border-collapse text-detail">
           <thead>
             <tr className="border-b border-border/60 bg-muted/40">
               <th className="px-3 py-2 text-left font-medium text-muted-foreground">Metric</th>
@@ -308,7 +308,7 @@ function ProjectionGridView({ grid }: { grid: AnyProjectionGrid }) {
     <div className="space-y-5">
       <GridTable title="Base Case" rows={grid.base} withFood={withFood} />
       <GridTable title="Best Case" rows={grid.best} withFood={withFood} />
-      <p className="rounded-md border border-border/60 bg-muted/30 p-2.5 text-[11.5px] text-muted-foreground">
+      <p className="rounded-md border border-border/60 bg-muted/30 p-2.5 text-meta text-muted-foreground">
         {withFood
           ? "Includes food revenue; owner supplies catering."
           : "Food, décor & marketing managed by Billion Events — not reflected in owner economics."}
@@ -411,7 +411,7 @@ export function ProjectionTab({
   if (loading) {
     return (
       <Card>
-        <CardContent className="flex items-center gap-2 py-10 text-[13px] text-muted-foreground">
+        <CardContent className="flex items-center gap-2 py-10 text-body text-muted-foreground">
           <Loader2 className="size-4 animate-spin" /> Loading projections…
         </CardContent>
       </Card>
@@ -453,7 +453,7 @@ export function ProjectionTab({
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <div>
-            <CardTitle className="text-[13px] tracking-[-0.01em]">Owner Projection</CardTitle>
+            <CardTitle className="text-body tracking-[-0.01em]">Owner Projection</CardTitle>
             <CardDescription>
               {dealModel === "REVENUE_MARGIN"
                 ? "Indicative revenue projection — approve, then send to the owner."
@@ -470,7 +470,7 @@ export function ProjectionTab({
       <CardContent>
         {rows.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-10 text-center">
-            <p className="text-[13px] text-muted-foreground">No projection yet.</p>
+            <p className="text-body text-muted-foreground">No projection yet.</p>
             <Button size="sm" onClick={() => setView({ kind: "create" })}>
               <Plus className="size-3.5" /> Create Projection
             </Button>
@@ -487,7 +487,7 @@ export function ProjectionTab({
                     className="flex w-full items-center justify-between gap-3 rounded-md border border-border/60 px-3 py-2.5 text-left transition-colors hover:bg-muted/40"
                   >
                     <div className="flex min-w-0 items-center gap-2">
-                      <span className="text-[13px] font-medium text-foreground">
+                      <span className="text-body font-medium text-foreground">
                         v{row.version}
                       </span>
                       <StatusPill
@@ -501,7 +501,7 @@ export function ProjectionTab({
                         size="xs"
                       />
                     </div>
-                    <div className="flex shrink-0 items-center gap-4 text-[11.5px] text-muted-foreground">
+                    <div className="flex shrink-0 items-center gap-4 text-meta text-muted-foreground">
                       {head != null && (
                         <span className="text-foreground">{head}</span>
                       )}
@@ -777,11 +777,11 @@ function Builder({
         <button
           type="button"
           onClick={onBack}
-          className="mb-1 flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground"
+          className="mb-1 flex items-center gap-1 text-detail text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="size-3.5" /> Back to versions
         </button>
-        <CardTitle className="text-[13px] tracking-[-0.01em]">
+        <CardTitle className="text-body tracking-[-0.01em]">
           {isDraftEdit ? `Edit Projection v${existing?.version}` : "New Projection"}
         </CardTitle>
         <CardDescription>
@@ -790,7 +790,7 @@ function Builder({
       </CardHeader>
       <CardContent className="space-y-5">
         {isDraftEdit && existing?.rejectedReason && (
-          <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-[12.5px] text-amber-800">
+          <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-detail text-amber-800">
             Returned by BD Head: {existing.rejectedReason}
           </div>
         )}
@@ -798,7 +798,7 @@ function Builder({
         {/* Engine picker. The model is fixed once a draft exists (it is a column
             on the row, and the stored inputs belong to that engine). */}
         <div className="space-y-1.5 rounded-md border border-border/60 p-3">
-          <Label className="text-[13px]">Projection model</Label>
+          <Label className="text-body">Projection model</Label>
           <Select
             value={model}
             onValueChange={(v) => onModelChange(v as AcqProjectionModelType)}
@@ -819,7 +819,7 @@ function Builder({
               </SelectItem>
             </SelectContent>
           </Select>
-          <p className="text-[11.5px] text-muted-foreground">
+          <p className="text-meta text-muted-foreground">
             {model === "REVENUE_MARGIN"
               ? "Gross event value at the guaranteed and expected prices. No operating expenses."
               : "3-year grid with operating expenses and the management fee."}
@@ -881,7 +881,7 @@ function Builder({
               value={form.rmEventsPerMonth}
               onChange={(v) => set("rmEventsPerMonth", v)}
             />
-            <p className="text-[11.5px] text-muted-foreground sm:col-span-2">
+            <p className="text-meta text-muted-foreground sm:col-span-2">
               Seeded from the deal&apos;s agreed economics. These exact numbers are
               frozen onto the projection when you save, so an approved version
               stays reproducible even if the deal changes later.
@@ -940,7 +940,7 @@ function Builder({
         )}
 
         {!valid && (
-          <ul className="space-y-1 rounded-md border border-rose-200 bg-rose-50 p-3 text-[12px] text-rose-700">
+          <ul className="space-y-1 rounded-md border border-rose-200 bg-rose-50 p-3 text-detail text-rose-700">
             {errors.map((e) => (
               <li key={e}>• {e}</li>
             ))}
@@ -1027,13 +1027,13 @@ function OpenProjection({
         <button
           type="button"
           onClick={onBack}
-          className="mb-1 flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground"
+          className="mb-1 flex items-center gap-1 text-detail text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="size-3.5" /> Back to versions
         </button>
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <CardTitle className="text-[13px] tracking-[-0.01em]">Projection v{row.version}</CardTitle>
+            <CardTitle className="text-body tracking-[-0.01em]">Projection v{row.version}</CardTitle>
             <StatusPill
               label={PROJECTION_MODEL_LABEL[row.modelType]}
               hue={MODEL_HUE[row.modelType]}
@@ -1108,7 +1108,7 @@ function PendingActions({
 
   if (!canApprove(userRole)) {
     return (
-      <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-[12.5px] text-amber-800">
+      <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-detail text-amber-800">
         Awaiting BD Head approval.
       </p>
     );
@@ -1334,7 +1334,7 @@ function SendDialog({
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
+              <p className="flex items-center gap-1.5 text-meta text-muted-foreground">
                 <Download className="size-3.5" /> The PDF opens in a new tab when you confirm.
               </p>
             </div>
@@ -1394,7 +1394,7 @@ function SentActions({
 
   return (
     <div className="space-y-3 border-t border-border/60 pt-4">
-      <p className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+      <p className="flex items-center gap-1.5 text-detail text-muted-foreground">
         <CheckCircle2 className="size-3.5 text-emerald-600" /> Sent: {sendBits}
       </p>
       <div className="flex flex-wrap items-center justify-end gap-2">

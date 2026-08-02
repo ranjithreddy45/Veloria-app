@@ -54,17 +54,17 @@ export function OverdueItems({ tasks, payments }: OverdueItemsProps) {
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <CardTitle className="text-meta font-medium uppercase tracking-wide text-muted-foreground">
               Overdue
             </CardTitle>
-            <p className="mt-1 text-[13px] text-muted-foreground">
+            <p className="mt-1 text-body text-muted-foreground">
               Tasks and payments past due
             </p>
           </div>
           {hasItems && (
             <Badge
               variant="outline"
-              className="numeric border-destructive/30 bg-destructive/5 px-1.5 py-0 text-[11px] font-medium text-destructive"
+              className="numeric border-destructive/30 bg-destructive/5 px-1.5 py-0 text-meta font-medium text-destructive"
             >
               {tasks.length + payments.length}
             </Badge>
@@ -104,11 +104,11 @@ export function OverdueItems({ tasks, payments }: OverdueItemsProps) {
                           PRIORITY_DOT[task.priority] || "bg-slate-400"
                         )}
                       />
-                      <p className="truncate text-[13.5px] font-medium leading-tight text-foreground">
+                      <p className="truncate text-body font-medium leading-tight text-foreground">
                         {task.title}
                       </p>
                     </div>
-                    <div className="mt-0.5 flex items-center gap-2 text-[11.5px] text-muted-foreground">
+                    <div className="mt-0.5 flex items-center gap-2 text-meta text-muted-foreground">
                       {task.assignee?.name && (
                         <span className="inline-flex items-center gap-1">
                           <User className="size-3" />
@@ -120,7 +120,7 @@ export function OverdueItems({ tasks, payments }: OverdueItemsProps) {
                       </span>
                     </div>
                   </div>
-                  <span className="numeric shrink-0 text-[11px] font-medium text-destructive">
+                  <span className="numeric shrink-0 text-meta font-medium text-destructive">
                     {daysOverdue}d
                   </span>
                 </div>
@@ -142,10 +142,10 @@ export function OverdueItems({ tasks, payments }: OverdueItemsProps) {
                     <FileText className="size-3.5 text-muted-foreground" strokeWidth={2} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="numeric truncate text-[13px] font-medium leading-tight text-foreground">
+                    <p className="numeric truncate text-body font-medium leading-tight text-foreground">
                       {payment.invoiceNumber}
                     </p>
-                    <div className="mt-0.5 flex items-center gap-2 text-[11.5px] text-muted-foreground">
+                    <div className="mt-0.5 flex items-center gap-2 text-meta text-muted-foreground">
                       <span>
                         {payment.contact.firstName} {payment.contact.lastName}
                       </span>
@@ -155,7 +155,7 @@ export function OverdueItems({ tasks, payments }: OverdueItemsProps) {
                       </span>
                     </div>
                   </div>
-                  <span className="numeric shrink-0 text-[11px] font-medium text-warning">
+                  <span className="numeric shrink-0 text-meta font-medium text-warning">
                     {daysOverdue}d
                   </span>
                 </div>

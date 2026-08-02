@@ -216,14 +216,14 @@ export function LeadDetail({
       <div>
         <Link
           href="/bd/leads"
-          className="mb-3 inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground"
+          className="mb-3 inline-flex items-center gap-1.5 text-body text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="size-3.5" /> Back to Leads
         </Link>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-[20px] font-semibold tracking-tight text-foreground">
+              <h1 className="text-title font-semibold tracking-tight text-foreground">
                 {lead.propertyName}
               </h1>
               <StatusPill
@@ -232,7 +232,7 @@ export function LeadDetail({
                 size="xs"
               />
             </div>
-            <p className="text-[13px] text-muted-foreground">
+            <p className="text-body text-muted-foreground">
               {lead.ownerName} · {label(ACQ_PROPERTY_TYPE_LABEL, lead.propertyType)} ·{" "}
               {lead.city} · {lead.locality}
             </p>
@@ -288,7 +288,7 @@ export function LeadDetail({
         {/* Details */}
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle className="text-[15px]">Lead details</CardTitle>
+            <CardTitle className="text-copy">Lead details</CardTitle>
           </CardHeader>
           <CardContent>
             <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
@@ -319,7 +319,7 @@ export function LeadDetail({
 
             {(lead.referrerName || lead.referrerPhone || lead.referrerEmail || lead.brokerageDemand) && (
               <div className="mt-4 rounded-md border border-border/60 bg-muted/30 p-3">
-                <div className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">
+                <div className="mb-2 text-meta uppercase tracking-wide text-muted-foreground">
                   Referral / broker
                 </div>
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
@@ -331,8 +331,8 @@ export function LeadDetail({
               </div>
             )}
             {lead.notes && (
-              <div className="mt-4 rounded-md border border-border/60 bg-muted/30 p-3 text-[13px]">
-                <div className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+              <div className="mt-4 rounded-md border border-border/60 bg-muted/30 p-3 text-body">
+                <div className="mb-1 text-meta uppercase tracking-wide text-muted-foreground">
                   Notes
                 </div>
                 {lead.notes}
@@ -349,10 +349,10 @@ export function LeadDetail({
         <div className="flex flex-col gap-5">
           <Card>
             <CardHeader>
-              <CardTitle className="text-[15px]">Status & actions</CardTitle>
+              <CardTitle className="text-copy">Status & actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="rounded-md border border-border/60 bg-muted/30 p-3 text-[13px]">
+              <div className="rounded-md border border-border/60 bg-muted/30 p-3 text-body">
                 {lead.status === "DEAL_CREATED" ? (
                   <span className="inline-flex items-center gap-1.5 text-primary">
                     <Handshake className="size-4" /> Deal created
@@ -411,15 +411,15 @@ export function LeadDetail({
           {/* Qualification checklist */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-[15px]">Qualification</CardTitle>
+              <CardTitle className="text-copy">Qualification</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-[13px]">
+            <CardContent className="space-y-2 text-body">
               <CriterionRow ok={lead.qualSeating100 ?? seatingIs100Plus(lead)} text="Seating 100+" />
               <CriterionRow ok={lead.qualOwnerInterested} text="Interested in management model" />
               <CriterionRow ok={lead.qualAgreeRenovate} text="Agrees to renovate if required" />
               <CriterionRow ok={lead.qualPhotosReady} text="Photos available" />
               {lead.status !== "QUALIFIED" && (
-                <p className="pt-1 text-[11.5px] text-muted-foreground">
+                <p className="pt-1 text-meta text-muted-foreground">
                   Confirm all four when qualifying.
                 </p>
               )}
@@ -440,13 +440,13 @@ export function LeadDetail({
       {/* Activity timeline */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-[15px]">Activity</CardTitle>
+          <CardTitle className="text-copy">Activity</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {lead.activities && lead.activities.length > 0 && (
             <ol className="space-y-3">
               {lead.activities.map((a) => (
-                <li key={a.id} className="flex items-start gap-3 text-[13px]">
+                <li key={a.id} className="flex items-start gap-3 text-body">
                   <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-blue-500" />
                   <div>
                     <div className="text-foreground">
@@ -454,7 +454,7 @@ export function LeadDetail({
                       {a.outcome ? ` · ${CONTACT_OUTCOME_LABEL[a.outcome] ?? a.outcome}` : ""}
                     </div>
                     {a.note && <div className="text-muted-foreground">{a.note}</div>}
-                    <div className="text-[11.5px] text-muted-foreground">
+                    <div className="text-meta text-muted-foreground">
                       {fmtDate(a.createdAt)} · {a.actorName ?? "—"}
                     </div>
                   </div>
@@ -465,7 +465,7 @@ export function LeadDetail({
           {lead.timeline && lead.timeline.length > 0 ? (
             <ol className="space-y-3">
               {lead.timeline.map((t) => (
-                <li key={t.id} className="flex items-start gap-3 text-[13px]">
+                <li key={t.id} className="flex items-start gap-3 text-body">
                   <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-foreground/40" />
                   <div>
                     <div className="text-foreground">
@@ -473,7 +473,7 @@ export function LeadDetail({
                       {t.toState}
                       {t.reason ? ` · ${t.reason}` : ""}
                     </div>
-                    <div className="text-[11.5px] text-muted-foreground">
+                    <div className="text-meta text-muted-foreground">
                       {fmtDate(t.createdAt)} · {t.actor?.name ?? "system"}
                     </div>
                   </div>
@@ -481,7 +481,7 @@ export function LeadDetail({
               ))}
             </ol>
           ) : (
-            !lead.activities?.length && <p className="text-[13px] text-muted-foreground">No activity yet.</p>
+            !lead.activities?.length && <p className="text-body text-muted-foreground">No activity yet.</p>
           )}
         </CardContent>
       </Card>
@@ -505,11 +505,11 @@ export function LeadDetail({
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="space-y-0.5">
-      <dt className="text-[11px] uppercase tracking-[0.06em] text-muted-foreground">{label}</dt>
+      <dt className="text-meta uppercase tracking-[0.06em] text-muted-foreground">{label}</dt>
       {/* Emails and long owner names have no break opportunity, and this dl runs
         * two columns (~165px) on a phone — without break-words they push the
         * card past the viewport edge. */}
-      <dd className="text-[13px] break-words text-foreground">{value || "—"}</dd>
+      <dd className="text-body break-words text-foreground">{value || "—"}</dd>
     </div>
   );
 }
@@ -544,7 +544,7 @@ function StatusChanger({ lead, onDone }: { lead: AcqLeadFull; onDone: () => void
 
   if (allowed.length === 0) {
     return (
-      <p className="text-[11.5px] text-muted-foreground">
+      <p className="text-meta text-muted-foreground">
         {lead.status === "DEAL_CREATED" || lead.status === "QUALIFIED"
           ? "Status is set by the deal from here on."
           : "No status change available."}
@@ -588,7 +588,7 @@ function StatusChanger({ lead, onDone }: { lead: AcqLeadFull; onDone: () => void
 
   return (
     <div className="space-y-2 rounded-md border border-border/60 p-3">
-      <Label className="text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
+      <Label className="text-meta uppercase tracking-[0.06em] text-muted-foreground">
         Change status
       </Label>
       <Select value={target ?? undefined} onValueChange={pick}>
@@ -605,7 +605,7 @@ function StatusChanger({ lead, onDone }: { lead: AcqLeadFull; onDone: () => void
       </Select>
       {target === "CONTACTED" && (
         <div className="space-y-1.5">
-          <Label className="text-[12px]">Next follow-up</Label>
+          <Label className="text-detail">Next follow-up</Label>
           <Input
             type="datetime-local"
             value={followup}
@@ -674,7 +674,7 @@ function LeadImagesSection({
   return (
     <div className="space-y-3 rounded-md border border-border/60 p-3.5">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+        <div className="flex items-center gap-2 text-meta font-medium uppercase tracking-[0.06em] text-muted-foreground">
           <Camera className="size-3.5" /> Property photos
         </div>
         {canWrite && dirty && (
@@ -689,7 +689,7 @@ function LeadImagesSection({
           <LeadImagesField value={images} onChange={setImages} />
         </div>
       ) : images.length === 0 ? (
-        <p className="text-[12.5px] text-muted-foreground">No photos yet.</p>
+        <p className="text-detail text-muted-foreground">No photos yet.</p>
       ) : (
         <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
           {images.map((src, idx) => (
@@ -767,7 +767,7 @@ function EditLeadDialog({
           <DialogTitle>Edit lead</DialogTitle>
           <DialogDescription>{lead.propertyName}</DialogDescription>
         </DialogHeader>
-        <div className="grid grid-cols-1 gap-3 text-[13px] sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 text-body sm:grid-cols-2">
           <L label="Owner name"><Input value={f.ownerName} onChange={(e) => set("ownerName", e.target.value)} /></L>
           <L label="Primary mobile"><Input value={f.mobilePrimary} onChange={(e) => set("mobilePrimary", e.target.value)} /></L>
           <L label="Alternate mobile"><Input value={f.mobileAlternate} onChange={(e) => set("mobileAlternate", e.target.value)} /></L>
@@ -819,7 +819,7 @@ function toForm(l: AcqLeadFull) {
 function L({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-[12px]">{label}</Label>
+      <Label className="text-detail">{label}</Label>
       {children}
     </div>
   );
@@ -907,7 +907,7 @@ function ReassignDialog({
           <SelectTrigger className="w-full"><SelectValue placeholder="Select BD owner…" /></SelectTrigger>
           <SelectContent>
             {owners.length === 0 ? (
-              <div className="px-2 py-1.5 text-[12.5px] text-muted-foreground">
+              <div className="px-2 py-1.5 text-detail text-muted-foreground">
                 No assignable team members found.
               </div>
             ) : (
@@ -1049,7 +1049,7 @@ function QualifyDialog({
           <DialogTitle>Qualify lead</DialogTitle>
           <DialogDescription>All four must be confirmed to qualify.</DialogDescription>
         </DialogHeader>
-        <div className="grid gap-2.5 text-[13px]">
+        <div className="grid gap-2.5 text-body">
           {QUAL_FIELDS.map((f) => (
             <label
               key={f.key}

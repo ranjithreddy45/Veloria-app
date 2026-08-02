@@ -43,7 +43,7 @@ export function LeadVisits({ leadId, canWrite }: { leadId: string; canWrite: boo
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-[15px]">
+        <CardTitle className="flex items-center gap-2 text-copy">
           <NotebookPen className="size-4 text-primary" /> Add a note
         </CardTitle>
       </CardHeader>
@@ -60,7 +60,7 @@ export function LeadVisits({ leadId, canWrite }: { leadId: string; canWrite: boo
             <Plus className="size-4" /> Add note
           </Button>
         </div>
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-meta text-muted-foreground">
           Notes appear with date &amp; time on the activity timeline below. For notes against a
           specific call, site visit or meeting, use the schedule panel below.
         </p>

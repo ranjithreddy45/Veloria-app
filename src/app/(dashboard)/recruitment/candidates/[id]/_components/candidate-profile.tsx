@@ -52,7 +52,7 @@ function InfoRow({
   value: string | null;
 }) {
   return (
-    <div className="flex items-center gap-2.5 text-[13px]">
+    <div className="flex items-center gap-2.5 text-body">
       <span className="text-muted-foreground">{icon}</span>
       <span className={cn("truncate", value ? "text-foreground/90" : "text-muted-foreground")}>
         {value || "—"}
@@ -134,7 +134,7 @@ export function CandidateProfile({
         <Separator />
 
         <div className="flex items-center justify-between gap-2 px-5 py-4">
-          <span className="flex items-center gap-2.5 text-[13px]">
+          <span className="flex items-center gap-2.5 text-body">
             <FileText className="size-4 text-muted-foreground" />
             {resumeUrl ? (
               <a
@@ -180,7 +180,7 @@ export function CandidateProfile({
 
       <Card className="space-y-3 p-5 shadow-card">
         <div className="flex items-center justify-between">
-          <h3 className="text-[13px] font-medium text-foreground">Notes</h3>
+          <h3 className="text-body font-medium text-foreground">Notes</h3>
           {canWrite && dirty && (
             <Button size="sm" variant="outline" onClick={saveNotes} disabled={pending}>
               {pending ? "Saving…" : "Save"}
@@ -193,10 +193,10 @@ export function CandidateProfile({
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Add private notes about this candidate…"
             rows={5}
-            className="resize-none text-[13px]"
+            className="resize-none text-body"
           />
         ) : (
-          <p className="whitespace-pre-wrap text-[13px] text-muted-foreground">
+          <p className="whitespace-pre-wrap text-body text-muted-foreground">
             {candidate.notes || "No notes."}
           </p>
         )}

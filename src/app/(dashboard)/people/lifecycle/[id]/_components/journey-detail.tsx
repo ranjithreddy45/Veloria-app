@@ -46,7 +46,7 @@ export function JourneyDetail({ journey, canWrite }: { journey: Journey; canWrit
       {/* Checklist by category */}
       {Object.entries(grouped).map(([cat, tasks]) => (
         <div key={cat} className="rounded-xl border bg-card p-4">
-          <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">{cat}</h3>
+          <h3 className="mb-2 text-detail font-semibold uppercase tracking-wide text-muted-foreground">{cat}</h3>
           <div className="divide-y">
             {tasks.map((t) => (
               <TaskRow key={t.id} task={t} canWrite={canWrite && !closed} />
@@ -60,7 +60,7 @@ export function JourneyDetail({ journey, canWrite }: { journey: Journey; canWrit
 
       {/* Complete / status */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4">
-        <div className="text-[13px] text-muted-foreground">
+        <div className="text-body text-muted-foreground">
           {closed
             ? <span className="inline-flex items-center gap-1.5 font-medium text-success"><CheckCircle2 className="size-4" /> {isOnboarding ? "Onboarding completed — employee is active." : "Offboarding completed — access revoked."}</span>
             : isOnboarding
@@ -102,7 +102,7 @@ function TaskRow({ task, canWrite }: { task: Task; canWrite: boolean }) {
     <div className="flex items-center gap-3 py-2.5 first:pt-0">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="text-[13.5px] font-medium">{task.title}</span>
+          <span className="text-body font-medium">{task.title}</span>
           {task.blocksDay1 && <StatusPill label="Blocking" hue="amber" size="xs" />}
         </div>
       </div>
@@ -143,22 +143,22 @@ function ExitInterviewCard({
 
   return (
     <div className="rounded-xl border bg-card p-4">
-      <h3 className="mb-3 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">Exit interview</h3>
+      <h3 className="mb-3 text-detail font-semibold uppercase tracking-wide text-muted-foreground">Exit interview</h3>
       <div className="space-y-3">
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Reason for leaving</Label>
+          <div className="space-y-1.5"><Label className="text-detail">Reason for leaving</Label>
             <input value={reason} onChange={(e) => setReason(e.target.value)} disabled={!canWrite}
-              className="h-9 w-full rounded-md border bg-background px-3 text-[13px] outline-none focus:ring-2 focus:ring-ring disabled:opacity-60" /></div>
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Overall experience (1–5)</Label>
+              className="h-9 w-full rounded-md border bg-background px-3 text-body outline-none focus:ring-2 focus:ring-ring disabled:opacity-60" /></div>
+          <div className="space-y-1.5"><Label className="text-detail">Overall experience (1–5)</Label>
             <Select value={rating} onValueChange={setRating} disabled={!canWrite}>
               <SelectTrigger className="h-9"><SelectValue placeholder="Rate" /></SelectTrigger>
               <SelectContent>{[1, 2, 3, 4, 5].map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}</SelectContent>
             </Select>
           </div>
         </div>
-        <div className="space-y-1.5"><Label className="text-[12.5px]">Feedback</Label>
+        <div className="space-y-1.5"><Label className="text-detail">Feedback</Label>
           <textarea value={feedback} onChange={(e) => setFeedback(e.target.value)} disabled={!canWrite}
-            className="h-24 w-full resize-y rounded-md border bg-background p-3 text-[13px] outline-none focus:ring-2 focus:ring-ring disabled:opacity-60" /></div>
+            className="h-24 w-full resize-y rounded-md border bg-background p-3 text-body outline-none focus:ring-2 focus:ring-ring disabled:opacity-60" /></div>
         {canWrite && (
           <Button onClick={save} disabled={busy} size="sm" className="gap-1.5">
             {busy ? <Loader2 className="size-4 animate-spin" /> : saved ? <CheckCheck className="size-4" /> : null}

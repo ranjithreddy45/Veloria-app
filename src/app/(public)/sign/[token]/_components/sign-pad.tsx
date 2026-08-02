@@ -169,7 +169,7 @@ export function SignPad({ token, defaultSignerName }: SignPadProps) {
 
   return (
     <div className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
-      <h2 className="font-editorial text-foreground text-[20px] font-semibold">
+      <h2 className="font-editorial text-foreground text-title font-semibold">
         Sign to confirm
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">

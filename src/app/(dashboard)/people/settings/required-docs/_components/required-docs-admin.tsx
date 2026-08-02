@@ -54,7 +54,7 @@ export function RequiredDocsAdmin({
 }) {
   return (
     <div className="space-y-4">
-      <div className="flex items-start gap-2.5 rounded-xl border border-blue-200/70 bg-blue-50/60 p-3.5 text-[12.5px] leading-relaxed text-blue-900 dark:border-blue-400/20 dark:bg-blue-400/10 dark:text-blue-200">
+      <div className="flex items-start gap-2.5 rounded-xl border border-blue-200/70 bg-blue-50/60 p-3.5 text-detail leading-relaxed text-blue-900 dark:border-blue-400/20 dark:bg-blue-400/10 dark:text-blue-200">
         <Info className="mt-0.5 size-4 shrink-0" />
         <p>
           Missing mandatory documents are surfaced on the employee profile and
@@ -78,8 +78,8 @@ export function RequiredDocsAdmin({
       <div className="rounded-xl border bg-card p-5">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h3 className="text-[14px] font-semibold">Required document types</h3>
-            <p className="text-[12.5px] text-muted-foreground">
+            <h3 className="text-copy font-semibold">Required document types</h3>
+            <p className="text-detail text-muted-foreground">
               The documents every employee must have on file. Scope each to an
               employment type, or apply to all.
             </p>
@@ -256,7 +256,7 @@ function DocTypeDialog({ existing }: { existing?: RequiredDocTypeRow }) {
         </DialogHeader>
         <div className="space-y-3 py-2">
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Document name</Label>
+            <Label className="text-detail">Document name</Label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -264,7 +264,7 @@ function DocTypeDialog({ existing }: { existing?: RequiredDocTypeRow }) {
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Applies to</Label>
+            <Label className="text-detail">Applies to</Label>
             <Select value={appliesTo} onValueChange={setAppliesTo}>
               <SelectTrigger>
                 <SelectValue />
@@ -279,7 +279,7 @@ function DocTypeDialog({ existing }: { existing?: RequiredDocTypeRow }) {
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Sort order</Label>
+            <Label className="text-detail">Sort order</Label>
             <Input
               type="number"
               value={order}
@@ -288,9 +288,9 @@ function DocTypeDialog({ existing }: { existing?: RequiredDocTypeRow }) {
             />
           </div>
           <label className="flex items-center justify-between rounded-lg border p-2.5">
-            <span className="text-[13px]">
+            <span className="text-body">
               Mandatory
-              <span className="block text-[11.5px] text-muted-foreground">
+              <span className="block text-meta text-muted-foreground">
                 Blocks employee activation until on file.
               </span>
             </span>

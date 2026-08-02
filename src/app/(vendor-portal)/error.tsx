@@ -30,7 +30,7 @@ export default function VendorPortalError({
 
         {/* Text */}
         <div className="space-y-2">
-          <h2 className="font-editorial text-[22px] tracking-[-0.01em] text-foreground">
+          <h2 className="font-editorial text-title tracking-[-0.01em] text-foreground">
             That didn&apos;t load the way it should
           </h2>
           <p className="text-sm leading-relaxed text-muted-foreground">

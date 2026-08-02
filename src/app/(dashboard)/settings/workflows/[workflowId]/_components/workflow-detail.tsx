@@ -146,10 +146,10 @@ export function WorkflowDetail({ workflow }: WorkflowDetailProps) {
       <div className="grid gap-6 md:grid-cols-2">
         <section className="rounded-2xl border bg-card shadow-card">
           <div className="border-b px-5 py-4">
-            <h3 className="text-[15px] font-semibold tracking-[-0.01em]">
+            <h3 className="text-copy font-semibold tracking-[-0.01em]">
               Configuration
             </h3>
-            <p className="mt-1 text-[13px] text-muted-foreground">
+            <p className="mt-1 text-body text-muted-foreground">
               When this workflow fires and how it has behaved so far.
             </p>
           </div>
@@ -157,7 +157,7 @@ export function WorkflowDetail({ workflow }: WorkflowDetailProps) {
             <div className="flex items-center justify-between gap-4 px-5 py-3.5">
               <div className="min-w-0">
                 <p className="text-sm font-medium">Status</p>
-                <p className="mt-0.5 text-[12.5px] text-muted-foreground">
+                <p className="mt-0.5 text-detail text-muted-foreground">
                   {workflow.isActive
                     ? "Running — the trigger is live."
                     : "Paused — the trigger is ignored."}
@@ -206,10 +206,10 @@ export function WorkflowDetail({ workflow }: WorkflowDetailProps) {
         <section className="rounded-2xl border bg-card shadow-card">
           <div className="flex items-start justify-between gap-3 border-b px-5 py-4">
             <div className="min-w-0">
-              <h3 className="text-[15px] font-semibold tracking-[-0.01em]">
+              <h3 className="text-copy font-semibold tracking-[-0.01em]">
                 Actions
               </h3>
-              <p className="mt-1 text-[13px] text-muted-foreground">
+              <p className="mt-1 text-body text-muted-foreground">
                 Run top to bottom every time the trigger fires.
               </p>
             </div>
@@ -251,7 +251,7 @@ export function WorkflowDetail({ workflow }: WorkflowDetailProps) {
                     <p className="text-sm font-medium">
                       {ACTION_TYPE_LABELS[action.type] ?? action.type}
                     </p>
-                    <div className="mt-0.5 text-[12.5px] text-muted-foreground">
+                    <div className="mt-0.5 text-detail text-muted-foreground">
                       {action.type === "SEND_EMAIL" && (
                         <span>
                           Template {String(action.config.template || "--")} · to{" "}
@@ -283,10 +283,10 @@ export function WorkflowDetail({ workflow }: WorkflowDetailProps) {
       {/* Execution Logs */}
       <section className="rounded-2xl border bg-card shadow-card">
         <div className="border-b px-5 py-4">
-          <h3 className="text-[15px] font-semibold tracking-[-0.01em]">
+          <h3 className="text-copy font-semibold tracking-[-0.01em]">
             Execution Log
           </h3>
-          <p className="mt-1 text-[13px] text-muted-foreground">
+          <p className="mt-1 text-body text-muted-foreground">
             Every run this workflow has made, newest first.
           </p>
         </div>
@@ -301,19 +301,19 @@ export function WorkflowDetail({ workflow }: WorkflowDetailProps) {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  <TableHead className="text-meta uppercase tracking-wide text-muted-foreground">
                     Date
                   </TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  <TableHead className="text-meta uppercase tracking-wide text-muted-foreground">
                     Action
                   </TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  <TableHead className="text-meta uppercase tracking-wide text-muted-foreground">
                     Status
                   </TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  <TableHead className="text-meta uppercase tracking-wide text-muted-foreground">
                     Booking
                   </TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  <TableHead className="text-meta uppercase tracking-wide text-muted-foreground">
                     Error
                   </TableHead>
                 </TableRow>

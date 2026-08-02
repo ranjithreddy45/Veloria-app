@@ -54,7 +54,7 @@ export default async function RsvpPage({
         <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-warning/12 text-warning">
           <AlertTriangle className="size-6" />
         </div>
-        <h1 className="text-foreground mt-5 text-[24px]">
+        <h1 className="text-foreground mt-5 text-h2">
           This invitation link isn&apos;t valid
         </h1>
         <p className="text-muted-foreground mx-auto mt-2 max-w-xs text-sm leading-relaxed">
@@ -101,17 +101,17 @@ export default async function RsvpPage({
             className="pointer-events-none absolute inset-4 rounded-xl border border-white/12"
           />
           <div className="relative">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/55">
+            <p className="text-meta font-semibold uppercase tracking-[0.28em] text-white/55">
               You are cordially invited to
             </p>
-            <h1 className="mt-5 text-[32px] text-white sm:text-[40px]">
+            <h1 className="mt-5 text-h1 text-white sm:text-display">
               {booking.eventName}
             </h1>
             <div
               aria-hidden
               className="mx-auto mt-5 h-px w-14 bg-white/25"
             />
-            <p className="mt-5 text-[13px] tracking-wide text-white/60">
+            <p className="mt-5 text-body tracking-wide text-white/60">
               Hosted by {hostName}
             </p>
           </div>
@@ -120,7 +120,7 @@ export default async function RsvpPage({
         <CardContent className="space-y-7 px-6 py-8">
           {/* Guest Greeting */}
           <div className="text-center">
-            <p className="font-editorial text-foreground text-[20px]">
+            <p className="font-editorial text-foreground text-title">
               Dear {guest.name},
             </p>
             <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm leading-relaxed">
@@ -133,7 +133,7 @@ export default async function RsvpPage({
             <div className="bg-muted/40 flex items-center gap-3.5 rounded-xl border p-3.5">
               <CalendarCheck className="text-muted-foreground/60 size-5 flex-shrink-0" />
               <div className="min-w-0">
-                <p className="text-muted-foreground/70 text-[10px] font-semibold uppercase tracking-[0.14em]">
+                <p className="text-muted-foreground/70 text-meta font-semibold uppercase tracking-[0.14em]">
                   Date
                 </p>
                 <p className="text-foreground mt-0.5 text-sm font-semibold">
@@ -146,7 +146,7 @@ export default async function RsvpPage({
               <div className="bg-muted/40 flex items-center gap-3.5 rounded-xl border p-3.5">
                 <Clock className="text-muted-foreground/60 size-5 flex-shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-muted-foreground/70 text-[10px] font-semibold uppercase tracking-[0.14em]">
+                  <p className="text-muted-foreground/70 text-meta font-semibold uppercase tracking-[0.14em]">
                     Time
                   </p>
                   <p className="numeric text-foreground mt-0.5 text-sm font-semibold">
@@ -159,7 +159,7 @@ export default async function RsvpPage({
             <div className="bg-muted/40 flex items-center gap-3.5 rounded-xl border p-3.5">
               <MapPin className="text-muted-foreground/60 size-5 flex-shrink-0" />
               <div className="min-w-0">
-                <p className="text-muted-foreground/70 text-[10px] font-semibold uppercase tracking-[0.14em]">
+                <p className="text-muted-foreground/70 text-meta font-semibold uppercase tracking-[0.14em]">
                   Venue
                 </p>
                 <p className="text-foreground mt-0.5 text-sm font-semibold">
@@ -178,7 +178,7 @@ export default async function RsvpPage({
             {isAccepted ? (
               <>
                 <CheckCircle2 className="mx-auto size-11 text-success" />
-                <h2 className="font-editorial text-foreground mt-4 text-[24px] font-semibold">
+                <h2 className="font-editorial text-foreground mt-4 text-h2 font-semibold">
                   Thank you for accepting
                 </h2>
                 <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm leading-relaxed">
@@ -189,7 +189,7 @@ export default async function RsvpPage({
             ) : (
               <>
                 <XCircle className="text-muted-foreground/50 mx-auto size-11" />
-                <h2 className="font-editorial text-foreground mt-4 text-[24px] font-semibold">
+                <h2 className="font-editorial text-foreground mt-4 text-h2 font-semibold">
                   You&apos;ll be missed
                 </h2>
                 <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm leading-relaxed">
@@ -203,7 +203,7 @@ export default async function RsvpPage({
       ) : (
         <Card className="shadow-card rounded-2xl">
           <CardHeader className="pb-2">
-            <CardTitle className="font-editorial text-foreground text-center text-[22px] font-semibold">
+            <CardTitle className="font-editorial text-foreground text-center text-title font-semibold">
               Will you be joining us?
             </CardTitle>
           </CardHeader>

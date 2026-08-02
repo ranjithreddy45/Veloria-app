@@ -102,7 +102,7 @@ export function MissedCallsBoard({
           <PhoneIncoming className="size-4 text-muted-foreground" />
           Inbound ring log
         </CardTitle>
-        <span className="text-[13px] text-muted-foreground">
+        <span className="text-body text-muted-foreground">
           <span className="numeric">{total}</span> ring{total === 1 ? "" : "s"}
         </span>
       </CardHeader>
@@ -184,7 +184,7 @@ export function MissedCallsBoard({
                         <StatusPill label={waLabel} hue={waHue} size="xs" />
                         {!r.whatsappSent && r.failReason ? (
                           <span
-                            className="block max-w-[220px] truncate text-[11px] text-muted-foreground"
+                            className="block max-w-[220px] truncate text-meta text-muted-foreground"
                             title={r.failReason}
                           >
                             {r.failReason}

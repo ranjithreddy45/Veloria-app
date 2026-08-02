@@ -163,29 +163,29 @@ export function EmployeeEditDialog({ employee, entities, verticals, departments,
 
           <div className="space-y-2 sm:col-span-2">
             <div className="flex items-center justify-between">
-              <Label className="text-[12.5px]">Attendance sites (geofence)</Label>
-              <label className="flex items-center gap-2 text-[12.5px] text-muted-foreground">
+              <Label className="text-detail">Attendance sites (geofence)</Label>
+              <label className="flex items-center gap-2 text-detail text-muted-foreground">
                 Can mark from all locations
                 <Switch checked={allSites} onCheckedChange={setAllSites} />
               </label>
             </div>
             {allSites ? (
-              <p className="rounded-md border border-dashed bg-muted/30 px-3 py-2 text-[12.5px] text-muted-foreground">
+              <p className="rounded-md border border-dashed bg-muted/30 px-3 py-2 text-detail text-muted-foreground">
                 This employee may check in from <strong>any</strong> active site.
               </p>
             ) : sites.length === 0 ? (
-              <p className="text-[12.5px] text-muted-foreground">No attendance sites configured yet.</p>
+              <p className="text-detail text-muted-foreground">No attendance sites configured yet.</p>
             ) : (
               <div className="grid gap-1.5 rounded-md border p-2 sm:grid-cols-2">
                 {sites.map((s) => (
-                  <label key={s.id} className="flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 text-[13px] hover:bg-muted/50">
+                  <label key={s.id} className="flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 text-body hover:bg-muted/50">
                     <Checkbox checked={siteIds.includes(s.id)} onCheckedChange={() => toggleSite(s.id)} />
                     {s.name}
                   </label>
                 ))}
               </div>
             )}
-            <p className="text-[12.5px] text-muted-foreground">
+            <p className="text-detail text-muted-foreground">
               A check-in is accepted if it matches <strong>any</strong> selected site (radius / office IP / WFH).
             </p>
           </div>
@@ -234,7 +234,7 @@ export function EmployeeEditDialog({ employee, entities, verticals, departments,
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-medium text-destructive">Archive employee</p>
-                <p className="text-[12.5px] text-destructive/80">
+                <p className="text-detail text-destructive/80">
                   Marks the record as exited and removes them from the directory. This can’t be undone here.
                 </p>
               </div>
@@ -274,7 +274,7 @@ export function EmployeeEditDialog({ employee, entities, verticals, departments,
 }
 
 function F({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div className="space-y-1.5"><Label className="text-[12.5px]">{label}</Label>{children}</div>;
+  return <div className="space-y-1.5"><Label className="text-detail">{label}</Label>{children}</div>;
 }
 
 function P({

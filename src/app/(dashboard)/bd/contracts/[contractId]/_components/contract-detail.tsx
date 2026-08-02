@@ -119,19 +119,19 @@ export function ContractDetail({ contract, userRole }: { contract: ContractFull;
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <Link href="/bd/contracts" className="mb-3 inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground">
+        <Link href="/bd/contracts" className="mb-3 inline-flex items-center gap-1.5 text-body text-muted-foreground hover:text-foreground">
           <ArrowLeft className="size-3.5" /> Back to Contracts
         </Link>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-[20px] font-semibold tracking-tight text-foreground">{contract.title}</h1>
+              <h1 className="text-title font-semibold tracking-tight text-foreground">{contract.title}</h1>
               <StatusPill label={ACQ_CONTRACT_LIFECYCLE_LABEL[contract.status as keyof typeof ACQ_CONTRACT_LIFECYCLE_LABEL] ?? contract.status} hue={STATUS_HUE[contract.status] ?? "slate"} size="xs" />
-              <span className="inline-flex items-center rounded-full border border-border bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+              <span className="inline-flex items-center rounded-full border border-border bg-muted/40 px-2 py-0.5 text-meta font-medium text-muted-foreground">
                 {ACQ_CONTRACT_PHASE_LABEL[contract.phase as keyof typeof ACQ_CONTRACT_PHASE_LABEL] ?? contract.phase}
               </span>
             </div>
-            <p className="text-[13px] text-muted-foreground">{contract.propertyName} · {contract.ownerName}</p>
+            <p className="text-body text-muted-foreground">{contract.propertyName} · {contract.ownerName}</p>
           </div>
           <Button
             variant="outline"
@@ -151,7 +151,7 @@ export function ContractDetail({ contract, userRole }: { contract: ContractFull;
         <CardContent className="flex flex-wrap items-center gap-2 p-4">
           {ACQ_CONTRACT_PHASE.map((p, i) => (
             <React.Fragment key={p}>
-              <span className={`inline-flex items-center gap-1.5 text-[12.5px] ${i <= phaseIdx ? "font-medium text-foreground" : "text-muted-foreground"}`}>
+              <span className={`inline-flex items-center gap-1.5 text-detail ${i <= phaseIdx ? "font-medium text-foreground" : "text-muted-foreground"}`}>
                 {i < phaseIdx ? <CheckCircle2 className="size-3.5 text-emerald-600" /> : i === phaseIdx ? <Circle className="size-3.5 fill-foreground/20 text-foreground" /> : <Circle className="size-3.5 text-muted-foreground/40" />}
                 {ACQ_CONTRACT_PHASE_LABEL[p]}
               </span>
@@ -164,7 +164,7 @@ export function ContractDetail({ contract, userRole }: { contract: ContractFull;
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         {/* Details */}
         <Card className="lg:col-span-2">
-          <CardHeader><CardTitle className="text-[13px] tracking-[-0.01em]">Details</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-body tracking-[-0.01em]">Details</CardTitle></CardHeader>
           <CardContent>
             <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
               <F label="Owner" value={contract.ownerName} />
@@ -185,7 +185,7 @@ export function ContractDetail({ contract, userRole }: { contract: ContractFull;
 
         {/* Lifecycle actions */}
         <Card>
-          <CardHeader><CardTitle className="text-[13px] tracking-[-0.01em]">Actions</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-body tracking-[-0.01em]">Actions</CardTitle></CardHeader>
           <CardContent className="grid gap-2">
             {contract.status === "DRAFT" && contract.phase !== "APPROVAL" && canWrite && (
               <Button size="sm" disabled={busy !== null} onClick={() => run("submit", () => submitContractForApproval(contract.id), "Submitted for approval")}>
@@ -201,7 +201,7 @@ export function ContractDetail({ contract, userRole }: { contract: ContractFull;
               </>
             )}
             {contract.status === "DRAFT" && contract.phase === "APPROVAL" && !canApprove && (
-              <p className="text-[12px] text-muted-foreground">Awaiting BD Head / manager approval before it can go to the owner.</p>
+              <p className="text-detail text-muted-foreground">Awaiting BD Head / manager approval before it can go to the owner.</p>
             )}
             {(contract.status === "APPROVED" || contract.status === "NEGOTIATED") && canMove && (
               <div className="grid grid-cols-2 gap-2">
@@ -261,19 +261,19 @@ export function ContractDetail({ contract, userRole }: { contract: ContractFull;
 
       {/* Activity */}
       <Card>
-        <CardHeader><CardTitle className="text-[13px] tracking-[-0.01em]">Activity</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-body tracking-[-0.01em]">Activity</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <AddNote contractId={contract.id} />
           {contract.activities.length === 0 ? (
-            <p className="text-[13px] text-muted-foreground">No activity yet.</p>
+            <p className="text-body text-muted-foreground">No activity yet.</p>
           ) : (
             <ol className="space-y-2.5">
               {contract.activities.map((a) => (
-                <li key={a.id} className="flex items-start gap-3 text-[13px]">
+                <li key={a.id} className="flex items-start gap-3 text-body">
                   <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-foreground/40" />
                   <div>
                     <div className="text-foreground"><span className="font-medium">{a.type.replaceAll("_", " ")}</span>{a.detail ? ` · ${a.detail}` : ""}</div>
-                    <div className="text-[11.5px] text-muted-foreground">{fmtDate(a.createdAt)} · {a.actorName ?? "—"}</div>
+                    <div className="text-meta text-muted-foreground">{fmtDate(a.createdAt)} · {a.actorName ?? "—"}</div>
                   </div>
                 </li>
               ))}
@@ -324,7 +324,7 @@ function ContractAuthoring({ contract }: { contract: ContractFull }) {
       {/* "Authoring" plus "Insert standard template" and "Save draft" is ~370px
         * of buttons alone — wider than a phone card, so the header wraps. */}
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-x-3 gap-y-2">
-        <CardTitle className="flex items-center gap-1.5 text-[13px] tracking-[-0.01em]">
+        <CardTitle className="flex items-center gap-1.5 text-body tracking-[-0.01em]">
           <FileText className="size-4" /> Authoring
         </CardTitle>
         <div className="flex flex-wrap gap-2">
@@ -338,9 +338,9 @@ function ContractAuthoring({ contract }: { contract: ContractFull }) {
           onChange={(e) => setBody(e.target.value)}
           rows={14}
           placeholder="Author the agreement here, or click 'Insert standard template' to start from the Veloria management agreement (auto-filled with this deal's terms)."
-          className="font-mono text-[12.5px] leading-relaxed"
+          className="font-mono text-detail leading-relaxed"
         />
-        <p className="text-[11.5px] text-muted-foreground">
+        <p className="text-meta text-muted-foreground">
           Edit the clauses as needed. The <strong>Preview / Download PDF</strong> button renders this as a branded, signature-ready agreement.
         </p>
       </CardContent>
@@ -351,11 +351,11 @@ function ContractAuthoring({ contract }: { contract: ContractFull }) {
 function F({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="space-y-0.5">
-      <dt className="text-[11px] uppercase tracking-[0.06em] text-muted-foreground">{label}</dt>
+      <dt className="text-meta uppercase tracking-[0.06em] text-muted-foreground">{label}</dt>
       {/* Emails and long owner names have no break opportunity, and this dl runs
         * two columns (~165px) on a phone — without break-words they push the
         * card past the viewport edge. */}
-      <dd className="text-[13px] break-words text-foreground">{value || "—"}</dd>
+      <dd className="text-body break-words text-foreground">{value || "—"}</dd>
     </div>
   );
 }
@@ -366,7 +366,7 @@ function TerminateBox({ contractId, busy, run }: { contractId: string; busy: str
   if (!open) return <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700" onClick={() => setOpen(true)}><Ban className="size-3.5" /> Terminate</Button>;
   return (
     <div className="space-y-1.5 rounded-md border border-rose-200 p-2.5">
-      <Label className="text-[12px]">Gain / loss (₹, negative for loss)</Label>
+      <Label className="text-detail">Gain / loss (₹, negative for loss)</Label>
       <Input inputMode="numeric" value={gl} onChange={(e) => setGl(e.target.value)} placeholder="e.g. -50000" className="h-8" />
       <div className="flex justify-end gap-2">
         <Button size="sm" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
@@ -383,7 +383,7 @@ function RejectBox({ contractId, busy, run }: { contractId: string; busy: string
   if (!open) return <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700" onClick={() => setOpen(true)}>Request changes</Button>;
   return (
     <div className="space-y-1.5 rounded-md border border-rose-200 p-2.5">
-      <Label className="text-[12px]">What needs to change?</Label>
+      <Label className="text-detail">What needs to change?</Label>
       <Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2} placeholder="Reason / requested changes…" />
       <div className="flex justify-end gap-2">
         <Button size="sm" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
@@ -458,7 +458,7 @@ function ContractSigning({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-1.5 text-[13px] tracking-[-0.01em]">
+        <CardTitle className="flex items-center gap-1.5 text-body tracking-[-0.01em]">
           <FileSignature className="size-4" /> Signing method
         </CardTitle>
       </CardHeader>
@@ -483,14 +483,14 @@ function ContractSigning({
         </div>
 
         {mode === null && (
-          <p className="text-[12px] text-muted-foreground">
+          <p className="text-detail text-muted-foreground">
             Pick how this agreement gets signed. <strong>Digital</strong> routes it through the e-signature
             provider; <strong>Manual</strong> means you print it, get it signed, and upload the scan here.
           </p>
         )}
 
         {mode === "DIGITAL" && (
-          <p className="text-[12px] text-muted-foreground">
+          <p className="text-detail text-muted-foreground">
             Use <strong>Send for e-signature</strong> in Actions above.{" "}
             {contract.esignStatus ? `Provider status: ${contract.esignProvider ?? ""} ${contract.esignStatus}.` : "Not sent yet."}
           </p>
@@ -498,7 +498,7 @@ function ContractSigning({
 
         {mode === "MANUAL" && (
           <div className="space-y-3">
-            <p className="text-[12px] text-muted-foreground">
+            <p className="text-detail text-muted-foreground">
               Upload the signed agreement (PDF or photo/scan). This marks the contract <strong>signed</strong>,
               wins the source deal and creates the hall for onboarding — in one step.
               {!contract.dealId && " This contract isn't linked to a deal, so no hall will be created."}
@@ -509,11 +509,11 @@ function ContractSigning({
                   href={contract.signedContractUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[13px] font-medium text-primary hover:underline"
+                  className="text-body font-medium text-primary hover:underline"
                 >
                   Signed agreement
                 </a>
-                <span className="text-[11.5px] text-muted-foreground">
+                <span className="text-meta text-muted-foreground">
                   Uploaded {fmtDate(contract.signedUploadedAt)}
                 </span>
                 {canMove && (
@@ -536,15 +536,15 @@ function ContractSigning({
                   label={busy ? "Uploading…" : "Upload signed contract"}
                   disabled={busy || contract.status === "TERMINATED"}
                 />
-                <span className="text-[11.5px] text-muted-foreground">PDF or image, up to ~5 MB.</span>
+                <span className="text-meta text-muted-foreground">PDF or image, up to ~5 MB.</span>
               </div>
             ) : (
-              <p className="text-[12px] text-muted-foreground">
+              <p className="text-detail text-muted-foreground">
                 Waiting for a BD executive / BD Head to upload the signed copy.
               </p>
             )}
             {contract.status !== "NEGOTIATED" && !executed && (
-              <p className="text-[11.5px] text-warning">
+              <p className="text-meta text-warning">
                 Send the contract to the owner first — the signed copy can only be uploaded once it&apos;s out for signature.
               </p>
             )}
@@ -574,20 +574,20 @@ function ContractDocs({ contractId, docs }: { contractId: string; docs: Contract
   }
   return (
     <Card>
-      <CardHeader><CardTitle className="text-[13px] tracking-[-0.01em]">Documents</CardTitle></CardHeader>
+      <CardHeader><CardTitle className="text-body tracking-[-0.01em]">Documents</CardTitle></CardHeader>
       <CardContent className="space-y-3">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <FileUpload onUploaded={onUploaded} label={busy ? "Uploading…" : "Upload document"} disabled={busy} />
-          <span className="text-[11.5px] text-muted-foreground">Images or PDF, up to ~5 MB.</span>
+          <span className="text-meta text-muted-foreground">Images or PDF, up to ~5 MB.</span>
         </div>
         {docs.length === 0 ? (
-          <p className="text-[13px] text-muted-foreground">No documents yet.</p>
+          <p className="text-body text-muted-foreground">No documents yet.</p>
         ) : (
           <ul className="space-y-1.5">
             {docs.map((d) => (
               <li key={d.id}>
-                <a href={d.url} target="_blank" rel="noopener noreferrer" className="text-[13px] text-primary hover:underline">{d.label ?? "Document"}</a>
-                <span className="pl-2 text-[11.5px] text-muted-foreground">{fmtDate(d.createdAt)}</span>
+                <a href={d.url} target="_blank" rel="noopener noreferrer" className="text-body text-primary hover:underline">{d.label ?? "Document"}</a>
+                <span className="pl-2 text-meta text-muted-foreground">{fmtDate(d.createdAt)}</span>
               </li>
             ))}
           </ul>
@@ -613,18 +613,18 @@ function ContractVersions({ contractId, versions }: { contractId: string; versio
   }
   return (
     <Card>
-      <CardHeader><CardTitle className="text-[13px] tracking-[-0.01em]">Version history</CardTitle></CardHeader>
+      <CardHeader><CardTitle className="text-body tracking-[-0.01em]">Version history</CardTitle></CardHeader>
       <CardContent>
         {versions.length === 0 ? (
-          <p className="text-[13px] text-muted-foreground">No saved versions yet. Each saved draft is snapshotted here.</p>
+          <p className="text-body text-muted-foreground">No saved versions yet. Each saved draft is snapshotted here.</p>
         ) : (
           <ul className="space-y-1.5">
             {versions.map((v) => (
-              <li key={v.id} className="flex items-center justify-between rounded-md border border-border/60 px-2.5 py-2 text-[13px]">
+              <li key={v.id} className="flex items-center justify-between rounded-md border border-border/60 px-2.5 py-2 text-body">
                 <span className="text-foreground">Version {v.version}</span>
                 <span className="flex items-center gap-3">
-                  <span className="text-[11.5px] text-muted-foreground">{fmtDate(v.createdAt)}</span>
-                  <button onClick={() => setView(v)} className="text-[12.5px] text-primary hover:underline">View</button>
+                  <span className="text-meta text-muted-foreground">{fmtDate(v.createdAt)}</span>
+                  <button onClick={() => setView(v)} className="text-detail text-primary hover:underline">View</button>
                 </span>
               </li>
             ))}
@@ -638,7 +638,7 @@ function ContractVersions({ contractId, versions }: { contractId: string; versio
             <DialogTitle>Version {view?.version}</DialogTitle>
             <DialogDescription>{view ? fmtDate(view.createdAt) : ""}</DialogDescription>
           </DialogHeader>
-          <pre className="max-h-[55vh] overflow-y-auto whitespace-pre-wrap rounded-md border border-border/60 bg-muted/30 p-3 font-mono text-[12px] leading-relaxed">{view?.body}</pre>
+          <pre className="max-h-[55vh] overflow-y-auto whitespace-pre-wrap rounded-md border border-border/60 bg-muted/30 p-3 font-mono text-detail leading-relaxed">{view?.body}</pre>
           <DialogFooter>
             <Button variant="outline" onClick={() => setView(null)}>Close</Button>
             {view && <Button onClick={() => restore(view.id)} disabled={busy}>{busy ? "Restoring…" : "Restore this version"}</Button>}

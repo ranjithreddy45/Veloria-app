@@ -38,10 +38,10 @@ export default function AuthLayout({
                   <Gem className="size-[22px]" strokeWidth={2.2} />
                 </div>
                 <div className="text-center">
-                  <h1 className="text-ink-gradient large-title text-[22px]">
+                  <h1 className="text-ink-gradient large-title text-title">
                     Veloria Grand
                   </h1>
-                  <p className="mt-1 text-[12.5px] tracking-wide text-muted-foreground">
+                  <p className="mt-1 text-detail tracking-wide text-muted-foreground">
                     Premium Event Venue Management
                   </p>
                 </div>
@@ -58,11 +58,11 @@ export default function AuthLayout({
 
         {/* Trust footer */}
         <div className="mt-7 flex flex-col items-center gap-2.5">
-          <p className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground/80">
+          <p className="flex items-center gap-1.5 text-meta font-medium text-muted-foreground/80">
             <ShieldCheck className="size-3.5 text-primary/70" />
             Enterprise-grade security &amp; encryption
           </p>
-          <p className="text-center text-[11px] text-muted-foreground/60">
+          <p className="text-center text-meta text-muted-foreground/60">
             &copy; {new Date().getFullYear()} Veloria Grand. All rights reserved.
           </p>
         </div>

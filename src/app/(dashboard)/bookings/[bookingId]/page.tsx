@@ -99,11 +99,11 @@ function Section({
   return (
     <section className="space-y-3">
       <div className="space-y-0.5">
-        <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-foreground">
+        <h2 className="text-copy font-semibold tracking-[-0.01em] text-foreground">
           {title}
         </h2>
         {description && (
-          <p className="text-[13px] text-muted-foreground">{description}</p>
+          <p className="text-body text-muted-foreground">{description}</p>
         )}
       </div>
       {children}
@@ -125,19 +125,19 @@ function Fact({
 }) {
   return (
     <div className="bg-card p-4">
-      <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+      <p className="text-meta font-medium uppercase tracking-[0.08em] text-muted-foreground">
         {label}
       </p>
       <p
         className={cn(
-          "mt-1 truncate text-[15px] font-semibold tracking-[-0.01em] text-foreground",
+          "mt-1 truncate text-copy font-semibold tracking-[-0.01em] text-foreground",
           numeric && "numeric"
         )}
       >
         {value}
       </p>
       {sub && (
-        <p className="mt-0.5 truncate text-[12px] text-muted-foreground">{sub}</p>
+        <p className="mt-0.5 truncate text-detail text-muted-foreground">{sub}</p>
       )}
     </div>
   );
@@ -347,7 +347,7 @@ export default async function BookingDetailPage({
             </p>
             <p
               className={cn(
-                "text-[13px]",
+                "text-body",
                 holdExpired ? "text-destructive" : "text-warning"
               )}
             >
@@ -394,20 +394,20 @@ export default async function BookingDetailPage({
               <CardContent>
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                   <div>
-                    <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Total invoiced</p>
+                    <p className="text-meta font-medium uppercase tracking-[0.08em] text-muted-foreground">Total invoiced</p>
                     <p className="numeric mt-1 text-lg font-semibold">{formatINR(totalInvoiced)}</p>
                   </div>
                   <div>
-                    <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Collected</p>
+                    <p className="text-meta font-medium uppercase tracking-[0.08em] text-muted-foreground">Collected</p>
                     <p className="numeric mt-1 text-lg font-semibold text-success">{formatINR(collected)}</p>
                   </div>
                   <div>
-                    <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Pending</p>
+                    <p className="text-meta font-medium uppercase tracking-[0.08em] text-muted-foreground">Pending</p>
                     <p className={cn("numeric mt-1 text-lg font-semibold", pending > 0 ? "text-warning" : "text-muted-foreground")}>{formatINR(pending)}</p>
                   </div>
                 </div>
                 <div className="mt-3">
-                  <div className="flex items-center justify-between text-[12px] text-muted-foreground">
+                  <div className="flex items-center justify-between text-detail text-muted-foreground">
                     <span className="tabular-nums">{pct}% collected</span>
                     {nextDue && pending > 0 && <span>Next due {format(nextDue, "d MMM yyyy")}</span>}
                   </div>
@@ -424,9 +424,9 @@ export default async function BookingDetailPage({
                   </div>
                   {/* Goal-gradient framing: show the small remaining gap */}
                   {pending <= 0 ? (
-                    <p className="mt-1.5 text-[12px] font-medium text-success">Fully paid 🎉</p>
+                    <p className="mt-1.5 text-detail font-medium text-success">Fully paid 🎉</p>
                   ) : pct >= 80 ? (
-                    <p className="mt-1.5 text-[12px] font-medium text-warning">
+                    <p className="mt-1.5 text-detail font-medium text-warning">
                       Almost there —{" "}
                       <span className="tabular-nums text-success">
                         {"₹" + Math.round(pending).toLocaleString("en-IN")}
@@ -434,7 +434,7 @@ export default async function BookingDetailPage({
                       to go
                     </p>
                   ) : (
-                    <p className="mt-1.5 text-[12px] text-muted-foreground">
+                    <p className="mt-1.5 text-detail text-muted-foreground">
                       <span className="font-semibold tabular-nums text-foreground">
                         {"₹" + Math.round(pending).toLocaleString("en-IN")}
                       </span>{" "}
@@ -916,7 +916,7 @@ export default async function BookingDetailPage({
                       >
                         <div className="min-w-0 flex-1">
                           <p className="numeric text-sm font-semibold">{invoice.invoiceNumber}</p>
-                          <div className="mt-1 text-[13px] text-muted-foreground">
+                          <div className="mt-1 text-body text-muted-foreground">
                             Issued{" "}
                             <span className="numeric">
                               {format(new Date(invoice.issueDate), "dd MMM yyyy")}
@@ -933,7 +933,7 @@ export default async function BookingDetailPage({
                               {formatINR(invoice.totalAmount)}
                             </p>
                             {Number(invoice.balanceDue) > 0 && (
-                              <p className="numeric text-destructive text-[12px]">
+                              <p className="numeric text-destructive text-detail">
                                 Due {formatINR(invoice.balanceDue)}
                               </p>
                             )}
@@ -989,7 +989,7 @@ export default async function BookingDetailPage({
                       >
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium">{task.title}</p>
-                          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] text-muted-foreground">
+                          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-body text-muted-foreground">
                             {task.dueDate && (
                               <span>
                                 Due{" "}

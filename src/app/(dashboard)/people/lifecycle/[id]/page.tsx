@@ -33,7 +33,7 @@ export default async function JourneyPage({ params }: { params: Promise<{ id: st
 
   return (
     <div className="space-y-6">
-      <Link href="/people/lifecycle" className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground">
+      <Link href="/people/lifecycle" className="inline-flex items-center gap-1.5 text-body text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-3.5" /> Joining & Exits
       </Link>
 

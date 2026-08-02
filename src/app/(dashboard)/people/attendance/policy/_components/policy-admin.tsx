@@ -37,14 +37,14 @@ const DAYS = [
 ];
 
 function WeeklyOffChips({ offs }: { offs: number[] }) {
-  if (!offs || offs.length === 0) return <span className="text-[12px] text-muted-foreground">None</span>;
+  if (!offs || offs.length === 0) return <span className="text-detail text-muted-foreground">None</span>;
   const set = new Set(offs);
   return (
     <div className="flex flex-wrap gap-1">
       {DAYS.filter((d) => set.has(d.value)).map((d) => (
         <span
           key={d.value}
-          className="rounded-md bg-warning/12 px-1.5 py-0.5 text-[11px] font-medium text-warning"
+          className="rounded-md bg-warning/12 px-1.5 py-0.5 text-meta font-medium text-warning"
         >
           {d.label}
         </span>
@@ -88,8 +88,8 @@ export function PolicyAdmin({ policies }: { policies: AttendancePolicyDto[] }) {
     <div className="rounded-xl border bg-card">
       <div className="flex items-center justify-between border-b px-5 py-4">
         <div>
-          <h3 className="text-[14px] font-semibold">Policies</h3>
-          <p className="text-[12.5px] text-muted-foreground">
+          <h3 className="text-copy font-semibold">Policies</h3>
+          <p className="text-detail text-muted-foreground">
             Rules that govern how check-in times translate to attendance status.
           </p>
         </div>
@@ -134,8 +134,8 @@ export function PolicyAdmin({ policies }: { policies: AttendancePolicyDto[] }) {
                     <TableCell><WeeklyOffChips offs={p.weeklyOffs} /></TableCell>
                     <TableCell>
                       {p.otEnabled
-                        ? <span className="text-[12.5px]">×{p.otMultiplier}</span>
-                        : <span className="text-[12px] text-muted-foreground">Off</span>}
+                        ? <span className="text-detail">×{p.otMultiplier}</span>
+                        : <span className="text-detail text-muted-foreground">Off</span>}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-1">
@@ -271,35 +271,35 @@ function PolicyDialog({ existing }: { existing?: AttendancePolicyDto }) {
 
         <div className="max-h-[65vh] space-y-4 overflow-y-auto py-2 pr-1">
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Name</Label>
+            <Label className="text-detail">Name</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Standard office policy" />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Grace period (minutes)</Label>
+              <Label className="text-detail">Grace period (minutes)</Label>
               <Input type="number" min={0} value={grace} onChange={(e) => setGrace(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Late marks → 1 LOP</Label>
+              <Label className="text-detail">Late marks → 1 LOP</Label>
               <Input type="number" min={0} value={lateToLop} onChange={(e) => setLateToLop(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Half-day after (minutes)</Label>
+              <Label className="text-detail">Half-day after (minutes)</Label>
               <Input type="number" min={0} value={halfDay} onChange={(e) => setHalfDay(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Full-day worked (minutes)</Label>
+              <Label className="text-detail">Full-day worked (minutes)</Label>
               <Input type="number" min={0} value={fullDay} onChange={(e) => setFullDay(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Max regularizations / month</Label>
+              <Label className="text-detail">Max regularizations / month</Label>
               <Input type="number" min={0} value={maxRegn} onChange={(e) => setMaxRegn(e.target.value)} />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label className="text-[12.5px]">Weekly offs</Label>
+            <Label className="text-detail">Weekly offs</Label>
             <div className="flex flex-wrap gap-1.5">
               {DAYS.map((d) => {
                 const on = weeklyOffs.includes(d.value);
@@ -309,7 +309,7 @@ function PolicyDialog({ existing }: { existing?: AttendancePolicyDto }) {
                     type="button"
                     onClick={() => toggleDay(d.value)}
                     className={cn(
-                      "rounded-lg border px-2.5 py-1 text-[12.5px] font-medium transition-colors",
+                      "rounded-lg border px-2.5 py-1 text-detail font-medium transition-colors",
                       on
                         ? "border-warning/40 bg-warning/15 text-warning"
                         : "border-border text-muted-foreground hover:bg-muted"
@@ -324,12 +324,12 @@ function PolicyDialog({ existing }: { existing?: AttendancePolicyDto }) {
 
           <div className="space-y-3 rounded-lg border p-3">
             <label className="flex items-center justify-between gap-3">
-              <span className="text-[13px] font-medium">Overtime enabled</span>
+              <span className="text-body font-medium">Overtime enabled</span>
               <Switch checked={otEnabled} onCheckedChange={setOtEnabled} />
             </label>
             {otEnabled && (
               <div className="space-y-1.5">
-                <Label className="text-[12.5px]">OT multiplier</Label>
+                <Label className="text-detail">OT multiplier</Label>
                 <Input
                   type="number" min={0} step="0.25"
                   value={otMultiplier}
@@ -347,9 +347,9 @@ function PolicyDialog({ existing }: { existing?: AttendancePolicyDto }) {
               onChange={(e) => setIsDefault(e.target.checked)}
               className="size-4"
             />
-            <span className="text-[13px]">
+            <span className="text-body">
               Set as the organisation default
-              <span className="block text-[12px] text-muted-foreground">
+              <span className="block text-detail text-muted-foreground">
                 Only one policy can be the default; the current one is replaced.
               </span>
             </span>

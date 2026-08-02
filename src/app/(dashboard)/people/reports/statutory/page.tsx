@@ -63,7 +63,7 @@ export default async function StatutoryReportsIndexPage() {
 
       <NotFiledBanner />
 
-      <div className="flex flex-wrap items-center gap-2 text-[12.5px] text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-2 text-detail text-muted-foreground">
         {latest ? (
           <>
             <span>
@@ -94,10 +94,10 @@ export default async function StatutoryReportsIndexPage() {
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
-                  <h3 className="text-[14px] font-semibold">{r.title}</h3>
+                  <h3 className="text-copy font-semibold">{r.title}</h3>
                   <ArrowRight className="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
                 </div>
-                <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">{r.desc}</p>
+                <p className="mt-1 text-detail leading-relaxed text-muted-foreground">{r.desc}</p>
               </div>
             </Link>
           );

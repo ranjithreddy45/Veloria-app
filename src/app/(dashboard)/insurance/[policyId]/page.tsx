@@ -85,7 +85,7 @@ export default async function InsurancePolicyDetailPage({
           ============================================================ */}
       <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border bg-border shadow-card lg:grid-cols-4">
         <div className="bg-card p-5">
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+          <p className="text-meta uppercase tracking-wide text-muted-foreground">
             Coverage amount
           </p>
           <p className="numeric mt-1.5 text-2xl font-semibold tracking-tight">
@@ -93,7 +93,7 @@ export default async function InsurancePolicyDetailPage({
           </p>
         </div>
         <div className="bg-card p-5">
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+          <p className="text-meta uppercase tracking-wide text-muted-foreground">
             Premium
           </p>
           <p className="numeric mt-1.5 text-2xl font-semibold tracking-tight">
@@ -101,7 +101,7 @@ export default async function InsurancePolicyDetailPage({
           </p>
         </div>
         <div className="bg-card p-5">
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+          <p className="text-meta uppercase tracking-wide text-muted-foreground">
             Cover starts
           </p>
           <p className="numeric mt-1.5 text-base font-medium">
@@ -109,7 +109,7 @@ export default async function InsurancePolicyDetailPage({
           </p>
         </div>
         <div className="bg-card p-5">
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+          <p className="text-meta uppercase tracking-wide text-muted-foreground">
             Cover ends
           </p>
           <p className="numeric mt-1.5 text-base font-medium">
@@ -123,34 +123,34 @@ export default async function InsurancePolicyDetailPage({
             Policy details
             ============================================================ */}
         <section className="rounded-2xl border bg-card p-5 shadow-card">
-          <h2 className="text-[15px] font-semibold tracking-[-0.01em]">
+          <h2 className="text-copy font-semibold tracking-[-0.01em]">
             Policy details
           </h2>
-          <p className="mt-0.5 text-[13px] text-muted-foreground">
+          <p className="mt-0.5 text-body text-muted-foreground">
             Who underwrites this cover and what it protects.
           </p>
 
           <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-5">
             <div>
-              <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              <dt className="text-meta uppercase tracking-wide text-muted-foreground">
                 Provider
               </dt>
               <dd className="mt-1 text-sm">{policy.provider}</dd>
             </div>
             <div>
-              <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              <dt className="text-meta uppercase tracking-wide text-muted-foreground">
                 Policy number
               </dt>
               <dd className="numeric mt-1 text-sm">{policy.policyNumber}</dd>
             </div>
             <div>
-              <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              <dt className="text-meta uppercase tracking-wide text-muted-foreground">
                 Type
               </dt>
               <dd className="mt-1 text-sm">{typeLabel}</dd>
             </div>
             <div>
-              <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              <dt className="text-meta uppercase tracking-wide text-muted-foreground">
                 Status
               </dt>
               <dd className="mt-1.5">
@@ -167,16 +167,16 @@ export default async function InsurancePolicyDetailPage({
             Linked entities
             ============================================================ */}
         <section className="rounded-2xl border bg-card p-5 shadow-card">
-          <h2 className="text-[15px] font-semibold tracking-[-0.01em]">
+          <h2 className="text-copy font-semibold tracking-[-0.01em]">
             Linked to
           </h2>
-          <p className="mt-0.5 text-[13px] text-muted-foreground">
+          <p className="mt-0.5 text-body text-muted-foreground">
             The booking and venue this policy covers.
           </p>
 
           <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-5">
             <div>
-              <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              <dt className="text-meta uppercase tracking-wide text-muted-foreground">
                 Booking
               </dt>
               <dd className="mt-1 text-sm">
@@ -193,7 +193,7 @@ export default async function InsurancePolicyDetailPage({
               </dd>
             </div>
             <div>
-              <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              <dt className="text-meta uppercase tracking-wide text-muted-foreground">
                 Venue
               </dt>
               <dd className="mt-1 text-sm">
@@ -212,10 +212,10 @@ export default async function InsurancePolicyDetailPage({
       <section className="rounded-2xl border bg-card p-5 shadow-card">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-[15px] font-semibold tracking-[-0.01em]">
+            <h2 className="text-copy font-semibold tracking-[-0.01em]">
               Documents
             </h2>
-            <p className="mt-0.5 text-[13px] text-muted-foreground">
+            <p className="mt-0.5 text-body text-muted-foreground">
               Certificates and paperwork attached to this policy.
             </p>
           </div>

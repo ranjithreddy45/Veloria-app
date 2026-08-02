@@ -29,7 +29,7 @@ export function RateCardManager({ items, canManage }: { items: RateItem[]; canMa
     <div className="space-y-5">
       <BuildTimeline items={items.filter((i) => i.isActive)} />
       <div className="overflow-hidden rounded-xl border bg-card">
-        <div className="border-b px-4 py-2.5 text-[13px] font-semibold">CapEx rate card</div>
+        <div className="border-b px-4 py-2.5 text-body font-semibold">CapEx rate card</div>
         <Table>
           <TableHeader>
             <TableRow>
@@ -45,7 +45,7 @@ export function RateCardManager({ items, canManage }: { items: RateItem[]; canMa
           </TableBody>
         </Table>
       </div>
-      <p className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+      <p className="flex items-center gap-1.5 text-detail text-muted-foreground">
         <AlertTriangle className="size-3.5 text-amber-500" /> The <strong>luxury floor</strong> (₹/sq ft) flags an AREA line as under-built for a premium venue when a project’s rate falls below it.
       </p>
     </div>
@@ -69,7 +69,7 @@ function RateRow({ item, canManage }: { item: RateItem; canManage: boolean }) {
   return (
     <TableRow>
       <TableCell className="font-medium">{item.label}</TableCell>
-      <TableCell><span className="text-[12px] text-muted-foreground">{BASIS_LABEL[item.basis] ?? item.basis}</span></TableCell>
+      <TableCell><span className="text-detail text-muted-foreground">{BASIS_LABEL[item.basis] ?? item.basis}</span></TableCell>
       <TableCell className="text-right">
         {canManage ? <Input value={rate} onChange={(e) => setRate(e.target.value)} className="ml-auto h-8 w-28 text-right tabular-nums" /> : <span className="tabular-nums">{Number(item.rate).toLocaleString("en-IN")}</span>}
       </TableCell>
@@ -93,22 +93,22 @@ function BuildTimeline({ items }: { items: RateItem[] }) {
 
   return (
     <div className="rounded-xl border bg-card p-4">
-      <div className="mb-3 flex items-center gap-2 text-[13px] font-semibold"><GanttChartSquare className="size-4 text-primary" /> Standard build timeline</div>
+      <div className="mb-3 flex items-center gap-2 text-body font-semibold"><GanttChartSquare className="size-4 text-primary" /> Standard build timeline</div>
       <div className="space-y-1.5">
         {sorted.map((i) => (
           <div key={i.id} className="flex items-center gap-2">
-            <span className="w-44 shrink-0 truncate text-[12px] text-muted-foreground">{i.label}</span>
+            <span className="w-44 shrink-0 truncate text-detail text-muted-foreground">{i.label}</span>
             <div className="relative h-5 flex-1 rounded bg-muted/40">
               <div
                 className={cn("absolute left-0 top-0 h-5 rounded", i.id === critical?.id ? "bg-[#C9A96E]" : "bg-primary/70")}
                 style={{ width: `${Math.max(6, (i.durationWeeks / maxWeeks) * 100)}%` }}
               />
-              <span className="absolute right-1.5 top-0 flex h-5 items-center text-[10.5px] font-medium text-foreground/70">{i.durationWeeks}w</span>
+              <span className="absolute right-1.5 top-0 flex h-5 items-center text-meta font-medium text-foreground/70">{i.durationWeeks}w</span>
             </div>
           </div>
         ))}
       </div>
-      <div className="mt-3 flex items-center gap-4 text-[11.5px] text-muted-foreground">
+      <div className="mt-3 flex items-center gap-4 text-meta text-muted-foreground">
         <span className="inline-flex items-center gap-1.5"><span className="inline-block size-2.5 rounded bg-[#C9A96E]" /> Critical path: {critical?.label} ({critical?.durationWeeks}w)</span>
         <span className="inline-flex items-center gap-1.5"><span className="inline-block size-2.5 rounded bg-primary/70" /> Other trades (run in parallel on site)</span>
       </div>
@@ -130,7 +130,7 @@ function SeedPanel() {
       <h3 className="mt-4 text-lg font-semibold">Set up the rate card</h3>
       <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">Seed the CapEx rate card from the standard Veloria build benchmarks — rates, luxury floors and build durations. Editable afterwards.</p>
       <Button onClick={run} disabled={busy} className="mt-5 gap-1.5">{busy ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />} Set up rate card</Button>
-      {msg && <p className="mt-3 text-[13px] text-muted-foreground">{msg}</p>}
+      {msg && <p className="mt-3 text-body text-muted-foreground">{msg}</p>}
     </div>
   );
 }

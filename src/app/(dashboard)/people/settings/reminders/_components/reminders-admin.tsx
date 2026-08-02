@@ -56,8 +56,8 @@ export function RemindersAdmin({ rules }: { rules: ReminderRule[] }) {
     <div className="rounded-xl border bg-card p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <h3 className="text-[14px] font-semibold">Reminder rules</h3>
-          <p className="text-[12.5px] text-muted-foreground">
+          <h3 className="text-copy font-semibold">Reminder rules</h3>
+          <p className="text-detail text-muted-foreground">
             Rules are evaluated by the daily HR cron.
           </p>
         </div>
@@ -207,7 +207,7 @@ function RuleDialog({ existing }: { existing?: ReminderRule }) {
         </DialogHeader>
         <div className="space-y-3 py-2">
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Name</Label>
+            <Label className="text-detail">Name</Label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -216,7 +216,7 @@ function RuleDialog({ existing }: { existing?: ReminderRule }) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Trigger</Label>
+              <Label className="text-detail">Trigger</Label>
               <Select value={trigger} onValueChange={setTrigger}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -227,7 +227,7 @@ function RuleDialog({ existing }: { existing?: ReminderRule }) {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Days before</Label>
+              <Label className="text-detail">Days before</Label>
               <Input
                 type="number" min={0} step={1}
                 value={daysBefore}
@@ -236,7 +236,7 @@ function RuleDialog({ existing }: { existing?: ReminderRule }) {
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Channel</Label>
+            <Label className="text-detail">Channel</Label>
             <Select value={channel} onValueChange={setChannel}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -247,7 +247,7 @@ function RuleDialog({ existing }: { existing?: ReminderRule }) {
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Audience role <span className="text-muted-foreground">(optional)</span></Label>
+            <Label className="text-detail">Audience role <span className="text-muted-foreground">(optional)</span></Label>
             <Input
               value={audienceRole}
               onChange={(e) => setAudienceRole(e.target.value)}
@@ -255,14 +255,14 @@ function RuleDialog({ existing }: { existing?: ReminderRule }) {
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Message template <span className="text-muted-foreground">(optional)</span></Label>
+            <Label className="text-detail">Message template <span className="text-muted-foreground">(optional)</span></Label>
             <Textarea
               value={messageTpl}
               onChange={(e) => setMessageTpl(e.target.value)}
               placeholder="Happy birthday, {{name}}!"
               rows={3}
             />
-            <p className="text-[11.5px] text-muted-foreground">
+            <p className="text-meta text-muted-foreground">
               Use <code className="rounded bg-muted px-1 py-0.5">{"{{name}}"}</code> and{" "}
               <code className="rounded bg-muted px-1 py-0.5">{"{{date}}"}</code> as placeholders.
             </p>

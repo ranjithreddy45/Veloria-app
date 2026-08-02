@@ -18,13 +18,13 @@ export function TopExpenses({ fy, rows }: TopExpensesProps) {
   return (
     <Card className="shadow-card">
       <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
-        <CardTitle className="flex items-center gap-2 text-[13px] font-semibold tracking-[-0.01em]">
+        <CardTitle className="flex items-center gap-2 text-body font-semibold tracking-[-0.01em]">
           <span className="flex size-7 items-center justify-center rounded-lg bg-rose-100 text-rose-600 dark:bg-rose-950/50 dark:text-rose-300">
             <Flame className="size-4" />
           </span>
           Top expenses this year
         </CardTitle>
-        <span className="text-[11.5px] text-muted-foreground">FY {fy}</span>
+        <span className="text-meta text-muted-foreground">FY {fy}</span>
       </CardHeader>
       <CardContent>
         {rows.length === 0 ? (

@@ -66,7 +66,7 @@ export default async function GuestConfirmPage({
   if (!data) {
     return (
       <div className="bg-card shadow-card rounded-2xl border p-10 text-center">
-        <h1 className="text-foreground text-[24px]">
+        <h1 className="text-foreground text-h2">
           This link is no longer active
         </h1>
         <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm leading-relaxed">
@@ -111,13 +111,13 @@ export default async function GuestConfirmPage({
   return (
     <div className="space-y-6">
       <header className="pb-2 text-center">
-        <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.18em]">
+        <p className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.18em]">
           {contactName ? `For ${contactName}` : "Your celebration"}
         </p>
-        <h1 className="text-foreground mt-3 text-[30px] sm:text-[36px]">
+        <h1 className="text-foreground mt-3 text-h1 sm:text-h1">
           {alreadyConfirmed ? "Your event is confirmed" : "Confirm your event"}
         </h1>
-        <p className="text-muted-foreground mx-auto mt-3 max-w-md text-[15px] leading-relaxed">
+        <p className="text-muted-foreground mx-auto mt-3 max-w-md text-copy leading-relaxed">
           {alreadyConfirmed
             ? "Everything below is locked in. We can't wait to host you."
             : "Please take a moment to review the details below, then confirm — so we can begin preparing your day."}
@@ -127,10 +127,10 @@ export default async function GuestConfirmPage({
       {/* Event summary */}
       <div className="bg-card shadow-card space-y-4 rounded-2xl border p-5 sm:p-6">
         <div className="flex items-baseline justify-between gap-3">
-          <h2 className="font-editorial text-foreground text-[20px] font-semibold">
+          <h2 className="font-editorial text-foreground text-title font-semibold">
             {data.eventName || data.eventType || "Your event"}
           </h2>
-          <span className="bg-muted text-muted-foreground numeric shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium">
+          <span className="bg-muted text-muted-foreground numeric shrink-0 rounded-full px-2.5 py-1 text-meta font-medium">
             {data.bookingNumber}
           </span>
         </div>
@@ -169,7 +169,7 @@ export default async function GuestConfirmPage({
         <div className="bg-card shadow-card space-y-5 rounded-2xl border p-5 sm:p-6">
           <div className="flex items-center gap-2">
             <Sparkles className="text-muted-foreground/60 size-4" />
-            <h2 className="font-editorial text-foreground text-[20px] font-semibold">
+            <h2 className="font-editorial text-foreground text-title font-semibold">
               Your services
             </h2>
           </div>
@@ -178,7 +178,7 @@ export default async function GuestConfirmPage({
             <div className="space-y-4 border-t pt-4">
               {noteRows.map((r) => (
                 <div key={r.label} className="flex flex-col gap-1.5">
-                  <span className="text-muted-foreground flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em]">
+                  <span className="text-muted-foreground flex items-center gap-2 text-meta font-semibold uppercase tracking-[0.12em]">
                     {r.icon}
                     {r.label}
                   </span>
@@ -206,7 +206,7 @@ export default async function GuestConfirmPage({
                       {pkg.sections.map((s, si) => (
                         <div key={si}>
                           {s.title && (
-                            <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.12em]">
+                            <p className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.12em]">
                               {s.title}
                             </p>
                           )}
@@ -251,7 +251,7 @@ export default async function GuestConfirmPage({
         <div className="bg-card shadow-card space-y-5 rounded-2xl border p-5 sm:p-6">
           <div className="flex items-center gap-2">
             <ShieldCheck className="text-muted-foreground/60 size-4" />
-            <h2 className="font-editorial text-foreground text-[20px] font-semibold">
+            <h2 className="font-editorial text-foreground text-title font-semibold">
               Terms &amp; Conditions
             </h2>
           </div>
@@ -291,7 +291,7 @@ export default async function GuestConfirmPage({
             })}
           </div>
           {data.termsVersion && (
-            <p className="text-muted-foreground/60 numeric text-right text-[11px]">
+            <p className="text-muted-foreground/60 numeric text-right text-meta">
               Terms version {data.termsVersion}
             </p>
           )}
@@ -301,7 +301,7 @@ export default async function GuestConfirmPage({
       {alreadyConfirmed ? (
         <div className="flex flex-col items-center gap-2 rounded-2xl border border-success/25 bg-success/[0.07] p-8 text-center">
           <CheckCircle2 className="size-8 text-success" />
-          <p className="font-editorial mt-1 text-[19px] font-semibold text-success">
+          <p className="font-editorial mt-1 text-title font-semibold text-success">
             Thank you — everything is set
           </p>
           <p className="text-sm text-success/85">

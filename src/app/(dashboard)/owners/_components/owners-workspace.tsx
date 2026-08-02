@@ -90,7 +90,7 @@ function QuickActions({ owner }: { owner: OwnerItem }) {
               <Mail className="size-3.5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="top" className="text-[11px]">
+          <TooltipContent side="top" className="text-meta">
             Email {owner.email}
           </TooltipContent>
         </Tooltip>
@@ -110,7 +110,7 @@ function QuickActions({ owner }: { owner: OwnerItem }) {
               <Phone className="size-3.5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="top" className="text-[11px]">
+          <TooltipContent side="top" className="text-meta">
             Call {owner.phone}
           </TooltipContent>
         </Tooltip>
@@ -129,7 +129,7 @@ function QuickActions({ owner }: { owner: OwnerItem }) {
             <Pencil className="size-3.5" />
           </Button>
         </TooltipTrigger>
-        <TooltipContent side="top" className="text-[11px]">
+        <TooltipContent side="top" className="text-meta">
           Edit
         </TooltipContent>
       </Tooltip>
@@ -175,7 +175,7 @@ export function OwnersWorkspace({ owners }: { owners: OwnerItem[] }) {
           <button
             onClick={() => setView("list")}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-[5px] px-2.5 py-1 text-[12.5px] font-medium transition-colors",
+              "inline-flex items-center gap-1.5 rounded-[5px] px-2.5 py-1 text-detail font-medium transition-colors",
               view === "list"
                 ? "bg-muted text-foreground"
                 : "text-muted-foreground hover:text-foreground/90"
@@ -186,7 +186,7 @@ export function OwnersWorkspace({ owners }: { owners: OwnerItem[] }) {
           <button
             onClick={() => setView("board")}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-[5px] px-2.5 py-1 text-[12.5px] font-medium transition-colors",
+              "inline-flex items-center gap-1.5 rounded-[5px] px-2.5 py-1 text-detail font-medium transition-colors",
               view === "board"
                 ? "bg-muted text-foreground"
                 : "text-muted-foreground hover:text-foreground/90"
@@ -208,7 +208,7 @@ export function OwnersWorkspace({ owners }: { owners: OwnerItem[] }) {
                   key={t.key}
                   onClick={() => setStage(t.key)}
                   className={cn(
-                    "inline-flex items-center gap-1.5 rounded-[5px] px-2.5 py-1 text-[12.5px] font-medium transition-colors",
+                    "inline-flex items-center gap-1.5 rounded-[5px] px-2.5 py-1 text-detail font-medium transition-colors",
                     active
                       ? "bg-muted text-foreground"
                       : "text-muted-foreground hover:bg-muted/60 hover:text-foreground/90"
@@ -218,7 +218,7 @@ export function OwnersWorkspace({ owners }: { owners: OwnerItem[] }) {
                   {t.label}
                   <span
                     className={cn(
-                      "rounded px-1 text-[10.5px] tabular-nums",
+                      "rounded px-1 text-meta tabular-nums",
                       active
                         ? "bg-background text-foreground/70 ring-1 ring-border"
                         : "text-muted-foreground/70"
@@ -238,13 +238,13 @@ export function OwnersWorkspace({ owners }: { owners: OwnerItem[] }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search owners, companies, cities…"
-              className="h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-[13px] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-body focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
 
           {/* Table */}
           <div className="overflow-hidden rounded-lg border border-border bg-card">
-            <div className="flex items-center border-b border-border bg-muted/30 px-3 py-2 text-[11px] font-medium uppercase tracking-[0.05em] text-muted-foreground">
+            <div className="flex items-center border-b border-border bg-muted/30 px-3 py-2 text-meta font-medium uppercase tracking-[0.05em] text-muted-foreground">
               <div className="flex-1">Owner</div>
               <div className="hidden w-40 sm:block">Property</div>
               <div className="hidden w-44 md:block">Commercials</div>
@@ -253,7 +253,7 @@ export function OwnersWorkspace({ owners }: { owners: OwnerItem[] }) {
               <div className="w-[120px] text-right">Actions</div>
             </div>
             {filtered.length === 0 ? (
-              <div className="py-12 text-center text-[13px] text-muted-foreground">
+              <div className="py-12 text-center text-body text-muted-foreground">
                 No owners match.
               </div>
             ) : (
@@ -267,17 +267,17 @@ export function OwnersWorkspace({ owners }: { owners: OwnerItem[] }) {
                     <div className="flex min-w-0 flex-1 items-center gap-2.5">
                       <DotAvatar seed={o.id} name={o.ownerName} size="md" />
                       <div className="min-w-0 leading-tight">
-                        <p className="truncate text-[13px] font-medium text-foreground">
+                        <p className="truncate text-body font-medium text-foreground">
                           {o.ownerName}
                         </p>
                         {o.companyName && (
-                          <p className="truncate text-[11.5px] text-muted-foreground">
+                          <p className="truncate text-meta text-muted-foreground">
                             {o.companyName}
                           </p>
                         )}
                       </div>
                     </div>
-                    <div className="hidden w-40 text-[12px] text-muted-foreground sm:block">
+                    <div className="hidden w-40 text-detail text-muted-foreground sm:block">
                       <span className="inline-flex items-center gap-1">
                         <Building2 className="size-3" />
                         {o.propertyCity ?? "—"}
@@ -289,7 +289,7 @@ export function OwnersWorkspace({ owners }: { owners: OwnerItem[] }) {
                         </span>
                       )}
                     </div>
-                    <div className="hidden w-44 text-[12px] text-foreground/80 md:block">
+                    <div className="hidden w-44 text-detail text-foreground/80 md:block">
                       {commercialText(o) ?? "—"}
                     </div>
                     <div className="w-36">
@@ -297,7 +297,7 @@ export function OwnersWorkspace({ owners }: { owners: OwnerItem[] }) {
                     </div>
                     <div className="hidden w-28 lg:block">
                       {o.bdOwner ? (
-                        <span className="inline-flex items-center gap-1.5 text-[12px] text-foreground/85">
+                        <span className="inline-flex items-center gap-1.5 text-detail text-foreground/85">
                           <DotAvatar
                             seed={o.bdOwner.id}
                             name={o.bdOwner.name}
@@ -306,7 +306,7 @@ export function OwnersWorkspace({ owners }: { owners: OwnerItem[] }) {
                           {o.bdOwner.name?.split(" ")[0]}
                         </span>
                       ) : (
-                        <span className="text-[12px] italic text-muted-foreground/60">
+                        <span className="text-detail italic text-muted-foreground/60">
                           Unassigned
                         </span>
                       )}
@@ -333,10 +333,10 @@ export function OwnersWorkspace({ owners }: { owners: OwnerItem[] }) {
                 >
                   <div className="flex items-center gap-2 rounded-t-lg border-b border-border bg-card/60 px-3 py-2.5">
                     <span className={cn("size-2 rounded-full", col.dot)} />
-                    <h3 className="text-[12px] font-semibold uppercase tracking-[0.04em] text-foreground">
+                    <h3 className="text-detail font-semibold uppercase tracking-[0.04em] text-foreground">
                       {col.label}
                     </h3>
-                    <span className="rounded bg-background px-1 text-[10.5px] font-medium tabular-nums text-muted-foreground ring-1 ring-border">
+                    <span className="rounded bg-background px-1 text-meta font-medium tabular-nums text-muted-foreground ring-1 ring-border">
                       {items.length}
                     </span>
                   </div>
@@ -349,24 +349,24 @@ export function OwnersWorkspace({ owners }: { owners: OwnerItem[] }) {
                       >
                         <div className="flex items-center gap-2">
                           <DotAvatar seed={o.id} name={o.ownerName} size="xs" />
-                          <span className="truncate text-[12.5px] font-medium text-foreground">
+                          <span className="truncate text-detail font-medium text-foreground">
                             {o.ownerName}
                           </span>
                         </div>
                         {o.companyName && (
-                          <p className="mt-1 truncate text-[11.5px] text-muted-foreground">
+                          <p className="mt-1 truncate text-meta text-muted-foreground">
                             {o.companyName}
                           </p>
                         )}
                         {commercialText(o) && (
-                          <div className="mt-1.5 text-[10.5px] font-medium text-violet-700">
+                          <div className="mt-1.5 text-meta font-medium text-violet-700">
                             {commercialText(o)}
                           </div>
                         )}
                       </Link>
                     ))}
                     {items.length === 0 && (
-                      <div className="rounded-md border border-dashed border-border py-6 text-center text-[11px] text-muted-foreground/60">
+                      <div className="rounded-md border border-dashed border-border py-6 text-center text-meta text-muted-foreground/60">
                         Empty
                       </div>
                     )}

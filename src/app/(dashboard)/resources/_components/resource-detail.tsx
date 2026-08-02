@@ -231,7 +231,7 @@ function CalendarView({ allocations }: { allocations: Allocation[] }) {
                   {dayAllocations.slice(0, 2).map((alloc) => (
                     <Tooltip key={alloc.id}>
                       <TooltipTrigger asChild>
-                        <div className="cursor-default truncate rounded bg-blue-100 px-1 py-0.5 text-[10px] font-medium text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
+                        <div className="cursor-default truncate rounded bg-blue-100 px-1 py-0.5 text-meta font-medium text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
                           {alloc.startTime} {alloc.booking.eventName}
                         </div>
                       </TooltipTrigger>
@@ -250,7 +250,7 @@ function CalendarView({ allocations }: { allocations: Allocation[] }) {
                     </Tooltip>
                   ))}
                   {dayAllocations.length > 2 && (
-                    <div className="text-[10px] text-muted-foreground pl-1">
+                    <div className="text-meta text-muted-foreground pl-1">
                       +{dayAllocations.length - 2} more
                     </div>
                   )}

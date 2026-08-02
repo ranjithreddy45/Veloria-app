@@ -326,7 +326,7 @@ export function GalleryGrid({ data, venues }: GalleryGridProps) {
                 <div className="absolute left-2 top-2">
                   <Badge
                     variant="secondary"
-                    className={`text-[10px] ${
+                    className={`text-meta ${
                       item.isPublic
                         ? "bg-green-100 text-green-700 border-green-200"
                         : "bg-zinc-100 text-zinc-600 border-zinc-200"
@@ -350,7 +350,7 @@ export function GalleryGrid({ data, venues }: GalleryGridProps) {
                 <div className="absolute right-2 top-2">
                   <Badge
                     variant="secondary"
-                    className="bg-black/50 text-white border-transparent text-[10px]"
+                    className="bg-black/50 text-white border-transparent text-meta"
                   >
                     {MEDIA_TYPE_LABELS[item.mediaType] || item.mediaType}
                   </Badge>
@@ -412,7 +412,7 @@ export function GalleryGrid({ data, venues }: GalleryGridProps) {
                       <Badge
                         key={tag}
                         variant="outline"
-                        className="text-[10px] py-0 px-1.5 text-zinc-500"
+                        className="text-meta py-0 px-1.5 text-zinc-500"
                       >
                         <TagIcon className="mr-0.5 size-2" />
                         {tag}
@@ -421,14 +421,14 @@ export function GalleryGrid({ data, venues }: GalleryGridProps) {
                     {item.tags.length > 3 && (
                       <Badge
                         variant="outline"
-                        className="text-[10px] py-0 px-1.5 text-zinc-400"
+                        className="text-meta py-0 px-1.5 text-zinc-400"
                       >
                         +{item.tags.length - 3}
                       </Badge>
                     )}
                   </div>
                 )}
-                <p className="mt-2 text-[10px] text-zinc-400">
+                <p className="mt-2 text-meta text-zinc-400">
                   {new Date(item.createdAt).toLocaleDateString("en-IN", {
                     day: "2-digit",
                     month: "short",

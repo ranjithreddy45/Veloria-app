@@ -36,14 +36,14 @@ export function FinanceWorkspace({
 }) {
   if (!seeded) {
     return canAdmin ? <SetupPanel /> : (
-      <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground">Finance hasn’t been set up yet. Ask an admin to initialise the chart of accounts.</div>
+      <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-body text-muted-foreground">Finance hasn’t been set up yet. Ask an admin to initialise the chart of accounts.</div>
     );
   }
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="text-[13px] text-muted-foreground">
+        <div className="text-body text-muted-foreground">
           FY <span className="numeric font-medium text-foreground">{period?.fy}</span> · Period{" "}
           <span className="numeric text-foreground">{period?.period}</span>
           <StatusPill label={period?.status ?? "OPEN"} hue={period?.status === "OPEN" ? "emerald" : "amber"} size="xs" className="ml-2" />
@@ -68,7 +68,7 @@ export function FinanceWorkspace({
               * padding relax below sm:. */}
             <Table className="[&_td]:px-2.5 [&_th]:px-2.5 sm:[&_td]:px-4 sm:[&_th]:px-4">
               <TableHeader>
-                <TableRow className="bg-muted/30 hover:bg-muted/30 [&>th]:h-9 [&>th]:text-[11px] [&>th]:font-medium [&>th]:uppercase [&>th]:tracking-[0.05em] [&>th]:text-muted-foreground">
+                <TableRow className="bg-muted/30 hover:bg-muted/30 [&>th]:h-9 [&>th]:text-meta [&>th]:font-medium [&>th]:uppercase [&>th]:tracking-[0.05em] [&>th]:text-muted-foreground">
                   <TableHead className="sm:w-24">Code</TableHead>
                   <TableHead>Account</TableHead>
                   <TableHead className="text-right sm:w-40">Debit</TableHead>
@@ -80,16 +80,16 @@ export function FinanceWorkspace({
                   <TableRow><TableCell colSpan={4} className="py-8 text-center text-sm text-muted-foreground">No postings yet. Create a journal entry to see the trial balance.</TableCell></TableRow>
                 ) : trialBalance.rows.map((r) => (
                   <TableRow key={r.code}>
-                    <TableCell className="numeric text-[12px] text-muted-foreground">{r.code}</TableCell>
-                    <TableCell className="whitespace-normal text-[13px]">{r.name}</TableCell>
-                    <TableCell className="numeric whitespace-nowrap text-right text-[13px]">{r.debit ? formatINR(r.debit) : ""}</TableCell>
-                    <TableCell className="numeric whitespace-nowrap text-right text-[13px]">{r.credit ? formatINR(r.credit) : ""}</TableCell>
+                    <TableCell className="numeric text-detail text-muted-foreground">{r.code}</TableCell>
+                    <TableCell className="whitespace-normal text-body">{r.name}</TableCell>
+                    <TableCell className="numeric whitespace-nowrap text-right text-body">{r.debit ? formatINR(r.debit) : ""}</TableCell>
+                    <TableCell className="numeric whitespace-nowrap text-right text-body">{r.credit ? formatINR(r.credit) : ""}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
               {trialBalance.rows.length > 0 && (
                 <tfoot>
-                  <tr className="border-t-2 bg-muted/20 text-[13px] font-semibold">
+                  <tr className="border-t-2 bg-muted/20 text-body font-semibold">
                     <td className="px-2.5 py-2.5 sm:px-4" colSpan={2}>Total {trialBalance.balanced ? <StatusPill label="Balanced" hue="emerald" size="xs" className="ml-2" /> : <StatusPill label="OUT OF BALANCE" hue="red" size="xs" className="ml-2" />}</td>
                     <td className="numeric whitespace-nowrap px-2.5 py-2.5 text-right sm:px-4">{formatINR(trialBalance.totalDebit)}</td>
                     <td className="numeric whitespace-nowrap px-2.5 py-2.5 text-right sm:px-4">{formatINR(trialBalance.totalCredit)}</td>
@@ -102,7 +102,7 @@ export function FinanceWorkspace({
 
         <TabsContent value="journal" className="space-y-2.5">
           {entries.length === 0 ? (
-            <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground">No journal entries yet.</div>
+            <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-body text-muted-foreground">No journal entries yet.</div>
           ) : entries.map((e) => <EntryCard key={e.id} entry={e} />)}
         </TabsContent>
 
@@ -110,7 +110,7 @@ export function FinanceWorkspace({
           <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
             <Table>
               <TableHeader>
-                <TableRow className="bg-muted/30 hover:bg-muted/30 [&>th]:h-9 [&>th]:text-[11px] [&>th]:font-medium [&>th]:uppercase [&>th]:tracking-[0.05em] [&>th]:text-muted-foreground">
+                <TableRow className="bg-muted/30 hover:bg-muted/30 [&>th]:h-9 [&>th]:text-meta [&>th]:font-medium [&>th]:uppercase [&>th]:tracking-[0.05em] [&>th]:text-muted-foreground">
                   <TableHead className="w-24">Code</TableHead>
                   <TableHead>Account</TableHead>
                   <TableHead className="w-32">Type</TableHead>
@@ -119,8 +119,8 @@ export function FinanceWorkspace({
               <TableBody>
                 {accounts.map((a) => (
                   <TableRow key={a.id}>
-                    <TableCell className="numeric text-[12px] text-muted-foreground">{a.code}</TableCell>
-                    <TableCell className="text-[13px]">{a.name}</TableCell>
+                    <TableCell className="numeric text-detail text-muted-foreground">{a.code}</TableCell>
+                    <TableCell className="text-body">{a.name}</TableCell>
                     <TableCell><StatusPill label={a.type[0] + a.type.slice(1).toLowerCase()} hue="slate" size="xs" /></TableCell>
                   </TableRow>
                 ))}
@@ -148,12 +148,12 @@ function EntryCard({ entry }: { entry: Entry }) {
         * rather than pushing the card past the viewport. */}
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <span className="numeric text-[12px] text-muted-foreground">{entry.entryNo}</span>
-          <span className="text-[13px] font-medium break-words">{entry.narration ?? "—"}</span>
+          <span className="numeric text-detail text-muted-foreground">{entry.entryNo}</span>
+          <span className="text-body font-medium break-words">{entry.narration ?? "—"}</span>
           <StatusPill label={entry.status[0] + entry.status.slice(1).toLowerCase()} hue={entry.status === "POSTED" ? "emerald" : entry.status === "REVERSED" ? "slate" : "amber"} size="xs" />
           <StatusPill label={entry.sourceModule[0] + entry.sourceModule.slice(1).toLowerCase()} hue="violet" size="xs" />
         </div>
-        <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
+        <div className="flex items-center gap-2 text-detail text-muted-foreground">
           <span className="numeric">{formatDate(entry.date)}</span>
           {entry.status === "POSTED" && <Button variant="ghost" size="sm" className="h-7 gap-1 text-muted-foreground hover:text-foreground" disabled={busy} onClick={reverse}>{busy ? <Loader2 className="size-3.5 animate-spin" /> : <RotateCcw className="size-3.5" />} Reverse</Button>}
         </div>
@@ -163,7 +163,7 @@ function EntryCard({ entry }: { entry: Entry }) {
           /* gap-2 and w-24 on a phone: two w-28 money columns plus gap-3 eat
            * 248 of the ~300px inside the card, leaving the account name barely
            * a word. The amount columns keep their full desktop width from sm:. */
-          <div key={i} className="flex items-center gap-2 text-[12.5px] sm:gap-3">
+          <div key={i} className="flex items-center gap-2 text-detail sm:gap-3">
             <span className="min-w-0 flex-1 truncate text-muted-foreground">{l.account}</span>
             <span className="numeric w-24 shrink-0 text-right sm:w-28">{l.debit ? formatINR(l.debit) : ""}</span>
             <span className="numeric w-24 shrink-0 text-right sm:w-28">{l.credit ? formatINR(l.credit) : ""}</span>
@@ -219,8 +219,8 @@ function NewJournalDialog({ accounts }: { accounts: Account[] }) {
         </DialogHeader>
         <div className="space-y-3 py-2">
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5"><Label className="text-[12.5px]">Date</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
-            <div className="space-y-1.5"><Label className="text-[12.5px]">Narration</Label><Input value={narration} onChange={(e) => setNarration(e.target.value)} placeholder="What is this entry for?" /></div>
+            <div className="space-y-1.5"><Label className="text-detail">Date</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
+            <div className="space-y-1.5"><Label className="text-detail">Narration</Label><Input value={narration} onChange={(e) => setNarration(e.target.value)} placeholder="What is this entry for?" /></div>
           </div>
           <div className="space-y-1.5">
             {rows.map((r, i) => (
@@ -236,7 +236,7 @@ function NewJournalDialog({ accounts }: { accounts: Account[] }) {
             ))}
             <Button variant="ghost" size="sm" className="gap-1" onClick={() => setRows((rs) => [...rs, { accountId: "", debit: "", credit: "" }])}><Plus className="size-3.5" /> Add line</Button>
           </div>
-          <div className="flex items-center justify-end gap-6 border-t pt-2 text-[13px]">
+          <div className="flex items-center justify-end gap-6 border-t pt-2 text-body">
             <span className="text-muted-foreground">Debits <span className="numeric font-semibold text-foreground">{formatINR(drTotal)}</span></span>
             <span className="text-muted-foreground">Credits <span className="numeric font-semibold text-foreground">{formatINR(crTotal)}</span></span>
             {balanced ? <StatusPill label="Balanced" hue="emerald" size="sm" /> : <StatusPill label="Not balanced" hue="amber" size="sm" />}
@@ -269,7 +269,7 @@ function SetupPanel() {
         Seed the Indian-GAAP chart of accounts, open the current period, and install the database-level balance guard (Σ debits = Σ credits on every posted entry).
       </p>
       <Button onClick={run} disabled={busy} className="mt-5 gap-1.5">{busy ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />} Set up Finance</Button>
-      {msg && <p className="mt-3 text-[13px] text-muted-foreground">{msg}</p>}
+      {msg && <p className="mt-3 text-body text-muted-foreground">{msg}</p>}
     </div>
   );
 }

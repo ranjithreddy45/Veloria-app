@@ -37,13 +37,13 @@ function Bucket({
   return (
     <Card className="gap-0 py-0">
       <CardContent className="space-y-1.5 px-5 py-5">
-        <h2 className="flex items-center gap-2 pb-1.5 text-[13px] font-semibold tracking-[-0.01em] text-foreground">
+        <h2 className="flex items-center gap-2 pb-1.5 text-body font-semibold tracking-[-0.01em] text-foreground">
           <Icon className={`size-4 ${ring}`} />
           {title}
-          <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-[11px] tabular-nums text-muted-foreground">{leads.length}</span>
+          <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-meta tabular-nums text-muted-foreground">{leads.length}</span>
         </h2>
         {leads.length === 0 ? (
-          <p className="py-3 text-center text-[13px] text-muted-foreground">Nothing here.</p>
+          <p className="py-3 text-center text-body text-muted-foreground">Nothing here.</p>
         ) : (
           leads.map((l) => (
             <Link
@@ -61,7 +61,7 @@ function Bucket({
               </div>
               <div className="shrink-0 text-right">
                 <StatusPill label={l.status} hue={l.status === "NEW" ? "slate" : "blue"} size="xs" />
-                <div className={`mt-1 text-[11.5px] ${hue === "rose" ? "text-rose-600" : "text-muted-foreground"}`}>{formatDate(l.nextFollowupAt)}</div>
+                <div className={`mt-1 text-meta ${hue === "rose" ? "text-rose-600" : "text-muted-foreground"}`}>{formatDate(l.nextFollowupAt)}</div>
               </div>
             </Link>
           ))

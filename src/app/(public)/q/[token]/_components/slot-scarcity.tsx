@@ -48,7 +48,7 @@ export function SlotScarcity({
   return (
     <div className="rounded-2xl border border-warning/20 bg-warning/10 p-4">
       {data.message && (
-        <p className="flex items-center gap-1.5 text-[13px] font-semibold text-warning">
+        <p className="flex items-center gap-1.5 text-body font-semibold text-warning">
           <Flame className="size-4" />
           {data.message}
         </p>
@@ -59,8 +59,8 @@ export function SlotScarcity({
             key={c.slot}
             className={
               c.free
-                ? "inline-flex items-center gap-1 rounded-full border border-success/20 bg-success/10 px-2.5 py-1 text-[12px] font-medium text-success"
-                : "inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2.5 py-1 text-[12px] font-medium text-muted-foreground line-through"
+                ? "inline-flex items-center gap-1 rounded-full border border-success/20 bg-success/10 px-2.5 py-1 text-detail font-medium text-success"
+                : "inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2.5 py-1 text-detail font-medium text-muted-foreground line-through"
             }
           >
             {c.free ? <Check className="size-3" /> : <Lock className="size-3" />}

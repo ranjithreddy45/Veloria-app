@@ -185,10 +185,10 @@ export function DayDetailPanel({
             <>
               <Separator />
               <div>
-                <h3 className="text-[13px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+                <h3 className="text-body font-semibold uppercase tracking-[0.06em] text-muted-foreground">
                   Time slots
                 </h3>
-                <p className="mt-0.5 text-[13px] text-muted-foreground">
+                <p className="mt-0.5 text-body text-muted-foreground">
                   What is booked, blocked and still sellable on this date.
                 </p>
               </div>
@@ -244,7 +244,7 @@ export function DayDetailPanel({
                             <StatusBadge
                               status={booking.status}
                               colorMap={BOOKING_STATUS_COLORS}
-                              className="text-[10px]"
+                              className="text-meta"
                             />
                           </div>
                           <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
@@ -292,7 +292,7 @@ export function DayDetailPanel({
           {bookings.length > 0 && !fullDayBooking && (
             <>
               <Separator />
-              <h3 className="text-[13px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+              <h3 className="text-body font-semibold uppercase tracking-[0.06em] text-muted-foreground">
                 All bookings (<span className="numeric">{bookings.length}</span>)
               </h3>
               <div className="space-y-2">
@@ -317,7 +317,7 @@ export function DayDetailPanel({
                     <StatusBadge
                       status={booking.status}
                       colorMap={BOOKING_STATUS_COLORS}
-                      className="text-[10px]"
+                      className="text-meta"
                     />
                   </Link>
                 ))}
@@ -329,11 +329,11 @@ export function DayDetailPanel({
           {leads.length > 0 && (
             <>
               <Separator />
-              <h3 className="flex items-center gap-1.5 text-[13px] font-semibold uppercase tracking-[0.06em] text-sky-700">
+              <h3 className="flex items-center gap-1.5 text-body font-semibold uppercase tracking-[0.06em] text-sky-700">
                 <InboxIcon className="size-4" />
                 Enquiries / leads (<span className="numeric">{leads.length}</span>)
               </h3>
-              <p className="-mt-1 text-[13px] text-muted-foreground">
+              <p className="-mt-1 text-body text-muted-foreground">
                 Not booked yet — these customers have asked about this date.
               </p>
               <div className="space-y-2">
@@ -352,7 +352,7 @@ export function DayDetailPanel({
                         {lead.eventType && <span>{lead.eventType}</span>}
                       </div>
                     </div>
-                    <Badge variant="outline" className="shrink-0 border-sky-200 bg-sky-100 text-[10px] text-sky-700 dark:border-sky-900 dark:bg-sky-950/50 dark:text-sky-300">
+                    <Badge variant="outline" className="shrink-0 border-sky-200 bg-sky-100 text-meta text-sky-700 dark:border-sky-900 dark:bg-sky-950/50 dark:text-sky-300">
                       {lead.status}
                     </Badge>
                   </Link>

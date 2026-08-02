@@ -173,7 +173,7 @@ export function SlaCockpit({ breaches, recent }: SlaCockpitProps) {
                       >
                         {b.title}
                       </Link>
-                      <div className="text-[13px] text-muted-foreground">
+                      <div className="text-body text-muted-foreground">
                         {b.contactName}
                       </div>
                     </TableCell>
@@ -181,7 +181,7 @@ export function SlaCockpit({ breaches, recent }: SlaCockpitProps) {
                       {b.assignedToName ?? "Unassigned"}
                     </TableCell>
                     <TableCell className="text-right">
-                      <span className="numeric text-destructive text-[13px] font-semibold">
+                      <span className="numeric text-destructive text-body font-semibold">
                         {formatOverdue(b.minutesOverdue)}
                       </span>
                     </TableCell>
@@ -248,10 +248,10 @@ export function SlaCockpit({ breaches, recent }: SlaCockpitProps) {
                           size="xs"
                         />
                       </TableCell>
-                      <TableCell className="text-right text-[13px] numeric text-muted-foreground">
+                      <TableCell className="text-right text-body numeric text-muted-foreground">
                         {formatLatency(r.latencyMs)}
                       </TableCell>
-                      <TableCell className="numeric text-right text-[12px] text-muted-foreground">
+                      <TableCell className="numeric text-right text-detail text-muted-foreground">
                         {formatTime(r.sentAt)}
                       </TableCell>
                       <TableCell className="text-right">

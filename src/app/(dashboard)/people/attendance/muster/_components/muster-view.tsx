@@ -102,7 +102,7 @@ function MapLink({ lat, lng }: { lat: number; lng: number }) {
       target="_blank"
       rel="noopener noreferrer"
       title="Open check-in location in Google Maps"
-      className="inline-flex items-center gap-1 text-[11.5px] font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+      className="inline-flex items-center gap-1 text-meta font-medium text-indigo-600 hover:underline dark:text-indigo-400"
     >
       <MapPin className="size-3.5" />
       <span className="tabular-nums">{lat.toFixed(5)}, {lng.toFixed(5)}</span>
@@ -116,7 +116,7 @@ function MapLink({ lat, lng }: { lat: number; lng: number }) {
  */
 function GeoOffBanner({ canAdmin }: { canAdmin: boolean }) {
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-[13px] text-warning">
+    <div className="flex items-start gap-3 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-body text-warning">
       <ShieldOff className="mt-0.5 size-5 shrink-0 text-warning" />
       <div className="space-y-0.5">
         <p className="font-semibold">Location verification is OFF</p>
@@ -243,11 +243,11 @@ function DayView({ initialDate, initial, canAdmin }: { initialDate: string; init
         {/* w-48 + a 12rem-min search is 384px — wider than a 375px viewport — so
          * the date picker goes full-width on a phone and the search sits below. */}
         <div className="w-full sm:w-48">
-          <label className="mb-1 block text-[12px] font-medium text-muted-foreground">Day</label>
+          <label className="mb-1 block text-detail font-medium text-muted-foreground">Day</label>
           <Input type="date" value={date} onChange={(e) => onDate(e.target.value)} className="h-9" />
         </div>
         <div className="w-full flex-1 sm:min-w-[12rem]">
-          <label className="mb-1 block text-[12px] font-medium text-muted-foreground">Search</label>
+          <label className="mb-1 block text-detail font-medium text-muted-foreground">Search</label>
           <div className="relative">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name, code or department" className="h-9 pl-8" />
@@ -264,7 +264,7 @@ function DayView({ initialDate, initial, canAdmin }: { initialDate: string; init
         </div>
       </div>
 
-      <p className="text-[12.5px] text-muted-foreground">{prettyDay(date)}</p>
+      <p className="text-detail text-muted-foreground">{prettyDay(date)}</p>
 
       {/* Summary */}
       {s && (
@@ -309,9 +309,9 @@ function DayView({ initialDate, initial, canAdmin }: { initialDate: string; init
                   <TableRow key={r.employeeId}>
                     <TableCell>
                       <div className="font-medium">{r.name}</div>
-                      <div className="font-mono text-[11.5px] text-muted-foreground">{r.empCode}</div>
+                      <div className="font-mono text-meta text-muted-foreground">{r.empCode}</div>
                     </TableCell>
-                    <TableCell className="text-[12.5px] text-muted-foreground">{r.department ?? "—"}</TableCell>
+                    <TableCell className="text-detail text-muted-foreground">{r.department ?? "—"}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap items-center gap-1.5">
                         <StatusPill label={meta.label} hue={meta.hue} size="sm" />
@@ -323,10 +323,10 @@ function DayView({ initialDate, initial, canAdmin }: { initialDate: string; init
                         {r.isRegularized && <StatusPill label="regularized" hue="violet" size="xs" />}
                       </div>
                     </TableCell>
-                    <TableCell className="tabular-nums text-[12.5px]">{r.checkInAt ? istTime(r.checkInAt) : <span className="text-muted-foreground">—</span>}</TableCell>
-                    <TableCell className="tabular-nums text-[12.5px]">{r.checkOutAt ? istTime(r.checkOutAt) : <span className="text-muted-foreground">—</span>}</TableCell>
-                    <TableCell className="text-[12.5px] text-muted-foreground">{r.visitType ?? "—"}</TableCell>
-                    <TableCell className="text-[12.5px]">
+                    <TableCell className="tabular-nums text-detail">{r.checkInAt ? istTime(r.checkInAt) : <span className="text-muted-foreground">—</span>}</TableCell>
+                    <TableCell className="tabular-nums text-detail">{r.checkOutAt ? istTime(r.checkOutAt) : <span className="text-muted-foreground">—</span>}</TableCell>
+                    <TableCell className="text-detail text-muted-foreground">{r.visitType ?? "—"}</TableCell>
+                    <TableCell className="text-detail">
                       <div className="flex flex-col gap-1">
                         <div className="flex flex-wrap items-center gap-1.5">
                           <span className="text-muted-foreground">{r.siteName ?? "—"}</span>
@@ -338,7 +338,7 @@ function DayView({ initialDate, initial, canAdmin }: { initialDate: string; init
                         {r.lat != null && r.lng != null && <MapLink lat={r.lat} lng={r.lng} />}
                       </div>
                     </TableCell>
-                    <TableCell className="text-right tabular-nums text-[12.5px]">
+                    <TableCell className="text-right tabular-nums text-detail">
                       {r.workedMinutes > 0 ? `${Math.floor(r.workedMinutes / 60)}h ${r.workedMinutes % 60}m` : "—"}
                     </TableCell>
                   </TableRow>
@@ -451,14 +451,14 @@ function MonthView({ initialFy, initialMonth, canEdit, canAdmin }: { initialFy: 
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="w-40">
-          <label className="mb-1 block text-[12px] font-medium text-muted-foreground">Financial year</label>
+          <label className="mb-1 block text-detail font-medium text-muted-foreground">Financial year</label>
           <Select value={fy} onValueChange={(v) => { setFy(v); load(v, Number(month)); }}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>{fys.map((f) => <SelectItem key={f} value={f}>FY {f}</SelectItem>)}</SelectContent>
           </Select>
         </div>
         <div className="w-40">
-          <label className="mb-1 block text-[12px] font-medium text-muted-foreground">Month</label>
+          <label className="mb-1 block text-detail font-medium text-muted-foreground">Month</label>
           <Select value={month} onValueChange={(v) => { setMonth(v); load(fy, Number(v)); }}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>{MONTHS.map((label, i) => <SelectItem key={i} value={String(i + 1)}>{label}</SelectItem>)}</SelectContent>
@@ -476,17 +476,17 @@ function MonthView({ initialFy, initialMonth, canEdit, canAdmin }: { initialFy: 
       </div>
 
       {canEdit && (
-        <p className="text-[11.5px] text-muted-foreground">
+        <p className="text-meta text-muted-foreground">
           <Pencil className="mr-1 inline size-3 align-[-1px]" />
           Click any cell to correct that day&rsquo;s attendance.
         </p>
       )}
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11.5px] text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-meta text-muted-foreground">
         {(Object.keys(STATUS_META) as MusterStatus[]).map((k) => (
           <span key={k} className="inline-flex items-center gap-1.5">
-            <span className={`inline-flex size-5 items-center justify-center rounded text-[11px] font-semibold ${STATUS_META[k].cell}`}>{STATUS_META[k].code}</span>
+            <span className={`inline-flex size-5 items-center justify-center rounded text-meta font-semibold ${STATUS_META[k].cell}`}>{STATUS_META[k].code}</span>
             {STATUS_META[k].label}
           </span>
         ))}
@@ -502,7 +502,7 @@ function MonthView({ initialFy, initialMonth, canEdit, canAdmin }: { initialFy: 
           * already frozen with sticky left-0 so the reader keeps their place;
           * this line makes the sideways scroll deliberate rather than a page
           * that merely feels broken. */}
-        <p className="text-[12px] text-muted-foreground sm:hidden">
+        <p className="text-detail text-muted-foreground sm:hidden">
           Swipe the register sideways to move through the month — the employee column stays put.
         </p>
         <div className="overflow-x-auto rounded-xl border bg-card">
@@ -510,7 +510,7 @@ function MonthView({ initialFy, initialMonth, canEdit, canAdmin }: { initialFy: 
             <TableHeader>
               <TableRow>
                 <TableHead className="sticky left-0 z-10 bg-card">Employee</TableHead>
-                {days.map((d) => <TableHead key={d} className="px-0 text-center text-[11px] font-medium tabular-nums">{d}</TableHead>)}
+                {days.map((d) => <TableHead key={d} className="px-0 text-center text-meta font-medium tabular-nums">{d}</TableHead>)}
                 <TableHead className="text-right">Days</TableHead>
               </TableRow>
             </TableHeader>
@@ -519,13 +519,13 @@ function MonthView({ initialFy, initialMonth, canEdit, canAdmin }: { initialFy: 
                 <TableRow key={r.employeeId}>
                   <TableCell className="sticky left-0 z-10 bg-card">
                     <div className="whitespace-nowrap font-medium">{r.name}</div>
-                    <div className="font-mono text-[11px] text-muted-foreground">{r.empCode}</div>
+                    <div className="font-mono text-meta text-muted-foreground">{r.empCode}</div>
                   </TableCell>
                   {days.map((d) => {
                     const st = r.days[d];
                     const meta = st ? STATUS_META[st] : null;
                     const glyph = meta
-                      ? <span title={meta.label} className={`inline-flex size-6 items-center justify-center rounded text-[11px] font-semibold ${meta.cell}`}>{meta.code}</span>
+                      ? <span title={meta.label} className={`inline-flex size-6 items-center justify-center rounded text-meta font-semibold ${meta.cell}`}>{meta.code}</span>
                       : <span className="text-muted-foreground/40">·</span>;
                     return (
                       <TableCell key={d} className="p-1 text-center">
@@ -563,7 +563,7 @@ function MonthView({ initialFy, initialMonth, canEdit, canAdmin }: { initialFy: 
 
           <div className="space-y-3">
             <div>
-              <label className="mb-1 block text-[12px] font-medium text-muted-foreground">Status</label>
+              <label className="mb-1 block text-detail font-medium text-muted-foreground">Status</label>
               <Select value={editStatus} onValueChange={(v) => setEditStatus(v as MusterStatus)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -574,7 +574,7 @@ function MonthView({ initialFy, initialMonth, canEdit, canAdmin }: { initialFy: 
               </Select>
             </div>
             <div>
-              <label className="mb-1 block text-[12px] font-medium text-muted-foreground">Note <span className="font-normal">(optional)</span></label>
+              <label className="mb-1 block text-detail font-medium text-muted-foreground">Note <span className="font-normal">(optional)</span></label>
               <Textarea
                 value={editNote}
                 onChange={(e) => setEditNote(e.target.value)}

@@ -105,10 +105,10 @@ export default function SignInForm() {
   return (
     <div className="space-y-5">
       <div className="space-y-1.5 text-center">
-        <h2 className="text-ink-gradient large-title text-[26px]">
+        <h2 className="text-ink-gradient large-title text-h2">
           Welcome back
         </h2>
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-body text-muted-foreground">
           Sign in to continue to your workspace
         </p>
       </div>
@@ -116,7 +116,7 @@ export default function SignInForm() {
       {/* Google Sign In */}
       <Button
         variant="outline"
-        className="sheen-sweep relative h-10 w-full gap-2 overflow-hidden rounded-lg border-border bg-background text-[13px] font-medium transition-colors hover:bg-muted/60"
+        className="sheen-sweep relative h-10 w-full gap-2 overflow-hidden rounded-lg border-border bg-background text-body font-medium transition-colors hover:bg-muted/60"
         type="button"
         disabled={isPending}
         onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
@@ -129,7 +129,7 @@ export default function SignInForm() {
         <div className="absolute inset-0 flex items-center" aria-hidden>
           <span className="divider-fade w-full" />
         </div>
-        <div className="relative flex justify-center text-[10.5px] uppercase tracking-[0.08em]">
+        <div className="relative flex justify-center text-meta uppercase tracking-[0.08em]">
           <span className="bg-card px-2.5 text-muted-foreground/70">
             {authMode === "otp" ? "or with WhatsApp" : "or with email"}
           </span>
@@ -144,7 +144,7 @@ export default function SignInForm() {
               name="email"
               render={({ field }) => (
                 <FormItem className="space-y-1.5">
-                  <FormLabel className="text-[12px] font-medium text-foreground">
+                  <FormLabel className="text-detail font-medium text-foreground">
                     Email
                   </FormLabel>
                   <FormControl>
@@ -152,12 +152,12 @@ export default function SignInForm() {
                       placeholder="you@example.com"
                       type="email"
                       autoComplete="email"
-                      className="h-10 rounded-lg text-[13px]"
+                      className="h-10 rounded-lg text-body"
                       disabled={isPending}
                       {...field}
                     />
                   </FormControl>
-                  <FormMessage className="text-[11.5px]" />
+                  <FormMessage className="text-meta" />
                 </FormItem>
               )}
             />
@@ -168,12 +168,12 @@ export default function SignInForm() {
               render={({ field }) => (
                 <FormItem className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <FormLabel className="text-[12px] font-medium text-foreground">
+                    <FormLabel className="text-detail font-medium text-foreground">
                       Password
                     </FormLabel>
                     <Link
                       href="/forgot-password"
-                      className="text-[11.5px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+                      className="text-meta font-medium text-muted-foreground transition-colors hover:text-foreground"
                     >
                       Forgot?
                     </Link>
@@ -184,13 +184,13 @@ export default function SignInForm() {
                         placeholder="Enter your password"
                         type={showPassword ? "text" : "password"}
                         autoComplete="current-password"
-                        className="h-10 rounded-lg pr-14 text-[13px]"
+                        className="h-10 rounded-lg pr-14 text-body"
                         disabled={isPending}
                         {...field}
                       />
                       <button
                         type="button"
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded px-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded px-1 text-meta font-medium text-muted-foreground transition-colors hover:text-foreground"
                         onClick={() => setShowPassword(!showPassword)}
                         tabIndex={-1}
                       >
@@ -198,14 +198,14 @@ export default function SignInForm() {
                       </button>
                     </div>
                   </FormControl>
-                  <FormMessage className="text-[11.5px]" />
+                  <FormMessage className="text-meta" />
                 </FormItem>
               )}
             />
 
             <Button
               type="submit"
-              className="button-sheen h-10 w-full rounded-lg text-[13px] font-semibold text-primary-foreground"
+              className="button-sheen h-10 w-full rounded-lg text-body font-semibold text-primary-foreground"
               disabled={isPending}
             >
               {isPending ? (
@@ -224,7 +224,7 @@ export default function SignInForm() {
           {otpStep === "phone" ? (
             <>
               <div className="space-y-1.5">
-                <Label className="text-[12px] font-medium text-foreground">
+                <Label className="text-detail font-medium text-foreground">
                   Mobile number
                 </Label>
                 <Input
@@ -232,12 +232,12 @@ export default function SignInForm() {
                   type="tel"
                   inputMode="tel"
                   autoComplete="tel"
-                  className="h-10 rounded-lg text-[13px]"
+                  className="h-10 rounded-lg text-body"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   disabled={otpSending}
                 />
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-meta text-muted-foreground">
                   We&apos;ll send a one-time code to this number on WhatsApp.
                 </p>
               </div>
@@ -245,7 +245,7 @@ export default function SignInForm() {
                 type="button"
                 onClick={handleSendCode}
                 disabled={otpSending}
-                className="button-sheen h-10 w-full gap-2 rounded-lg text-[13px] font-semibold text-primary-foreground"
+                className="button-sheen h-10 w-full gap-2 rounded-lg text-body font-semibold text-primary-foreground"
               >
                 {otpSending ? (
                   <Loader2 className="size-3.5 animate-spin" />
@@ -259,7 +259,7 @@ export default function SignInForm() {
             <>
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label className="text-[12px] font-medium text-foreground">
+                  <Label className="text-detail font-medium text-foreground">
                     Enter code
                   </Label>
                   <button
@@ -268,7 +268,7 @@ export default function SignInForm() {
                       setOtpStep("phone");
                       setCode("");
                     }}
-                    className="text-[11.5px] font-medium text-muted-foreground hover:text-foreground"
+                    className="text-meta font-medium text-muted-foreground hover:text-foreground"
                   >
                     Change number
                   </button>
@@ -279,7 +279,7 @@ export default function SignInForm() {
                   inputMode="numeric"
                   autoComplete="one-time-code"
                   maxLength={6}
-                  className="h-11 rounded-lg text-center text-[17px] font-semibold tracking-[0.5em]"
+                  className="h-11 rounded-lg text-center text-lede font-semibold tracking-[0.5em]"
                   value={code}
                   onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
                   disabled={otpVerifying}
@@ -288,7 +288,7 @@ export default function SignInForm() {
                   type="button"
                   onClick={handleSendCode}
                   disabled={otpSending}
-                  className="text-[11.5px] font-medium text-muted-foreground hover:text-foreground"
+                  className="text-meta font-medium text-muted-foreground hover:text-foreground"
                 >
                   {otpSending ? "Resending…" : "Resend code"}
                 </button>
@@ -297,7 +297,7 @@ export default function SignInForm() {
                 type="button"
                 onClick={handleVerifyCode}
                 disabled={otpVerifying}
-                className="button-sheen h-10 w-full gap-2 rounded-lg text-[13px] font-semibold text-primary-foreground"
+                className="button-sheen h-10 w-full gap-2 rounded-lg text-body font-semibold text-primary-foreground"
               >
                 {otpVerifying ? (
                   <>
@@ -321,7 +321,7 @@ export default function SignInForm() {
           setOtpStep("phone");
           setCode("");
         }}
-        className="flex w-full items-center justify-center gap-1.5 text-[12px] font-medium text-muted-foreground hover:text-foreground"
+        className="flex w-full items-center justify-center gap-1.5 text-detail font-medium text-muted-foreground hover:text-foreground"
       >
         {authMode === "password" ? (
           <>
@@ -333,7 +333,7 @@ export default function SignInForm() {
         )}
       </button>
 
-      <p className="text-center text-[12.5px] text-muted-foreground">
+      <p className="text-center text-detail text-muted-foreground">
         Don&apos;t have an account?{" "}
         <Link
           href="/sign-up"

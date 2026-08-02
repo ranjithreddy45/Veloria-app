@@ -269,7 +269,7 @@ export default async function BdReportsPage({
               const stepConv = prev && prev > 0 ? Math.round((row.count / prev) * 100) : null;
               return (
                 <div key={row.key} className="flex items-center gap-3">
-                  <div className="w-28 shrink-0 truncate text-[13px] text-muted-foreground sm:w-40">
+                  <div className="w-28 shrink-0 truncate text-body text-muted-foreground sm:w-40">
                     {row.label}
                   </div>
                   <div className="relative h-7 flex-1 overflow-hidden rounded-lg border border-border bg-muted/30">
@@ -277,11 +277,11 @@ export default async function BdReportsPage({
                       className="h-full rounded-lg bg-gradient-to-r from-violet-500/30 to-violet-500/10"
                       style={{ width: `${width}%` }}
                     />
-                    <div className="absolute inset-0 flex items-center px-3 text-[13px] font-medium tabular-nums text-foreground">
+                    <div className="absolute inset-0 flex items-center px-3 text-body font-medium tabular-nums text-foreground">
                       {row.count.toLocaleString("en-IN")}
                     </div>
                   </div>
-                  <div className="w-16 shrink-0 text-right text-[12px] tabular-nums text-muted-foreground">
+                  <div className="w-16 shrink-0 text-right text-detail tabular-nums text-muted-foreground">
                     {stepConv === null ? "—" : `${stepConv}%`}
                   </div>
                 </div>
@@ -318,7 +318,7 @@ export default async function BdReportsPage({
 
           {/* Lead sources */}
           <div className="lg:col-span-2">
-            <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
+            <h3 className="mb-2 text-detail font-semibold uppercase tracking-[0.04em] text-muted-foreground">
               Lead sources
             </h3>
             {a.leadSources.length === 0 ? (
@@ -534,7 +534,7 @@ export default async function BdReportsPage({
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {/* Loss reasons */}
           <div>
-            <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
+            <h3 className="mb-2 text-detail font-semibold uppercase tracking-[0.04em] text-muted-foreground">
               Reasons
             </h3>
             {lost.reasons.length === 0 ? (
@@ -565,7 +565,7 @@ export default async function BdReportsPage({
 
           {/* Win-rate trend */}
           <div>
-            <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
+            <h3 className="mb-2 text-detail font-semibold uppercase tracking-[0.04em] text-muted-foreground">
               Win-rate trend (6 months)
             </h3>
             {lost.trend.length === 0 ? (
@@ -581,7 +581,7 @@ export default async function BdReportsPage({
                   const h = Math.max(4, Math.round((rate / 100) * 80));
                   return (
                     <div key={t.month} className="flex flex-1 flex-col items-center gap-1">
-                      <span className="text-[10px] tabular-nums text-muted-foreground">
+                      <span className="text-meta tabular-nums text-muted-foreground">
                         {Math.round(rate)}%
                       </span>
                       <div className="flex h-20 w-full items-end overflow-hidden">
@@ -590,7 +590,7 @@ export default async function BdReportsPage({
                           style={{ height: `${h}px` }}
                         />
                       </div>
-                      <span className="truncate text-[10px] text-muted-foreground">{t.month}</span>
+                      <span className="truncate text-meta text-muted-foreground">{t.month}</span>
                     </div>
                   );
                 })}
@@ -601,7 +601,7 @@ export default async function BdReportsPage({
 
         {/* Lost rows */}
         <div>
-          <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
+          <h3 className="mb-2 text-detail font-semibold uppercase tracking-[0.04em] text-muted-foreground">
             Lost deals
           </h3>
           {lost.rows.length === 0 ? (
@@ -671,7 +671,7 @@ export default async function BdReportsPage({
                           <Td className="font-medium">{e.name}</Td>
                           <Td className="text-right tabular-nums">
                             <span>{e.leadsTotal.toLocaleString("en-IN")}</span>
-                            <span className="block text-[10px] text-muted-foreground">
+                            <span className="block text-meta text-muted-foreground">
                               {e.leadsCold} cold / {e.leadsCampaign} campaign
                             </span>
                           </Td>
@@ -695,7 +695,7 @@ export default async function BdReportsPage({
 
           {/* Leaderboard */}
           <div>
-            <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
+            <h3 className="mb-2 text-detail font-semibold uppercase tracking-[0.04em] text-muted-foreground">
               Leaderboard · Task score
             </h3>
             {a.leaderboard.length === 0 ? (
@@ -707,7 +707,7 @@ export default async function BdReportsPage({
                   return (
                     <li
                       key={l.userId}
-                      className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-[13px]"
+                      className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-body"
                     >
                       <span className="flex min-w-0 items-center gap-2">
                         <span className="w-6 shrink-0 text-center tabular-nums text-muted-foreground">
@@ -754,25 +754,25 @@ function FollowupList({
   return (
     <Card className="gap-0 py-0">
       <CardContent className="space-y-3 px-4 py-4">
-        <div className={`flex items-center justify-between text-[12px] font-semibold uppercase tracking-[0.04em] ${headTone}`}>
+        <div className={`flex items-center justify-between text-detail font-semibold uppercase tracking-[0.04em] ${headTone}`}>
           <span>{title}</span>
           <span className="tabular-nums">{items.length}</span>
         </div>
         {items.length === 0 ? (
-          <p className="text-[12px] text-muted-foreground">{empty}</p>
+          <p className="text-detail text-muted-foreground">{empty}</p>
         ) : (
           <ul className="space-y-2">
             {items.map((it) => (
               <li key={it.id} className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="truncate text-[13px] font-medium text-foreground">
+                  <span className="truncate text-body font-medium text-foreground">
                     {it.client || "—"}
                   </span>
-                  <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                  <span className="shrink-0 text-meta tabular-nums text-muted-foreground">
                     {fmtDate(it.when)}
                   </span>
                 </div>
-                <div className="mt-0.5 flex items-center justify-between gap-2 text-[11.5px] text-muted-foreground">
+                <div className="mt-0.5 flex items-center justify-between gap-2 text-meta text-muted-foreground">
                   <span className="truncate">
                     {[it.property, it.contact].filter(Boolean).join(" · ") || "—"}
                   </span>

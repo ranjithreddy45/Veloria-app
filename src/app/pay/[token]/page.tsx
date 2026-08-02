@@ -54,7 +54,7 @@ export default async function PayPage({
           <h1 className="large-title mt-3 text-2xl text-ink-gradient sm:mt-4 sm:text-3xl">
             Veloria Grand
           </h1>
-          <p className="mt-1.5 text-[11px] text-muted-foreground sm:text-xs">
+          <p className="mt-1.5 text-meta text-muted-foreground sm:text-xs">
             {COMPANY_LEGAL_LINE}
           </p>
         </header>
@@ -120,8 +120,8 @@ export default async function PayPage({
                         it wraps to its own line rather than shrinking when the
                         figure is long (₹1,25,00,000 at 375px). */}
                     <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                      <span className="text-[15px] font-semibold text-foreground">Balance due</span>
-                      <span className="large-title tabular-nums text-[28px] leading-none text-ink-gradient sm:text-2xl">
+                      <span className="text-copy font-semibold text-foreground">Balance due</span>
+                      <span className="large-title tabular-nums text-h2 leading-none text-ink-gradient sm:text-2xl">
                         {inr(i.balanceDue)}
                       </span>
                     </div>
@@ -143,7 +143,7 @@ export default async function PayPage({
                         <>
                           {/* Link pinned an explicit amount — keep it authoritative. */}
                           {payAmount < i.balanceDue && (
-                            <p className="rounded-xl bg-primary/5 px-3.5 py-2.5 text-[13px] text-foreground">
+                            <p className="rounded-xl bg-primary/5 px-3.5 py-2.5 text-body text-foreground">
                               Amount to pay now: <span className="font-semibold">{inr(payAmount)}</span>
                               <span className="text-muted-foreground">
                                 {" "}
@@ -184,11 +184,11 @@ export default async function PayPage({
 
         {/* ---- Trust footer ---- */}
         <footer className="space-y-3 text-center">
-          <p className="flex items-center justify-center gap-1.5 text-[12px] font-medium text-muted-foreground">
+          <p className="flex items-center justify-center gap-1.5 text-detail font-medium text-muted-foreground">
             <ShieldCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
             256-bit secure payment · powered by Razorpay
           </p>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-meta text-muted-foreground">
             Veloria Grand · A Unit of Billion Events Hospitality Services Pvt Ltd
           </p>
         </footer>

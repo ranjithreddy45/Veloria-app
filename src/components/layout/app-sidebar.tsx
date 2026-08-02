@@ -245,8 +245,8 @@ function useCloseDrawerOnNavigate() {
 // `asChild` — anchors only get a 32px floor there — so the sizes are set here.
 // Mobile-first: unprefixed value applies on phones, `md:` restores the tight
 // desktop density, so this cannot regress the desktop sidebar.
-const NAV_ROW_TOUCH = "h-11 text-[14px] md:h-9 md:text-[13px]";
-const NAV_SUBROW_TOUCH = "h-10 text-[13.5px] md:h-8 md:text-[12.5px]";
+const NAV_ROW_TOUCH = "h-11 text-copy md:h-9 md:text-body";
+const NAV_SUBROW_TOUCH = "h-10 text-body md:h-8 md:text-detail";
 
 // ============================================================
 // Collapsible group labels
@@ -264,7 +264,10 @@ const SECTIONS: Record<string, string> = {
   "/tasks": "Delivery & Ops",
   "/beo": "Delivery & Ops",
   "/procurement": "Delivery & Ops",
-  "/support": "Sales & CRM",
+  // Support is an OPS module (shipped with BEO/Kitchen/Procurement/Logistics)
+  // and sits after the ops group in the nav order. Labelling it Sales & CRM
+  // made the "Sales & CRM" band header render a SECOND time further down.
+  "/support": "Delivery & Ops",
   "/recruitment": "People",
   "/people": "People",
   "/people/attendance": "People",
@@ -524,10 +527,10 @@ export function AppSidebar() {
                     <Gem className="size-3.5" strokeWidth={2.5} />
                   </div>
                   <div className="flex flex-col">
-                    <span className="font-editorial text-[15px] font-semibold tracking-[-0.01em] text-ink-gradient">
+                    <span className="font-editorial text-copy font-semibold tracking-[-0.01em] text-ink-gradient">
                       Veloria Grand
                     </span>
-                    <span className="text-[10.5px] font-medium tracking-wide text-sidebar-foreground/45">
+                    <span className="text-meta font-medium tracking-wide text-sidebar-foreground/45">
                       Venue Management
                     </span>
                   </div>
@@ -549,9 +552,17 @@ export function AppSidebar() {
             <SidebarMenu>
               {(() => {
                 let prevSection: string | undefined;
+                // Compared against EVERY band already emitted, not just the
+                // previous item's. The old `section !== prevSection` test meant
+                // a band that reappeared later in the nav printed its heading a
+                // second time — the sidebar showed "SALES & CRM" twice. A
+                // heading is a promise that everything under it belongs
+                // together; printing it twice breaks that promise.
+                const seenSections = new Set<string>();
                 return filteredNavigation.map((item) => {
                   const section = SECTIONS[item.href];
-                  const showHeader = !!section && section !== prevSection;
+                  const showHeader = !!section && !seenSections.has(section);
+                  if (section) seenSections.add(section);
                   // Each item's icon-tile hue follows the section it belongs to
                   // (items that don't start a section inherit the running one).
                   const effectiveSection = section ?? prevSection;
@@ -572,7 +583,7 @@ export function AppSidebar() {
                   return (
                     <Fragment key={item.href}>
                       {showHeader && (
-                        <SidebarGroupLabel className="mt-4 mb-1 flex items-center gap-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-sidebar-foreground/40">
+                        <SidebarGroupLabel className="mt-4 mb-1 flex items-center gap-1.5 px-2.5 text-meta font-semibold uppercase tracking-[0.1em] text-sidebar-foreground/40">
                           <span className={cn("size-1.5 rounded-full", SECTION_DOT[section] ?? "bg-muted-foreground/40")} />
                           {section}
                         </SidebarGroupLabel>
@@ -596,7 +607,7 @@ export function AppSidebar() {
         <Link
           href="/get-app"
           onClick={closeDrawer}
-          className="flex min-h-11 items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13.5px] font-medium text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0 md:min-h-0 md:text-[12.5px]"
+          className="flex min-h-11 items-center gap-2.5 rounded-xl px-2.5 py-2 text-body font-medium text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0 md:min-h-0 md:text-detail"
           title="Get the app on your phone"
         >
           <Smartphone className="size-4 shrink-0" />
@@ -607,7 +618,7 @@ export function AppSidebar() {
         <div className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 transition-colors duration-150 hover:bg-sidebar-accent/70 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0">
           <Avatar size="sm">
             <AvatarImage src={user?.image || undefined} alt={user?.name || ""} />
-            <AvatarFallback className="bg-primary text-[10px] font-medium text-primary-foreground">
+            <AvatarFallback className="bg-primary text-meta font-medium text-primary-foreground">
               {user?.name
                 ?.split(" ")
                 .map((n) => n[0])
@@ -617,10 +628,10 @@ export function AppSidebar() {
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-1 flex-col overflow-hidden group-data-[collapsible=icon]:hidden">
-            <span className="truncate text-[12.5px] font-medium leading-tight text-sidebar-accent-foreground">
+            <span className="truncate text-detail font-medium leading-tight text-sidebar-accent-foreground">
               {user?.name || "Guest"}
             </span>
-            <span className="truncate text-[11px] leading-tight text-sidebar-foreground/55">
+            <span className="truncate text-meta leading-tight text-sidebar-foreground/55">
               {ROLE_LABELS[user?.role || ""] || "Unknown"}
             </span>
           </div>

@@ -179,7 +179,7 @@ export function AssignmentRulesManager() {
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-body text-muted-foreground">
           <span className="numeric font-medium text-foreground">
             {rules.length}
           </span>{" "}
@@ -226,7 +226,7 @@ export function AssignmentRulesManager() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-[15px] font-semibold tracking-[-0.01em]">
+                        <h3 className="text-copy font-semibold tracking-[-0.01em]">
                           {rule.name}
                         </h3>
                         <StatusPill
@@ -236,14 +236,14 @@ export function AssignmentRulesManager() {
                         />
                       </div>
 
-                      <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[13px]">
+                      <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-body">
                         <span className="text-muted-foreground">When</span>
                         {conditions.map((c, i) => (
                           <React.Fragment key={`${rule.id}-cond-${i}`}>
                             {i > 0 && (
                               <span className="text-muted-foreground">and</span>
                             )}
-                            <span className="rounded-md bg-muted px-1.5 py-0.5 text-[12.5px]">
+                            <span className="rounded-md bg-muted px-1.5 py-0.5 text-detail">
                               <span className="font-medium text-foreground">
                                 {humanizeField(c.field)}
                               </span>{" "}
@@ -259,7 +259,7 @@ export function AssignmentRulesManager() {
                           </React.Fragment>
                         ))}
                         <ArrowRightIcon className="size-3.5 shrink-0 text-muted-foreground" />
-                        <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-1.5 py-0.5 text-[12.5px] font-medium">
+                        <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-1.5 py-0.5 text-detail font-medium">
                           <UsersIcon className="size-3.5 text-muted-foreground" />
                           {rule.assignmentMethod === "DIRECT"
                             ? `Assign to ${rule.assignToUser?.name || "User"}`
@@ -269,7 +269,7 @@ export function AssignmentRulesManager() {
                         </span>
                       </div>
 
-                      <div className="mt-2.5 text-[11px] uppercase tracking-wide text-muted-foreground">
+                      <div className="mt-2.5 text-meta uppercase tracking-wide text-muted-foreground">
                         Priority{" "}
                         <span className="numeric font-medium text-foreground">
                           {rule.priority}

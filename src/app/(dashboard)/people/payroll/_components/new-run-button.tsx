@@ -70,7 +70,7 @@ export function NewRunButton() {
         <DialogHeader><DialogTitle>New payroll run</DialogTitle></DialogHeader>
         <div className="grid grid-cols-2 gap-3 py-2">
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Financial year</Label>
+            <Label className="text-detail">Financial year</Label>
             <Select value={fy} onValueChange={setFy}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -79,7 +79,7 @@ export function NewRunButton() {
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Month</Label>
+            <Label className="text-detail">Month</Label>
             <Select value={month} onValueChange={setMonth}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -88,7 +88,7 @@ export function NewRunButton() {
             </Select>
           </div>
         </div>
-        <p className="text-[12px] text-muted-foreground">
+        <p className="text-detail text-muted-foreground">
           Creates an empty draft run. You’ll compute payslips on the next screen.
         </p>
         <DialogFooter>

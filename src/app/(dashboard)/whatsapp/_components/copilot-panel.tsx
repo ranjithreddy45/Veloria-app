@@ -120,7 +120,7 @@ export function CopilotPanel({
           <Sparkles className="size-3.5 text-violet-500" />
           AI Co-pilot
           {aiOff && variants.length > 0 && (
-            <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">
+            <Badge variant="secondary" className="h-4 px-1.5 text-meta">
               suggested
             </Badge>
           )}
@@ -129,7 +129,7 @@ export function CopilotPanel({
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 px-2 text-[11px]"
+            className="h-6 px-2 text-meta"
             onClick={handleGenerate}
             disabled={generating}
           >
@@ -141,7 +141,7 @@ export function CopilotPanel({
 
       {/* Closed-session hint — actual gating happens in the send action. */}
       {!sessionOpen && (
-        <div className="mb-2 flex items-start gap-1.5 rounded bg-amber-50 px-2 py-1.5 text-[11px] leading-snug text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+        <div className="mb-2 flex items-start gap-1.5 rounded bg-amber-50 px-2 py-1.5 text-meta leading-snug text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
           <Lock className="mt-0.5 size-3 shrink-0" />
           <span>
             The 24h window is closed — free-text may be rejected by WhatsApp. Use
@@ -180,11 +180,11 @@ export function CopilotPanel({
               <div className="mb-1 flex items-center gap-1.5">
                 <Badge
                   variant="outline"
-                  className="h-4 px-1.5 text-[10px] font-medium"
+                  className="h-4 px-1.5 text-meta font-medium"
                 >
                   {variant.tone}
                 </Badge>
-                <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                <span className="flex items-center gap-1 text-meta text-muted-foreground">
                   <Pencil className="size-2.5" />
                   editable
                 </span>
@@ -223,7 +223,7 @@ export function CopilotPanel({
             </div>
           ))}
           {sentDraft && (
-            <p className="text-center text-[11px] text-muted-foreground">
+            <p className="text-center text-meta text-muted-foreground">
               Reply sent. Generate fresh drafts to continue.
             </p>
           )}

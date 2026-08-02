@@ -307,7 +307,7 @@ export function DocumentList({ data, venues }: DocumentListProps) {
                 <div className="absolute right-2 top-2">
                   <Badge
                     variant="secondary"
-                    className="bg-black/50 text-white border-transparent text-[10px]"
+                    className="bg-black/50 text-white border-transparent text-meta"
                   >
                     {getFileTypeLabel(doc.mimeType)}
                   </Badge>
@@ -317,7 +317,7 @@ export function DocumentList({ data, venues }: DocumentListProps) {
                 <div className="absolute left-2 top-2">
                   <Badge
                     variant="secondary"
-                    className={`text-[10px] ${
+                    className={`text-meta ${
                       doc.isPublic
                         ? "bg-green-100 text-green-700 border-green-200"
                         : "bg-zinc-100 text-zinc-600 border-zinc-200"
@@ -378,14 +378,14 @@ export function DocumentList({ data, venues }: DocumentListProps) {
                 <div className="mt-1.5 flex items-center gap-2">
                   <Badge
                     variant="outline"
-                    className={`text-[10px] border font-medium ${
+                    className={`text-meta border font-medium ${
                       CATEGORY_COLORS[doc.category] ||
                       "bg-zinc-100 text-zinc-800 border-zinc-200"
                     }`}
                   >
                     {CATEGORY_LABELS[doc.category] || doc.category}
                   </Badge>
-                  <span className="text-[10px] text-zinc-400">
+                  <span className="text-meta text-zinc-400">
                     {formatFileSize(doc.size)}
                   </span>
                 </div>
@@ -395,7 +395,7 @@ export function DocumentList({ data, venues }: DocumentListProps) {
                       <Badge
                         key={tag}
                         variant="outline"
-                        className="text-[10px] py-0 px-1.5 text-zinc-500"
+                        className="text-meta py-0 px-1.5 text-zinc-500"
                       >
                         <TagIcon className="mr-0.5 size-2" />
                         {tag}
@@ -404,14 +404,14 @@ export function DocumentList({ data, venues }: DocumentListProps) {
                     {doc.tags.length > 3 && (
                       <Badge
                         variant="outline"
-                        className="text-[10px] py-0 px-1.5 text-zinc-400"
+                        className="text-meta py-0 px-1.5 text-zinc-400"
                       >
                         +{doc.tags.length - 3}
                       </Badge>
                     )}
                   </div>
                 )}
-                <p className="mt-2 text-[10px] text-zinc-400">
+                <p className="mt-2 text-meta text-zinc-400">
                   {new Date(doc.createdAt).toLocaleDateString("en-IN", {
                     day: "2-digit",
                     month: "short",

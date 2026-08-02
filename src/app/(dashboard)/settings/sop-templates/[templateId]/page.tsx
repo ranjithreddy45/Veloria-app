@@ -199,19 +199,19 @@ export default async function SOPTemplateDetailPage({
                               <div className="flex items-center gap-2 flex-wrap">
                                 <Badge
                                   variant="outline"
-                                  className="text-[10px] px-1.5 py-0"
+                                  className="text-meta px-1.5 py-0"
                                 >
                                   {TASK_CATEGORY_LABELS[task.category as string] ??
                                     String(task.category)}
                                 </Badge>
                                 <Badge
                                   variant="outline"
-                                  className="text-[10px] px-1.5 py-0"
+                                  className="text-meta px-1.5 py-0"
                                 >
                                   {String(task.priority)}
                                 </Badge>
                                 {!!task.estimatedMinutes && (
-                                  <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                                  <span className="text-meta text-muted-foreground flex items-center gap-0.5">
                                     <ClockIcon className="size-3" />
                                     {Number(task.estimatedMinutes)}min
                                   </span>

@@ -154,7 +154,7 @@ export function BookingsTable({ data }: BookingsTableProps) {
       cell: ({ row }) => (
         <Link
           href={`/bookings/${row.original.id}`}
-          className="numeric text-[13px] font-semibold text-indigo-600 hover:text-indigo-800 hover:underline"
+          className="numeric text-body font-semibold text-indigo-600 hover:text-indigo-800 hover:underline"
         >
           {row.original.bookingNumber}
         </Link>
@@ -166,7 +166,7 @@ export function BookingsTable({ data }: BookingsTableProps) {
         <DataTableColumnHeader column={column} title="Event Name" />
       ),
       cell: ({ row }) => (
-        <div className="max-w-[220px] truncate text-[13.5px] font-medium tracking-[-0.01em]">
+        <div className="max-w-[220px] truncate text-body font-medium tracking-[-0.01em]">
           {row.original.eventName}
         </div>
       ),
@@ -175,7 +175,7 @@ export function BookingsTable({ data }: BookingsTableProps) {
       accessorKey: "eventType",
       header: "Event Type",
       cell: ({ row }) => (
-        <span className="text-[13px] text-muted-foreground">
+        <span className="text-body text-muted-foreground">
           {titleCase(row.original.eventType)}
         </span>
       ),
@@ -184,7 +184,7 @@ export function BookingsTable({ data }: BookingsTableProps) {
       accessorKey: "venue",
       header: "Venue",
       cell: ({ row }) => (
-        <span className="text-[13px]">{row.original.venue.name}</span>
+        <span className="text-body">{row.original.venue.name}</span>
       ),
     },
     {
@@ -193,7 +193,7 @@ export function BookingsTable({ data }: BookingsTableProps) {
         <DataTableColumnHeader column={column} title="Date" />
       ),
       cell: ({ row }) => (
-        <span className="numeric text-[13px]">
+        <span className="numeric text-body">
           {format(new Date(row.original.date), "dd MMM yyyy")}
         </span>
       ),
@@ -202,7 +202,7 @@ export function BookingsTable({ data }: BookingsTableProps) {
       accessorKey: "timeSlot",
       header: "Time Slot",
       cell: ({ row }) => (
-        <span className="text-[13px] text-muted-foreground">
+        <span className="text-body text-muted-foreground">
           {TIME_SLOT_LABELS[row.original.timeSlot]
             ?.split("(")[0]
             ?.trim() || row.original.timeSlot}
@@ -217,7 +217,7 @@ export function BookingsTable({ data }: BookingsTableProps) {
         </div>
       ),
       cell: ({ row }) => (
-        <div className="numeric text-right text-[13px]">
+        <div className="numeric text-right text-body">
           {row.original.guestCount}
         </div>
       ),
@@ -249,7 +249,7 @@ export function BookingsTable({ data }: BookingsTableProps) {
         </div>
       ),
       cell: ({ row }) => (
-        <div className="numeric text-right text-[13px] font-semibold">
+        <div className="numeric text-right text-body font-semibold">
           {formatINR(row.original.totalAmount)}
         </div>
       ),

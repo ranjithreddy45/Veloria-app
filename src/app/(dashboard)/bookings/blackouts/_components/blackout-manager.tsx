@@ -130,9 +130,9 @@ export function BlackoutManager({ blackouts, venues }: BlackoutManagerProps) {
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
       {/* Existing blackouts */}
       <div className="overflow-x-auto rounded-2xl border border-border/70 bg-card shadow-premium">
-        <table className="w-full min-w-[480px] border-collapse text-[13px]">
+        <table className="w-full min-w-[480px] border-collapse text-body">
           <thead>
-            <tr className="border-b border-border bg-muted/40 text-left text-[11.5px] font-medium uppercase tracking-wide text-muted-foreground">
+            <tr className="border-b border-border bg-muted/40 text-left text-meta font-medium uppercase tracking-wide text-muted-foreground">
               <th className="px-3 py-2 font-medium">Venue</th>
               <th className="px-3 py-2 font-medium">Date</th>
               <th className="px-3 py-2 font-medium">Slot</th>
@@ -193,14 +193,14 @@ export function BlackoutManager({ blackouts, venues }: BlackoutManagerProps) {
       {/* Block a date form */}
       <form
         onSubmit={handleCreate}
-        className="h-fit space-y-4 rounded-2xl border border-border/70 bg-card p-5 text-[13px] shadow-premium"
+        className="h-fit space-y-4 rounded-2xl border border-border/70 bg-card p-5 text-body shadow-premium"
       >
-        <div className="text-[13px] font-semibold tracking-[-0.01em] text-foreground">
+        <div className="text-body font-semibold tracking-[-0.01em] text-foreground">
           Block a date
         </div>
 
         <div className="grid gap-1.5">
-          <Label className="text-[12px] text-muted-foreground">
+          <Label className="text-detail text-muted-foreground">
             Venue <span className="text-destructive">*</span>
           </Label>
           <Select value={venueId || undefined} onValueChange={setVenueId}>
@@ -218,7 +218,7 @@ export function BlackoutManager({ blackouts, venues }: BlackoutManagerProps) {
         </div>
 
         <div className="grid gap-1.5">
-          <Label className="text-[12px] text-muted-foreground">
+          <Label className="text-detail text-muted-foreground">
             Date <span className="text-destructive">*</span>
           </Label>
           <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
@@ -252,7 +252,7 @@ export function BlackoutManager({ blackouts, venues }: BlackoutManagerProps) {
         </div>
 
         <div className="grid gap-1.5">
-          <Label className="text-[12px] text-muted-foreground">Time slot</Label>
+          <Label className="text-detail text-muted-foreground">Time slot</Label>
           <Select
             value={timeSlot}
             onValueChange={(v) => setTimeSlot(v as TimeSlot)}
@@ -271,7 +271,7 @@ export function BlackoutManager({ blackouts, venues }: BlackoutManagerProps) {
         </div>
 
         <div className="grid gap-1.5">
-          <Label className="text-[12px] text-muted-foreground">Reason</Label>
+          <Label className="text-detail text-muted-foreground">Reason</Label>
           <Input
             value={reason}
             onChange={(e) => setReason(e.target.value)}

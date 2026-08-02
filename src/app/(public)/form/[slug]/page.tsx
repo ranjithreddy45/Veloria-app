@@ -37,10 +37,10 @@ export default async function PublicFormPage({
   if (!result.success || !result.data) {
     return (
       <div className="py-20 text-center">
-        <h1 className="text-foreground text-[30px] sm:text-[34px]">
+        <h1 className="text-foreground text-h1 sm:text-h1">
           Form Not Found
         </h1>
-        <p className="text-muted-foreground mx-auto mt-3 max-w-md text-[15px] leading-relaxed">
+        <p className="text-muted-foreground mx-auto mt-3 max-w-md text-copy leading-relaxed">
           This form does not exist or has been removed.
         </p>
         <HelpChip className="mt-5" />
@@ -53,10 +53,10 @@ export default async function PublicFormPage({
   if (!webform.isActive) {
     return (
       <div className="py-20 text-center">
-        <h1 className="text-foreground text-[30px] sm:text-[34px]">
+        <h1 className="text-foreground text-h1 sm:text-h1">
           Form Closed
         </h1>
-        <p className="text-muted-foreground mx-auto mt-3 max-w-md text-[15px] leading-relaxed">
+        <p className="text-muted-foreground mx-auto mt-3 max-w-md text-copy leading-relaxed">
           This form is no longer accepting submissions.
         </p>
         <HelpChip className="mt-5" />
@@ -68,11 +68,11 @@ export default async function PublicFormPage({
     <div className="space-y-6">
       {/* Form Header */}
       <div className="text-center">
-        <h1 className="text-foreground text-[30px] sm:text-[34px]">
+        <h1 className="text-foreground text-h1 sm:text-h1">
           {webform.name}
         </h1>
         {webform.description && (
-          <p className="text-muted-foreground mx-auto mt-3 max-w-md text-[15px] leading-relaxed">
+          <p className="text-muted-foreground mx-auto mt-3 max-w-md text-copy leading-relaxed">
             {webform.description}
           </p>
         )}

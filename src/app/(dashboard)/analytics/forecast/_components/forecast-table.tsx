@@ -59,7 +59,7 @@ const columns: ColumnDef<ForecastEntry>[] = [
       <DataTableColumnHeader column={column} title="Predicted Bookings" />
     ),
     cell: ({ row }) => (
-      <span className="numeric text-[13px]">{row.getValue("predictedBookings")}</span>
+      <span className="numeric text-body">{row.getValue("predictedBookings")}</span>
     ),
   },
   {
@@ -92,7 +92,7 @@ const columns: ColumnDef<ForecastEntry>[] = [
     cell: ({ row }) => {
       const date = row.getValue("generatedAt") as string;
       return (
-        <span className="numeric text-[13px] text-muted-foreground">
+        <span className="numeric text-body text-muted-foreground">
           {new Date(date).toLocaleDateString("en-IN", {
             day: "2-digit",
             month: "short",

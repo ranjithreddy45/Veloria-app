@@ -21,9 +21,9 @@ interface Row {
 function PunctualityBadge({ onTime }: { onTime: boolean | null }) {
   if (onTime == null) return null;
   return onTime ? (
-    <span className="inline-flex items-center rounded-full bg-success/10 px-2 py-0.5 text-[11px] font-medium text-success">On time</span>
+    <span className="inline-flex items-center rounded-full bg-success/10 px-2 py-0.5 text-meta font-medium text-success">On time</span>
   ) : (
-    <span className="inline-flex items-center rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">Late</span>
+    <span className="inline-flex items-center rounded-full bg-destructive/10 px-2 py-0.5 text-meta font-medium text-destructive">Late</span>
   );
 }
 
@@ -33,7 +33,7 @@ export function ApprovalQueue({ rows }: { rows: Row[] }) {
       <div className="rounded-xl border border-dashed p-12 text-center">
         <CalendarCheck2 className="mx-auto size-8 text-muted-foreground/50" />
         <p className="mt-3 text-sm font-medium">Nothing waiting on you</p>
-        <p className="mt-1 text-[13px] text-muted-foreground">Leave requests routed to you appear here for approval.</p>
+        <p className="mt-1 text-body text-muted-foreground">Leave requests routed to you appear here for approval.</p>
       </div>
     );
   }
@@ -64,19 +64,19 @@ function Card({ row }: { row: Row }) {
           <Link href={`/people/${row.employee.id}`} className="font-medium hover:underline">
             {row.employee.firstName} {row.employee.lastName}
           </Link>
-          <span className="ml-2 text-[12px] text-muted-foreground">{row.employee.empCode}</span>
-          <div className="mt-1 flex items-center gap-2 text-[13px]">
+          <span className="ml-2 text-detail text-muted-foreground">{row.employee.empCode}</span>
+          <div className="mt-1 flex items-center gap-2 text-body">
             <StatusPill label={row.leaveType.code} hue={row.leaveType.color as never} size="xs" />
             <span>{formatDate(row.startDate)}{row.endDate !== row.startDate ? ` → ${formatDate(row.endDate)}` : ""}</span>
             <span className="font-medium tabular-nums">· {row.days} day{row.days === 1 ? "" : "s"}</span>
             <PunctualityBadge onTime={row.appliedOnTime} />
           </div>
-          {row.reason && <p className="mt-1 text-[12.5px] text-muted-foreground">“{row.reason}”</p>}
+          {row.reason && <p className="mt-1 text-detail text-muted-foreground">“{row.reason}”</p>}
         </div>
         <div className="flex items-center gap-2">
           <input
             value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (optional)"
-            className="h-8 w-40 rounded-md border bg-background px-2 text-[12.5px] outline-none focus:ring-2 focus:ring-ring"
+            className="h-8 w-40 rounded-md border bg-background px-2 text-detail outline-none focus:ring-2 focus:ring-ring"
           />
           <Button variant="outline" size="sm" className="gap-1.5" disabled={!!busy} onClick={() => decide("REJECTED")}>
             {busy === "REJECTED" ? <Loader2 className="size-3.5 animate-spin" /> : <X className="size-3.5" />} Reject

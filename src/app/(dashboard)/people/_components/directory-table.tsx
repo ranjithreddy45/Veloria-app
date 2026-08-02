@@ -99,7 +99,7 @@ export function DirectoryTable({
     <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
       {/* Toolbar: filtered count + CSV export of the whole filtered set. */}
       <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
-        <span className="text-[13px] text-muted-foreground">
+        <span className="text-body text-muted-foreground">
           <span className="numeric font-medium text-foreground">{total}</span>{" "}
           {total === 1 ? "employee" : "employees"}
         </span>
@@ -145,11 +145,11 @@ export function DirectoryTable({
                         <Link
                           href={`/people/${r.id}`}
                           onClick={(e) => e.stopPropagation()}
-                          className="block truncate text-[14px] font-medium leading-tight hover:underline"
+                          className="block truncate text-copy font-medium leading-tight hover:underline"
                         >
                           {name}
                         </Link>
-                        <div className="mt-0.5 truncate text-[12px] text-muted-foreground">
+                        <div className="mt-0.5 truncate text-detail text-muted-foreground">
                           <span className="numeric">{r.empCode}</span>
                           {r.designation?.name ? ` · ${r.designation.name}` : ""}
                         </div>
@@ -157,20 +157,20 @@ export function DirectoryTable({
                     </div>
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
-                    <span className="text-[13px] text-muted-foreground">
+                    <span className="text-body text-muted-foreground">
                       {r.legalEntity?.shortCode || r.legalEntity?.name || "—"}
                     </span>
                   </TableCell>
-                  <TableCell className="hidden lg:table-cell text-[13px] text-muted-foreground">
+                  <TableCell className="hidden lg:table-cell text-body text-muted-foreground">
                     {r.businessVertical?.name || "—"}
                   </TableCell>
-                  <TableCell className="hidden lg:table-cell text-[13px] text-muted-foreground">
+                  <TableCell className="hidden lg:table-cell text-body text-muted-foreground">
                     {r.department?.name || "—"}
                   </TableCell>
-                  <TableCell className="hidden xl:table-cell text-[13px] text-muted-foreground">
+                  <TableCell className="hidden xl:table-cell text-body text-muted-foreground">
                     {r.reportingManager ? `${r.reportingManager.firstName} ${r.reportingManager.lastName}` : "—"}
                   </TableCell>
-                  <TableCell className="numeric hidden lg:table-cell text-[12.5px] text-muted-foreground whitespace-nowrap">
+                  <TableCell className="numeric hidden lg:table-cell text-detail text-muted-foreground whitespace-nowrap">
                     {formatJoined(r.dateOfJoining)}
                   </TableCell>
                   <TableCell>
@@ -199,14 +199,14 @@ export function DirectoryTable({
                 <EmpAvatar row={r} name={name} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="truncate text-[14px] font-medium">{name}</span>
+                    <span className="truncate text-copy font-medium">{name}</span>
                     <StatusPill label={EMPLOYEE_STATUS_LABELS[r.status]} hue={EMPLOYEE_STATUS_HUE[r.status]} size="xs" />
                   </div>
-                  <div className="mt-0.5 truncate text-[12px] text-muted-foreground">
+                  <div className="mt-0.5 truncate text-detail text-muted-foreground">
                     <span className="numeric">{r.empCode}</span>
                     {r.designation?.name ? ` · ${r.designation.name}` : ""}
                   </div>
-                  <div className="mt-0.5 truncate text-[12px] text-muted-foreground">
+                  <div className="mt-0.5 truncate text-detail text-muted-foreground">
                     {[r.department?.name, r.legalEntity?.shortCode || r.legalEntity?.name]
                       .filter(Boolean)
                       .join(" · ") || "—"}
@@ -222,7 +222,7 @@ export function DirectoryTable({
       </ul>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-between border-t px-4 py-3 text-[13px] text-muted-foreground">
+        <div className="flex items-center justify-between border-t px-4 py-3 text-body text-muted-foreground">
           <span className="numeric">
             {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} of {total}
           </span>
@@ -303,7 +303,7 @@ function EmpAvatar({ row, name }: { row: DirectoryRow; name: string }) {
   return (
     <Avatar size="sm">
       <AvatarImage src={row.photoUrl || undefined} alt={name} />
-      <AvatarFallback className="bg-primary/10 text-[10px] font-semibold text-primary">
+      <AvatarFallback className="bg-primary/10 text-meta font-semibold text-primary">
         {initials || "?"}
       </AvatarFallback>
     </Avatar>

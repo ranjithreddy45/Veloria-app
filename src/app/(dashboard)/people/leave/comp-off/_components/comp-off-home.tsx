@@ -59,7 +59,7 @@ export function CompOffHome({
     <div className="space-y-5">
       {/* Summary + grant */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px]">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-body">
           <span className="text-muted-foreground">Available <span className="font-semibold tabular-nums text-success">{counts.available}</span></span>
           <span className="h-3 w-px bg-border" />
           <span className="text-muted-foreground">Used <span className="font-semibold tabular-nums text-foreground">{counts.used}</span></span>
@@ -78,7 +78,7 @@ export function CompOffHome({
 
       {/* My comp-offs */}
       <div className="rounded-xl border bg-card">
-        <div className="flex items-center gap-2 border-b px-4 py-3 text-[13px] font-semibold">
+        <div className="flex items-center gap-2 border-b px-4 py-3 text-body font-semibold">
           <CalendarCheck2 className="size-4 text-[#C9A96E]" /> My comp-offs
         </div>
         {mine && mine.linked === false ? (
@@ -105,10 +105,10 @@ export function CompOffHome({
             <TableBody>
               {mine.items.map((r) => (
                 <TableRow key={r.id}>
-                  <TableCell className="text-[13px] font-medium">{formatDate(r.workedDate)}</TableCell>
+                  <TableCell className="text-body font-medium">{formatDate(r.workedDate)}</TableCell>
                   <TableCell className="text-right tabular-nums">{r.days}</TableCell>
-                  <TableCell className="text-[13px] text-muted-foreground">{r.reason || "—"}</TableCell>
-                  <TableCell className="text-[13px] text-muted-foreground">{r.expiryDate ? formatDate(r.expiryDate) : "—"}</TableCell>
+                  <TableCell className="text-body text-muted-foreground">{r.reason || "—"}</TableCell>
+                  <TableCell className="text-body text-muted-foreground">{r.expiryDate ? formatDate(r.expiryDate) : "—"}</TableCell>
                   <TableCell><StatusPill label={STATUS_LABEL[r.status]} hue={STATUS_HUE[r.status]} size="xs" /></TableCell>
                   <TableCell>{r.redeemable && <RedeemButton id={r.id} />}</TableCell>
                 </TableRow>
@@ -121,7 +121,7 @@ export function CompOffHome({
       {/* HR grant history */}
       {canManage && admin && (
         <div className="rounded-xl border bg-card">
-          <div className="flex items-center gap-2 border-b px-4 py-3 text-[13px] font-semibold">
+          <div className="flex items-center gap-2 border-b px-4 py-3 text-body font-semibold">
             <Gift className="size-4 text-[#C9A96E]" /> Grant history (all employees)
           </div>
           {admin.rows.length === 0 ? (
@@ -142,14 +142,14 @@ export function CompOffHome({
               <TableBody>
                 {admin.rows.map((r) => (
                   <TableRow key={r.id}>
-                    <TableCell className="text-[13px]">
+                    <TableCell className="text-body">
                       <div className="font-medium">{r.employee.name}</div>
-                      <div className="text-[12px] text-muted-foreground">{r.employee.empCode}</div>
+                      <div className="text-detail text-muted-foreground">{r.employee.empCode}</div>
                     </TableCell>
-                    <TableCell className="text-[13px]">{formatDate(r.workedDate)}</TableCell>
+                    <TableCell className="text-body">{formatDate(r.workedDate)}</TableCell>
                     <TableCell className="text-right tabular-nums">{r.days}</TableCell>
-                    <TableCell className="text-[13px] text-muted-foreground">{r.reason || "—"}</TableCell>
-                    <TableCell className="text-[13px] text-muted-foreground">{r.expiryDate ? formatDate(r.expiryDate) : "—"}</TableCell>
+                    <TableCell className="text-body text-muted-foreground">{r.reason || "—"}</TableCell>
+                    <TableCell className="text-body text-muted-foreground">{r.expiryDate ? formatDate(r.expiryDate) : "—"}</TableCell>
                     <TableCell><StatusPill label={STATUS_LABEL[r.status]} hue={STATUS_HUE[r.status]} size="xs" /></TableCell>
                     <TableCell>{r.status === "AVAILABLE" && <RedeemButton id={r.id} label="Mark used" />}</TableCell>
                   </TableRow>
@@ -171,7 +171,7 @@ function BalanceTile({ label, value, hue }: { label: string; value: number; hue:
   return (
     <div className="rounded-xl border border-border/70 bg-card p-4 shadow-card">
       <div className={`text-2xl font-semibold leading-none tabular-nums ${tone}`}>{value}</div>
-      <div className="mt-1.5 text-[11px] text-muted-foreground">{label}</div>
+      <div className="mt-1.5 text-meta text-muted-foreground">{label}</div>
     </div>
   );
 }
@@ -195,7 +195,7 @@ function RedeemButton({ id, label = "Use" }: { id: string; label?: string }) {
       >
         {busy ? <Loader2 className="size-3.5 animate-spin" /> : <CalendarCheck2 className="size-3.5" />} {label}
       </Button>
-      {error && <span className="text-[11px] text-destructive">{error}</span>}
+      {error && <span className="text-meta text-destructive">{error}</span>}
     </div>
   );
 }
@@ -239,7 +239,7 @@ function GrantDialog({ employees }: { employees: EmpLite[] }) {
         </DialogHeader>
         <div className="space-y-3 py-2">
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Employee</Label>
+            <Label className="text-detail">Employee</Label>
             <Select value={employeeId} onValueChange={setEmployeeId}>
               <SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger>
               <SelectContent>
@@ -253,16 +253,16 @@ function GrantDialog({ employees }: { employees: EmpLite[] }) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Worked date</Label>
+              <Label className="text-detail">Worked date</Label>
               <Input type="date" value={workedDate} onChange={(e) => setWorkedDate(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Expires (optional)</Label>
+              <Label className="text-detail">Expires (optional)</Label>
               <Input type="date" value={expiryDate} min={workedDate} onChange={(e) => setExpiryDate(e.target.value)} />
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Reason (optional)</Label>
+            <Label className="text-detail">Reason (optional)</Label>
             <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Diwali event coverage, weekend go-live…" />
           </div>
         </div>

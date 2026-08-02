@@ -209,7 +209,7 @@ export function OnboardingWizard({
                       : "bg-muted text-muted-foreground"
                 )}
               >
-                <span className="flex size-4 items-center justify-center rounded-full border border-current text-[10px] tabular-nums">
+                <span className="flex size-4 items-center justify-center rounded-full border border-current text-meta tabular-nums">
                   {done ? <Check className="size-3" /> : i + 1}
                 </span>
                 {label}

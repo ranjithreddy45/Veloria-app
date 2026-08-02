@@ -120,11 +120,11 @@ export function LeadCaptureConfig({ baseUrl, configs, apiKeys }: Props) {
       <TabsContent value="webhooks">
         <section className="rounded-2xl border bg-card shadow-card">
           <div className="border-b px-5 py-4">
-            <h3 className="flex items-center gap-2 text-[15px] font-semibold tracking-[-0.01em]">
+            <h3 className="flex items-center gap-2 text-copy font-semibold tracking-[-0.01em]">
               <Webhook className="size-4 text-muted-foreground" />
               Webhook URLs
             </h3>
-            <p className="mt-1 text-[13px] text-muted-foreground">
+            <p className="mt-1 text-body text-muted-foreground">
               Copy each URL into the matching platform&apos;s settings — leads
               posted here land in your pipeline instantly.
             </p>
@@ -136,7 +136,7 @@ export function LeadCaptureConfig({ baseUrl, configs, apiKeys }: Props) {
                   <h4 className="text-sm font-medium">{webhook.name}</h4>
                   <StatusPill label={webhook.badge} hue={webhook.hue} size="xs" />
                 </div>
-                <p className="text-[13px] text-muted-foreground">
+                <p className="text-body text-muted-foreground">
                   {webhook.description}
                 </p>
                 <div className="flex items-center gap-2">

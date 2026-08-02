@@ -80,7 +80,7 @@ export function CoachingPanel({ userId, notes, canCoach }: { userId: string; not
     <Card className="gap-0 py-0">
       <CardContent className="space-y-3 px-5 py-5">
         <div className="flex flex-row items-center justify-between">
-        <h2 className="flex items-center gap-2 text-[13px] font-semibold tracking-[-0.01em] text-foreground">
+        <h2 className="flex items-center gap-2 text-body font-semibold tracking-[-0.01em] text-foreground">
           <MessagesSquare className="size-4 text-muted-foreground" /> Coaching & 1:1s
         </h2>
         {canCoach && (
@@ -142,14 +142,14 @@ export function CoachingPanel({ userId, notes, canCoach }: { userId: string; not
           <ol className="space-y-3">
             {notes.map((n) => (
               <li key={n.id} className="rounded-lg border border-border/70 p-3">
-                <div className="mb-1.5 flex items-center justify-between gap-2 text-[12px] text-muted-foreground">
+                <div className="mb-1.5 flex items-center justify-between gap-2 text-detail text-muted-foreground">
                   <span>{n.manager?.name ?? "Manager"} · {fmt(n.createdAt)}</span>
                   <span className="flex items-center gap-2">
                     {n.rating ? <span className="flex items-center gap-0.5 text-amber-500"><Star className="size-3 fill-amber-400" />{n.rating}/5</span> : null}
-                    <Badge variant="secondary" className="text-[10px]">{n.period}</Badge>
+                    <Badge variant="secondary" className="text-meta">{n.period}</Badge>
                   </span>
                 </div>
-                <div className="space-y-1.5 text-[13px]">
+                <div className="space-y-1.5 text-body">
                   {n.win && (
                     <p className="border-l-2 border-amber-400/80 pl-2.5">
                       <Trophy className="mr-1 inline size-3.5 text-amber-500" />{n.win}
@@ -164,15 +164,15 @@ export function CoachingPanel({ userId, notes, canCoach }: { userId: string; not
                     <p className="flex items-start justify-between gap-2 border-l-2 border-emerald-400/80 pl-2.5">
                       <span><CircleCheck className="mr-1 inline size-3.5 text-emerald-500" />{n.actionItem}</span>
                       {canCoach && n.status === "OPEN" && (
-                        <Button variant="ghost" size="sm" className="h-6 shrink-0 px-2 text-[11px]" onClick={() => markDone(n.id)}>Mark done</Button>
+                        <Button variant="ghost" size="sm" className="h-6 shrink-0 px-2 text-meta" onClick={() => markDone(n.id)}>Mark done</Button>
                       )}
                       {n.status === "DONE" && (
-                        <Badge className="shrink-0 border-transparent bg-success/15 text-[10px] text-success">Done</Badge>
+                        <Badge className="shrink-0 border-transparent bg-success/15 text-meta text-success">Done</Badge>
                       )}
                     </p>
                   )}
                   {n.followUpAt && (
-                    <p className="border-l-2 border-border pl-2.5 text-[12px] text-muted-foreground">
+                    <p className="border-l-2 border-border pl-2.5 text-detail text-muted-foreground">
                       <CalendarClock className="mr-1 inline size-3.5" />Follow up {fmt(n.followUpAt)}
                     </p>
                   )}

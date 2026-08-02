@@ -32,27 +32,27 @@ export function BookingTerms({
           <ScrollText className="size-4" />
         </span>
         <div className="min-w-0 flex-1">
-          <h3 className="text-[15px] font-semibold tracking-[-0.01em]">
+          <h3 className="text-copy font-semibold tracking-[-0.01em]">
             Terms &amp; Conditions
           </h3>
-          <p className="text-[12px] text-muted-foreground">
+          <p className="text-detail text-muted-foreground">
             Cancellation, rescheduling, guest-count &amp; venue policies · v
             {BOOKING_TERMS_VERSION}
           </p>
         </div>
-        <span className="shrink-0 text-[12px] font-medium text-primary transition-transform group-open:rotate-180">
+        <span className="shrink-0 text-detail font-medium text-primary transition-transform group-open:rotate-180">
           ⌄
         </span>
       </summary>
 
       <div className="space-y-5 border-t border-border/60 px-5 py-5">
-        <p className="text-[12.5px] text-muted-foreground">
+        <p className="text-detail text-muted-foreground">
           Please read carefully and retain your booking confirmation for
           reference. Your booking is subject to the following terms.
         </p>
         {BOOKING_TERMS.map((section) => (
           <section key={section.id} className="space-y-1.5">
-            <h4 className="flex items-center gap-2 text-[13.5px] font-semibold text-foreground">
+            <h4 className="flex items-center gap-2 text-body font-semibold text-foreground">
               <span aria-hidden>{section.icon}</span>
               {section.title}
             </h4>
@@ -60,7 +60,7 @@ export function BookingTerms({
               {section.items.map((item, i) => (
                 <li
                   key={i}
-                  className="flex gap-2 text-[12.5px] leading-relaxed text-muted-foreground"
+                  className="flex gap-2 text-detail leading-relaxed text-muted-foreground"
                 >
                   <span aria-hidden className="mt-1.5 size-1 shrink-0 rounded-full bg-primary/50" />
                   <span>{item}</span>

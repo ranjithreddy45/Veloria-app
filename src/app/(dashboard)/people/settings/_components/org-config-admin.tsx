@@ -88,8 +88,8 @@ export function OrgConfigAdmin({ data }: { data: OrgConfigData }) {
           <Building2 className="size-4.5" />
         </div>
         <div>
-          <h3 className="text-[14px] font-semibold">Organisation</h3>
-          <p className="text-[12.5px] text-muted-foreground">
+          <h3 className="text-copy font-semibold">Organisation</h3>
+          <p className="text-detail text-muted-foreground">
             Departments, designations, legal entities and business verticals used across every employee profile.
           </p>
         </div>
@@ -139,7 +139,7 @@ function ListSection({
                   )}
                   {!it.isActive && <StatusPill label="Inactive" hue="slate" size="xs" />}
                 </div>
-                <span className="inline-flex items-center gap-1 text-[12px] text-muted-foreground">
+                <span className="inline-flex items-center gap-1 text-detail text-muted-foreground">
                   <Users className="size-3" />
                   {it.employeeCount} {it.employeeCount === 1 ? "employee" : "employees"}
                 </span>
@@ -245,22 +245,22 @@ function ItemDialog({
         </DialogHeader>
         <div className="space-y-3 py-2">
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Name</Label>
+            <Label className="text-detail">Name</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={`e.g. ${singular}`} autoFocus />
           </div>
           {hasEntityFields && (
             <>
               <div className="space-y-1.5">
-                <Label className="text-[12.5px]">Short code (optional)</Label>
+                <Label className="text-detail">Short code (optional)</Label>
                 <Input value={shortCode ?? ""} onChange={(e) => setShortCode(e.target.value)} placeholder="e.g. NV" />
               </div>
-              <label className="flex items-center justify-between gap-2 text-[13px]">
+              <label className="flex items-center justify-between gap-2 text-body">
                 <span>Incorporated entity</span>
                 <Switch checked={isIncorporated} onCheckedChange={setIsIncorporated} />
               </label>
             </>
           )}
-          <label className="flex items-center justify-between gap-2 text-[13px]">
+          <label className="flex items-center justify-between gap-2 text-body">
             <span>Active</span>
             <Switch checked={isActive} onCheckedChange={setIsActive} />
           </label>

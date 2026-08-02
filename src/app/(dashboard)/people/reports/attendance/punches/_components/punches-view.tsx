@@ -83,9 +83,9 @@ export function PunchesView({
           <EmptyState icon={<Fingerprint />} title="No punches in this range" description="No check-ins recorded here. Widen the range to look further back." />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-[13px]">
+            <table className="w-full text-body">
               <thead>
-                <tr className="border-b text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+                <tr className="border-b text-left text-meta uppercase tracking-wide text-muted-foreground">
                   <th className="px-5 py-2.5 font-medium">Date</th>
                   <th className="px-3 py-2.5 font-medium">Employee</th>
                   <th className="px-3 py-2.5 font-medium">Status</th>
@@ -106,7 +106,7 @@ export function PunchesView({
                       <td className="px-5 py-2.5 whitespace-nowrap tabular-nums">{fmtDay(r.date)}</td>
                       <td className="px-3 py-2.5">
                         <div className="font-medium">{r.name}</div>
-                        <div className="text-[11.5px] text-muted-foreground">{r.empCode}</div>
+                        <div className="text-meta text-muted-foreground">{r.empCode}</div>
                       </td>
                       <td className="px-3 py-2.5"><StatusBadge status={r.status} /></td>
                       <td className="px-3 py-2.5 tabular-nums">{fmtTimeIst(r.checkInAt) || "—"}</td>
@@ -119,14 +119,14 @@ export function PunchesView({
                           <YesNoBadge value={r.checkOutVerified} yes="Out" no="Out" />
                         </div>
                       </td>
-                      <td className="px-3 py-2.5 text-[12.5px] text-muted-foreground">{r.visitType ?? "—"}</td>
+                      <td className="px-3 py-2.5 text-detail text-muted-foreground">{r.visitType ?? "—"}</td>
                       <td className="px-3 py-2.5 pr-5">
                         {link ? (
                           <a
                             href={link}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-[12.5px] font-medium text-primary hover:underline"
+                            className="inline-flex items-center gap-1 text-detail font-medium text-primary hover:underline"
                           >
                             <ExternalLink className="size-3.5" />
                             Map

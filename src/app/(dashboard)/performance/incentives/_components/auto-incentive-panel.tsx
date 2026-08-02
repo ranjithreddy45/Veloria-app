@@ -82,29 +82,29 @@ export function AutoIncentivePanel() {
             <Calculator className="size-4" />
           </div>
           <div>
-            <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-foreground">Auto-calculate incentives</h2>
-            <p className="text-[12.5px] text-muted-foreground">Set your rule, preview each rep&apos;s incentive from the month&apos;s sales, then create them as pending for review.</p>
+            <h2 className="text-copy font-semibold tracking-[-0.01em] text-foreground">Auto-calculate incentives</h2>
+            <p className="text-detail text-muted-foreground">Set your rule, preview each rep&apos;s incentive from the month&apos;s sales, then create them as pending for review.</p>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3 rounded-xl border border-border/60 bg-card/70 p-4 sm:grid-cols-3 lg:grid-cols-5">
           <div className="space-y-1.5">
-            <Label className="text-[12px]">Month</Label>
+            <Label className="text-detail">Month</Label>
             <Input type="month" value={period} onChange={(e) => setPeriod(e.target.value)} />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12px]">% of upsell</Label>
+            <Label className="text-detail">% of upsell</Label>
             <Input type="number" min={0} value={upsellPct} onChange={(e) => setUpsellPct(+e.target.value)} />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12px]">₹ / booking</Label>
+            <Label className="text-detail">₹ / booking</Label>
             <Input type="number" min={0} value={perBookingBonus} onChange={(e) => setPerBookingBonus(+e.target.value)} />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12px]">Revenue threshold ₹</Label>
+            <Label className="text-detail">Revenue threshold ₹</Label>
             <Input type="number" min={0} value={revenueThreshold} onChange={(e) => setRevenueThreshold(+e.target.value)} />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12px]">% above threshold</Label>
+            <Label className="text-detail">% above threshold</Label>
             <Input type="number" min={0} value={revenuePct} onChange={(e) => setRevenuePct(+e.target.value)} />
           </div>
         </div>
@@ -116,9 +116,9 @@ export function AutoIncentivePanel() {
         {rows && rows.length > 0 && (
           <div className="space-y-3">
             <div className="overflow-x-auto rounded-lg border">
-              <table className="w-full text-[12.5px]">
+              <table className="w-full text-detail">
                 <thead>
-                  <tr className="border-b bg-muted/40 text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+                  <tr className="border-b bg-muted/40 text-left text-meta uppercase tracking-wide text-muted-foreground">
                     <th className="w-8 px-2 py-2"></th>
                     <th className="px-2 py-2 font-medium">Rep</th>
                     <th className="px-2 py-2 text-right font-medium">Bookings</th>
@@ -147,7 +147,7 @@ export function AutoIncentivePanel() {
               </table>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-[13px] text-muted-foreground">Selected total: <b className="text-foreground">{inr(totalSelected)}</b></span>
+              <span className="text-body text-muted-foreground">Selected total: <b className="text-foreground">{inr(totalSelected)}</b></span>
               <Button onClick={create} disabled={saving} size="sm">
                 {saving ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />} Create as pending incentives
               </Button>

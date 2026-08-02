@@ -105,7 +105,7 @@ export default async function JobOpeningDetailPage({
       </div>
 
       {/* Meta strip */}
-      <Card className="flex flex-wrap items-center gap-x-6 gap-y-2 px-5 py-4 text-[13px] text-muted-foreground shadow-card">
+      <Card className="flex flex-wrap items-center gap-x-6 gap-y-2 px-5 py-4 text-body text-muted-foreground shadow-card">
         <span className="inline-flex items-center gap-1.5">
           <StatusPill
             label={STATUS_LABEL[opening.status] ?? opening.status}
@@ -135,7 +135,7 @@ export default async function JobOpeningDetailPage({
       {/* Linked candidates */}
       <Card className="overflow-hidden p-0 shadow-card">
         <div className="border-b px-5 py-3.5">
-          <h3 className="text-[13px] font-medium text-foreground">
+          <h3 className="text-body font-medium text-foreground">
             Candidates{" "}
             <span className="ml-1 tabular-nums text-muted-foreground">
               {candidates.length}
@@ -165,26 +165,26 @@ export default async function JobOpeningDetailPage({
                     <TableCell>
                       <div className="flex items-center gap-2.5">
                         <Avatar size="sm">
-                          <AvatarFallback className={cn("text-[10.5px] font-semibold", tintFor(c.id))}>
+                          <AvatarFallback className={cn("text-meta font-semibold", tintFor(c.id))}>
                             {initialsOf(c.name)}
                           </AvatarFallback>
                         </Avatar>
                         <div className="min-w-0 leading-tight">
                           <a
                             href={`/recruitment/candidates/${c.id}`}
-                            className="block truncate text-[13px] font-medium text-foreground hover:text-primary hover:underline"
+                            className="block truncate text-body font-medium text-foreground hover:text-primary hover:underline"
                           >
                             {c.name}
                           </a>
                           {c.email && (
-                            <span className="block truncate text-[11.5px] text-muted-foreground">
+                            <span className="block truncate text-meta text-muted-foreground">
                               {c.email}
                             </span>
                           )}
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-[13px] text-foreground/80">{c.city || "—"}</TableCell>
+                    <TableCell className="text-body text-foreground/80">{c.city || "—"}</TableCell>
                     <TableCell>
                       <StatusPill
                         label={APP_STAGE_LABEL[c.applicationStage] ?? c.applicationStage}

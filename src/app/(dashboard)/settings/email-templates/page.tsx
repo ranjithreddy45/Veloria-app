@@ -91,7 +91,7 @@ export default async function EmailTemplatesPage() {
 
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {template.category && (
-                    <Badge variant="secondary" className="text-[10px]">
+                    <Badge variant="secondary" className="text-meta">
                       {template.category}
                     </Badge>
                   )}

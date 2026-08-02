@@ -428,7 +428,7 @@ export function ClientReports({ range }: ClientReportsProps) {
                           {statusChartData.map((s) => (
                             <div key={s.status} className="flex items-center gap-1.5">
                               <div className="size-2 shrink-0 rounded-full" style={{ backgroundColor: s.fill }} />
-                              <span className="text-[11px] text-zinc-600">{s.status} ({s.count})</span>
+                              <span className="text-meta text-zinc-600">{s.status} ({s.count})</span>
                             </div>
                           ))}
                         </div>
@@ -476,7 +476,7 @@ export function ClientReports({ range }: ClientReportsProps) {
                           {methodChartData.map((m) => (
                             <div key={m.method} className="flex items-center gap-1.5">
                               <div className="size-2 shrink-0 rounded-full" style={{ backgroundColor: m.fill }} />
-                              <span className="text-[11px] text-zinc-600">{m.method} ({formatINR(m.amount)})</span>
+                              <span className="text-meta text-zinc-600">{m.method} ({formatINR(m.amount)})</span>
                             </div>
                           ))}
                         </div>

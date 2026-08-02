@@ -160,24 +160,24 @@ export function ExecutionTaskCard({ task, bookingId }: ExecutionTaskCardProps) {
             <div className="flex items-center gap-2 flex-wrap">
               <Badge
                 variant="outline"
-                className={`text-[10px] px-1.5 py-0 ${EXECUTION_TASK_STATUS_COLORS[task.status] ?? ""}`}
+                className={`text-meta px-1.5 py-0 ${EXECUTION_TASK_STATUS_COLORS[task.status] ?? ""}`}
               >
                 {task.status.replace("_", " ")}
               </Badge>
               <Badge
                 variant="outline"
-                className="text-[10px] px-1.5 py-0"
+                className="text-meta px-1.5 py-0"
               >
                 {TASK_CATEGORY_LABELS[task.category] ?? task.category}
               </Badge>
               <Badge
                 variant="outline"
-                className={`text-[10px] px-1.5 py-0 ${TASK_PRIORITY_COLORS[task.priority] ?? ""}`}
+                className={`text-meta px-1.5 py-0 ${TASK_PRIORITY_COLORS[task.priority] ?? ""}`}
               >
                 {task.priority}
               </Badge>
               {task.estimatedMinutes && (
-                <span className="text-[10px] text-muted-foreground">
+                <span className="text-meta text-muted-foreground">
                   ~{task.estimatedMinutes}min
                 </span>
               )}

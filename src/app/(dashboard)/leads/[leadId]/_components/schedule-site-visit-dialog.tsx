@@ -219,7 +219,7 @@ export function ScheduleSiteVisitDialog({
                     onChange={() => toggleInvitee(u.id)}
                   />
                   <span>{u.name ?? u.id}</span>
-                  <span className="ml-auto text-[10px] text-muted-foreground">{u.role}</span>
+                  <span className="ml-auto text-meta text-muted-foreground">{u.role}</span>
                 </label>
               ))}
               {!opts && <p className="px-1.5 py-1 text-xs text-muted-foreground">Loading team…</p>}

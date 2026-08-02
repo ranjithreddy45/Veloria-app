@@ -150,7 +150,7 @@ export function NewRecurringButton({ employees }: { employees: RecurringEmployee
         </DialogHeader>
         <div className="max-h-[70vh] space-y-3 overflow-y-auto py-2 pr-1">
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Employee</Label>
+            <Label className="text-detail">Employee</Label>
             <Select value={employeeId} onValueChange={setEmployeeId}>
               <SelectTrigger>
                 <SelectValue placeholder="Select employee" />
@@ -167,7 +167,7 @@ export function NewRecurringButton({ employees }: { employees: RecurringEmployee
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Type</Label>
+              <Label className="text-detail">Type</Label>
               <Select value={kind} onValueChange={(v) => setKind(v as "EARNING" | "DEDUCTION")}>
                 <SelectTrigger>
                   <SelectValue />
@@ -182,7 +182,7 @@ export function NewRecurringButton({ employees }: { employees: RecurringEmployee
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Amount (₹)</Label>
+              <Label className="text-detail">Amount (₹)</Label>
               <Input
                 type="number"
                 inputMode="numeric"
@@ -196,7 +196,7 @@ export function NewRecurringButton({ employees }: { employees: RecurringEmployee
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Code</Label>
+              <Label className="text-detail">Code</Label>
               <Input
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
@@ -204,7 +204,7 @@ export function NewRecurringButton({ employees }: { employees: RecurringEmployee
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Name</Label>
+              <Label className="text-detail">Name</Label>
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -214,25 +214,25 @@ export function NewRecurringButton({ employees }: { employees: RecurringEmployee
           </div>
 
           <div className="space-y-2 rounded-lg border p-3">
-            <label className="flex items-center gap-2 text-[13px]">
+            <label className="flex items-center gap-2 text-body">
               <Checkbox checked={taxable} onCheckedChange={(c) => setTaxable(c === true)} />
               Taxable
             </label>
             {isEarning && (
               <div className="grid grid-cols-3 gap-2 pt-1">
-                <label className="flex items-center gap-2 text-[13px]">
+                <label className="flex items-center gap-2 text-body">
                   <Checkbox checked={pf} onCheckedChange={(c) => setPf(c === true)} /> PF
                 </label>
-                <label className="flex items-center gap-2 text-[13px]">
+                <label className="flex items-center gap-2 text-body">
                   <Checkbox checked={esi} onCheckedChange={(c) => setEsi(c === true)} /> ESI
                 </label>
-                <label className="flex items-center gap-2 text-[13px]">
+                <label className="flex items-center gap-2 text-body">
                   <Checkbox checked={pt} onCheckedChange={(c) => setPt(c === true)} /> PT
                 </label>
               </div>
             )}
             {!isEarning && (
-              <p className="text-[12px] text-muted-foreground">
+              <p className="text-detail text-muted-foreground">
                 PF / ESI / PT applicability applies to earnings only.
               </p>
             )}
@@ -240,7 +240,7 @@ export function NewRecurringButton({ employees }: { employees: RecurringEmployee
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Starts — FY</Label>
+              <Label className="text-detail">Starts — FY</Label>
               <Select value={startFy} onValueChange={setStartFy}>
                 <SelectTrigger>
                   <SelectValue />
@@ -255,7 +255,7 @@ export function NewRecurringButton({ employees }: { employees: RecurringEmployee
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Month</Label>
+              <Label className="text-detail">Month</Label>
               <Select value={startMonth} onValueChange={setStartMonth}>
                 <SelectTrigger>
                   <SelectValue />
@@ -273,7 +273,7 @@ export function NewRecurringButton({ employees }: { employees: RecurringEmployee
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">Ends — FY (optional)</Label>
+              <Label className="text-detail">Ends — FY (optional)</Label>
               <Select value={endFy} onValueChange={setEndFy}>
                 <SelectTrigger>
                   <SelectValue placeholder="Open-ended" />
@@ -289,7 +289,7 @@ export function NewRecurringButton({ employees }: { employees: RecurringEmployee
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[12.5px]">End month (optional)</Label>
+              <Label className="text-detail">End month (optional)</Label>
               <Select value={endMonth} onValueChange={setEndMonth}>
                 <SelectTrigger>
                   <SelectValue placeholder="—" />
@@ -307,7 +307,7 @@ export function NewRecurringButton({ employees }: { employees: RecurringEmployee
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-[12.5px]">Note (optional)</Label>
+            <Label className="text-detail">Note (optional)</Label>
             <Textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
@@ -316,7 +316,7 @@ export function NewRecurringButton({ employees }: { employees: RecurringEmployee
             />
           </div>
         </div>
-        <p className="text-[12px] text-muted-foreground">
+        <p className="text-detail text-muted-foreground">
           Applies automatically every payroll run from the start month while active. Leave the end
           blank for an open-ended component.
         </p>

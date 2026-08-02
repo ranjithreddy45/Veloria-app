@@ -191,7 +191,7 @@ export function SalesSignalsFeed() {
                       <Badge
                         variant="outline"
                         className={cn(
-                          "border text-[11px] font-medium",
+                          "border text-meta font-medium",
                           catConfig.badgeColor
                         )}
                       >

@@ -53,19 +53,19 @@ export default async function PortfolioPage() {
                 <TableRow key={r.id}>
                   <TableCell className="font-medium">
                     <Link href={`/projects/${r.id}`} className="hover:underline">{r.name}</Link>
-                    {r.city && <span className="ml-1.5 text-[11.5px] text-muted-foreground">{r.city}</span>}
+                    {r.city && <span className="ml-1.5 text-meta text-muted-foreground">{r.city}</span>}
                   </TableCell>
                   <TableCell><StatusPill label={r.phase.replace(/_/g, " ")} hue={r.phase === "LIVE" ? "emerald" : "amber"} size="xs" /></TableCell>
-                  <TableCell className="text-[13px] text-muted-foreground">
+                  <TableCell className="text-body text-muted-foreground">
                     {r.targetReadyDate ? formatDate(r.targetReadyDate) : "—"}{r.overdue && <span className="ml-1.5 text-red-600">overdue</span>}
                   </TableCell>
-                  <TableCell className="text-right text-[13px] tabular-nums">
+                  <TableCell className="text-right text-body tabular-nums">
                     {r.openCritical > 0 && <span className="text-red-600">{r.openCritical} critical</span>}
                     {r.openCritical > 0 && r.openMajor > 0 && " · "}
                     {r.openMajor > 0 && <span className="text-amber-600">{r.openMajor} major</span>}
                     {r.openCritical === 0 && r.openMajor === 0 && <span className="text-muted-foreground/60">—</span>}
                   </TableCell>
-                  <TableCell className={`text-right text-[13px] tabular-nums ${r.overBudget ? "text-red-600 font-medium" : ""}`}>
+                  <TableCell className={`text-right text-body tabular-nums ${r.overBudget ? "text-red-600 font-medium" : ""}`}>
                     {formatINR(r.committed)} / {formatINR(r.estimate)}
                   </TableCell>
                   <TableCell>
@@ -88,7 +88,7 @@ export default async function PortfolioPage() {
 function Kpi({ icon, label, value, accent, danger, className }: { icon: React.ReactNode; label: string; value: string; accent?: boolean; danger?: boolean; className?: string }) {
   return (
     <div className={`rounded-xl border bg-card p-4 ${className ?? ""}`}>
-      <div className="flex items-center gap-2 text-muted-foreground"><span className={danger ? "text-red-600" : accent ? "text-primary" : ""}>{icon}</span><span className="text-[12px] font-medium">{label}</span></div>
+      <div className="flex items-center gap-2 text-muted-foreground"><span className={danger ? "text-red-600" : accent ? "text-primary" : ""}>{icon}</span><span className="text-detail font-medium">{label}</span></div>
       <div className={`mt-2 text-xl font-semibold tabular-nums break-words sm:text-2xl ${danger ? "text-red-700" : ""}`}>{value}</div>
     </div>
   );

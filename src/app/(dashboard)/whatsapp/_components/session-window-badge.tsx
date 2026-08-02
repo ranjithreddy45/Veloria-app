@@ -39,7 +39,7 @@ export function SessionWindowBadge({
     return (
       <span
         className={cn(
-          "inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300",
+          "inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-meta font-medium text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300",
           className
         )}
         title="The 24h WhatsApp window is open — free-text replies are allowed."
@@ -53,7 +53,7 @@ export function SessionWindowBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300",
+        "inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-meta font-medium text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300",
         className
       )}
       title="The 24h WhatsApp window has closed — only approved templates can be sent."

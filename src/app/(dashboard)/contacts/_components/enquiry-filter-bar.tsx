@@ -164,7 +164,7 @@ export function EnquiryFilterBar({
               <SlidersHorizontal className="size-4" />
               Filters
               {isFiltered && (
-                <span className="numeric ml-auto rounded-full bg-primary/12 px-2 py-0.5 text-[11px] font-semibold text-primary">
+                <span className="numeric ml-auto rounded-full bg-primary/12 px-2 py-0.5 text-meta font-semibold text-primary">
                   {activeCount}
                 </span>
               )}

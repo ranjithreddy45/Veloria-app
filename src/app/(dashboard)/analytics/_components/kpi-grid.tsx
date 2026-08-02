@@ -40,7 +40,7 @@ export function KPIGrid({ items, columns = 4, className }: KPIGridProps) {
           className="rounded-2xl border bg-card p-5 shadow-card transition-shadow hover:shadow-card-hover"
         >
           <div className="flex items-center justify-between gap-3">
-            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="text-meta font-medium uppercase tracking-wide text-muted-foreground">
               {kpi.label}
             </p>
             {kpi.icon && (
@@ -49,7 +49,7 @@ export function KPIGrid({ items, columns = 4, className }: KPIGridProps) {
               </span>
             )}
           </div>
-          <div className="numeric mt-3 truncate text-[26px] font-semibold leading-none text-foreground">
+          <div className="numeric mt-3 truncate text-h2 font-semibold leading-none text-foreground">
             {typeof kpi.value === "number"
               ? kpi.value.toLocaleString("en-IN")
               : kpi.value}
@@ -57,7 +57,7 @@ export function KPIGrid({ items, columns = 4, className }: KPIGridProps) {
           {kpi.change !== undefined && (
             <p
               className={cn(
-                "numeric mt-2.5 text-[12px] font-medium",
+                "numeric mt-2.5 text-detail font-medium",
                 kpi.change > 0
                   ? "text-success"
                   : kpi.change < 0

@@ -36,20 +36,20 @@ export function ProcurementBoard({ projectId, workPackages, purchaseOrders, vend
         <Stat label="Planned (work pkgs)" value={formatINR(variance.plannedBudget)} />
         <Stat label="Committed (POs)" value={formatINR(variance.committed)} />
         <div className={cn("rounded-xl border p-4", overBudget ? "border-red-200 bg-red-50" : "border-emerald-200 bg-emerald-50")}>
-          <div className="flex items-center gap-2 text-[12px] font-medium text-muted-foreground">
+          <div className="flex items-center gap-2 text-detail font-medium text-muted-foreground">
             {overBudget ? <TrendingUp className="size-4 text-red-600" /> : <TrendingDown className="size-4 text-emerald-600" />} vs estimate
           </div>
           <div className={cn("mt-2 text-xl font-semibold tabular-nums break-words sm:text-2xl", overBudget ? "text-red-700" : "text-emerald-700")}>
             {overBudget ? "−" : "+"}{formatINR(Math.abs(variance.vsEstimate))}
           </div>
-          {variance.vsEstimatePct != null && <div className="mt-0.5 text-[11.5px] text-muted-foreground">{Math.abs(variance.vsEstimatePct)}% {overBudget ? "over committed" : "headroom"}</div>}
+          {variance.vsEstimatePct != null && <div className="mt-0.5 text-meta text-muted-foreground">{Math.abs(variance.vsEstimatePct)}% {overBudget ? "over committed" : "headroom"}</div>}
         </div>
       </div>
 
       {/* Work packages */}
       <div className="rounded-xl border bg-card">
         <div className="flex items-center justify-between border-b px-4 py-2.5">
-          <span className="flex items-center gap-2 text-[13px] font-semibold"><Package className="size-4" /> Work packages</span>
+          <span className="flex items-center gap-2 text-body font-semibold"><Package className="size-4" /> Work packages</span>
           {canManage && <CreateWPDialog projectId={projectId} />}
         </div>
         {workPackages.length === 0 ? (
@@ -64,7 +64,7 @@ export function ProcurementBoard({ projectId, workPackages, purchaseOrders, vend
       {/* Purchase orders */}
       <div className="rounded-xl border bg-card">
         <div className="flex items-center justify-between border-b px-4 py-2.5">
-          <span className="flex items-center gap-2 text-[13px] font-semibold"><Receipt className="size-4" /> Purchase orders</span>
+          <span className="flex items-center gap-2 text-body font-semibold"><Receipt className="size-4" /> Purchase orders</span>
           {canManage && <CreatePODialog projectId={projectId} vendors={vendors} workPackages={workPackages} />}
         </div>
         {purchaseOrders.length === 0 ? (
@@ -83,7 +83,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   // text-xl on a phone: these tiles sit 2-up at 375px (~133px of inner width),
   // and a rupee figure like ₹1,25,00,000 at text-2xl overflows the card. Budget
   // numbers must stay whole, so the type steps down instead of being cut.
-  return <div className="rounded-xl border bg-card p-4"><div className="text-[12px] font-medium text-muted-foreground">{label}</div><div className="mt-2 text-xl font-semibold tabular-nums break-words sm:text-2xl">{value}</div></div>;
+  return <div className="rounded-xl border bg-card p-4"><div className="text-detail font-medium text-muted-foreground">{label}</div><div className="mt-2 text-xl font-semibold tabular-nums break-words sm:text-2xl">{value}</div></div>;
 }
 
 function WPRow({ wp, canManage }: { wp: WP; canManage: boolean }) {
@@ -93,7 +93,7 @@ function WPRow({ wp, canManage }: { wp: WP; canManage: boolean }) {
   return (
     <div className="flex items-center gap-3 px-4 py-3">
       <div className="min-w-0 flex-1"><span className="font-medium">{wp.title}</span></div>
-      <span className="text-[13px] tabular-nums text-muted-foreground">{formatINR(wp.budgetAmount)}</span>
+      <span className="text-body tabular-nums text-muted-foreground">{formatINR(wp.budgetAmount)}</span>
       {busy && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
       {canManage ? (
         <Select value={wp.status} onValueChange={(v) => patch({ status: v })}>
@@ -111,12 +111,12 @@ function PORow({ po, canManage }: { po: PO; canManage: boolean }) {
   async function setStatus(v: string) { setBusy(true); await updatePurchaseOrderStatus(po.id, v); setBusy(false); router.refresh(); }
   return (
     <div className="flex items-center gap-3 px-4 py-3">
-      <span className="text-[11.5px] font-medium text-muted-foreground tabular-nums">PO#{po.number}</span>
+      <span className="text-meta font-medium text-muted-foreground tabular-nums">PO#{po.number}</span>
       <div className="min-w-0 flex-1">
         <span className="font-medium">{po.description}</span>
-        <div className="text-[12px] text-muted-foreground">{po.vendor ?? "No vendor"}{po.workPackage ? ` · ${po.workPackage}` : ""}</div>
+        <div className="text-detail text-muted-foreground">{po.vendor ?? "No vendor"}{po.workPackage ? ` · ${po.workPackage}` : ""}</div>
       </div>
-      <span className="text-[13px] tabular-nums">{formatINR(po.amount)}</span>
+      <span className="text-body tabular-nums">{formatINR(po.amount)}</span>
       {busy && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
       {canManage ? (
         <Select value={po.status} onValueChange={setStatus}>
@@ -147,8 +147,8 @@ function CreateWPDialog({ projectId }: { projectId: string }) {
       <DialogContent className="sm:max-w-md">
         <DialogHeader><DialogTitle>New work package</DialogTitle></DialogHeader>
         <div className="space-y-3 py-2">
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Civil & interiors — Hall A" /></div>
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Budget (₹)</Label><Input type="number" value={budget} onChange={(e) => setBudget(e.target.value)} /></div>
+          <div className="space-y-1.5"><Label className="text-detail">Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Civil & interiors — Hall A" /></div>
+          <div className="space-y-1.5"><Label className="text-detail">Budget (₹)</Label><Input type="number" value={budget} onChange={(e) => setBudget(e.target.value)} /></div>
         </div>
         {error && <p className="text-sm text-red-600">{error}</p>}
         <DialogFooter><Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>Cancel</Button><Button onClick={save} disabled={busy} className="gap-1.5">{busy && <Loader2 className="size-4 animate-spin" />} Add</Button></DialogFooter>
@@ -179,8 +179,8 @@ function CreatePODialog({ projectId, vendors, workPackages }: { projectId: strin
       <DialogContent className="sm:max-w-md">
         <DialogHeader><DialogTitle>New purchase order</DialogTitle></DialogHeader>
         <div className="space-y-3 py-2">
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Description</Label><Input value={description} onChange={(e) => setDescription(e.target.value)} /></div>
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Amount (₹)</Label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
+          <div className="space-y-1.5"><Label className="text-detail">Description</Label><Input value={description} onChange={(e) => setDescription(e.target.value)} /></div>
+          <div className="space-y-1.5"><Label className="text-detail">Amount (₹)</Label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
           <div className="grid grid-cols-2 gap-3">
             <Select value={vendorId} onValueChange={setVendorId}><SelectTrigger><SelectValue placeholder="Vendor" /></SelectTrigger><SelectContent>{vendors.map((v) => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}</SelectContent></Select>
             <Select value={wpId} onValueChange={setWpId}><SelectTrigger><SelectValue placeholder="Work package" /></SelectTrigger><SelectContent>{workPackages.map((w) => <SelectItem key={w.id} value={w.id}>{w.title}</SelectItem>)}</SelectContent></Select>

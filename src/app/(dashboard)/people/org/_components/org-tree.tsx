@@ -53,7 +53,7 @@ export function OrgTree({
           options={entities.map((e) => ({ value: e.id, label: e.shortCode || e.name }))} />
         <Picker label="Vertical" value={params.get("vertical") ?? ALL} onChange={(v) => setParam("vertical", v)}
           options={verticals.map((v) => ({ value: v.id, label: v.name }))} />
-        <span className="ml-auto text-[12.5px] text-muted-foreground">{nodes.length} people</span>
+        <span className="ml-auto text-detail text-muted-foreground">{nodes.length} people</span>
       </div>
 
       {forest.length === 0 ? (
@@ -90,17 +90,17 @@ function Node({ node, depth }: { node: TreeNode; depth: number }) {
         </button>
         <Avatar size="sm">
           <AvatarImage src={node.photoUrl || undefined} alt={node.name} />
-          <AvatarFallback className="bg-primary/10 text-[10px] font-semibold text-primary">{initials || "?"}</AvatarFallback>
+          <AvatarFallback className="bg-primary/10 text-meta font-semibold text-primary">{initials || "?"}</AvatarFallback>
         </Avatar>
         <Link href={`/people/${node.id}`} className="min-w-0 flex-1">
-          <span className="truncate text-[13.5px] font-medium hover:underline">{node.name}</span>
-          <span className="ml-2 text-[12px] text-muted-foreground">
+          <span className="truncate text-body font-medium hover:underline">{node.name}</span>
+          <span className="ml-2 text-detail text-muted-foreground">
             {node.designation || node.department || node.empCode}
             {node.entityShort ? ` · ${node.entityShort}` : ""}
           </span>
         </Link>
         {hasChildren && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-1.5 py-0.5 text-[10.5px] text-muted-foreground">
+          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-1.5 py-0.5 text-meta text-muted-foreground">
             <Users className="size-3" />{node.children.length}
           </span>
         )}

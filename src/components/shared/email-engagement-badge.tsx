@@ -71,7 +71,7 @@ export function EmailEngagementBadge({
         {data.opens > 0 && (
           <Badge
             variant="secondary"
-            className="bg-green-50 text-green-700 border-green-200 px-1.5 py-0 text-[10px]"
+            className="bg-green-50 text-green-700 border-green-200 px-1.5 py-0 text-meta"
           >
             <EyeIcon className="mr-0.5 size-2.5" />
             {data.opens}
@@ -80,7 +80,7 @@ export function EmailEngagementBadge({
         {data.clicks > 0 && (
           <Badge
             variant="secondary"
-            className="bg-blue-50 text-blue-700 border-blue-200 px-1.5 py-0 text-[10px]"
+            className="bg-blue-50 text-blue-700 border-blue-200 px-1.5 py-0 text-meta"
           >
             <MousePointerClickIcon className="mr-0.5 size-2.5" />
             {data.clicks}

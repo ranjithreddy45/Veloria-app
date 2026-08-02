@@ -30,8 +30,8 @@ export function SeedFoundation() {
       <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
         <Building2 className="size-6" />
       </div>
-      <h3 className="font-editorial mt-5 text-[22px] leading-tight">Set up your organisation</h3>
-      <p className="mx-auto mt-2 max-w-sm text-[13px] leading-relaxed text-muted-foreground">
+      <h3 className="font-editorial mt-5 text-title leading-tight">Set up your organisation</h3>
+      <p className="mx-auto mt-2 max-w-sm text-body leading-relaxed text-muted-foreground">
         Seed the six PropertyPlush legal entities, business verticals, departments and designations.
         You can rename or add to them anytime — this just gets you started in one click.
       </p>
@@ -39,7 +39,7 @@ export function SeedFoundation() {
         {loading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
         Set up organisation
       </Button>
-      {msg && <p className="mt-3 text-[13px] text-muted-foreground">{msg}</p>}
+      {msg && <p className="mt-3 text-body text-muted-foreground">{msg}</p>}
     </div>
   );
 }

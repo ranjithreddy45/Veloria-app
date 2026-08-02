@@ -97,15 +97,15 @@ export function VendorModule({
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {/* Tab triggers */}
         <TabsList className="h-9 self-start">
-          <TabsTrigger value="vendors" className="text-[13px]">
+          <TabsTrigger value="vendors" className="text-body">
             Vendors
-            <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0 text-[11px] font-semibold tabular-nums text-muted-foreground">
+            <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0 text-meta font-semibold tabular-nums text-muted-foreground">
               {vendorTotal}
             </span>
           </TabsTrigger>
-          <TabsTrigger value="packages" className="text-[13px]">
+          <TabsTrigger value="packages" className="text-body">
             Packages
-            <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0 text-[11px] font-semibold tabular-nums text-muted-foreground">
+            <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0 text-meta font-semibold tabular-nums text-muted-foreground">
               {packageTotal}
             </span>
           </TabsTrigger>
@@ -117,11 +117,11 @@ export function VendorModule({
             placeholder={activeTab === "vendors" ? "Search vendors…" : "Search packages…"}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-9 w-48 text-[13px]"
+            className="h-9 w-48 text-body"
           />
 
           <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className="h-9 w-40 text-[13px]">
+            <SelectTrigger className="h-9 w-40 text-body">
               <SelectValue placeholder="All categories" />
             </SelectTrigger>
             <SelectContent>
@@ -137,7 +137,7 @@ export function VendorModule({
           {canManageCategories && (
             <CategoryAdminDialog
               trigger={
-                <Button variant="outline" size="sm" className="h-9 gap-1.5 text-[13px]">
+                <Button variant="outline" size="sm" className="h-9 gap-1.5 text-body">
                   <TagsIcon className="size-3.5" />
                   Categories
                 </Button>
@@ -150,14 +150,14 @@ export function VendorModule({
               categories={categories}
               venues={venues}
               trigger={
-                <Button size="sm" className="h-9 gap-1.5 text-[13px]">
+                <Button size="sm" className="h-9 gap-1.5 text-body">
                   <PlusIcon className="size-3.5" strokeWidth={2.5} />
                   Add vendor
                 </Button>
               }
             />
           ) : (
-            <Button asChild size="sm" className="h-9 gap-1.5 text-[13px]">
+            <Button asChild size="sm" className="h-9 gap-1.5 text-body">
               <Link href="/vendors/packages/new">
                 <PlusIcon className="size-3.5" strokeWidth={2.5} />
                 Create package

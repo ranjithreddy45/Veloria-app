@@ -21,10 +21,10 @@ export function CareersShell({ children }: { children: React.ReactNode }) {
               <Gem className="size-[17px]" strokeWidth={2.4} />
             </span>
             <span className="flex flex-col leading-tight">
-              <span className="text-[15px] font-semibold tracking-[-0.022em] text-foreground">
+              <span className="text-copy font-semibold tracking-[-0.022em] text-foreground">
                 Veloria Grand
               </span>
-              <span className="text-[11.5px] text-muted-foreground">Careers</span>
+              <span className="text-meta text-muted-foreground">Careers</span>
             </span>
           </Link>
         </div>
@@ -33,7 +33,7 @@ export function CareersShell({ children }: { children: React.ReactNode }) {
       <main className="relative z-10">{children}</main>
 
       <footer className="relative z-10 mx-auto max-w-5xl px-6 py-10">
-        <p className="text-center text-[11px] text-muted-foreground/70">
+        <p className="text-center text-meta text-muted-foreground/70">
           &copy; {new Date().getFullYear()} Veloria Grand. All rights reserved.
         </p>
       </footer>

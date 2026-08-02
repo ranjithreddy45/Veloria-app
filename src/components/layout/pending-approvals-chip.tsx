@@ -58,7 +58,7 @@ export function PendingApprovalsChip() {
           href={primaryHref(breakdown)}
           aria-label={`${total} item${total === 1 ? "" : "s"} awaiting your approval`}
           className={cn(
-            "group/appr hidden items-center gap-1.5 rounded-full border border-warning/40 bg-warning/10 px-2.5 py-1 text-[12.5px] font-semibold text-warning shadow-card backdrop-blur transition-all duration-200 hover:-translate-y-px hover:border-warning/60 hover:bg-warning/15 active:scale-[0.97] sm:inline-flex"
+            "group/appr hidden items-center gap-1.5 rounded-full border border-warning/40 bg-warning/10 px-2.5 py-1 text-detail font-semibold text-warning shadow-card backdrop-blur transition-all duration-200 hover:-translate-y-px hover:border-warning/60 hover:bg-warning/15 active:scale-[0.97] sm:inline-flex"
           )}
         >
           <CheckSquare className="size-3.5 transition-transform duration-200 group-hover/appr:scale-110" />

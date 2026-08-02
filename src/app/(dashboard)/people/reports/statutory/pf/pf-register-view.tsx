@@ -77,7 +77,7 @@ export function PfRegisterView({
         <RegisterToolbar onCsv={onCsv} onPrint={onPrint} disabled={!reg?.found || reg.rows.length === 0} />
       </div>
 
-      <p className="text-[12px] font-medium text-muted-foreground">
+      <p className="text-detail font-medium text-muted-foreground">
         PF contribution register — for reconciliation, not the ECR file.
       </p>
 
@@ -101,10 +101,10 @@ export function PfRegisterView({
             <TableBody>
               {reg.rows.map((r) => (
                 <TableRow key={r.employeeId}>
-                  <TableCell className="font-mono text-[12px]">{r.empCode}</TableCell>
+                  <TableCell className="font-mono text-detail">{r.empCode}</TableCell>
                   <TableCell>{r.name}</TableCell>
-                  <TableCell className="font-mono text-[12px] text-muted-foreground">{r.uanMasked ?? "—"}</TableCell>
-                  <TableCell className="font-mono text-[12px] text-muted-foreground">{r.pfNoMasked ?? "—"}</TableCell>
+                  <TableCell className="font-mono text-detail text-muted-foreground">{r.uanMasked ?? "—"}</TableCell>
+                  <TableCell className="font-mono text-detail text-muted-foreground">{r.pfNoMasked ?? "—"}</TableCell>
                   <TableCell className="text-right tabular-nums">{inr(r.employeePf)}</TableCell>
                   <TableCell className="text-right tabular-nums">{inr(r.employerEps)}</TableCell>
                   <TableCell className="text-right tabular-nums">{inr(r.employerEpf)}</TableCell>

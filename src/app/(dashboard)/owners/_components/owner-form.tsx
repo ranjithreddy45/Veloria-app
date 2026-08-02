@@ -118,13 +118,13 @@ export function OwnerForm({
   const phoneInvalid = !!f.phone && !isValidMobile(f.phone);
 
   const input =
-    "w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20";
-  const label = "mb-1 block text-[12px] font-medium text-foreground";
+    "w-full rounded-md border border-border bg-background px-3 py-2 text-body focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20";
+  const label = "mb-1 block text-detail font-medium text-foreground";
 
   return (
     <form onSubmit={submit} className="space-y-6">
       <section className="rounded-lg border border-border bg-card p-5">
-        <h2 className="mb-4 text-[14px] font-semibold">Owner & contact</h2>
+        <h2 className="mb-4 text-copy font-semibold">Owner & contact</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className={label}>Owner name *</label>
@@ -147,7 +147,7 @@ export function OwnerForm({
               onChange={(e) => set("phone", e.target.value)}
               aria-invalid={phoneInvalid}
             />
-            {phoneInvalid && <p className="mt-1 text-[12px] text-red-600">Enter a valid phone number (10–15 digits).</p>}
+            {phoneInvalid && <p className="mt-1 text-detail text-red-600">Enter a valid phone number (10–15 digits).</p>}
           </div>
           <div>
             <label className={label}>WhatsApp</label>
@@ -161,7 +161,7 @@ export function OwnerForm({
       </section>
 
       <section className="rounded-lg border border-border bg-card p-5">
-        <h2 className="mb-4 text-[14px] font-semibold">Property</h2>
+        <h2 className="mb-4 text-copy font-semibold">Property</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className={label}>City</label>
@@ -191,7 +191,7 @@ export function OwnerForm({
       </section>
 
       <section className="rounded-lg border border-border bg-card p-5">
-        <h2 className="mb-4 text-[14px] font-semibold">Commercials & funnel</h2>
+        <h2 className="mb-4 text-copy font-semibold">Commercials & funnel</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className={label}>Funnel stage</label>
@@ -231,7 +231,7 @@ export function OwnerForm({
         <button
           type="submit"
           disabled={saving || !f.ownerName || phoneInvalid}
-          className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-[13px] font-semibold text-primary-foreground disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-body font-semibold text-primary-foreground disabled:opacity-50"
         >
           {saving && <Loader2 className="size-4 animate-spin" />}
           {isEditing ? "Save changes" : "Add owner"}

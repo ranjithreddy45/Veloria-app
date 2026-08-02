@@ -211,7 +211,7 @@ export function ActivityLogList({
                     className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-muted"
                   >
                     <Avatar className="mt-0.5 size-8">
-                      <AvatarFallback className="bg-indigo-100 text-[10px] text-indigo-700">
+                      <AvatarFallback className="bg-indigo-100 text-meta text-indigo-700">
                         {initials}
                       </AvatarFallback>
                     </Avatar>
@@ -226,7 +226,7 @@ export function ActivityLogList({
                       <div className="mt-1 flex items-center gap-2">
                         <Badge
                           variant="outline"
-                          className={`text-[10px] ${entityColor}`}
+                          className={`text-meta ${entityColor}`}
                         >
                           {log.entityType}
                         </Badge>

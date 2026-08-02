@@ -146,12 +146,12 @@ export function PartnerTable({
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                         <code className="rounded bg-muted px-1 py-0.5">{p.code}</code>
                         {p.issuedFromReviewId && (
-                          <Badge variant="outline" className="h-4 px-1 text-[10px]">
+                          <Badge variant="outline" className="h-4 px-1 text-meta">
                             from review
                           </Badge>
                         )}
                         {!p.isActive && (
-                          <Badge variant="outline" className="h-4 px-1 text-[10px]">
+                          <Badge variant="outline" className="h-4 px-1 text-meta">
                             inactive
                           </Badge>
                         )}

@@ -38,7 +38,7 @@ export const metadata: Metadata = { title: "Client Portal" };
 
 // Customer-facing empty states get the editorial serif headline — this is a
 // brand surface, not an internal tool.
-const PORTAL_EMPTY = "[&_p:first-of-type]:font-editorial [&_p:first-of-type]:text-[18px]";
+const PORTAL_EMPTY = "[&_p:first-of-type]:font-editorial [&_p:first-of-type]:text-lede";
 
 // ============================================================
 // Helper: Days until a given date
@@ -104,14 +104,14 @@ export default async function PortalPage() {
     <div className="space-y-10">
       {/* Welcome — editorial, calm, unmistakably ours */}
       <section className="border-b pb-9">
-        <div className="text-muted-foreground flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em]">
+        <div className="text-muted-foreground flex items-center gap-2 text-meta font-semibold uppercase tracking-[0.16em]">
           <Sparkles className="size-3.5" />
           Welcome back
         </div>
-        <h1 className="text-foreground mt-3 text-[34px] sm:text-[42px]">
+        <h1 className="text-foreground mt-3 text-h1 sm:text-display">
           {session.user.name || "Guest"}
         </h1>
-        <p className="text-muted-foreground mt-2 max-w-xl text-[15px] leading-relaxed">
+        <p className="text-muted-foreground mt-2 max-w-xl text-copy leading-relaxed">
           Everything for your celebration — bookings, payments and documents —
           gathered in one place.
         </p>
@@ -123,8 +123,8 @@ export default async function PortalPage() {
               <PartyPopper className="size-5" />
             </span>
             <div>
-              <p className="text-foreground text-[15px] font-semibold">
-                <span className="numeric text-[17px]">{days}</span> day
+              <p className="text-foreground text-copy font-semibold">
+                <span className="numeric text-lede">{days}</span> day
                 {days !== 1 ? "s" : ""} until your event
               </p>
               <p className="text-muted-foreground mt-0.5 text-xs">
@@ -167,10 +167,10 @@ export default async function PortalPage() {
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 space-y-2">
-                      <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.12em]">
+                      <p className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.12em]">
                         {card.title}
                       </p>
-                      <p className="numeric text-foreground text-[26px] font-semibold leading-none">
+                      <p className="numeric text-foreground text-h2 font-semibold leading-none">
                         {card.value}
                       </p>
                       <p className="text-muted-foreground/80 text-xs">
@@ -196,7 +196,7 @@ export default async function PortalPage() {
           <div className="border-primary/70 border-l-2">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
+                <CardTitle className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.14em]">
                   Next Event
                 </CardTitle>
                 <Link
@@ -212,7 +212,7 @@ export default async function PortalPage() {
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-3">
                   <div>
-                    <h3 className="font-editorial text-foreground text-[22px] font-semibold">
+                    <h3 className="font-editorial text-foreground text-title font-semibold">
                       {data.nextEvent.eventName}
                     </h3>
                     <p className="text-muted-foreground text-sm">
@@ -264,7 +264,7 @@ export default async function PortalPage() {
       {/* Recent Bookings */}
       <Card className="shadow-card rounded-2xl">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.14em]">
+          <CardTitle className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.14em]">
             Your Bookings
           </CardTitle>
           <Link
@@ -327,7 +327,7 @@ export default async function PortalPage() {
 
       {/* Quick Actions */}
       <div>
-        <h2 className="text-muted-foreground mb-3 text-[11px] font-semibold uppercase tracking-[0.14em]">
+        <h2 className="text-muted-foreground mb-3 text-meta font-semibold uppercase tracking-[0.14em]">
           Quick actions
         </h2>
         <div className="grid gap-4 sm:grid-cols-3">

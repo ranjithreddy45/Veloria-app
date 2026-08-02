@@ -109,7 +109,7 @@ export function InstallAppCard({ className }: { className?: string }) {
           <Smartphone className="size-[22px]" />
         </div>
         <div className="min-w-0 flex-1">
-          <h2 className="font-editorial text-foreground text-[20px] font-semibold">
+          <h2 className="font-editorial text-foreground text-title font-semibold">
             Get the app on your phone
           </h2>
           <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
@@ -142,7 +142,7 @@ export function InstallAppCard({ className }: { className?: string }) {
 
           {/* Android without the event yet (e.g. non-Chrome browser). */}
           {platform === "android" && !deferred && (
-            <p className="text-muted-foreground mt-4 text-[13px] leading-relaxed">
+            <p className="text-muted-foreground mt-4 text-body leading-relaxed">
               Open this page in <strong>Chrome</strong>, then use the ⋮ menu →{" "}
               <strong>Install app</strong> (or <strong>Add to Home screen</strong>).
             </p>
@@ -159,7 +159,7 @@ export function InstallAppCard({ className }: { className?: string }) {
                 alt="QR code to open Veloria Grand on your phone"
                 className="size-[132px] shrink-0 rounded-xl border bg-white p-1.5"
               />
-              <p className="text-muted-foreground max-w-[15rem] text-[13px] leading-relaxed">
+              <p className="text-muted-foreground max-w-[15rem] text-body leading-relaxed">
                 <span className="text-foreground inline-flex items-center gap-1.5 font-medium">
                   <MonitorSmartphone className="size-3.5" /> On a computer?
                 </span>
@@ -178,10 +178,10 @@ export function InstallAppCard({ className }: { className?: string }) {
 function Step({ n, icon, children }: { n: number; icon: React.ReactNode; children: React.ReactNode }) {
   return (
     <li className="flex items-center gap-3">
-      <span className="bg-muted text-muted-foreground numeric flex size-6 shrink-0 items-center justify-center rounded-lg text-[11px] font-semibold">
+      <span className="bg-muted text-muted-foreground numeric flex size-6 shrink-0 items-center justify-center rounded-lg text-meta font-semibold">
         {n}
       </span>
-      <span className="text-foreground/90 flex items-center gap-1.5 text-[13px]">
+      <span className="text-foreground/90 flex items-center gap-1.5 text-body">
         <span className="text-muted-foreground">{icon}</span>
         {children}
       </span>

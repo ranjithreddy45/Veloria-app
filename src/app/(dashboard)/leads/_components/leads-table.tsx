@@ -124,13 +124,13 @@ function IdentityCell({ lead }: { lead: LeadWithContact }) {
       <div className="min-w-0 leading-tight">
         <Link
           href={`/leads/${lead.id}`}
-          className="block truncate text-[13px] font-medium text-foreground hover:underline"
+          className="block truncate text-body font-medium text-foreground hover:underline"
         >
           {lead.title}
         </Link>
         <Link
           href={`/contacts/${lead.contact.id}`}
-          className="block truncate text-[11.5px] text-muted-foreground hover:text-foreground/80 hover:underline"
+          className="block truncate text-meta text-muted-foreground hover:text-foreground/80 hover:underline"
         >
           {fullName}
           {lead.eventType ? <span className="ml-1 text-muted-foreground/60">· {lead.eventType}</span> : null}
@@ -193,7 +193,7 @@ function QuickActions({ lead }: { lead: LeadWithContact }) {
               <span className="sr-only">Email</span>
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="top" className="text-[11px]">
+          <TooltipContent side="top" className="text-meta">
             Email {lead.contact.email}
           </TooltipContent>
         </Tooltip>
@@ -214,7 +214,7 @@ function QuickActions({ lead }: { lead: LeadWithContact }) {
               <span className="sr-only">Call</span>
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="top" className="text-[11px]">
+          <TooltipContent side="top" className="text-meta">
             Call {lead.contact.phone}
           </TooltipContent>
         </Tooltip>
@@ -234,7 +234,7 @@ function QuickActions({ lead }: { lead: LeadWithContact }) {
             <span className="sr-only">Copy link</span>
           </Button>
         </TooltipTrigger>
-        <TooltipContent side="top" className="text-[11px]">
+        <TooltipContent side="top" className="text-meta">
           Copy link
         </TooltipContent>
       </Tooltip>
@@ -361,7 +361,7 @@ function StatusTabs({
             aria-selected={isActive}
             onClick={() => onChange(tab.id)}
             className={cn(
-              "inline-flex shrink-0 snap-start items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12.5px] font-medium transition-colors",
+              "inline-flex shrink-0 snap-start items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-detail font-medium transition-colors",
               isActive
                 ? "bg-muted text-foreground"
                 : "text-muted-foreground hover:bg-muted/60 hover:text-foreground/90"
@@ -370,7 +370,7 @@ function StatusTabs({
             {tab.label}
             <span
               className={cn(
-                "numeric rounded px-1 text-[10.5px] font-medium",
+                "numeric rounded px-1 text-meta font-medium",
                 isActive
                   ? "bg-background text-foreground/70 ring-1 ring-border"
                   : "text-muted-foreground/70"
@@ -474,7 +474,7 @@ const columns: ColumnDef<LeadWithContact>[] = [
     cell: ({ row }) => {
       const date = row.getValue("eventDate");
       return (
-        <span className="numeric text-[12px] text-foreground/85">
+        <span className="numeric text-detail text-foreground/85">
           {date ? format(new Date(date as string), "MMM d, yyyy") : "—"}
         </span>
       );
@@ -488,7 +488,7 @@ const columns: ColumnDef<LeadWithContact>[] = [
     cell: ({ row }) => {
       const v = row.original.estimatedValue;
       return (
-        <span className="numeric text-[12.5px] font-semibold text-foreground/90">
+        <span className="numeric text-detail font-semibold text-foreground/90">
           {formatCurrency(v ? Number(v) : null)}
         </span>
       );
@@ -509,7 +509,7 @@ const columns: ColumnDef<LeadWithContact>[] = [
     cell: ({ row }) => {
       const v = row.original.aiScore;
       if (v === null || v === undefined) {
-        return <span className="text-[12px] text-muted-foreground/60">—</span>;
+        return <span className="text-detail text-muted-foreground/60">—</span>;
       }
       return (
         <div className="inline-flex items-center gap-1.5">
@@ -532,7 +532,7 @@ const columns: ColumnDef<LeadWithContact>[] = [
       const a = row.original.assignedTo;
       if (!a) {
         return (
-          <span className="text-[12px] text-muted-foreground/60 italic">
+          <span className="text-detail text-muted-foreground/60 italic">
             Unassigned
           </span>
         );
@@ -540,7 +540,7 @@ const columns: ColumnDef<LeadWithContact>[] = [
       return (
         <div className="inline-flex items-center gap-1.5">
           <DotAvatar seed={a.id} name={a.name} size="xs" />
-          <span className="text-[12px] text-foreground/85 truncate max-w-[110px]">
+          <span className="text-detail text-foreground/85 truncate max-w-[110px]">
             {a.name?.split(" ")[0]}
           </span>
         </div>

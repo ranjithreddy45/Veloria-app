@@ -261,7 +261,7 @@ export function OtaConfig({ baseUrl, channels, venues, canManage }: Props) {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-body text-muted-foreground">
           <span className="numeric font-medium text-foreground">
             {channels.length}
           </span>{" "}
@@ -278,11 +278,11 @@ export function OtaConfig({ baseUrl, channels, venues, canManage }: Props) {
       {editing && (
         <section className="rounded-2xl border border-primary/40 bg-card shadow-card">
           <div className="border-b px-5 py-4">
-            <h3 className="flex items-center gap-2 text-[15px] font-semibold tracking-[-0.01em]">
+            <h3 className="flex items-center gap-2 text-copy font-semibold tracking-[-0.01em]">
               <Pencil className="size-4 text-muted-foreground" />
               {editing.id ? "Edit Channel" : "New Channel"}
             </h3>
-            <p className="mt-1 text-[13px] text-muted-foreground">
+            <p className="mt-1 text-body text-muted-foreground">
               Set the marketplace, the venue its outbound feed publishes, and how
               inbound lead fields map onto yours.
             </p>
@@ -496,7 +496,7 @@ export function OtaConfig({ baseUrl, channels, venues, canManage }: Props) {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-[15px] font-semibold tracking-[-0.01em]">
+                    <h3 className="text-copy font-semibold tracking-[-0.01em]">
                       {c.name}
                     </h3>
                     <StatusPill label={c.channelType} hue="blue" size="xs" />
@@ -506,7 +506,7 @@ export function OtaConfig({ baseUrl, channels, venues, canManage }: Props) {
                       size="xs"
                     />
                   </div>
-                  <p className="mt-1 text-[13px] text-muted-foreground">
+                  <p className="mt-1 text-body text-muted-foreground">
                     {venueName(c.venueId)} · {c.feedFormat} feed · inbound tagged{" "}
                     {c.defaultSource}
                   </p>
@@ -599,12 +599,12 @@ export function OtaConfig({ baseUrl, channels, venues, canManage }: Props) {
                       <Table>
                         <TableHeader>
                           <TableRow className="hover:bg-transparent">
-                            <TableHead className="text-[11px] uppercase tracking-wide text-muted-foreground">When</TableHead>
-                            <TableHead className="text-[11px] uppercase tracking-wide text-muted-foreground">Direction</TableHead>
-                            <TableHead className="text-[11px] uppercase tracking-wide text-muted-foreground">Status</TableHead>
-                            <TableHead className="text-right text-[11px] uppercase tracking-wide text-muted-foreground">Records</TableHead>
-                            <TableHead className="text-right text-[11px] uppercase tracking-wide text-muted-foreground">Errors</TableHead>
-                            <TableHead className="text-[11px] uppercase tracking-wide text-muted-foreground">Message</TableHead>
+                            <TableHead className="text-meta uppercase tracking-wide text-muted-foreground">When</TableHead>
+                            <TableHead className="text-meta uppercase tracking-wide text-muted-foreground">Direction</TableHead>
+                            <TableHead className="text-meta uppercase tracking-wide text-muted-foreground">Status</TableHead>
+                            <TableHead className="text-right text-meta uppercase tracking-wide text-muted-foreground">Records</TableHead>
+                            <TableHead className="text-right text-meta uppercase tracking-wide text-muted-foreground">Errors</TableHead>
+                            <TableHead className="text-meta uppercase tracking-wide text-muted-foreground">Message</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>

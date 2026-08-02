@@ -126,7 +126,7 @@ export function WhatsNew() {
           <Sparkles className="size-4 text-primary" />
           <div className="flex flex-col">
             <p className="text-sm font-semibold leading-none">What&apos;s new</p>
-            <p className="mt-1 text-[11px] text-muted-foreground">
+            <p className="mt-1 text-meta text-muted-foreground">
               Recent updates to Veloria
             </p>
           </div>
@@ -136,10 +136,10 @@ export function WhatsNew() {
             {RELEASES.map((rel) => (
               <li key={rel.version} className="px-4 py-3">
                 <div className="mb-1.5 flex items-baseline justify-between gap-2">
-                  <span className="text-[12.5px] font-semibold tabular-nums text-foreground">
+                  <span className="text-detail font-semibold tabular-nums text-foreground">
                     v{rel.version}
                   </span>
-                  <span className="text-[11px] text-muted-foreground">
+                  <span className="text-meta text-muted-foreground">
                     {formatDate(rel.date)}
                   </span>
                 </div>
@@ -147,7 +147,7 @@ export function WhatsNew() {
                   {rel.items.map((item, i) => (
                     <li
                       key={i}
-                      className="flex gap-1.5 text-[12.5px] leading-snug text-muted-foreground"
+                      className="flex gap-1.5 text-detail leading-snug text-muted-foreground"
                     >
                       <span className="mt-1.5 size-1 shrink-0 rounded-full bg-primary/60" />
                       <span>{item}</span>

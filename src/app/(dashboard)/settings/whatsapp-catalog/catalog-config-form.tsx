@@ -57,7 +57,7 @@ export function CatalogConfigForm({
           <div className="flex items-center justify-between rounded-lg border p-4">
             <div className="space-y-0.5">
               <Label htmlFor="catalog-enabled">Send catalog on first inbound</Label>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-meta text-muted-foreground">
                 Controlled by the WHATSAPP_CATALOG_ENABLED environment flag.
                 {enabled ? " Currently enabled." : " Currently disabled."}
               </p>
@@ -134,7 +134,7 @@ export function CatalogConfigForm({
           ))}
 
           {!canEdit && (
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-meta text-muted-foreground">
               You have read-only access. Editing requires the settings:update
               permission.
             </p>

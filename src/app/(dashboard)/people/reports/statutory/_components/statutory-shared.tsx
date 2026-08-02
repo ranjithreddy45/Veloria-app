@@ -26,7 +26,7 @@ export const inr = (n: number) =>
 /** The mandatory "these are registers, not filed returns" banner. */
 export function NotFiledBanner() {
   return (
-    <div className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-[12.5px] leading-relaxed text-warning">
+    <div className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-detail leading-relaxed text-warning">
       <strong className="font-semibold">These are reconciliation registers.</strong>{" "}
       Statutory RETURN files (PF ECR, ESI, PT challan, Form 24Q) are generated separately and are{" "}
       <strong className="font-semibold">not</strong> produced here. Use these to tie payroll out before filing.
@@ -67,7 +67,7 @@ export function PeriodPicker({
 /** CSV + Print toolbar. */
 export function RegisterToolbar({ onCsv, onPrint, disabled }: { onCsv: () => void; onPrint: () => void; disabled?: boolean }) {
   const btn =
-    "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12.5px] font-medium transition-colors hover:bg-accent disabled:opacity-40 disabled:pointer-events-none";
+    "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-detail font-medium transition-colors hover:bg-accent disabled:opacity-40 disabled:pointer-events-none";
   return (
     <div className="flex items-center gap-2">
       <button type="button" className={btn} onClick={onCsv} disabled={disabled}>

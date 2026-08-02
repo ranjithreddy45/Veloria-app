@@ -44,7 +44,7 @@ export function SummaryView({ rows, year }: { rows: SummaryRow[]; year: number }
         <div className="overflow-x-auto rounded-2xl border border-border/60 bg-card shadow-premium">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border/60 text-left text-[11.5px] uppercase tracking-wide text-muted-foreground">
+              <tr className="border-b border-border/60 text-left text-meta uppercase tracking-wide text-muted-foreground">
                 <th className="px-4 py-2.5 font-medium">Leave type</th>
                 <th className="px-4 py-2.5 text-right font-medium">Entitled</th>
                 <th className="px-4 py-2.5 text-right font-medium">Carried</th>
@@ -61,7 +61,7 @@ export function SummaryView({ rows, year }: { rows: SummaryRow[]; year: number }
                     <div className="flex items-center gap-2">
                       <TypeChip code={r.code} color={r.color} />
                       <span className="font-medium text-foreground">{r.name}</span>
-                      {!r.paid && <span className="text-[10.5px] text-muted-foreground">(unpaid)</span>}
+                      {!r.paid && <span className="text-meta text-muted-foreground">(unpaid)</span>}
                     </div>
                   </td>
                   <td className="px-4 py-2.5 text-right tabular-nums">{r.totalEntitled}</td>

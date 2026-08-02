@@ -50,9 +50,9 @@ export default async function HrReportsHubPage() {
                   <span className={`flex size-9 items-center justify-center rounded-xl ${g.accent}`}>
                     <Icon className="size-4.5" strokeWidth={2} />
                   </span>
-                  <span className="text-[14px] font-semibold">{g.title}</span>
+                  <span className="text-copy font-semibold">{g.title}</span>
                 </div>
-                <p className="text-[12.5px] leading-relaxed text-muted-foreground">{g.desc}</p>
+                <p className="text-detail leading-relaxed text-muted-foreground">{g.desc}</p>
               </Card>
             </Link>
           );

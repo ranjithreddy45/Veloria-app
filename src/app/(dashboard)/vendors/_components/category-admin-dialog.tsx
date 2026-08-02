@@ -113,8 +113,8 @@ export function CategoryAdminDialog({ trigger }: CategoryAdminDialogProps) {
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-[17px] font-semibold">Vendor categories</DialogTitle>
-          <DialogDescription className="text-[13px]">
+          <DialogTitle className="text-lede font-semibold">Vendor categories</DialogTitle>
+          <DialogDescription className="text-body">
             Add or manage the categories vendors and packages can use.
           </DialogDescription>
         </DialogHeader>
@@ -122,7 +122,7 @@ export function CategoryAdminDialog({ trigger }: CategoryAdminDialogProps) {
         <div className="mt-2 space-y-5">
           {/* Add new */}
           <div className="space-y-1.5">
-            <Label htmlFor="new-cat" className="text-[13px] font-medium">
+            <Label htmlFor="new-cat" className="text-body font-medium">
               Add a category
             </Label>
             <div className="flex gap-2">
@@ -134,7 +134,7 @@ export function CategoryAdminDialog({ trigger }: CategoryAdminDialogProps) {
                   setCreateErr(null);
                 }}
                 placeholder="e.g. Flower Wall"
-                className="h-9 flex-1 text-[13px]"
+                className="h-9 flex-1 text-body"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
@@ -145,7 +145,7 @@ export function CategoryAdminDialog({ trigger }: CategoryAdminDialogProps) {
               <Button
                 type="button"
                 size="sm"
-                className="h-9 gap-1.5 text-[13px]"
+                className="h-9 gap-1.5 text-body"
                 onClick={handleCreate}
                 disabled={pending || !newLabel.trim()}
               >
@@ -153,21 +153,21 @@ export function CategoryAdminDialog({ trigger }: CategoryAdminDialogProps) {
                 Add
               </Button>
             </div>
-            {createErr && <p className="text-[12px] text-destructive">{createErr}</p>}
+            {createErr && <p className="text-detail text-destructive">{createErr}</p>}
           </div>
 
           <Separator />
 
           {/* Seed (built-in) categories — read-only reference */}
           <div className="space-y-2">
-            <p className="text-[12px] font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="text-detail font-medium uppercase tracking-wide text-muted-foreground">
               Built-in
             </p>
             <div className="flex flex-wrap gap-1.5">
               {VENDOR_CATEGORIES.map((c) => (
                 <span
                   key={c.key}
-                  className="rounded-full border border-border bg-muted/50 px-2.5 py-0.5 text-[12px] text-muted-foreground"
+                  className="rounded-full border border-border bg-muted/50 px-2.5 py-0.5 text-detail text-muted-foreground"
                 >
                   {c.label}
                 </span>
@@ -177,16 +177,16 @@ export function CategoryAdminDialog({ trigger }: CategoryAdminDialogProps) {
 
           {/* Custom categories */}
           <div className="space-y-2">
-            <p className="text-[12px] font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="text-detail font-medium uppercase tracking-wide text-muted-foreground">
               Custom
             </p>
             {loading ? (
-              <div className="flex items-center gap-2 py-4 text-[13px] text-muted-foreground">
+              <div className="flex items-center gap-2 py-4 text-body text-muted-foreground">
                 <Loader2Icon className="size-4 animate-spin" />
                 Loading…
               </div>
             ) : defs.length === 0 ? (
-              <p className="py-2 text-[13px] text-muted-foreground/70">
+              <p className="py-2 text-body text-muted-foreground/70">
                 No custom categories yet.
               </p>
             ) : (
@@ -199,9 +199,9 @@ export function CategoryAdminDialog({ trigger }: CategoryAdminDialogProps) {
                     <Input
                       defaultValue={def.label}
                       onBlur={(e) => saveLabel(def, e.target.value)}
-                      className="h-8 flex-1 text-[13px]"
+                      className="h-8 flex-1 text-body"
                     />
-                    <span className="shrink-0 font-mono text-[11px] text-muted-foreground">
+                    <span className="shrink-0 font-mono text-meta text-muted-foreground">
                       {def.key}
                     </span>
                     <div className="flex shrink-0 items-center gap-1.5">
@@ -210,7 +210,7 @@ export function CategoryAdminDialog({ trigger }: CategoryAdminDialogProps) {
                         onCheckedChange={(v) => toggleActive(def, v)}
                         disabled={pending}
                       />
-                      <span className="text-[11px] text-muted-foreground">
+                      <span className="text-meta text-muted-foreground">
                         {def.isActive ? "Active" : "Hidden"}
                       </span>
                     </div>

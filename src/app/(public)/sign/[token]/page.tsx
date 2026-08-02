@@ -21,7 +21,7 @@ export default async function SignPage({
     return (
       <div className="bg-card shadow-card mx-auto max-w-lg rounded-2xl border p-10 text-center">
         <FileWarning className="mx-auto size-9 text-warning" />
-        <h1 className="text-foreground mt-5 text-[24px]">
+        <h1 className="text-foreground mt-5 text-h2">
           This signing link isn&apos;t valid
         </h1>
         <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm leading-relaxed">
@@ -38,10 +38,10 @@ export default async function SignPage({
   return (
     <div className="space-y-7">
       <div className="text-center">
-        <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.18em]">
+        <p className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.18em]">
           For your signature
         </p>
-        <h1 className="text-foreground mt-3 text-[28px] sm:text-[34px]">
+        <h1 className="text-foreground mt-3 text-h2 sm:text-h1">
           {doc.documentTitle}
         </h1>
         <p className="text-muted-foreground mt-2 text-sm">{doc.eventName}</p>
@@ -59,7 +59,7 @@ export default async function SignPage({
       {alreadySigned ? (
         <div className="flex flex-col items-center gap-2 rounded-2xl border border-success/25 bg-success/[0.07] p-8 text-center">
           <CheckCircle2 className="size-8 text-success" />
-          <p className="font-editorial mt-1 text-[20px] font-semibold text-success">
+          <p className="font-editorial mt-1 text-title font-semibold text-success">
             This document has been signed
           </p>
           <p className="text-sm leading-relaxed text-success/85">

@@ -177,7 +177,7 @@ export function ReviewsModerationList({
         />
         <Card className="gap-0 py-0">
           <CardContent className="px-5 py-5">
-            <p className="mb-2 text-[13px] font-semibold tracking-[-0.01em] text-foreground">
+            <p className="mb-2 text-body font-semibold tracking-[-0.01em] text-foreground">
               Rating Distribution
             </p>
             <div className="space-y-1">
@@ -224,7 +224,7 @@ export function ReviewsModerationList({
             {pendingReviews.length > 0 && (
               <Badge
                 variant="secondary"
-                className="ml-2 h-5 min-w-5 rounded-full px-1.5 text-[10px]"
+                className="ml-2 h-5 min-w-5 rounded-full px-1.5 text-meta"
               >
                 {pendingReviews.length}
               </Badge>
@@ -235,7 +235,7 @@ export function ReviewsModerationList({
             {approvedReviews.length > 0 && (
               <Badge
                 variant="secondary"
-                className="ml-2 h-5 min-w-5 rounded-full px-1.5 text-[10px]"
+                className="ml-2 h-5 min-w-5 rounded-full px-1.5 text-meta"
               >
                 {approvedReviews.length}
               </Badge>

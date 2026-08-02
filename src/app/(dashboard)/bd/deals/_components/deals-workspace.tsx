@@ -57,7 +57,7 @@ export function DealsWorkspace({ deals }: { deals: AcqDealCard[] }) {
               aria-pressed={view === key}
               onClick={() => setView(key)}
               className={cn(
-                "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium tracking-[-0.01em] transition-all",
+                "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-body font-medium tracking-[-0.01em] transition-all",
                 view === key
                   ? "bg-background text-foreground shadow-sm ring-1 ring-border/70"
                   : "text-muted-foreground hover:text-foreground"
@@ -76,7 +76,7 @@ export function DealsWorkspace({ deals }: { deals: AcqDealCard[] }) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search deal, owner, property, city…"
-            className="h-8 w-full pl-8 text-[13px] sm:w-[260px]"
+            className="h-8 w-full pl-8 text-body sm:w-[260px]"
           />
         </div>
       </div>

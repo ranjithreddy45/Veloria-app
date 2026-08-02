@@ -177,7 +177,7 @@ export function MacrosManager() {
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-body text-muted-foreground">
           <span className="numeric font-medium text-foreground">
             {macros.length}
           </span>{" "}
@@ -242,7 +242,7 @@ export function MacrosManager() {
                                 >
                                   <ZapIcon className="size-4" />
                                 </span>
-                                <h3 className="text-[15px] font-semibold tracking-[-0.01em]">
+                                <h3 className="text-copy font-semibold tracking-[-0.01em]">
                                   {macro.name}
                                 </h3>
                                 <StatusPill
@@ -256,7 +256,7 @@ export function MacrosManager() {
                               </div>
 
                               {macro.description && (
-                                <p className="mt-1.5 text-[13px] text-muted-foreground">
+                                <p className="mt-1.5 text-body text-muted-foreground">
                                   {macro.description}
                                 </p>
                               )}
@@ -271,7 +271,7 @@ export function MacrosManager() {
                                         aria-hidden
                                       />
                                     )}
-                                    <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 text-[12.5px] font-medium">
+                                    <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 text-detail font-medium">
                                       <PlayIcon className="size-2.5 text-muted-foreground" />
                                       {ACTION_TYPE_LABELS[a.type] || a.type}
                                     </span>
@@ -279,7 +279,7 @@ export function MacrosManager() {
                                 ))}
                               </div>
 
-                              <p className="mt-2.5 text-[11px] uppercase tracking-wide text-muted-foreground">
+                              <p className="mt-2.5 text-meta uppercase tracking-wide text-muted-foreground">
                                 <span className="numeric font-medium text-foreground">
                                   {actions.length}
                                 </span>{" "}

@@ -241,11 +241,11 @@ export function AcqSchedulePanel({
       {/* "Calls, site visits & meetings" plus the open/total counter is wider
         * than a phone card, so the header wraps instead of overflowing. */}
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-x-3 gap-y-1 space-y-0">
-        <CardTitle className="flex items-center gap-2 text-[13px] tracking-[-0.01em]">
+        <CardTitle className="flex items-center gap-2 text-body tracking-[-0.01em]">
           <CalendarClock className="size-4 text-primary" />
           Calls, site visits &amp; meetings
         </CardTitle>
-        <span className="text-[11.5px] text-muted-foreground">
+        <span className="text-meta text-muted-foreground">
           <span className="numeric font-medium text-foreground">{upcoming}</span> open ·{" "}
           <span className="numeric">{entries.length}</span> total
         </span>
@@ -255,7 +255,7 @@ export function AcqSchedulePanel({
         {canWrite && (
           <div className="grid gap-2 rounded-xl border border-border/60 bg-muted/20 p-3 sm:grid-cols-2">
             <div className="space-y-1">
-              <Label className="text-[11.5px]">Type</Label>
+              <Label className="text-meta">Type</Label>
               <Select value={type} onValueChange={(v) => setType(v as VisitType)}>
                 <SelectTrigger>
                   <SelectValue />
@@ -270,7 +270,7 @@ export function AcqSchedulePanel({
               </Select>
             </div>
             <div className="space-y-1">
-              <Label className="text-[11.5px]">Date &amp; time</Label>
+              <Label className="text-meta">Date &amp; time</Label>
               <Input
                 type="datetime-local"
                 value={when}
@@ -279,7 +279,7 @@ export function AcqSchedulePanel({
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-[11.5px]">
+              <Label className="text-meta">
                 {type === "CALL" ? "Phone / channel (optional)" : "Location (optional)"}
               </Label>
               <Input
@@ -289,7 +289,7 @@ export function AcqSchedulePanel({
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-[11.5px]">Assigned to</Label>
+              <Label className="text-meta">Assigned to</Label>
               <Select value={assignee} onValueChange={setAssignee}>
                 <SelectTrigger>
                   <SelectValue placeholder="Me" />
@@ -304,11 +304,11 @@ export function AcqSchedulePanel({
               </Select>
             </div>
             <div className="space-y-1 sm:col-span-2">
-              <Label className="text-[11.5px]">Agenda (optional)</Label>
+              <Label className="text-meta">Agenda (optional)</Label>
               <Input value={agenda} onChange={(e) => setAgenda(e.target.value)} placeholder="What to cover" />
             </div>
             <div className="flex flex-wrap items-center justify-between gap-2 sm:col-span-2">
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-meta text-muted-foreground">
                 It appears on the assignee&apos;s calendar and can be logged with notes afterwards.
               </p>
               <Button size="sm" onClick={schedule} disabled={busy || !when}>
@@ -320,9 +320,9 @@ export function AcqSchedulePanel({
         )}
 
         {loading ? (
-          <p className="py-6 text-center text-[12.5px] text-muted-foreground">Loading schedule…</p>
+          <p className="py-6 text-center text-detail text-muted-foreground">Loading schedule…</p>
         ) : entries.length === 0 ? (
-          <p className="py-6 text-center text-[12.5px] text-muted-foreground">
+          <p className="py-6 text-center text-detail text-muted-foreground">
             Nothing scheduled yet. Book a call, site visit or meeting above.
           </p>
         ) : (
@@ -418,11 +418,11 @@ function ScheduleRow({
     <li className="rounded-xl border border-border/60 bg-card p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2 py-0.5 text-[11.5px] font-medium text-foreground">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2 py-0.5 text-meta font-medium text-foreground">
             <Icon className="size-3" />
             {meta.label}
           </span>
-          <span className={cn("numeric text-[13px] font-medium", overdue ? "text-destructive" : "text-foreground")}>
+          <span className={cn("numeric text-body font-medium", overdue ? "text-destructive" : "text-foreground")}>
             {fmtInstant(entry.scheduledAt)}
           </span>
           <StatusPill label={label(entry.status)} hue={STATUS_HUE[entry.status] ?? "neutral"} size="xs" />
@@ -432,7 +432,7 @@ function ScheduleRow({
         {canWrite && (
           <div className="flex items-center gap-1.5">
             <Select value={entry.status} onValueChange={(s) => setStatus(s as VisitStatus)} disabled={busy}>
-              <SelectTrigger className="h-8 w-[140px] text-[12px]">
+              <SelectTrigger className="h-8 w-[140px] text-detail">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -472,10 +472,10 @@ function ScheduleRow({
             * "dd/mm/yyyy, --:-- --" text, which at the 16px minimum iOS forces
             * on inputs no longer fits a fixed 220px box. */}
           <div className="w-full space-y-1 sm:w-auto">
-            <Label className="text-[11px]">New date &amp; time</Label>
+            <Label className="text-meta">New date &amp; time</Label>
             <Input
               type="datetime-local"
-              className="h-8 w-full text-[12.5px] sm:w-[220px]"
+              className="h-8 w-full text-detail sm:w-[220px]"
               value={newWhen}
               onChange={(ev) => setNewWhen(ev.target.value)}
             />
@@ -490,7 +490,7 @@ function ScheduleRow({
       )}
 
       {(entry.location || entry.agenda || entry.assignedToName) && (
-        <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-muted-foreground">
+        <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-detail text-muted-foreground">
           {entry.location && (
             <span className="inline-flex items-center gap-1">
               <MapPin className="size-3" />
@@ -548,14 +548,14 @@ function OutcomeSummary({
 
   return (
     <div className="mt-2 space-y-1">
-      <Label className="text-[11px] uppercase tracking-[0.06em] text-muted-foreground">Outcome summary</Label>
+      <Label className="text-meta uppercase tracking-[0.06em] text-muted-foreground">Outcome summary</Label>
       <Textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder="One-line outcome / next step…"
         rows={2}
         disabled={disabled}
-        className="text-[12.5px]"
+        className="text-detail"
       />
       {dirty && !disabled && (
         <div className="flex justify-end">
@@ -640,7 +640,7 @@ function NoteThread({
 
   return (
     <div className="mt-3 space-y-2 rounded-lg border border-border/50 bg-muted/20 p-2.5">
-      <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+      <div className="flex items-center gap-1.5 text-meta font-semibold uppercase tracking-[0.06em] text-muted-foreground">
         <MessageSquarePlus className="size-3.5" />
         Notes
         <span className="numeric font-normal normal-case tracking-normal">({notes.length})</span>
@@ -656,7 +656,7 @@ function NoteThread({
                     value={editText}
                     onChange={(e) => setEditText(e.target.value)}
                     rows={2}
-                    className="text-[12.5px]"
+                    className="text-detail"
                   />
                   <div className="flex justify-end gap-2">
                     <Button size="xs" variant="ghost" onClick={() => setEditingId(null)}>
@@ -669,8 +669,8 @@ function NoteThread({
                 </div>
               ) : (
                 <>
-                  <p className="whitespace-pre-wrap text-[12.5px] leading-relaxed text-foreground">{n.body}</p>
-                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+                  <p className="whitespace-pre-wrap text-detail leading-relaxed text-foreground">{n.body}</p>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-meta text-muted-foreground">
                     <span className="font-medium">{n.authorName ?? "Unknown"}</span>
                     <span aria-hidden>·</span>
                     <span className="numeric">{fmtRelative(n.createdAt)}</span>
@@ -716,7 +716,7 @@ function NoteThread({
             onChange={(e) => setDraft(e.target.value)}
             rows={2}
             placeholder="What happened on this call / visit? Add a note — earlier notes are kept."
-            className="text-[12.5px]"
+            className="text-detail"
           />
           <div className="flex justify-end">
             <Button size="xs" variant="outline" onClick={add} disabled={busy || !draft.trim()}>

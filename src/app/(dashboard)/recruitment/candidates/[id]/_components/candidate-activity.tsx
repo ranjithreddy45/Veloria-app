@@ -261,7 +261,7 @@ function OutcomeDialog({ interview }: { interview: InterviewView }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="outline" className="h-7 px-2.5 text-[12px]">
+        <Button size="sm" variant="outline" className="h-7 px-2.5 text-detail">
           Set outcome
         </Button>
       </DialogTrigger>
@@ -310,7 +310,7 @@ function OutcomeDialog({ interview }: { interview: InterviewView }) {
                 onChange={(e) => setFeedback(e.target.value)}
                 rows={4}
                 placeholder="Notes from the interview…"
-                className="resize-none text-[13px]"
+                className="resize-none text-body"
               />
             </div>
           </div>
@@ -446,7 +446,7 @@ function CreateOfferDialog({
                 onChange={(e) => set("notes", e.target.value)}
                 rows={3}
                 placeholder="Terms, conditions, comments…"
-                className="resize-none text-[13px]"
+                className="resize-none text-body"
               />
             </div>
           </div>
@@ -502,7 +502,7 @@ function OfferActions({ offer }: { offer: OfferView }) {
           key={a.status}
           size="sm"
           variant="outline"
-          className="h-7 px-2.5 text-[12px]"
+          className="h-7 px-2.5 text-detail"
           disabled={pending}
           onClick={() => act(a.status)}
         >
@@ -534,7 +534,7 @@ function ApplicationsPanel({ applications }: { applications: ApplicationView[] }
             <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
               <Briefcase className="size-4" />
             </span>
-            <span className="truncate text-[13px] font-medium text-foreground">
+            <span className="truncate text-body font-medium text-foreground">
               {a.jobTitle}
             </span>
           </div>
@@ -578,8 +578,8 @@ function InterviewsPanel({
           </span>
           <div className="min-w-0 flex-1 space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[13px] font-medium text-foreground">{iv.round}</span>
-              <span className="text-[11.5px] text-muted-foreground">
+              <span className="text-body font-medium text-foreground">{iv.round}</span>
+              <span className="text-meta text-muted-foreground">
                 {INTERVIEW_MODE_LABEL[iv.mode] ?? iv.mode}
               </span>
               <StatusPill
@@ -589,12 +589,12 @@ function InterviewsPanel({
               />
               <MiniStars value={iv.rating} />
             </div>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-detail text-muted-foreground">
               <span className="tabular-nums">{formatDateTime(iv.scheduledAt)}</span>
               {iv.interviewerName && <span>· {iv.interviewerName}</span>}
             </div>
             {iv.feedback && (
-              <p className="whitespace-pre-wrap rounded-md bg-muted/50 px-3 py-2 text-[12.5px] text-foreground/80">
+              <p className="whitespace-pre-wrap rounded-md bg-muted/50 px-3 py-2 text-detail text-foreground/80">
                 {iv.feedback}
               </p>
             )}
@@ -636,10 +636,10 @@ function OffersPanel({
         <li key={o.id} className="space-y-2.5 px-4 py-3.5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2.5">
-              <span className="text-[15px] font-semibold tabular-nums text-foreground">
+              <span className="text-copy font-semibold tabular-nums text-foreground">
                 {formatINR(o.ctc)}
               </span>
-              <span className="text-[11.5px] text-muted-foreground">/ year</span>
+              <span className="text-meta text-muted-foreground">/ year</span>
               <StatusPill
                 label={OFFER_STATUS_LABEL[o.status] ?? o.status}
                 hue={OFFER_STATUS_HUE[o.status] ?? "neutral"}
@@ -648,12 +648,12 @@ function OffersPanel({
             </div>
             {canWrite && <OfferActions offer={o} />}
           </div>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-detail text-muted-foreground">
             {o.jobTitle && <span>{o.jobTitle}</span>}
             <span className="tabular-nums">Joining {formatDate(o.joiningDate)}</span>
           </div>
           {o.notes && (
-            <p className="whitespace-pre-wrap rounded-md bg-muted/50 px-3 py-2 text-[12.5px] text-foreground/80">
+            <p className="whitespace-pre-wrap rounded-md bg-muted/50 px-3 py-2 text-detail text-foreground/80">
               {o.notes}
             </p>
           )}

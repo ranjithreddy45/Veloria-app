@@ -353,7 +353,7 @@ export function BillsTable({ data }: { data: BillRow[] }) {
         ) : (
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/30 hover:bg-muted/30 [&>th]:h-9 [&>th]:text-[11px] [&>th]:font-medium [&>th]:uppercase [&>th]:tracking-[0.05em] [&>th]:text-muted-foreground">
+              <TableRow className="bg-muted/30 hover:bg-muted/30 [&>th]:h-9 [&>th]:text-meta [&>th]:font-medium [&>th]:uppercase [&>th]:tracking-[0.05em] [&>th]:text-muted-foreground">
                 <TableHead>Bill #</TableHead>
                 <TableHead>Vendor</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
@@ -405,7 +405,7 @@ export function BillsTable({ data }: { data: BillRow[] }) {
                       <span className="ml-1 numeric opacity-60">{b.expenseCode}</span>
                     </span>
                   </TableCell>
-                  <TableCell className="numeric text-[12.5px] text-muted-foreground">
+                  <TableCell className="numeric text-detail text-muted-foreground">
                     {format(new Date(b.createdAt), "dd MMM yyyy")}
                   </TableCell>
                   <TableCell className="text-right">

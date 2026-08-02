@@ -133,7 +133,7 @@ export function EnquiryNotesPanel({ contactId }: { contactId: string }) {
 
         {/* Thread */}
         {loading ? (
-          <p className="text-[13px] text-muted-foreground">Loading…</p>
+          <p className="text-body text-muted-foreground">Loading…</p>
         ) : notes.length === 0 ? (
           <EmptyState
             className="py-8"
@@ -148,7 +148,7 @@ export function EnquiryNotesPanel({ contactId }: { contactId: string }) {
                 <div className="mb-1 flex items-center gap-2 text-xs text-muted-foreground">
                   {n.kind === "CALL" ? <Phone className="size-3.5 text-blue-600" /> : <StickyNote className="size-3.5" />}
                   {n.kind === "CALL" && n.callOutcome && (
-                    <Badge variant="outline" className="h-4 px-1 text-[10px]">
+                    <Badge variant="outline" className="h-4 px-1 text-meta">
                       {CALL_OUTCOMES.find((o) => o.v === n.callOutcome)?.l ?? n.callOutcome}
                     </Badge>
                   )}

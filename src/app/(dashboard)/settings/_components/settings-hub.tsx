@@ -129,7 +129,7 @@ export function SettingsHub() {
                 <span className={cn("flex size-8 items-center justify-center rounded-lg", cat.accent)}>
                   <cat.icon className="size-4" />
                 </span>
-                <h2 className="text-[15px] font-semibold tracking-normal">{cat.title}</h2>
+                <h2 className="text-copy font-semibold tracking-normal">{cat.title}</h2>
               </div>
               <ul className="-mx-1.5">
                 {cat.items.map((it) => (
@@ -140,8 +140,8 @@ export function SettingsHub() {
                     >
                       <it.icon className="size-3.5 shrink-0 text-muted-foreground" strokeWidth={1.9} />
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[13px] font-medium leading-tight">{it.label}</span>
-                        {it.desc && <span className="block truncate text-[11.5px] text-muted-foreground">{it.desc}</span>}
+                        <span className="block truncate text-body font-medium leading-tight">{it.label}</span>
+                        {it.desc && <span className="block truncate text-meta text-muted-foreground">{it.desc}</span>}
                       </span>
                       <ChevronRight className="size-3.5 shrink-0 text-transparent transition-colors group-hover:text-muted-foreground" />
                     </Link>

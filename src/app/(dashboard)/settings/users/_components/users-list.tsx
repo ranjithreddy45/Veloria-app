@@ -350,7 +350,7 @@ export function UsersList({ users }: UsersListProps) {
                     </CardTitle>
                     <Badge
                       variant="outline"
-                      className={`mt-1 text-[10px] ${ROLE_COLORS[user.role] || "bg-zinc-100 text-zinc-700 border-zinc-200"}`}
+                      className={`mt-1 text-meta ${ROLE_COLORS[user.role] || "bg-zinc-100 text-zinc-700 border-zinc-200"}`}
                     >
                       <ShieldIcon className="mr-1 size-2.5" />
                       {ROLE_LABELS[user.role] || user.role}
@@ -359,14 +359,14 @@ export function UsersList({ users }: UsersListProps) {
                   {user.isActive ? (
                     <Badge
                       variant="outline"
-                      className="bg-success/15 text-success border-success/20 text-[10px] shrink-0"
+                      className="bg-success/15 text-success border-success/20 text-meta shrink-0"
                     >
                       Active
                     </Badge>
                   ) : (
                     <Badge
                       variant="outline"
-                      className="bg-muted text-muted-foreground border-border text-[10px] shrink-0"
+                      className="bg-muted text-muted-foreground border-border text-meta shrink-0"
                     >
                       Inactive
                     </Badge>

@@ -38,32 +38,32 @@ export function TicketDetail({
       {/* Thread */}
       <div className="space-y-4">
         <div className="rounded-xl border bg-card p-4">
-          <div className="flex items-center gap-2 text-[12px] text-muted-foreground">#{ticket.number} · {ticket.category?.name ?? "Uncategorised"} · {formatDateTime(ticket.createdAt)}</div>
+          <div className="flex items-center gap-2 text-detail text-muted-foreground">#{ticket.number} · {ticket.category?.name ?? "Uncategorised"} · {formatDateTime(ticket.createdAt)}</div>
           <h2 className="mt-1 text-lg font-semibold">{ticket.subject}</h2>
-          <p className="mt-2 whitespace-pre-wrap text-[13.5px] text-muted-foreground">{ticket.description}</p>
+          <p className="mt-2 whitespace-pre-wrap text-body text-muted-foreground">{ticket.description}</p>
         </div>
 
         {comments.map((c) => (
           <div key={c.id} className={cn("rounded-xl border p-4", c.isInternal ? "border-warning/20 bg-warning/10" : "bg-card")}>
             <div className="flex items-center gap-2">
-              <Avatar size="sm"><AvatarImage src={c.author.image || undefined} /><AvatarFallback className="bg-primary/10 text-[10px] text-primary">{(c.author.name ?? "?").split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}</AvatarFallback></Avatar>
-              <span className="text-[13px] font-medium">{c.author.name ?? "—"}</span>
-              {c.isInternal && <span className="inline-flex items-center gap-1 text-[11px] text-warning"><Lock className="size-3" /> Internal note</span>}
-              <span className="ml-auto text-[11.5px] text-muted-foreground">{formatDateTime(c.createdAt)}</span>
+              <Avatar size="sm"><AvatarImage src={c.author.image || undefined} /><AvatarFallback className="bg-primary/10 text-meta text-primary">{(c.author.name ?? "?").split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}</AvatarFallback></Avatar>
+              <span className="text-body font-medium">{c.author.name ?? "—"}</span>
+              {c.isInternal && <span className="inline-flex items-center gap-1 text-meta text-warning"><Lock className="size-3" /> Internal note</span>}
+              <span className="ml-auto text-meta text-muted-foreground">{formatDateTime(c.createdAt)}</span>
             </div>
-            <p className="mt-2 whitespace-pre-wrap text-[13.5px]">{c.body}</p>
+            <p className="mt-2 whitespace-pre-wrap text-body">{c.body}</p>
           </div>
         ))}
 
         {/* Reply */}
         {ticket.status !== "CLOSED" && (
           <div className="rounded-xl border bg-card p-3">
-            <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write a reply…" className="h-20 w-full resize-y rounded-md border bg-background p-2.5 text-[13px] outline-none focus:ring-2 focus:ring-ring" />
+            <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write a reply…" className="h-20 w-full resize-y rounded-md border bg-background p-2.5 text-body outline-none focus:ring-2 focus:ring-ring" />
             {/* "Internal note (hidden from requester)" plus Send is wider than
               * the card on a phone — wrap so Send is never pushed off. */}
             <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
               {isAgent ? (
-                <label className="flex items-center gap-2 text-[12.5px] text-muted-foreground"><input type="checkbox" checked={internal} onChange={(e) => setInternal(e.target.checked)} className="size-4" /> Internal note (hidden from requester)</label>
+                <label className="flex items-center gap-2 text-detail text-muted-foreground"><input type="checkbox" checked={internal} onChange={(e) => setInternal(e.target.checked)} className="size-4" /> Internal note (hidden from requester)</label>
               ) : <span />}
               <Button onClick={send} disabled={busy || !body.trim()} size="sm" className="gap-1.5">{busy ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />} Send</Button>
             </div>
@@ -73,7 +73,7 @@ export function TicketDetail({
 
       {/* Sidebar */}
       <div className="space-y-3">
-        <div className="rounded-xl border bg-card p-4 space-y-3 text-[13px]">
+        <div className="rounded-xl border bg-card p-4 space-y-3 text-body">
           <Row label="Status"><StatusPill label={HD_STATUS_LABEL[ticket.status]} hue={HD_STATUS_HUE[ticket.status]} size="xs" /></Row>
           <Row label="Priority"><StatusPill label={ticket.priority[0] + ticket.priority.slice(1).toLowerCase()} hue={HD_PRIO_HUE[ticket.priority]} size="xs" /></Row>
           <Row label="Requester"><span className="font-medium">{requester.name ?? "—"}</span></Row>
@@ -83,7 +83,7 @@ export function TicketDetail({
 
         {isAgent && (
           <div className="rounded-xl border bg-card p-4 space-y-2.5">
-            <div className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">Agent controls</div>
+            <div className="text-detail font-semibold uppercase tracking-wide text-muted-foreground">Agent controls</div>
             <Button variant="outline" size="sm" className="w-full gap-1.5" disabled={busy} onClick={() => patch(() => assignTicket(ticket.id, myId))}><UserCheck className="size-3.5" /> Assign to me</Button>
             <Select value={ticket.status} onValueChange={(v) => patch(() => setTicketStatus(ticket.id, v))}>
               <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>

@@ -40,13 +40,13 @@ export default async function VendorPortalLayout({
                   <div className="flex size-8 items-center justify-center rounded-xl bg-teal-600 text-white">
                     <Store className="size-4" />
                   </div>
-                  <span className="font-editorial text-[20px] leading-none tracking-[-0.01em] text-foreground">
+                  <span className="font-editorial text-title leading-none tracking-[-0.01em] text-foreground">
                     Veloria Grand
                   </span>
                 </div>
               }
             />
-            <span className="hidden rounded-full bg-teal-500/12 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-teal-700 sm:inline dark:text-teal-300">
+            <span className="hidden rounded-full bg-teal-500/12 px-2.5 py-1 text-meta font-semibold uppercase tracking-[0.16em] text-teal-700 sm:inline dark:text-teal-300">
               Partner
             </span>
           </Link>

@@ -59,12 +59,12 @@ export async function LeadSiteVisits({ leadId }: { leadId: string }) {
                       {STATUS_LABEL[v.status]}
                     </Badge>
                   </div>
-                  <span className="numeric text-[11.5px] text-muted-foreground">{v.durationMin} min</span>
+                  <span className="numeric text-meta text-muted-foreground">{v.durationMin} min</span>
                 </div>
                 <p className="numeric text-sm">
                   {v.dateLabel} · {v.timeLabel} <span className="text-muted-foreground">IST</span>
                 </p>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-body text-muted-foreground">
                   {v.venueName && (
                     <span className="flex items-center gap-1">
                       <MapPinIcon className="size-3" /> {v.venueName}

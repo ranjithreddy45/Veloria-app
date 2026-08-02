@@ -129,7 +129,7 @@ export function PublicPay({
           <p className="text-sm text-emerald-700 dark:text-emerald-400">
             Payment of {inr(amount)} received · Ref {invoiceNumber}
           </p>
-          <p className="mt-1 flex items-center justify-center gap-1.5 text-[12.5px] font-medium text-emerald-800 dark:text-emerald-300">
+          <p className="mt-1 flex items-center justify-center gap-1.5 text-detail font-medium text-emerald-800 dark:text-emerald-300">
             <PhoneCall className="size-3.5" /> Your coordinator will call you within 24 hours.
           </p>
         </div>
@@ -157,11 +157,11 @@ export function PublicPay({
         </div>
       )}
       <div className="flex items-center justify-center gap-2 pt-1">
-        <span className="flex items-center gap-1.5 rounded-full bg-muted/60 px-3 py-1 text-[11.5px] font-medium text-muted-foreground">
+        <span className="flex items-center gap-1.5 rounded-full bg-muted/60 px-3 py-1 text-meta font-medium text-muted-foreground">
           <Lock className="size-3" /> Secured by Razorpay
         </span>
       </div>
-      <p className="text-center text-[12px] text-muted-foreground">
+      <p className="text-center text-detail text-muted-foreground">
         Pay securely by UPI, card, or net banking.
       </p>
     </div>

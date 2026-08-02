@@ -129,7 +129,7 @@ export function PackageCard({ pkg }: PackageCardProps) {
               colorMap={PACKAGE_TIER_COLORS}
             />
             {pkg.eventType && (
-              <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+              <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-meta font-medium text-muted-foreground">
                 {pkg.eventType}
               </span>
             )}

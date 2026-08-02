@@ -183,13 +183,13 @@ export function VendorPayoutsClient({ initialData }: VendorPayoutsClientProps) {
               <CardContent className="p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1.5">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                    <p className="text-meta font-semibold uppercase tracking-[0.1em] text-muted-foreground">
                       {card.title}
                     </p>
-                    <p className="numeric text-[22px] font-semibold leading-none tracking-[-0.02em] text-foreground">
+                    <p className="numeric text-title font-semibold leading-none tracking-[-0.02em] text-foreground">
                       {card.value}
                     </p>
-                    <p className="text-[12px] text-muted-foreground">
+                    <p className="text-detail text-muted-foreground">
                       <span className="numeric">{card.count}</span> payout
                       {card.count !== 1 ? "s" : ""}
                     </p>
@@ -209,7 +209,7 @@ export function VendorPayoutsClient({ initialData }: VendorPayoutsClientProps) {
       {/* Payouts Table */}
       <Card className="rounded-2xl border bg-card shadow-card">
         <CardHeader className="pb-2">
-          <CardTitle className="text-[15px] font-semibold">
+          <CardTitle className="text-copy font-semibold">
             Payout history
           </CardTitle>
         </CardHeader>
@@ -234,7 +234,7 @@ export function VendorPayoutsClient({ initialData }: VendorPayoutsClientProps) {
               <div className="hidden md:block">
                 <Table>
                   <TableHeader>
-                    <TableRow className="[&>th]:text-[11px] [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wide [&>th]:text-muted-foreground">
+                    <TableRow className="[&>th]:text-meta [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wide [&>th]:text-muted-foreground">
                       <TableHead>Reference</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead>Booking</TableHead>
@@ -331,7 +331,7 @@ export function VendorPayoutsClient({ initialData }: VendorPayoutsClientProps) {
                       </p>
                     )}
                     <div className="mt-3 flex items-center justify-between border-t pt-3">
-                      <span className="numeric text-[17px] font-semibold text-foreground">
+                      <span className="numeric text-lede font-semibold text-foreground">
                         {formatINR(payout.amount)}
                       </span>
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">

@@ -161,8 +161,8 @@ export function RunDetail({ run }: { run: RunView }) {
 
       <div className="rounded-xl border bg-card">
         <div className="border-b px-5 py-3.5">
-          <h3 className="text-[14px] font-semibold">Payslip register</h3>
-          <p className="text-[12.5px] text-muted-foreground">
+          <h3 className="text-copy font-semibold">Payslip register</h3>
+          <p className="text-detail text-muted-foreground">
             Statutory deductions computed from the current salary structure.
           </p>
         </div>
@@ -175,7 +175,7 @@ export function RunDetail({ run }: { run: RunView }) {
           {/* Eight columns of rupee figures cannot fit 375px and must not be
             * truncated, so this keeps its horizontal scroll — but an
             * unannounced sideways scroll reads as a broken page, so say it. */}
-          <p className="px-4 pb-2 text-[12px] text-muted-foreground sm:hidden">
+          <p className="px-4 pb-2 text-detail text-muted-foreground sm:hidden">
             Swipe the table sideways to see PF, ESI, PT, TDS and Net.
           </p>
           <div className="overflow-x-auto">
@@ -197,7 +197,7 @@ export function RunDetail({ run }: { run: RunView }) {
                   <TableRow key={p.id}>
                     <TableCell>
                       <div className="font-medium">{p.name}</div>
-                      <div className="text-[11.5px] text-muted-foreground">{p.empCode}</div>
+                      <div className="text-meta text-muted-foreground">{p.empCode}</div>
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{inr(p.gross)}</TableCell>
                     <TableCell className="text-right tabular-nums text-muted-foreground">{inr(p.pf)}</TableCell>
@@ -210,7 +210,7 @@ export function RunDetail({ run }: { run: RunView }) {
                         href={`/api/hr/payslips/${p.id}/pdf`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-[12.5px] text-primary hover:underline"
+                        className="inline-flex items-center gap-1 text-detail text-primary hover:underline"
                       >
                         <Download className="size-3.5" /> PDF
                       </a>

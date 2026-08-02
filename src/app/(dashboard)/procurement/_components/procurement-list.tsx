@@ -323,7 +323,7 @@ function NewRequisitionDialog({ presetBooking }: { presetBooking?: { id: string;
               {items.map((it, idx) => (
                 <div key={idx} className="grid grid-cols-12 items-end gap-2 rounded-lg border bg-muted/30 p-2">
                   <div className="col-span-12 sm:col-span-5">
-                    <Label className="text-[10.5px] text-muted-foreground">Name</Label>
+                    <Label className="text-meta text-muted-foreground">Name</Label>
                     <Input
                       value={it.name}
                       onChange={(e) => updateItem(idx, { name: e.target.value })}
@@ -331,7 +331,7 @@ function NewRequisitionDialog({ presetBooking }: { presetBooking?: { id: string;
                     />
                   </div>
                   <div className="col-span-3 sm:col-span-2">
-                    <Label className="text-[10.5px] text-muted-foreground">Qty</Label>
+                    <Label className="text-meta text-muted-foreground">Qty</Label>
                     <Input
                       type="number"
                       min={0}
@@ -341,7 +341,7 @@ function NewRequisitionDialog({ presetBooking }: { presetBooking?: { id: string;
                     />
                   </div>
                   <div className="col-span-3 sm:col-span-2">
-                    <Label className="text-[10.5px] text-muted-foreground">Unit</Label>
+                    <Label className="text-meta text-muted-foreground">Unit</Label>
                     <Input
                       value={it.unit}
                       onChange={(e) => updateItem(idx, { unit: e.target.value })}
@@ -349,7 +349,7 @@ function NewRequisitionDialog({ presetBooking }: { presetBooking?: { id: string;
                     />
                   </div>
                   <div className="col-span-4 sm:col-span-2">
-                    <Label className="text-[10.5px] text-muted-foreground">Unit price</Label>
+                    <Label className="text-meta text-muted-foreground">Unit price</Label>
                     <Input
                       type="number"
                       min={0}

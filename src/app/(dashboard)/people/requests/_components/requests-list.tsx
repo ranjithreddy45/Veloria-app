@@ -28,7 +28,7 @@ export function RequestsList({ requests }: { requests: ChangeReq[] }) {
       <div className="rounded-xl border border-dashed p-12 text-center">
         <Inbox className="mx-auto size-8 text-muted-foreground/50" />
         <p className="mt-3 text-sm font-medium">No pending change requests</p>
-        <p className="mt-1 text-[13px] text-muted-foreground">When employees request profile changes, they’ll appear here for approval.</p>
+        <p className="mt-1 text-body text-muted-foreground">When employees request profile changes, they’ll appear here for approval.</p>
       </div>
     );
   }
@@ -61,8 +61,8 @@ function Card({ req }: { req: ChangeReq }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <Link href={`/people/${req.employeeId}`} className="font-medium hover:underline">{name}</Link>
-          <span className="ml-2 text-[12px] text-muted-foreground">{req.employee?.empCode}</span>
-          <p className="text-[12px] text-muted-foreground">{formatDateTime(req.createdAt)}</p>
+          <span className="ml-2 text-detail text-muted-foreground">{req.employee?.empCode}</span>
+          <p className="text-detail text-muted-foreground">{formatDateTime(req.createdAt)}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" className="gap-1.5" disabled={!!busy} onClick={() => decide("REJECTED")}>
@@ -75,7 +75,7 @@ function Card({ req }: { req: ChangeReq }) {
       </div>
       <div className="mt-3 space-y-1.5">
         {Object.entries(req.changes).map(([field, v]) => (
-          <div key={field} className="flex items-center gap-2 text-[13px]">
+          <div key={field} className="flex items-center gap-2 text-body">
             <span className="w-28 shrink-0 text-muted-foreground">{FIELD_LABELS[field] ?? field}</span>
             <span className="text-muted-foreground/70 line-through">{v.from || "—"}</span>
             <span className="text-muted-foreground">→</span>
@@ -83,7 +83,7 @@ function Card({ req }: { req: ChangeReq }) {
           </div>
         ))}
       </div>
-      {req.note && <p className="mt-2 text-[12.5px] text-muted-foreground">“{req.note}”</p>}
+      {req.note && <p className="mt-2 text-detail text-muted-foreground">“{req.note}”</p>}
     </div>
   );
 }

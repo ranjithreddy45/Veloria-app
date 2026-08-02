@@ -257,7 +257,7 @@ export function VendorEventsClient({ initialData }: VendorEventsClientProps) {
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
               <ClipboardList className="size-4 text-teal-700 dark:text-teal-300" />
-              <CardTitle className="text-[15px] font-semibold">
+              <CardTitle className="text-copy font-semibold">
                 Needs your answer
               </CardTitle>
             </div>
@@ -349,7 +349,7 @@ export function VendorEventsClient({ initialData }: VendorEventsClientProps) {
       {/* Events Table */}
       <Card className="rounded-2xl border bg-card shadow-card">
         <CardHeader className="pb-2">
-          <CardTitle className="text-[15px] font-semibold">
+          <CardTitle className="text-copy font-semibold">
             Assigned bookings
           </CardTitle>
         </CardHeader>
@@ -374,7 +374,7 @@ export function VendorEventsClient({ initialData }: VendorEventsClientProps) {
               <div className="hidden md:block">
                 <Table>
                   <TableHeader>
-                    <TableRow className="[&>th]:text-[11px] [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wide [&>th]:text-muted-foreground">
+                    <TableRow className="[&>th]:text-meta [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wide [&>th]:text-muted-foreground">
                       <TableHead>Event</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Time slot</TableHead>

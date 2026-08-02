@@ -179,16 +179,16 @@ export function TransitionMap({ entityType, transitions }: TransitionMapProps) {
     return (
       <section className="rounded-2xl border bg-card shadow-card">
         <div className="border-b px-5 py-4">
-          <h3 className="text-[15px] font-semibold tracking-[-0.01em]">
+          <h3 className="text-copy font-semibold tracking-[-0.01em]">
             Transition Map
           </h3>
-          <p className="mt-1 text-[13px] text-muted-foreground">
+          <p className="mt-1 text-body text-muted-foreground">
             The visual map covers Lead and Booking blueprints. Deals use dynamic
             pipeline stages, so their transitions are listed rather than drawn.
           </p>
         </div>
         <div className="px-5 py-6 text-center">
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-body text-muted-foreground">
             <span className="numeric font-medium text-foreground">
               {transitions.length}
             </span>{" "}
@@ -217,10 +217,10 @@ export function TransitionMap({ entityType, transitions }: TransitionMapProps) {
   return (
     <section className="rounded-2xl border bg-card shadow-card">
       <div className="border-b px-5 py-4">
-        <h3 className="text-[15px] font-semibold tracking-[-0.01em]">
+        <h3 className="text-copy font-semibold tracking-[-0.01em]">
           Transition Map
         </h3>
-        <p className="mt-1 text-[13px] text-muted-foreground">
+        <p className="mt-1 text-body text-muted-foreground">
           Every legal status change at a glance. Arrows show which way a record
           is allowed to move.
         </p>
@@ -347,19 +347,19 @@ function StatusNodeBox({
       </span>
       <div className="flex items-center gap-1.5">
         {outgoingCount > 0 && (
-          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+          <Badge variant="secondary" className="text-meta px-1.5 py-0">
             {outgoingCount} out
           </Badge>
         )}
         {(incomingCount ?? 0) > 0 && (
-          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+          <Badge variant="secondary" className="text-meta px-1.5 py-0">
             {incomingCount} in
           </Badge>
         )}
       </div>
       {totalRequirements > 0 && (
         <div className="absolute -top-2 -right-2">
-          <Badge className="text-[10px] px-1.5 py-0 bg-amber-500 text-white hover:bg-amber-600">
+          <Badge className="text-meta px-1.5 py-0 bg-amber-500 text-white hover:bg-amber-600">
             {totalRequirements}
           </Badge>
         </div>
@@ -382,26 +382,26 @@ function TransitionLabel({ transitions }: { transitions: Transition[] }) {
   return (
     <div className="flex flex-col items-center gap-0.5 mt-1">
       {t.name && (
-        <span className="text-[10px] text-muted-foreground font-medium text-center max-w-[80px] truncate">
+        <span className="text-meta text-muted-foreground font-medium text-center max-w-[80px] truncate">
           {t.name}
         </span>
       )}
       <div className="flex items-center gap-1">
         {reqFields.length > 0 && (
-          <span className="flex items-center gap-0.5 text-[10px] text-warning">
+          <span className="flex items-center gap-0.5 text-meta text-warning">
             <FileTextIcon className="size-2.5" />
             {reqFields.length}
           </span>
         )}
         {reqActions.length > 0 && (
-          <span className="flex items-center gap-0.5 text-[10px] text-purple-600">
+          <span className="flex items-center gap-0.5 text-meta text-purple-600">
             <ZapIcon className="size-2.5" />
             {reqActions.length}
           </span>
         )}
       </div>
       {!t.isActive && (
-        <span className="text-[9px] text-destructive font-medium">INACTIVE</span>
+        <span className="text-meta text-destructive font-medium">INACTIVE</span>
       )}
     </div>
   );
@@ -487,13 +487,13 @@ function NonSequentialTransitions({
               {reqCount > 0 && (
                 <Badge
                   variant="secondary"
-                  className="text-[10px] px-1 py-0 ml-1"
+                  className="text-meta px-1 py-0 ml-1"
                 >
                   {reqCount} req
                 </Badge>
               )}
               {!t.isActive && (
-                <Badge variant="destructive" className="text-[10px] px-1 py-0">
+                <Badge variant="destructive" className="text-meta px-1 py-0">
                   Off
                 </Badge>
               )}

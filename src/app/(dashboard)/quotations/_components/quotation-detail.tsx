@@ -148,7 +148,7 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, isSu
       <div className="space-y-6">
         <Header quote={quote} />
         {quote.rejectedReason && (
-          <div className="border-destructive/20 bg-destructive/10 text-destructive rounded-xl border p-4 text-[13px]">
+          <div className="border-destructive/20 bg-destructive/10 text-destructive rounded-xl border p-4 text-body">
             <strong>Returned for changes:</strong> {quote.rejectedReason}
           </div>
         )}
@@ -226,7 +226,7 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, isSu
       </div>
 
       {quote.sentAt && (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-[13px] text-blue-700">
+        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-body text-blue-700">
           Sent via {quote.sentChannel} {quote.sentTo ? `to ${quote.sentTo}` : ""} on{" "}
           {formatDateTime(quote.sentAt)}.
         </div>
@@ -255,15 +255,15 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, isSu
               {result.lines.map((l) => (
                 <li key={l.sl} className="space-y-1 p-3">
                   <div className="flex items-start justify-between gap-3">
-                    <span className="min-w-0 text-[13px] font-medium">
+                    <span className="min-w-0 text-body font-medium">
                       {l.particulars}
                     </span>
-                    <span className="numeric shrink-0 text-[13px] font-semibold">
+                    <span className="numeric shrink-0 text-body font-semibold">
                       {inr(l.amount)}
                     </span>
                   </div>
                   {l.plan && (
-                    <p className="text-[12px] text-muted-foreground">{l.plan}</p>
+                    <p className="text-detail text-muted-foreground">{l.plan}</p>
                   )}
                 </li>
               ))}
@@ -272,16 +272,16 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, isSu
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-muted/30">
-                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Particulars</th>
-                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Plan</th>
-                    <th className="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Amount</th>
+                    <th className="px-4 py-2.5 text-left text-meta font-semibold uppercase tracking-wide text-muted-foreground">Particulars</th>
+                    <th className="px-4 py-2.5 text-left text-meta font-semibold uppercase tracking-wide text-muted-foreground">Plan</th>
+                    <th className="px-4 py-2.5 text-right text-meta font-semibold uppercase tracking-wide text-muted-foreground">Amount</th>
                   </tr>
                 </thead>
                 <tbody>
                   {result.lines.map((l) => (
                     <tr key={l.sl} className="border-t transition-colors hover:bg-muted/40">
                       <td className="px-4 py-2.5">{l.particulars}</td>
-                      <td className="px-4 py-2.5 text-[13px] text-muted-foreground">{l.plan}</td>
+                      <td className="px-4 py-2.5 text-body text-muted-foreground">{l.plan}</td>
                       <td className="numeric px-4 py-2.5 text-right font-medium">{inr(l.amount)}</td>
                     </tr>
                   ))}
@@ -291,8 +291,8 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, isSu
 
             {quote.notes && (
               <div className="rounded-xl border bg-muted/30 p-4">
-                <p className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">Remarks</p>
-                <p className="text-[13px] leading-relaxed text-muted-foreground">{quote.notes}</p>
+                <p className="mb-1 text-meta uppercase tracking-wide text-muted-foreground">Remarks</p>
+                <p className="text-body leading-relaxed text-muted-foreground">{quote.notes}</p>
               </div>
             )}
           </CardContent>
@@ -329,7 +329,7 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, isSu
                 value={inr(result.tax)}
               />
               <div className="mt-2 flex items-baseline justify-between gap-4 border-t pt-3">
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Grand Total</span>
+                <span className="text-meta font-semibold uppercase tracking-wide text-muted-foreground">Grand Total</span>
                 <span className="numeric text-lg font-bold tracking-[-0.02em]">{inr(result.grandTotal)}</span>
               </div>
             </CardContent>
@@ -344,7 +344,7 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, isSu
                     <div className="font-medium">
                       {p.label} <span className="numeric text-muted-foreground">({p.pct}%)</span>
                     </div>
-                    <div className="text-[13px] text-muted-foreground">{p.dueHint}</div>
+                    <div className="text-body text-muted-foreground">{p.dueHint}</div>
                   </div>
                   <span className="numeric shrink-0 font-semibold">{inr(p.amount)}</span>
                 </div>
@@ -355,7 +355,7 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, isSu
           {quote.transitions && quote.transitions.length > 0 && (
             <Card>
               <CardHeader><CardTitle className="text-base">History</CardTitle></CardHeader>
-              <CardContent className="space-y-2.5 text-[13px]">
+              <CardContent className="space-y-2.5 text-body">
                 {quote.transitions.map((t) => (
                   <div key={t.id} className="flex justify-between gap-3">
                     <span className="min-w-0">
@@ -474,7 +474,7 @@ function Header({ quote }: { quote: QuoteRow }) {
 function Detail({ label, value, numeric }: { label: string; value: string; numeric?: boolean }) {
   return (
     <div className="space-y-1">
-      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="text-meta uppercase tracking-wide text-muted-foreground">{label}</div>
       <div className={numeric ? "numeric font-medium" : "font-medium"}>{value}</div>
     </div>
   );

@@ -63,7 +63,7 @@ export function BankStatementView({
       />
 
       {(data?.runExists && !data?.draftHidden) && (
-        <div className="flex items-start gap-2 rounded-lg border border-warning/20 bg-warning/10 px-3 py-2 text-[12.5px] text-warning">
+        <div className="flex items-start gap-2 rounded-lg border border-warning/20 bg-warning/10 px-3 py-2 text-detail text-warning">
           <AlertTriangle className="mt-0.5 size-4 shrink-0" />
           <span>On-hold salaries are excluded from this bank advice. {heldNote}</span>
         </div>
@@ -84,10 +84,10 @@ export function BankStatementView({
             <TableBody>
               {rows.map((r) => (
                 <TableRow key={r.employeeId}>
-                  <TableCell className="font-mono text-[12px]">{r.empCode}</TableCell>
+                  <TableCell className="font-mono text-detail">{r.empCode}</TableCell>
                   <TableCell>{r.name}</TableCell>
-                  <TableCell className="font-mono text-[12px]">{r.bankAccountMasked ?? "—"}</TableCell>
-                  <TableCell className="font-mono text-[12px]">{r.bankIfsc ?? "—"}</TableCell>
+                  <TableCell className="font-mono text-detail">{r.bankAccountMasked ?? "—"}</TableCell>
+                  <TableCell className="font-mono text-detail">{r.bankIfsc ?? "—"}</TableCell>
                   <TableCell className="text-right font-medium tabular-nums">{inr(r.net)}</TableCell>
                 </TableRow>
               ))}

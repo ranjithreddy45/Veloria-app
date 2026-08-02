@@ -157,13 +157,13 @@ export function AvailabilityBoard({ rows, myStatus }: AvailabilityBoardProps) {
                           </span>
                         ) : (
                           row.eventTypeSkills.map((sk) => (
-                            <Badge key={sk} variant="secondary" className="text-[11px]">
+                            <Badge key={sk} variant="secondary" className="text-meta">
                               {sk}
                             </Badge>
                           ))
                         )}
                         {row.languages.map((lng) => (
-                          <Badge key={lng} variant="outline" className="text-[11px]">
+                          <Badge key={lng} variant="outline" className="text-meta">
                             {lng}
                           </Badge>
                         ))}

@@ -37,17 +37,17 @@ function CtqCard({ ctq }: { ctq: CtqResult }) {
     <div className="group relative overflow-hidden rounded-2xl border border-border/70 bg-card p-5 shadow-card transition-premium hover:-translate-y-0.5 hover:shadow-card-hover">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate text-[13px] font-semibold tracking-[-0.01em] text-foreground">
+          <p className="truncate text-body font-semibold tracking-[-0.01em] text-foreground">
             {ctq.label}
           </p>
-          <p className="mt-0.5 text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
+          <p className="mt-0.5 text-meta uppercase tracking-[0.08em] text-muted-foreground">
             {ctq.domain}
           </p>
         </div>
         {!trendFlat && (
           <span
             className={cn(
-              "inline-flex shrink-0 items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums",
+              "inline-flex shrink-0 items-center gap-0.5 rounded-full px-2 py-0.5 text-meta font-semibold tabular-nums",
               trendUp
                 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"
                 : "bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300"
@@ -61,12 +61,12 @@ function CtqCard({ ctq }: { ctq: CtqResult }) {
       </div>
 
       <div className="mt-4 flex items-end gap-2">
-        <span className="text-[34px] font-bold tabular-nums leading-none tracking-[-0.03em] text-foreground">
+        <span className="text-h1 font-bold tabular-nums leading-none tracking-[-0.03em] text-foreground">
           {ctq.sigma.toFixed(2)}
         </span>
-        <span className="pb-1 text-[15px] font-semibold text-muted-foreground">σ</span>
+        <span className="pb-1 text-copy font-semibold text-muted-foreground">σ</span>
       </div>
-      <p className={cn("mt-1.5 text-[12px] font-medium", grade.tone)}>{grade.label}</p>
+      <p className={cn("mt-1.5 text-detail font-medium", grade.tone)}>{grade.label}</p>
 
       <div className="mt-3.5 h-1.5 w-full overflow-hidden rounded-full bg-muted">
         <div
@@ -77,14 +77,14 @@ function CtqCard({ ctq }: { ctq: CtqResult }) {
 
       <div className="mt-4 grid grid-cols-2 gap-3 border-t border-border/60 pt-3">
         <div>
-          <p className="text-[11px] text-muted-foreground">Defect rate</p>
-          <p className="mt-0.5 text-[15px] font-semibold tabular-nums text-foreground">
+          <p className="text-meta text-muted-foreground">Defect rate</p>
+          <p className="mt-0.5 text-copy font-semibold tabular-nums text-foreground">
             {ctq.defectRatePct.toFixed(2)}%
           </p>
         </div>
         <div>
-          <p className="text-[11px] text-muted-foreground">Units measured</p>
-          <p className="mt-0.5 text-[15px] font-semibold tabular-nums text-foreground">
+          <p className="text-meta text-muted-foreground">Units measured</p>
+          <p className="mt-0.5 text-copy font-semibold tabular-nums text-foreground">
             {ctq.units.toLocaleString("en-IN")}
           </p>
         </div>
@@ -128,23 +128,23 @@ export default async function QualityPage() {
               <Gauge className="size-6" />
             </span>
             <div>
-              <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
+              <p className="text-detail font-medium uppercase tracking-[0.1em] text-muted-foreground">
                 Overall process sigma
               </p>
               <div className="mt-1 flex items-end gap-2">
-                <span className="text-[44px] font-bold tabular-nums leading-none tracking-[-0.03em] text-foreground">
+                <span className="text-display font-bold tabular-nums leading-none tracking-[-0.03em] text-foreground">
                   {overall.toFixed(2)}
                 </span>
-                <span className="pb-1.5 text-[18px] font-semibold text-muted-foreground">σ</span>
+                <span className="pb-1.5 text-lede font-semibold text-muted-foreground">σ</span>
               </div>
-              <p className={cn("mt-1 text-[13px] font-medium", overallGrade.tone)}>
+              <p className={cn("mt-1 text-body font-medium", overallGrade.tone)}>
                 {overallGrade.label}
               </p>
             </div>
           </div>
 
           <div className="w-full max-w-xs">
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+            <div className="flex items-center justify-between text-meta text-muted-foreground">
               <span>0σ</span>
               <span>6σ</span>
             </div>
@@ -154,7 +154,7 @@ export default async function QualityPage() {
                 style={{ width: `${overallPct}%` }}
               />
             </div>
-            <p className="mt-2 text-[12px] text-muted-foreground">
+            <p className="mt-2 text-detail text-muted-foreground">
               {ctqs.length} critical-to-quality metric{ctqs.length === 1 ? "" : "s"} measured this period.
             </p>
           </div>
@@ -170,8 +170,8 @@ export default async function QualityPage() {
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-border/70 bg-card/50 p-10 text-center">
-          <p className="text-[14px] font-medium text-foreground">No quality data yet</p>
-          <p className="mt-1 text-[13px] text-muted-foreground">
+          <p className="text-copy font-medium text-foreground">No quality data yet</p>
+          <p className="mt-1 text-body text-muted-foreground">
             Sigma scores appear once operational activity is recorded.
           </p>
         </div>

@@ -81,7 +81,7 @@ function StatusPill({ status }: { status: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide",
+        "inline-flex items-center rounded-full border px-2 py-0.5 text-meta font-medium uppercase tracking-wide",
         STATUS_STYLES[status] ?? "bg-slate-100 text-slate-700 border-slate-200"
       )}
     >
@@ -290,7 +290,7 @@ export function VendorWorkOrdersCard({ bookingId, workOrders, vendors }: Props) 
                         <span className="font-medium">{wo.vendorName ?? "Vendor"}</span>
                         <StatusPill status={wo.status} />
                         {wo.woNumber && (
-                          <span className="text-muted-foreground font-mono text-[11px]">{wo.woNumber}</span>
+                          <span className="text-muted-foreground font-mono text-meta">{wo.woNumber}</span>
                         )}
                       </div>
                       <p className="text-muted-foreground mt-0.5 text-sm">{wo.serviceType}</p>
@@ -307,7 +307,7 @@ export function VendorWorkOrdersCard({ bookingId, workOrders, vendors }: Props) 
                     </div>
                     {wo.advanceAmount != null && (
                       <div className="text-right">
-                        <p className="text-muted-foreground text-[11px] uppercase tracking-wide">Advance</p>
+                        <p className="text-muted-foreground text-meta uppercase tracking-wide">Advance</p>
                         <p className="flex items-center justify-end gap-0.5 text-sm font-semibold tabular-nums">
                           <IndianRupeeIcon className="size-3.5" />
                           {formatINR(wo.advanceAmount).replace(/^₹/, "")}

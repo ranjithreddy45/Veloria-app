@@ -71,8 +71,8 @@ export function WelcomeTour() {
           <div className={cn("mb-2 flex size-12 items-center justify-center rounded-2xl bg-muted", current.tone)}>
             <Icon className="size-6" />
           </div>
-          <DialogTitle className="text-[18px]">{current.title}</DialogTitle>
-          <DialogDescription className="text-[13.5px] leading-relaxed">{current.body}</DialogDescription>
+          <DialogTitle className="text-lede">{current.title}</DialogTitle>
+          <DialogDescription className="text-body leading-relaxed">{current.body}</DialogDescription>
         </DialogHeader>
 
         {/* Step dots */}

@@ -27,7 +27,7 @@ export default async function ReviewGatePage({
   if (!req.found) {
     return (
       <div className="bg-card shadow-card mx-auto max-w-lg rounded-2xl border p-10 text-center">
-        <h1 className="text-foreground text-[24px]">This link isn’t valid</h1>
+        <h1 className="text-foreground text-h2">This link isn’t valid</h1>
         <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm leading-relaxed">
           The feedback link couldn’t be found, or it has expired. Do reach out —
           we’d still love to hear how it went.
@@ -41,7 +41,7 @@ export default async function ReviewGatePage({
     return (
       <div className="flex flex-col items-center gap-2 rounded-2xl border border-success/25 bg-success/[0.07] p-10 text-center">
         <CheckCircle2 className="size-9 text-success" />
-        <p className="font-editorial mt-2 text-[24px] font-semibold text-success">
+        <p className="font-editorial mt-2 text-h2 font-semibold text-success">
           Thank you{req.customerFirstName ? `, ${req.customerFirstName}` : ""}
         </p>
         <p className="mx-auto max-w-sm text-sm leading-relaxed text-success/85">
@@ -58,10 +58,10 @@ export default async function ReviewGatePage({
         <div className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-warning/12 text-warning">
           <Star className="size-6" />
         </div>
-        <h1 className="text-foreground text-[28px] sm:text-[32px]">
+        <h1 className="text-foreground text-h2 sm:text-h1">
           How was {req.eventName}?
         </h1>
-        <p className="text-muted-foreground mx-auto mt-3 max-w-md text-[15px] leading-relaxed">
+        <p className="text-muted-foreground mx-auto mt-3 max-w-md text-copy leading-relaxed">
           {req.customerFirstName ? `${req.customerFirstName}, thank you ` : "Thank you "}
           for celebrating with us at {req.venueName}. Your feedback means the
           world to our team.

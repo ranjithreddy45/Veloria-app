@@ -31,8 +31,8 @@ export function CompensationTable({ rows }: { rows: CompensationOverviewRow[] })
     <div className="rounded-xl border bg-card">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3.5">
         <div>
-          <h3 className="text-[14px] font-semibold">Salary structures</h3>
-          <p className="text-[12.5px] text-muted-foreground">
+          <h3 className="text-copy font-semibold">Salary structures</h3>
+          <p className="text-detail text-muted-foreground">
             Every active employee and their current CTC. Open a profile to revise the structure.
           </p>
         </div>
@@ -53,9 +53,9 @@ export function CompensationTable({ rows }: { rows: CompensationOverviewRow[] })
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-[13px]">
+          <table className="w-full text-body">
             <thead>
-              <tr className="border-b text-left text-[11.5px] uppercase tracking-wide text-muted-foreground">
+              <tr className="border-b text-left text-meta uppercase tracking-wide text-muted-foreground">
                 <th className="px-5 py-2.5 font-medium">Employee</th>
                 <th className="px-3 py-2.5 font-medium">Designation</th>
                 <th className="px-3 py-2.5 text-right font-medium">Annual CTC</th>
@@ -73,7 +73,7 @@ export function CompensationTable({ rows }: { rows: CompensationOverviewRow[] })
                     <td className="px-5 py-3">
                       <Link href={`/people/${r.employeeId}`} className="block">
                         <div className="font-medium">{r.name}</div>
-                        <div className="text-[11.5px] text-muted-foreground">
+                        <div className="text-meta text-muted-foreground">
                           {r.empCode}
                           {r.department ? ` · ${r.department}` : ""}
                         </div>

@@ -111,14 +111,14 @@ export function AIScoreCard({
               </Badge>
             </div>
 
-            <p className="mt-2 text-[13px] text-muted-foreground">
+            <p className="mt-2 text-body text-muted-foreground">
               Advisory assessment only — the rule-based{" "}
               <span className="font-medium">Lead Score</span> below is what drives
               prioritisation and sorting.
             </p>
 
             {aiScoredAt && (
-              <p className="numeric mt-2 text-[11.5px] text-muted-foreground">
+              <p className="numeric mt-2 text-meta text-muted-foreground">
                 Last scored {format(new Date(aiScoredAt), "dd MMM yyyy, hh:mm a")}
               </p>
             )}
@@ -127,10 +127,10 @@ export function AIScoreCard({
               <>
                 <Separator className="my-4" />
                 <div>
-                  <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  <p className="mb-2 text-meta font-medium uppercase tracking-wide text-muted-foreground">
                     AI Analysis
                   </p>
-                  <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-muted-foreground">
+                  <p className="whitespace-pre-wrap text-body leading-relaxed text-muted-foreground">
                     {aiScoreReason}
                   </p>
                 </div>

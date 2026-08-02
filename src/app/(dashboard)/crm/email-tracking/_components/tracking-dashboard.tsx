@@ -197,7 +197,7 @@ export function TrackingDashboard({
                     {c.value}
                   </p>
                   {c.hint && (
-                    <p className="text-muted-foreground mt-0.5 text-[10px]">{c.hint}</p>
+                    <p className="text-muted-foreground mt-0.5 text-meta">{c.hint}</p>
                   )}
                 </div>
               </div>

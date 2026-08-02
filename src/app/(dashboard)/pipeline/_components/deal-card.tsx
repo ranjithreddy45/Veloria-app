@@ -111,7 +111,7 @@ export function DealCard({
             >
               <GripVertical className="size-3" />
             </button>
-            <h4 className="flex-1 text-[12.5px] font-medium leading-tight text-foreground line-clamp-2">
+            <h4 className="flex-1 text-detail font-medium leading-tight text-foreground line-clamp-2">
               {deal.title}
             </h4>
           </div>
@@ -125,7 +125,7 @@ export function DealCard({
                 size="xs"
               />
             )}
-            <span className="flex-1 truncate text-[11.5px] text-muted-foreground">
+            <span className="flex-1 truncate text-meta text-muted-foreground">
               {contactName}
               {deal.lead?.eventType ? <span className="text-muted-foreground/60"> · {deal.lead.eventType}</span> : null}
             </span>
@@ -133,11 +133,11 @@ export function DealCard({
 
           {/* Value (large) */}
           <div className="flex items-center justify-between">
-            <span className="text-[15px] font-semibold tracking-tight tabular-nums text-foreground">
+            <span className="text-copy font-semibold tracking-tight tabular-nums text-foreground">
               {formatIndianCurrency(Number(deal.value))}
             </span>
             {deal.expectedCloseDate && (
-              <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground tabular-nums">
+              <span className="inline-flex items-center gap-1 text-meta text-muted-foreground tabular-nums">
                 <Calendar className="size-3" />
                 {formatDate(deal.expectedCloseDate)}
               </span>
@@ -148,10 +148,10 @@ export function DealCard({
           <div className="flex items-center gap-2 pt-0.5">
             <div className="flex-1">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[10.5px] uppercase tracking-[0.05em] text-muted-foreground/70 font-medium">
+                <span className="text-meta uppercase tracking-[0.05em] text-muted-foreground/70 font-medium">
                   Probability
                 </span>
-                <span className="text-[10.5px] font-medium tabular-nums text-foreground/80">
+                <span className="text-meta font-medium tabular-nums text-foreground/80">
                   {prob}%
                 </span>
               </div>

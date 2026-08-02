@@ -123,11 +123,11 @@ function IdentityCell({ vendor }: { vendor: Vendor }) {
       <div className="min-w-0 leading-tight">
         <Link
           href={`/vendors/${vendor.id}`}
-          className="block truncate text-[13px] font-medium text-foreground hover:underline"
+          className="block truncate text-body font-medium text-foreground hover:underline"
         >
           {vendor.name}
         </Link>
-        <span className="block truncate text-[11.5px] text-muted-foreground">
+        <span className="block truncate text-meta text-muted-foreground">
           {subtitle}
         </span>
       </div>
@@ -141,7 +141,7 @@ function IdentityCell({ vendor }: { vendor: Vendor }) {
 
 function StarRating({ rating }: { rating: number }) {
   if (!rating) {
-    return <span className="text-muted-foreground/60 text-[12px]">Unrated</span>;
+    return <span className="text-muted-foreground/60 text-detail">Unrated</span>;
   }
   return (
     <div className="flex items-center gap-0.5" aria-label={`${rating} out of 5`}>
@@ -286,11 +286,11 @@ const columns: ColumnDef<Vendor>[] = [
     header: "Email",
     cell: ({ row }) => {
       const email = row.original.email;
-      if (!email) return <span className="text-muted-foreground/60 text-[12px]">—</span>;
+      if (!email) return <span className="text-muted-foreground/60 text-detail">—</span>;
       return (
         <a
           href={`mailto:${email}`}
-          className="inline-block max-w-[200px] truncate text-[12.5px] text-muted-foreground hover:text-foreground hover:underline"
+          className="inline-block max-w-[200px] truncate text-detail text-muted-foreground hover:text-foreground hover:underline"
           onClick={(e) => e.stopPropagation()}
         >
           {email}
@@ -303,9 +303,9 @@ const columns: ColumnDef<Vendor>[] = [
     header: "Phone",
     cell: ({ row }) => {
       const phone = row.original.phone;
-      if (!phone) return <span className="text-muted-foreground/60 text-[12px]">—</span>;
+      if (!phone) return <span className="text-muted-foreground/60 text-detail">—</span>;
       return (
-        <span className="numeric text-[12.5px] text-muted-foreground">{phone}</span>
+        <span className="numeric text-detail text-muted-foreground">{phone}</span>
       );
     },
   },
@@ -315,7 +315,7 @@ const columns: ColumnDef<Vendor>[] = [
       <DataTableColumnHeader column={column} title="Bookings" />
     ),
     cell: ({ row }) => (
-      <span className="numeric text-[12.5px] text-muted-foreground">
+      <span className="numeric text-detail text-muted-foreground">
         {row.original.totalBookings}
       </span>
     ),
@@ -326,7 +326,7 @@ const columns: ColumnDef<Vendor>[] = [
     cell: ({ row }) => {
       const tags = row.original.tags;
       if (!tags || tags.length === 0) {
-        return <span className="text-muted-foreground/60 text-[12px]">—</span>;
+        return <span className="text-muted-foreground/60 text-detail">—</span>;
       }
       return (
         <div className="flex flex-wrap gap-1">
@@ -334,7 +334,7 @@ const columns: ColumnDef<Vendor>[] = [
             <StatusPill key={tag} label={tag} hue="neutral" size="xs" noDot />
           ))}
           {tags.length > 2 && (
-            <span className="text-[11px] text-muted-foreground">
+            <span className="text-meta text-muted-foreground">
               +{tags.length - 2}
             </span>
           )}

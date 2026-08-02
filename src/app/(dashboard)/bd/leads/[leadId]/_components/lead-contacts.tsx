@@ -82,7 +82,7 @@ export function LeadContacts({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-2">
-        <CardTitle className="flex items-center gap-2 text-[15px]">
+        <CardTitle className="flex items-center gap-2 text-copy">
           <Users className="size-4 text-primary" /> Contacts
         </CardTitle>
         {canWrite && (
@@ -93,7 +93,7 @@ export function LeadContacts({
       </CardHeader>
       <CardContent className="space-y-2">
         {contacts.length === 0 ? (
-          <p className="py-2 text-[13px] text-muted-foreground">
+          <p className="py-2 text-body text-muted-foreground">
             No extra contacts yet — add the co-owner, manager, accountant or broker you deal with.
           </p>
         ) : (
@@ -102,16 +102,16 @@ export function LeadContacts({
               <li key={c.id} className="flex flex-wrap items-start justify-between gap-3 py-2.5">
                 <div className="min-w-0 space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[13.5px] font-medium text-foreground">{c.name}</span>
+                    <span className="text-body font-medium text-foreground">{c.name}</span>
                     {/* Role reads as prominently as the name — it's the whole point. */}
                     <StatusPill label={roleLabel(c)} hue="indigo" size="xs" />
                     {c.isPrimary && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-primary">
+                      <span className="inline-flex items-center gap-1 text-meta font-medium text-primary">
                         <Star className="size-3 fill-current" /> Primary
                       </span>
                     )}
                   </div>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px]">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-detail">
                     {c.phone && (
                       <a
                         href={`tel:+${dial(c.phone)}`}
@@ -129,7 +129,7 @@ export function LeadContacts({
                       </a>
                     )}
                   </div>
-                  {c.notes && <p className="text-[12.5px] text-muted-foreground">{c.notes}</p>}
+                  {c.notes && <p className="text-detail text-muted-foreground">{c.notes}</p>}
                 </div>
                 {canWrite && (
                   <div className="flex shrink-0 items-center gap-1">
@@ -311,15 +311,15 @@ function ContactDialog({
             Who they are and the role they play for this property.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid grid-cols-1 gap-3 text-[13px] sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 text-body sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label className="text-[12px]">
+            <Label className="text-detail">
               Name <span className="text-destructive">*</span>
             </Label>
             <Input value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="Ramesh Kumar" />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12px]">Designation / role</Label>
+            <Label className="text-detail">Designation / role</Label>
             <Select value={f.designation} onValueChange={(v) => set("designation", v)}>
               <SelectTrigger className="w-full">
                 <SelectValue />
@@ -335,7 +335,7 @@ function ContactDialog({
           </div>
           {needsOther && (
             <div className="space-y-1.5 sm:col-span-2">
-              <Label className="text-[12px]">
+              <Label className="text-detail">
                 Describe the role <span className="text-destructive">*</span>
               </Label>
               <Input
@@ -346,7 +346,7 @@ function ContactDialog({
             </div>
           )}
           <div className="space-y-1.5">
-            <Label className="text-[12px]">Phone</Label>
+            <Label className="text-detail">Phone</Label>
             <Input
               value={f.phone}
               onChange={(e) => set("phone", e.target.value)}
@@ -355,7 +355,7 @@ function ContactDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[12px]">Email</Label>
+            <Label className="text-detail">Email</Label>
             <Input
               type="email"
               value={f.email}
@@ -364,7 +364,7 @@ function ContactDialog({
             />
           </div>
           <div className="space-y-1.5 sm:col-span-2">
-            <Label className="text-[12px]">Notes</Label>
+            <Label className="text-detail">Notes</Label>
             <Textarea value={f.notes} onChange={(e) => set("notes", e.target.value)} rows={2} />
           </div>
           <label className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-border px-3 py-2.5 sm:col-span-2">

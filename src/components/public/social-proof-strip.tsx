@@ -72,12 +72,12 @@ export function SocialProofStrip({
     >
       {/* Headline */}
       <div className="flex items-center justify-between gap-3">
-        <p className="flex items-center gap-1.5 text-[13px] font-semibold text-zinc-900 dark:text-zinc-100">
+        <p className="flex items-center gap-1.5 text-body font-semibold text-zinc-900 dark:text-zinc-100">
           <BadgeCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
           {heading || "Loved by guests like you"}
         </p>
         {showAggregate && (
-          <span className="flex shrink-0 items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-[12px] font-semibold text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+          <span className="flex shrink-0 items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-detail font-semibold text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
             <Star className="size-3.5 fill-amber-400 text-amber-400" />
             {aggregate.averageRating.toFixed(1)}
             <span className="font-medium text-amber-600/80 dark:text-amber-400/80">
@@ -98,16 +98,16 @@ export function SocialProofStrip({
               <div className="flex items-center justify-between gap-2">
                 <Stars rating={Math.min(5, Math.max(0, r.rating))} />
                 {r.eventTypeLabel && (
-                  <span className="truncate text-[11px] font-medium text-zinc-400">
+                  <span className="truncate text-meta font-medium text-zinc-400">
                     {r.eventTypeLabel}
                   </span>
                 )}
               </div>
-              <p className="mt-2 flex gap-1.5 text-[12.5px] leading-relaxed text-zinc-600 dark:text-zinc-300">
+              <p className="mt-2 flex gap-1.5 text-detail leading-relaxed text-zinc-600 dark:text-zinc-300">
                 <Quote className="mt-0.5 size-3 shrink-0 text-zinc-300 dark:text-zinc-600" />
                 <span className="line-clamp-4">{r.content}</span>
               </p>
-              <p className="mt-2 text-[11.5px] font-semibold text-zinc-500 dark:text-zinc-400">
+              <p className="mt-2 text-meta font-semibold text-zinc-500 dark:text-zinc-400">
                 — {r.reviewerFirstName}
               </p>
             </li>

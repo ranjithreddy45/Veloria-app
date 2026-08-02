@@ -12,7 +12,7 @@ export function Gstr2bReconcileCard() {
           </span>
           <h2 className="text-sm font-medium text-foreground">GSTR-2B reconciliation</h2>
         </div>
-        <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+        <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-meta font-medium text-muted-foreground">
           <Lock className="size-3" />
           Coming soon
         </span>

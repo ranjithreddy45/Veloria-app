@@ -32,7 +32,7 @@ function SummaryRow({ label, value, hint, strong, tone }: { label: string; value
     <TableRow className={strong ? "border-t-2 font-semibold" : undefined}>
       <TableCell className="text-sm">
         {label}
-        {hint && <span className="ml-2 text-[11px] text-muted-foreground">{hint}</span>}
+        {hint && <span className="ml-2 text-meta text-muted-foreground">{hint}</span>}
       </TableCell>
       <TableCell className={`text-right numeric ${tone === "emerald" ? "text-success" : tone === "rose" ? "text-destructive" : ""}`}>
         {formatINR(value)}
@@ -56,7 +56,7 @@ export function TaxWorkspace({ summary, fiscalYears }: { summary: TaxSummary; fi
           <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
           <SelectContent>{fiscalYears.map((y) => <SelectItem key={y} value={y}>FY {y}</SelectItem>)}</SelectContent>
         </Select>
-        <span className="text-[11px] text-muted-foreground">Figures are derived live from the posted ledger.</span>
+        <span className="text-meta text-muted-foreground">Figures are derived live from the posted ledger.</span>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -76,7 +76,7 @@ export function TaxWorkspace({ summary, fiscalYears }: { summary: TaxSummary; fi
         {/* GSTR-3B — net GST summary */}
         <TabsContent value="gstr3b">
           <Card className="border-0 shadow-card">
-            <CardHeader className="pb-2"><CardTitle className="text-[13px] font-semibold tracking-[-0.01em]">GSTR-3B summary · FY {fy}</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-body font-semibold tracking-[-0.01em]">GSTR-3B summary · FY {fy}</CardTitle></CardHeader>
             <CardContent className="px-0">
               <Table>
                 <TableHeader>
@@ -95,7 +95,7 @@ export function TaxWorkspace({ summary, fiscalYears }: { summary: TaxSummary; fi
         {/* GSTR-1 — invoice-wise outward supplies */}
         <TabsContent value="gstr1">
           <Card className="border-0 shadow-card">
-            <CardHeader className="pb-2"><CardTitle className="text-[13px] font-semibold tracking-[-0.01em]">Outward supplies (B2B/B2C) · FY {fy}</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-body font-semibold tracking-[-0.01em]">Outward supplies (B2B/B2C) · FY {fy}</CardTitle></CardHeader>
             <CardContent className="px-0">
               {gstr1.invoices.length === 0 ? (
                 <EmptyState icon={<FileText className="size-5" />} title="No outward supplies" description="No SENT or PAID invoices in this financial year. GSTR-1 is built from issued invoices." />
@@ -104,7 +104,7 @@ export function TaxWorkspace({ summary, fiscalYears }: { summary: TaxSummary; fi
                 {/* Seven columns (five of them rupee figures) can't fit 375px
                   * and GST amounts must not be truncated, so the scroll stays —
                   * but it's announced, and cell padding tightens on phones. */}
-                <p className="px-4 pb-2 text-[12px] text-muted-foreground sm:hidden">
+                <p className="px-4 pb-2 text-detail text-muted-foreground sm:hidden">
                   Swipe the table sideways to reach CGST, SGST, IGST and Total.
                 </p>
                 <Table className="[&_td]:px-2.5 [&_th]:px-2.5 sm:[&_td]:px-4 sm:[&_th]:px-4">
@@ -127,11 +127,11 @@ export function TaxWorkspace({ summary, fiscalYears }: { summary: TaxSummary; fi
                             <span className="font-medium">{inv.invoiceNumber}</span>
                             <StatusPill label={inv.status.replace(/_/g, " ")} hue={STATUS_HUE[inv.status] ?? "slate"} size="sm" />
                           </div>
-                          <span className="text-[11px] text-muted-foreground">{new Date(inv.issueDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
+                          <span className="text-meta text-muted-foreground">{new Date(inv.issueDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
                         </TableCell>
                         <TableCell className="text-sm">
                           <div className="numeric">{inv.gstin ?? <span className="text-muted-foreground">Unregistered</span>}</div>
-                          <span className="text-[11px] text-muted-foreground">{inv.placeOfSupply ?? "—"}</span>
+                          <span className="text-meta text-muted-foreground">{inv.placeOfSupply ?? "—"}</span>
                         </TableCell>
                         <TableCell className="text-right numeric">{formatINR(inv.taxable)}</TableCell>
                         <TableCell className="text-right numeric">{inv.cgst ? formatINR(inv.cgst) : "—"}</TableCell>
@@ -159,7 +159,7 @@ export function TaxWorkspace({ summary, fiscalYears }: { summary: TaxSummary; fi
         {/* TDS — payable / receivable */}
         <TabsContent value="tds">
           <Card className="border-0 shadow-card">
-            <CardHeader className="pb-2"><CardTitle className="text-[13px] font-semibold tracking-[-0.01em]">TDS position · FY {fy}</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-body font-semibold tracking-[-0.01em]">TDS position · FY {fy}</CardTitle></CardHeader>
             <CardContent className="px-0">
               {tds.payable === 0 && tds.receivable === 0 ? (
                 <EmptyState icon={<Landmark className="size-5" />} title="No TDS activity" description="No TDS has been deducted or accrued in this financial year." />

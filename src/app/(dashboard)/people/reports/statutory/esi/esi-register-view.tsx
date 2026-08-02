@@ -71,7 +71,7 @@ export function EsiRegisterView({
         <RegisterToolbar onCsv={onCsv} onPrint={onPrint} disabled={!reg?.found || reg.rows.length === 0} />
       </div>
 
-      <p className="text-[12px] font-medium text-muted-foreground">
+      <p className="text-detail font-medium text-muted-foreground">
         ESI contribution register — for reconciliation, not the ESI return.
       </p>
 
@@ -91,9 +91,9 @@ export function EsiRegisterView({
             <TableBody>
               {reg.rows.map((r) => (
                 <TableRow key={r.employeeId}>
-                  <TableCell className="font-mono text-[12px]">{r.empCode}</TableCell>
+                  <TableCell className="font-mono text-detail">{r.empCode}</TableCell>
                   <TableCell>{r.name}</TableCell>
-                  <TableCell className="font-mono text-[12px] text-muted-foreground">{r.esiNoMasked ?? "—"}</TableCell>
+                  <TableCell className="font-mono text-detail text-muted-foreground">{r.esiNoMasked ?? "—"}</TableCell>
                   <TableCell className="text-right tabular-nums">{inr(r.employeeEsi)}</TableCell>
                   <TableCell className="text-right tabular-nums">{inr(r.employerEsi)}</TableCell>
                   <TableCell className="text-right font-medium tabular-nums">{inr(r.total)}</TableCell>

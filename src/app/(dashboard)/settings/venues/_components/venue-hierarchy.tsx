@@ -208,7 +208,7 @@ export function VenueHierarchy({ venues }: VenueHierarchyProps) {
                           {!child.isActive && (
                             <Badge
                               variant="outline"
-                              className="bg-muted text-muted-foreground border-border text-[10px]"
+                              className="bg-muted text-muted-foreground border-border text-meta"
                             >
                               Inactive
                             </Badge>

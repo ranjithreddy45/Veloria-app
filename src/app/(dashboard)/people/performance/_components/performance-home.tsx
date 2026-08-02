@@ -51,19 +51,19 @@ export function PerformanceHome({
       {/* MY APPRAISAL */}
       <TabsContent value="mine" className="space-y-4">
         {!cycle ? (
-          <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground">No active appraisal cycle right now.</div>
+          <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-body text-muted-foreground">No active appraisal cycle right now.</div>
         ) : !employeeId ? (
-          <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground">Your account isn’t linked to an employee record.</div>
+          <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-body text-muted-foreground">Your account isn’t linked to an employee record.</div>
         ) : (
           <>
             <div className="flex items-center justify-between">
-              <div className="text-[13px] text-muted-foreground">
+              <div className="text-body text-muted-foreground">
                 <span className="font-medium text-foreground">{cycle.name}</span> · {formatDate(cycle.startDate)} – {formatDate(cycle.endDate)}
               </div>
               <AddGoalDialog employeeId={employeeId} cycleId={cycle.id} />
             </div>
             <div className="rounded-xl border bg-card">
-              <div className="border-b px-4 py-2.5 text-[13px] font-semibold">Goals / KRAs</div>
+              <div className="border-b px-4 py-2.5 text-body font-semibold">Goals / KRAs</div>
               {goals.length === 0 ? (
                 <div className="p-8 text-center text-sm text-muted-foreground">No goals yet. Add your KRAs for this cycle.</div>
               ) : (
@@ -75,11 +75,11 @@ export function PerformanceHome({
             <SelfReviewCard cycleId={cycle.id} employeeId={employeeId} ratingMax={ratingMax} existing={selfReview} />
             {mgrReview?.status === "SUBMITTED" && (
               <div className="rounded-xl border bg-card p-4">
-                <h3 className="mb-2 flex items-center gap-1.5 text-[13px] font-semibold"><Star className="size-4 text-[#C9A96E]" /> Manager review</h3>
-                <p className="text-[13px]">Overall rating: <span className="font-semibold tabular-nums">{mgrReview.rating ?? "—"}/{ratingMax}</span></p>
-                {mgrReview.strengths && <p className="mt-1.5 text-[13px]"><span className="text-muted-foreground">Strengths: </span>{mgrReview.strengths}</p>}
-                {mgrReview.improvements && <p className="mt-1 text-[13px]"><span className="text-muted-foreground">To improve: </span>{mgrReview.improvements}</p>}
-                {mgrReview.comments && <p className="mt-1 text-[13px] text-muted-foreground">{mgrReview.comments}</p>}
+                <h3 className="mb-2 flex items-center gap-1.5 text-body font-semibold"><Star className="size-4 text-[#C9A96E]" /> Manager review</h3>
+                <p className="text-body">Overall rating: <span className="font-semibold tabular-nums">{mgrReview.rating ?? "—"}/{ratingMax}</span></p>
+                {mgrReview.strengths && <p className="mt-1.5 text-body"><span className="text-muted-foreground">Strengths: </span>{mgrReview.strengths}</p>}
+                {mgrReview.improvements && <p className="mt-1 text-body"><span className="text-muted-foreground">To improve: </span>{mgrReview.improvements}</p>}
+                {mgrReview.comments && <p className="mt-1 text-body text-muted-foreground">{mgrReview.comments}</p>}
               </div>
             )}
           </>
@@ -89,18 +89,18 @@ export function PerformanceHome({
       {/* TEAM REVIEWS (manager) */}
       <TabsContent value="team" className="space-y-3">
         {!reviewCycleId ? (
-          <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground">No active cycle.</div>
+          <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-body text-muted-foreground">No active cycle.</div>
         ) : reviewQueue.length === 0 ? (
-          <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground">You have no direct reports to review.</div>
+          <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-body text-muted-foreground">You have no direct reports to review.</div>
         ) : (
           reviewQueue.map((r) => (
             <div key={r.id} className="flex items-center justify-between rounded-xl border bg-card p-4">
               <div>
                 <Link href={`/people/${r.id}`} className="font-medium hover:underline">{r.firstName} {r.lastName}</Link>
-                <span className="ml-2 text-[12px] text-muted-foreground">{r.empCode}</span>
+                <span className="ml-2 text-detail text-muted-foreground">{r.empCode}</span>
               </div>
               {r.reviewed
-                ? <span className="inline-flex items-center gap-1 text-[13px] font-medium text-success"><CheckCircle2 className="size-4" /> Reviewed</span>
+                ? <span className="inline-flex items-center gap-1 text-body font-medium text-success"><CheckCircle2 className="size-4" /> Reviewed</span>
                 : <ManagerReviewDialog cycleId={reviewCycleId} employee={r} ratingMax={ratingMax} />}
             </div>
           ))
@@ -112,7 +112,7 @@ export function PerformanceHome({
         <TabsContent value="cycles" className="space-y-3">
           <div className="flex justify-end"><CreateCycleDialog /></div>
           {cycles.length === 0 ? (
-            <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground">No appraisal cycles yet.</div>
+            <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-body text-muted-foreground">No appraisal cycles yet.</div>
           ) : (
             <div className="space-y-2.5">
               {cycles.map((c) => <CycleRow key={c.id} cycle={c} />)}
@@ -135,9 +135,9 @@ function GoalRow({ goal, ratingMax, canSelfRate }: { goal: Goal; ratingMax: numb
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="font-medium">{goal.title}</span>
-          {goal.weight > 0 && <span className="text-[11.5px] text-muted-foreground">· {goal.weight}%</span>}
+          {goal.weight > 0 && <span className="text-meta text-muted-foreground">· {goal.weight}%</span>}
         </div>
-        {goal.description && <p className="text-[12.5px] text-muted-foreground">{goal.description}</p>}
+        {goal.description && <p className="text-detail text-muted-foreground">{goal.description}</p>}
       </div>
       {busy && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
       <Select value={goal.status} onValueChange={(v) => patch({ status: v })}>
@@ -187,9 +187,9 @@ function AddGoalDialog({ employeeId, cycleId }: { employeeId: string; cycleId: s
       <DialogContent className="sm:max-w-md">
         <DialogHeader><DialogTitle>Add goal / KRA</DialogTitle></DialogHeader>
         <div className="space-y-3 py-2">
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Description</Label><Input value={description} onChange={(e) => setDescription(e.target.value)} /></div>
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Weight (%)</Label><Input type="number" value={weight} onChange={(e) => setWeight(e.target.value)} /></div>
+          <div className="space-y-1.5"><Label className="text-detail">Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
+          <div className="space-y-1.5"><Label className="text-detail">Description</Label><Input value={description} onChange={(e) => setDescription(e.target.value)} /></div>
+          <div className="space-y-1.5"><Label className="text-detail">Weight (%)</Label><Input type="number" value={weight} onChange={(e) => setWeight(e.target.value)} /></div>
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
@@ -218,11 +218,11 @@ function SelfReviewCard({ cycleId, employeeId, ratingMax, existing }: { cycleId:
   }
   return (
     <div className="rounded-xl border bg-card p-4">
-      <h3 className="mb-3 flex items-center gap-1.5 text-[13px] font-semibold">
+      <h3 className="mb-3 flex items-center gap-1.5 text-body font-semibold">
         <Star className="size-4 text-[#C9A96E]" /> Self review {submitted && <StatusPill label="Submitted" hue="emerald" size="xs" />}
       </h3>
       <div className="space-y-3">
-        <div className="space-y-1.5"><Label className="text-[12.5px]">Overall self-rating</Label>
+        <div className="space-y-1.5"><Label className="text-detail">Overall self-rating</Label>
           <Select value={rating} onValueChange={setRating}>
             <SelectTrigger className="h-9 w-32"><SelectValue placeholder="Rate" /></SelectTrigger>
             <SelectContent>{Array.from({ length: ratingMax }, (_, i) => i + 1).map((n) => <SelectItem key={n} value={String(n)}>{n}/{ratingMax}</SelectItem>)}</SelectContent>
@@ -261,7 +261,7 @@ function ManagerReviewDialog({ cycleId, employee, ratingMax }: { cycleId: string
           <DialogDescription>Submit your manager appraisal for this cycle.</DialogDescription>
         </DialogHeader>
         <div className="space-y-3 py-2">
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Overall rating</Label>
+          <div className="space-y-1.5"><Label className="text-detail">Overall rating</Label>
             <Select value={rating} onValueChange={setRating}>
               <SelectTrigger className="h-9 w-32"><SelectValue placeholder="Rate" /></SelectTrigger>
               <SelectContent>{Array.from({ length: ratingMax }, (_, i) => i + 1).map((n) => <SelectItem key={n} value={String(n)}>{n}/{ratingMax}</SelectItem>)}</SelectContent>
@@ -301,10 +301,10 @@ function CreateCycleDialog() {
       <DialogContent className="sm:max-w-md">
         <DialogHeader><DialogTitle>New appraisal cycle</DialogTitle></DialogHeader>
         <div className="space-y-3 py-2">
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="H1 FY26" /></div>
+          <div className="space-y-1.5"><Label className="text-detail">Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="H1 FY26" /></div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5"><Label className="text-[12.5px]">Start</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
-            <div className="space-y-1.5"><Label className="text-[12.5px]">End</Label><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></div>
+            <div className="space-y-1.5"><Label className="text-detail">Start</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
+            <div className="space-y-1.5"><Label className="text-detail">End</Label><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></div>
           </div>
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
@@ -326,7 +326,7 @@ function CycleRow({ cycle }: { cycle: Cycle }) {
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4">
       <div>
         <Link href={`/people/performance/${cycle.id}`} className="font-medium hover:underline">{cycle.name}</Link>
-        <div className="text-[12px] text-muted-foreground">{formatDate(cycle.startDate)} – {formatDate(cycle.endDate)}</div>
+        <div className="text-detail text-muted-foreground">{formatDate(cycle.startDate)} – {formatDate(cycle.endDate)}</div>
       </div>
       <div className="flex items-center gap-2">
         <StatusPill label={cycle.status[0] + cycle.status.slice(1).toLowerCase()} hue={hue} size="xs" />
@@ -342,8 +342,8 @@ function CycleRow({ cycle }: { cycle: Cycle }) {
 function Area({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-[12.5px]">{label}</Label>
-      <textarea value={value} onChange={(e) => onChange(e.target.value)} className="h-16 w-full resize-y rounded-md border bg-background p-2.5 text-[13px] outline-none focus:ring-2 focus:ring-ring" />
+      <Label className="text-detail">{label}</Label>
+      <textarea value={value} onChange={(e) => onChange(e.target.value)} className="h-16 w-full resize-y rounded-md border bg-background p-2.5 text-body outline-none focus:ring-2 focus:ring-ring" />
     </div>
   );
 }

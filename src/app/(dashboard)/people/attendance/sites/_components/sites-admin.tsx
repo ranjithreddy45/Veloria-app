@@ -22,8 +22,8 @@ export function SitesAdmin({ sites }: { sites: Site[] }) {
     <div className="rounded-xl border bg-card p-5">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h3 className="text-[14px] font-semibold">Check-in locations</h3>
-          <p className="text-[12.5px] text-muted-foreground">
+          <h3 className="text-copy font-semibold">Check-in locations</h3>
+          <p className="text-detail text-muted-foreground">
             Define office/site geo-fences and allowed networks. No sites = unrestricted check-in.
           </p>
         </div>
@@ -44,7 +44,7 @@ export function SitesAdmin({ sites }: { sites: Site[] }) {
                   {!s.isActive && <StatusPill label="Inactive" hue="slate" size="xs" />}
                   {s.allowWfh && <StatusPill label="WFH ok" hue="sky" size="xs" />}
                 </div>
-                <span className="text-[12px] text-muted-foreground">
+                <span className="text-detail text-muted-foreground">
                   {s.lat != null ? `${s.lat.toFixed(4)}, ${s.lng?.toFixed(4)} · ${s.radiusMeters}m` : "No geo-fence"}
                   {s.allowedIps ? ` · IPs: ${s.allowedIps}` : ""}
                 </span>
@@ -105,28 +105,28 @@ function SiteDialog({ existing }: { existing?: Site }) {
       <DialogContent className="sm:max-w-md">
         <DialogHeader><DialogTitle>{existing ? "Edit site" : "New site"}</DialogTitle></DialogHeader>
         <div className="space-y-3 py-2">
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Name</Label>
+          <div className="space-y-1.5"><Label className="text-detail">Name</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Bengaluru HQ" /></div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5"><Label className="text-[12.5px]">Latitude</Label>
+            <div className="space-y-1.5"><Label className="text-detail">Latitude</Label>
               <Input value={lat} onChange={(e) => setLat(e.target.value)} placeholder="12.9716" /></div>
-            <div className="space-y-1.5"><Label className="text-[12.5px]">Longitude</Label>
+            <div className="space-y-1.5"><Label className="text-detail">Longitude</Label>
               <Input value={lng} onChange={(e) => setLng(e.target.value)} placeholder="77.5946" /></div>
           </div>
           <Button variant="outline" size="sm" className="gap-1.5" onClick={useMyLocation}>
             <Crosshair className="size-3.5" /> Use my current location
           </Button>
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5"><Label className="text-[12.5px]">Radius (m)</Label>
+            <div className="space-y-1.5"><Label className="text-detail">Radius (m)</Label>
               <Input type="number" value={radius} onChange={(e) => setRadius(e.target.value)} /></div>
             <div className="flex items-end pb-1.5">
-              <label className="flex items-center gap-2 text-[13px]">
+              <label className="flex items-center gap-2 text-body">
                 <input type="checkbox" checked={allowWfh} onChange={(e) => setAllowWfh(e.target.checked)} className="size-4" />
                 Allow work-from-home
               </label>
             </div>
           </div>
-          <div className="space-y-1.5"><Label className="text-[12.5px]">Allowed office IPs (comma-separated, optional)</Label>
+          <div className="space-y-1.5"><Label className="text-detail">Allowed office IPs (comma-separated, optional)</Label>
             <Input value={ips} onChange={(e) => setIps(e.target.value)} placeholder="203.0.113.5, 203.0.113.6" /></div>
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}

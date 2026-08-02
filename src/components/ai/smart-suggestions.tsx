@@ -220,7 +220,7 @@ export function SmartSuggestions({ entityType, entityId }: SmartSuggestionsProps
                       </p>
                       <Badge
                         variant="outline"
-                        className={`shrink-0 text-[10px] ${PRIORITY_STYLES[suggestion.priority] ?? ""}`}
+                        className={`shrink-0 text-meta ${PRIORITY_STYLES[suggestion.priority] ?? ""}`}
                       >
                         {suggestion.priority}
                       </Badge>

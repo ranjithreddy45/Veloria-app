@@ -73,7 +73,7 @@ export function SegmentedControl<T extends string>({
     else if (e.key === "End") { e.preventDefault(); focusIndex(options.length - 1); }
   }
 
-  const pad = size === "sm" ? "h-7 px-2.5 text-[11px]" : "h-8 px-3 text-xs";
+  const pad = size === "sm" ? "h-7 px-2.5 text-meta" : "h-8 px-3 text-xs";
 
   return (
     <div

@@ -41,7 +41,7 @@ export function AllotmentView({ rows, year }: { rows: AllotmentRow[]; year: numb
         <div className="overflow-x-auto rounded-2xl border border-border/60 bg-card shadow-premium">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border/60 text-left text-[11.5px] uppercase tracking-wide text-muted-foreground">
+              <tr className="border-b border-border/60 text-left text-meta uppercase tracking-wide text-muted-foreground">
                 <th className="px-4 py-2.5 font-medium">Employee</th>
                 <th className="px-4 py-2.5 font-medium">Type</th>
                 <th className="px-4 py-2.5 text-right font-medium">Entitled</th>
@@ -54,7 +54,7 @@ export function AllotmentView({ rows, year }: { rows: AllotmentRow[]; year: numb
                 <tr key={`${r.employeeId}-${r.leaveTypeCode}`} className="border-b border-border/40 last:border-0 hover:bg-muted/30">
                   <td className="px-4 py-2.5">
                     <div className="font-medium text-foreground">{r.name}</div>
-                    <div className="text-[11px] text-muted-foreground">{r.empCode}</div>
+                    <div className="text-meta text-muted-foreground">{r.empCode}</div>
                   </td>
                   <td className="px-4 py-2.5"><TypeChip code={r.leaveTypeCode} color={r.color} /></td>
                   <td className="px-4 py-2.5 text-right tabular-nums">{r.entitled}</td>

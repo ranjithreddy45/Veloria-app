@@ -55,8 +55,8 @@ export function DealList({ deals }: { deals: AcqDealCard[] }) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border py-16 text-center">
         <Handshake className="size-6 text-muted-foreground" />
-        <p className="text-[13px] font-medium text-foreground">No deals</p>
-        <p className="max-w-sm text-[12px] text-muted-foreground">
+        <p className="text-body font-medium text-foreground">No deals</p>
+        <p className="max-w-sm text-detail text-muted-foreground">
           Qualify a lead to start a new acquisition deal.
         </p>
       </div>
@@ -73,7 +73,7 @@ export function DealList({ deals }: { deals: AcqDealCard[] }) {
                 <TableHead
                   key={h}
                   className={
-                    "text-[11.5px] uppercase tracking-[0.04em] text-muted-foreground" +
+                    "text-meta uppercase tracking-[0.04em] text-muted-foreground" +
                     (i === 4 ? " text-right" : "")
                   }
                 >
@@ -94,16 +94,16 @@ export function DealList({ deals }: { deals: AcqDealCard[] }) {
                 className="cursor-pointer"
               >
                 <TableCell>
-                  <span className="text-[13px] font-medium text-foreground">{d.name}</span>
+                  <span className="text-body font-medium text-foreground">{d.name}</span>
                 </TableCell>
-                <TableCell className="text-[12.5px] text-muted-foreground">
+                <TableCell className="text-detail text-muted-foreground">
                   {d.ownerName || "—"}
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-col">
-                    <span className="text-[12.5px] text-foreground">{d.propertyName}</span>
+                    <span className="text-detail text-foreground">{d.propertyName}</span>
                     {place && (
-                      <span className="text-[11.5px] text-muted-foreground">{place}</span>
+                      <span className="text-meta text-muted-foreground">{place}</span>
                     )}
                   </div>
                 </TableCell>
@@ -114,13 +114,13 @@ export function DealList({ deals }: { deals: AcqDealCard[] }) {
                     size="xs"
                   />
                 </TableCell>
-                <TableCell className="text-right text-[12.5px] tabular-nums text-foreground">
+                <TableCell className="text-right text-detail tabular-nums text-foreground">
                   {fmtValue(d.projectedFeeValue)}
                 </TableCell>
-                <TableCell className="text-[12.5px] text-muted-foreground">
+                <TableCell className="text-detail text-muted-foreground">
                   {d.bdExecutive?.name ?? "Unassigned"}
                 </TableCell>
-                <TableCell className="text-[12.5px] text-muted-foreground">
+                <TableCell className="text-detail text-muted-foreground">
                   {fmtDate(d.updatedAt)}
                 </TableCell>
               </TableRow>

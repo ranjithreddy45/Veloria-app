@@ -99,7 +99,7 @@ function getUtilizationColor(percent: number) {
 
 // Shared chrome so every panel on this page reads as one system.
 const CARD = "rounded-2xl border bg-card shadow-card";
-const TH = "h-9 text-[11px] font-medium uppercase tracking-wide text-muted-foreground";
+const TH = "h-9 text-meta font-medium uppercase tracking-wide text-muted-foreground";
 
 // ============================================================
 // Simple Bar Chart Component
@@ -131,10 +131,10 @@ function BarChart({
         return (
           <div key={idx} className="space-y-1.5">
             <div className="flex items-baseline justify-between gap-3">
-              <span className="max-w-[60%] truncate text-[13px] text-muted-foreground">
+              <span className="max-w-[60%] truncate text-body text-muted-foreground">
                 {String(item[labelKey])}
               </span>
-              <span className="numeric text-[13px] font-medium text-foreground">
+              <span className="numeric text-body font-medium text-foreground">
                 {fmt(val)}
               </span>
             </div>
@@ -182,10 +182,10 @@ function TrendChart({
     <div className={cn("w-full", className)}>
       {/* Peak reference — gives the bars a scale to read against */}
       <div className="mb-2 flex items-baseline justify-between">
-        <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
+        <span className="text-meta uppercase tracking-wide text-muted-foreground">
           Peak
         </span>
-        <span className="numeric text-[12px] text-muted-foreground">
+        <span className="numeric text-detail text-muted-foreground">
           {fmt(maxVal)}
         </span>
       </div>
@@ -203,7 +203,7 @@ function TrendChart({
             >
               {/* Tooltip on hover */}
               <div className="absolute bottom-full z-10 mb-1.5 hidden group-hover:block">
-                <div className="numeric whitespace-nowrap rounded-lg border bg-popover px-2 py-1 text-[11px] text-popover-foreground shadow-card-hover">
+                <div className="numeric whitespace-nowrap rounded-lg border bg-popover px-2 py-1 text-meta text-popover-foreground shadow-card-hover">
                   {fmt(val)}
                 </div>
               </div>
@@ -223,7 +223,7 @@ function TrendChart({
         {data.map((item, idx) => (
           <div
             key={idx}
-            className="numeric flex-1 truncate text-center text-[10.5px] text-muted-foreground"
+            className="numeric flex-1 truncate text-center text-meta text-muted-foreground"
           >
             {String(item[labelKey]).replace(" 20", " '")}
           </div>
@@ -352,7 +352,7 @@ export function AnalyticsDashboard({
 
       {/* Loading indicator */}
       {isPending && (
-        <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
+        <div className="flex items-center gap-2 text-body text-muted-foreground">
           <div className="size-3.5 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
           Refreshing analytics…
         </div>
@@ -439,7 +439,7 @@ export function AnalyticsDashboard({
                             className="flex-1 flex items-end gap-[2px] group relative"
                           >
                             <div className="absolute bottom-full left-1/2 z-10 mb-1.5 hidden -translate-x-1/2 group-hover:block">
-                              <div className="numeric space-y-0.5 whitespace-nowrap rounded-lg border bg-popover px-2 py-1.5 text-[11px] text-popover-foreground shadow-card-hover">
+                              <div className="numeric space-y-0.5 whitespace-nowrap rounded-lg border bg-popover px-2 py-1.5 text-meta text-popover-foreground shadow-card-hover">
                                 <div>In: {formatINR(item.income)}</div>
                                 <div>Out: {formatINR(item.expenses)}</div>
                                 <div
@@ -469,13 +469,13 @@ export function AnalyticsDashboard({
                       {cashflow.map((item, idx) => (
                         <div
                           key={idx}
-                          className="numeric flex-1 truncate text-center text-[10.5px] text-muted-foreground"
+                          className="numeric flex-1 truncate text-center text-meta text-muted-foreground"
                         >
                           {item.month.replace(" 20", " '")}
                         </div>
                       ))}
                     </div>
-                    <div className="flex items-center gap-4 text-[12px] text-muted-foreground">
+                    <div className="flex items-center gap-4 text-detail text-muted-foreground">
                       <div className="flex items-center gap-1.5">
                         <span className="size-2 rounded-full bg-emerald-500" />
                         Income
@@ -582,13 +582,13 @@ export function AnalyticsDashboard({
                               <Badge
                                 variant="secondary"
                                 className={cn(
-                                  "text-[11px] font-medium",
+                                  "text-meta font-medium",
                                   STATUS_COLORS[status] ?? ""
                                 )}
                               >
                                 {status.replace("_", " ")}
                               </Badge>
-                              <span className="numeric text-[13px] font-medium text-foreground">
+                              <span className="numeric text-body font-medium text-foreground">
                                 {count.toLocaleString("en-IN")}
                                 <span className="ml-1.5 font-normal text-muted-foreground">
                                   {percent}%
@@ -968,7 +968,7 @@ export function AnalyticsDashboard({
               {utilization.length > 0 ? (
                 <div className="space-y-4">
                   {/* Legend */}
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12px] text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-detail text-muted-foreground">
                     {UTILIZATION_COLORS.map((c) => (
                       <div key={c.min} className="flex items-center gap-1.5">
                         <span className={cn("size-2 rounded-full", c.dot)} />
@@ -990,10 +990,10 @@ export function AnalyticsDashboard({
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <p className="truncate text-[13.5px] font-semibold tracking-[-0.01em] text-foreground">
+                              <p className="truncate text-body font-semibold tracking-[-0.01em] text-foreground">
                                 {venue.venueName}
                               </p>
-                              <p className="mt-1 text-[12px] text-muted-foreground">
+                              <p className="mt-1 text-detail text-muted-foreground">
                                 <span className="numeric">
                                   {venue.totalBookings.toLocaleString("en-IN")}
                                 </span>{" "}
@@ -1006,7 +1006,7 @@ export function AnalyticsDashboard({
                             </div>
                             <span
                               className={cn(
-                                "numeric shrink-0 text-[22px] font-semibold leading-none",
+                                "numeric shrink-0 text-title font-semibold leading-none",
                                 color.text
                               )}
                             >

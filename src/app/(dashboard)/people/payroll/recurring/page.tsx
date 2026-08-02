@@ -56,7 +56,7 @@ export default async function RecurringPage() {
 
       <RecurringTable rows={rows} />
 
-      <p className="text-[12px] text-muted-foreground">
+      <p className="text-detail text-muted-foreground">
         Components apply automatically when payroll is processed, for every month from their start
         until their end (if set) while active. This screen manages them; it does not itself post any
         pay.

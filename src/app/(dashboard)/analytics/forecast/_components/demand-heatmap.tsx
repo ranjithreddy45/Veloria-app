@@ -108,8 +108,8 @@ export function DemandHeatmap({ data, year }: DemandHeatmapProps) {
       </CardHeader>
       <CardContent>
         {/* Legend */}
-        <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12px]">
-          <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
+        <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-detail">
+          <span className="text-meta uppercase tracking-wide text-muted-foreground">
             Demand
           </span>
           {(["high", "medium", "low"] as const).map((level) => (
@@ -129,13 +129,13 @@ export function DemandHeatmap({ data, year }: DemandHeatmapProps) {
           <div className="min-w-[700px]">
             {/* Header Row - Month Labels */}
             <div className="grid grid-cols-[180px_repeat(12,1fr)] gap-1 mb-1">
-              <div className="px-2 py-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              <div className="px-2 py-1 text-meta font-medium uppercase tracking-wide text-muted-foreground">
                 Venue
               </div>
               {MONTH_LABELS.map((label) => (
                 <div
                   key={label}
-                  className="py-1 text-center text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
+                  className="py-1 text-center text-meta font-medium uppercase tracking-wide text-muted-foreground"
                 >
                   {label}
                 </div>
@@ -149,7 +149,7 @@ export function DemandHeatmap({ data, year }: DemandHeatmapProps) {
                 className="grid grid-cols-[180px_repeat(12,1fr)] gap-1 mb-1"
               >
                 {/* Venue Name */}
-                <div className="flex items-center truncate px-2 py-2 text-[13px] font-medium">
+                <div className="flex items-center truncate px-2 py-2 text-body font-medium">
                   {venue.venueName}
                 </div>
 
@@ -160,7 +160,7 @@ export function DemandHeatmap({ data, year }: DemandHeatmapProps) {
                     <div
                       key={monthData.month}
                       className={cn(
-                        "numeric flex items-center justify-center rounded-md py-2 text-[11.5px] font-medium transition-opacity hover:opacity-80",
+                        "numeric flex items-center justify-center rounded-md py-2 text-meta font-medium transition-opacity hover:opacity-80",
                         colors.bg,
                         colors.text
                       )}

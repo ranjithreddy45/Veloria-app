@@ -407,9 +407,9 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                       >
                         <Icon className="mr-2 size-3.5 text-muted-foreground" />
                         <div className="flex flex-col">
-                          <span className="text-[13px]">{r.title}</span>
+                          <span className="text-body">{r.title}</span>
                           {r.subtitle && (
-                            <span className="text-[11.5px] text-muted-foreground">
+                            <span className="text-meta text-muted-foreground">
                               {r.subtitle}
                             </span>
                           )}
@@ -431,12 +431,12 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                   onSelect={() => navigateTo(a.href)}
                 >
                   <Plus className="mr-2 size-3.5 text-muted-foreground" />
-                  <span className="text-[13px]">{a.title}</span>
+                  <span className="text-body">{a.title}</span>
                   <span className="ml-auto inline-flex items-center gap-0.5">
-                    <kbd className="rounded border border-border bg-muted px-1 text-[10px] font-mono text-muted-foreground">
+                    <kbd className="rounded border border-border bg-muted px-1 text-meta font-mono text-muted-foreground">
                       ⇧
                     </kbd>
-                    <kbd className="rounded border border-border bg-muted px-1 text-[10px] font-mono text-muted-foreground">
+                    <kbd className="rounded border border-border bg-muted px-1 text-meta font-mono text-muted-foreground">
                       {a.shortcut}
                     </kbd>
                   </span>
@@ -457,7 +457,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                     onSelect={() => navigateTo(item.href)}
                   >
                     <Icon className="mr-2 size-3.5 text-muted-foreground" />
-                    <span className="text-[13px]">{item.title}</span>
+                    <span className="text-body">{item.title}</span>
                   </CommandItem>
                 );
               })}
@@ -466,7 +466,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             <CommandSeparator />
 
             {/* Hint */}
-            <div className="px-3 py-2 text-[11px] text-muted-foreground/70">
+            <div className="px-3 py-2 text-meta text-muted-foreground/70">
               <span className="inline-flex items-center gap-1.5">
                 <Sparkles className="size-3" />
                 Tip: search a full name, phone number, booking/invoice number, or a page like “attendance” or “trial balance”.
@@ -488,7 +488,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                     onSelect={() => navigateTo(p.href)}
                   >
                     <ArrowUpRight className="mr-2 size-3.5 text-muted-foreground" />
-                    <span className="text-[13px]">{p.label}</span>
+                    <span className="text-body">{p.label}</span>
                     <CornerDownLeft className="ml-auto size-3 text-muted-foreground/50" />
                   </CommandItem>
                 ))}
@@ -497,7 +497,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
             {/* Loading indicator for record search */}
             {isSearching && !hasResults && (
-              <div className="flex items-center justify-center py-6 text-[13px] text-muted-foreground">
+              <div className="flex items-center justify-center py-6 text-body text-muted-foreground">
                 <Loader2 className="mr-2 size-4 animate-spin" />
                 Searching records…
               </div>
@@ -526,8 +526,8 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                       >
                         <Icon className="mr-2 size-3.5 text-muted-foreground" />
                         <div className="flex min-w-0 flex-col">
-                          <span className="truncate text-[13px]">{item.title}</span>
-                          <span className="truncate text-[11.5px] text-muted-foreground">
+                          <span className="truncate text-body">{item.title}</span>
+                          <span className="truncate text-meta text-muted-foreground">
                             {item.subtitle}
                           </span>
                         </div>

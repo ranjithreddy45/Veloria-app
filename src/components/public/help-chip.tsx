@@ -27,7 +27,7 @@ export function HelpChip({ message, variant = "inline", className }: HelpChipPro
 
   if (variant === "banner") {
     return (
-      <div className={cn("flex flex-wrap items-center justify-center gap-2 rounded-xl border border-border/60 bg-muted/30 px-4 py-3 text-[13px]", className)}>
+      <div className={cn("flex flex-wrap items-center justify-center gap-2 rounded-xl border border-border/60 bg-muted/30 px-4 py-3 text-body", className)}>
         <span className="text-muted-foreground">Questions about your event?</span>
         {waHref && (
           <a href={waHref} target="_blank" rel="noopener noreferrer"
@@ -46,7 +46,7 @@ export function HelpChip({ message, variant = "inline", className }: HelpChipPro
   }
 
   return (
-    <div className={cn("flex flex-wrap items-center justify-center gap-2 text-[12.5px]", className)}>
+    <div className={cn("flex flex-wrap items-center justify-center gap-2 text-detail", className)}>
       {waHref && (
         <a href={waHref} target="_blank" rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/5 px-2.5 py-1 font-medium text-emerald-700 transition hover:bg-emerald-500/15 dark:text-emerald-300">

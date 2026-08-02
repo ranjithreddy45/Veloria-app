@@ -117,11 +117,11 @@ export function WhiteLabelShell({
             {(brandName || venue.name).charAt(0).toUpperCase()}
           </div>
         )}
-        <h1 className="text-foreground text-[30px] sm:text-[36px]">
+        <h1 className="text-foreground text-h1 sm:text-h1">
           {brandName || venue.name}
         </h1>
         {venue.description && (
-          <p className="text-muted-foreground mt-3 max-w-md text-[15px] leading-relaxed">
+          <p className="text-muted-foreground mt-3 max-w-md text-copy leading-relaxed">
             {venue.description}
           </p>
         )}
@@ -131,7 +131,7 @@ export function WhiteLabelShell({
       <div className="bg-card shadow-card rounded-2xl border p-5 sm:p-6">
         <div className="flex items-center justify-between">
           <div>
-            <p className="font-editorial text-foreground text-[18px] font-semibold">
+            <p className="font-editorial text-foreground text-lede font-semibold">
               {venue.name}
             </p>
             <p className="text-muted-foreground mt-1.5 flex items-center gap-1.5 text-xs">
@@ -139,9 +139,9 @@ export function WhiteLabelShell({
             </p>
           </div>
           <div className="text-right">
-            <p className="text-muted-foreground/80 text-[10px] font-semibold uppercase tracking-[0.14em]">From</p>
+            <p className="text-muted-foreground/80 text-meta font-semibold uppercase tracking-[0.14em]">From</p>
             <p
-              className="numeric mt-1 text-[18px] font-semibold"
+              className="numeric mt-1 text-lede font-semibold"
               style={{ color: "var(--brand)" }}
             >
               {formatINR(venue.pricePerSlot)}
@@ -153,7 +153,7 @@ export function WhiteLabelShell({
             {venue.amenities.map((a) => (
               <span
                 key={a}
-                className="bg-muted text-muted-foreground rounded-full px-2.5 py-1 text-[11px]"
+                className="bg-muted text-muted-foreground rounded-full px-2.5 py-1 text-meta"
               >
                 {a}
               </span>
@@ -177,7 +177,7 @@ export function WhiteLabelShell({
               className="mb-3 size-12"
               style={{ color: "var(--brand)" }}
             />
-            <h2 className="font-editorial text-foreground text-[22px] font-semibold">
+            <h2 className="font-editorial text-foreground text-title font-semibold">
               Thank you
             </h2>
             <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
@@ -186,7 +186,7 @@ export function WhiteLabelShell({
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
-            <h2 className="font-editorial text-foreground text-[20px] font-semibold">
+            <h2 className="font-editorial text-foreground text-title font-semibold">
               Enquire now
             </h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -225,7 +225,7 @@ export function WhiteLabelShell({
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-muted-foreground text-[13px] font-medium">
+              <label className="text-muted-foreground text-body font-medium">
                 Message
               </label>
               <textarea
@@ -271,7 +271,7 @@ function LabeledInput({
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-muted-foreground text-[13px] font-medium">
+      <label className="text-muted-foreground text-body font-medium">
         {label}
       </label>
       <input

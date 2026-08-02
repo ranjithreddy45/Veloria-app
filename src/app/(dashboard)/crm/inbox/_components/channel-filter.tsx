@@ -38,7 +38,7 @@ export function ChannelFilter({ active }: { active: string }) {
             type="button"
             onClick={() => select(opt.value)}
             className={cn(
-              "rounded-full border px-3 py-1 text-[12.5px] font-medium transition-premium",
+              "rounded-full border px-3 py-1 text-detail font-medium transition-premium",
               isActive
                 ? "border-primary bg-primary text-primary-foreground"
                 : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"

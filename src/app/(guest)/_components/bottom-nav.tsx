@@ -67,7 +67,7 @@ export function BottomNav() {
               </span>
               <span
                 className={cn(
-                  "text-[10.5px] font-semibold",
+                  "text-meta font-semibold",
                   active ? "text-violet-700" : "text-zinc-400"
                 )}
               >

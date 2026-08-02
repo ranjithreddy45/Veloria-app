@@ -106,7 +106,7 @@ export default async function AccountDetailPage({
       {/* Identity strip — primary contact + ownership at a glance */}
       <div className="grid gap-5 rounded-2xl border bg-card p-5 shadow-card sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+          <p className="text-meta uppercase tracking-wide text-muted-foreground">
             Primary contact
           </p>
           <p className="mt-1 flex items-center gap-1.5 text-sm">
@@ -119,7 +119,7 @@ export default async function AccountDetailPage({
           </p>
         </div>
         <div>
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+          <p className="text-meta uppercase tracking-wide text-muted-foreground">
             Reach
           </p>
           <div className="mt-1 space-y-0.5 text-sm">
@@ -141,13 +141,13 @@ export default async function AccountDetailPage({
           </div>
         </div>
         <div>
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+          <p className="text-meta uppercase tracking-wide text-muted-foreground">
             Owner
           </p>
           <p className="mt-1 text-sm">{account.ownerName ?? "Unassigned"}</p>
         </div>
         <div>
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+          <p className="text-meta uppercase tracking-wide text-muted-foreground">
             Next re-engage
           </p>
           <p className="numeric mt-1 text-sm">
@@ -207,10 +207,10 @@ export default async function AccountDetailPage({
           canManage={canManage}
         />
         <section className="rounded-2xl border bg-card p-5 shadow-card">
-          <h2 className="text-[15px] font-semibold tracking-[-0.01em]">
+          <h2 className="text-copy font-semibold tracking-[-0.01em]">
             Account notes
           </h2>
-          <p className="mt-0.5 text-[13px] text-muted-foreground">
+          <p className="mt-0.5 text-body text-muted-foreground">
             Context the next person picking up this account should know.
           </p>
           {account.notes ? (

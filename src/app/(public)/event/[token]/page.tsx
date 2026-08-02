@@ -44,7 +44,7 @@ function NotFoundCard() {
       <div className="bg-primary/10 text-primary mx-auto flex size-12 items-center justify-center rounded-2xl">
         <Sparkles className="size-6" />
       </div>
-      <h1 className="text-foreground mt-5 text-[24px]">
+      <h1 className="text-foreground mt-5 text-h2">
         We couldn&apos;t find this event
       </h1>
       <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm leading-relaxed">
@@ -77,10 +77,10 @@ export default async function EventPlanPage({
           className="pointer-events-none absolute inset-4 rounded-2xl border border-white/12"
         />
         <div className="relative">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-white/55">
+          <p className="text-meta font-semibold uppercase tracking-[0.24em] text-white/55">
             {e.clientFirstName}, it&apos;s coming together
           </p>
-          <h1 className="mt-4 text-[30px] text-white sm:text-[38px]">
+          <h1 className="mt-4 text-h1 text-white sm:text-h1">
             {e.eventName}
           </h1>
           <div aria-hidden className="mx-auto mt-5 h-px w-14 bg-white/25" />
@@ -125,7 +125,7 @@ export default async function EventPlanPage({
       {/* ---- Confirmed menu ---- */}
       {e.menu.items.length > 0 && (
         <section className="bg-card shadow-card rounded-2xl border p-5 sm:p-6">
-          <h2 className="font-editorial text-foreground flex items-center gap-2.5 text-[20px] font-semibold">
+          <h2 className="font-editorial text-foreground flex items-center gap-2.5 text-title font-semibold">
             <UtensilsCrossed className="text-muted-foreground/60 size-4" />
             Your menu
           </h2>
@@ -150,7 +150,7 @@ export default async function EventPlanPage({
       {/* ---- Run of show (time + activity only — no internal owners) ---- */}
       {e.timeline.length > 0 && (
         <section className="bg-card shadow-card rounded-2xl border p-5 sm:p-6">
-          <h2 className="font-editorial text-foreground flex items-center gap-2.5 text-[20px] font-semibold">
+          <h2 className="font-editorial text-foreground flex items-center gap-2.5 text-title font-semibold">
             <Clock className="text-muted-foreground/60 size-4" />
             How the day flows
           </h2>
@@ -179,7 +179,7 @@ export default async function EventPlanPage({
 
       {/* ---- What to expect ---- */}
       <section className="border-primary/25 bg-primary/[0.06] rounded-2xl border p-5 sm:p-6">
-        <h2 className="font-editorial text-foreground flex items-center gap-2.5 text-[20px] font-semibold">
+        <h2 className="font-editorial text-foreground flex items-center gap-2.5 text-title font-semibold">
           <Heart className="size-4 text-destructive" />
           What to expect next
         </h2>
@@ -194,13 +194,13 @@ export default async function EventPlanPage({
       {/* ---- Point of contact ---- */}
       {(e.pointOfContact.name || e.pointOfContact.phone) && (
         <section className="bg-card shadow-card rounded-2xl border p-5 sm:p-6">
-          <p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.16em]">
+          <p className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.16em]">
             Your event coordinator
           </p>
           <div className="mt-3 flex items-center justify-between gap-3">
             <div>
               {e.pointOfContact.name && (
-                <p className="font-editorial text-foreground text-[18px] font-semibold">
+                <p className="font-editorial text-foreground text-lede font-semibold">
                   {e.pointOfContact.name}
                 </p>
               )}
@@ -235,7 +235,7 @@ function Detail({
 }) {
   return (
     <div className="bg-card shadow-card rounded-2xl border p-4">
-      <span className="text-muted-foreground/80 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em]">
+      <span className="text-muted-foreground/80 flex items-center gap-1.5 text-meta font-semibold uppercase tracking-[0.14em]">
         {icon}
         {label}
       </span>

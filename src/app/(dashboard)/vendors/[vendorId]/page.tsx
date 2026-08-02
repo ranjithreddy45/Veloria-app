@@ -127,10 +127,10 @@ export default async function VendorDetailPage({
 
       {/* Type + venue scope */}
       <div className="-mt-2 flex flex-wrap items-center gap-2">
-        <Badge variant="outline" className="text-[11px] font-medium">
+        <Badge variant="outline" className="text-meta font-medium">
           {vendorTypeLabel}
         </Badge>
-        <Badge variant="outline" className="text-[11px]" title={venueNames.join(", ")}>
+        <Badge variant="outline" className="text-meta" title={venueNames.join(", ")}>
           {venueScopeLabel}
         </Badge>
       </div>

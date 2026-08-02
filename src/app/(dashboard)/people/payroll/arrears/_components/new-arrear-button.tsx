@@ -76,7 +76,7 @@ export function NewArrearButton({ employees }: { employees: ArrearEmployeeOption
           <DialogTitle>New salary arrear</DialogTitle>
         </DialogHeader>
         <ArrearFormFields state={form} set={set} employees={employees} />
-        <p className="text-[12px] text-muted-foreground">
+        <p className="text-detail text-muted-foreground">
           A pending arrear is paid — with its statutory deductions — the next time you process
           payroll for its pay month. Once paid it is locked.
         </p>

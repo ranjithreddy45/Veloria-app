@@ -209,7 +209,7 @@ export function KraDetail({
                     <h2 className="text-sm font-semibold">
                       {sec.ref}. {sec.title}
                     </h2>
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    <p className="text-meta uppercase tracking-wide text-muted-foreground">
                       {sec.focus}
                     </p>
                   </div>
@@ -477,20 +477,20 @@ function KpiRow({
             {kpi.ref}. {kpi.name}
           </span>
           {isAuto ? (
-            <Badge variant="secondary" className="gap-1 text-[10px]">
+            <Badge variant="secondary" className="gap-1 text-meta">
               <Zap className="size-2.5" /> AUTO
             </Badge>
           ) : (
-            <Badge variant="outline" className="text-[10px]">
+            <Badge variant="outline" className="text-meta">
               MANUAL
             </Badge>
           )}
         </div>
         <p className="mt-0.5 text-xs text-muted-foreground">{kpi.metric}</p>
-        <p className="mt-0.5 text-[11px] text-muted-foreground">
+        <p className="mt-0.5 text-meta text-muted-foreground">
           Target: <span className="font-medium">{kpi.target}</span>
         </p>
-        {kpi.note && <p className="mt-0.5 text-[11px] italic text-muted-foreground">{kpi.note}</p>}
+        {kpi.note && <p className="mt-0.5 text-meta italic text-muted-foreground">{kpi.note}</p>}
 
         {/* Value control / display */}
         <div className="mt-2">

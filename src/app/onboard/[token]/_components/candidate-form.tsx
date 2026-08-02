@@ -38,21 +38,21 @@ export function CandidateForm({
   return (
     <div className="space-y-4">
       <div className="space-y-1.5">
-        <label className="text-[12.5px] font-medium">Mobile number</label>
+        <label className="text-detail font-medium">Mobile number</label>
         <input value={ph} onChange={(e) => setPh(e.target.value)} placeholder="+91 ..."
-          className="h-10 w-full rounded-lg border bg-background px-3 text-[14px] outline-none focus:ring-2 focus:ring-ring" />
+          className="h-10 w-full rounded-lg border bg-background px-3 text-copy outline-none focus:ring-2 focus:ring-ring" />
       </div>
       <div className="space-y-1.5">
-        <label className="text-[12.5px] font-medium">Personal email</label>
+        <label className="text-detail font-medium">Personal email</label>
         <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.com"
-          className="h-10 w-full rounded-lg border bg-background px-3 text-[14px] outline-none focus:ring-2 focus:ring-ring" />
+          className="h-10 w-full rounded-lg border bg-background px-3 text-copy outline-none focus:ring-2 focus:ring-ring" />
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <button onClick={submit} disabled={busy}
-        className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-lg bg-primary text-[14px] font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60">
+        className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-lg bg-primary text-copy font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60">
         {busy && <Loader2 className="size-4 animate-spin" />} Confirm my details
       </button>
-      <p className="flex items-center justify-center gap-1.5 text-[11.5px] text-muted-foreground">
+      <p className="flex items-center justify-center gap-1.5 text-meta text-muted-foreground">
         <ShieldCheck className="size-3.5" /> Your information is encrypted and shared only with HR.
       </p>
     </div>

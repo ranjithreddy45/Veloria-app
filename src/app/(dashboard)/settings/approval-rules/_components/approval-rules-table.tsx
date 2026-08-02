@@ -132,7 +132,7 @@ export function ApprovalRulesTable({ initialRules }: ApprovalRulesTableProps) {
 
   return (
     <div className="space-y-3">
-      <p className="text-[13px] text-muted-foreground">
+      <p className="text-body text-muted-foreground">
         <span className="numeric font-medium text-foreground">
           {rules.length}
         </span>{" "}
@@ -159,7 +159,7 @@ export function ApprovalRulesTable({ initialRules }: ApprovalRulesTableProps) {
                   <div className="flex flex-wrap items-center gap-2">
                     <Link
                       href={`/settings/approval-rules/${rule.id}`}
-                      className="text-[15px] font-semibold tracking-[-0.01em] hover:underline"
+                      className="text-copy font-semibold tracking-[-0.01em] hover:underline"
                     >
                       {rule.name}
                     </Link>
@@ -176,13 +176,13 @@ export function ApprovalRulesTable({ initialRules }: ApprovalRulesTableProps) {
                   </div>
 
                   {rule.description && (
-                    <p className="mt-1 line-clamp-1 text-[13px] text-muted-foreground">
+                    <p className="mt-1 line-clamp-1 text-body text-muted-foreground">
                       {rule.description}
                     </p>
                   )}
 
                   {/* Condition → action summary */}
-                  <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[13px]">
+                  <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-body">
                     {conditions.length === 0 ? (
                       <span className="text-muted-foreground">
                         Applies to every {rule.entityType.toLowerCase()}
@@ -195,7 +195,7 @@ export function ApprovalRulesTable({ initialRules }: ApprovalRulesTableProps) {
                             {i > 0 && (
                               <span className="text-muted-foreground">and</span>
                             )}
-                            <span className="rounded-md bg-muted px-1.5 py-0.5 text-[12.5px]">
+                            <span className="rounded-md bg-muted px-1.5 py-0.5 text-detail">
                               <span className="font-medium text-foreground">
                                 {humanizeField(c.field)}
                               </span>{" "}
@@ -211,7 +211,7 @@ export function ApprovalRulesTable({ initialRules }: ApprovalRulesTableProps) {
                       </>
                     )}
                     <ArrowRightIcon className="size-3.5 shrink-0 text-muted-foreground" />
-                    <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-1.5 py-0.5 text-[12.5px] font-medium">
+                    <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-1.5 py-0.5 text-detail font-medium">
                       <UsersIcon className="size-3.5 text-muted-foreground" />
                       {chainLength === 0
                         ? "No approvers yet"
@@ -219,7 +219,7 @@ export function ApprovalRulesTable({ initialRules }: ApprovalRulesTableProps) {
                     </span>
                   </div>
 
-                  <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                  <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-meta uppercase tracking-wide text-muted-foreground">
                     <span>
                       Priority{" "}
                       <span className="numeric font-medium text-foreground">

@@ -522,7 +522,7 @@ export function LeadForm({ contacts, venues = [], users = [], lead }: LeadFormPr
                     </FormControl>
                     <SelectContent>
                       {users.length === 0 ? (
-                        <div className="px-2 py-1.5 text-[12.5px] text-muted-foreground">
+                        <div className="px-2 py-1.5 text-detail text-muted-foreground">
                           No assignable users.
                         </div>
                       ) : (

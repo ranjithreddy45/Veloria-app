@@ -32,7 +32,7 @@ export function GratuityNav() {
             role="tab"
             aria-selected={active}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-[10px] px-2.5 py-1.5 text-[12.5px] font-medium transition-all duration-150 active:scale-[0.97]",
+              "inline-flex items-center gap-1.5 rounded-[10px] px-2.5 py-1.5 text-detail font-medium transition-all duration-150 active:scale-[0.97]",
               active
                 ? "bg-primary/[0.12] text-primary shadow-[inset_0_0_0_1px_oklch(0.45_0.11_162/0.18)] dark:bg-primary/20"
                 : "text-muted-foreground hover:bg-background/70 hover:text-foreground",

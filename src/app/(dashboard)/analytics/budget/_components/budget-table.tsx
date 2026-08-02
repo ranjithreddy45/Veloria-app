@@ -144,7 +144,7 @@ const columns: ColumnDef<BudgetItem>[] = [
       const [year, mon] = month.split("-");
       const date = new Date(parseInt(year), parseInt(mon) - 1);
       return (
-        <span className="numeric text-[13px] text-muted-foreground">
+        <span className="numeric text-body text-muted-foreground">
           {date.toLocaleString("en-IN", { month: "short", year: "numeric" })}
         </span>
       );
@@ -200,11 +200,11 @@ const columns: ColumnDef<BudgetItem>[] = [
     cell: ({ row }) => {
       const category = row.getValue("category") as string | null;
       return category ? (
-        <Badge variant="secondary" className="text-[11px] font-medium">
+        <Badge variant="secondary" className="text-meta font-medium">
           {category}
         </Badge>
       ) : (
-        <span className="text-[13px] text-muted-foreground">--</span>
+        <span className="text-body text-muted-foreground">--</span>
       );
     },
   },

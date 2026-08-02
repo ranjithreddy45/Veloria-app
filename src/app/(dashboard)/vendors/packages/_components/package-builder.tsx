@@ -228,7 +228,7 @@ function ItemEditor({
           value={item.name}
           onChange={(e) => update({ name: e.target.value })}
           placeholder="Item name"
-          className="h-8 flex-1 text-[13px]"
+          className="h-8 flex-1 text-body"
         />
         <div className="flex shrink-0 items-center">
           <button
@@ -268,7 +268,7 @@ function ItemEditor({
             type="button"
             onClick={() => update({ type: t })}
             className={cn(
-              "rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-colors",
+              "rounded-lg border px-2.5 py-1 text-meta font-medium transition-colors",
               item.type === t
                 ? "border-teal-500/35 bg-teal-500/12 text-teal-700 dark:text-teal-300"
                 : "border-border bg-background text-muted-foreground hover:border-border/80"
@@ -281,7 +281,7 @@ function ItemEditor({
 
       {/* Type-specific controls */}
       {item.type === "FIXED" && (
-        <p className="text-[11px] text-muted-foreground italic">
+        <p className="text-meta text-muted-foreground italic">
           Always included — no options
         </p>
       )}
@@ -290,7 +290,7 @@ function ItemEditor({
         <div className="space-y-2">
           {item.type === "MULTI_CHOICE" && (
             <div className="flex items-center gap-2">
-              <Label className="text-[12px] text-muted-foreground whitespace-nowrap">
+              <Label className="text-detail text-muted-foreground whitespace-nowrap">
                 Guest picks
               </Label>
               <Input
@@ -300,9 +300,9 @@ function ItemEditor({
                 onChange={(e) =>
                   update({ chooseCount: Math.max(1, Number(e.target.value) || 1) })
                 }
-                className="h-7 w-16 text-[12px] tabular-nums"
+                className="h-7 w-16 text-detail tabular-nums"
               />
-              <span className="text-[12px] text-muted-foreground">option(s)</span>
+              <span className="text-detail text-muted-foreground">option(s)</span>
             </div>
           )}
 
@@ -318,7 +318,7 @@ function ItemEditor({
                     update({ options: opts });
                   }}
                   placeholder={`Option ${oi + 1}`}
-                  className="h-7 flex-1 text-[12px]"
+                  className="h-7 flex-1 text-detail"
                 />
                 <button
                   type="button"
@@ -335,7 +335,7 @@ function ItemEditor({
               type="button"
               variant="ghost"
               size="sm"
-              className="h-7 text-[11px] gap-1 text-muted-foreground"
+              className="h-7 text-meta gap-1 text-muted-foreground"
               onClick={() => update({ options: [...item.options, ""] })}
             >
               <PlusIcon className="size-3" />
@@ -396,9 +396,9 @@ function SectionEditor({
           value={section.title}
           onChange={(e) => update({ title: e.target.value })}
           placeholder={`Section ${index + 1} title`}
-          className="h-8 flex-1 text-[13px] font-medium"
+          className="h-8 flex-1 text-body font-medium"
         />
-        <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+        <span className="shrink-0 text-meta tabular-nums text-muted-foreground">
           {totalItems} {totalItems === 1 ? "item" : "items"}
         </span>
         <div className="flex shrink-0 items-center">
@@ -457,7 +457,7 @@ function SectionEditor({
         type="button"
         variant="ghost"
         size="sm"
-        className="h-7 gap-1 text-[12px] text-muted-foreground"
+        className="h-7 gap-1 text-detail text-muted-foreground"
         onClick={addItem}
       >
         <PlusIcon className="size-3.5" />
@@ -774,18 +774,18 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
       <div className="space-y-6">
         {/* Basic details card */}
         <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-card space-y-4">
-          <h2 className="text-[15px] font-semibold text-foreground">Package details</h2>
+          <h2 className="text-copy font-semibold text-foreground">Package details</h2>
 
           {/* Vendor select */}
           <div className="space-y-1.5">
-            <Label htmlFor="vendor" className="text-[13px]">
+            <Label htmlFor="vendor" className="text-body">
               Vendor <span className="text-destructive">*</span>
             </Label>
             <Select value={vendorId} onValueChange={handleVendorChange}>
               <SelectTrigger
                 id="vendor"
                 className={cn(
-                  "h-9 text-[13px]",
+                  "h-9 text-body",
                   fieldErrors.vendorId && "border-destructive"
                 )}
               >
@@ -800,13 +800,13 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
               </SelectContent>
             </Select>
             {fieldErrors.vendorId && (
-              <p className="text-[12px] text-destructive">{fieldErrors.vendorId}</p>
+              <p className="text-detail text-destructive">{fieldErrors.vendorId}</p>
             )}
           </div>
 
           {/* Package name */}
           <div className="space-y-1.5">
-            <Label htmlFor="pkg-name" className="text-[13px]">
+            <Label htmlFor="pkg-name" className="text-body">
               Package name <span className="text-destructive">*</span>
             </Label>
             <Input
@@ -818,19 +818,19 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
               }}
               placeholder="e.g. Premium décor package"
               className={cn(
-                "h-9 text-[13px]",
+                "h-9 text-body",
                 fieldErrors.name && "border-destructive"
               )}
             />
             {fieldErrors.name && (
-              <p className="text-[12px] text-destructive">{fieldErrors.name}</p>
+              <p className="text-detail text-destructive">{fieldErrors.name}</p>
             )}
           </div>
 
           {/* Category + Status row */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="category" className="text-[13px]">
+              <Label htmlFor="category" className="text-body">
                 Category <span className="text-destructive">*</span>
               </Label>
               <Select
@@ -844,7 +844,7 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
                 <SelectTrigger
                   id="category"
                   className={cn(
-                    "h-9 text-[13px]",
+                    "h-9 text-body",
                     fieldErrors.category && "border-destructive"
                   )}
                 >
@@ -859,23 +859,23 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
                 </SelectContent>
               </Select>
               {fieldErrors.category && (
-                <p className="text-[12px] text-destructive">
+                <p className="text-detail text-destructive">
                   {fieldErrors.category}
                 </p>
               )}
               {!vendorId && (
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-meta text-muted-foreground">
                   Select a vendor first
                 </p>
               )}
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="status" className="text-[13px]">
+              <Label htmlFor="status" className="text-body">
                 Status
               </Label>
               <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger id="status" className="h-9 text-[13px]">
+                <SelectTrigger id="status" className="h-9 text-body">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -890,11 +890,11 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
           {/* Price + Unit row */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="price" className="text-[13px]">
+              <Label htmlFor="price" className="text-body">
                 Customer price (₹) <span className="text-destructive">*</span>
               </Label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-muted-foreground">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-body text-muted-foreground">
                   ₹
                 </span>
                 <Input
@@ -908,22 +908,22 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
                   }}
                   placeholder="0"
                   className={cn(
-                    "h-9 pl-7 text-[13px] tabular-nums",
+                    "h-9 pl-7 text-body tabular-nums",
                     fieldErrors.price && "border-destructive"
                   )}
                 />
               </div>
               {fieldErrors.price && (
-                <p className="text-[12px] text-destructive">{fieldErrors.price}</p>
+                <p className="text-detail text-destructive">{fieldErrors.price}</p>
               )}
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="price-unit" className="text-[13px]">
+              <Label htmlFor="price-unit" className="text-body">
                 Price unit
               </Label>
               <Select value={priceUnit} onValueChange={setPriceUnit}>
-                <SelectTrigger id="price-unit" className="h-9 text-[13px]">
+                <SelectTrigger id="price-unit" className="h-9 text-body">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -940,11 +940,11 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
           {/* Vendor price + Min pax row */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="vendor-price" className="text-[13px]">
+              <Label htmlFor="vendor-price" className="text-body">
                 Vendor price (₹)
               </Label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-muted-foreground">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-body text-muted-foreground">
                   ₹
                 </span>
                 <Input
@@ -958,18 +958,18 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
                   }}
                   placeholder="Internal cost"
                   className={cn(
-                    "h-9 pl-7 text-[13px] tabular-nums",
+                    "h-9 pl-7 text-body tabular-nums",
                     fieldErrors.vendorPrice && "border-destructive"
                   )}
                 />
               </div>
               {fieldErrors.vendorPrice && (
-                <p className="text-[12px] text-destructive">{fieldErrors.vendorPrice}</p>
+                <p className="text-detail text-destructive">{fieldErrors.vendorPrice}</p>
               )}
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="min-pax" className="text-[13px]">
+              <Label htmlFor="min-pax" className="text-body">
                 Minimum pax / units
               </Label>
               <Input
@@ -983,12 +983,12 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
                 }}
                 placeholder="e.g. 100"
                 className={cn(
-                  "h-9 text-[13px] tabular-nums",
+                  "h-9 text-body tabular-nums",
                   fieldErrors.minPax && "border-destructive"
                 )}
               />
               {fieldErrors.minPax && (
-                <p className="text-[12px] text-destructive">{fieldErrors.minPax}</p>
+                <p className="text-detail text-destructive">{fieldErrors.minPax}</p>
               )}
             </div>
           </div>
@@ -996,11 +996,11 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
           {/* Max discount row */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="discount-type" className="text-[13px]">
+              <Label htmlFor="discount-type" className="text-body">
                 Max discount
               </Label>
               <Select value={maxDiscountType} onValueChange={setMaxDiscountType}>
-                <SelectTrigger id="discount-type" className="h-9 text-[13px]">
+                <SelectTrigger id="discount-type" className="h-9 text-body">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1015,7 +1015,7 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="discount-value" className="text-[13px]">
+              <Label htmlFor="discount-value" className="text-body">
                 Discount value
               </Label>
               <Input
@@ -1031,19 +1031,19 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
                 }}
                 placeholder={maxDiscountType === "PERCENT" ? "0–100" : "₹ amount"}
                 className={cn(
-                  "h-9 text-[13px] tabular-nums",
+                  "h-9 text-body tabular-nums",
                   fieldErrors.maxDiscount && "border-destructive"
                 )}
               />
               {fieldErrors.maxDiscount && (
-                <p className="text-[12px] text-destructive">{fieldErrors.maxDiscount}</p>
+                <p className="text-detail text-destructive">{fieldErrors.maxDiscount}</p>
               )}
             </div>
           </div>
 
           {/* Description */}
           <div className="space-y-1.5">
-            <Label htmlFor="desc" className="text-[13px]">
+            <Label htmlFor="desc" className="text-body">
               Description
             </Label>
             <Textarea
@@ -1052,7 +1052,7 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Brief description of what's included…"
               rows={3}
-              className="resize-none text-[13px]"
+              className="resize-none text-body"
             />
           </div>
         </div>
@@ -1060,10 +1060,10 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
         {/* Sections */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-[15px] font-semibold text-foreground">
+            <h2 className="text-copy font-semibold text-foreground">
               Sections &amp; items
             </h2>
-            <span className="text-[12px] tabular-nums text-muted-foreground">
+            <span className="text-detail tabular-nums text-muted-foreground">
               {totalItems} total item{totalItems !== 1 ? "s" : ""}
             </span>
           </div>
@@ -1092,7 +1092,7 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
             type="button"
             variant="outline"
             size="sm"
-            className="h-8 gap-1.5 text-[13px]"
+            className="h-8 gap-1.5 text-body"
             onClick={() => setSections([...sections, emptySection()])}
           >
             <PlusIcon className="size-3.5" />
@@ -1107,7 +1107,7 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
       <div className="space-y-5">
         {/* Images card */}
         <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-card space-y-4">
-          <h2 className="text-[15px] font-semibold text-foreground">Images</h2>
+          <h2 className="text-copy font-semibold text-foreground">Images</h2>
 
           {pkgId ? (
             <>
@@ -1125,14 +1125,14 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-8 w-full gap-1.5 text-[12px]"
+                  className="h-8 w-full gap-1.5 text-detail"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={imgPending}
                 >
                   <ImageIcon className="size-3.5" />
                   Upload images
                 </Button>
-                <p className="text-[11px] text-muted-foreground/70">
+                <p className="text-meta text-muted-foreground/70">
                   Up to 1.5MB each. You can select several at once.
                 </p>
               </div>
@@ -1143,7 +1143,7 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
                   value={imgUrl}
                   onChange={(e) => setImgUrl(e.target.value)}
                   placeholder="https://… image URL"
-                  className="h-8 flex-1 text-[12px]"
+                  className="h-8 flex-1 text-detail"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
@@ -1154,7 +1154,7 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
                 <Button
                   type="button"
                   size="sm"
-                  className="h-8 text-[12px]"
+                  className="h-8 text-detail"
                   onClick={handleAddImage}
                   disabled={imgPending || !imgUrl.trim()}
                 >
@@ -1182,7 +1182,7 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
                         />
                         {/* Cover badge */}
                         {isCover && (
-                          <div className="absolute left-1 top-1 flex items-center gap-0.5 rounded-full bg-teal-600 px-1.5 py-0.5 text-[9px] font-semibold text-white">
+                          <div className="absolute left-1 top-1 flex items-center gap-0.5 rounded-full bg-teal-600 px-1.5 py-0.5 text-meta font-semibold text-white">
                             <StarIcon className="size-2.5 fill-current" />
                             Cover
                           </div>
@@ -1234,7 +1234,7 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
                 </div>
               ) : (
                 <div className="flex h-24 items-center justify-center rounded-xl border border-dashed border-border/60 bg-muted/30">
-                  <p className="text-[12px] text-muted-foreground">
+                  <p className="text-detail text-muted-foreground">
                     No images yet — add one above
                   </p>
                 </div>
@@ -1243,7 +1243,7 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
           ) : (
             <div className="rounded-xl border border-dashed border-border/60 bg-muted/30 p-4 text-center">
               <ImageIcon className="mx-auto mb-2 size-6 text-muted-foreground/40" />
-              <p className="text-[12px] text-muted-foreground">
+              <p className="text-detail text-muted-foreground">
                 Images can be added after first save.
               </p>
             </div>
@@ -1252,7 +1252,7 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
 
         {/* Live preview */}
         <div className="space-y-2">
-          <h2 className="text-[13px] font-semibold text-muted-foreground uppercase tracking-wide">
+          <h2 className="text-body font-semibold text-muted-foreground uppercase tracking-wide">
             Live preview
           </h2>
           <PackageCard data={previewData} />
@@ -1268,11 +1268,11 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
         {/* Unmet CANNOT_ACTIVATE conditions */}
         {unmetList.length > 0 && (
           <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 space-y-1">
-            <div className="flex items-center gap-1.5 text-[13px] font-medium text-destructive">
+            <div className="flex items-center gap-1.5 text-body font-medium text-destructive">
               <AlertCircleIcon className="size-4" />
               Cannot activate — requirements not met:
             </div>
-            <ul className="list-disc list-inside space-y-0.5 text-[12px] text-destructive/80">
+            <ul className="list-disc list-inside space-y-0.5 text-detail text-destructive/80">
               {unmetList.map((u, i) => (
                 <li key={i}>{u}</li>
               ))}
@@ -1282,7 +1282,7 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
 
         {/* Readiness indicator */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
+          <div className="flex items-center gap-2 text-detail text-muted-foreground">
             {isReady ? (
               <>
                 <CheckIcon className="size-4 text-success" />
@@ -1303,7 +1303,7 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
               type="button"
               variant="outline"
               size="sm"
-              className="h-9 text-[13px]"
+              className="h-9 text-body"
               onClick={() => router.back()}
               disabled={isPending}
             >
@@ -1312,7 +1312,7 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
             <Button
               type="button"
               size="sm"
-              className="h-9 text-[13px]"
+              className="h-9 text-body"
               onClick={handleSave}
               disabled={isPending || !isReady}
             >

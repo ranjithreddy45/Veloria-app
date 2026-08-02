@@ -26,10 +26,10 @@ export function ActivateResult({ ok, message }: ActivateResultProps) {
               <XCircle className="size-8 text-destructive" />
             )}
           </div>
-          <p className="text-muted-foreground mt-5 text-[11px] font-semibold uppercase tracking-[0.14em]">
+          <p className="text-muted-foreground mt-5 text-meta font-semibold uppercase tracking-[0.14em]">
             Your account
           </p>
-          <h1 className="font-editorial text-foreground mt-2 text-[24px] font-semibold">
+          <h1 className="font-editorial text-foreground mt-2 text-h2 font-semibold">
             {ok ? "You're all set" : "We couldn't activate this"}
           </h1>
           <p className="text-muted-foreground mt-2.5 max-w-sm text-sm leading-relaxed">

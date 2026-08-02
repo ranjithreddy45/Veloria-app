@@ -50,7 +50,7 @@ function IrnCell({ irn }: { irn: string }) {
       type="button"
       onClick={copy}
       title={irn}
-      className="inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 numeric text-[11.5px] text-muted-foreground transition-premium hover:bg-muted hover:text-foreground"
+      className="inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 numeric text-meta text-muted-foreground transition-premium hover:bg-muted hover:text-foreground"
     >
       <span className="numeric">{irn.slice(0, 12)}…{irn.slice(-4)}</span>
       {copied ? <Check className="size-3 text-success" /> : <Copy className="size-3" />}
@@ -114,7 +114,7 @@ export function EInvoiceWorkspace({ rows, canWrite }: { rows: EInvoiceRow[]; can
 
       <div className="rounded-xl border bg-card shadow-card">
         <div className="border-b px-5 py-3.5">
-          <h2 className="text-[13px] font-semibold tracking-[-0.01em] text-foreground">Issued invoices</h2>
+          <h2 className="text-body font-semibold tracking-[-0.01em] text-foreground">Issued invoices</h2>
           <p className="text-xs text-muted-foreground">Generate an IRN per issued invoice. Showing up to 200 most recent.</p>
         </div>
 
@@ -148,7 +148,7 @@ export function EInvoiceWorkspace({ rows, canWrite }: { rows: EInvoiceRow[]; can
                       <TableCell className="font-medium">{r.invoiceNumber}</TableCell>
                       <TableCell className="text-muted-foreground numeric">{fmtDate(r.issueDate)}</TableCell>
                       <TableCell className="text-right numeric">{formatINR(r.totalAmount)}</TableCell>
-                      <TableCell className="numeric text-[11.5px] text-muted-foreground">{r.gstin ?? "—"}</TableCell>
+                      <TableCell className="numeric text-meta text-muted-foreground">{r.gstin ?? "—"}</TableCell>
                       <TableCell>
                         <StatusPill label={meta.label} hue={meta.hue} />
                       </TableCell>

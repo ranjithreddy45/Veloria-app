@@ -49,7 +49,7 @@ function shortDate(value: Date | string): string {
 
 // Quiet uppercase micro-label used across the document surfaces.
 const LABEL =
-  "text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground";
+  "text-meta font-semibold uppercase tracking-[0.14em] text-muted-foreground";
 
 // ============================================================
 // Invoice Detail Page
@@ -79,7 +79,7 @@ export default async function PortalInvoiceDetailPage({
       {/* Back Button */}
       <Link
         href="/portal/invoices"
-        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-2 text-[13px] transition-colors"
+        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-2 text-body transition-colors"
       >
         <ArrowLeft className="size-3.5" />
         Back to invoices
@@ -90,7 +90,7 @@ export default async function PortalInvoiceDetailPage({
         <div className="space-y-2">
           <p className={LABEL}>Invoice</p>
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="large-title text-foreground text-[28px] leading-tight sm:text-[32px]">
+            <h1 className="large-title text-foreground text-h2 leading-tight sm:text-h1">
               {invoice.invoiceNumber}
             </h1>
             <StatusBadge
@@ -99,7 +99,7 @@ export default async function PortalInvoiceDetailPage({
             />
           </div>
           {invoice.booking && (
-            <p className="text-muted-foreground text-[15px]">
+            <p className="text-muted-foreground text-copy">
               {invoice.booking.eventName}
               {invoice.booking.bookingNumber && (
                 <>
@@ -118,7 +118,7 @@ export default async function PortalInvoiceDetailPage({
           <PortalPdfButton invoiceId={invoiceId} />
           <div className="text-right">
             <p className={LABEL}>Total</p>
-            <p className="numeric text-foreground mt-1 text-[26px] font-semibold leading-none">
+            <p className="numeric text-foreground mt-1 text-h2 font-semibold leading-none">
               {formatINRRound(invoice.totalAmount)}
             </p>
           </div>
@@ -244,16 +244,16 @@ export default async function PortalInvoiceDetailPage({
                 <table className="w-full">
                   <thead>
                     <tr className="border-b">
-                      <th className="pb-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      <th className="pb-2.5 text-left text-meta font-semibold uppercase tracking-wide text-muted-foreground">
                         Description
                       </th>
-                      <th className="pb-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      <th className="pb-2.5 text-right text-meta font-semibold uppercase tracking-wide text-muted-foreground">
                         Qty
                       </th>
-                      <th className="pb-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      <th className="pb-2.5 text-right text-meta font-semibold uppercase tracking-wide text-muted-foreground">
                         Rate
                       </th>
-                      <th className="pb-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      <th className="pb-2.5 text-right text-meta font-semibold uppercase tracking-wide text-muted-foreground">
                         Amount
                       </th>
                     </tr>
@@ -347,7 +347,7 @@ export default async function PortalInvoiceDetailPage({
                   <span className="text-foreground text-sm font-semibold">
                     Total
                   </span>
-                  <span className="numeric text-foreground text-[19px] font-semibold">
+                  <span className="numeric text-foreground text-title font-semibold">
                     {formatINR(invoice.totalAmount)}
                   </span>
                 </div>
@@ -364,7 +364,7 @@ export default async function PortalInvoiceDetailPage({
                     Balance due
                   </span>
                   <span
-                    className={`numeric text-[19px] font-semibold ${
+                    className={`numeric text-title font-semibold ${
                       invoice.balanceDue > 0
                         ? "text-destructive"
                         : "text-success"
@@ -405,7 +405,7 @@ export default async function PortalInvoiceDetailPage({
               <CardHeader className="px-6 pb-4 pt-6">
                 <CardTitle className="flex items-center gap-2.5">
                   <CreditCard className="text-primary size-4" />
-                  <span className="font-editorial text-foreground text-[20px] font-semibold">
+                  <span className="font-editorial text-foreground text-title font-semibold">
                     Every payment so far
                   </span>
                 </CardTitle>
@@ -442,7 +442,7 @@ export default async function PortalInvoiceDetailPage({
                           <StatusBadge
                             status={payment.status}
                             colorMap={PAYMENT_STATUS_COLORS}
-                            className="text-[10px]"
+                            className="text-meta"
                           />
                         </div>
                         <p className="text-muted-foreground mt-0.5 text-xs">
@@ -488,7 +488,7 @@ export default async function PortalInvoiceDetailPage({
               <CardHeader className="px-6 pb-4 pt-6">
                 <CardTitle className="flex items-center gap-2.5">
                   <IndianRupee className="text-primary size-4" />
-                  <span className="font-editorial text-foreground text-[20px] font-semibold">
+                  <span className="font-editorial text-foreground text-title font-semibold">
                     Settle your balance
                   </span>
                 </CardTitle>
@@ -496,7 +496,7 @@ export default async function PortalInvoiceDetailPage({
               <CardContent className="px-6 pb-6">
                 <div className="mb-4 flex items-center justify-between">
                   <span className={LABEL}>Amount due</span>
-                  <span className="numeric text-destructive text-[19px] font-semibold">
+                  <span className="numeric text-destructive text-title font-semibold">
                     {formatINRRound(invoice.balanceDue)}
                   </span>
                 </div>
@@ -527,7 +527,7 @@ export default async function PortalInvoiceDetailPage({
                 <div className="bg-success/12 flex size-14 items-center justify-center rounded-2xl">
                   <CheckCircle2 className="text-success size-7" />
                 </div>
-                <h3 className="font-editorial text-foreground mt-4 text-[20px] font-semibold">
+                <h3 className="font-editorial text-foreground mt-4 text-title font-semibold">
                   Paid in full
                 </h3>
                 <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
@@ -541,7 +541,7 @@ export default async function PortalInvoiceDetailPage({
           {invoice.installments.length > 0 && (
             <Card className="shadow-card rounded-2xl py-0">
               <CardHeader className="px-6 pb-4 pt-6">
-                <CardTitle className="font-editorial text-foreground text-[20px] font-semibold">
+                <CardTitle className="font-editorial text-foreground text-title font-semibold">
                   Payment schedule
                 </CardTitle>
               </CardHeader>
@@ -565,7 +565,7 @@ export default async function PortalInvoiceDetailPage({
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex min-w-0 items-center gap-2.5">
                             <div
-                              className={`numeric flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
+                              className={`numeric flex size-6 shrink-0 items-center justify-center rounded-full text-meta font-semibold ${
                                 isPaid
                                   ? "bg-success/15 text-success"
                                   : isOverdue
@@ -624,7 +624,7 @@ export default async function PortalInvoiceDetailPage({
           {/* At a glance */}
           <Card className="shadow-card rounded-2xl py-0">
             <CardHeader className="px-6 pb-4 pt-6">
-              <CardTitle className="font-editorial text-foreground text-[20px] font-semibold">
+              <CardTitle className="font-editorial text-foreground text-title font-semibold">
                 At a glance
               </CardTitle>
             </CardHeader>

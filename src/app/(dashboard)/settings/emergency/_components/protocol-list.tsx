@@ -264,13 +264,13 @@ export function ProtocolList({ protocols, venues }: ProtocolListProps) {
                             <Badge
                               key={i}
                               variant="secondary"
-                              className="text-[10px]"
+                              className="text-meta"
                             >
                               {c.name} ({c.role})
                             </Badge>
                           ))}
                           {protocol.contactNumbers.length > 3 && (
-                            <Badge variant="secondary" className="text-[10px]">
+                            <Badge variant="secondary" className="text-meta">
                               +{protocol.contactNumbers.length - 3} more
                             </Badge>
                           )}

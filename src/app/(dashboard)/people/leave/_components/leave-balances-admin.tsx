@@ -30,8 +30,8 @@ export function LeaveBalancesAdmin({
     <div className="rounded-xl border bg-card p-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-[14px] font-semibold">Balances for {year}</h3>
-          <p className="text-[12.5px] text-muted-foreground">
+          <h3 className="text-copy font-semibold">Balances for {year}</h3>
+          <p className="text-detail text-muted-foreground">
             {rows.length} active employee{rows.length === 1 ? "" : "s"} · {types.length} leave type{types.length === 1 ? "" : "s"}. Each cell shows available of entitled.
           </p>
         </div>
@@ -39,7 +39,7 @@ export function LeaveBalancesAdmin({
           <select
             value={year}
             onChange={(e) => router.push(`/people/leave/balances?year=${e.target.value}`)}
-            className="h-9 rounded-md border bg-background px-2.5 text-[13px] outline-none focus:ring-2 focus:ring-ring"
+            className="h-9 rounded-md border bg-background px-2.5 text-body outline-none focus:ring-2 focus:ring-ring"
           >
             {years.map((y) => (
               <option key={y} value={y}>{y}</option>
@@ -56,9 +56,9 @@ export function LeaveBalancesAdmin({
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-[13px]">
+          <table className="w-full border-collapse text-body">
             <thead>
-              <tr className="border-b text-left text-[12px] text-muted-foreground">
+              <tr className="border-b text-left text-detail text-muted-foreground">
                 <th className="sticky left-0 bg-card py-2 pr-3 font-medium">Employee</th>
                 {types.map((t) => (
                   <th key={t.id} className="px-3 py-2 text-center font-medium">
@@ -72,13 +72,13 @@ export function LeaveBalancesAdmin({
                 <tr key={r.employeeId}>
                   <td className="sticky left-0 bg-card py-2.5 pr-3">
                     <div className="font-medium">{r.name}</div>
-                    <div className="text-[11.5px] text-muted-foreground">{r.empCode}</div>
+                    <div className="text-meta text-muted-foreground">{r.empCode}</div>
                   </td>
                   {types.map((t) => {
                     const c = r.byType[t.id];
                     if (!c) {
                       return (
-                        <td key={t.id} className="px-3 py-2.5 text-center text-[12px] text-muted-foreground/50">
+                        <td key={t.id} className="px-3 py-2.5 text-center text-detail text-muted-foreground/50">
                           —
                         </td>
                       );
@@ -91,7 +91,7 @@ export function LeaveBalancesAdmin({
                           <span className="font-normal text-muted-foreground"> / {c.entitled}</span>
                         </div>
                         {(c.used > 0 || c.pending > 0) && (
-                          <div className="text-[11px] text-muted-foreground">
+                          <div className="text-meta text-muted-foreground">
                             {c.used > 0 && <span>{c.used} used</span>}
                             {c.used > 0 && c.pending > 0 && <span> · </span>}
                             {c.pending > 0 && <span className="text-warning">{c.pending} pending</span>}
@@ -129,7 +129,7 @@ function ProvisionButton({ year }: { year: number }) {
 
   return (
     <div className="flex items-center gap-2">
-      {msg && <span className="text-[12px] text-muted-foreground">{msg}</span>}
+      {msg && <span className="text-detail text-muted-foreground">{msg}</span>}
       <Button onClick={run} disabled={busy} className="gap-1.5">
         {busy ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
         Provision balances for {year}

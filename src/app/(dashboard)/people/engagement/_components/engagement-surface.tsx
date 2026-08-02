@@ -63,9 +63,9 @@ function PulseAnswerCard({ survey }: { survey: ActiveSurveyForMe }) {
       <CardContent className="space-y-4 px-5 py-5">
         <div className="space-y-1">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="text-[13px] font-semibold tracking-[-0.01em] text-foreground">{survey.title}</h3>
+            <h3 className="text-body font-semibold tracking-[-0.01em] text-foreground">{survey.title}</h3>
             {answered && (
-              <Badge className="shrink-0 border-transparent bg-success/10 text-[10px] text-success">
+              <Badge className="shrink-0 border-transparent bg-success/10 text-meta text-success">
                 <CheckCircle2 className="mr-1 size-3" /> Recorded
               </Badge>
             )}
@@ -91,7 +91,7 @@ function PulseAnswerCard({ survey }: { survey: ActiveSurveyForMe }) {
             ))}
           </div>
           {score > 0 && (
-            <p className="mt-2 text-[12px] font-medium text-violet-600 dark:text-violet-300">{SCORE_LABELS[score]}</p>
+            <p className="mt-2 text-detail font-medium text-violet-600 dark:text-violet-300">{SCORE_LABELS[score]}</p>
           )}
         </div>
         <Textarea
@@ -101,7 +101,7 @@ function PulseAnswerCard({ survey }: { survey: ActiveSurveyForMe }) {
           placeholder="Add a comment (optional, anonymous)…"
         />
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[11px] text-muted-foreground">Your comment is anonymous.</p>
+          <p className="text-meta text-muted-foreground">Your comment is anonymous.</p>
           <Button size="sm" onClick={submit} disabled={saving || score < 1}>
             {saving ? <Loader2 className="size-4 animate-spin" /> : null}
             {answered ? "Update response" : "Submit"}
@@ -229,7 +229,7 @@ function ResultsDialog({ surveyId, title }: { surveyId: string; title: string })
                 <div className="text-4xl font-bold tabular-nums">
                   {results.count > 0 ? results.average.toFixed(2) : "—"}
                 </div>
-                <div className="text-[12px] text-muted-foreground">Average score</div>
+                <div className="text-detail text-muted-foreground">Average score</div>
               </div>
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                 <Users className="size-4" /> {results.count} response{results.count === 1 ? "" : "s"}
@@ -241,7 +241,7 @@ function ResultsDialog({ surveyId, title }: { surveyId: string; title: string })
                 .slice()
                 .reverse()
                 .map((d) => (
-                  <div key={d.score} className="flex items-center gap-2 text-[13px]">
+                  <div key={d.score} className="flex items-center gap-2 text-body">
                     <span className="w-3 text-right font-medium tabular-nums">{d.score}</span>
                     <div className="h-3 flex-1 overflow-hidden rounded-full bg-muted">
                       <div
@@ -259,12 +259,12 @@ function ResultsDialog({ surveyId, title }: { surveyId: string; title: string })
                 <MessageSquareQuote className="size-4 text-muted-foreground" /> Comments
               </div>
               {results.comments.length === 0 ? (
-                <p className="text-[13px] text-muted-foreground">No comments yet.</p>
+                <p className="text-body text-muted-foreground">No comments yet.</p>
               ) : (
                 <ul className="max-h-64 space-y-2 overflow-y-auto">
                   {results.comments.map((c, i) => (
-                    <li key={i} className="rounded-lg border border-border/70 p-2.5 text-[13px]">
-                      <Badge variant="secondary" className="mb-1 text-[10px]">Scored {c.score}/5</Badge>
+                    <li key={i} className="rounded-lg border border-border/70 p-2.5 text-body">
+                      <Badge variant="secondary" className="mb-1 text-meta">Scored {c.score}/5</Badge>
                       <p>{c.comment}</p>
                     </li>
                   ))}
@@ -301,7 +301,7 @@ function ManagerSurveyRow({ survey }: { survey: ActiveSurveyForMe }) {
     <div className="flex items-center justify-between gap-3 rounded-lg border border-border/70 p-3">
       <div className="min-w-0">
         <p className="truncate text-sm font-medium">{survey.title}</p>
-        <p className="truncate text-[12px] text-muted-foreground">{survey.question}</p>
+        <p className="truncate text-detail text-muted-foreground">{survey.question}</p>
       </div>
       <div className="flex shrink-0 items-center gap-2">
         <ResultsDialog surveyId={survey.id} title={survey.title} />
@@ -361,7 +361,7 @@ export function EngagementSurface({
         <Card className="gap-0 py-0">
           <CardContent className="space-y-3 px-5 py-5">
             <div className="flex flex-row items-center justify-between">
-              <h2 className="flex items-center gap-2 text-[13px] font-semibold tracking-[-0.01em] text-foreground">
+              <h2 className="flex items-center gap-2 text-body font-semibold tracking-[-0.01em] text-foreground">
                 <BarChart3 className="size-4 text-muted-foreground" /> Manage surveys
               </h2>
               <CreateSurveyDialog />

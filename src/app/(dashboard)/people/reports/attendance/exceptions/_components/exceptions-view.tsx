@@ -93,9 +93,9 @@ export function ExceptionsView({
           <EmptyState icon={<ShieldAlert />} title="No exceptions in this range" description="Every punch here was verified and un-flagged. Widen the range to look further back." />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-[13px]">
+            <table className="w-full text-body">
               <thead>
-                <tr className="border-b text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+                <tr className="border-b text-left text-meta uppercase tracking-wide text-muted-foreground">
                   <th className="px-5 py-2.5 font-medium">Date</th>
                   <th className="px-3 py-2.5 font-medium">Employee</th>
                   <th className="px-3 py-2.5 font-medium">Status</th>
@@ -112,14 +112,14 @@ export function ExceptionsView({
                     <td className="px-5 py-2.5 whitespace-nowrap tabular-nums">{fmtDay(r.date)}</td>
                     <td className="px-3 py-2.5">
                       <div className="font-medium">{r.name}</div>
-                      <div className="text-[11.5px] text-muted-foreground">{r.empCode}</div>
+                      <div className="text-meta text-muted-foreground">{r.empCode}</div>
                     </td>
                     <td className="px-3 py-2.5"><StatusBadge status={r.status} /></td>
                     <td className="px-3 py-2.5 max-w-[16rem]">
                       {r.flagged ? (
-                        <span className="text-[12.5px]">{r.flagReason ?? "Flagged"}</span>
+                        <span className="text-detail">{r.flagReason ?? "Flagged"}</span>
                       ) : (
-                        <span className="text-[12.5px] text-muted-foreground">Unverified location</span>
+                        <span className="text-detail text-muted-foreground">Unverified location</span>
                       )}
                     </td>
                     <td className="px-3 py-2.5 text-right tabular-nums">{accuracyLabel(r.accuracyM)}</td>

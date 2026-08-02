@@ -163,7 +163,7 @@ export function OpsAuditPanel({
                       key={it.id} item={data} tone={auditTone(it.status)} options={AUDIT_OPTIONS}
                       onChange={(v) => onChange(it, v)} disabled={!canAudit}
                       badge={it.critical ? (
-                        <span className="inline-flex items-center gap-0.5 rounded bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-rose-600 dark:bg-rose-950/40 dark:text-rose-400">
+                        <span className="inline-flex items-center gap-0.5 rounded bg-rose-50 px-1.5 py-0.5 text-meta font-semibold uppercase text-rose-600 dark:bg-rose-950/40 dark:text-rose-400">
                           <ShieldAlert className="size-3" /> critical
                         </span>
                       ) : null}

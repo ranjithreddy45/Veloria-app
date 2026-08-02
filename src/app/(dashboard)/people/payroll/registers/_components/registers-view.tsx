@@ -64,7 +64,7 @@ export function RegistersView({ periods, initial }: { periods: Period[]; initial
           * not be truncated, so the register keeps its horizontal scroll — but
           * an unannounced sideways scroll reads as a broken page. Say it out
           * loud on phones only. */}
-        <p className="text-[12px] text-muted-foreground sm:hidden">
+        <p className="text-detail text-muted-foreground sm:hidden">
           Swipe the register sideways to see PF, ESI, PT, TDS and Net.
         </p>
         <div className="overflow-x-auto rounded-xl border bg-card">
@@ -84,7 +84,7 @@ export function RegistersView({ periods, initial }: { periods: Period[]; initial
             <TableBody>
               {reg.rows.map((r) => (
                 <TableRow key={r.employeeId}>
-                  <TableCell className="font-mono text-[12px]">{r.empCode}</TableCell>
+                  <TableCell className="font-mono text-detail">{r.empCode}</TableCell>
                   <TableCell>{r.name}</TableCell>
                   <TableCell className="text-right tabular-nums">{formatINR(r.gross)}</TableCell>
                   <TableCell className="text-right tabular-nums">{formatINR(r.pf)}</TableCell>

@@ -221,7 +221,7 @@ export function AvailabilityCalendar({ venues }: { venues: VenueLite[] }) {
           </div>
         ) : (
           <>
-            <div className="mb-1 grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-muted-foreground">
+            <div className="mb-1 grid grid-cols-7 gap-1 text-center text-meta font-medium text-muted-foreground">
               {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
                 <div key={i}>{d}</div>
               ))}
@@ -265,7 +265,7 @@ export function AvailabilityCalendar({ venues }: { venues: VenueLite[] }) {
                 );
               })}
             </div>
-            <div className="mt-3 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
+            <div className="mt-3 flex flex-wrap gap-3 text-meta text-muted-foreground">
               <Legend className="bg-success" label="Open" />
               <Legend className="bg-warning" label="Some slots taken" />
               <Legend className="bg-muted-foreground/30" label="Full / past" />
@@ -305,7 +305,7 @@ export function AvailabilityCalendar({ venues }: { venues: VenueLite[] }) {
                     }`}
                   >
                     <span className="block font-medium">{SLOT_LABEL[s.slot as SlotKey]}</span>
-                    <span className="mt-0.5 block text-[11px] opacity-80">
+                    <span className="mt-0.5 block text-meta opacity-80">
                       {isFree ? "Available" : "Booked"}
                     </span>
                   </button>
@@ -453,7 +453,7 @@ function HoldForm({
         {pending ? <Loader2 className="mr-2 size-5 animate-spin" /> : null}
         {pending ? "Holding your date…" : "Hold this date"}
       </Button>
-      <p className="text-center text-[11px] text-muted-foreground">
+      <p className="text-center text-meta text-muted-foreground">
         Next, you&apos;ll pay a small token to secure the slot. Your date is held while
         you complete payment.
       </p>

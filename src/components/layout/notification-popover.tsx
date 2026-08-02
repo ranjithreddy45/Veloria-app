@@ -237,7 +237,7 @@ export function NotificationPopover() {
         >
           <Bell className="size-4" />
           {unreadCount > 0 && (
-            <Badge className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center p-0 text-[10px] bg-primary text-primary-foreground border-0">
+            <Badge className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center p-0 text-meta bg-primary text-primary-foreground border-0">
               {unreadCount > 9 ? "9+" : unreadCount}
             </Badge>
           )}
@@ -255,7 +255,7 @@ export function NotificationPopover() {
               Notifications
             </h3>
             {unreadCount > 0 && (
-              <Badge className="bg-primary/10 text-primary text-[10px] px-1.5 py-0 border-0">
+              <Badge className="bg-primary/10 text-primary text-meta px-1.5 py-0 border-0">
                 {unreadCount} new
               </Badge>
             )}
@@ -367,7 +367,7 @@ function NotificationRow({
         <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
           {notification.message}
         </p>
-        <p className="mt-1 text-[10px] text-muted-foreground/60">
+        <p className="mt-1 text-meta text-muted-foreground/60">
           {formatDistanceToNow(new Date(notification.createdAt), {
             addSuffix: true,
           })}

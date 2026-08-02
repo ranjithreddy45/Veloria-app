@@ -50,12 +50,12 @@ export function BalanceView({
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <label className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-muted-foreground">
+        <label className="inline-flex items-center gap-1.5 text-detail font-medium text-muted-foreground">
           Leave type
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="h-8 rounded-lg border border-border/70 bg-background px-2 text-[12.5px] font-medium text-foreground shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+            className="h-8 rounded-lg border border-border/70 bg-background px-2 text-detail font-medium text-foreground shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
           >
             <option value="">All types</option>
             {types.map((t) => (
@@ -74,7 +74,7 @@ export function BalanceView({
         <div className="overflow-x-auto rounded-2xl border border-border/60 bg-card shadow-premium">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border/60 text-left text-[11.5px] uppercase tracking-wide text-muted-foreground">
+              <tr className="border-b border-border/60 text-left text-meta uppercase tracking-wide text-muted-foreground">
                 <th className="px-4 py-2.5 font-medium">Employee</th>
                 <th className="px-4 py-2.5 font-medium">Type</th>
                 <th className="px-4 py-2.5 text-right font-medium">Entitled</th>
@@ -89,7 +89,7 @@ export function BalanceView({
                 <tr key={`${r.employeeId}-${r.leaveTypeId}`} className="border-b border-border/40 last:border-0 hover:bg-muted/30">
                   <td className="px-4 py-2.5">
                     <div className="font-medium text-foreground">{r.name}</div>
-                    <div className="text-[11px] text-muted-foreground">{r.empCode}</div>
+                    <div className="text-meta text-muted-foreground">{r.empCode}</div>
                   </td>
                   <td className="px-4 py-2.5"><TypeChip code={r.leaveTypeCode} color={r.color} /></td>
                   <td className="px-4 py-2.5 text-right tabular-nums">{r.entitled}</td>

@@ -90,7 +90,7 @@ export function PortalNav({ userName, contractsAwaiting = 0 }: PortalNavProps) {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors duration-200",
+                  "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-body font-medium transition-colors duration-200",
                   isActive
                     ? "bg-foreground/[0.06] text-foreground dark:bg-foreground/10"
                     : "text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04]"
@@ -99,7 +99,7 @@ export function PortalNav({ userName, contractsAwaiting = 0 }: PortalNavProps) {
                 <Icon className="size-3.5" strokeWidth={2} />
                 {link.label}
                 {badge !== null && (
-                  <span className="bg-primary text-primary-foreground numeric ml-0.5 inline-flex min-w-4 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none">
+                  <span className="bg-primary text-primary-foreground numeric ml-0.5 inline-flex min-w-4 items-center justify-center rounded-full px-1.5 py-0.5 text-meta font-semibold leading-none">
                     {badge}
                   </span>
                 )}
@@ -138,7 +138,7 @@ export function PortalNav({ userName, contractsAwaiting = 0 }: PortalNavProps) {
               <span className="hidden lg:inline">Get the app</span>
             </Link>
           </Button>
-          <span className="text-muted-foreground hidden text-[13px] sm:inline">
+          <span className="text-muted-foreground hidden text-body sm:inline">
             {userName}
           </span>
           <Button
@@ -191,7 +191,7 @@ export function PortalNav({ userName, contractsAwaiting = 0 }: PortalNavProps) {
                   <Icon className="size-[18px]" />
                   {link.label}
                   {badge !== null && (
-                    <span className="bg-primary text-primary-foreground numeric ml-auto inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none">
+                    <span className="bg-primary text-primary-foreground numeric ml-auto inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-meta font-semibold leading-none">
                       {badge}
                     </span>
                   )}

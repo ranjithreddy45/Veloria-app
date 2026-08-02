@@ -25,7 +25,7 @@ export default async function PortalSurveyPage({
       <div className="space-y-10">
         <Link
           href="/portal"
-          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-2 text-[13px] transition-colors"
+          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-2 text-body transition-colors"
         >
           <ArrowLeft className="size-3.5" />
           Back to my portal
@@ -36,7 +36,7 @@ export default async function PortalSurveyPage({
             <div className="bg-muted flex size-16 items-center justify-center rounded-2xl">
               <ClipboardX className="text-muted-foreground/60 size-8" />
             </div>
-            <h2 className="font-editorial text-foreground mt-5 text-[22px] font-semibold">
+            <h2 className="font-editorial text-foreground mt-5 text-title font-semibold">
               This survey has closed
             </h2>
             <p className="text-muted-foreground mt-2 max-w-md text-sm leading-relaxed">
@@ -56,7 +56,7 @@ export default async function PortalSurveyPage({
     <div className="space-y-10">
       <Link
         href="/portal"
-        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-2 text-[13px] transition-colors"
+        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-2 text-body transition-colors"
       >
         <ArrowLeft className="size-3.5" />
         Back to my portal

@@ -28,7 +28,7 @@ export default async function FnfDetailPage({ params }: { params: Promise<{ id: 
 
   return (
     <div className="space-y-6">
-      <Link href="/people/payroll/fnf" className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground">
+      <Link href="/people/payroll/fnf" className="inline-flex items-center gap-1.5 text-body text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-3.5" /> Full & Final Settlements
       </Link>
 

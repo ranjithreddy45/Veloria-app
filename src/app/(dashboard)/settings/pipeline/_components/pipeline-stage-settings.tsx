@@ -223,19 +223,19 @@ export function PipelineStageSettings({
                   {stage.name}
                 </span>
                 {stage.isWonStage && (
-                  <Badge className="bg-success/15 text-success text-[10px] gap-1">
+                  <Badge className="bg-success/15 text-success text-meta gap-1">
                     <Trophy className="size-2.5" />
                     Won Stage
                   </Badge>
                 )}
                 {stage.isLostStage && (
-                  <Badge className="bg-destructive/15 text-destructive text-[10px] gap-1">
+                  <Badge className="bg-destructive/15 text-destructive text-meta gap-1">
                     <XCircle className="size-2.5" />
                     Lost Stage
                   </Badge>
                 )}
                 {stage.isDefault && (
-                  <Badge variant="secondary" className="text-[10px]">
+                  <Badge variant="secondary" className="text-meta">
                     Default
                   </Badge>
                 )}

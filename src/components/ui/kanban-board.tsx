@@ -75,7 +75,7 @@ export function KanbanBoard<T>({
           than a gradient mask, which would fade the last column even when the
           board is fully scrolled. */}
       {columns.length > 1 && (
-        <p className="mb-2 flex items-center gap-1.5 text-[11.5px] text-muted-foreground md:hidden">
+        <p className="mb-2 flex items-center gap-1.5 text-meta text-muted-foreground md:hidden">
           <span aria-hidden>←</span>
           Swipe to see all {columns.length} stages
           <span aria-hidden>→</span>
@@ -96,20 +96,20 @@ export function KanbanBoard<T>({
               <div className="flex items-center gap-2 px-0.5">
                 <span
                   className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-semibold",
+                    "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-meta font-semibold",
                     HUE_PILL[hue]
                   )}
                 >
                   <span className={cn("size-1.5 rounded-full", HUE_DOT[hue])} />
                   {col.label}
                 </span>
-                <span className="ml-auto text-[11.5px] font-semibold text-muted-foreground">
+                <span className="ml-auto text-meta font-semibold text-muted-foreground">
                   {col.items.length}
                 </span>
               </div>
               <div className="flex flex-col gap-2.5">
                 {col.items.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-border/70 px-3 py-6 text-center text-[12px] text-muted-foreground/70">
+                  <div className="rounded-xl border border-dashed border-border/70 px-3 py-6 text-center text-detail text-muted-foreground/70">
                     {emptyLabel}
                   </div>
                 ) : (

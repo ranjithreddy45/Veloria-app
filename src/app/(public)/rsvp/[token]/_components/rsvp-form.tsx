@@ -61,7 +61,7 @@ export function RsvpForm({ token, guestName }: RsvpFormProps) {
         {response === "ACCEPTED" ? (
           <>
             <CheckCircle2 className="mx-auto size-11 text-success" />
-            <h3 className="font-editorial text-foreground mt-4 text-[22px] font-semibold">
+            <h3 className="font-editorial text-foreground mt-4 text-title font-semibold">
               Thank you, {guestName}
             </h3>
             <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
@@ -71,7 +71,7 @@ export function RsvpForm({ token, guestName }: RsvpFormProps) {
         ) : (
           <>
             <XCircle className="text-muted-foreground/50 mx-auto size-11" />
-            <h3 className="font-editorial text-foreground mt-4 text-[22px] font-semibold">
+            <h3 className="font-editorial text-foreground mt-4 text-title font-semibold">
               Thank you for letting us know
             </h3>
             <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
@@ -88,7 +88,7 @@ export function RsvpForm({ token, guestName }: RsvpFormProps) {
       {/* Optional Details */}
       <div className="space-y-4">
         <div>
-          <Label htmlFor="plusOnes" className="text-muted-foreground text-[13px] font-medium">
+          <Label htmlFor="plusOnes" className="text-muted-foreground text-body font-medium">
             Anyone joining you?
           </Label>
           <Input
@@ -106,7 +106,7 @@ export function RsvpForm({ token, guestName }: RsvpFormProps) {
         <div>
           <Label
             htmlFor="dietaryRestrictions"
-            className="text-muted-foreground text-[13px] font-medium"
+            className="text-muted-foreground text-body font-medium"
           >
             Dietary preferences (optional)
           </Label>
@@ -121,7 +121,7 @@ export function RsvpForm({ token, guestName }: RsvpFormProps) {
         </div>
 
         <div>
-          <Label htmlFor="message" className="text-muted-foreground text-[13px] font-medium">
+          <Label htmlFor="message" className="text-muted-foreground text-body font-medium">
             A note for your hosts (optional)
           </Label>
           <Textarea

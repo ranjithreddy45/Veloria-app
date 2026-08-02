@@ -36,7 +36,7 @@ export function LeaveReportNav() {
             role="tab"
             aria-selected={active}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-[10px] px-2.5 py-1.5 text-[12.5px] font-medium transition-all duration-150 active:scale-[0.97]",
+              "inline-flex items-center gap-1.5 rounded-[10px] px-2.5 py-1.5 text-detail font-medium transition-all duration-150 active:scale-[0.97]",
               active
                 ? "bg-blue-500/12 text-blue-600 shadow-[inset_0_0_0_1px_oklch(0.6_0.2_255/0.18)] dark:bg-blue-400/15 dark:text-blue-300"
                 : "text-muted-foreground hover:bg-background/70 hover:text-foreground",

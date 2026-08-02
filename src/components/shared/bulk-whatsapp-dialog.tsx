@@ -191,7 +191,7 @@ export function BulkWhatsAppDialog({
                 </p>
                 <div className="flex flex-wrap gap-1">
                   {currentTemplate.params.map((p) => (
-                    <Badge key={p} variant="secondary" className="text-[10px]">
+                    <Badge key={p} variant="secondary" className="text-meta">
                       {`{{${p}}}`}
                     </Badge>
                   ))}

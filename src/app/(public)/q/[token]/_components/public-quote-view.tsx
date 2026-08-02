@@ -40,7 +40,7 @@ function TierCard({
       ].join(" ")}
     >
       {tier.isRecommended && (
-        <div className="bg-primary text-primary-foreground flex items-center justify-center gap-1.5 py-2 text-[10px] font-semibold uppercase tracking-[0.16em]">
+        <div className="bg-primary text-primary-foreground flex items-center justify-center gap-1.5 py-2 text-meta font-semibold uppercase tracking-[0.16em]">
           <Star className="size-3 fill-current" /> Recommended
         </div>
       )}
@@ -50,7 +50,7 @@ function TierCard({
           line-item column only ~287px before the amount column. */}
       <div className="flex flex-1 flex-col p-5 sm:p-6">
         {!isOnly && (
-          <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.16em]">
+          <p className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.16em]">
             {tier.displayName}
           </p>
         )}
@@ -58,16 +58,16 @@ function TierCard({
         {/* Headline price. flex-wrap + baseline so a crore-scale figure pushes
             "all inclusive" onto its own line instead of overflowing. */}
         <div className="mt-3 flex flex-wrap items-baseline gap-x-2">
-          <span className="numeric text-foreground text-[27px] font-semibold leading-none sm:text-[30px]">
+          <span className="numeric text-foreground text-h2 font-semibold leading-none sm:text-h1">
             {inr(tier.grandTotal)}
           </span>
-          <span className="text-muted-foreground text-[12px]">
+          <span className="text-muted-foreground text-detail">
             all inclusive
           </span>
         </div>
 
         {/* Inclusions */}
-        <ul className="mt-6 space-y-2.5 text-[13px]">
+        <ul className="mt-6 space-y-2.5 text-body">
           {tier.lines.map((l) => (
             <li key={l.sl} className="flex items-start justify-between gap-3">
               <span className="text-muted-foreground flex items-start gap-2">
@@ -77,7 +77,7 @@ function TierCard({
                     {l.particulars}
                   </span>
                   {l.plan ? (
-                    <span className="text-muted-foreground/80 block text-[11.5px]">
+                    <span className="text-muted-foreground/80 block text-meta">
                       {l.plan}
                     </span>
                   ) : null}
@@ -91,7 +91,7 @@ function TierCard({
         </ul>
 
         {/* Totals */}
-        <div className="bg-muted/50 mt-6 space-y-1.5 rounded-xl p-4 text-[12.5px]">
+        <div className="bg-muted/50 mt-6 space-y-1.5 rounded-xl p-4 text-detail">
           <Row label="Subtotal" value={inr(tier.subtotal)} />
           {tier.discountAmount > 0 && (
             <Row
@@ -108,20 +108,20 @@ function TierCard({
         {/* Payment schedule */}
         {tier.paymentSchedule.length > 0 && (
           <div className="mt-5 space-y-2">
-            <p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.16em]">
+            <p className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.16em]">
               Payment plan
             </p>
             {tier.paymentSchedule.map((p, i) => (
               <div
                 key={i}
-                className="flex items-baseline justify-between gap-3 text-[12px]"
+                className="flex items-baseline justify-between gap-3 text-detail"
               >
                 <span className="text-muted-foreground">
                   {p.label}{" "}
                   <span className="numeric text-muted-foreground/70">
                     ({p.pct}%)
                   </span>
-                  <span className="text-muted-foreground/70 block text-[10.5px]">
+                  <span className="text-muted-foreground/70 block text-meta">
                     {p.dueHint}
                   </span>
                 </span>
@@ -209,16 +209,16 @@ export function PublicQuoteView({
     <div className="space-y-7">
       {/* Greeting */}
       <header className="text-center">
-        <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.18em]">
+        <p className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.18em]">
           Prepared for {view.clientFirstName}
         </p>
-        <h1 className="text-foreground mt-3 text-[30px] sm:text-[36px]">
+        <h1 className="text-foreground mt-3 text-h1 sm:text-h1">
           {view.paid || view.blocked
             ? "Your date is secured"
             : "Your personalised quote"}
         </h1>
         {view.occasion && (
-          <p className="text-muted-foreground mx-auto mt-3 max-w-md text-[15px] leading-relaxed">
+          <p className="text-muted-foreground mx-auto mt-3 max-w-md text-copy leading-relaxed">
             Everything we&apos;ve planned for your {view.occasion}, laid out
             clearly.
           </p>
@@ -227,7 +227,7 @@ export function PublicQuoteView({
 
       {/* Event facts */}
       {(eventDateLabel || view.slotLabel || view.venueName || view.guestCount) && (
-        <div className="flex flex-wrap items-center justify-center gap-2 text-[12.5px]">
+        <div className="flex flex-wrap items-center justify-center gap-2 text-detail">
           {view.venueName && (
             <span className="bg-card text-foreground/85 inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 font-medium">
               <MapPin className="text-muted-foreground/60 size-3.5" />{" "}
@@ -260,7 +260,7 @@ export function PublicQuoteView({
 
       {/* Anchor hint for multi-tier */}
       {isMultiTier && (
-        <p className="text-muted-foreground flex items-center justify-center gap-1.5 text-center text-[12.5px]">
+        <p className="text-muted-foreground flex items-center justify-center gap-1.5 text-center text-detail">
           <Sparkles className="size-3.5 text-warning" />
           Choose the experience that fits you best — pay 20% to block your date instantly.
         </p>
@@ -284,8 +284,8 @@ export function PublicQuoteView({
 
       {/* Notes / details from the rep */}
       {view.notes && view.notes.trim() && (
-        <div className="bg-card shadow-card mx-auto max-w-md rounded-2xl border p-5 text-[13px]">
-          <p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.16em]">
+        <div className="bg-card shadow-card mx-auto max-w-md rounded-2xl border p-5 text-body">
+          <p className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.16em]">
             Notes &amp; details
           </p>
           <p className="text-foreground/85 mt-2 whitespace-pre-wrap leading-relaxed">

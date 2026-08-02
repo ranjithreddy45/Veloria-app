@@ -155,7 +155,7 @@ export function BankReconcile({
                       )}
                       {t.status === "UNMATCHED" && (
                         <div className="flex items-center justify-end gap-1">
-                          {suggestions[t.id] && <span className="hidden items-center gap-0.5 text-[10px] text-violet-600 sm:inline-flex"><Sparkles className="size-3" />{suggestions[t.id].code}</span>}
+                          {suggestions[t.id] && <span className="hidden items-center gap-0.5 text-meta text-violet-600 sm:inline-flex"><Sparkles className="size-3" />{suggestions[t.id].code}</span>}
                           <Select disabled={busy === t.id} onValueChange={(code) => run(t.id, () => categorizeBankTxn(t.id, code), (d) => `Posted ${(d as { entryNo: string } | undefined)?.entryNo ?? ""}.`)} defaultValue={suggestions[t.id]?.code}>
                             <SelectTrigger className="h-8 w-40"><SelectValue placeholder="Categorize…" /></SelectTrigger>
                             <SelectContent>
@@ -187,7 +187,7 @@ function Stat({ label, value, sub, tone }: { label: string; value: string; sub?:
     <div className="rounded-xl border bg-card p-3 shadow-card">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className={`text-lg font-semibold numeric ${tone === "warn" ? "text-warning" : tone === "ok" ? "text-success" : ""}`}>{value}</p>
-      {sub && <p className="text-[11px] text-muted-foreground">{sub}</p>}
+      {sub && <p className="text-meta text-muted-foreground">{sub}</p>}
     </div>
   );
 }

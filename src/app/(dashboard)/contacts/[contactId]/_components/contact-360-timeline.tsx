@@ -257,7 +257,7 @@ export function Contact360Timeline({ contactId }: Contact360TimelineProps) {
                           <Badge
                             variant="outline"
                             className={cn(
-                              "border font-medium text-[11px]",
+                              "border font-medium text-meta",
                               config.color
                             )}
                           >

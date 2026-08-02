@@ -71,7 +71,7 @@ export default async function PortalBookingsPage() {
           {/* Upcoming Bookings */}
           {upcomingBookings.length > 0 && (
             <section className="space-y-4">
-              <h2 className="text-muted-foreground flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em]">
+              <h2 className="text-muted-foreground flex items-center gap-2 text-meta font-semibold uppercase tracking-[0.14em]">
                 Upcoming events
                 <span className="numeric text-muted-foreground/60">
                   {upcomingBookings.length}
@@ -88,7 +88,7 @@ export default async function PortalBookingsPage() {
           {/* Past Bookings */}
           {pastBookings.length > 0 && (
             <section className="space-y-4">
-              <h2 className="text-muted-foreground flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em]">
+              <h2 className="text-muted-foreground flex items-center gap-2 text-meta font-semibold uppercase tracking-[0.14em]">
                 Past events
                 <span className="numeric text-muted-foreground/60">
                   {pastBookings.length}
@@ -144,19 +144,19 @@ function BookingCard({ booking, isPast }: BookingCardProps) {
           >
             <div className="text-center">
               <p
-                className={`numeric text-[26px] font-semibold leading-none ${isPast ? "text-muted-foreground/60" : "text-primary"}`}
+                className={`numeric text-h2 font-semibold leading-none ${isPast ? "text-muted-foreground/60" : "text-primary"}`}
               >
                 {eventDate.getDate()}
               </p>
               <p
-                className={`mt-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${isPast ? "text-muted-foreground/60" : "text-primary/70"}`}
+                className={`mt-1 text-meta font-semibold uppercase tracking-[0.12em] ${isPast ? "text-muted-foreground/60" : "text-primary/70"}`}
               >
                 {eventDate.toLocaleDateString("en-IN", { month: "short" })}
               </p>
             </div>
             <div className="bg-border h-9 w-px" />
             <div className="min-w-0 flex-1">
-              <p className="font-editorial text-foreground truncate text-[16px] font-semibold">
+              <p className="font-editorial text-foreground truncate text-lede font-semibold">
                 {booking.eventName}
               </p>
               <p className="text-muted-foreground truncate text-xs">
@@ -167,7 +167,7 @@ function BookingCard({ booking, isPast }: BookingCardProps) {
               status={booking.status}
               colorMap={BOOKING_STATUS_COLORS}
               label={BOOKING_STATUS_CLIENT_LABELS[booking.status]}
-              className="text-[10px]"
+              className="text-meta"
             />
           </div>
 
@@ -190,7 +190,7 @@ function BookingCard({ booking, isPast }: BookingCardProps) {
                   <span className="numeric">{booking.guestCount}</span> guests
                 </span>
               </div>
-              <span className="numeric text-foreground text-[15px] font-semibold">
+              <span className="numeric text-foreground text-copy font-semibold">
                 {formatINR(booking.totalAmount)}
               </span>
             </div>
@@ -198,7 +198,7 @@ function BookingCard({ booking, isPast }: BookingCardProps) {
 
           {/* Footer */}
           <div className="bg-muted/25 flex items-center justify-between border-t px-5 py-2.5">
-            <span className="numeric text-muted-foreground/60 text-[11px]">
+            <span className="numeric text-muted-foreground/60 text-meta">
               {booking.bookingNumber}
             </span>
             {/* Visible by default on touch: there is no hover on a phone, so

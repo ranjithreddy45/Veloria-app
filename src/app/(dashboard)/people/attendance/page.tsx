@@ -53,9 +53,9 @@ export default async function AttendancePage() {
       </div>
 
       {!data ? (
-        <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground">Please sign in.</div>
+        <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-body text-muted-foreground">Please sign in.</div>
       ) : data.linked === false ? (
-        <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-[13px] text-muted-foreground">
+        <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-body text-muted-foreground">
           Your account isn’t linked to an employee record yet, so attendance can’t be tracked.
           {canApprove && " You can still review regularizations."}
         </div>

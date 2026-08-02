@@ -60,16 +60,16 @@ export function StatTile({ label, value, accent = "indigo", icon, sub, delta, de
             {icon && <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-xl shadow-sm transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.34,1.4,0.64,1)] group-hover:scale-110 group-hover:shadow-md [&>svg]:size-4", a.chip)}>{icon}</span>}
             {/* min-w-0 + wrapping: labels like "Leads created this month" must
                 wrap rather than push the tile wider than its grid cell. */}
-            <span className="min-w-0 text-[11px] font-medium leading-snug tracking-[-0.005em] text-muted-foreground sm:text-xs">{label}</span>
+            <span className="min-w-0 text-meta font-medium leading-snug tracking-[-0.005em] text-muted-foreground sm:text-xs">{label}</span>
           </div>
           {/* break-words, never truncate — a clipped money figure is a wrong
               number, so a long value wraps to a second line instead. */}
-          <div className="mt-2.5 break-words text-[22px] font-bold tabular-nums leading-tight tracking-[-0.03em] sm:mt-3 sm:text-[28px] sm:leading-none">
+          <div className="mt-2.5 break-words text-title font-bold tabular-nums leading-tight tracking-[-0.03em] sm:mt-3 sm:text-h2 sm:leading-none">
             {typeof value === "number" ? <CountUp value={value} /> : value}
           </div>
-          {sub && <p className="mt-2 text-[11px] leading-snug text-muted-foreground">{sub}</p>}
+          {sub && <p className="mt-2 text-meta leading-snug text-muted-foreground">{sub}</p>}
           {typeof delta === "number" && delta !== 0 && (
-            <p className={cn("mt-2 inline-flex items-center gap-0.5 text-[11.5px] font-semibold tabular-nums", delta > 0 ? "text-success" : "text-destructive")}>
+            <p className={cn("mt-2 inline-flex items-center gap-0.5 text-meta font-semibold tabular-nums", delta > 0 ? "text-success" : "text-destructive")}>
               {delta > 0 ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />}
               {delta > 0 ? "+" : ""}{delta}{deltaLabel ?? ""}
             </p>

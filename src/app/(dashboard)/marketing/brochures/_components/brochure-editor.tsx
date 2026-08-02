@@ -358,7 +358,7 @@ export function BrochureEditor({
                       className="h-full w-full object-cover"
                     />
                     {selected && (
-                      <span className="absolute right-1 top-1 rounded-full bg-violet-600 px-1.5 text-[10px] font-bold text-white">
+                      <span className="absolute right-1 top-1 rounded-full bg-violet-600 px-1.5 text-meta font-bold text-white">
                         ✓
                       </span>
                     )}
@@ -401,7 +401,7 @@ export function BrochureEditor({
                   <div className="min-w-0">
                     {r.title && <p className="text-sm font-medium">{r.title}</p>}
                     <p className="line-clamp-2 text-xs text-zinc-500">{r.content}</p>
-                    <p className="mt-1 text-[11px] text-zinc-400">— {r.authorFirstName}</p>
+                    <p className="mt-1 text-meta text-zinc-400">— {r.authorFirstName}</p>
                   </div>
                 </button>
               );

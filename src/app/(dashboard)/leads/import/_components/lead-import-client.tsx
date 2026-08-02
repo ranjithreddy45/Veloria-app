@@ -178,7 +178,7 @@ export function LeadImportClient() {
             </Button>
 
             {result && (
-              <div className="bg-success/10 rounded-xl border p-4 text-[13px]">
+              <div className="bg-success/10 rounded-xl border p-4 text-body">
                 <p className="text-success flex items-center gap-1.5 font-medium">
                   <CheckCircle2 className="size-4" /> Import complete
                 </p>

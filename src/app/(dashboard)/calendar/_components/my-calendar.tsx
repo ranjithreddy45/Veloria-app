@@ -166,7 +166,7 @@ function TaskRow({
         >
           {format(due, "h:mm")}
         </div>
-        <div className="text-[10px] font-medium uppercase text-muted-foreground">
+        <div className="text-meta font-medium uppercase text-muted-foreground">
           {format(due, "a")}
         </div>
       </div>
@@ -176,7 +176,7 @@ function TaskRow({
         <div className="flex flex-wrap items-center gap-2">
           <span
             className={cn(
-              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold",
+              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-meta font-semibold",
               style.badge
             )}
           >
@@ -184,12 +184,12 @@ function TaskRow({
             {style.label}
           </span>
           {overdue && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-destructive/12 px-2 py-0.5 text-[11px] font-semibold text-destructive ring-1 ring-inset ring-destructive/25">
+            <span className="inline-flex items-center gap-1 rounded-full bg-destructive/12 px-2 py-0.5 text-meta font-semibold text-destructive ring-1 ring-inset ring-destructive/25">
               Overdue
             </span>
           )}
           {isDone && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-success/12 px-2 py-0.5 text-[11px] font-semibold text-success ring-1 ring-inset ring-success/25">
+            <span className="inline-flex items-center gap-1 rounded-full bg-success/12 px-2 py-0.5 text-meta font-semibold text-success ring-1 ring-inset ring-success/25">
               <CheckCircle2 className="size-3" />
               Done
             </span>
@@ -302,7 +302,7 @@ export function MyCalendar({
           <Button variant="outline" size="icon" onClick={() => go(prev.m, prev.y)} aria-label="Previous month">
             <ChevronLeft className="size-4" />
           </Button>
-          <div className="min-w-[9.5rem] text-center text-[17px] font-semibold tracking-[-0.01em] tabular-nums">
+          <div className="min-w-[9.5rem] text-center text-lede font-semibold tracking-[-0.01em] tabular-nums">
             {monthLabel}
           </div>
           <Button variant="outline" size="icon" onClick={() => go(next.m, next.y)} aria-label="Next month">
@@ -322,7 +322,7 @@ export function MyCalendar({
             </Button>
           )}
         </div>
-        <div className="flex items-center gap-4 text-[13px]">
+        <div className="flex items-center gap-4 text-body">
           <span className="text-muted-foreground">
             <span className="numeric font-semibold text-foreground">{pendingCount}</span> pending
           </span>
@@ -353,14 +353,14 @@ export function MyCalendar({
                 <div className="flex items-center gap-2.5 px-1">
                   <h2
                     className={cn(
-                      "text-[13px] font-semibold uppercase tracking-[0.06em]",
+                      "text-body font-semibold uppercase tracking-[0.06em]",
                       today ? "text-primary" : "text-muted-foreground"
                     )}
                   >
                     {dayHeading(group.date)}
                   </h2>
                   <span className="h-px flex-1 bg-border/60" />
-                  <span className="numeric text-[12px] text-muted-foreground">
+                  <span className="numeric text-detail text-muted-foreground">
                     {group.items.length}
                   </span>
                 </div>
