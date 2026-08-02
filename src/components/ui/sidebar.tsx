@@ -309,7 +309,20 @@ function SidebarInset({ className, ...props }: React.ComponentProps<"main">) {
     <main
       data-slot="sidebar-inset"
       className={cn(
-        "bg-background relative flex w-full flex-1 flex-col",
+        // `min-w-0` is load-bearing, not tidying.
+        //
+        // A flex item defaults to `min-width: auto`, which means it refuses to
+        // shrink below its own min-content width. This <main> holds the top bar,
+        // whose right-hand control cluster is whitespace-nowrap — so main's
+        // min-content width was ~1432px and it would not shrink to fit. The
+        // result: 256px sidebar + 1432px main = 1688px of layout inside a
+        // 1440px window, i.e. the ENTIRE APP scrolled horizontally on every
+        // single page, clipping whatever sat at the right edge.
+        //
+        // It also defeated every `overflow-x-auto` further down: a data table
+        // can only scroll inside its own box if some ancestor is allowed to be
+        // narrower than the content. Nothing was.
+        "bg-background relative flex w-full min-w-0 flex-1 flex-col",
         "md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2",
         className
       )}

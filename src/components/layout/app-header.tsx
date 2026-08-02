@@ -58,7 +58,11 @@ import {
 
 const ROUTE_LABELS: Record<string, string> = {
   dashboard: "Dashboard",
-  contacts: "Contacts",
+  // The module is called "Enquiry" everywhere a user can see it — the sidebar
+  // item, the page heading, the page <title>. The breadcrumb saying "Contacts"
+  // was the only place still using the old internal name, so the same screen
+  // appeared to have two different names depending on where you looked.
+  contacts: "Enquiry",
   leads: "Leads",
   pipeline: "Sales Pipeline",
   bookings: "Bookings",
