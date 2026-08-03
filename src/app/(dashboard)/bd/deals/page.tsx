@@ -22,6 +22,11 @@ export const metadata: Metadata = { title: "Deal Board" };
 export default async function BdDealsPage() {
   const result = await getAcqDeals();
   const deals = (result.success ? result.data : []) as AcqDealCard[];
+  // The board renders the newest N. If there are more, SAY SO — otherwise the
+  // board quietly shows fewer deals than the dashboard counts and the two
+  // screens look like they disagree.
+  const truncated = result.success && result.truncated === true;
+  const totalDeals = result.success && typeof result.total === "number" ? result.total : deals.length;
 
   // Stage-count summary for the tiles above the board (display only).
   const count = (...stages: AcqDealCard["stage"][]) =>
@@ -34,7 +39,11 @@ export default async function BdDealsPage() {
         eyebrow="Business Development · Acquisition"
         title="Deal Board"
         help={<PageHelp id="bd-deals" />}
-        description="Acquisition pipeline — drag-free guarded stages. New deals start as a qualified lead."
+        description={
+          truncated
+            ? `Acquisition pipeline — showing the ${deals.length} most recently updated of ${totalDeals} deals. Use Reports for figures across the whole pipeline.`
+            : "Acquisition pipeline — drag-free guarded stages. New deals start as a qualified lead."
+        }
       >
         <Button asChild>
           {/* A BD deal is created by qualifying a lead, so "New deal" opens the

@@ -77,19 +77,39 @@ function rmMissingEconomics(d: {
 // ------------------------------------------------------------
 // List / get
 // ------------------------------------------------------------
-export async function getAcqDeals(): Promise<Result<unknown[]>> {
+
+// Newest-N the board renders at once. NOT exported: this is a "use server"
+// file, and those may only export async functions — an exported const compiles
+// fine locally and then fails the Vercel build. The count travels to the UI in
+// the action's return value instead.
+const ACQ_DEAL_BOARD_LIMIT = 500;
+export async function getAcqDeals(): Promise<Result<unknown[]> & { total?: number; truncated?: boolean }> {
   const user = await requireUser();
   if (!user || !acqHasAnyAccess(user.role)) return { success: false, error: "Unauthorized" };
-  const deals = await prisma.acqDeal.findMany({
-    where: { deletedAt: null },
-    include: {
-      bdExecutive: { select: { id: true, name: true } },
-      _count: { select: { attachments: true } },
-    },
-    orderBy: { updatedAt: "desc" },
-    take: 500,
-  });
-  return { success: true, data: serialize(deals) as unknown[] };
+  // The board is capped, so it MUST also report the true total.
+  //
+  // Silently returning the newest 500 is how a board and a dashboard start
+  // disagreeing: the dashboard counts every deal, the board shows a subset,
+  // and nothing on screen says a subset is what you are looking at. A cap that
+  // does not announce itself reads as "covered everything" when it did not.
+  const [deals, total] = await Promise.all([
+    prisma.acqDeal.findMany({
+      where: { deletedAt: null },
+      include: {
+        bdExecutive: { select: { id: true, name: true } },
+        _count: { select: { attachments: true } },
+      },
+      orderBy: { updatedAt: "desc" },
+      take: ACQ_DEAL_BOARD_LIMIT,
+    }),
+    prisma.acqDeal.count({ where: { deletedAt: null } }),
+  ]);
+  return {
+    success: true,
+    data: serialize(deals) as unknown[],
+    total,
+    truncated: total > deals.length,
+  };
 }
 
 export async function getAcqDeal(id: string): Promise<Result<unknown>> {
