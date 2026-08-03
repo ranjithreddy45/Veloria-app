@@ -79,6 +79,7 @@ export default async function LeadsPage({
   const canViewAll = result.success ? result.data.canViewAll : false;
   const scope = result.success ? result.data.scope : "mine";
   const statusFilter = first(sp.status);
+  const scopeIsMine = filters.scope === "mine";
   const filtersActive = Boolean(
     statusFilter ||
       filters.venueId ||
@@ -94,6 +95,21 @@ export default async function LeadsPage({
   // never claim a total the rows below don't cover. total = active leads in
   // scope; pipelineValue = Σ estimatedValue over open statuses (excludes
   // Won/Lost), matching the Pipeline value definition (S-1).
+  // WOULD THESE FILTERS MATCH ANYTHING OUTSIDE MY OWN BOOK?
+  //
+  // The list defaults to "My leads". Set a date range while nothing is
+  // assigned to you and you get an empty table — which reads as "the date
+  // filter is broken", not "these leads belong to someone else". The filter
+  // was working the whole time; the scope was hiding the answer.
+  //
+  // Only asked when it can change what we say: manager, own scope, no rows,
+  // and a filter actually applied.
+  const shouldOfferWiderScope =
+    scopeIsMine && canViewAll && leads.length === 0 && filtersActive;
+  const matchesInAllScope = shouldOfferWiderScope
+    ? await getLeadStats({ ...filters, scope: "all" }).then((r) => (r.success ? r.data.total : 0))
+    : 0;
+
   const totalLeads = statsResult.success ? statsResult.data.total : leads.length;
   const pipelineValue = statsResult.success ? statsResult.data.pipelineValue : 0;
 
@@ -179,13 +195,44 @@ export default async function LeadsPage({
             {filtersActive ? (
               <EmptyState
                 icon={<FilterXIcon className="size-6" />}
-                title="No leads match these filters"
+                title={
+                  matchesInAllScope > 0
+                    ? `${matchesInAllScope} lead${matchesInAllScope === 1 ? "" : "s"} match — just not yours`
+                    : "No leads match these filters"
+                }
                 description={
-                  scope === "mine" && canViewAll
-                    ? "Nothing in your own book matches this period or status. Widen the dates, clear the filters — or switch to All leads."
-                    : scope === "mine"
-                      ? "Nothing assigned to you matches this period or status. Try widening the dates or clearing the filters."
-                      : "No leads match this period or status. Try widening the dates or clearing the filters."
+                  matchesInAllScope > 0
+                    ? `Your filters are working. ${matchesInAllScope === 1 ? "That lead is" : "Those leads are"} assigned to someone else, and this list is showing only your own book.`
+                    : scope === "mine" && canViewAll
+                      ? "Nothing in your own book matches this period or status. Widen the dates, clear the filters — or switch to All leads."
+                      : scope === "mine"
+                        ? "Nothing assigned to you matches this period or status. Try widening the dates or clearing the filters."
+                        : "No leads match this period or status. Try widening the dates or clearing the filters."
+                }
+                action={
+                  matchesInAllScope > 0 ? (
+                    // KEEPS the filters and only widens the scope — the whole
+                    // point is to show the rows they already asked for.
+                    <Button asChild>
+                      <Link
+                        href={`/leads?${new URLSearchParams({
+                          ...Object.fromEntries(
+                            Object.entries({
+                              status: filters.status,
+                              venue: filters.venueId,
+                              eventFrom: filters.eventFrom,
+                              eventTo: filters.eventTo,
+                              createdFrom: filters.createdFrom,
+                              createdTo: filters.createdTo,
+                            }).filter(([, v]) => !!v) as [string, string][]
+                          ),
+                          scope: "all",
+                        }).toString()}`}
+                      >
+                        Show all {matchesInAllScope} with these filters
+                      </Link>
+                    </Button>
+                  ) : undefined
                 }
               />
             ) : scope === "mine" ? (
