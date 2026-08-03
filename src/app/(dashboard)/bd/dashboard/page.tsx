@@ -67,17 +67,27 @@ export default async function BdDashboardPage({
   const t = a?.totals;
   const funnelMax = a?.funnel[0]?.count ?? 0;
 
+  // EVERY tile here is scoped to the selected period (default: this month).
+  // The Deals BOARD, by contrast, shows the whole pipeline with no date filter.
+  // Both are correct answers to different questions — but the tiles never said
+  // WHICH question, so "Deals Created 3" next to a board holding 43 cards read
+  // as the two screens being out of sync. A number without its period is not a
+  // fact, it is a riddle. Each tile now carries the period it was measured over,
+  // so any figure is self-describing even in a screenshot.
+  const period = a?.range.label ?? "This period";
+  const withPeriod = (extra?: string) => (extra ? `${extra} · ${period}` : period);
+
   const kpis: { label: string; value: number; icon: React.ComponentType<{ className?: string }>; accent: Accent; sub?: string }[] = t
     ? [
-        { label: "Leads", value: t.leadsTotal, icon: Users, accent: "indigo", sub: `${t.leadsCold} cold · ${t.leadsCampaign} campaign` },
-        { label: "Deals Created", value: t.dealsCreated, icon: Handshake, accent: "gold" },
-        { label: "Qualified", value: t.dealsQualified, icon: CheckCircle2, accent: "blue" },
-        { label: "Won", value: t.dealsWon, icon: Trophy, accent: "emerald", sub: inr(t.wonValue) },
-        { label: "Lost", value: t.dealsLost, icon: XCircle, accent: "rose", sub: inr(t.lostValue) },
-        { label: "Calls Made", value: t.callsMade, icon: Phone, accent: "amber" },
-        { label: "Notes / Follow-ups", value: t.notesFollowups, icon: StickyNote, accent: "teal" },
-        { label: "Site Visits", value: t.siteVisitsDone, icon: MapPin, accent: "pink" },
-        { label: "Task Score", value: t.taskScore, icon: Sparkles, accent: "gold" },
+        { label: "Leads", value: t.leadsTotal, icon: Users, accent: "indigo", sub: withPeriod(`${t.leadsCold} cold · ${t.leadsCampaign} campaign`) },
+        { label: "Deals Created", value: t.dealsCreated, icon: Handshake, accent: "gold", sub: withPeriod() },
+        { label: "Qualified", value: t.dealsQualified, icon: CheckCircle2, accent: "blue", sub: withPeriod() },
+        { label: "Won", value: t.dealsWon, icon: Trophy, accent: "emerald", sub: withPeriod(inr(t.wonValue)) },
+        { label: "Lost", value: t.dealsLost, icon: XCircle, accent: "rose", sub: withPeriod(inr(t.lostValue)) },
+        { label: "Calls Made", value: t.callsMade, icon: Phone, accent: "amber", sub: withPeriod() },
+        { label: "Notes / Follow-ups", value: t.notesFollowups, icon: StickyNote, accent: "teal", sub: withPeriod() },
+        { label: "Site Visits", value: t.siteVisitsDone, icon: MapPin, accent: "pink", sub: withPeriod() },
+        { label: "Task Score", value: t.taskScore, icon: Sparkles, accent: "gold", sub: withPeriod() },
       ]
     : [];
 

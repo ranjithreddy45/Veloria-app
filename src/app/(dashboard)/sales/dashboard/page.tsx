@@ -91,20 +91,28 @@ export default async function SalesDashboardPage({
   const t = a?.totals;
   const funnelMax = a?.funnel[0]?.count ?? 0;
 
+  const period = a?.range.label ?? "This period";
+
+  const withPeriod = (extra?: string) => (extra ? `${extra} · ${period}` : period);
+
   const kpis: { label: string; value: number; icon: React.ComponentType<{ className?: string }>; accent: Accent; sub?: string }[] = t
     ? [
         // Two distinct counts — previously conflated under a single "Enquiries"
         // tile that actually showed the Lead count.
-        { label: "Enquiries created", value: t.enquiriesCreated, icon: Inbox, accent: "cyan", sub: empFiltered ? "All staff — not employee-filtered" : "New enquiries (contacts)" },
-        { label: "Leads created", value: t.leadsCreated, icon: Users, accent: "indigo", sub: `${t.enquiriesCold} cold · ${t.enquiriesCampaign} campaign` },
-        { label: "Site Visits", value: t.siteVisits, icon: MapPin, accent: "pink" },
-        { label: "Quotations Sent", value: t.quotationsSent, icon: FileText, accent: "blue" },
-        { label: "Payment Links", value: t.paymentLinksSent, icon: Link2, accent: "teal" },
-        { label: "Advance Collected", value: t.advanceCollected, icon: Wallet, accent: "emerald", sub: inr(t.advanceCollected) },
-        { label: "Bookings Confirmed", value: t.bookingsConfirmed, icon: CheckCircle2, accent: "gold" },
-        { label: "Bookings Lost", value: t.bookingsLost, icon: XCircle, accent: "rose" },
-        { label: "Upsell Value", value: t.upsellValue, icon: TrendingUp, accent: "amber", sub: inr(t.upsellValue) },
-        { label: "Sales Score", value: t.salesScore, icon: Sparkles, accent: "gold" },
+        // Every tile is scoped to the selected period; the Enquiry and Leads
+        // LISTS are not. Same trap as the BD dashboard: without the period
+        // printed on the tile, "Leads created 8" next to a list of 43 reads as
+        // two screens disagreeing rather than two different questions.
+        { label: "Enquiries created", value: t.enquiriesCreated, icon: Inbox, accent: "cyan", sub: withPeriod(empFiltered ? "All staff — not employee-filtered" : "New enquiries (contacts)") },
+        { label: "Leads created", value: t.leadsCreated, icon: Users, accent: "indigo", sub: withPeriod(`${t.enquiriesCold} cold · ${t.enquiriesCampaign} campaign`) },
+        { label: "Site Visits", value: t.siteVisits, icon: MapPin, accent: "pink", sub: withPeriod() },
+        { label: "Quotations Sent", value: t.quotationsSent, icon: FileText, accent: "blue", sub: withPeriod() },
+        { label: "Payment Links", value: t.paymentLinksSent, icon: Link2, accent: "teal", sub: withPeriod() },
+        { label: "Advance Collected", value: t.advanceCollected, icon: Wallet, accent: "emerald", sub: withPeriod(inr(t.advanceCollected)) },
+        { label: "Bookings Confirmed", value: t.bookingsConfirmed, icon: CheckCircle2, accent: "gold", sub: withPeriod() },
+        { label: "Bookings Lost", value: t.bookingsLost, icon: XCircle, accent: "rose", sub: withPeriod() },
+        { label: "Upsell Value", value: t.upsellValue, icon: TrendingUp, accent: "amber", sub: withPeriod(inr(t.upsellValue)) },
+        { label: "Sales Score", value: t.salesScore, icon: Sparkles, accent: "gold", sub: withPeriod() },
       ]
     : [];
 

@@ -51,16 +51,23 @@ export default async function LeadsPage({
 
   // Ceiling lets the client-side table page through records without the
   // default-50 cutoff, while keeping the payload far lighter than 1000.
-  const [result, statsResult, testCountResult, unassignedResult, venuesResult, session] =
+  const [result, statsResult, orgStatsResult, testCountResult, unassignedResult, venuesResult, session] =
     await Promise.all([
       getLeads({ ...filters, limit: 500 }),
       getLeadStats(filters),
+      // Unscoped count, so an empty "My leads" can tell the truth about whether
+      // the PIPELINE is empty or merely this person's slice of it. getLeadStats
+      // is scoped to the same filters, so on its own it always reports 0 here —
+      // which is exactly how the page ended up claiming there were no leads
+      // while 41 sat in the database.
+      getLeadStats({ scope: "all" }),
       getTestLeadsCount(),
       getUnassignedLeadsCount(),
       getVenues({ activeOnly: true }),
       auth(),
     ]);
   const unassignedCount = unassignedResult.success ? unassignedResult.count : 0;
+  const orgLeadTotal = orgStatsResult.success ? orgStatsResult.data.total : 0;
   const venues = venuesResult.success
     ? venuesResult.data.map((v) => ({ id: v.id, name: v.name }))
     : [];
@@ -182,22 +189,55 @@ export default async function LeadsPage({
                 }
               />
             ) : scope === "mine" ? (
+              // An empty state must describe the SYSTEM, not just this query.
+              // "No leads assigned to you" next to a pipeline holding 41 leads
+              // reads as "the app is broken" — and the primary action was
+              // "New lead", pushing you to create a 42nd rather than look at
+              // the 41 that already exist. When there ARE leads elsewhere, say
+              // the number and make viewing them the primary action.
               <EmptyState
                 icon={<SparklesIcon className="size-6" />}
-                title="No leads assigned to you"
-                description="Leads land here once they're assigned to you. Create one yourself, or ask your manager to route enquiries your way."
+                title={
+                  canViewAll && orgLeadTotal > 0
+                    ? "None of these are yours yet"
+                    : "No leads assigned to you"
+                }
+                description={
+                  canViewAll && orgLeadTotal > 0
+                    ? `Nothing is assigned to you right now, but there ${orgLeadTotal === 1 ? "is" : "are"} ${orgLeadTotal} lead${orgLeadTotal === 1 ? "" : "s"} in the pipeline${unassignedCount > 0 ? `, ${unassignedCount} of them unassigned` : ""}.`
+                    : "Leads land here once they're assigned to you. Create one yourself, or ask your manager to route enquiries your way."
+                }
                 action={
                   <div className="flex flex-wrap items-center justify-center gap-2">
-                    <Button asChild>
-                      <Link href="/leads/new">
-                        <PlusIcon className="size-3.5" strokeWidth={2.5} />
-                        New lead
-                      </Link>
-                    </Button>
-                    {canViewAll && (
-                      <Button variant="outline" asChild>
-                        <Link href="/leads?scope=all">View all leads</Link>
-                      </Button>
+                    {canViewAll && orgLeadTotal > 0 ? (
+                      <>
+                        <Button asChild>
+                          <Link href="/leads?scope=all">
+                            View all {orgLeadTotal} leads
+                          </Link>
+                        </Button>
+                        {unassignedCount > 0 && (
+                          <Button variant="outline" asChild>
+                            <Link href="/leads?scope=unassigned">
+                              Route {unassignedCount} unassigned
+                            </Link>
+                          </Button>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <Button asChild>
+                          <Link href="/leads/new">
+                            <PlusIcon className="size-3.5" strokeWidth={2.5} />
+                            New lead
+                          </Link>
+                        </Button>
+                        {canViewAll && (
+                          <Button variant="outline" asChild>
+                            <Link href="/leads?scope=all">View all leads</Link>
+                          </Button>
+                        )}
+                      </>
                     )}
                   </div>
                 }
