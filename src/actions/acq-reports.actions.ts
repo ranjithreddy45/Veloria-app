@@ -149,18 +149,18 @@ export async function getBdLostAnalysis(params: ReportParams): Promise<Result<un
   const emp = empIds ? { bdExecutiveId: { in: empIds } } : {};
 
   const lost = await prisma.acqDeal.findMany({
-    where: { deletedAt: null, stage: "LOST", updatedAt: { gte: range.start, lte: range.end }, ...emp },
+    where: { deletedAt: null, stage: "LOST", lostAt: { gte: range.start, lte: range.end }, ...emp },
     select: {
       id: true, name: true, ownerName: true, city: true, lostReason: true,
-      projectedFeeValue: true, taFees: true, updatedAt: true, bdExecutive: { select: { name: true } },
+      projectedFeeValue: true, taFees: true, lostAt: true, bdExecutive: { select: { name: true } },
     },
-    orderBy: { updatedAt: "desc" }, take: 500,
+    orderBy: { lostAt: "desc" }, take: 500,
   });
 
   const rows = lost.map((d) => ({
     id: d.id, name: d.name, client: d.ownerName, city: d.city,
     reason: d.lostReason ?? "OTHER", reasonLabel: LOST_REASON_LABEL[d.lostReason ?? "OTHER"],
-    value: dealValue(d), owner: d.bdExecutive?.name ?? "—", lostOn: d.updatedAt.toISOString(),
+    value: dealValue(d), owner: d.bdExecutive?.name ?? "—", lostOn: d.lostAt ? d.lostAt.toISOString() : "",
   }));
 
   // 6-month win-rate trend (won vs lost by wonAt/updatedAt month) — ignores the
@@ -169,7 +169,7 @@ export async function getBdLostAnalysis(params: ReportParams): Promise<Result<un
   const sixMonthsAgo = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 5, 1));
   const [wonRecent, lostRecent] = await Promise.all([
     prisma.acqDeal.findMany({ where: { deletedAt: null, stage: "WON", wonAt: { gte: sixMonthsAgo }, ...emp }, select: { wonAt: true } }),
-    prisma.acqDeal.findMany({ where: { deletedAt: null, stage: "LOST", updatedAt: { gte: sixMonthsAgo }, ...emp }, select: { updatedAt: true } }),
+    prisma.acqDeal.findMany({ where: { deletedAt: null, stage: "LOST", lostAt: { gte: sixMonthsAgo }, ...emp }, select: { lostAt: true } }),
   ]);
   const monthKey = (d: Date) => `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
   const trendMap = new Map<string, { won: number; lost: number }>();
@@ -178,7 +178,7 @@ export async function getBdLostAnalysis(params: ReportParams): Promise<Result<un
     trendMap.set(monthKey(d), { won: 0, lost: 0 });
   }
   for (const w of wonRecent) if (w.wonAt) { const k = monthKey(w.wonAt); const e = trendMap.get(k); if (e) e.won++; }
-  for (const l of lostRecent) { const k = monthKey(l.updatedAt); const e = trendMap.get(k); if (e) e.lost++; }
+  for (const l of lostRecent) { if (!l.lostAt) continue; const k = monthKey(l.lostAt); const e = trendMap.get(k); if (e) e.lost++; }
   const trend = [...trendMap.entries()].map(([month, v]) => ({
     month, won: v.won, lost: v.lost,
     winRate: v.won + v.lost ? Math.round((v.won / (v.won + v.lost)) * 100) : 0,

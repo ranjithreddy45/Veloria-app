@@ -4466,6 +4466,13 @@ model AcqDeal {
   lostReason AcqLostReason?
   reengageAt DateTime?
   wonAt      DateTime?
+  // When the deal was actually LOST. Mirrors wonAt.
+  //
+  // Analytics previously counted losses by `updatedAt` because no such column
+  // existed, which meant ANY later edit — a typo fix, a note — re-dated the
+  // loss. A deal lost in June would silently jump into July's Lost figure and
+  // vanish from June's, rewriting a number someone had already reported.
+  lostAt     DateTime?
   propertyId String? // denormalized; property.dealId is authoritative
   property   AcqProperty?   @relation("AcqDealProperty")
 

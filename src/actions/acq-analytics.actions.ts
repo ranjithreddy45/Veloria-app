@@ -180,9 +180,9 @@ export async function getBdAnalytics(params: BdRangeParams): Promise<Result<unkn
         where: { deletedAt: null, stage: "WON", wonAt: inRange, ...(empFilter ? { bdExecutiveId: empFilter } : {}) },
         select: { id: true, bdExecutiveId: true, projectedFeeValue: true, taFees: true, wonAt: true },
       }),
-      // Deals lost in range (by updatedAt — no dedicated lostAt)
+      // Deals lost in range — by lostAt, so an edit cannot re-date a loss.
       prisma.acqDeal.findMany({
-        where: { deletedAt: null, stage: "LOST", updatedAt: inRange, ...(empFilter ? { bdExecutiveId: empFilter } : {}) },
+        where: { deletedAt: null, stage: "LOST", lostAt: inRange, ...(empFilter ? { bdExecutiveId: empFilter } : {}) },
         select: { id: true, bdExecutiveId: true, lostReason: true, projectedFeeValue: true, taFees: true },
       }),
       // Activities in range (calls, notes) — attributed to actorId

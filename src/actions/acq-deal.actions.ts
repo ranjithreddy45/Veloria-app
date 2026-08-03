@@ -752,6 +752,10 @@ export async function transitionAcqDeal(
         return { success: false, error: "A valid lost reason is required.", code: 422 };
       }
       data.lostReason = payload.lostReason;
+      // Stamp WHEN it was lost, exactly as the WON branch stamps wonAt.
+      // Without this, analytics had to fall back to updatedAt and any later
+      // edit re-dated the loss into a different month.
+      data.lostAt = new Date();
       if (shouldReengage(payload.lostReason)) {
         data.reengageAt = new Date(Date.now() + cfg.REENGAGE_DAYS * 24 * 60 * 60 * 1000);
       }
