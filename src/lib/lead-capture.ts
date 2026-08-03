@@ -8,7 +8,7 @@ import { runLeadIntake, leadSlaDeadline } from "@/lib/lead-pipeline";
 import { attachAttributionToLead, type AttributionInput } from "@/lib/attribution";
 import { normalizePhone } from "@/lib/sales/lead-import";
 import { coarseContactWhere, matchesContactKey, phoneDigits } from "@/lib/dedup";
-import { toEnquirySource, eventTypeTag } from "@/lib/enquiry-source";
+import { toEnquirySource, eventTypeTag, classifyWebChannel } from "@/lib/enquiry-source";
 
 /**
  * An email is only worth storing if it could plausibly be delivered to. Same
@@ -231,6 +231,26 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
     // Normalised once — used for the contact tag below.
     const eventTag = eventTypeTag(data.eventType);
 
+    // WHICH CHANNEL DID THIS ACTUALLY COME FROM?
+    //
+    // toEnquirySource maps the integration NAME ("website", "widget") — fine
+    // for an ad webhook, where the integration IS the channel. It is wrong for
+    // the website, where every visitor arrives through the same form but from
+    // completely different places: organic search, a paid ad, a wedding blog,
+    // or by typing the URL. Crediting all of them to "Lead form" describes the
+    // mechanism and hides the channel you actually buy.
+    //
+    // So when a capture carries attribution, let that decide. The click ids and
+    // utm tags are stamped by the platform or the campaign, and outrank a
+    // guess made from the integration's own name.
+    const namedChannel = toEnquirySource(data.source);
+    const observedChannel = classifyWebChannel(data.attribution);
+    // Only let the observation override the name for FORM-ish captures. An ad
+    // webhook already knows exactly which ad platform delivered it, and must
+    // not be second-guessed by a stray referrer header.
+    const channel =
+      namedChannel === "LEAD_FORM" && observedChannel ? observedChannel : namedChannel;
+
     if (!contact) {
       contact = await prisma.contact.create({
         data: {
@@ -239,8 +259,8 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
           email: cleanEmail || null,
           phone: cleanPhone || null,
           // Credit the marketing channel at the moment of capture — this is the
-          // only point where we still know which integration delivered it.
-          enquirySource: toEnquirySource(data.source),
+          // only point where we still know how this person reached us.
+          enquirySource: channel,
           // Tags carry WHAT THE EVENT IS — "Wedding", "Baby Shower" — which is
           // what staff scan the list for. The capture CHANNEL used to be
           // stamped here instead, filling every row with a "google_ads" chip
@@ -255,7 +275,6 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
     // Only fill a BLANK source: overwriting would let a later Direct walk-in
     // erase the Google Ads credit that actually won the customer.
     if (contact && !contact.enquirySource) {
-      const channel = toEnquirySource(data.source);
       await prisma.contact
         .update({ where: { id: contact.id }, data: { enquirySource: channel } })
         .catch(() => {}); // best-effort: never fail a capture over attribution

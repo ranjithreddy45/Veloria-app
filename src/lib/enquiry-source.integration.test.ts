@@ -76,6 +76,51 @@ describe("captureLeadFromExternal records the marketing channel", () => {
     expect(contact?.tags).toEqual([]);
   });
 
+  it.each([
+    ["organic search", { referrerUrl: "https://www.google.com/search?q=banquet+hall" }, "ORGANIC_SEARCH"],
+    ["a paid Google click", { gclid: "TESTCLICK" }, "GOOGLE_ADS"],
+    ["a wedding blog link", { referrerUrl: "https://weddingblog.example/venues" }, "REFERRAL"],
+    ["an Instagram share", { referrerUrl: "https://l.instagram.com/" }, "ORGANIC_SOCIAL"],
+  ])("a WEBSITE enquiry arriving via %s is credited correctly", async (_label, attribution, expected) => {
+    // All four submit the SAME form. Before this, all four were credited
+    // "Lead form", which describes the mechanism and hides the channel.
+    const idx = ["ORGANIC_SEARCH", "GOOGLE_ADS", "REFERRAL", "ORGANIC_SOCIAL"].indexOf(expected as string);
+    const res = await captureLeadFromExternal({
+      name: `Web Origin ${idx} ${U}`,
+      // A DISTINCT number series from phoneFor(): reusing those digits made
+      // dedup match the earlier cases' contacts, whose source was already set,
+      // so the "never overwrite an existing credit" guard correctly skipped
+      // the write and the assertion read the wrong contact's channel.
+      phone: `8${String(U).slice(-8)}${idx}`.slice(0, 10),
+      source: "WEBSITE",
+      attribution: { source: "website", ...(attribution as Record<string, string>) },
+    });
+    expect(res.success).toBe(true);
+    await track(res.contactId!);
+    const contact = await prisma.contact.findUnique({
+      where: { id: res.contactId! },
+      select: { enquirySource: true },
+    });
+    expect(contact?.enquirySource).toBe(expected);
+  });
+
+  it("an ad webhook is NOT second-guessed by a stray referrer", async () => {
+    // Google Ads already knows which platform delivered the lead. A referrer
+    // header must never downgrade that to organic.
+    const res = await captureLeadFromExternal({
+      name: `Ad Not Downgraded ${U}`,
+      phone: phoneFor(9),
+      source: "google_ads",
+      attribution: { source: "google_ads", referrerUrl: "https://www.google.com/search?q=x" },
+    });
+    expect(res.success).toBe(true);
+    await track(res.contactId!);
+    expect(
+      (await prisma.contact.findUnique({ where: { id: res.contactId! }, select: { enquirySource: true } }))
+        ?.enquirySource
+    ).toBe("GOOGLE_ADS");
+  });
+
   it("does not overwrite an existing credit when the same person re-enquires", async () => {
     // First touch: a paid Google click. This is the channel that won them.
     const first = await captureLeadFromExternal({

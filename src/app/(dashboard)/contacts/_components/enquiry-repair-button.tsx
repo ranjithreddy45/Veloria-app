@@ -39,9 +39,10 @@ export function EnquiryRepairButton({ affected }: { affected: number }) {
         toast.error(res.error);
         return;
       }
-      const { sourceFilled, tagsCleaned, tagsRetyped, phonesCleared } = res.data;
+      const { sourceFilled, tagsCleaned, tagsRetyped, phonesCleared, reclassified } = res.data;
       const parts = [
         sourceFilled ? `${sourceFilled} lead source${sourceFilled === 1 ? "" : "s"} recorded` : null,
+        reclassified ? `${reclassified} re-credited from "Website form" to a real channel` : null,
         tagsRetyped ? `${tagsRetyped} tag${tagsRetyped === 1 ? "" : "s"} set to the event type` : null,
         tagsCleaned - tagsRetyped > 0
           ? `${tagsCleaned - tagsRetyped} source tag${tagsCleaned - tagsRetyped === 1 ? "" : "s"} removed`
@@ -81,6 +82,11 @@ export function EnquiryRepairButton({ affected }: { affected: number }) {
                 <li>
                   Leaves your own tags alone. Labels such as &ldquo;Marriage&rdquo; or
                   &ldquo;Website shoot&rdquo; are never touched.
+                </li>
+                <li>
+                  Re-credits older enquiries filed as &ldquo;Website form&rdquo; to the channel
+                  they actually came from &mdash; organic search, a paid click, a referring
+                  site &mdash; using the campaign tags captured at the time.
                 </li>
                 <li>
                   Clears phone numbers stored as <code>FALSE</code> or <code>N/A</code>, which

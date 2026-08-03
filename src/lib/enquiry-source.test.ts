@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  classifyWebChannel,
   eventTypeTag,
   ENQUIRY_SOURCES,
   ENQUIRY_SOURCE_OPTIONS,
@@ -15,11 +16,17 @@ import {
 // ============================================================
 
 describe("enquiry source constants", () => {
-  it("exposes exactly the four agreed channels, in order", () => {
+  it("exposes the agreed channels, in order", () => {
+    // Extended beyond the original four once it became clear that "website"
+    // is not a channel: the same form receives organic search, paid clicks,
+    // referring sites and direct visits, and they are bought differently.
     expect([...ENQUIRY_SOURCES]).toEqual([
       "DIRECT",
+      "ORGANIC_SEARCH",
       "GOOGLE_ADS",
       "PAID_SOCIAL",
+      "ORGANIC_SOCIAL",
+      "REFERRAL",
       "LEAD_FORM",
     ]);
   });
@@ -36,7 +43,7 @@ describe("enquiry source constants", () => {
 
   it("every dropdown option is a valid stored value", () => {
     for (const o of ENQUIRY_SOURCE_OPTIONS) expect(isEnquirySource(o.value)).toBe(true);
-    expect(ENQUIRY_SOURCE_OPTIONS).toHaveLength(4);
+    expect(ENQUIRY_SOURCE_OPTIONS).toHaveLength(ENQUIRY_SOURCES.length);
   });
 
   it("rejects non-channel values so they can't reach the column", () => {
@@ -105,5 +112,73 @@ describe("eventTypeTag — the tag is the EVENT, not the channel", () => {
   it("refuses a whole message pasted into the event field", () => {
     const essay = "We are planning a wedding reception for about 400 guests in December";
     expect(eventTypeTag(essay)).toBeNull();
+  });
+});
+
+describe("classifyWebChannel — how the visitor actually arrived", () => {
+  it("trusts a paid click id above everything else", () => {
+    // The platform stamped these itself; they are facts, not conventions.
+    expect(classifyWebChannel({ gclid: "abc" })).toBe("GOOGLE_ADS");
+    expect(classifyWebChannel({ gbraid: "abc" })).toBe("GOOGLE_ADS");
+    expect(classifyWebChannel({ wbraid: "abc" })).toBe("GOOGLE_ADS");
+    expect(classifyWebChannel({ fbclid: "abc" })).toBe("PAID_SOCIAL");
+    // Even when a referrer suggests otherwise — the click id wins.
+    expect(
+      classifyWebChannel({ gclid: "abc", referrerUrl: "https://www.google.com/search?q=halls" })
+    ).toBe("GOOGLE_ADS");
+  });
+
+  it("reads organic search from the referring search engine", () => {
+    // This is the case that was being mislabelled "Lead form".
+    for (const ref of [
+      "https://www.google.com/search?q=banquet+hall+bengaluru",
+      "https://www.bing.com/search?q=wedding+venue",
+      "https://duckduckgo.com/?q=marriage+hall",
+      "https://in.search.yahoo.com/search?p=venue",
+    ]) {
+      expect(classifyWebChannel({ referrerUrl: ref })).toBe("ORGANIC_SEARCH");
+    }
+  });
+
+  it("separates paid social from unpaid social", () => {
+    expect(classifyWebChannel({ utmSource: "facebook", utmMedium: "cpc" })).toBe("PAID_SOCIAL");
+    expect(classifyWebChannel({ utmSource: "instagram", utmMedium: "paid_social" })).toBe("PAID_SOCIAL");
+    // A plain link shared in a story or bio is NOT ad spend.
+    expect(classifyWebChannel({ referrerUrl: "https://l.instagram.com/" })).toBe("ORGANIC_SOCIAL");
+    expect(classifyWebChannel({ referrerUrl: "https://www.facebook.com/" })).toBe("ORGANIC_SOCIAL");
+  });
+
+  it("counts another website linking to us as a referral", () => {
+    expect(classifyWebChannel({ referrerUrl: "https://someweddingblog.in/best-venues" })).toBe("REFERRAL");
+    expect(classifyWebChannel({ utmMedium: "referral" })).toBe("REFERRAL");
+  });
+
+  it("ignores our own domain — internal navigation is not acquisition", () => {
+    expect(classifyWebChannel({ referrerUrl: "https://www.theveloriagrand.com/pricing" })).toBeNull();
+    expect(classifyWebChannel({ referrerUrl: "https://veloriagrand.com/" })).toBeNull();
+  });
+
+  it("returns null when there is genuinely no signal", () => {
+    // Null, not a guess. The caller decides between Direct and "origin
+    // unknown" — inventing a channel here would fabricate attribution.
+    expect(classifyWebChannel({})).toBeNull();
+    expect(classifyWebChannel(null)).toBeNull();
+    expect(classifyWebChannel({ referrerUrl: "", utmSource: "", utmMedium: "" })).toBeNull();
+    expect(classifyWebChannel({ referrerUrl: "not a url" })).toBeNull();
+  });
+
+  it("maps utm_medium=organic to search, not to the form", () => {
+    expect(classifyWebChannel({ utmSource: "google", utmMedium: "organic" })).toBe("ORGANIC_SEARCH");
+  });
+
+  it("always returns a storable channel when it returns one at all", () => {
+    const cases = [
+      { gclid: "x" }, { fbclid: "x" }, { referrerUrl: "https://google.com/" },
+      { referrerUrl: "https://twitter.com/" }, { utmMedium: "referral" },
+    ];
+    for (const c of cases) {
+      const out = classifyWebChannel(c);
+      expect(out === null || isEnquirySource(out)).toBe(true);
+    }
   });
 });

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { toEnquirySource, eventTypeTag } from "@/lib/enquiry-source";
+import { toEnquirySource, eventTypeTag, classifyWebChannel } from "@/lib/enquiry-source";
 import { usableValue } from "@/lib/webhook-field";
 
 // ============================================================
@@ -18,6 +18,9 @@ import { usableValue } from "@/lib/webhook-field";
 //   2. REPLACES the channel word in `tags` with the EVENT TYPE — what the tag
 //      is actually for ("Wedding", "Baby Shower"), and what staff scan for.
 //   3. CLEARS junk phone values ("FALSE", "N/A") left by the old ad-webhook bug.
+//   4. RE-CLASSIFIES old "LEAD_FORM" rows from their stored attribution, so a
+//      visitor who found us on Google organic stops being filed under the form
+//      they happened to type into.
 //
 // ATTRIBUTION RULE: only ever derive from something real — the channel tag
 // written at capture, or the first lead's own recorded source. A contact with
@@ -83,6 +86,8 @@ export interface EnquiryRepairResult {
   phonesCleared: number;
   /** Left NULL on purpose — no tag and no lead to derive from. */
   skippedNoEvidence: number;
+  /** Old "LEAD_FORM" rows re-credited to a real channel from their attribution. */
+  reclassified: number;
 }
 
 export async function backfillEnquirySource(): Promise<EnquiryRepairResult> {
@@ -93,6 +98,7 @@ export async function backfillEnquirySource(): Promise<EnquiryRepairResult> {
       deletedAt: null,
       OR: [
         { enquirySource: null },
+        { enquirySource: "LEAD_FORM" }, // candidates for re-classification
         { tags: { isEmpty: false } },
         { phone: { not: null } },
       ],
@@ -109,7 +115,17 @@ export async function backfillEnquirySource(): Promise<EnquiryRepairResult> {
         where: { deletedAt: null },
         orderBy: { createdAt: "asc" },
         take: 1,
-        select: { source: true, eventType: true },
+        select: {
+          source: true,
+          eventType: true,
+          // First-touch attribution — the only record of HOW they arrived.
+          attribution: {
+            select: {
+              gclid: true, gbraid: true, wbraid: true, fbclid: true,
+              utmSource: true, utmMedium: true, referrerUrl: true,
+            },
+          },
+        },
       },
     },
     take: BATCH,
@@ -122,6 +138,7 @@ export async function backfillEnquirySource(): Promise<EnquiryRepairResult> {
     tagsRetyped: 0,
     phonesCleared: 0,
     skippedNoEvidence: 0,
+    reclassified: 0,
   };
 
   for (const c of contacts) {
@@ -130,6 +147,19 @@ export async function backfillEnquirySource(): Promise<EnquiryRepairResult> {
     // ---- 1 + 2. Channel tags: read the evidence, THEN drop the tag ----
     const channelTags = c.tags.filter(isChannelTag);
     const keptTags = c.tags.filter((t) => !isChannelTag(t));
+
+    // LEAD_FORM was the old catch-all for anything arriving through a form we
+    // host. It describes the mechanism, not the channel. Where the lead kept
+    // its attribution we can now say what the channel actually was — and that
+    // is a correction, not a guess, so it is allowed to overwrite.
+    let reclassified = false;
+    if (c.enquirySource === "LEAD_FORM") {
+      const real = classifyWebChannel(c.leads[0]?.attribution ?? null);
+      if (real && real !== "LEAD_FORM") {
+        data.enquirySource = real;
+        reclassified = true;
+      }
+    }
 
     if (!c.enquirySource) {
       // Prefer the tag: it was written at capture from the same string that now
@@ -174,7 +204,10 @@ export async function backfillEnquirySource(): Promise<EnquiryRepairResult> {
 
     try {
       await prisma.contact.update({ where: { id: c.id }, data });
-      if (data.enquirySource) result.sourceFilled++;
+      if (data.enquirySource) {
+        if (reclassified) result.reclassified++;
+        else result.sourceFilled++;
+      }
       if (data.tags) result.tagsCleaned++;
       if (retyped) result.tagsRetyped++;
       if (junkPhone) result.phonesCleared++;
