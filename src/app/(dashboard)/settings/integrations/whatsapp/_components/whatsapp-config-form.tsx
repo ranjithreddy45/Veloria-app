@@ -13,6 +13,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Accordion,
   AccordionContent,
   AccordionItem,
@@ -39,10 +46,12 @@ import {
 
 interface WhatsAppConfigData {
   id: string;
+  provider: string;
   accessToken: string | null;
-  phoneNumberId: string;
-  businessAccountId: string;
+  phoneNumberId: string | null;
+  businessAccountId: string | null;
   appSecret: string | null;
+  apiEndpoint: string | null;
   verifyToken: string;
   isActive: boolean;
   createdAt: string;
@@ -53,14 +62,17 @@ interface WhatsAppConfigFormProps {
   initialConfig: WhatsAppConfigData | null;
 }
 
+type Provider = "META" | "WATI";
+
 // ============================================================
 // Component
 // ============================================================
 
 export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
-  const [accessToken, setAccessToken] = useState(
-    initialConfig?.accessToken || ""
+  const [provider, setProvider] = useState<Provider>(
+    (initialConfig?.provider as Provider) || "WATI"
   );
+  const [accessToken, setAccessToken] = useState(initialConfig?.accessToken || "");
   const [phoneNumberId, setPhoneNumberId] = useState(
     initialConfig?.phoneNumberId || ""
   );
@@ -68,6 +80,7 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
     initialConfig?.businessAccountId || ""
   );
   const [appSecret, setAppSecret] = useState(initialConfig?.appSecret || "");
+  const [apiEndpoint, setApiEndpoint] = useState(initialConfig?.apiEndpoint || "");
   const [verifyToken, setVerifyToken] = useState(
     initialConfig?.verifyToken || "veloria_whatsapp_verify"
   );
@@ -76,19 +89,25 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
   const [isPending, startTransition] = useTransition();
   const [testingConnection, setTestingConnection] = useState(false);
 
+  const origin =
+    typeof window !== "undefined" ? window.location.origin : "https://app.theveloriagrand.com";
   const webhookUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/api/webhooks/whatsapp`
-      : "/api/webhooks/whatsapp";
+    provider === "WATI"
+      ? `${origin}/api/webhooks/wati?token=${encodeURIComponent(verifyToken)}`
+      : `${origin}/api/webhooks/whatsapp`;
+
+  const isWati = provider === "WATI";
 
   function handleSave() {
     startTransition(async () => {
       const result = await saveWhatsAppConfig({
         id: initialConfig?.id,
+        provider,
         accessToken,
-        phoneNumberId,
-        businessAccountId,
+        phoneNumberId: phoneNumberId || undefined,
+        businessAccountId: businessAccountId || undefined,
         appSecret: appSecret || undefined,
+        apiEndpoint: apiEndpoint || undefined,
         verifyToken,
         isActive: true,
       });
@@ -135,6 +154,7 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
         setPhoneNumberId("");
         setBusinessAccountId("");
         setAppSecret("");
+        setApiEndpoint("");
         setVerifyToken("veloria_whatsapp_verify");
         setConnected(false);
         setConnectionInfo("");
@@ -150,6 +170,9 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
   }
 
   const isConfigured = !!initialConfig?.id;
+  const canSave = isWati
+    ? !!(accessToken && apiEndpoint)
+    : !!(accessToken && phoneNumberId && businessAccountId);
 
   return (
     <div className="space-y-6">
@@ -162,8 +185,8 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
                 WhatsApp Business Configuration
               </CardTitle>
               <CardDescription>
-                Connect your Meta WhatsApp Business account to send messages and
-                notifications via WhatsApp Cloud API.
+                Connect a WhatsApp Business provider to send and receive messages.
+                Everything in the app that uses WhatsApp routes through this.
               </CardDescription>
             </div>
             <Badge
@@ -179,77 +202,117 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
-          {/* Access Token */}
+          {/* Provider selector */}
+          <div className="space-y-2">
+            <Label>Provider</Label>
+            <Select value={provider} onValueChange={(v) => setProvider(v as Provider)}>
+              <SelectTrigger className="w-full sm:w-[280px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="WATI">WATI (wati.io)</SelectItem>
+                <SelectItem value="META">Meta WhatsApp Cloud API</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {isWati
+                ? "Recommended — WATI manages the WhatsApp Business API for you. Get your endpoint + token from WATI → Account → API Docs."
+                : "Direct Meta Cloud API — requires a Meta developer app, phone number ID and permanent token."}
+            </p>
+          </div>
+
+          {/* Access Token (both providers) */}
           <div className="space-y-2">
             <Label htmlFor="waAccessToken">
-              Permanent Access Token <span className="text-destructive">*</span>
+              {isWati ? "WATI Access Token" : "Permanent Access Token"}{" "}
+              <span className="text-destructive">*</span>
             </Label>
             <Input
               id="waAccessToken"
               type="password"
-              placeholder="EAAxxxxxxx..."
+              placeholder={isWati ? "eyJhbGciOi... (Bearer token)" : "EAAxxxxxxx..."}
               value={accessToken}
               onChange={(e) => setAccessToken(e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
-              Generate from Meta Business Settings &rarr; System Users &rarr;
-              Generate Token with <code>whatsapp_business_messaging</code>{" "}
-              permission.
+              {isWati ? (
+                <>Copy from WATI dashboard &rarr; Account &rarr; API Docs &rarr; Access Token.</>
+              ) : (
+                <>
+                  Generate from Meta Business Settings &rarr; System Users with{" "}
+                  <code>whatsapp_business_messaging</code> permission.
+                </>
+              )}
             </p>
           </div>
 
-          {/* Phone Number ID */}
-          <div className="space-y-2">
-            <Label htmlFor="waPhoneNumberId">
-              Phone Number ID <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="waPhoneNumberId"
-              placeholder="e.g. 123456789012345"
-              value={phoneNumberId}
-              onChange={(e) => setPhoneNumberId(e.target.value)}
-            />
-            <p className="text-xs text-muted-foreground">
-              Found in Meta Developer Console &rarr; WhatsApp &rarr; API Setup.
-            </p>
-          </div>
+          {/* WATI-only: API endpoint */}
+          {isWati && (
+            <div className="space-y-2">
+              <Label htmlFor="waApiEndpoint">
+                WATI API Endpoint <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="waApiEndpoint"
+                placeholder="https://live-mt-server.wati.io/10217207"
+                value={apiEndpoint}
+                onChange={(e) => setApiEndpoint(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Your tenant&rsquo;s API base URL, shown in WATI &rarr; Account &rarr; API Docs
+                (e.g. <code>https://live-mt-server.wati.io/&lt;tenantId&gt;</code>).
+              </p>
+            </div>
+          )}
 
-          {/* Business Account ID */}
-          <div className="space-y-2">
-            <Label htmlFor="waBusinessAccountId">
-              Business Account ID <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="waBusinessAccountId"
-              placeholder="e.g. 123456789012345"
-              value={businessAccountId}
-              onChange={(e) => setBusinessAccountId(e.target.value)}
-            />
-            <p className="text-xs text-muted-foreground">
-              Found in Meta Business Settings &rarr; Business Info.
-            </p>
-          </div>
+          {/* Meta-only: phone number id + business account id + app secret */}
+          {!isWati && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="waPhoneNumberId">
+                  Phone Number ID <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="waPhoneNumberId"
+                  placeholder="e.g. 123456789012345"
+                  value={phoneNumberId}
+                  onChange={(e) => setPhoneNumberId(e.target.value)}
+                />
+              </div>
 
-          {/* App Secret */}
-          <div className="space-y-2">
-            <Label htmlFor="waAppSecret">App Secret</Label>
-            <Input
-              id="waAppSecret"
-              type="password"
-              placeholder="Optional — for webhook signature verification"
-              value={appSecret}
-              onChange={(e) => setAppSecret(e.target.value)}
-            />
-            <p className="text-xs text-muted-foreground">
-              Found in Meta Developer Console &rarr; App Settings &rarr; Basic.
-              Required for secure webhook verification.
-            </p>
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="waBusinessAccountId">
+                  Business Account ID <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="waBusinessAccountId"
+                  placeholder="e.g. 123456789012345"
+                  value={businessAccountId}
+                  onChange={(e) => setBusinessAccountId(e.target.value)}
+                />
+              </div>
 
-          {/* Verify Token */}
+              <div className="space-y-2">
+                <Label htmlFor="waAppSecret">App Secret</Label>
+                <Input
+                  id="waAppSecret"
+                  type="password"
+                  placeholder="Optional — for webhook signature verification"
+                  value={appSecret}
+                  onChange={(e) => setAppSecret(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Meta App Settings &rarr; Basic. Used to verify inbound webhook signatures.
+                </p>
+              </div>
+            </>
+          )}
+
+          {/* Verify / webhook secret token (both) */}
           <div className="space-y-2">
             <Label htmlFor="waVerifyToken">
-              Webhook Verify Token <span className="text-destructive">*</span>
+              {isWati ? "Webhook Secret Token" : "Webhook Verify Token"}{" "}
+              <span className="text-destructive">*</span>
             </Label>
             <div className="flex gap-2">
               <Input
@@ -262,15 +325,16 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
                 variant="outline"
                 size="icon"
                 className="shrink-0"
-                onClick={() => copyToClipboard(verifyToken, "Verify Token")}
+                onClick={() => copyToClipboard(verifyToken, "Token")}
                 type="button"
               >
                 <Copy className="size-4" />
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              A custom string you set in Meta Developer Console for webhook
-              verification.
+              {isWati
+                ? "A secret string of your choice. It's embedded in the webhook URL below so only WATI can post to your app."
+                : "A custom string you also enter in the Meta Developer Console for webhook verification."}
             </p>
           </div>
 
@@ -278,20 +342,13 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
           {connected && connectionInfo && (
             <div className="flex items-start gap-3 rounded-lg border border-success/20 bg-success/10 p-3">
               <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" />
-              <p className="text-sm text-success">
-                {connectionInfo}
-              </p>
+              <p className="text-sm text-success">{connectionInfo}</p>
             </div>
           )}
 
           {/* Actions */}
           <div className="flex flex-wrap items-center gap-3">
-            <Button
-              onClick={handleSave}
-              disabled={
-                isPending || !accessToken || !phoneNumberId || !businessAccountId
-              }
-            >
+            <Button onClick={handleSave} disabled={isPending || !canSave}>
               {isPending ? (
                 <>
                   <Loader2 className="mr-2 size-4 animate-spin" />
@@ -337,13 +394,14 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
         <CardHeader>
           <CardTitle className="text-lg">Webhook Configuration</CardTitle>
           <CardDescription>
-            Configure this URL in your Meta Developer Console to receive incoming
-            messages and delivery status updates.
+            {isWati
+              ? "Add this URL in WATI → Settings → Webhooks so incoming messages and delivery statuses reach your inbox."
+              : "Configure this URL in your Meta Developer Console to receive incoming messages and delivery status updates."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Callback URL</Label>
+            <Label>{isWati ? "Webhook URL (includes your secret token)" : "Callback URL"}</Label>
             <div className="flex gap-2">
               <Input value={webhookUrl} readOnly className="font-mono text-sm" />
               <Button
@@ -358,33 +416,37 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Verify Token</Label>
-            <div className="flex gap-2">
-              <Input
-                value={verifyToken}
-                readOnly
-                className="font-mono text-sm"
-              />
-              <Button
-                variant="outline"
-                size="icon"
-                className="shrink-0"
-                onClick={() => copyToClipboard(verifyToken, "Verify Token")}
-                type="button"
-              >
-                <Copy className="size-4" />
-              </Button>
+          {!isWati && (
+            <div className="space-y-2">
+              <Label>Verify Token</Label>
+              <div className="flex gap-2">
+                <Input value={verifyToken} readOnly className="font-mono text-sm" />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                  onClick={() => copyToClipboard(verifyToken, "Verify Token")}
+                  type="button"
+                >
+                  <Copy className="size-4" />
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-950">
             <p className="text-sm text-blue-700 dark:text-blue-300">
-              <strong>Subscribed Fields:</strong> Select{" "}
-              <code className="rounded bg-blue-100 px-1 dark:bg-blue-900">
-                messages
-              </code>{" "}
-              in the Meta Developer Console webhook settings.
+              {isWati ? (
+                <>
+                  <strong>In WATI:</strong> Settings &rarr; Webhooks &rarr; Add. Paste the URL
+                  above and enable the <code>Message received</code> and delivery-status events.
+                </>
+              ) : (
+                <>
+                  <strong>Subscribed Fields:</strong> Select <code>messages</code> in the Meta
+                  Developer Console webhook settings.
+                </>
+              )}
             </p>
           </div>
         </CardContent>
@@ -395,137 +457,118 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
         <CardHeader>
           <CardTitle className="text-lg">Setup Guide</CardTitle>
           <CardDescription>
-            Step-by-step instructions to set up WhatsApp Business API.
+            {isWati
+              ? "Connect WATI in a few minutes."
+              : "Step-by-step instructions to set up Meta WhatsApp Cloud API."}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Accordion type="single" collapsible className="w-full">
-            <AccordionItem value="step-1">
-              <AccordionTrigger className="text-sm">
-                Step 1: Create a Meta Developer App
-              </AccordionTrigger>
-              <AccordionContent className="text-sm text-muted-foreground space-y-2">
-                <p>
-                  Go to{" "}
-                  <a
-                    href="https://developers.facebook.com/apps/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 underline inline-flex items-center gap-1"
-                  >
-                    Meta Developer Console
-                    <ExternalLink className="size-3" />
-                  </a>{" "}
-                  and create a new Business app.
-                </p>
-                <p>
-                  Add the <strong>WhatsApp</strong> product to your app from the
-                  App Dashboard.
-                </p>
-              </AccordionContent>
-            </AccordionItem>
+          {isWati ? (
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="w1">
+                <AccordionTrigger className="text-sm">
+                  Step 1: Get your API endpoint & access token
+                </AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground space-y-2">
+                  <p>
+                    In WATI, open{" "}
+                    <a
+                      href="https://app.wati.io"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 underline inline-flex items-center gap-1"
+                    >
+                      Account &rarr; API Docs <ExternalLink className="size-3" />
+                    </a>
+                    . Copy the <strong>API Endpoint</strong> and the{" "}
+                    <strong>Access Token</strong> into the fields above and Save.
+                  </p>
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="w2">
+                <AccordionTrigger className="text-sm">
+                  Step 2: Point WATI&rsquo;s webhook at this app
+                </AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground space-y-2">
+                  <p>
+                    In WATI, go to <strong>Settings &rarr; Webhooks</strong>, add a webhook,
+                    and paste the <strong>Webhook URL</strong> shown above (it already contains
+                    your secret token). Enable the &ldquo;message received&rdquo; and delivery
+                    status events.
+                  </p>
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="w3">
+                <AccordionTrigger className="text-sm">
+                  Step 3: Test & go
+                </AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground space-y-2">
+                  <p>
+                    Click <strong>Test Connection</strong> above. Once it&rsquo;s green, every
+                    WhatsApp the app sends (OTP logins, lead replies, reminders, review requests)
+                    goes through WATI, and customer replies land in your WhatsApp inbox.
+                  </p>
+                  <p>
+                    Template messages must be pre-approved in WATI, and the app&rsquo;s template
+                    names must match the ones you create in WATI.
+                  </p>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          ) : (
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="step-1">
+                <AccordionTrigger className="text-sm">
+                  Step 1: Create a Meta Developer App
+                </AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground space-y-2">
+                  <p>
+                    Go to{" "}
+                    <a
+                      href="https://developers.facebook.com/apps/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 underline inline-flex items-center gap-1"
+                    >
+                      Meta Developer Console <ExternalLink className="size-3" />
+                    </a>{" "}
+                    and add the <strong>WhatsApp</strong> product.
+                  </p>
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="step-2">
+                <AccordionTrigger className="text-sm">
+                  Step 2: Phone Number ID & Business Account ID
+                </AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground space-y-2">
+                  <p>
+                    In <strong>WhatsApp &rarr; API Setup</strong>, copy the Phone Number ID and
+                    the WhatsApp Business Account ID.
+                  </p>
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="step-3">
+                <AccordionTrigger className="text-sm">
+                  Step 3: Permanent token + webhook
+                </AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground space-y-2">
+                  <p>
+                    Generate a permanent token (System Users), then set the Callback URL and
+                    Verify Token above in <strong>WhatsApp &rarr; Configuration</strong> and
+                    subscribe to <strong>messages</strong>.
+                  </p>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          )}
 
-            <AccordionItem value="step-2">
-              <AccordionTrigger className="text-sm">
-                Step 2: Get your Phone Number ID & Business Account ID
-              </AccordionTrigger>
-              <AccordionContent className="text-sm text-muted-foreground space-y-2">
-                <p>
-                  In the Meta Developer Console, go to <strong>WhatsApp &rarr; API Setup</strong>.
-                </p>
-                <p>
-                  Copy the <strong>Phone Number ID</strong> shown on that page.
-                </p>
-                <p>
-                  The <strong>WhatsApp Business Account ID</strong> is shown at the top of the same page.
-                </p>
-              </AccordionContent>
-            </AccordionItem>
-
-            <AccordionItem value="step-3">
-              <AccordionTrigger className="text-sm">
-                Step 3: Generate a Permanent Access Token
-              </AccordionTrigger>
-              <AccordionContent className="text-sm text-muted-foreground space-y-2">
-                <p>
-                  Go to{" "}
-                  <a
-                    href="https://business.facebook.com/settings/system-users"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 underline inline-flex items-center gap-1"
-                  >
-                    Meta Business Settings &rarr; System Users
-                    <ExternalLink className="size-3" />
-                  </a>
-                </p>
-                <p>
-                  Create a system user (or use an existing one), assign it the WhatsApp
-                  Business account as an asset, and generate a token with the{" "}
-                  <code className="rounded bg-muted px-1">
-                    whatsapp_business_messaging
-                  </code>{" "}
-                  and{" "}
-                  <code className="rounded bg-muted px-1">
-                    whatsapp_business_management
-                  </code>{" "}
-                  permissions.
-                </p>
-              </AccordionContent>
-            </AccordionItem>
-
-            <AccordionItem value="step-4">
-              <AccordionTrigger className="text-sm">
-                Step 4: Configure Webhook
-              </AccordionTrigger>
-              <AccordionContent className="text-sm text-muted-foreground space-y-2">
-                <p>
-                  In the Meta Developer Console, go to{" "}
-                  <strong>WhatsApp &rarr; Configuration</strong>.
-                </p>
-                <p>
-                  Set the <strong>Callback URL</strong> to the webhook URL shown
-                  above.
-                </p>
-                <p>
-                  Set the <strong>Verify Token</strong> to match the verify token
-                  above.
-                </p>
-                <p>
-                  Subscribe to <strong>messages</strong> webhook field.
-                </p>
-              </AccordionContent>
-            </AccordionItem>
-
-            <AccordionItem value="step-5">
-              <AccordionTrigger className="text-sm">
-                Step 5: Get App Secret (Optional but Recommended)
-              </AccordionTrigger>
-              <AccordionContent className="text-sm text-muted-foreground space-y-2">
-                <p>
-                  Go to <strong>App Settings &rarr; Basic</strong> in the Meta
-                  Developer Console.
-                </p>
-                <p>
-                  Copy the <strong>App Secret</strong> — this is used to verify
-                  webhook signatures (HMAC-SHA256) for security.
-                </p>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-
-          {/* Important Notes */}
           <div className="mt-4 flex items-start gap-3 rounded-lg border border-warning/20 bg-warning/10 p-3">
             <AlertCircle className="mt-0.5 size-4 shrink-0 text-warning" />
             <div className="text-sm text-warning space-y-1">
               <p>
-                <strong>Important:</strong> The test phone number from Meta
-                allows sending to up to 5 verified numbers. For production, you
-                need to register and verify a real business phone number.
-              </p>
-              <p>
-                Template messages must be pre-approved by Meta before they can be
-                sent. Create them in WhatsApp Manager &rarr; Message Templates.
+                <strong>Important:</strong> Free-text (session) messages only reach customers
+                who messaged you in the last 24 hours. Outside that window you must send a
+                pre-approved <strong>template</strong>.
               </p>
             </div>
           </div>

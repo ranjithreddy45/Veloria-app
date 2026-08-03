@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
-import { captureLeadFromExternal } from "@/lib/lead-capture";
-import { handleInboundReply } from "@/lib/lead-pipeline";
+import {
+  recordInboundWhatsAppMessage,
+  applyWhatsAppStatusUpdate,
+} from "@/lib/whatsapp/inbound";
 
 // ============================================================
 // WhatsApp Webhook — Meta Cloud API Webhook Handler
@@ -96,167 +98,29 @@ export async function POST(request: NextRequest) {
       for (const change of entry.changes || []) {
         const value = change.value;
 
-        // Handle incoming messages
+        // Handle incoming messages — funnel through the shared, provider-
+        // agnostic inbound handler so Meta and WATI behave identically.
         if (value?.messages) {
           for (const message of value.messages) {
-            const from = message.from; // phone number (e.g., "919876543210")
-            const waId = message.id;
-            // Interactive replies (button/list taps) carry the chosen option in
-            // a dedicated envelope — surface the tapped title as the message text
-            // so the inbox stores what the customer actually picked.
             const br = message.interactive?.button_reply;
             const lr = message.interactive?.list_reply;
             const text =
               br?.title || lr?.title || message.text?.body || "[Media message]";
-
-            // Find contact by phone number (try multiple formats)
-            const contact = await prisma.contact.findFirst({
-              where: {
-                OR: [
-                  { phone: from },
-                  { phone: `+${from}` },
-                  { phone: `+91${from}` },
-                  { alternatePhone: from },
-                  { alternatePhone: `+${from}` },
-                ],
-              },
-              select: { id: true },
+            await recordInboundWhatsAppMessage({
+              from: message.from,
+              waId: message.id,
+              text,
+              interactive: message.interactive
+                ? { buttonReplyId: br?.id, listReplyId: lr?.id }
+                : null,
             });
-
-            if (contact) {
-              // Check for duplicate (same whatsappId)
-              const existing = waId
-                ? await prisma.whatsAppMessage.findFirst({
-                    where: { whatsappId: waId },
-                  })
-                : null;
-
-              if (!existing) {
-                const created = await prisma.whatsAppMessage.create({
-                  data: {
-                    direction: "INBOUND",
-                    content: text,
-                    status: "DELIVERED",
-                    whatsappId: waId || null,
-                    contactId: contact.id,
-                  },
-                });
-
-                // Prospect engaged → stop any running cadences for them.
-                await handleInboundReply(contact.id);
-
-                // Known-contact ack + smart re-route + lead re-wake. Inside the
-                // !existing guard so Meta redeliveries never re-ack/re-route.
-                // Never throws, but a defensive try/catch keeps us always-200.
-                try {
-                  const { handleKnownContactAck } = await import(
-                    "@/lib/inbound/known-contact-ack"
-                  );
-                  await handleKnownContactAck(contact.id, {
-                    inboundText: text,
-                    inboundMessageId: waId,
-                  });
-                } catch (e) {
-                  console.error("[WhatsApp Webhook] known-contact-ack error:", e);
-                }
-
-                // Fire-and-forget message-intent classification (boost + ping on
-                // READY_TO_BUY signals). Must not await-block or throw.
-                import("@/lib/ai/intent-stamp")
-                  .then((m) =>
-                    m.stampMessageIntent({
-                      text,
-                      whatsappMessageId: created.id,
-                      contactId: contact.id,
-                    })
-                  )
-                  .catch(() => {});
-
-                // Advance any in-flight catalog funnel when the customer tapped a
-                // button/list option. Best-effort; engine is idempotent on phone+stage.
-                if (message.interactive) {
-                  try {
-                    const { advanceCatalogSession } = await import(
-                      "@/lib/whatsapp/catalog-engine"
-                    );
-                    await advanceCatalogSession({
-                      phone: from,
-                      contactId: contact.id,
-                      buttonReplyId: br?.id,
-                      listReplyId: lr?.id,
-                      inboundText: text,
-                    });
-                  } catch (e) {
-                    console.error("[WhatsApp Webhook] catalog advance error:", e);
-                  }
-                }
-
-                console.log(
-                  `[WhatsApp Webhook] Inbound message from ${from} → contact ${contact.id}`
-                );
-              }
-            } else {
-              // Unknown number → a brand-new inbound lead (WhatsApp is the #1
-              // inbound channel in India; never drop it). Capture creates the
-              // contact + lead, scores, assigns, SLA-stamps, and auto-replies.
-              const capture = await captureLeadFromExternal({
-                name: from,
-                phone: from.startsWith("+") ? from : `+${from}`,
-                source: "whatsapp",
-                message: text,
-              });
-              console.log(
-                `[WhatsApp Webhook] Captured new lead from unknown number: ${from}`
-              );
-
-              // Kick off the WhatsApp catalog funnel for the first-touch lead.
-              // Best-effort; engine is idempotent on phone+stage (Meta redelivery safe).
-              if (capture?.success) {
-                try {
-                  const { runCatalogFirstInbound } = await import(
-                    "@/lib/whatsapp/catalog-engine"
-                  );
-                  await runCatalogFirstInbound({
-                    phone: from,
-                    contactId: capture.contactId,
-                    leadId: capture.leadId,
-                    messageId: waId,
-                    inboundText: text,
-                  });
-                } catch (e) {
-                  console.error("[WhatsApp Webhook] catalog first-inbound error:", e);
-                }
-              }
-            }
           }
         }
 
         // Handle status updates (sent → delivered → read → failed)
         if (value?.statuses) {
           for (const status of value.statuses) {
-            const waId = status.id;
-            const newStatus = status.status; // "sent" | "delivered" | "read" | "failed"
-
-            const statusMap: Record<string, string> = {
-              sent: "SENT",
-              delivered: "DELIVERED",
-              read: "READ",
-              failed: "FAILED",
-            };
-
-            const mappedStatus = statusMap[newStatus];
-            if (waId && mappedStatus) {
-              await prisma.whatsAppMessage.updateMany({
-                where: { whatsappId: waId },
-                data: {
-                  status: mappedStatus as
-                    | "SENT"
-                    | "DELIVERED"
-                    | "READ"
-                    | "FAILED",
-                },
-              });
-            }
+            await applyWhatsAppStatusUpdate(status.id, status.status);
           }
         }
       }

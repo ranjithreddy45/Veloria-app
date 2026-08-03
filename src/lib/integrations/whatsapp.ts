@@ -5,6 +5,7 @@
 // Docs: https://developers.facebook.com/docs/whatsapp/cloud-api
 
 import { prisma } from "@/lib/prisma";
+import { watiSendSession, watiSendTemplate, watiTestConnection } from "@/lib/integrations/wati";
 
 const GRAPH_API_VERSION = "v21.0";
 const GRAPH_API_BASE = `https://graph.facebook.com/${GRAPH_API_VERSION}`;
@@ -14,11 +15,15 @@ const GRAPH_API_BASE = `https://graph.facebook.com/${GRAPH_API_VERSION}`;
 // ============================================================
 
 export interface WhatsAppApiConfig {
+  /** "META" (Cloud API) or "WATI" (wati.io). Defaults to META for legacy rows. */
+  provider: string;
   accessToken: string;
   phoneNumberId: string;
   businessAccountId: string;
   appSecret?: string | null;
   verifyToken?: string;
+  /** WATI tenant API base, e.g. https://live-mt-server.wati.io/10217207. */
+  apiEndpoint?: string | null;
 }
 
 interface SendWhatsAppParams {
@@ -47,11 +52,13 @@ export async function getWhatsAppApiConfig(): Promise<WhatsAppApiConfig | null> 
     if (!config) return null;
 
     return {
+      provider: config.provider || "META",
       accessToken: config.accessToken,
-      phoneNumberId: config.phoneNumberId,
-      businessAccountId: config.businessAccountId,
+      phoneNumberId: config.phoneNumberId ?? "",
+      businessAccountId: config.businessAccountId ?? "",
       appSecret: config.appSecret,
       verifyToken: config.verifyToken,
+      apiEndpoint: config.apiEndpoint,
     };
   } catch (error) {
     console.error("[WhatsApp] Failed to load config:", error);
@@ -104,6 +111,25 @@ export async function sendWhatsApp(
   }
 
   const to = normalizePhone(params.to);
+
+  // ---- WATI provider branch ----------------------------------------------
+  // All ~25 callers keep working: same SendWhatsAppResult shape either way.
+  if (config.provider === "WATI") {
+    if (!config.apiEndpoint) {
+      return {
+        success: false,
+        error: "WATI is selected but no API endpoint is set. Add it in Settings → Integrations → WhatsApp.",
+      };
+    }
+    const creds = { endpoint: config.apiEndpoint, token: config.accessToken };
+    if (params.template) {
+      return await watiSendTemplate(creds, to, params.template, params.params);
+    }
+    if (!params.message) {
+      return { success: false, error: "No message content provided" };
+    }
+    return await watiSendSession(creds, to, params.message);
+  }
 
   try {
     // If a template is specified, send template message
@@ -206,6 +232,21 @@ export async function sendWhatsAppInteractive(
   }
 
   const to = normalizePhone(params.to);
+
+  // WATI has no drop-in equivalent of Meta's inline interactive payload, so we
+  // degrade gracefully: send the header/body/footer as a plain session message
+  // (the catalog engine already treats a text send as an acceptable fallback).
+  if (config.provider === "WATI") {
+    if (!config.apiEndpoint) {
+      return { success: false, error: "WATI API endpoint not set." };
+    }
+    const lines = [params.header, params.body, params.footer].filter(Boolean).join("\n\n");
+    return await watiSendSession(
+      { endpoint: config.apiEndpoint, token: config.accessToken },
+      to,
+      lines || params.body
+    );
+  }
 
   // Build the interactive object: a `list` (single-select) or reply `button`s.
   // Meta caps button title at 20 chars and reply buttons at 3 — clamp/slice so a
@@ -363,6 +404,14 @@ async function sendTemplateMessage(
 export async function testWhatsAppConnection(
   config: WhatsAppApiConfig
 ): Promise<{ success: boolean; message: string; phoneNumber?: string }> {
+  // WATI: validate the tenant endpoint + access token.
+  if (config.provider === "WATI") {
+    if (!config.apiEndpoint) {
+      return { success: false, message: "WATI API endpoint is not set." };
+    }
+    return await watiTestConnection({ endpoint: config.apiEndpoint, token: config.accessToken });
+  }
+
   try {
     // Verify credentials by fetching the phone number details
     const response = await fetch(

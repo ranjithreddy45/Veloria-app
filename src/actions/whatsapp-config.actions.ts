@@ -27,10 +27,12 @@ export async function getWhatsAppConfig() {
       where: { isActive: true },
       select: {
         id: true,
+        provider: true,
         accessToken: true,
         phoneNumberId: true,
         businessAccountId: true,
         appSecret: true,
+        apiEndpoint: true,
         verifyToken: true,
         isActive: true,
         createdAt: true,
@@ -109,10 +111,12 @@ export async function saveWhatsAppConfig(input: WhatsAppConfigInput) {
       config = await prisma.whatsAppConfig.update({
         where: { id: data.id },
         data: {
+          provider: data.provider,
           accessToken,
-          phoneNumberId: data.phoneNumberId,
-          businessAccountId: data.businessAccountId,
+          phoneNumberId: data.phoneNumberId || null,
+          businessAccountId: data.businessAccountId || null,
           appSecret,
+          apiEndpoint: data.apiEndpoint || null,
           verifyToken: data.verifyToken,
           isActive: data.isActive,
         },
@@ -120,10 +124,12 @@ export async function saveWhatsAppConfig(input: WhatsAppConfigInput) {
     } else {
       config = await prisma.whatsAppConfig.create({
         data: {
+          provider: data.provider,
           accessToken: data.accessToken,
-          phoneNumberId: data.phoneNumberId,
-          businessAccountId: data.businessAccountId,
+          phoneNumberId: data.phoneNumberId || null,
+          businessAccountId: data.businessAccountId || null,
           appSecret: data.appSecret || null,
+          apiEndpoint: data.apiEndpoint || null,
           verifyToken: data.verifyToken,
           isActive: data.isActive,
           createdById: session.user.id,
@@ -190,10 +196,12 @@ export async function testWhatsAppConnectionAction() {
     }
 
     const result = await testWhatsAppConnection({
+      provider: config.provider || "META",
       accessToken: config.accessToken,
-      phoneNumberId: config.phoneNumberId,
-      businessAccountId: config.businessAccountId,
+      phoneNumberId: config.phoneNumberId ?? "",
+      businessAccountId: config.businessAccountId ?? "",
       appSecret: config.appSecret,
+      apiEndpoint: config.apiEndpoint,
       verifyToken: config.verifyToken,
     });
 

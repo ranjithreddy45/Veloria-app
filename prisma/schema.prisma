@@ -3919,10 +3919,15 @@ model LeadCaptureConfig {
 
 model WhatsAppConfig {
   id                String   @id @default(cuid())
+  // "META" (Cloud API) or "WATI" (wati.io). Legacy rows default to META.
+  provider          String   @default("META")
   accessToken       String   @db.Text
-  phoneNumberId     String
-  businessAccountId String
+  // Meta-only fields — nullable so a WATI config row doesn't need them.
+  phoneNumberId     String?
+  businessAccountId String?
   appSecret         String?
+  // WATI tenant API base, e.g. https://live-mt-server.wati.io/10217207
+  apiEndpoint       String?
   verifyToken       String   @default("veloria_whatsapp_verify")
   isActive          Boolean  @default(true)
   createdAt         DateTime @default(now())
