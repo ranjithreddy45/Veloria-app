@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { MONEY_METRIC } from "@/lib/metrics/revenue";
 import {
   ArrowUpDown,
   TrendingUpIcon,
@@ -110,13 +111,18 @@ export function TeamPerformanceTable({ data }: TeamPerformanceTableProps) {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            {/* "Total Revenue" summed Booking.totalAmount — contracted value,
+                not cash. Ranking people by it is fine; calling it revenue
+                without saying which one is how the argument starts. */}
+            <CardTitle className="text-sm font-medium">
+              Total {MONEY_METRIC.BOOKED_VALUE.label.toLowerCase()}
+            </CardTitle>
             <IndianRupeeIcon className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatINR(totalRevenue)}</div>
             <p className="text-xs text-muted-foreground">
-              Across {data.length} team members
+              {MONEY_METRIC.BOOKED_VALUE.sub} · across {data.length} team members
             </p>
           </CardContent>
         </Card>
@@ -197,7 +203,7 @@ export function TeamPerformanceTable({ data }: TeamPerformanceTableProps) {
                       asc={sortAsc}
                       onClick={() => handleSort("revenueGenerated")}
                     >
-                      Revenue
+                      {MONEY_METRIC.BOOKED_VALUE.label}
                     </SortButton>
                   </th>
                   <th className="hidden px-3 py-3 text-right sm:table-cell">

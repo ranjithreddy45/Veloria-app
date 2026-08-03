@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { MONEY_METRIC } from "@/lib/metrics/revenue";
 import {
   UserIcon,
   CalendarIcon,
@@ -182,7 +183,11 @@ export function IndividualPerformance({
               icon={
                 <IndianRupeeIcon className="size-4 text-emerald-500" />
               }
-              label="Revenue Generated"
+              // Was "Revenue Generated" with no qualifier. It sums
+              // Booking.totalAmount — CONTRACTED value, not cash in the bank —
+              // and the team table ranks people by it. Read as cash, it turns
+              // into an argument about someone's numbers.
+              label={MONEY_METRIC.BOOKED_VALUE.label}
               value={formatINR(metrics.revenueGenerated)}
               detail={
                 <TrendIndicator
