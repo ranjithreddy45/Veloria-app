@@ -28,6 +28,10 @@ export default async function BdLeadsPage({
   ]);
 
   const leads = (leadsResult.success ? leadsResult.data : []) as AcqLead[];
+  // The list is capped. When rows were left behind, say so instead of
+  // presenting a subset as the whole inbox.
+  const leadsTruncated = leadsResult.success && leadsResult.truncated === true;
+  const leadsTotal = leadsResult.success && typeof leadsResult.total === "number" ? leadsResult.total : leads.length;
   // Chip totals come from the server so they stay true even while the list is
   // filtered down to a single status.
   const statusCounts = countsResult.success ? countsResult.data : {};
@@ -41,7 +45,11 @@ export default async function BdLeadsPage({
         eyebrow={`Acquisition · ${total} lead${total === 1 ? "" : "s"}`}
         title="Leads"
         help={<PageHelp id="bd-leads" />}
-        description="Owner enquiries — SLA-tracked and de-duplicated. Tap a lead to view, call, message and qualify."
+        description={
+          leadsTruncated
+            ? `Showing the ${leads.length} newest of ${leadsTotal} leads. Narrow the filters to see the rest.`
+            : "Owner enquiries — SLA-tracked and de-duplicated. Tap a lead to view, call, message and qualify."
+        }
       />
       <LeadInbox
         leads={leads}

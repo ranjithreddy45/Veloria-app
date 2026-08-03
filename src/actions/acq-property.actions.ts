@@ -3,6 +3,7 @@
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/utils";
+import { cappedList } from "@/lib/capped-list";
 import { revalidatePath } from "next/cache";
 import { notify } from "@/lib/notify";
 import { logActivity } from "@/lib/activity-logger";
@@ -19,7 +20,7 @@ async function requireUser() {
 }
 
 // Sales sees only AVAILABLE+ inventory; BD/OPS/Admin see everything incl. ONBOARDING.
-export async function getAcqProperties(): Promise<Result<unknown[]>> {
+export async function getAcqProperties(): Promise<Result<unknown[]> & { total?: number; truncated?: boolean }> {
   const user = await requireUser();
   if (!user || !acqHasAnyAccess(user.role)) return { success: false, error: "Unauthorized" };
 
@@ -27,7 +28,7 @@ export async function getAcqProperties(): Promise<Result<unknown[]>> {
   const where: Record<string, unknown> = { deletedAt: null };
   if (salesOnly) where.status = { in: ["AVAILABLE", "ACTIVE", "PAUSED"] };
 
-  const properties = await prisma.acqProperty.findMany({
+  const propertyArgs = {
     where,
     include: {
       propertyManager: { select: { id: true, name: true } },
@@ -47,9 +48,15 @@ export async function getAcqProperties(): Promise<Result<unknown[]>> {
       },
     },
     orderBy: { createdAt: "desc" },
-    take: 500,
-  });
-  return { success: true, data: serialize(properties) as unknown[] };
+  };
+  // Capped, and it says so — see lib/capped-list.
+  const page = await cappedList<{ id: string }>(prisma.acqProperty as never, propertyArgs, 500);
+  return {
+    success: true,
+    data: serialize(page.rows) as unknown[],
+    total: page.total,
+    truncated: page.truncated,
+  };
 }
 
 export async function getAcqProperty(id: string): Promise<Result<unknown>> {

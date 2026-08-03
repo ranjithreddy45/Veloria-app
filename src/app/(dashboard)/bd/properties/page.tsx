@@ -27,6 +27,14 @@ export default async function BdPropertiesPage({
   const all = (
     propertiesResult.success ? propertiesResult.data : []
   ) as PropertyListItem[];
+  // Capped list — announce it rather than presenting a subset as the register.
+  // This also matters for the status chips below, which count `all`: past the
+  // cap they would be counting a sample and calling it a portfolio.
+  const propsTruncated = propertiesResult.success && propertiesResult.truncated === true;
+  const propsTotal =
+    propertiesResult.success && typeof propertiesResult.total === "number"
+      ? propertiesResult.total
+      : all.length;
 
   // Status counts always reflect the full portfolio, even when a ?status=
   // deep-link narrows the list below.
@@ -42,7 +50,11 @@ export default async function BdPropertiesPage({
         eyebrow="Business Development · Acquisition"
         title="Properties"
         help={<PageHelp id="bd-properties" />}
-        description="Acquired venues. Sales sees inventory only when AVAILABLE."
+        description={
+          propsTruncated
+            ? `Showing the ${all.length} newest of ${propsTotal} venues. Narrow the filters to see the rest.`
+            : "Acquired venues. Sales sees inventory only when AVAILABLE."
+        }
       />
 
       {/* Status counts */}

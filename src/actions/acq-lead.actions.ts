@@ -3,6 +3,7 @@
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/utils";
+import { cappedList } from "@/lib/capped-list";
 import { revalidatePath } from "next/cache";
 import { velosOnLeadContact } from "@/lib/velos/triggers";
 import {
@@ -113,7 +114,7 @@ export async function getAcqLeads(filters?: {
   status?: string;
   city?: string;
   bdExecutiveId?: string;
-}): Promise<Result<unknown[]>> {
+}): Promise<Result<unknown[]> & { total?: number; truncated?: boolean }> {
   const user = await requireUser();
   if (!user || !acqHasAnyAccess(user.role)) {
     return { success: false, error: "Unauthorized" };
@@ -131,13 +132,24 @@ export async function getAcqLeads(filters?: {
   if (filters?.city) where.city = filters.city;
   if (filters?.bdExecutiveId) where.bdExecutiveId = filters.bdExecutiveId;
 
-  const leads = await prisma.acqLead.findMany({
-    where,
-    include: { bdExecutive: { select: { id: true, name: true } } },
-    orderBy: { createdAt: "desc" },
-    take: 500,
-  });
-  return { success: true, data: serialize(leads) as unknown[] };
+  // Capped, and it SAYS SO. Returning a bare 500 made the inbox look complete
+  // while the status chips counted the whole table — the two disagreed on
+  // screen with nothing to explain why.
+  const page = await cappedList<{ id: string }>(
+    prisma.acqLead as never,
+    {
+      where,
+      include: { bdExecutive: { select: { id: true, name: true } } },
+      orderBy: { createdAt: "desc" },
+    },
+    500
+  );
+  return {
+    success: true,
+    data: serialize(page.rows) as unknown[],
+    total: page.total,
+    truncated: page.truncated,
+  };
 }
 
 /**
