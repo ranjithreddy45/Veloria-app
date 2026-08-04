@@ -20,6 +20,8 @@ import { NextResponse } from "next/server";
 import { captureLeadFromExternal } from "@/lib/lead-capture";
 import { clientIpFromHeaders } from "@/lib/hr/geo";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { mintEnrichToken, readEnrichToken } from "@/lib/enquiry-enrich-token";
+import { enrichLandingLead } from "@/lib/landing-lead-enrich";
 
 /**
  * Origins allowed to post.
@@ -71,6 +73,18 @@ export async function OPTIONS(req: Request) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(req.headers.get("origin")) });
 }
 
+/**
+ * The one email rule, shared by the create and enrich paths so they can never
+ * disagree about what counts as a usable address. Loose on purpose: it rejects
+ * nonsense, it does not police RFC 5322.
+ */
+function readEmail(body: Record<string, unknown>): string | undefined {
+  const raw = [body.email, body.email_address, body.emailAddress]
+    .map((v) => (typeof v === "string" ? v.trim() : ""))
+    .find(Boolean);
+  return raw && /^[^\s@]+@[^\s@.]+\.[^\s@]{2,}$/.test(raw) ? raw : undefined;
+}
+
 /** "50–100" / "100-180" / "Not sure yet" → a usable number (midpoint), or undefined. */
 function parseGuests(v: unknown): number | undefined {
   const s = String(v ?? "").replace(/[–—]/g, "-"); // en/em dash → hyphen
@@ -100,6 +114,36 @@ export async function POST(req: Request) {
     body = (await req.json()) as Record<string, unknown>;
   } catch {
     return NextResponse.json({ ok: false, error: "Invalid body." }, { status: 400, headers: cors });
+  }
+
+  // ---- STEP 2: enrich a lead this browser just created ----
+  //
+  // Handled before the create path because it is a different operation on the
+  // same endpoint: the lead already exists, and everything here is optional
+  // detail. A failure must never lose what step 1 already saved, so this
+  // returns ok:true even when nothing could be applied — the lead is safe
+  // either way and the visitor has nothing useful to do with an error.
+  if (body.enrichToken) {
+    const leadId = readEnrichToken(body.enrichToken);
+    if (!leadId) {
+      return NextResponse.json(
+        { ok: false, error: "This form expired. Please refresh and try again." },
+        { status: 422, headers: cors }
+      );
+    }
+    try {
+      await enrichLandingLead(leadId, {
+        email: readEmail(body),
+        eventType: String(body.eventType ?? "").trim() || undefined,
+        guests: body.guests,
+        date: String(body.date ?? "").trim() || undefined,
+      });
+    } catch (e) {
+      // Log it, but tell the visitor they are done — because they ARE. The
+      // lead was captured in step 1; these are extras.
+      console.error("[LANDING_LEAD_ENRICH_ERROR]", e);
+    }
+    return NextResponse.json({ ok: true, enriched: true }, { status: 200, headers: cors });
   }
 
   const name = String(body.name ?? "").trim();
@@ -144,12 +188,7 @@ export async function POST(req: Request) {
   // lose business to enforce a field the visitor was never shown. A malformed
   // value is dropped rather than 422'd, for the same reason — the lead is
   // still worth having.
-  const rawEmail = [body.email, body.email_address, body.emailAddress]
-    .map((v) => (typeof v === "string" ? v.trim() : ""))
-    .find(Boolean);
-  // Loose on purpose: rejects nonsense, does not police RFC 5322.
-  const email =
-    rawEmail && /^[^\s@]+@[^\s@.]+\.[^\s@]{2,}$/.test(rawEmail) ? rawEmail : undefined;
+  const email = readEmail(body);
 
   const eventType = String(body.eventType ?? "").trim() || undefined;
   const eventDate = String(body.date ?? "").trim() || undefined;
@@ -197,7 +236,16 @@ export async function POST(req: Request) {
       console.error("[LANDING_LEAD_CAPTURE_FAILED]", res);
       return NextResponse.json({ ok: false, error: "Could not save the enquiry." }, { status: 500, headers: cors });
     }
-    return NextResponse.json({ ok: true, leadId: res.leadId }, { status: 201, headers: cors });
+    // The two-step form saves the lead after step 1, then adds event details
+    // in step 2. Hand back a short-lived token authorising exactly that.
+    return NextResponse.json(
+      {
+        ok: true,
+        leadId: res.leadId,
+        enrichToken: res.leadId ? mintEnrichToken(res.leadId) : undefined,
+      },
+      { status: 201, headers: cors }
+    );
   } catch (e) {
     console.error("[LANDING_LEAD_ERROR]", e);
     return NextResponse.json({ ok: false, error: "Could not save the enquiry." }, { status: 500, headers: cors });

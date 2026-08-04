@@ -136,6 +136,11 @@
       ";box-shadow:0 0 0 3.5px color-mix(in srgb,var(--vg) 16%,transparent)}",
     S + " .vg-bad input,"+S+" .vg-bad select{border-color:#c0392b}",
     S + " .vg-f{min-width:0}",
+    S + " .vg-saved{display:flex;align-items:flex-start;gap:8px;margin-top:14px;padding:10px 12px;border-radius:11px;" +
+      "font-size:13.5px;line-height:1.45;color:" + C.ink + ";background:color-mix(in srgb,var(--vg) 9%,transparent);" +
+      "border:1px solid color-mix(in srgb,var(--vg) 22%,transparent)}",
+    S + " .vg-saved strong{font-weight:600}",
+    S + " .vg-tick{flex:0 0 auto;font-weight:700;color:var(--vg)}",
     // Native select arrows are ugly and inconsistent across browsers; draw our own.
     S + " .vg-sel{position:relative}",
     S + " .vg-sel::after{content:'';position:absolute;right:15px;top:50%;width:7px;height:7px;pointer-events:none;" +
@@ -204,6 +209,14 @@
           '<input id="vg-phone" name="phone" inputmode="tel" autocomplete="tel" placeholder="10-digit mobile"></div>' +
       "</div>" +
 
+      // ---- STEP 2 ----
+      // Hidden until the lead is saved. The hero only ever shows name + mobile,
+      // which is the whole reason the form fits beside the headline now.
+      '<div class="vg-step2" hidden>' +
+        '<div class="vg-saved">' +
+          '<span class="vg-tick">\u2713</span> Got it — we have your number. ' +
+          '<strong>A few details so we can quote accurately.</strong>' +
+        "</div>" +
       '<div class="vg-row vg-two">' +
         '<div class="vg-f"><label for="vg-email">Email address</label>' +
           '<input id="vg-email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com"></div>' +
@@ -217,12 +230,13 @@
         '<div class="vg-f"><label for="vg-guests">Guests</label>' +
           '<div class="vg-sel"><select id="vg-guests" name="guests">' + optionsHtml(GUESTS, "Select") + "</select></div></div>" +
       "</div>" +
+      "</div>" +
 
       // Bots fill every field they can see; a human never sees this one.
       '<div class="vg-hp" aria-hidden="true"><label>Company<input name="company" tabindex="-1" autocomplete="off"></label></div>' +
 
       '<div class="vg-err" role="alert" aria-live="polite"></div>' +
-      "<button type=submit>Request a callback</button>" +
+      "<button type=submit>Check availability</button>" +
       '<div class="vg-fine">' +
         '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">' +
         '<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>' +
@@ -233,6 +247,10 @@
   var form = mount.querySelector("form");
   var errEl = mount.querySelector(".vg-err");
   var btn = mount.querySelector("button");
+  var step2 = mount.querySelector(".vg-step2");
+  // Which half of the form we are on, and the token authorising the second.
+  var step = 1;
+  var enrichToken = null;
 
   function markBad(input, bad) {
     // Scope the outline to the FIELD, never the row.
@@ -290,33 +308,56 @@
       errEl.textContent = "Enter a 10-digit Indian mobile, or include your country code (e.g. +44…).";
       markBad(form.phone, true); form.phone.focus(); return;
     }
-    var email = form.email.value.trim();
-    // Same shape the server accepts, checked here so the visitor is corrected
-    // before a round-trip rather than after one.
-    if (!email || !/^[^\s@]+@[^\s@.]+\.[^\s@]{2,}$/.test(email)) {
-      errEl.textContent = "Please enter a valid email address.";
-      markBad(form.email, true); form.email.focus(); return;
-    }
-    // Date is checked BEFORE the two selects because it now sits above them.
-    // Pairing the fields moved it up the page; leaving this order alone would
-    // have sent someone to "Occasion" while an empty date sat above it —
-    // exactly the confusion validating in visual order exists to prevent.
-    if (!form.date.value) {
-      errEl.textContent = "Please pick your preferred date.";
-      markBad(form.date, true); form.date.focus(); return;
-    }
-    if (!form.eventType.value) {
-      errEl.textContent = "Please choose the occasion.";
-      markBad(form.eventType, true); form.eventType.focus(); return;
-    }
-    if (!form.guests.value) {
-      errEl.textContent = "Please choose an approximate guest count.";
-      markBad(form.guests, true); form.guests.focus(); return;
+    // ---- STEP 2 validation (only once the lead is already saved) ----
+    if (step === 2) {
+      var email = form.email.value.trim();
+      // Same shape the server accepts, checked here so the visitor is
+      // corrected before a round-trip rather than after one.
+      if (!email || !/^[^\s@]+@[^\s@.]+\.[^\s@]{2,}$/.test(email)) {
+        errEl.textContent = "Please enter a valid email address.";
+        markBad(form.email, true); form.email.focus(); return;
+      }
+      // Date is checked BEFORE the two selects because it sits above them.
+      if (!form.date.value) {
+        errEl.textContent = "Please pick your preferred date.";
+        markBad(form.date, true); form.date.focus(); return;
+      }
+      if (!form.eventType.value) {
+        errEl.textContent = "Please choose the occasion.";
+        markBad(form.eventType, true); form.eventType.focus(); return;
+      }
+      if (!form.guests.value) {
+        errEl.textContent = "Please choose an approximate guest count.";
+        markBad(form.guests, true); form.guests.focus(); return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "Sending…";
+      fetch(ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          enrichToken: enrichToken,
+          email: email,
+          eventType: form.eventType.value,
+          guests: form.guests.value,
+          date: form.date.value,
+        }),
+      })
+        .then(function (r) { return r.json().catch(function () { return {}; }); })
+        .then(function () { mount.innerHTML = successHtml(); })
+        .catch(function () {
+          // The LEAD IS ALREADY SAVED. There is nothing useful for the visitor
+          // to retry and no reason to alarm them, so finish the journey.
+          mount.innerHTML = successHtml();
+        });
+      return;
     }
 
+    // ---- STEP 1: save the lead on name + mobile alone ----
     btn.disabled = true;
     var original = btn.textContent;
-    btn.textContent = "Sending…";
+    btn.textContent = "Checking…";
 
     fetch(ENDPOINT, {
       method: "POST",
@@ -324,10 +365,6 @@
       body: JSON.stringify({
         name: name,
         phone: phone,
-        email: email,
-        eventType: form.eventType.value,
-        guests: form.guests.value,
-        date: form.date.value,
         page: window.location.href,
         landing_url: window.location.href,
         referrer: document.referrer || undefined,
@@ -342,12 +379,30 @@
         if (!res.ok || !res.body || res.body.ok !== true) {
           throw new Error((res.body && res.body.error) || "Could not send your enquiry.");
         }
-        mount.innerHTML = successHtml();
+        // The lead is SAVED. From here the visitor can walk away and still be
+        // followed up — which is the entire reason for splitting the form.
         try {
           window.dispatchEvent(
             new CustomEvent("veloria:enquiry-submitted", { detail: { leadId: res.body.leadId } })
           );
         } catch (_) {}
+
+        enrichToken = res.body.enrichToken;
+        if (!enrichToken) {
+          // No token means step 2 could not be applied to anything. Do not show
+          // fields that would silently discard what the visitor types.
+          mount.innerHTML = successHtml();
+          return;
+        }
+
+        step = 2;
+        step2.hidden = false;
+        errEl.textContent = "";
+        btn.disabled = false;
+        btn.textContent = "Complete my enquiry";
+        // Move focus into the newly revealed section so keyboard and screen
+        // reader users are not left on a button whose meaning just changed.
+        try { form.email.focus({ preventScroll: true }); } catch (_) { form.email.focus(); }
       })
       .catch(function (e) {
         // Never leave the visitor stuck with a dead button.
