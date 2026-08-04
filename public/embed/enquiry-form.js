@@ -102,13 +102,27 @@
       "text-transform:uppercase;color:var(--vgold);margin-bottom:9px}",
     S + " .vg-h{font-family:" + SERIF + ";font-size:27px;line-height:1.18;font-weight:600;letter-spacing:-.011em;color:" + C.ink + "}",
     "@media(max-width:420px){" + S + " .vg-h{font-size:23px}}",
-    S + " .vg-sub{font-size:14px;color:" + C.sub + ";margin-top:8px;max-width:32ch}",
-    S + " .vg-rule{height:1px;background:" + C.bd + ";margin:20px 0 4px}",
+    S + " .vg-sub{font-size:14px;line-height:1.45;color:" + C.sub + ";margin-top:6px;max-width:44ch}",
+    // 32ch forced this to three lines in a 560px card. At 44ch it sets in two,
+    // which is ~20px of hero height for no change to the words.
+    S + " .vg-rule{height:1px;background:" + C.bd + ";margin:16px 0 2px}",
 
     // Fields.
-    S + " .vg-row{margin-top:15px}",
+    S + " .vg-row{margin-top:13px}",
     S + " .vg-two{display:grid;grid-template-columns:1fr 1fr;gap:12px}",
-    "@media(max-width:460px){" + S + " .vg-two{grid-template-columns:1fr;gap:15px}}",
+    // Stack on the CONTAINER's width, not the viewport's.
+    //
+    // This is an embed: the host decides how much room it gets. A viewport
+    // query says "the window is 1400px wide, go two-up" even when the form has
+    // been dropped into a 320px sidebar — and then two inputs share 320px and
+    // look broken. @container asks the only question that matters, which is how
+    // wide THIS form is.
+    "@supports (container-type: inline-size){" + S + "{container-type:inline-size}" +
+      "@container (max-width:460px){" + S + " .vg-two{grid-template-columns:1fr;gap:13px}}}",
+    // Fallback for browsers without container queries — a visitor on an old
+    // phone must still get a usable form, not a broken one.
+    "@supports not (container-type: inline-size){@media(max-width:460px){" +
+      S + " .vg-two{grid-template-columns:1fr;gap:13px}}}",
     S + " label{display:block;font-size:12px;font-weight:600;letter-spacing:.01em;color:" + C.ink + ";margin-bottom:6px}",
     S + " .vg-opt{font-weight:500;color:" + C.sub + "}",
     // 16px minimum: iOS Safari force-zooms the page when a focused field is
@@ -121,6 +135,7 @@
     S + " input:focus,"+S+" select:focus{border-color:var(--vg);background:" + (DARK ? "rgba(255,255,255,.07)" : "#fff") +
       ";box-shadow:0 0 0 3.5px color-mix(in srgb,var(--vg) 16%,transparent)}",
     S + " .vg-bad input,"+S+" .vg-bad select{border-color:#c0392b}",
+    S + " .vg-f{min-width:0}",
     // Native select arrows are ugly and inconsistent across browsers; draw our own.
     S + " .vg-sel{position:relative}",
     S + " .vg-sel::after{content:'';position:absolute;right:15px;top:50%;width:7px;height:7px;pointer-events:none;" +
@@ -128,7 +143,7 @@
     S + " select{padding-right:36px}",
 
     // Submit — emerald with a soft sheen, matching the app's primary button.
-    S + " button{position:relative;overflow:hidden;width:100%;height:52px;margin-top:22px;border:0;border-radius:14px;" +
+    S + " button{position:relative;overflow:hidden;width:100%;height:52px;margin-top:18px;border:0;border-radius:14px;" +
       "background:linear-gradient(180deg,var(--vg) 0%,color-mix(in srgb,var(--vg) 88%,#000) 100%);" +
       "color:#fff;font-size:15.5px;font-weight:600;letter-spacing:.005em;cursor:pointer;" +
       "box-shadow:0 1px 0 rgba(255,255,255,.18) inset,0 10px 22px -12px color-mix(in srgb,var(--vg) 70%,transparent);" +
@@ -172,24 +187,36 @@
       "</div>" +
       '<div class="vg-rule"></div>' +
 
-      '<div class="vg-row"><label for="vg-name">Your name</label>' +
-        '<input id="vg-name" name="name" autocomplete="name" placeholder="e.g. Ananya Rao"></div>' +
-
-      '<div class="vg-row"><label for="vg-phone">Mobile number</label>' +
-        '<input id="vg-phone" name="phone" inputmode="tel" autocomplete="tel" placeholder="10-digit mobile"></div>' +
-
-      '<div class="vg-row"><label for="vg-email">Email address</label>' +
-        '<input id="vg-email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com"></div>' +
-
+      // THREE paired rows, not five stacked ones.
+      //
+      // Same six fields — none dropped, because every one of them is what makes
+      // the callback useful — but the form is a hero element on the landing
+      // page, and five full-width rows made it taller than the headline it sits
+      // beside. Short inputs (name, phone, date) do not need 560px of width;
+      // giving it to them cost ~145px of height for nothing.
+      //
+      // Below the container breakpoint every pair stacks, so the phone layout
+      // is unchanged.
       '<div class="vg-row vg-two">' +
-        '<div><label for="vg-event">Occasion</label>' +
-          '<div class="vg-sel"><select id="vg-event" name="eventType">' + optionsHtml(EVENTS, "Select") + "</select></div></div>" +
-        '<div><label for="vg-guests">Guests</label>' +
-          '<div class="vg-sel"><select id="vg-guests" name="guests">' + optionsHtml(GUESTS, "Select") + "</select></div></div>" +
+        '<div class="vg-f"><label for="vg-name">Your name</label>' +
+          '<input id="vg-name" name="name" autocomplete="name" placeholder="e.g. Ananya Rao"></div>' +
+        '<div class="vg-f"><label for="vg-phone">Mobile number</label>' +
+          '<input id="vg-phone" name="phone" inputmode="tel" autocomplete="tel" placeholder="10-digit mobile"></div>' +
       "</div>" +
 
-      '<div class="vg-row"><label for="vg-date">Preferred date</label>' +
-        '<input id="vg-date" name="date" type="date"></div>' +
+      '<div class="vg-row vg-two">' +
+        '<div class="vg-f"><label for="vg-email">Email address</label>' +
+          '<input id="vg-email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com"></div>' +
+        '<div class="vg-f"><label for="vg-date">Preferred date</label>' +
+          '<input id="vg-date" name="date" type="date"></div>' +
+      "</div>" +
+
+      '<div class="vg-row vg-two">' +
+        '<div class="vg-f"><label for="vg-event">Occasion</label>' +
+          '<div class="vg-sel"><select id="vg-event" name="eventType">' + optionsHtml(EVENTS, "Select") + "</select></div></div>" +
+        '<div class="vg-f"><label for="vg-guests">Guests</label>' +
+          '<div class="vg-sel"><select id="vg-guests" name="guests">' + optionsHtml(GUESTS, "Select") + "</select></div></div>" +
+      "</div>" +
 
       // Bots fill every field they can see; a human never sees this one.
       '<div class="vg-hp" aria-hidden="true"><label>Company<input name="company" tabindex="-1" autocomplete="off"></label></div>' +
@@ -208,9 +235,12 @@
   var btn = mount.querySelector("button");
 
   function markBad(input, bad) {
-    // Scope the outline to the FIELD, not the row: the two selects share one
-    // .vg-row grid, so marking the row would redden both when one is missing.
-    var target = input.closest(".vg-sel") || input.closest(".vg-row") || input.parentNode;
+    // Scope the outline to the FIELD, never the row.
+    //
+    // Every field now shares a .vg-row with a neighbour, so falling back to the
+    // row would redden BOTH when only one is missing — telling the visitor two
+    // things are wrong when one is. .vg-f wraps exactly one field.
+    var target = input.closest(".vg-sel") || input.closest(".vg-f") || input.parentNode;
     if (target && target.classList) target.classList.toggle("vg-bad", !!bad);
   }
   // Clear the error styling as soon as the visitor starts correcting it.
@@ -267,6 +297,14 @@
       errEl.textContent = "Please enter a valid email address.";
       markBad(form.email, true); form.email.focus(); return;
     }
+    // Date is checked BEFORE the two selects because it now sits above them.
+    // Pairing the fields moved it up the page; leaving this order alone would
+    // have sent someone to "Occasion" while an empty date sat above it —
+    // exactly the confusion validating in visual order exists to prevent.
+    if (!form.date.value) {
+      errEl.textContent = "Please pick your preferred date.";
+      markBad(form.date, true); form.date.focus(); return;
+    }
     if (!form.eventType.value) {
       errEl.textContent = "Please choose the occasion.";
       markBad(form.eventType, true); form.eventType.focus(); return;
@@ -274,10 +312,6 @@
     if (!form.guests.value) {
       errEl.textContent = "Please choose an approximate guest count.";
       markBad(form.guests, true); form.guests.focus(); return;
-    }
-    if (!form.date.value) {
-      errEl.textContent = "Please pick your preferred date.";
-      markBad(form.date, true); form.date.focus(); return;
     }
 
     btn.disabled = true;
