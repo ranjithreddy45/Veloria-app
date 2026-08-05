@@ -145,6 +145,7 @@
       ";box-shadow:0 0 0 3.5px color-mix(in srgb,var(--vg) 16%,transparent)}",
     S + " .vg-bad input,"+S+" .vg-bad select{border-color:#c0392b}",
     S + " .vg-f{min-width:0}",
+    S + " .vg-consent[hidden]{display:none}",
     S + " .vg-consent{display:flex;align-items:flex-start;gap:9px;margin-top:15px;font-size:12.5px;" +
       "line-height:1.5;font-weight:400;color:" + C.sub + ";cursor:pointer}",
     // Consent text must stay readable — it is the record of what was agreed.
@@ -155,7 +156,10 @@
       "font-size:13.5px;line-height:1.45;color:" + C.ink + ";background:color-mix(in srgb,var(--vg) 9%,transparent);" +
       "border:1px solid color-mix(in srgb,var(--vg) 22%,transparent)}",
     S + " .vg-saved strong{font-weight:600}",
-    S + " .vg-tick{flex:0 0 auto;font-weight:700;color:var(--vg)}",
+    // Deliberately NOT .vg-tick — the success screen owns that class and renders
+    // it as a big circular badge, which turned this inline checkmark into a
+    // 90px green disc that shoved the banner text sideways.
+    S + " .vg-ok-mark{flex:0 0 auto;font-weight:700;color:var(--vg)}",
     // Native select arrows are ugly and inconsistent across browsers; draw our own.
     S + " .vg-sel{position:relative}",
     S + " .vg-sel::after{content:'';position:absolute;right:15px;top:50%;width:7px;height:7px;pointer-events:none;" +
@@ -228,9 +232,13 @@
       // Hidden until the lead is saved. The hero only ever shows name + mobile,
       // which is the whole reason the form fits beside the headline now.
       '<div class="vg-step2" hidden>' +
+        // The sentence lives in ONE span. Left as bare text plus a <strong>,
+        // flex made each a separate item and they wrapped into two ragged
+        // columns instead of reading as a single line.
         '<div class="vg-saved">' +
-          '<span class="vg-tick">\u2713</span> Got it — we have your number. ' +
-          '<strong>A few details so we can quote accurately.</strong>' +
+          '<span class="vg-ok-mark">\u2713</span>' +
+          '<span>Got it — we have your number. ' +
+          '<strong>A few details so we can quote accurately.</strong></span>' +
         "</div>" +
       '<div class="vg-row vg-two">' +
         '<div class="vg-f"><label for="vg-email">Email address</label>' +
@@ -456,6 +464,11 @@
 
         step = 2;
         step2.hidden = false;
+        // Consent has been given and recorded with the lead. Leaving the block
+        // on screen re-asks a question already answered and costs two lines in
+        // the taller half of the form.
+        var consentBlock = mount.querySelector(".vg-consent");
+        if (consentBlock) consentBlock.hidden = true;
         errEl.textContent = "";
         btn.disabled = false;
         btn.textContent = "Complete my enquiry";
