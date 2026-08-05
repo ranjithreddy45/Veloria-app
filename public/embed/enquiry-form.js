@@ -61,11 +61,20 @@
   var ACCENT = d.accent || "#006742"; // brand emerald
   var GOLD = d.gold || "#b88513"; // the second metal, used as a hairline only
   var DARK = (d.theme || "light").toLowerCase() === "dark";
-  var EVENTS = (d.events || "Wedding,Reception,Engagement,Birthday,Corporate,Other")
+  var EVENTS = (d.events || "Wedding,Reception,Engagement,Birthday Party,Corporate Event,Baby Shower,Anniversary,Other")
     .split(",")
     .map(function (s) { return s.trim(); })
     .filter(Boolean);
-  var GUESTS = ["Under 100", "100–200", "200–300", "300–500", "500+", "Not sure yet"];
+  var GUESTS = (d.guests || "50–100,100–180,180–300,Not sure yet")
+    .split(",")
+    .map(function (s) { return s.trim(); })
+    .filter(Boolean);
+  // Which halls the visitor can ask for. Overridable per page via data-venues,
+  // because a campaign microsite may only sell one of them.
+  var VENUES = (d.venues || "Hosa Road (Singasandra),Begur — New Property,Either — suggest best available")
+    .split(",")
+    .map(function (s) { return s.trim(); })
+    .filter(Boolean);
 
   var SERIF =
     "ui-serif,'Iowan Old Style','Palatino Linotype',Palatino,Georgia,'Times New Roman',serif";
@@ -136,6 +145,12 @@
       ";box-shadow:0 0 0 3.5px color-mix(in srgb,var(--vg) 16%,transparent)}",
     S + " .vg-bad input,"+S+" .vg-bad select{border-color:#c0392b}",
     S + " .vg-f{min-width:0}",
+    S + " .vg-consent{display:flex;align-items:flex-start;gap:9px;margin-top:15px;font-size:12.5px;" +
+      "line-height:1.5;font-weight:400;color:" + C.sub + ";cursor:pointer}",
+    // Consent text must stay readable — it is the record of what was agreed.
+    S + " .vg-consent input{width:17px;height:17px;flex:0 0 auto;margin-top:1px;accent-color:var(--vg);" +
+      "border-radius:5px;cursor:pointer}",
+    S + " .vg-bad.vg-consent span{color:#c0392b}",
     S + " .vg-saved{display:flex;align-items:flex-start;gap:8px;margin-top:14px;padding:10px 12px;border-radius:11px;" +
       "font-size:13.5px;line-height:1.45;color:" + C.ink + ";background:color-mix(in srgb,var(--vg) 9%,transparent);" +
       "border:1px solid color-mix(in srgb,var(--vg) 22%,transparent)}",
@@ -230,12 +245,27 @@
         '<div class="vg-f"><label for="vg-guests">Guests</label>' +
           '<div class="vg-sel"><select id="vg-guests" name="guests">' + optionsHtml(GUESTS, "Select") + "</select></div></div>" +
       "</div>" +
+
+      '<div class="vg-row"><label for="vg-venue">Preferred venue</label>' +
+        '<div class="vg-sel"><select id="vg-venue" name="venueLocation">' +
+          optionsHtml(VENUES, "Select") + "</select></div></div>" +
       "</div>" +
 
       // Bots fill every field they can see; a human never sees this one.
       '<div class="vg-hp" aria-hidden="true"><label>Company<input name="company" tabindex="-1" autocomplete="off"></label></div>' +
 
       '<div class="vg-err" role="alert" aria-live="polite"></div>' +
+            // CONSENT IS STEP 1, not step 2.
+      //
+      // It is the permission to phone at all, and it explicitly overrides a
+      // DND/NDNC registration. Step 1 already writes the lead, so putting the
+      // tick in step 2 would mean a visitor who stops halfway leaves you a
+      // number you are not licensed to ring. One line of height for the thing
+      // that makes every later call lawful.
+      '<label class="vg-consent"><input type="checkbox" name="consent">' +
+        "<span>" + (d.consent ||
+          "I agree to be contacted by Veloria Grand about this enquiry via phone, SMS and WhatsApp. " +
+          "This consent overrides my DND/NDNC registration.") + "</span></label>" +
       "<button type=submit>Check availability</button>" +
       '<div class="vg-fine">' +
         '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">' +
@@ -248,6 +278,10 @@
   var errEl = mount.querySelector(".vg-err");
   var btn = mount.querySelector("button");
   var step2 = mount.querySelector(".vg-step2");
+  // The exact sentence the visitor ticked — evidence, so store the words shown
+  // rather than a generic "consented" that could later mean anything.
+  var consentEl = mount.querySelector(".vg-consent span");
+  var consentText = consentEl ? consentEl.textContent.trim() : "";
   // Which half of the form we are on, and the token authorising the second.
   var step = 1;
   var enrichToken = null;
@@ -262,7 +296,14 @@
     if (target && target.classList) target.classList.toggle("vg-bad", !!bad);
   }
   // Clear the error styling as soon as the visitor starts correcting it.
-  ["name", "phone", "email", "eventType", "guests", "date"].forEach(function (n) {
+  if (form.consent) {
+    form.consent.addEventListener("change", function () {
+      var w = form.consent.closest(".vg-consent");
+      if (w) w.classList.remove("vg-bad");
+      errEl.textContent = "";
+    });
+  }
+  ["name", "phone", "email", "eventType", "guests", "date", "venueLocation"].forEach(function (n) {
     var el = form[n];
     // "change" as well as "input": a <select> in Safari fires only change.
     ["input", "change"].forEach(function (evt) {
@@ -281,7 +322,7 @@
     errEl.textContent = "";
     // Clear EVERY previous outline, not just name/phone — otherwise a field
     // flagged on an earlier attempt stays red after the visitor has fixed it.
-    ["name", "phone", "email", "eventType", "guests", "date"].forEach(function (n) {
+    ["name", "phone", "email", "eventType", "guests", "date", "venueLocation"].forEach(function (n) {
       markBad(form[n], false);
     });
 
@@ -308,6 +349,16 @@
       errEl.textContent = "Enter a 10-digit Indian mobile, or include your country code (e.g. +44…).";
       markBad(form.phone, true); form.phone.focus(); return;
     }
+
+    // Consent gates STEP 1, because step 1 is what creates the lead. Without
+    // it we would hold a number we have no permission to ring.
+    if (step === 1 && form.consent && !form.consent.checked) {
+      errEl.textContent = "Please tick the box so we can call you back.";
+      var cw = form.consent.closest(".vg-consent");
+      if (cw) cw.classList.add("vg-bad");
+      form.consent.focus();
+      return;
+    }
     // ---- STEP 2 validation (only once the lead is already saved) ----
     if (step === 2) {
       var email = form.email.value.trim();
@@ -330,6 +381,10 @@
         errEl.textContent = "Please choose an approximate guest count.";
         markBad(form.guests, true); form.guests.focus(); return;
       }
+      if (!form.venueLocation.value) {
+        errEl.textContent = "Please choose a preferred venue.";
+        markBad(form.venueLocation, true); form.venueLocation.focus(); return;
+      }
 
       btn.disabled = true;
       btn.textContent = "Sending…";
@@ -342,6 +397,7 @@
           eventType: form.eventType.value,
           guests: form.guests.value,
           date: form.date.value,
+          venueLocation: form.venueLocation.value,
         }),
       })
         .then(function (r) { return r.json().catch(function () { return {}; }); })
@@ -365,6 +421,9 @@
       body: JSON.stringify({
         name: name,
         phone: phone,
+        // The consent record travels WITH the lead that it authorises.
+        consent: form.consent ? !!form.consent.checked : undefined,
+        consentText: form.consent ? consentText : undefined,
         page: window.location.href,
         landing_url: window.location.href,
         referrer: document.referrer || undefined,

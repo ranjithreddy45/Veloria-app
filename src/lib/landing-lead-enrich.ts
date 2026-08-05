@@ -14,6 +14,28 @@ import { prisma } from "@/lib/prisma";
 // tab must not be able to wipe that.
 // ============================================================
 
+/**
+ * The word worth searching a venue name for, from the website's own wording.
+ *
+ * The site offers "Hosa Road (Singasandra)" and "Begur — New Property"; the CRM
+ * calls the same halls something else entirely. The bracketed aside and the
+ * marketing suffix after a dash are noise, so strip both and search on what is
+ * left. "Either — suggest best available" expresses NO preference and must not
+ * match a hall called "Either" or, worse, the first venue alphabetically.
+ *
+ * Returns null when there is nothing worth searching for.
+ */
+export function venueMatchKey(raw: string | null | undefined): string | null {
+  const v = (raw ?? "").trim();
+  if (!v) return null;
+  if (/^(either|any|not sure|no preference)/i.test(v)) return null;
+  const key = v.replace(/\(.*?\)/g, "").split(/[—–-]/)[0].trim();
+  // One or two characters would match almost any venue name; that is worse
+  // than not matching at all, because it silently files the lead to a hall
+  // the visitor never asked for.
+  return key.length >= 3 ? key : null;
+}
+
 /** "50–100" / "Not sure yet" → a usable number (midpoint), or undefined. */
 function parseGuests(v: unknown): number | undefined {
   const s = String(v ?? "").replace(/[–—]/g, "-");
@@ -37,6 +59,8 @@ export interface EnrichInput {
   eventType?: string;
   guests?: unknown;
   date?: string;
+  /** What the visitor picked, as free text ("Hosa Road (Singasandra)"). */
+  venueLocation?: string;
 }
 
 export async function enrichLandingLead(leadId: string, input: EnrichInput): Promise<void> {
@@ -47,11 +71,34 @@ export async function enrichLandingLead(leadId: string, input: EnrichInput): Pro
       eventType: true,
       eventDate: true,
       guestCount: true,
+      preferredVenueId: true,
+      description: true,
       contactId: true,
       contact: { select: { id: true, email: true } },
     },
   });
   if (!lead) return; // Deleted between the two steps — nothing to do.
+
+  // Match the visitor's venue choice to a real hall.
+  //
+  // They pick from a WORDING on the website ("Hosa Road (Singasandra)"), which
+  // is not the venue's name in the CRM. So: try to resolve it, and if nothing
+  // matches, keep the raw text on the lead rather than dropping the preference
+  // — a rep can read "Begur" and act on it even when no Venue row exists yet.
+  let preferredVenueId: string | undefined;
+  const venueText = input.venueLocation?.trim();
+  if (venueText) {
+    const key = venueMatchKey(venueText);
+    if (key) {
+      const v = await prisma.venue
+        .findFirst({
+          where: { isActive: true, name: { contains: key, mode: "insensitive" } },
+          select: { id: true },
+        })
+        .catch(() => null);
+      if (v) preferredVenueId = v.id;
+    }
+  }
 
   const guests = parseGuests(input.guests);
   const eventDate = parseEventDate(input.date);
@@ -63,6 +110,11 @@ export async function enrichLandingLead(leadId: string, input: EnrichInput): Pro
   if (eventType && !lead.eventType) leadData.eventType = eventType;
   if (eventDate && !lead.eventDate) leadData.eventDate = eventDate;
   if (guests != null && !lead.guestCount) leadData.guestCount = guests;
+  if (preferredVenueId && !lead.preferredVenueId) leadData.preferredVenueId = preferredVenueId;
+  // Keep the visitor's own words when we could not resolve them to a hall.
+  if (venueText && !preferredVenueId && !lead.description?.includes("Preferred venue:")) {
+    leadData.description = `${lead.description ? lead.description + "\n" : ""}Preferred venue: ${venueText}`;
+  }
 
   if (Object.keys(leadData).length > 0) {
     await prisma.lead.update({ where: { id: lead.id }, data: leadData });

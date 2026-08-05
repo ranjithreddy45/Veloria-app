@@ -137,6 +137,7 @@ export async function POST(req: Request) {
         eventType: String(body.eventType ?? "").trim() || undefined,
         guests: body.guests,
         date: String(body.date ?? "").trim() || undefined,
+        venueLocation: String(body.venueLocation ?? "").trim() || undefined,
       });
     } catch (e) {
       // Log it, but tell the visitor they are done — because they ARE. The
@@ -209,6 +210,14 @@ export async function POST(req: Request) {
       eventDate,
       guestCount,
       message: [
+        // Consent is EVIDENCE. Store the sentence the visitor actually ticked
+        // and when — "consented: true" on its own proves nothing later if a
+        // DND complaint has to be answered.
+        body.consent === true
+          ? `Consent given ${new Date().toISOString()}: ${
+              String(body.consentText ?? "").trim() || "contact by phone/SMS/WhatsApp"
+            }`
+          : null,
         eventType ? `Event: ${eventType}` : null,
         body.guests ? `Guests: ${String(body.guests)}` : null,
         eventDate ? `Preferred date: ${eventDate}` : null,
