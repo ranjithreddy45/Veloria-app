@@ -228,18 +228,13 @@
           '<input id="vg-phone" name="phone" inputmode="tel" autocomplete="tel" placeholder="10-digit mobile"></div>' +
       "</div>" +
 
-      // ---- STEP 2 ----
-      // Hidden until the lead is saved. The hero only ever shows name + mobile,
-      // which is the whole reason the form fits beside the headline now.
-      '<div class="vg-step2" hidden>' +
-        // The sentence lives in ONE span. Left as bare text plus a <strong>,
-        // flex made each a separate item and they wrapped into two ragged
-        // columns instead of reading as a single line.
-        '<div class="vg-saved">' +
-          '<span class="vg-ok-mark">\u2713</span>' +
-          '<span>Got it — we have your number. ' +
-          '<strong>A few details so we can quote accurately.</strong></span>' +
-        "</div>" +
+      // ALL FIELDS VISIBLE AT ONCE.
+      //
+      // A two-step version shipped briefly and was reverted on sight: the hero
+      // showed only name + mobile, and an enquiry form that hides what it is
+      // going to ask reads as evasive rather than short. The height saving came
+      // from PAIRING the fields, which is kept — that part was never the
+      // problem.
       '<div class="vg-row vg-two">' +
         '<div class="vg-f"><label for="vg-email">Email address</label>' +
           '<input id="vg-email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com"></div>' +
@@ -285,14 +280,10 @@
   var form = mount.querySelector("form");
   var errEl = mount.querySelector(".vg-err");
   var btn = mount.querySelector("button");
-  var step2 = mount.querySelector(".vg-step2");
   // The exact sentence the visitor ticked — evidence, so store the words shown
   // rather than a generic "consented" that could later mean anything.
   var consentEl = mount.querySelector(".vg-consent span");
   var consentText = consentEl ? consentEl.textContent.trim() : "";
-  // Which half of the form we are on, and the token authorising the second.
-  var step = 1;
-  var enrichToken = null;
 
   function markBad(input, bad) {
     // Scope the outline to the FIELD, never the row.
@@ -360,68 +351,42 @@
 
     // Consent gates STEP 1, because step 1 is what creates the lead. Without
     // it we would hold a number we have no permission to ring.
-    if (step === 1 && form.consent && !form.consent.checked) {
+    if (form.consent && !form.consent.checked) {
       errEl.textContent = "Please tick the box so we can call you back.";
       var cw = form.consent.closest(".vg-consent");
       if (cw) cw.classList.add("vg-bad");
       form.consent.focus();
       return;
     }
-    // ---- STEP 2 validation (only once the lead is already saved) ----
-    if (step === 2) {
-      var email = form.email.value.trim();
-      // Same shape the server accepts, checked here so the visitor is
-      // corrected before a round-trip rather than after one.
-      if (!email || !/^[^\s@]+@[^\s@.]+\.[^\s@]{2,}$/.test(email)) {
-        errEl.textContent = "Please enter a valid email address.";
-        markBad(form.email, true); form.email.focus(); return;
-      }
-      // Date is checked BEFORE the two selects because it sits above them.
-      if (!form.date.value) {
-        errEl.textContent = "Please pick your preferred date.";
-        markBad(form.date, true); form.date.focus(); return;
-      }
-      if (!form.eventType.value) {
-        errEl.textContent = "Please choose the occasion.";
-        markBad(form.eventType, true); form.eventType.focus(); return;
-      }
-      if (!form.guests.value) {
-        errEl.textContent = "Please choose an approximate guest count.";
-        markBad(form.guests, true); form.guests.focus(); return;
-      }
-      if (!form.venueLocation.value) {
-        errEl.textContent = "Please choose a preferred venue.";
-        markBad(form.venueLocation, true); form.venueLocation.focus(); return;
-      }
-
-      btn.disabled = true;
-      btn.textContent = "Sending…";
-      fetch(ENDPOINT, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          enrichToken: enrichToken,
-          email: email,
-          eventType: form.eventType.value,
-          guests: form.guests.value,
-          date: form.date.value,
-          venueLocation: form.venueLocation.value,
-        }),
-      })
-        .then(function (r) { return r.json().catch(function () { return {}; }); })
-        .then(function () { mount.innerHTML = successHtml(); })
-        .catch(function () {
-          // The LEAD IS ALREADY SAVED. There is nothing useful for the visitor
-          // to retry and no reason to alarm them, so finish the journey.
-          mount.innerHTML = successHtml();
-        });
-      return;
+    // ---- Remaining fields, validated in visual order ----
+    var email = form.email.value.trim();
+    // Same shape the server accepts, checked here so the visitor is corrected
+    // before a round-trip rather than after one.
+    if (!email || !/^[^\s@]+@[^\s@.]+\.[^\s@]{2,}$/.test(email)) {
+      errEl.textContent = "Please enter a valid email address.";
+      markBad(form.email, true); form.email.focus(); return;
+    }
+    // Date before the selects, because it sits above them on screen.
+    if (!form.date.value) {
+      errEl.textContent = "Please pick your preferred date.";
+      markBad(form.date, true); form.date.focus(); return;
+    }
+    if (!form.eventType.value) {
+      errEl.textContent = "Please choose the occasion.";
+      markBad(form.eventType, true); form.eventType.focus(); return;
+    }
+    if (!form.guests.value) {
+      errEl.textContent = "Please choose an approximate guest count.";
+      markBad(form.guests, true); form.guests.focus(); return;
+    }
+    if (!form.venueLocation.value) {
+      errEl.textContent = "Please choose a preferred venue.";
+      markBad(form.venueLocation, true); form.venueLocation.focus(); return;
     }
 
-    // ---- STEP 1: save the lead on name + mobile alone ----
     btn.disabled = true;
     var original = btn.textContent;
-    btn.textContent = "Checking…";
+    btn.textContent = "Sending…";
 
     fetch(ENDPOINT, {
       method: "POST",
@@ -429,6 +394,11 @@
       body: JSON.stringify({
         name: name,
         phone: phone,
+        email: email,
+        eventType: form.eventType.value,
+        guests: form.guests.value,
+        date: form.date.value,
+        venueLocation: form.venueLocation.value,
         // The consent record travels WITH the lead that it authorises.
         consent: form.consent ? !!form.consent.checked : undefined,
         consentText: form.consent ? consentText : undefined,
@@ -446,35 +416,12 @@
         if (!res.ok || !res.body || res.body.ok !== true) {
           throw new Error((res.body && res.body.error) || "Could not send your enquiry.");
         }
-        // The lead is SAVED. From here the visitor can walk away and still be
-        // followed up — which is the entire reason for splitting the form.
+        mount.innerHTML = successHtml();
         try {
           window.dispatchEvent(
             new CustomEvent("veloria:enquiry-submitted", { detail: { leadId: res.body.leadId } })
           );
         } catch (_) {}
-
-        enrichToken = res.body.enrichToken;
-        if (!enrichToken) {
-          // No token means step 2 could not be applied to anything. Do not show
-          // fields that would silently discard what the visitor types.
-          mount.innerHTML = successHtml();
-          return;
-        }
-
-        step = 2;
-        step2.hidden = false;
-        // Consent has been given and recorded with the lead. Leaving the block
-        // on screen re-asks a question already answered and costs two lines in
-        // the taller half of the form.
-        var consentBlock = mount.querySelector(".vg-consent");
-        if (consentBlock) consentBlock.hidden = true;
-        errEl.textContent = "";
-        btn.disabled = false;
-        btn.textContent = "Complete my enquiry";
-        // Move focus into the newly revealed section so keyboard and screen
-        // reader users are not left on a button whose meaning just changed.
-        try { form.email.focus({ preventScroll: true }); } catch (_) { form.email.focus(); }
       })
       .catch(function (e) {
         // Never leave the visitor stuck with a dead button.
