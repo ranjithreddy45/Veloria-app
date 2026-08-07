@@ -130,12 +130,12 @@
     S + " .vg-opt{font-weight:500;color:" + C.sub + "}",
     // 16px minimum: iOS Safari force-zooms the page when a focused field is
     // smaller, which yanks the host layout sideways mid-typing.
-    S + " input,"+S+" select{width:100%;height:48px;padding:0 14px;font-size:16px;color:" + C.ink +
+    S + " input:not([type=checkbox]),"+S+" select{width:100%;height:48px;padding:0 14px;font-size:16px;color:" + C.ink +
       ";background:" + C.field + ";border:1px solid " + C.fieldBd +
       ";border-radius:12px;outline:none;appearance:none;-webkit-appearance:none;transition:border-color .15s,box-shadow .15s,background .15s}",
     S + " input::placeholder{color:" + C.sub + ";opacity:.75}",
-    S + " input:hover,"+S+" select:hover{border-color:" + (DARK ? "rgba(255,255,255,.26)" : "#cfcfd4") + "}",
-    S + " input:focus,"+S+" select:focus{border-color:var(--vg);background:" + (DARK ? "rgba(255,255,255,.07)" : "#fff") +
+    S + " input:not([type=checkbox]):hover,"+S+" select:hover{border-color:" + (DARK ? "rgba(255,255,255,.26)" : "#cfcfd4") + "}",
+    S + " input:not([type=checkbox]):focus,"+S+" select:focus{border-color:var(--vg);background:" + (DARK ? "rgba(255,255,255,.07)" : "#fff") +
       ";box-shadow:0 0 0 3.5px color-mix(in srgb,var(--vg) 16%,transparent)}",
     S + " .vg-bad input,"+S+" .vg-bad select{border-color:#c0392b}",
     S + " .vg-f{min-width:0}",
@@ -143,8 +143,13 @@
     S + " .vg-consent{display:flex;align-items:flex-start;gap:9px;margin-top:15px;font-size:12.5px;" +
       "line-height:1.5;font-weight:400;color:" + C.sub + ";cursor:pointer}",
     // Consent text must stay readable — it is the record of what was agreed.
-    S + " .vg-consent input{width:17px;height:17px;flex:0 0 auto;margin-top:1px;accent-color:var(--vg);" +
-      "border-radius:5px;cursor:pointer}",
+    // appearance:auto is the POINT of this rule, not decoration. The generic
+    // field styling above once applied appearance:none to every input, which
+    // strips a checkbox of its native tick — so ticking it changed nothing a
+    // visitor could see, on the one control that is a legal record of consent.
+    S + " .vg-consent input[type=checkbox]{appearance:auto;-webkit-appearance:checkbox;" +
+      "width:17px;height:17px;flex:0 0 auto;margin-top:1px;padding:0;" +
+      "accent-color:var(--vg);cursor:pointer}",
     S + " .vg-bad.vg-consent span{color:#c0392b}",
     S + " .vg-saved{display:flex;align-items:flex-start;gap:8px;margin-top:14px;padding:10px 12px;border-radius:11px;" +
       "font-size:13.5px;line-height:1.45;color:" + C.ink + ";background:color-mix(in srgb,var(--vg) 9%,transparent);" +
