@@ -580,12 +580,32 @@ function mapSource(source: string): string {
 /**
  * Get system user ID (first SUPER_ADMIN or ADMIN)
  */
+/**
+ * The fallback owner for anything that arrives without one.
+ *
+ * MEMOISED, because a single capture called this FOUR times and each call was
+ * its own database round-trip for a value that cannot change mid-request. On a
+ * serverless function talking to a remote Postgres, a round-trip is
+ * hundreds of milliseconds — so this alone was costing over a second of the
+ * time a customer spent staring at a spinner.
+ *
+ * The cache lives for the lifetime of the process, which on serverless is one
+ * warm instance. A newly-promoted admin is picked up when the instance
+ * recycles; the value is "which admin owns orphans", not something that needs
+ * to be correct to the second. An empty result is NOT cached, so a genuine
+ * lookup failure retries rather than sticking.
+ */
+let systemUserIdCache: string | null = null;
+
 export async function getSystemUserId(): Promise<string> {
+  if (systemUserIdCache) return systemUserIdCache;
   const admin = await prisma.user.findFirst({
     where: { role: { in: ["SUPER_ADMIN", "ADMIN"] }, isActive: true },
     select: { id: true },
   });
-  return admin?.id || "";
+  const id = admin?.id || "";
+  if (id) systemUserIdCache = id;
+  return id;
 }
 
 /**
