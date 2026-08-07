@@ -69,12 +69,6 @@
     .split(",")
     .map(function (s) { return s.trim(); })
     .filter(Boolean);
-  // Which halls the visitor can ask for. Overridable per page via data-venues,
-  // because a campaign microsite may only sell one of them.
-  var VENUES = (d.venues || "Hosa Road (Singasandra),Begur — New Property,Either — suggest best available")
-    .split(",")
-    .map(function (s) { return s.trim(); })
-    .filter(Boolean);
 
   var SERIF =
     "ui-serif,'Iowan Old Style','Palatino Linotype',Palatino,Georgia,'Times New Roman',serif";
@@ -235,23 +229,18 @@
       // going to ask reads as evasive rather than short. The height saving came
       // from PAIRING the fields, which is kept — that part was never the
       // problem.
+      // Date pairs with the Occasion row below rather than sitting alone, so
+      // removing email costs no extra row.
       '<div class="vg-row vg-two">' +
-        '<div class="vg-f"><label for="vg-email">Email address</label>' +
-          '<input id="vg-email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com"></div>' +
         '<div class="vg-f"><label for="vg-date">Preferred date</label>' +
           '<input id="vg-date" name="date" type="date"></div>' +
-      "</div>" +
-
-      '<div class="vg-row vg-two">' +
         '<div class="vg-f"><label for="vg-event">Occasion</label>' +
           '<div class="vg-sel"><select id="vg-event" name="eventType">' + optionsHtml(EVENTS, "Select") + "</select></div></div>" +
-        '<div class="vg-f"><label for="vg-guests">Guests</label>' +
-          '<div class="vg-sel"><select id="vg-guests" name="guests">' + optionsHtml(GUESTS, "Select") + "</select></div></div>" +
       "</div>" +
 
-      '<div class="vg-row"><label for="vg-venue">Preferred venue</label>' +
-        '<div class="vg-sel"><select id="vg-venue" name="venueLocation">' +
-          optionsHtml(VENUES, "Select") + "</select></div></div>" +
+      '<div class="vg-row"><label for="vg-guests">Guests</label>' +
+        '<div class="vg-sel"><select id="vg-guests" name="guests">' + optionsHtml(GUESTS, "Select") + "</select></div></div>" +
+
       "</div>" +
 
       // Bots fill every field they can see; a human never sees this one.
@@ -302,7 +291,7 @@
       errEl.textContent = "";
     });
   }
-  ["name", "phone", "email", "eventType", "guests", "date", "venueLocation"].forEach(function (n) {
+  ["name", "phone", "eventType", "guests", "date"].forEach(function (n) {
     var el = form[n];
     // "change" as well as "input": a <select> in Safari fires only change.
     ["input", "change"].forEach(function (evt) {
@@ -321,7 +310,7 @@
     errEl.textContent = "";
     // Clear EVERY previous outline, not just name/phone — otherwise a field
     // flagged on an earlier attempt stays red after the visitor has fixed it.
-    ["name", "phone", "email", "eventType", "guests", "date", "venueLocation"].forEach(function (n) {
+    ["name", "phone", "eventType", "guests", "date"].forEach(function (n) {
       markBad(form[n], false);
     });
 
@@ -359,14 +348,7 @@
       return;
     }
     // ---- Remaining fields, validated in visual order ----
-    var email = form.email.value.trim();
-    // Same shape the server accepts, checked here so the visitor is corrected
-    // before a round-trip rather than after one.
-    if (!email || !/^[^\s@]+@[^\s@.]+\.[^\s@]{2,}$/.test(email)) {
-      errEl.textContent = "Please enter a valid email address.";
-      markBad(form.email, true); form.email.focus(); return;
-    }
-    // Date before the selects, because it sits above them on screen.
+    // Date first, because it sits highest of the remaining fields.
     if (!form.date.value) {
       errEl.textContent = "Please pick your preferred date.";
       markBad(form.date, true); form.date.focus(); return;
@@ -379,10 +361,6 @@
       errEl.textContent = "Please choose an approximate guest count.";
       markBad(form.guests, true); form.guests.focus(); return;
     }
-    if (!form.venueLocation.value) {
-      errEl.textContent = "Please choose a preferred venue.";
-      markBad(form.venueLocation, true); form.venueLocation.focus(); return;
-    }
 
     btn.disabled = true;
     var original = btn.textContent;
@@ -394,11 +372,9 @@
       body: JSON.stringify({
         name: name,
         phone: phone,
-        email: email,
         eventType: form.eventType.value,
         guests: form.guests.value,
         date: form.date.value,
-        venueLocation: form.venueLocation.value,
         // The consent record travels WITH the lead that it authorises.
         consent: form.consent ? !!form.consent.checked : undefined,
         consentText: form.consent ? consentText : undefined,
