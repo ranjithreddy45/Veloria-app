@@ -1,3 +1,5 @@
+import { after } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { notify } from "@/lib/notify";
 import { logActivity } from "@/lib/activity-logger";
@@ -81,6 +83,21 @@ const KNOWN_COUNTRY_CODES = new Set([
 ]);
 
 interface ExternalLeadData {
+  /**
+   * Answer the caller as soon as the lead row is durably saved, and run the
+   * enrichment tail (attribution, welcome message, intake, referral) after the
+   * response has gone out.
+   *
+   * ONLY for paths where a human is watching a spinner — the public landing
+   * form. Provider webhooks leave this off: nobody is waiting on those, and
+   * completing everything inside the request is the simpler guarantee.
+   *
+   * Safe because the tail is entirely post-write. By the time it runs, the
+   * contact and the lead already exist and are visible in the CRM; the tail
+   * only decorates them. If it fails, we have an un-enriched lead, which is a
+   * far better outcome than the lead never arriving.
+   */
+  deferTail?: boolean;
   name: string;
   email?: string;
   phone?: string;
@@ -109,6 +126,24 @@ interface ExternalLeadData {
  * Provider redeliveries carry the same externalId, so we can detect and
  * short-circuit duplicate captures without a schema change.
  */
+/**
+ * Run work after the HTTP response has been flushed.
+ *
+ * Next's `after()` keeps the serverless invocation alive past the response, so
+ * this is real deferral rather than a fire-and-forget promise that the platform
+ * is free to freeze mid-flight. Outside a request scope (crons, scripts) it
+ * throws, so fall back to running the work inline — never silently drop it.
+ */
+function scheduleAfterResponse(work: () => Promise<void>) {
+  const guarded = () =>
+    work().catch((e) => console.error("[LeadCapture] deferred tail failed:", e));
+  try {
+    after(guarded);
+  } catch {
+    void guarded();
+  }
+}
+
 function externalIdMarker(externalId: string): string {
   return `[ext:${externalId.trim()}]`;
 }
@@ -340,42 +375,54 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
     const systemUserId = await getSystemUserId();
     let lead: { id: string; contactId: string | null } & Record<string, any>;
     try {
-      const created = await prisma.$transaction(
-        async (tx) => {
-          if (externalId) {
-            const dup = await tx.lead.findFirst({
-              where: { description: { contains: externalIdMarker(externalId) } },
-              select: { id: true, contactId: true },
-            });
-            if (dup) return { tag: "existing" as const, row: dup };
-          }
-          const row = await tx.lead.create({
-            data: {
-              title: `${data.source} Lead — ${firstName} ${lastName}`.trim(),
-              description: [
-                data.message || `Auto-captured from ${data.source}`,
-                externalId ? externalIdMarker(externalId) : null,
-              ]
-                .filter(Boolean)
-                .join(" "),
-              status: "NEW",
-              source: mapSource(data.source) as any,
-              score,
-              eventType: data.eventType || null,
-              eventDate: data.eventDate ? new Date(data.eventDate) : null,
-              guestCount: data.guestCount || null,
-              estimatedValue,
-              preferredVenueId: data.venueId || null,
-              firstContactDue: leadSlaDeadline(),
-              contactId: contact.id,
-              assignedToId,
-              createdById: systemUserId,
+      // The Serializable transaction exists for exactly one reason: to make the
+      // externalId re-check and the insert atomic. That is the only race here.
+      //
+      // With no externalId — the public landing form — there is nothing to
+      // re-check, and wrapping a lone INSERT in BEGIN/COMMIT buys several extra
+      // network round-trips to Neon on the one path where a person is sitting
+      // watching a spinner. So take the transaction only when it does something.
+      const leadData: Prisma.LeadUncheckedCreateInput = {
+        title: `${data.source} Lead — ${firstName} ${lastName}`.trim(),
+        description: [
+          data.message || `Auto-captured from ${data.source}`,
+          externalId ? externalIdMarker(externalId) : null,
+        ]
+          .filter(Boolean)
+          .join(" "),
+        status: "NEW",
+        source: mapSource(data.source) as any,
+        score,
+        eventType: data.eventType || null,
+        eventDate: data.eventDate ? new Date(data.eventDate) : null,
+        guestCount: data.guestCount || null,
+        estimatedValue,
+        preferredVenueId: data.venueId || null,
+        firstContactDue: leadSlaDeadline(),
+        contactId: contact.id,
+        assignedToId,
+        createdById: systemUserId,
+      };
+
+      const created = externalId
+        ? await prisma.$transaction(
+            async (tx) => {
+              const dup = await tx.lead.findFirst({
+                where: { description: { contains: externalIdMarker(externalId) } },
+                select: { id: true, contactId: true },
+              });
+              if (dup) return { tag: "existing" as const, row: dup };
+              return {
+                tag: "created" as const,
+                row: await tx.lead.create({ data: leadData }),
+              };
             },
-          });
-          return { tag: "created" as const, row };
-        },
-        { isolationLevel: "Serializable" }
-      );
+            { isolationLevel: "Serializable" }
+          )
+        : {
+            tag: "created" as const,
+            row: await prisma.lead.create({ data: leadData }),
+          };
 
       if (created.tag === "existing") {
         return {
@@ -406,146 +453,157 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
       throw txErr;
     }
 
-    // First-touch marketing attribution (best-effort; helper swallows errors).
-    // Awaited so the campaign linkage isn't dropped on a serverless freeze.
-    if (data.attribution) {
-      await attachAttributionToLead(lead.id, {
-        ...data.attribution,
-        source: data.attribution.source || data.source,
-      });
-    }
-
-    // Log activity
-    logActivity({
-      action: "CREATE",
-      entityType: "lead",
-      entityId: lead.id,
-      changes: { source: data.source, autoCapture: true },
-      userId: assignedToId || "system",
-    });
-
-    // Notify assigned agent
-    if (assignedToId) {
-      notify({
-        userId: assignedToId,
-        title: "New Lead Captured",
-        message: `New ${data.source} lead: ${firstName} ${lastName}`,
-        type: "LEAD_ASSIGNED",
-        actionUrl: `/leads`,
-      });
-    }
-
-    // Check for auto-welcome config
-    try {
-      const welcomeConfig = await prisma.autoWelcomeConfig.findUnique({
-        where: { leadSource: mapSource(data.source) as any },
-      });
-
-      if (welcomeConfig?.isEnabled && contact.phone) {
-        // Schedule welcome message (delayed or immediate)
-        if (welcomeConfig.delayMinutes === 0) {
-          // NOT awaited. This is an outbound call to WhatsApp's API, made
-          // AFTER the lead is already durably saved — so the visitor was
-          // sitting in a spinner waiting on a third party that has nothing to
-          // do with whether their enquiry reached us. If WhatsApp was slow the
-          // whole request blew the function timeout and the lead was reported
-          // as failed. A welcome message is worth sending; it is not worth an
-          // enquiry.
-          void sendWelcomeWhatsApp(
-            contact.phone,
-            welcomeConfig.templateName,
-            firstName,
-            contact.id
-          ).catch((e) => console.error("[CAPTURE] welcome WhatsApp failed", e));
-        } else {
-          // For delayed messages, create a scheduled task
-          const sendAt = new Date(Date.now() + welcomeConfig.delayMinutes * 60 * 1000);
-          await prisma.task.create({
-            data: {
-              title: `Send welcome message to ${firstName} ${lastName}`,
-              description: `Auto-welcome via template: ${welcomeConfig.templateName}`,
-              dueDate: sendAt,
-              priority: "HIGH",
-              status: "TODO",
-              assigneeId: assignedToId || (await getSystemUserId()),
-              creatorId: await getSystemUserId(),
-            },
-          });
-        }
+    // ---------------- everything below is POST-WRITE ----------------
+    // The contact and the lead now exist. Nothing after this point changes what
+    // we return, so on the landing-form path it runs after the response.
+    const runTail = async () => {
+      // First-touch marketing attribution (best-effort; helper swallows errors).
+      // Awaited so the campaign linkage isn't dropped on a serverless freeze.
+      if (data.attribution) {
+        await attachAttributionToLead(lead.id, {
+          ...data.attribution,
+          source: data.attribution.source || data.source,
+        });
       }
-    } catch {
-      // Welcome message is optional; don't fail the lead capture
-    }
 
-    // Intake: instant email auto-reply (via LEAD_CREATED workflows) + the
-    // "call now" task + auto-enrolment into matching nurture cadences.
-    await runLeadIntake({
-      lead: {
-        id: lead.id,
-        contactId: contact.id,
-        source: lead.source,
-        eventType: lead.eventType,
-        status: lead.status,
-        guestCount: lead.guestCount,
-        score: lead.score,
-        estimatedValue: estimatedValue,
-      },
-      triggeredByUserId: assignedToId ?? undefined,
-    });
+      // Log activity
+      logActivity({
+        action: "CREATE",
+        entityType: "lead",
+        entityId: lead.id,
+        changes: { source: data.source, autoCapture: true },
+        userId: assignedToId || "system",
+      });
 
-    // Message-intent classification on the first-touch inbound message so a
-    // brand-new READY_TO_BUY lead also boosts + pings. Best-effort, never blocks.
-    if (data.message && data.message.trim().length > 0) {
+      // Notify assigned agent
+      if (assignedToId) {
+        notify({
+          userId: assignedToId,
+          title: "New Lead Captured",
+          message: `New ${data.source} lead: ${firstName} ${lastName}`,
+          type: "LEAD_ASSIGNED",
+          actionUrl: `/leads`,
+        });
+      }
+
+      // Check for auto-welcome config
       try {
-        // Also not awaited: this calls an AI provider to classify the
-        // enquiry's intent. Useful, entirely optional, and absolutely not
-        // something a customer should wait on to be told their message was
-        // received.
-        const { stampMessageIntent } = await import("@/lib/ai/intent-stamp");
-        void stampMessageIntent({
-          text: data.message,
-          leadId: lead.id,
-          contactId: contact.id,
-        }).catch((e) => console.error("[CAPTURE] intent stamp failed", e));
-      } catch (e) {
-        console.error("[LeadCapture] intent-stamp error:", e);
+        const welcomeConfig = await prisma.autoWelcomeConfig.findUnique({
+          where: { leadSource: mapSource(data.source) as any },
+        });
+
+        if (welcomeConfig?.isEnabled && contact.phone) {
+          // Schedule welcome message (delayed or immediate)
+          if (welcomeConfig.delayMinutes === 0) {
+            // NOT awaited. This is an outbound call to WhatsApp's API, made
+            // AFTER the lead is already durably saved — so the visitor was
+            // sitting in a spinner waiting on a third party that has nothing to
+            // do with whether their enquiry reached us. If WhatsApp was slow the
+            // whole request blew the function timeout and the lead was reported
+            // as failed. A welcome message is worth sending; it is not worth an
+            // enquiry.
+            void sendWelcomeWhatsApp(
+              contact.phone,
+              welcomeConfig.templateName,
+              firstName,
+              contact.id
+            ).catch((e) => console.error("[CAPTURE] welcome WhatsApp failed", e));
+          } else {
+            // For delayed messages, create a scheduled task
+            const sendAt = new Date(Date.now() + welcomeConfig.delayMinutes * 60 * 1000);
+            await prisma.task.create({
+              data: {
+                title: `Send welcome message to ${firstName} ${lastName}`,
+                description: `Auto-welcome via template: ${welcomeConfig.templateName}`,
+                dueDate: sendAt,
+                priority: "HIGH",
+                status: "TODO",
+                assigneeId: assignedToId || (await getSystemUserId()),
+                creatorId: await getSystemUserId(),
+              },
+            });
+          }
+        }
+      } catch {
+        // Welcome message is optional; don't fail the lead capture
       }
-    }
 
-    // Referral-code ingestion for non-portal inbound channels (WhatsApp webhook
-    // / generic API). The public portal path calls recordReferralIngestion
-    // directly; this covers the other channels. Wrapped so it never blocks capture.
-    try {
-      const referralCode =
-        (typeof data.customFields?.referralCode === "string"
-          ? data.customFields.referralCode
-          : undefined) ??
-        (data.source.toLowerCase() === "referral" &&
-        typeof data.customFields?.code === "string"
-          ? data.customFields.code
-          : undefined);
+      // Intake: instant email auto-reply (via LEAD_CREATED workflows) + the
+      // "call now" task + auto-enrolment into matching nurture cadences.
+      await runLeadIntake({
+        lead: {
+          id: lead.id,
+          contactId: contact.id,
+          source: lead.source,
+          eventType: lead.eventType,
+          status: lead.status,
+          guestCount: lead.guestCount,
+          score: lead.score,
+          estimatedValue: estimatedValue,
+        },
+        triggeredByUserId: assignedToId ?? undefined,
+      });
 
-      if (referralCode) {
-        const { resolveReferralPartnerByCode, recordReferralIngestion } =
-          await import("@/lib/referral/ingest");
-        const partner = await resolveReferralPartnerByCode(referralCode);
-        if (partner) {
-          await recordReferralIngestion({
-            partnerId: partner.id,
+      // Message-intent classification on the first-touch inbound message so a
+      // brand-new READY_TO_BUY lead also boosts + pings. Best-effort, never blocks.
+      if (data.message && data.message.trim().length > 0) {
+        try {
+          // Also not awaited: this calls an AI provider to classify the
+          // enquiry's intent. Useful, entirely optional, and absolutely not
+          // something a customer should wait on to be told their message was
+          // received.
+          const { stampMessageIntent } = await import("@/lib/ai/intent-stamp");
+          void stampMessageIntent({
+            text: data.message,
             leadId: lead.id,
             contactId: contact.id,
-            prospectName: data.name,
-            prospectPhone: cleanPhone ?? null,
-            prospectEmail: cleanEmail ?? null,
-            eventType: data.eventType ?? null,
-            eventDate: data.eventDate ? new Date(data.eventDate) : null,
-            guestCount: data.guestCount ?? null,
-            message: data.message ?? null,
-          });
+          }).catch((e) => console.error("[CAPTURE] intent stamp failed", e));
+        } catch (e) {
+          console.error("[LeadCapture] intent-stamp error:", e);
         }
       }
-    } catch (e) {
-      console.error("[LeadCapture] referral-ingestion error:", e);
+
+      // Referral-code ingestion for non-portal inbound channels (WhatsApp webhook
+      // / generic API). The public portal path calls recordReferralIngestion
+      // directly; this covers the other channels. Wrapped so it never blocks capture.
+      try {
+        const referralCode =
+          (typeof data.customFields?.referralCode === "string"
+            ? data.customFields.referralCode
+            : undefined) ??
+          (data.source.toLowerCase() === "referral" &&
+          typeof data.customFields?.code === "string"
+            ? data.customFields.code
+            : undefined);
+
+        if (referralCode) {
+          const { resolveReferralPartnerByCode, recordReferralIngestion } =
+            await import("@/lib/referral/ingest");
+          const partner = await resolveReferralPartnerByCode(referralCode);
+          if (partner) {
+            await recordReferralIngestion({
+              partnerId: partner.id,
+              leadId: lead.id,
+              contactId: contact.id,
+              prospectName: data.name,
+              prospectPhone: cleanPhone ?? null,
+              prospectEmail: cleanEmail ?? null,
+              eventType: data.eventType ?? null,
+              eventDate: data.eventDate ? new Date(data.eventDate) : null,
+              guestCount: data.guestCount ?? null,
+              message: data.message ?? null,
+            });
+          }
+        }
+      } catch (e) {
+        console.error("[LeadCapture] referral-ingestion error:", e);
+      }
+    };
+
+    if (data.deferTail) {
+      scheduleAfterResponse(runTail);
+    } else {
+      await runTail();
     }
 
     return { success: true, leadId: lead.id, contactId: contact.id };

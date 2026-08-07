@@ -210,6 +210,10 @@ export async function POST(req: Request) {
 
   try {
     const res = await captureLeadFromExternal({
+      // A real person is watching a spinner on their phone. Answer them the
+      // moment the lead is durably saved; attribution, the welcome message,
+      // intake and referral all run after the response goes out.
+      deferTail: true,
       name,
       phone,
       email,
