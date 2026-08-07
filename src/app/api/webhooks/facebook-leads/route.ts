@@ -48,6 +48,11 @@ export async function GET(request: NextRequest) {
  * using the Facebook App Secret. Set FACEBOOK_APP_SECRET in env, or store
  * `appSecret` in the LeadCaptureConfig credentials JSON.
  */
+// Facebook drops a lead entirely if we do not answer inside its timeout, so
+// this must never be killed mid-write. The slow side effects of capture are
+// no longer awaited (see lead-capture.ts); this is the backstop.
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   try {
     // Read raw body once for signature verification + JSON parse

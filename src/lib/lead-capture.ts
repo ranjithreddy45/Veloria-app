@@ -444,12 +444,19 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
       if (welcomeConfig?.isEnabled && contact.phone) {
         // Schedule welcome message (delayed or immediate)
         if (welcomeConfig.delayMinutes === 0) {
-          await sendWelcomeWhatsApp(
+          // NOT awaited. This is an outbound call to WhatsApp's API, made
+          // AFTER the lead is already durably saved — so the visitor was
+          // sitting in a spinner waiting on a third party that has nothing to
+          // do with whether their enquiry reached us. If WhatsApp was slow the
+          // whole request blew the function timeout and the lead was reported
+          // as failed. A welcome message is worth sending; it is not worth an
+          // enquiry.
+          void sendWelcomeWhatsApp(
             contact.phone,
             welcomeConfig.templateName,
             firstName,
             contact.id
-          );
+          ).catch((e) => console.error("[CAPTURE] welcome WhatsApp failed", e));
         } else {
           // For delayed messages, create a scheduled task
           const sendAt = new Date(Date.now() + welcomeConfig.delayMinutes * 60 * 1000);
@@ -490,12 +497,16 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
     // brand-new READY_TO_BUY lead also boosts + pings. Best-effort, never blocks.
     if (data.message && data.message.trim().length > 0) {
       try {
+        // Also not awaited: this calls an AI provider to classify the
+        // enquiry's intent. Useful, entirely optional, and absolutely not
+        // something a customer should wait on to be told their message was
+        // received.
         const { stampMessageIntent } = await import("@/lib/ai/intent-stamp");
-        await stampMessageIntent({
+        void stampMessageIntent({
           text: data.message,
           leadId: lead.id,
           contactId: contact.id,
-        });
+        }).catch((e) => console.error("[CAPTURE] intent stamp failed", e));
       } catch (e) {
         console.error("[LeadCapture] intent-stamp error:", e);
       }

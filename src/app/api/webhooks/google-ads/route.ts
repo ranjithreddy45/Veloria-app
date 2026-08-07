@@ -35,6 +35,11 @@ function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(ab, bb);
 }
 
+// Google Ads drops a lead entirely if we do not answer inside its timeout, so
+// this must never be killed mid-write. The slow side effects of capture are
+// no longer awaited (see lead-capture.ts); this is the backstop.
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   try {
     // Resolve the expected key: DB config first, then env var.

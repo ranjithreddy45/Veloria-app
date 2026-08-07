@@ -69,6 +69,14 @@ function corsHeaders(origin: string | null): Record<string, string> {
   };
 }
 
+// A lead capture must never be killed by a platform timeout while it is
+// half-written. No maxDuration was set, so this ran on the platform default —
+// and a real production submission measured 14.7s end to end, right on that
+// edge. Anything slower returned 504 to the visitor, who saw "Could not send
+// your enquiry" and left. The response itself is now fast (see below); this
+// ceiling is the belt to that braces.
+export const maxDuration = 60;
+
 export async function OPTIONS(req: Request) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(req.headers.get("origin")) });
 }
