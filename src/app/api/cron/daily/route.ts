@@ -46,6 +46,7 @@ const JOBS = [
   "referral-flywheel", // issue 5-star reviewer referral codes (after review-requests)
   "configurator-abandonment", // mark stale public quote drafts ABANDONED
   "winback-abandoned-quote", // re-engage leads who abandoned a quote
+  "lead-engagement-reconcile", // recompute per-lead touch counts from notes/comms/calls
   "winback-lost-lead", // re-engage lost leads
   "winback-event-proximity", // re-engage by event-date proximity
   "cooling-lead-catch", // catch cooling leads (AFTER score-decay so it reads freshly-decayed Lead.score)

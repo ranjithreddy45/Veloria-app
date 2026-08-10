@@ -254,7 +254,7 @@ function buildLeadListWhere(
 export async function getLeads(params?: LeadListFilters & {
   page?: number;
   limit?: number;
-  sort?: "score" | "recent"; // default: score (hot-lead worklist)
+  sort?: "score" | "recent" | "cold"; // default: score (hot-lead worklist)
 }) {
   try {
     const session = await auth();
@@ -296,7 +296,19 @@ export async function getLeads(params?: LeadListFilters & {
         orderBy:
           params?.sort === "recent"
             ? { createdAt: "desc" }
-            : [{ score: "desc" }, { createdAt: "desc" }],
+            : params?.sort === "cold"
+              ? [
+                  // The follow-up worklist: who has been left alone longest.
+                  //
+                  // `nulls: "first"` is the whole point. A lead nobody has EVER
+                  // touched has lastTouchedAt = null, and that is the most
+                  // urgent row on the board, not the least — Postgres sorts
+                  // NULLs last by default, which would bury exactly the leads
+                  // that have been completely forgotten.
+                  { lastTouchedAt: { sort: "asc", nulls: "first" } },
+                  { createdAt: "asc" },
+                ]
+              : [{ score: "desc" }, { createdAt: "desc" }],
         skip,
         take: limit,
         include: {

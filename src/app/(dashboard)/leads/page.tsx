@@ -56,7 +56,14 @@ export default async function LeadsPage({
   // default-50 cutoff, while keeping the payload far lighter than 1000.
   const [result, statsResult, orgStatsResult, testCountResult, unassignedResult, venuesResult, session] =
     await Promise.all([
-      getLeads({ ...filters, limit: 500 }),
+      // `?sort=cold` is the follow-up worklist: least-recently-touched first,
+      // never-touched at the very top. Anything else falls through to the
+      // default hot-lead ordering.
+      getLeads({
+        ...filters,
+        limit: 500,
+        sort: first(sp.sort) === "cold" ? "cold" : undefined,
+      }),
       getLeadStats(filters),
       // Unscoped count, so an empty "My leads" can tell the truth about whether
       // the PIPELINE is empty or merely this person's slice of it. getLeadStats

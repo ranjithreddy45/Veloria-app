@@ -19,6 +19,7 @@
 // ============================================================
 
 import { useCallback, useState, useTransition, type ReactNode } from "react";
+import { cn } from "@/lib/utils";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   CalendarDays,
@@ -80,6 +81,7 @@ const FILTER_KEYS = [
   "createdFrom",
   "createdTo",
   "channel",
+  "sort",
 ] as const;
 
 interface Props {
@@ -103,6 +105,7 @@ export function LeadsFilterBar({ canViewAll, scope, venues, unassignedCount = 0 
   const venue = sp.get("venue") ?? ANY_VENUE;
   const eventFrom = sp.get("eventFrom") ?? "";
   const eventTo = sp.get("eventTo") ?? "";
+  const coldFirst = sp.get("sort") === "cold";
   const channel = sp.get("channel") ?? ANY_CHANNEL;
   const createdFrom = sp.get("createdFrom") ?? "";
   const createdTo = sp.get("createdTo") ?? "";
@@ -176,6 +179,25 @@ export function LeadsFilterBar({ canViewAll, scope, venues, unassignedCount = 0 
           ))}
         </SelectContent>
       </Select>
+
+      {/*
+        The follow-up worklist. Sorting by "who has been left alone longest"
+        is the question the team actually asks every morning, and until the
+        engagement roll-up existed there was no column that could answer it.
+      */}
+      <button
+        type="button"
+        onClick={() => push({ sort: coldFirst ? null : "cold" })}
+        aria-pressed={coldFirst}
+        className={cn(
+          "h-9 rounded-lg border px-3 text-body font-medium transition-colors",
+          coldFirst
+            ? "border-primary bg-primary text-primary-foreground"
+            : "border-border bg-card text-foreground hover:bg-muted"
+        )}
+      >
+        Needs follow-up
+      </button>
 
       {/*
         Marketing channel. This is Contact.enquirySource, NOT Lead.source —

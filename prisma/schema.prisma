@@ -571,6 +571,28 @@ model Lead {
   firstContactDue  DateTime? // deadline for first response (set on capture)
   firstRespondedAt DateTime? // first outbound contact → stops the SLA clock
   slaEscalatedAt   DateTime? // breach escalated (dedupe so we alert once)
+
+  // ---- Engagement roll-up ----------------------------------------------
+  // How much attention this lead has actually had. Every touch already exists
+  // somewhere — CrmNote (notes + calls), Communication (email/SMS/WhatsApp),
+  // CallLog (click-to-call) — but those three tables never meet, and two of
+  // them are keyed on the CONTACT rather than the lead. So "how many times has
+  // anyone engaged this lead?" had no answer, and the follow-up queues could
+  // not tell a lead that has been chased five times from one nobody has ever
+  // called.
+  //
+  // These are a DERIVED roll-up, not a second source of truth. They are
+  // recomputed from those tables by reconcileLeadEngagement() (lib/crm/
+  // engagement.ts), which runs nightly and is idempotent — so a missed write
+  // site self-heals rather than silently drifting, and existing history is
+  // counted without a migration script.
+  //
+  // Denormalised rather than computed on read because the whole point is to
+  // SORT and FILTER the lead list by them ("who has gone quiet?"), which a
+  // three-table union cannot do in a single Prisma query.
+  touchCount       Int       @default(0)
+  lastTouchedAt    DateTime?
+  lastTouchKind    String? // NOTE | CALL | EMAIL | SMS | WHATSAPP | MEETING
   deletedAt        DateTime? // soft-delete; auto-purged after 30 days by cron
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
@@ -602,6 +624,9 @@ model Lead {
   @@index([deletedAt])
   @@index([score]) // hot-lead worklist (default sort)
   @@index([status, firstContactDue]) // SLA breach sweep
+  // "Which open leads have gone quiet?" — the follow-up worklist's sort.
+  // NULLs (never touched) are the most urgent rows, not the least.
+  @@index([status, lastTouchedAt])
 }
 
 // ============================================================

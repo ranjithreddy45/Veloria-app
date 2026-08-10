@@ -85,6 +85,10 @@ export interface LeadWithContact {
   eventDate: Date | string | null;
   guestCount: number | null;
   createdAt: Date | string;
+  /** Engagement roll-up — see lib/crm/engagement.ts. */
+  touchCount?: number;
+  lastTouchedAt?: Date | string | null;
+  lastTouchKind?: string | null;
   contact: {
     id: string;
     firstName: string;
@@ -515,6 +519,47 @@ const columns: ColumnDef<LeadWithContact>[] = [
         <div className="inline-flex items-center gap-1.5">
           <SparklesIcon className="size-3 text-primary/70" strokeWidth={2} />
           <ScoreBar score={v} width={44} />
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: "touchCount",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Touches" />
+    ),
+    cell: ({ row }) => {
+      const n = row.original.touchCount ?? 0;
+      const last = row.original.lastTouchedAt
+        ? new Date(row.original.lastTouchedAt)
+        : null;
+
+      // Never touched is NOT "0 days ago". It is the strongest signal on this
+      // screen — a lead that arrived and was never worked — so it gets its own
+      // treatment rather than being rendered as a zero among numbers.
+      if (!last) {
+        return (
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-destructive/10 px-1.5 py-0.5 text-detail font-medium text-destructive">
+            Never contacted
+          </span>
+        );
+      }
+
+      const days = Math.floor((Date.now() - last.getTime()) / 86_400_000);
+      // Escalating, not alarming: most leads are fine, and colouring all of them
+      // would make the column noise. Only silence earns colour.
+      const tone =
+        days >= 14
+          ? "text-destructive"
+          : days >= 7
+            ? "text-warning"
+            : "text-muted-foreground";
+      return (
+        <div className="flex items-baseline gap-1.5 whitespace-nowrap">
+          <span className="numeric font-semibold text-foreground">{n}</span>
+          <span className={cn("text-detail", tone)}>
+            {days === 0 ? "today" : days === 1 ? "1d ago" : `${days}d ago`}
+          </span>
         </div>
       );
     },

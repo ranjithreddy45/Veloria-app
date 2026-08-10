@@ -7,6 +7,7 @@
 // ============================================================
 
 import { auth } from "@/../auth";
+import { touchLead } from "@/lib/crm/engagement";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
@@ -103,6 +104,11 @@ export async function addCrmNote(input: {
     },
     select: { id: true },
   });
+  // A logged note or call IS the engagement. Bump the lead's roll-up now so the
+  // rep sees their own action reflected immediately; the nightly reconcile is
+  // the authority and will correct this if anything here is off.
+  await touchLead(input.leadId, input.kind === "CALL" ? "CALL" : "NOTE");
+
   revalidateScope({ leadId: input.leadId, contactId: input.contactId });
   return { success: true, data: { id: n.id } };
 }
