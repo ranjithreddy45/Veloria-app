@@ -48,12 +48,17 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { ViewTabs } from "@/components/ui/view-tabs";
+import { ENQUIRY_SOURCE_OPTIONS } from "@/lib/enquiry-source";
 
 // Sentinel for "no status filter" — a shadcn SelectItem can't take value="".
 const ANY_STATUS = "ALL";
 // Hall/Property sentinels (same reason — no empty SelectItem value).
 const ANY_VENUE = "ALL";
 const UNASSIGNED_VENUE = "UNASSIGNED";
+// Marketing-channel sentinels. "NONE" is a real, meaningful selection — contacts
+// whose channel was never recorded — not the absence of a filter.
+const ANY_CHANNEL = "ALL";
+const NO_CHANNEL = "NONE";
 
 const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
   { value: ANY_STATUS, label: "All statuses" },
@@ -74,6 +79,7 @@ const FILTER_KEYS = [
   "eventTo",
   "createdFrom",
   "createdTo",
+  "channel",
 ] as const;
 
 interface Props {
@@ -97,6 +103,7 @@ export function LeadsFilterBar({ canViewAll, scope, venues, unassignedCount = 0 
   const venue = sp.get("venue") ?? ANY_VENUE;
   const eventFrom = sp.get("eventFrom") ?? "";
   const eventTo = sp.get("eventTo") ?? "";
+  const channel = sp.get("channel") ?? ANY_CHANNEL;
   const createdFrom = sp.get("createdFrom") ?? "";
   const createdTo = sp.get("createdTo") ?? "";
 
@@ -167,6 +174,33 @@ export function LeadsFilterBar({ canViewAll, scope, venues, unassignedCount = 0 
               {v.name}
             </SelectItem>
           ))}
+        </SelectContent>
+      </Select>
+
+      {/*
+        Marketing channel. This is Contact.enquirySource, NOT Lead.source —
+        the coarse buckets ad spend is planned and reconciled against. Set this
+        to Google Ads and the Created range to the month, and the header count
+        is directly comparable with what the ad platform reports.
+      */}
+      <Select
+        value={channel}
+        onValueChange={(v) => push({ channel: v === ANY_CHANNEL ? null : v })}
+      >
+        <SelectTrigger
+          className="h-9 w-full md:w-[180px]"
+          aria-label="Filter by marketing channel"
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={ANY_CHANNEL}>All channels</SelectItem>
+          {ENQUIRY_SOURCE_OPTIONS.map((o) => (
+            <SelectItem key={o.value} value={o.value}>
+              {o.label}
+            </SelectItem>
+          ))}
+          <SelectItem value={NO_CHANNEL}>Not recorded</SelectItem>
         </SelectContent>
       </Select>
 

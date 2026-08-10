@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/../auth";
+import { isEnquirySource } from "@/lib/enquiry-source";
 import { Prisma } from "@prisma/client";
 import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
@@ -89,10 +90,25 @@ export interface LeadListFilters {
   /** Lead-creation period — IST yyyy-mm-dd, inclusive on both ends. */
   createdFrom?: string;
   createdTo?: string;
+  /**
+   * Marketing channel, from `Contact.enquirySource` — the axis ad spend is
+   * reconciled against. "NONE" = no channel recorded.
+   */
+  enquirySource?: string;
   /** Hall/Property (preferred venue). "UNASSIGNED" → leads with no venue. */
   venueId?: string;
   scope?: LeadScope;
 }
+
+/**
+ * Ceiling on one page of leads.
+ *
+ * Deliberately above what any caller asks for (the leads page asks for 500), so
+ * the cap is a memory backstop rather than a silent editor of the result set.
+ * NOT exported: this is a `"use server"` module, where every export must be an
+ * async function — exporting a const builds fine locally and fails on Vercel.
+ */
+const MAX_LEAD_PAGE_SIZE = 500;
 
 const ISO_DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -192,6 +208,24 @@ function buildLeadListWhere(
     where.source = filters.source;
   }
 
+  // Marketing channel — the axis ad spend is actually reconciled against.
+  //
+  // It lives on the CONTACT (`enquirySource`), not the lead, because it records
+  // how the PERSON first reached us; `Lead.source` is a different, finer thing
+  // (INDIAMART, JUSTDIAL…). Until now leads could not be filtered by channel at
+  // all, so "Google Ads says 88 leads in August" was unanswerable from the CRM —
+  // you could see the total, but not the slice the number referred to.
+  //
+  // "NONE" selects contacts with no channel recorded. Those are real and must
+  // stay findable: defaulting them into Direct would invent attribution in a
+  // report someone spends money against.
+  const channel = filters?.enquirySource?.trim();
+  if (channel === "NONE") {
+    where.contact = { ...(where.contact as Record<string, unknown>), enquirySource: null };
+  } else if (isEnquirySource(channel)) {
+    where.contact = { ...(where.contact as Record<string, unknown>), enquirySource: channel };
+  }
+
   // Event-date period. eventDate is nullable — a lead with no event date simply
   // falls outside the window (Prisma treats NULL as non-matching for gte/lte).
   const eventRange = istRangeFilter(filters?.eventFrom, filters?.eventTo);
@@ -233,10 +267,20 @@ export async function getLeads(params?: LeadListFilters & {
     }
 
     const page = Math.max(1, Math.floor(params?.page ?? 1));
-    // Hard-cap page size: callers (e.g. the leads page) pass large limits like 500,
-    // which with nested contact+assignedTo includes can bloat memory / slow the
-    // response on accounts with thousands of leads. Bound it to a sane ceiling.
-    const limit = Math.min(Math.max(1, Math.floor(params?.limit ?? 50)), 100);
+    // Page-size ceiling. This used to be 100 while the leads page asked for 500,
+    // so the page rendered 100 rows beside a header reading the TRUE count from
+    // getLeadStats — 141 leads announced, 100 findable, and nothing on screen
+    // explaining the gap.
+    //
+    // Worse than the missing count: the default sort is score-descending, so the
+    // rows dropped were always the LOWEST-scoring ones. Fresh, unworked, unscored
+    // enquiries are exactly what falls off that edge — the leads a rep most needs
+    // to see. A cap is not allowed to decide which leads exist.
+    //
+    // The ceiling is real (a nested include over thousands of rows is a genuine
+    // memory concern) but it now sits above what any caller asks for, and
+    // `total` is returned so the UI can say when it bites.
+    const limit = Math.min(Math.max(1, Math.floor(params?.limit ?? 50)), MAX_LEAD_PAGE_SIZE);
     const skip = (page - 1) * limit;
 
     const { where, scope, canViewAll } = buildLeadListWhere(params, {

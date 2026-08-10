@@ -47,6 +47,9 @@ export default async function LeadsPage({
     eventTo: first(sp.eventTo),
     createdFrom: first(sp.createdFrom),
     createdTo: first(sp.createdTo),
+    // Marketing channel. Pair it with createdFrom/createdTo to reconcile a
+    // month against what an ad platform reports (e.g. Google Ads' August count).
+    enquirySource: first(sp.channel),
   };
 
   // Ceiling lets the client-side table page through records without the
@@ -86,7 +89,8 @@ export default async function LeadsPage({
       filters.eventFrom ||
       filters.eventTo ||
       filters.createdFrom ||
-      filters.createdTo
+      filters.createdTo ||
+      filters.enquirySource
   );
 
   // KPIs come from a dedicated DB aggregate, NOT the paginated rows above —
@@ -323,7 +327,27 @@ export default async function LeadsPage({
           // `statusFiltered` hides the table's client-side status tabs when the
           // SERVER already narrowed to one status — otherwise every other tab
           // would read 0 and click through to an empty list.
-          <LeadsViews data={leads} statusFiltered={Boolean(statusFilter)} />
+          <>
+            {/*
+              A cap that does not announce itself reads as "this is all of it".
+              That is precisely how 141 leads came to be reported in the header
+              while the board showed 100 — and, because the default sort is
+              score-descending, the 41 it hid were the lowest-scoring ones:
+              new, unworked enquiries. The ceiling now sits above what this page
+              requests, so this should never fire; it is here so that if it ever
+              does, the screen says so instead of quietly lying.
+            */}
+            {leads.length < totalLeads && (
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-foreground/80">
+                Showing{" "}
+                <span className="font-semibold numeric">{leads.length}</span> of{" "}
+                <span className="font-semibold numeric">{totalLeads}</span> leads.
+                Narrow the filters to see the rest — the hidden ones are the
+                lowest-scoring, which usually means newest and unworked.
+              </div>
+            )}
+            <LeadsViews data={leads} statusFiltered={Boolean(statusFilter)} />
+          </>
         )}
       </div>
     </div>
