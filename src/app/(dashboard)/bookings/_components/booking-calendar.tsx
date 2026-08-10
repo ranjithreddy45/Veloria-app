@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   format,
@@ -73,6 +74,10 @@ interface BookingCalendarProps {
   venues: VenueOption[];
   initialMonth: number;
   initialYear: number;
+  /** Cancelled bookings in the initial month — hidden from the grid, counted here. */
+  initialCancelled: number;
+  /** Of those, how many have money against them. */
+  initialCancelledPaid: number;
 }
 
 type ViewMode = "all" | "bookings" | "leads";
@@ -108,6 +113,8 @@ export function BookingCalendar({
   venues,
   initialMonth,
   initialYear,
+  initialCancelled,
+  initialCancelledPaid,
 }: BookingCalendarProps) {
   const router = useRouter();
   const [currentDate, setCurrentDate] = React.useState(
@@ -120,6 +127,10 @@ export function BookingCalendar({
   const [isLoading, setIsLoading] = React.useState(false);
   const [view, setView] = React.useState<ViewMode>("all");
   const [venueId, setVenueId] = React.useState<string>("");
+  // The grid hides cancelled bookings on purpose; these make that visible so a
+  // sparse month reads as "12 were cancelled" rather than "the calendar is broken".
+  const [cancelled, setCancelled] = React.useState(initialCancelled);
+  const [cancelledPaid, setCancelledPaid] = React.useState(initialCancelledPaid);
 
   const showBookings = view !== "leads";
   const showLeads = view !== "bookings";
@@ -154,7 +165,11 @@ export function BookingCalendar({
         getLeadsForCalendar(month, year, v),
         getBlackoutDates({ month, year }),
       ]);
-      if (bRes.success) setBookings(bRes.data as CalendarBooking[]);
+      if (bRes.success) {
+        setBookings(bRes.data as CalendarBooking[]);
+        setCancelled(bRes.cancelled ?? 0);
+        setCancelledPaid(bRes.cancelledPaid ?? 0);
+      }
       if (lRes.success) setLeads(lRes.data as CalendarLead[]);
       if (blRes.success) setBlackouts(blRes.data as BlackoutDateEntry[]);
     } catch {
@@ -254,6 +269,41 @@ export function BookingCalendar({
           </select>
         </div>
       </div>
+
+      {/*
+        Account for what the grid is not showing.
+
+        Cancelled bookings are correctly hidden — they hold no slot. But hiding
+        them without a word is how a month containing fifteen bookings renders
+        three and reads as a broken calendar. The paid ones get their own, louder
+        line: a cancelled booking with money against it is an event a customer
+        has paid for that the system has forgotten, and it should never sit
+        quietly behind a filter.
+      */}
+      {cancelledPaid > 0 && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-body">
+          <span className="font-semibold text-destructive">
+            {cancelledPaid} cancelled booking{cancelledPaid === 1 ? " has" : "s have"} money paid against{" "}
+            {cancelledPaid === 1 ? "it" : "them"} this month.
+          </span>{" "}
+          <span className="text-foreground/80">
+            Someone paid for an event that is no longer on the calendar. Open{" "}
+            <Link href="/bookings?status=CANCELLED" className="font-medium underline">
+              cancelled bookings
+            </Link>{" "}
+            to check {cancelledPaid === 1 ? "it" : "them"}.
+          </span>
+        </div>
+      )}
+      {cancelled > cancelledPaid && (
+        <div className="rounded-lg border border-border bg-muted/40 px-4 py-2.5 text-body text-muted-foreground">
+          {cancelled - cancelledPaid} cancelled booking
+          {cancelled - cancelledPaid === 1 ? " is" : "s are"} hidden this month.{" "}
+          <Link href="/bookings?status=CANCELLED" className="font-medium underline">
+            View cancelled
+          </Link>
+        </div>
+      )}
 
       {/* Legend */}
       <div className="flex flex-wrap items-center gap-4 px-1 text-body text-muted-foreground">

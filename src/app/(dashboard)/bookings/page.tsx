@@ -23,11 +23,33 @@ export const metadata: Metadata = { title: "Bookings" };
 // Bookings List Page
 // ============================================================
 
-export default async function BookingsPage() {
+const BOOKING_STATUSES = new Set([
+  "HOLD",
+  "TENTATIVE",
+  "CONFIRMED",
+  "COMPLETED",
+  "CANCELLED",
+]);
+
+export default async function BookingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string | string[] }>;
+}) {
+  // `?status=` — validated against the enum before it reaches Prisma, so an
+  // unknown value is ignored rather than throwing a generic "failed to fetch".
+  //
+  // The calendar links here with status=CANCELLED when it finds cancelled
+  // bookings it had to hide (especially paid ones). Without this the link
+  // silently landed on the unfiltered list, which is its own small lie.
+  const sp = await searchParams;
+  const raw = Array.isArray(sp.status) ? sp.status[0] : sp.status;
+  const status = raw && BOOKING_STATUSES.has(raw) ? (raw as never) : undefined;
+
   // Ceiling lets the client table page through rows without the default-50
   // cutoff, while keeping the payload far lighter than 1000.
   const [result, statsResult] = await Promise.all([
-    getBookings({ limit: 500 }),
+    getBookings({ limit: 500, status }),
     getBookingStats(),
   ]);
 

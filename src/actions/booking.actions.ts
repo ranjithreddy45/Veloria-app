@@ -1290,7 +1290,39 @@ export async function getBookingsForCalendar(
       orderBy: { date: "asc" },
     });
 
-    return { success: true as const, data: serialize(bookings) };
+    // What the `status != CANCELLED` filter above just removed.
+    //
+    // Hiding cancelled bookings is right — they do not occupy a slot. Hiding
+    // them SILENTLY is not: the grid then shows three bookings for a month that
+    // holds fifteen, and nothing on screen accounts for the other twelve. That
+    // is how "the booking isn't on the calendar" gets reported as a calendar
+    // fault when the booking was cancelled somewhere else entirely.
+    //
+    // `cancelledPaid` is the one that matters. A cancelled booking with money
+    // against it is not housekeeping — it is an event someone has paid for that
+    // the system no longer believes in. The hold-expiry sweep used to create
+    // these (it cancelled expired HOLDs without checking for payment; fixed in
+    // api/cron/hold-expiry), and any it already made are still sitting there.
+    // Counting them here puts them in front of the person who can act.
+    const dateWindow = {
+      date: { gte: startDate, lte: endDate },
+      status: "CANCELLED" as const,
+      ...(venueId ? { venueId } : {}),
+    };
+    const [cancelled, cancelledPaid] = await Promise.all([
+      prisma.booking.count({ where: dateWindow }),
+      prisma.booking.count({
+        where: { ...dateWindow, invoices: { some: { paidAmount: { gt: 0 } } } },
+      }),
+    ]);
+
+    return {
+      success: true as const,
+      data: serialize(bookings),
+      // Additive: existing callers that only read `data` keep working.
+      cancelled,
+      cancelledPaid,
+    };
   } catch (error) {
     console.error("[GET_BOOKINGS_CALENDAR_ERROR]", error);
     return { success: false as const, error: "Failed to fetch calendar bookings" };

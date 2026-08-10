@@ -83,6 +83,8 @@ export default async function CalendarPage() {
         venues={venues}
         initialMonth={month}
         initialYear={year}
+        initialCancelled={bookingsResult.success ? (bookingsResult.cancelled ?? 0) : 0}
+        initialCancelledPaid={bookingsResult.success ? (bookingsResult.cancelledPaid ?? 0) : 0}
       />
     </div>
   );
