@@ -1259,8 +1259,15 @@ export async function getBookingsForCalendar(
       return { success: false as const, error: "Insufficient permissions" };
     }
 
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0);
+    // Booking.date is `@db.Date`, so every row comes back as UTC midnight. The
+    // window must therefore be built in UTC too — which is what every other
+    // month query in this file already does (see getVenueOccupancy). This one
+    // built it from LOCAL components, and `new Date(year, month, 0)` is midnight
+    // of the last day rather than the end of it. On a UTC runtime the two lined
+    // up by exact coincidence; anywhere east of Greenwich the last day of every
+    // month silently vanished from the calendar.
+    const startDate = new Date(Date.UTC(year, month - 1, 1));
+    const endDate = new Date(Date.UTC(year, month, 1) - 1);
 
     const bookings = await prisma.booking.findMany({
       where: {
@@ -1312,8 +1319,14 @@ export async function getLeadsForCalendar(
       return { success: false as const, error: "Insufficient permissions" };
     }
 
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+    // Same UTC-explicit window as getBookingsForCalendar. Lead.eventDate is a
+    // full DateTime rather than `@db.Date`, so this is not the same off-by-one
+    // as bookings — but building a month boundary from local components on a
+    // server whose timezone you do not control is how that bug happened, and
+    // there is no reason for the two calendar feeds to disagree about where
+    // a month starts.
+    const startDate = new Date(Date.UTC(year, month - 1, 1));
+    const endDate = new Date(Date.UTC(year, month, 1) - 1);
 
     const leads = await prisma.lead.findMany({
       where: {
