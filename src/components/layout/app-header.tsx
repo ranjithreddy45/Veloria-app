@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { NotificationPopover } from "@/components/layout/notification-popover";
+import { ActiveAlertsPopup } from "@/components/layout/active-alerts-popup";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { VelosChip } from "@/components/layout/velos-chip";
 import { PendingApprovalsChip } from "@/components/layout/pending-approvals-chip";
@@ -342,6 +343,13 @@ export function AppHeader() {
           {/* What's new — recent releases; unread dot until first opened */}
           <WhatsNew />
         </div>
+
+        {/* Must-act items for THIS user. Renders nothing when the list is
+            empty, so it costs no header space on a clear day. Sits beside the
+            bell because that is where the app already trains people to look —
+            it used to float over the bottom-right corner, on top of the AI
+            chat button and the last row of every page. */}
+        <ActiveAlertsPopup />
 
         {/* Notifications */}
         <NotificationPopover />

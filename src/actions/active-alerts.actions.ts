@@ -13,17 +13,34 @@ import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import type { NotificationType } from "@prisma/client";
 
-// Notification types that count as an SLA / system breach the user must act on.
-// (Mirrors the SLA/system set in the Notification enum — see prisma/schema.prisma.)
+// Alert types that belong in a PERSONAL nag panel: things this user must do
+// something about, on work that is theirs.
+//
+// Every Notification row already has a userId, so "scoped to me" was technically
+// true — but `SYSTEM` is fanned out to EVERY ADMIN by reportSystemFailure()
+// (see lib/ops-alert.ts), across 73 call sites: payment-webhook faults, cron
+// failures, draw-entry errors. An owner or admin therefore had a permanent panel
+// of company plumbing parked over their screen, none of it their own work. That
+// is a system-health feed, and it belongs in the notifications centre — where it
+// still appears in full — not in a persistent personal nag.
+//
+// What stays is deliberately per-person, verified by who each notify() names:
+//   SLA_WARNING / TASK_OVERDUE / TASK_ESCALATED  → the task's own assignee
+//   PAYMENT_OVERDUE                              → the invoice's createdById
+//   EXECUTION_TASK_BLOCKED                       → the acting user
+//
+// Dropped alongside SYSTEM: VENDOR_SLA_BREACH and REMINDER_FAILED — both are
+// ops-health categories, and both currently have zero notify() call sites, so
+// removing them changes nothing today and keeps the rule coherent tomorrow.
+//
+// The rule to apply when adding a type here: does it name ONE person who has to
+// act, or is it broadcast to a role? Only the former belongs.
 const SLA_TYPES: NotificationType[] = [
   "SLA_WARNING",
   "TASK_OVERDUE",
   "TASK_ESCALATED",
   "PAYMENT_OVERDUE",
-  "VENDOR_SLA_BREACH",
   "EXECUTION_TASK_BLOCKED",
-  "REMINDER_FAILED",
-  "SYSTEM",
 ];
 
 // How far ahead a task counts as "due soon" (surfaces before it goes overdue).

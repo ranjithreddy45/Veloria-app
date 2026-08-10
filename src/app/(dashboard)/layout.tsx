@@ -4,7 +4,6 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppHeader } from "@/components/layout/app-header";
 import { AIChatWrapper } from "@/components/ai/ai-chat-wrapper";
-import { ActiveAlertsPopup } from "@/components/layout/active-alerts-popup";
 
 export default async function DashboardLayout({
   children,
@@ -43,7 +42,6 @@ export default async function DashboardLayout({
         </main>
       </SidebarInset>
       <AIChatWrapper />
-      <ActiveAlertsPopup />
     </SidebarProvider>
   );
 }
