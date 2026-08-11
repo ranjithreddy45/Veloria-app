@@ -48,12 +48,6 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["owners:read"],
       },
       {
-        title: "Follow-ups",
-        href: "/bd/followups",
-        icon: "CalendarClock",
-        permissions: ["owners:read"],
-      },
-      {
         title: "Deal Board",
         href: "/bd/deals",
         icon: "Kanban",
@@ -69,12 +63,6 @@ export const sidebarNavigation: NavItem[] = [
         title: "Properties",
         href: "/bd/properties",
         icon: "Building2",
-        permissions: ["owners:read"],
-      },
-      {
-        title: "Reports",
-        href: "/bd/reports",
-        icon: "BarChart3",
         permissions: ["owners:read"],
       },
       {

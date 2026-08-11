@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Leads" };
 export default async function BdLeadsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; view?: string }>;
 }) {
   const sp = await searchParams;
   // Validate the URL value against the allowed set before it reaches Prisma —
@@ -20,8 +20,12 @@ export default async function BdLeadsPage({
   const status =
     sp.status && (ACQ_LEAD_STATUS as readonly string[]).includes(sp.status) ? sp.status : undefined;
 
+  // The old /bd/followups page, folded in as a view. Its URL still works and
+  // redirects here, so links and bookmarks survive the consolidation.
+  const dueFollowup = sp.view === "followup";
+
   const [leadsResult, countsResult, bdUsers, session] = await Promise.all([
-    getAcqLeads({ status }),
+    getAcqLeads({ status, dueFollowup }),
     getAcqLeadStatusCounts(),
     getBdUsers(),
     auth(),
@@ -56,6 +60,7 @@ export default async function BdLeadsPage({
         bdUsers={bdUsers as BdUser[]}
         userRole={userRole}
         activeStatus={status}
+        dueFollowup={dueFollowup}
         statusCounts={statusCounts}
       />
     </div>

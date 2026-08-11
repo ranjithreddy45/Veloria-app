@@ -114,12 +114,30 @@ export async function getAcqLeads(filters?: {
   status?: string;
   city?: string;
   bdExecutiveId?: string;
+  /**
+   * The follow-up worklist, as a VIEW of this list rather than a separate page.
+   *
+   * /bd/followups ran its own query (getFollowupQueue) over the same acqLead
+   * table with this exact condition, on its own screen, with its own columns —
+   * so the same lead appeared in two places that could not be filtered, sorted
+   * or acted on the same way. One list with a view chip is the same information
+   * and one fewer thing to learn.
+   */
+  dueFollowup?: boolean;
 }): Promise<Result<unknown[]> & { total?: number; truncated?: boolean }> {
   const user = await requireUser();
   if (!user || !acqHasAnyAccess(user.role)) {
     return { success: false, error: "Unauthorized" };
   }
   const where: Record<string, unknown> = { deletedAt: null };
+
+  // Mirrors getFollowupQueue's condition exactly. If these two ever drift, the
+  // chip count and the list stop agreeing — which is the class of bug this
+  // consolidation exists to remove, so they are kept literally identical.
+  if (filters?.dueFollowup) {
+    where.status = { in: ["NEW", "CONTACTED"] };
+    where.nextFollowupAt = { not: null };
+  }
   // Validate the status against the allowed set BEFORE it reaches Prisma — an
   // arbitrary ?status= string in the URL would otherwise throw a Prisma
   // enum-conversion error and 500 the leads page (item 12).
@@ -167,6 +185,15 @@ export async function getAcqLeadStatusCounts(): Promise<Result<Record<string, nu
     _count: { _all: true },
   });
   const counts: Record<string, number> = { ALL: 0 };
+  // Same condition as the dueFollowup filter, so the chip's number and the list
+  // it opens can never disagree.
+  counts.FOLLOWUP = await prisma.acqLead.count({
+    where: {
+      deletedAt: null,
+      status: { in: ["NEW", "CONTACTED"] },
+      nextFollowupAt: { not: null },
+    },
+  });
   for (const s of ACQ_LEAD_STATUS) counts[s] = 0;
   for (const row of grouped) {
     counts[row.status] = row._count._all;

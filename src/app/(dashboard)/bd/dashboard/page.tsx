@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import {
   Users, CheckCircle2, Handshake, Trophy, XCircle, Phone,
   StickyNote, MapPin, Sparkles, Flame, Megaphone,
+  BarChart3 as BarChart3Icon,
 } from "lucide-react";
 import { getBdAnalytics, getBdExecutives } from "@/actions/acq-analytics.actions";
 import { PageHeader } from "@/components/layout/page-header";
@@ -99,7 +102,24 @@ export default async function BdDashboardPage({
         title="BD Dashboard"
         help={<PageHelp id="bd-dashboard" />}
         description="Employee-wise acquisition funnel, activity and leaderboard."
-      />
+      >
+        {/*
+          Reports is no longer its own nav item. It reads the SAME
+          getBdAnalytics() this page does and then goes deeper (pipeline, lost
+          analysis, follow-up tracker), so having both in the sidebar asked
+          people to guess which of two doors held the number they wanted — and
+          the two rendered their funnels from different functions, which is how
+          they came to disagree.
+          The page is unchanged and its URL still works; it is now reached from
+          the overview it extends, rather than competing with it.
+        */}
+        <Button variant="outline" asChild>
+          <Link href="/bd/reports">
+            <BarChart3Icon className="mr-2 size-4" />
+            Full reports
+          </Link>
+        </Button>
+      </PageHeader>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <BdFilterBar employees={execs} />

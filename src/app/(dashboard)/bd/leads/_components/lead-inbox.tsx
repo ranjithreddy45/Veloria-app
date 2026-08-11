@@ -102,6 +102,8 @@ interface LeadInboxProps {
   userRole?: string;
   /** Server-validated ?status= filter currently in effect (item 12). */
   activeStatus?: string;
+  /** True when the "Needs follow-up" view is active (was /bd/followups). */
+  dueFollowup?: boolean;
   /** True per-status totals from the server (ALL + one key per status). */
   statusCounts?: Record<string, number>;
 }
@@ -183,6 +185,7 @@ export function LeadInbox({
   bdUsers,
   activeStatus,
   statusCounts,
+  dueFollowup = false,
 }: LeadInboxProps) {
   const [query, setQuery] = React.useState("");
   const [createOpen, setCreateOpen] = React.useState(false);
@@ -208,6 +211,10 @@ export function LeadInbox({
       const params = new URLSearchParams(searchParams.toString());
       if (tab === "ALL") params.delete("status");
       else params.set("status", tab);
+      // Picking a status leaves the follow-up view — two filters that each
+      // narrow the list would otherwise combine invisibly and show a set
+      // matching neither chip.
+      params.delete("view");
       const qs = params.toString();
       router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
     },
@@ -260,8 +267,45 @@ export function LeadInbox({
           * parent is exactly the kind of thing that ends up scrolling the page
           * sideways, which is the failure this whole pass exists to remove. */}
         <div className="flex snap-x items-center gap-1.5 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-x-visible sm:pb-0">
+          {/*
+            The former /bd/followups page. It queried the same acqLead table
+            with the same condition on its own screen — so a lead lived in two
+            places with different columns and different actions. As a chip it is
+            the same information, one fewer page to learn, and it inherits the
+            search and row actions this list already has.
+          */}
+          <button
+            type="button"
+            onClick={() => {
+              const params = new URLSearchParams(searchParams.toString());
+              if (dueFollowup) params.delete("view");
+              else {
+                params.set("view", "followup");
+                params.delete("status");
+              }
+              const qs = params.toString();
+              router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+            }}
+            className={cn(
+              "inline-flex shrink-0 snap-start items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-1 font-medium transition-colors",
+              dueFollowup
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border bg-background text-muted-foreground hover:bg-muted/50"
+            )}
+          >
+            Needs follow-up
+            <span
+              className={cn(
+                "rounded-md px-1 text-meta tabular-nums",
+                dueFollowup ? "bg-white/20" : "bg-muted"
+              )}
+            >
+              {statusCounts?.FOLLOWUP ?? 0}
+            </span>
+          </button>
+
           {STATUS_TABS.map((tab) => {
-            const active = activeTab === tab;
+            const active = !dueFollowup && activeTab === tab;
             const label = tab === "ALL" ? "All" : STATUS_LABEL[tab];
             return (
               <button
