@@ -171,3 +171,53 @@ export async function recordInboundWhatsAppMessage(
     }
   }
 }
+
+/** Match a stored contact across the phone formats we persist. */
+async function findContactByPhone(phone: string): Promise<{ id: string } | null> {
+  const from = (phone || "").replace(/^\+/, "");
+  if (!from) return null;
+  return prisma.contact.findFirst({
+    where: {
+      OR: [
+        { phone: from },
+        { phone: `+${from}` },
+        { phone: `+91${from}` },
+        { alternatePhone: from },
+        { alternatePhone: `+${from}` },
+      ],
+    },
+    select: { id: true },
+  });
+}
+
+/**
+ * Record an OUTBOUND WhatsApp message that Weflux sent (campaign, automation, or
+ * an agent typing in Weflux) so the CRM inbox mirrors Weflux. Deduped on the
+ * provider message id; skips numbers we have no contact for.
+ */
+export async function recordOutboundWhatsAppMessage(msg: {
+  to: string;
+  waId?: string | null;
+  text: string;
+  templateName?: string | null;
+  status?: string | null;
+}): Promise<void> {
+  const contact = await findContactByPhone(msg.to);
+  if (!contact) return;
+  const waId = msg.waId || null;
+  if (waId) {
+    const existing = await prisma.whatsAppMessage.findFirst({ where: { whatsappId: waId } });
+    if (existing) return;
+  }
+  const status = msg.status ? STATUS_MAP[msg.status.trim().toLowerCase()] || "SENT" : "SENT";
+  await prisma.whatsAppMessage.create({
+    data: {
+      direction: "OUTBOUND",
+      content: msg.text || "[message]",
+      templateName: msg.templateName || null,
+      status,
+      whatsappId: waId,
+      contactId: contact.id,
+    },
+  });
+}
