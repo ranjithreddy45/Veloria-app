@@ -17,6 +17,10 @@ export const whatsappConfigSchema = z
     businessAccountId: z.string().optional().or(z.literal("")),
     appSecret: z.string().optional().or(z.literal("")),
     apiEndpoint: z.string().optional().or(z.literal("")),
+    // Weflux CRM sync (all optional — only used when provider = WEFLUX).
+    crmWebhookUrl: z.string().optional().or(z.literal("")),
+    crmWebhookSecret: z.string().optional().or(z.literal("")),
+    eventSigningSecret: z.string().optional().or(z.literal("")),
     verifyToken: z.string().min(1, "Verify / webhook token is required"),
     isActive: z.boolean().default(true),
   })

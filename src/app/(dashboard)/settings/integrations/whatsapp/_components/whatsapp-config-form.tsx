@@ -52,6 +52,9 @@ interface WhatsAppConfigData {
   businessAccountId: string | null;
   appSecret: string | null;
   apiEndpoint: string | null;
+  crmWebhookUrl: string | null;
+  crmWebhookSecret: string | null;
+  eventSigningSecret: string | null;
   verifyToken: string;
   isActive: boolean;
   createdAt: string;
@@ -81,6 +84,11 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
   );
   const [appSecret, setAppSecret] = useState(initialConfig?.appSecret || "");
   const [apiEndpoint, setApiEndpoint] = useState(initialConfig?.apiEndpoint || "");
+  const [crmWebhookUrl, setCrmWebhookUrl] = useState(initialConfig?.crmWebhookUrl || "");
+  const [crmWebhookSecret, setCrmWebhookSecret] = useState(initialConfig?.crmWebhookSecret || "");
+  const [eventSigningSecret, setEventSigningSecret] = useState(
+    initialConfig?.eventSigningSecret || ""
+  );
   const [verifyToken, setVerifyToken] = useState(
     initialConfig?.verifyToken || "veloria_whatsapp_verify"
   );
@@ -110,6 +118,9 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
           businessAccountId: businessAccountId || undefined,
           appSecret: appSecret || undefined,
           apiEndpoint: apiEndpoint || undefined,
+          crmWebhookUrl: crmWebhookUrl || undefined,
+          crmWebhookSecret: crmWebhookSecret || undefined,
+          eventSigningSecret: eventSigningSecret || undefined,
           verifyToken,
           isActive: true,
         });
@@ -160,6 +171,9 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
         setBusinessAccountId("");
         setAppSecret("");
         setApiEndpoint("");
+        setCrmWebhookUrl("");
+        setCrmWebhookSecret("");
+        setEventSigningSecret("");
         setVerifyToken("veloria_whatsapp_verify");
         setConnected(false);
         setConnectionInfo("");
@@ -265,6 +279,53 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
                 Leave blank to use the default (<code>https://app.weflux.in/api/public/v1</code>).
                 Only change this if weflux gives you a different base URL.
               </p>
+            </div>
+          )}
+
+          {/* Weflux CRM sync — all in-app, no Vercel env vars needed. */}
+          {isWeflux && (
+            <div className="space-y-4 rounded-lg border border-border/70 bg-muted/20 p-4">
+              <div className="text-sm font-semibold">Weflux CRM sync</div>
+              <div className="space-y-2">
+                <Label htmlFor="waCrmUrl">Lead-push webhook URL</Label>
+                <Input
+                  id="waCrmUrl"
+                  placeholder="https://app.weflux.in/api/v1/integrations/crm/webhook/…"
+                  value={crmWebhookUrl}
+                  onChange={(e) => setCrmWebhookUrl(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  From Weflux &rarr; Integration &rarr; CRM. Every new lead is pushed here so
+                  Weflux creates the contact and runs its first-message automation.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="waCrmSecret">Lead-push signing secret</Label>
+                <Input
+                  id="waCrmSecret"
+                  type="password"
+                  placeholder="wfx_crm_…"
+                  value={crmWebhookSecret}
+                  onChange={(e) => setCrmWebhookSecret(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Signs the leads we send to Weflux (shown beside the connection in Weflux).
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="waEventSecret">Inbound event signing secret</Label>
+                <Input
+                  id="waEventSecret"
+                  type="password"
+                  placeholder="wfx_sub_…"
+                  value={eventSigningSecret}
+                  onChange={(e) => setEventSigningSecret(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  From Weflux &rarr; Outbound endpoints. Verifies the messages &amp; statuses
+                  Weflux sends back to your inbox.
+                </p>
+              </div>
             </div>
           )}
 

@@ -40,18 +40,22 @@ function str(v: unknown): string {
   return typeof v === "string" ? v : v == null ? "" : String(v);
 }
 
-/** The shared token from the saved WhatsApp config (what the settings page puts
- *  in the webhook URL). Reading it here is the fix for the handler reporting
- *  "not configured" even though the settings were saved. */
-async function getConfigToken(): Promise<string | null> {
+/** Auth material from the saved WhatsApp config (in-app, no env vars needed):
+ *  the shared URL token (verifyToken) and the HMAC event-signing secret. Env
+ *  vars are used only as a fallback for back-compat. Reading the saved config
+ *  here is the fix for the handler reporting "not configured" after a save. */
+async function getWebhookAuth(): Promise<{ token: string | null; signingSecret: string | null }> {
   try {
     const config = await prisma.whatsAppConfig.findFirst({
       where: { isActive: true },
-      select: { verifyToken: true },
+      select: { verifyToken: true, eventSigningSecret: true },
     });
-    return config?.verifyToken || null;
+    return {
+      token: config?.verifyToken || null,
+      signingSecret: config?.eventSigningSecret || process.env.WEFLUX_ENDPOINT_SECRET || null,
+    };
   } catch {
-    return null;
+    return { token: null, signingSecret: process.env.WEFLUX_ENDPOINT_SECRET || null };
   }
 }
 
@@ -60,7 +64,7 @@ export async function GET(request: NextRequest) {
   const sp = request.nextUrl.searchParams;
   const challenge = sp.get("hub.challenge") || sp.get("challenge");
   const token = sp.get("hub.verify_token") || sp.get("token") || "";
-  const expected = (await getConfigToken()) || process.env.WEFLUX_ENDPOINT_SECRET || "";
+  const expected = (await getWebhookAuth()).token || process.env.WEFLUX_ENDPOINT_SECRET || "";
   if (challenge && expected && token === expected) {
     return new NextResponse(challenge, { status: 200 });
   }
@@ -70,8 +74,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const raw = await request.text();
-  const configToken = await getConfigToken();
-  const envSecret = process.env.WEFLUX_ENDPOINT_SECRET || null;
+  const { token: configToken, signingSecret: envSecret } = await getWebhookAuth();
 
   // Fail closed only if there's genuinely nothing to authenticate against.
   if (!configToken && !envSecret) {

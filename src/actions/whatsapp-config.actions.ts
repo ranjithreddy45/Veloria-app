@@ -33,6 +33,9 @@ export async function getWhatsAppConfig() {
         businessAccountId: true,
         appSecret: true,
         apiEndpoint: true,
+        crmWebhookUrl: true,
+        crmWebhookSecret: true,
+        eventSigningSecret: true,
         verifyToken: true,
         isActive: true,
         createdAt: true,
@@ -44,13 +47,17 @@ export async function getWhatsAppConfig() {
       return { success: true as const, data: null };
     }
 
-    // Mask sensitive fields — never return raw secrets to client
+    // Mask sensitive fields — never return raw secrets to client. The CRM
+    // webhook URL is not masked (the form needs to show/edit it), but the two
+    // signing secrets are.
     const masked = {
       ...config,
       accessToken: config.accessToken
         ? `${config.accessToken.slice(0, 10)}${"*".repeat(30)}`
         : null,
       appSecret: config.appSecret ? `${"*".repeat(20)}` : null,
+      crmWebhookSecret: config.crmWebhookSecret ? `${"*".repeat(20)}` : null,
+      eventSigningSecret: config.eventSigningSecret ? `${"*".repeat(20)}` : null,
       createdAt: config.createdAt.toISOString(),
       updatedAt: config.updatedAt.toISOString(),
     };
@@ -96,17 +103,24 @@ export async function saveWhatsAppConfig(input: WhatsAppConfigInput) {
       // If the token looks masked (contains ***), keep the existing value
       const existingConfig = await prisma.whatsAppConfig.findUnique({
         where: { id: data.id },
-        select: { accessToken: true, appSecret: true },
+        select: {
+          accessToken: true,
+          appSecret: true,
+          crmWebhookSecret: true,
+          eventSigningSecret: true,
+        },
       });
+
+      // A masked value (contains "***") means "unchanged" — keep the stored one.
+      const keepMasked = (incoming: string | undefined, stored: string | null | undefined) =>
+        incoming && incoming.includes("***") ? stored ?? incoming : incoming || null;
 
       const accessToken = data.accessToken.includes("***")
         ? existingConfig?.accessToken ?? data.accessToken
         : data.accessToken;
-
-      const appSecret =
-        data.appSecret && data.appSecret.includes("***")
-          ? existingConfig?.appSecret ?? data.appSecret
-          : data.appSecret || null;
+      const appSecret = keepMasked(data.appSecret, existingConfig?.appSecret);
+      const crmWebhookSecret = keepMasked(data.crmWebhookSecret, existingConfig?.crmWebhookSecret);
+      const eventSigningSecret = keepMasked(data.eventSigningSecret, existingConfig?.eventSigningSecret);
 
       config = await prisma.whatsAppConfig.update({
         where: { id: data.id },
@@ -117,6 +131,9 @@ export async function saveWhatsAppConfig(input: WhatsAppConfigInput) {
           businessAccountId: data.businessAccountId || null,
           appSecret,
           apiEndpoint: data.apiEndpoint || null,
+          crmWebhookUrl: data.crmWebhookUrl || null,
+          crmWebhookSecret,
+          eventSigningSecret,
           verifyToken: data.verifyToken,
           isActive: data.isActive,
         },
@@ -130,6 +147,9 @@ export async function saveWhatsAppConfig(input: WhatsAppConfigInput) {
           businessAccountId: data.businessAccountId || null,
           appSecret: data.appSecret || null,
           apiEndpoint: data.apiEndpoint || null,
+          crmWebhookUrl: data.crmWebhookUrl || null,
+          crmWebhookSecret: data.crmWebhookSecret || null,
+          eventSigningSecret: data.eventSigningSecret || null,
           verifyToken: data.verifyToken,
           isActive: data.isActive,
           createdById: session.user.id,

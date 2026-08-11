@@ -17,6 +17,7 @@
 // ============================================================
 
 import crypto from "crypto";
+import { prisma } from "@/lib/prisma";
 
 export type WefluxCrmEvent =
   | "lead.created"
@@ -50,8 +51,23 @@ function normalizePhone(raw: string): string {
   return d;
 }
 
-function isConfigured(): boolean {
-  return !!(process.env.WEFLUX_CRM_WEBHOOK_URL && process.env.WEFLUX_CRM_SECRET);
+/** Resolve the CRM-webhook URL + secret. Prefers the in-app WhatsApp config
+ *  (Settings → Integrations → WhatsApp); falls back to env for back-compat. */
+async function resolveConfig(): Promise<{ url: string; secret: string } | null> {
+  try {
+    const c = await prisma.whatsAppConfig.findFirst({
+      where: { isActive: true },
+      select: { crmWebhookUrl: true, crmWebhookSecret: true },
+    });
+    const url = c?.crmWebhookUrl || process.env.WEFLUX_CRM_WEBHOOK_URL || "";
+    const secret = c?.crmWebhookSecret || process.env.WEFLUX_CRM_SECRET || "";
+    if (url && secret) return { url, secret };
+  } catch {
+    // fall through to env-only
+  }
+  const url = process.env.WEFLUX_CRM_WEBHOOK_URL || "";
+  const secret = process.env.WEFLUX_CRM_SECRET || "";
+  return url && secret ? { url, secret } : null;
 }
 
 /**
@@ -64,9 +80,9 @@ export async function pushLeadToWeflux(
   opts?: { eventId?: string }
 ): Promise<{ ok: boolean; skipped?: boolean; error?: string }> {
   try {
-    if (!isConfigured()) return { ok: false, skipped: true };
-    const url = process.env.WEFLUX_CRM_WEBHOOK_URL as string;
-    const secret = process.env.WEFLUX_CRM_SECRET as string;
+    const cfg = await resolveConfig();
+    if (!cfg) return { ok: false, skipped: true };
+    const { url, secret } = cfg;
 
     const phone = normalizePhone(lead.phone);
     if (!phone) return { ok: false, skipped: true }; // phone is the join key

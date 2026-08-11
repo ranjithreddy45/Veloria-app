@@ -3968,8 +3968,15 @@ model WhatsAppConfig {
   phoneNumberId     String?
   businessAccountId String?
   appSecret         String?
-  // WATI tenant API base, e.g. https://live-mt-server.wati.io/10217207
+  // Weflux API base, e.g. https://app.weflux.in/api/public/v1
   apiEndpoint       String?
+  // ---- Weflux CRM sync (all in-app, no env vars) ----
+  // Where WE push new leads so Weflux creates the contact + runs automations.
+  crmWebhookUrl     String?
+  // Secret we sign our lead pushes with (wfx_crm_…).
+  crmWebhookSecret  String?
+  // Secret we VERIFY the events Weflux sends to /api/webhooks/weflux with (wfx_sub_…).
+  eventSigningSecret String?
   verifyToken       String   @default("veloria_whatsapp_verify")
   isActive          Boolean  @default(true)
   createdAt         DateTime @default(now())
