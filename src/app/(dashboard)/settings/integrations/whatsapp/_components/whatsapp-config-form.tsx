@@ -255,7 +255,7 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
             />
             <p className="text-xs text-muted-foreground">
               {isWeflux ? (
-                <>Copy from your weflux workspace &rarr; Settings &rarr; API. Keep it secret.</>
+                <>Copy from your weflux workspace &rarr; Integration &rarr; API keys. Keep it secret.</>
               ) : (
                 <>
                   Generate from Meta Business Settings &rarr; System Users with{" "}
@@ -263,6 +263,16 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
                 </>
               )}
             </p>
+            {isWeflux &&
+              accessToken &&
+              !accessToken.includes("***") &&
+              !accessToken.trim().startsWith("wfx_live_") && (
+                <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                  That doesn&rsquo;t look like a Weflux <strong>API key</strong> — it should start
+                  with <code>wfx_live_</code>. The <code>wfx_crm_</code> and <code>wfx_sub_</code>{" "}
+                  secrets go in the &ldquo;Weflux CRM sync&rdquo; fields below, not here.
+                </p>
+              )}
           </div>
 
           {/* Weflux-only: optional API endpoint override */}
