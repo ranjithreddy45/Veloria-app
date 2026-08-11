@@ -65,11 +65,6 @@
     .split(",")
     .map(function (s) { return s.trim(); })
     .filter(Boolean);
-  var GUESTS = (d.guests || "50–100,100–180,180–300,Not sure yet")
-    .split(",")
-    .map(function (s) { return s.trim(); })
-    .filter(Boolean);
-
   var SERIF =
     "ui-serif,'Iowan Old Style','Palatino Linotype',Palatino,Georgia,'Times New Roman',serif";
   var SANS = "ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif";
@@ -227,26 +222,10 @@
           '<input id="vg-phone" name="phone" inputmode="tel" autocomplete="tel" placeholder="10-digit mobile"></div>' +
       "</div>" +
 
-      // ALL FIELDS VISIBLE AT ONCE.
-      //
-      // A two-step version shipped briefly and was reverted on sight: the hero
-      // showed only name + mobile, and an enquiry form that hides what it is
-      // going to ask reads as evasive rather than short. The height saving came
-      // from PAIRING the fields, which is kept — that part was never the
-      // problem.
-      // Date pairs with the Occasion row below rather than sitting alone, so
-      // removing email costs no extra row.
-      '<div class="vg-row vg-two">' +
-        '<div class="vg-f"><label for="vg-date">Preferred date</label>' +
-          '<input id="vg-date" name="date" type="date"></div>' +
-        '<div class="vg-f"><label for="vg-event">Occasion</label>' +
-          '<div class="vg-sel"><select id="vg-event" name="eventType">' + optionsHtml(EVENTS, "Select") + "</select></div></div>" +
-      "</div>" +
-
-      '<div class="vg-row"><label for="vg-guests">Guests</label>' +
-        '<div class="vg-sel"><select id="vg-guests" name="guests">' + optionsHtml(GUESTS, "Select") + "</select></div></div>" +
-
-      "</div>" +
+      // Just the essentials: name + mobile above, then the occasion full-width.
+      // "Preferred date" and "Guests" were removed at the client's request.
+      '<div class="vg-row"><label for="vg-event">Occasion</label>' +
+        '<div class="vg-sel"><select id="vg-event" name="eventType">' + optionsHtml(EVENTS, "Select") + "</select></div></div>" +
 
       // Bots fill every field they can see; a human never sees this one.
       '<div class="vg-hp" aria-hidden="true"><label>Company<input name="company" tabindex="-1" autocomplete="off"></label></div>' +
@@ -296,7 +275,7 @@
       errEl.textContent = "";
     });
   }
-  ["name", "phone", "eventType", "guests", "date"].forEach(function (n) {
+  ["name", "phone", "eventType"].forEach(function (n) {
     var el = form[n];
     // "change" as well as "input": a <select> in Safari fires only change.
     ["input", "change"].forEach(function (evt) {
@@ -315,7 +294,7 @@
     errEl.textContent = "";
     // Clear EVERY previous outline, not just name/phone — otherwise a field
     // flagged on an earlier attempt stays red after the visitor has fixed it.
-    ["name", "phone", "eventType", "guests", "date"].forEach(function (n) {
+    ["name", "phone", "eventType"].forEach(function (n) {
       markBad(form[n], false);
     });
 
@@ -352,19 +331,10 @@
       form.consent.focus();
       return;
     }
-    // ---- Remaining fields, validated in visual order ----
-    // Date first, because it sits highest of the remaining fields.
-    if (!form.date.value) {
-      errEl.textContent = "Please pick your preferred date.";
-      markBad(form.date, true); form.date.focus(); return;
-    }
+    // ---- Remaining field ----
     if (!form.eventType.value) {
       errEl.textContent = "Please choose the occasion.";
       markBad(form.eventType, true); form.eventType.focus(); return;
-    }
-    if (!form.guests.value) {
-      errEl.textContent = "Please choose an approximate guest count.";
-      markBad(form.guests, true); form.guests.focus(); return;
     }
 
     btn.disabled = true;
@@ -378,8 +348,6 @@
         name: name,
         phone: phone,
         eventType: form.eventType.value,
-        guests: form.guests.value,
-        date: form.date.value,
         // The consent record travels WITH the lead that it authorises.
         consent: form.consent ? !!form.consent.checked : undefined,
         consentText: form.consent ? consentText : undefined,
