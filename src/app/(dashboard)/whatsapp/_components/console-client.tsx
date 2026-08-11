@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { AlertTriangle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/layout/page-header";
 import { PageHelp } from "@/lib/page-help";
@@ -102,10 +103,20 @@ export function ConsoleClient({ initialConversations }: ConsoleClientProps) {
     if (!selectedConversation) return <WhatsAppEmptyState />;
     return (
       <div className="flex h-full min-h-0 flex-col overflow-hidden">
-        {/* Session-window badge strip above the reused chat view. */}
-        <div className="flex shrink-0 items-center gap-2 border-b bg-muted/20 px-4 py-1.5">
-          <SessionWindowBadge state={sessionState} />
-        </div>
+        {/* Session-window strip (Weflux-style). A prominent amber banner when the
+            24h window is closed; a subtle open-state pill otherwise. */}
+        {sessionState && !sessionState.sessionOpen ? (
+          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 dark:border-amber-900/50 dark:bg-amber-950/30">
+            <span className="flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-300">
+              <AlertTriangle className="size-3.5 shrink-0" />
+              24h window closed — use a template to re-engage.
+            </span>
+          </div>
+        ) : (
+          <div className="flex shrink-0 items-center gap-2 border-b bg-muted/20 px-4 py-1.5">
+            <SessionWindowBadge state={sessionState} />
+          </div>
+        )}
         <div className="min-h-0 flex-1 overflow-hidden">
           <InboxChatView
             key={`${selectedConversation.contactId}-${threadRefreshKey}`}
