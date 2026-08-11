@@ -1,7 +1,7 @@
 // ============================================================
 // Inbound WhatsApp handling — provider-agnostic
 // ------------------------------------------------------------
-// Both the Meta webhook and the WATI webhook funnel every incoming message and
+// Both the Meta webhook and the weflux webhook funnel every incoming message and
 // delivery-status update through here, so inbound behaviour (contact linking,
 // dedupe, lead capture, cadence-stop, known-contact ack, intent classification,
 // catalog funnel) can never drift between providers. Never throws — the caller
@@ -15,7 +15,7 @@ import { handleInboundReply } from "@/lib/lead-pipeline";
 export interface InboundWhatsAppMessage {
   /** Sender's WhatsApp number: digits, country code, no "+" (e.g. 919876543210). */
   from: string;
-  /** Provider message id (Meta wamid / WATI whatsappMessageId) — dedupe + status key. */
+  /** Provider message id (Meta wamid / weflux message id) — dedupe + status key. */
   waId?: string | null;
   /** Message text, or the title of a tapped button/list option. */
   text: string;
@@ -28,7 +28,7 @@ const STATUS_MAP: Record<string, "SENT" | "DELIVERED" | "READ" | "FAILED"> = {
   delivered: "DELIVERED",
   read: "READ",
   failed: "FAILED",
-  // WATI / provider variants
+  // weflux / provider variants
   send: "SENT",
   seen: "READ",
   replied: "READ",

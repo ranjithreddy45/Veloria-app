@@ -5,7 +5,7 @@
 // Docs: https://developers.facebook.com/docs/whatsapp/cloud-api
 
 import { prisma } from "@/lib/prisma";
-import { watiSendSession, watiSendTemplate, watiTestConnection } from "@/lib/integrations/wati";
+import { wefluxSendText, wefluxSendTemplate, wefluxTestConnection } from "@/lib/integrations/weflux";
 
 const GRAPH_API_VERSION = "v21.0";
 const GRAPH_API_BASE = `https://graph.facebook.com/${GRAPH_API_VERSION}`;
@@ -15,14 +15,14 @@ const GRAPH_API_BASE = `https://graph.facebook.com/${GRAPH_API_VERSION}`;
 // ============================================================
 
 export interface WhatsAppApiConfig {
-  /** "META" (Cloud API) or "WATI" (wati.io). Defaults to META for legacy rows. */
+  /** "META" (Cloud API) or "WEFLUX" (weflux BSP). Defaults to META for legacy rows. */
   provider: string;
   accessToken: string;
   phoneNumberId: string;
   businessAccountId: string;
   appSecret?: string | null;
   verifyToken?: string;
-  /** WATI tenant API base, e.g. https://live-mt-server.wati.io/10217207. */
+  /** Weflux API base (optional — defaults to https://api.weflux.in/v2). */
   apiEndpoint?: string | null;
 }
 
@@ -112,23 +112,17 @@ export async function sendWhatsApp(
 
   const to = normalizePhone(params.to);
 
-  // ---- WATI provider branch ----------------------------------------------
+  // ---- Weflux provider branch --------------------------------------------
   // All ~25 callers keep working: same SendWhatsAppResult shape either way.
-  if (config.provider === "WATI") {
-    if (!config.apiEndpoint) {
-      return {
-        success: false,
-        error: "WATI is selected but no API endpoint is set. Add it in Settings → Integrations → WhatsApp.",
-      };
-    }
+  if (config.provider === "WEFLUX") {
     const creds = { endpoint: config.apiEndpoint, token: config.accessToken };
     if (params.template) {
-      return await watiSendTemplate(creds, to, params.template, params.params);
+      return await wefluxSendTemplate(creds, to, params.template, params.params);
     }
     if (!params.message) {
       return { success: false, error: "No message content provided" };
     }
-    return await watiSendSession(creds, to, params.message);
+    return await wefluxSendText(creds, to, params.message);
   }
 
   try {
@@ -233,15 +227,12 @@ export async function sendWhatsAppInteractive(
 
   const to = normalizePhone(params.to);
 
-  // WATI has no drop-in equivalent of Meta's inline interactive payload, so we
-  // degrade gracefully: send the header/body/footer as a plain session message
+  // Weflux has no drop-in equivalent of Meta's inline interactive payload, so we
+  // degrade gracefully: send the header/body/footer as a plain text message
   // (the catalog engine already treats a text send as an acceptable fallback).
-  if (config.provider === "WATI") {
-    if (!config.apiEndpoint) {
-      return { success: false, error: "WATI API endpoint not set." };
-    }
+  if (config.provider === "WEFLUX") {
     const lines = [params.header, params.body, params.footer].filter(Boolean).join("\n\n");
-    return await watiSendSession(
+    return await wefluxSendText(
       { endpoint: config.apiEndpoint, token: config.accessToken },
       to,
       lines || params.body
@@ -404,12 +395,9 @@ async function sendTemplateMessage(
 export async function testWhatsAppConnection(
   config: WhatsAppApiConfig
 ): Promise<{ success: boolean; message: string; phoneNumber?: string }> {
-  // WATI: validate the tenant endpoint + access token.
-  if (config.provider === "WATI") {
-    if (!config.apiEndpoint) {
-      return { success: false, message: "WATI API endpoint is not set." };
-    }
-    return await watiTestConnection({ endpoint: config.apiEndpoint, token: config.accessToken });
+  // Weflux: validate the API key (endpoint defaults to api.weflux.in/v2).
+  if (config.provider === "WEFLUX") {
+    return await wefluxTestConnection({ endpoint: config.apiEndpoint, token: config.accessToken });
   }
 
   try {

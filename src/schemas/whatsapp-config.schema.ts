@@ -4,15 +4,15 @@ import { z } from "zod";
 // WhatsApp Config Schema
 // ------------------------------------------------------------
 // Supports two providers behind one config row:
-//   • META — Meta WhatsApp Cloud API (needs phoneNumberId + businessAccountId)
-//   • WATI — wati.io (needs apiEndpoint; accessToken holds the WATI token)
+//   • META   — Meta WhatsApp Cloud API (needs phoneNumberId + businessAccountId)
+//   • WEFLUX — weflux BSP (accessToken holds the wfx_live_ key; endpoint optional)
 // ============================================================
 
 export const whatsappConfigSchema = z
   .object({
     id: z.string().optional(), // Present when updating
-    provider: z.enum(["META", "WATI"]).default("META"),
-    accessToken: z.string().min(1, "Access Token is required"),
+    provider: z.enum(["META", "WEFLUX"]).default("META"),
+    accessToken: z.string().min(1, "API key / access token is required"),
     phoneNumberId: z.string().optional().or(z.literal("")),
     businessAccountId: z.string().optional().or(z.literal("")),
     appSecret: z.string().optional().or(z.literal("")),
@@ -36,15 +36,9 @@ export const whatsappConfigSchema = z
           message: "Business Account ID is required for Meta Cloud API",
         });
       }
-    } else if (data.provider === "WATI") {
-      if (!data.apiEndpoint) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["apiEndpoint"],
-          message: "WATI API endpoint is required (e.g. https://live-mt-server.wati.io/<tenantId>)",
-        });
-      }
     }
+    // WEFLUX needs only the API key (accessToken); the endpoint defaults to
+    // https://api.weflux.in/v2, so no extra required fields.
   });
 
 export type WhatsAppConfigInput = z.infer<typeof whatsappConfigSchema>;

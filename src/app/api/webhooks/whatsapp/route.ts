@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
         const value = change.value;
 
         // Handle incoming messages — funnel through the shared, provider-
-        // agnostic inbound handler so Meta and WATI behave identically.
+        // agnostic inbound handler so Meta and weflux behave identically.
         if (value?.messages) {
           for (const message of value.messages) {
             const br = message.interactive?.button_reply;

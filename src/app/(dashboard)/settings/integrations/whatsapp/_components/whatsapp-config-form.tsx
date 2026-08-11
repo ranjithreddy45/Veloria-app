@@ -62,7 +62,7 @@ interface WhatsAppConfigFormProps {
   initialConfig: WhatsAppConfigData | null;
 }
 
-type Provider = "META" | "WATI";
+type Provider = "META" | "WEFLUX";
 
 // ============================================================
 // Component
@@ -70,7 +70,7 @@ type Provider = "META" | "WATI";
 
 export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
   const [provider, setProvider] = useState<Provider>(
-    (initialConfig?.provider as Provider) || "WATI"
+    (initialConfig?.provider as Provider) || "WEFLUX"
   );
   const [accessToken, setAccessToken] = useState(initialConfig?.accessToken || "");
   const [phoneNumberId, setPhoneNumberId] = useState(
@@ -91,12 +91,10 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
 
   const origin =
     typeof window !== "undefined" ? window.location.origin : "https://app.theveloriagrand.com";
-  const webhookUrl =
-    provider === "WATI"
-      ? `${origin}/api/webhooks/wati?token=${encodeURIComponent(verifyToken)}`
-      : `${origin}/api/webhooks/whatsapp`;
-
-  const isWati = provider === "WATI";
+  const isWeflux = provider === "WEFLUX";
+  const webhookUrl = isWeflux
+    ? `${origin}/api/webhooks/weflux?token=${encodeURIComponent(verifyToken)}`
+    : `${origin}/api/webhooks/whatsapp`;
 
   function handleSave() {
     startTransition(async () => {
@@ -170,8 +168,8 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
   }
 
   const isConfigured = !!initialConfig?.id;
-  const canSave = isWati
-    ? !!(accessToken && apiEndpoint)
+  const canSave = isWeflux
+    ? !!accessToken
     : !!(accessToken && phoneNumberId && businessAccountId);
 
   return (
@@ -210,33 +208,33 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="WATI">WATI (wati.io)</SelectItem>
+                <SelectItem value="WEFLUX">Weflux</SelectItem>
                 <SelectItem value="META">Meta WhatsApp Cloud API</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              {isWati
-                ? "Recommended — WATI manages the WhatsApp Business API for you. Get your endpoint + token from WATI → Account → API Docs."
+              {isWeflux
+                ? "Recommended — Weflux is a Meta-approved BSP that manages the WhatsApp Business API for you. You only need your API key."
                 : "Direct Meta Cloud API — requires a Meta developer app, phone number ID and permanent token."}
             </p>
           </div>
 
-          {/* Access Token (both providers) */}
+          {/* Access token / API key (both providers) */}
           <div className="space-y-2">
             <Label htmlFor="waAccessToken">
-              {isWati ? "WATI Access Token" : "Permanent Access Token"}{" "}
+              {isWeflux ? "Weflux API Key" : "Permanent Access Token"}{" "}
               <span className="text-destructive">*</span>
             </Label>
             <Input
               id="waAccessToken"
               type="password"
-              placeholder={isWati ? "eyJhbGciOi... (Bearer token)" : "EAAxxxxxxx..."}
+              placeholder={isWeflux ? "wfx_live_..." : "EAAxxxxxxx..."}
               value={accessToken}
               onChange={(e) => setAccessToken(e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
-              {isWati ? (
-                <>Copy from WATI dashboard &rarr; Account &rarr; API Docs &rarr; Access Token.</>
+              {isWeflux ? (
+                <>Copy from your weflux workspace &rarr; Settings &rarr; API. Keep it secret.</>
               ) : (
                 <>
                   Generate from Meta Business Settings &rarr; System Users with{" "}
@@ -246,27 +244,25 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
             </p>
           </div>
 
-          {/* WATI-only: API endpoint */}
-          {isWati && (
+          {/* Weflux-only: optional API endpoint override */}
+          {isWeflux && (
             <div className="space-y-2">
-              <Label htmlFor="waApiEndpoint">
-                WATI API Endpoint <span className="text-destructive">*</span>
-              </Label>
+              <Label htmlFor="waApiEndpoint">Weflux API Endpoint (optional)</Label>
               <Input
                 id="waApiEndpoint"
-                placeholder="https://live-mt-server.wati.io/10217207"
+                placeholder="https://api.weflux.in/v2"
                 value={apiEndpoint}
                 onChange={(e) => setApiEndpoint(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                Your tenant&rsquo;s API base URL, shown in WATI &rarr; Account &rarr; API Docs
-                (e.g. <code>https://live-mt-server.wati.io/&lt;tenantId&gt;</code>).
+                Leave blank to use the default (<code>https://api.weflux.in/v2</code>). Only
+                change this if weflux gives you a different base URL.
               </p>
             </div>
           )}
 
-          {/* Meta-only: phone number id + business account id + app secret */}
-          {!isWati && (
+          {/* Meta-only fields */}
+          {!isWeflux && (
             <>
               <div className="space-y-2">
                 <Label htmlFor="waPhoneNumberId">
@@ -311,7 +307,7 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
           {/* Verify / webhook secret token (both) */}
           <div className="space-y-2">
             <Label htmlFor="waVerifyToken">
-              {isWati ? "Webhook Secret Token" : "Webhook Verify Token"}{" "}
+              {isWeflux ? "Webhook Secret Token" : "Webhook Verify Token"}{" "}
               <span className="text-destructive">*</span>
             </Label>
             <div className="flex gap-2">
@@ -332,8 +328,8 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              {isWati
-                ? "A secret string of your choice. It's embedded in the webhook URL below so only WATI can post to your app."
+              {isWeflux
+                ? "A secret string of your choice. It's embedded in the webhook URL below so only weflux can post to your app."
                 : "A custom string you also enter in the Meta Developer Console for webhook verification."}
             </p>
           </div>
@@ -394,14 +390,14 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
         <CardHeader>
           <CardTitle className="text-lg">Webhook Configuration</CardTitle>
           <CardDescription>
-            {isWati
-              ? "Add this URL in WATI → Settings → Webhooks so incoming messages and delivery statuses reach your inbox."
+            {isWeflux
+              ? "Add this URL in your weflux workspace so incoming messages and delivery statuses reach your inbox."
               : "Configure this URL in your Meta Developer Console to receive incoming messages and delivery status updates."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>{isWati ? "Webhook URL (includes your secret token)" : "Callback URL"}</Label>
+            <Label>{isWeflux ? "Webhook URL (includes your secret token)" : "Callback URL"}</Label>
             <div className="flex gap-2">
               <Input value={webhookUrl} readOnly className="font-mono text-sm" />
               <Button
@@ -416,7 +412,7 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
             </div>
           </div>
 
-          {!isWati && (
+          {!isWeflux && (
             <div className="space-y-2">
               <Label>Verify Token</Label>
               <div className="flex gap-2">
@@ -436,10 +432,10 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
 
           <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-950">
             <p className="text-sm text-blue-700 dark:text-blue-300">
-              {isWati ? (
+              {isWeflux ? (
                 <>
-                  <strong>In WATI:</strong> Settings &rarr; Webhooks &rarr; Add. Paste the URL
-                  above and enable the <code>Message received</code> and delivery-status events.
+                  <strong>In weflux:</strong> open Webhooks / Developer settings, paste the URL
+                  above, and enable the message-received and delivery-status events.
                 </>
               ) : (
                 <>
@@ -457,44 +453,44 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
         <CardHeader>
           <CardTitle className="text-lg">Setup Guide</CardTitle>
           <CardDescription>
-            {isWati
-              ? "Connect WATI in a few minutes."
+            {isWeflux
+              ? "Connect weflux in a few minutes."
               : "Step-by-step instructions to set up Meta WhatsApp Cloud API."}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isWati ? (
+          {isWeflux ? (
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="w1">
                 <AccordionTrigger className="text-sm">
-                  Step 1: Get your API endpoint & access token
+                  Step 1: Paste your weflux API key
                 </AccordionTrigger>
                 <AccordionContent className="text-sm text-muted-foreground space-y-2">
                   <p>
-                    In WATI, open{" "}
+                    In your{" "}
                     <a
-                      href="https://app.wati.io"
+                      href="https://www.bulkmessagesender.com/"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 underline inline-flex items-center gap-1"
                     >
-                      Account &rarr; API Docs <ExternalLink className="size-3" />
+                      weflux workspace <ExternalLink className="size-3" />
                     </a>
-                    . Copy the <strong>API Endpoint</strong> and the{" "}
-                    <strong>Access Token</strong> into the fields above and Save.
+                    , open <strong>Settings &rarr; API</strong>, copy your{" "}
+                    <code>wfx_live_…</code> key into the field above, and Save.
                   </p>
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="w2">
                 <AccordionTrigger className="text-sm">
-                  Step 2: Point WATI&rsquo;s webhook at this app
+                  Step 2: Point weflux&rsquo;s webhook at this app
                 </AccordionTrigger>
                 <AccordionContent className="text-sm text-muted-foreground space-y-2">
                   <p>
-                    In WATI, go to <strong>Settings &rarr; Webhooks</strong>, add a webhook,
-                    and paste the <strong>Webhook URL</strong> shown above (it already contains
-                    your secret token). Enable the &ldquo;message received&rdquo; and delivery
-                    status events.
+                    In weflux, open the <strong>Webhooks / Developer</strong> settings, add a
+                    webhook, and paste the <strong>Webhook URL</strong> shown above (it already
+                    contains your secret token). Enable the message-received and delivery-status
+                    events.
                   </p>
                 </AccordionContent>
               </AccordionItem>
@@ -506,11 +502,11 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
                   <p>
                     Click <strong>Test Connection</strong> above. Once it&rsquo;s green, every
                     WhatsApp the app sends (OTP logins, lead replies, reminders, review requests)
-                    goes through WATI, and customer replies land in your WhatsApp inbox.
+                    goes through weflux, and customer replies land in your WhatsApp inbox.
                   </p>
                   <p>
-                    Template messages must be pre-approved in WATI, and the app&rsquo;s template
-                    names must match the ones you create in WATI.
+                    Template messages must be approved in weflux, and the app&rsquo;s template
+                    names must match the ones you create there.
                   </p>
                 </AccordionContent>
               </AccordionItem>
