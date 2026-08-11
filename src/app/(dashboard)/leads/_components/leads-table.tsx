@@ -89,6 +89,9 @@ export interface LeadWithContact {
   touchCount?: number;
   lastTouchedAt?: Date | string | null;
   lastTouchKind?: string | null;
+  lastTouchedByName?: string | null;
+  lastModifiedAt?: Date | string | null;
+  lastModifiedByName?: string | null;
   contact: {
     id: string;
     firstName: string;
@@ -454,6 +457,41 @@ function InlineStatusCell({ lead }: { lead: LeadWithContact }) {
 // Columns
 // ============================================================
 
+/**
+ * "When, and by whom" — used for both Last contacted and Last modified.
+ *
+ * The two answer different questions (who reached the CUSTOMER vs who edited
+ * the RECORD) but read the same way, so they share a cell rather than drifting
+ * into two near-identical renderings.
+ *
+ * A date with no name is shown rather than suppressed: "we know it happened,
+ * we don't know who" is honest, and hiding the row would lose the timestamp too.
+ */
+function ActorCell({
+  at,
+  who,
+  emptyLabel,
+}: {
+  at?: Date | string | null;
+  who?: string | null;
+  emptyLabel: string;
+}) {
+  if (!at) {
+    return <span className="text-detail text-muted-foreground/60">{emptyLabel}</span>;
+  }
+  const d = new Date(at);
+  return (
+    <div className="min-w-0 leading-tight">
+      <div className="whitespace-nowrap text-detail text-foreground">
+        {d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}
+      </div>
+      <div className="truncate text-meta text-muted-foreground" title={who ?? undefined}>
+        {who ?? "Unknown"}
+      </div>
+    </div>
+  );
+}
+
 const columns: ColumnDef<LeadWithContact>[] = [
   getSelectionColumn<LeadWithContact>(),
   {
@@ -538,9 +576,22 @@ const columns: ColumnDef<LeadWithContact>[] = [
       // screen — a lead that arrived and was never worked — so it gets its own
       // treatment rather than being rendered as a zero among numbers.
       if (!last) {
+        // NOT "Never contacted".
+        //
+        // This column knows what was LOGGED, which is not the same as what
+        // happened. A rep who phoned a lead and moved it to Contacted without
+        // writing a note leaves no touch record — and the old label called that
+        // person negligent, in red, next to a status saying they had done the
+        // job. The screen contradicted itself and blamed the user for it.
+        //
+        // "Not logged" is the true statement, and it points at the real gap:
+        // the work is happening off the record.
         return (
-          <span className="inline-flex items-center gap-1.5 rounded-md bg-destructive/10 px-1.5 py-0.5 text-detail font-medium text-destructive">
-            Never contacted
+          <span
+            className="inline-flex items-center gap-1.5 rounded-md bg-muted px-1.5 py-0.5 text-detail font-medium text-muted-foreground"
+            title="No call, note or message has been logged against this lead yet"
+          >
+            Not logged
           </span>
         );
       }
@@ -563,6 +614,28 @@ const columns: ColumnDef<LeadWithContact>[] = [
         </div>
       );
     },
+  },
+  {
+    accessorKey: "lastTouchedByName",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Last contacted" />
+    ),
+    cell: ({ row }) => <ActorCell
+      at={row.original.lastTouchedAt}
+      who={row.original.lastTouchedByName}
+      emptyLabel="Not logged"
+    />,
+  },
+  {
+    accessorKey: "lastModifiedByName",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Last modified" />
+    ),
+    cell: ({ row }) => <ActorCell
+      at={row.original.lastModifiedAt}
+      who={row.original.lastModifiedByName}
+      emptyLabel="—"
+    />,
   },
   {
     accessorKey: "status",

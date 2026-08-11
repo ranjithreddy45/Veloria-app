@@ -85,6 +85,11 @@ export async function reconcileLeadEngagement(
       touchCount: true,
       lastTouchedAt: true,
       lastTouchKind: true,
+      lastTouchedById: true,
+      lastTouchedByName: true,
+      lastModifiedAt: true,
+      lastModifiedById: true,
+      lastModifiedByName: true,
     },
     take: opts.limit ?? 2000,
   });
@@ -95,7 +100,7 @@ export async function reconcileLeadEngagement(
     // Notes and logged calls hang off the lead directly.
     const notes = await prisma.crmNote.findMany({
       where: { leadId: lead.id },
-      select: { kind: true, createdAt: true },
+      select: { kind: true, createdAt: true, authorId: true },
     });
 
     // Email/SMS/WhatsApp and click-to-call are recorded against the CONTACT, so
@@ -104,46 +109,114 @@ export async function reconcileLeadEngagement(
     const comms = lead.contactId
       ? await prisma.communication.findMany({
           where: { contactId: lead.contactId, ...OUTBOUND_ONLY },
-          select: { type: true, createdAt: true },
+          select: { type: true, createdAt: true, createdById: true },
         })
       : [];
     const calls = lead.contactId
       ? await prisma.callLog.findMany({
           where: { contactId: lead.contactId },
-          select: { createdAt: true },
+          select: { createdAt: true, agentId: true },
         })
       : [];
 
-    const touches: { kind: TouchKind; at: Date }[] = [
+    const touches: { kind: TouchKind; at: Date; by: string | null }[] = [
       ...notes.map((n) => ({
         kind: (n.kind === "CALL" ? "CALL" : "NOTE") as TouchKind,
         at: n.createdAt,
+        by: n.authorId,
       })),
-      ...comms.map((c) => ({ kind: communicationKind(String(c.type)), at: c.createdAt })),
-      ...calls.map((c) => ({ kind: "CALL" as TouchKind, at: c.createdAt })),
+      ...comms.map((c) => ({
+        kind: communicationKind(String(c.type)),
+        at: c.createdAt,
+        by: c.createdById,
+      })),
+      ...calls.map((c) => ({
+        kind: "CALL" as TouchKind,
+        at: c.createdAt,
+        by: c.agentId,
+      })),
     ];
 
     const touchCount = touches.length;
     let lastTouchedAt: Date | null = null;
     let lastTouchKind: string | null = null;
+    let lastTouchedById: string | null = null;
     for (const t of touches) {
       if (!lastTouchedAt || t.at > lastTouchedAt) {
         lastTouchedAt = t.at;
         lastTouchKind = t.kind;
+        lastTouchedById = t.by;
       }
     }
+
+    // ---- Who last EDITED the record (a different question) ----
+    //
+    // Not `updatedAt`: that fires on any write, including this reconcile
+    // writing the very columns below, so it would report "the system, last
+    // night" for every lead and bury every real human edit.
+    //
+    // NOTE the entityType casing. Lead activity is logged as "Lead" in
+    // lead.actions.ts and as "lead" in bulk.actions/lead-capture/intent-stamp —
+    // 13 call sites each. Matching one casing would silently drop half the
+    // edit history, so both are queried. (Worth normalising one day; doing it
+    // here would rewrite live audit rows, which is not this change's job.)
+    const lastEdit = await prisma.activityLog.findFirst({
+      where: { entityType: { in: ["Lead", "lead"] }, entityId: lead.id },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true, userId: true },
+    });
+
+    // Resolve actor names once per lead. Denormalising the NAME is safe here
+    // precisely because this is a derived roll-up: a renamed or deactivated
+    // user self-corrects on the next run.
+    const actorIds = [lastTouchedById, lastEdit?.userId].filter(
+      (v): v is string => Boolean(v) && v !== "system"
+    );
+    const actors = actorIds.length
+      ? await prisma.user.findMany({
+          where: { id: { in: actorIds } },
+          select: { id: true, name: true, email: true },
+        })
+      : [];
+    const nameOf = (id: string | null | undefined): string | null => {
+      if (!id) return null;
+      // Auto-capture logs userId "system" — a real value, not a missing one.
+      // Label it honestly rather than showing a blank or a raw cuid.
+      if (id === "system") return "System";
+      const u = actors.find((a) => a.id === id);
+      return u?.name || u?.email || null;
+    };
+
+    const lastTouchedByName = nameOf(lastTouchedById);
+    const lastModifiedAt = lastEdit?.createdAt ?? null;
+    const lastModifiedById = lastEdit?.userId ?? null;
+    const lastModifiedByName = nameOf(lastModifiedById);
 
     // Only write when something actually changed — this runs over every open
     // lead nightly and a no-op UPDATE per row is pure write amplification.
     const same =
       lead.touchCount === touchCount &&
       lead.lastTouchKind === lastTouchKind &&
-      (lead.lastTouchedAt?.getTime() ?? null) === (lastTouchedAt?.getTime() ?? null);
+      (lead.lastTouchedAt?.getTime() ?? null) === (lastTouchedAt?.getTime() ?? null) &&
+      lead.lastTouchedById === lastTouchedById &&
+      lead.lastTouchedByName === lastTouchedByName &&
+      (lead.lastModifiedAt?.getTime() ?? null) === (lastModifiedAt?.getTime() ?? null) &&
+      lead.lastModifiedById === lastModifiedById &&
+      lead.lastModifiedByName === lastModifiedByName;
     if (same) continue;
 
     await prisma.lead.update({
       where: { id: lead.id },
-      data: { touchCount, lastTouchedAt, lastTouchKind },
+      data: {
+        touchCount,
+        lastTouchedAt,
+        lastTouchKind,
+        lastTouchedById,
+        lastTouchedByName,
+        lastModifiedAt,
+        lastModifiedById,
+        lastModifiedByName,
+      },
     });
     updated++;
   }
@@ -163,6 +236,7 @@ export async function reconcileLeadEngagement(
 export async function touchLead(
   leadId: string | null | undefined,
   kind: TouchKind,
+  by?: { id: string; name?: string | null; email?: string | null },
   at: Date = new Date()
 ): Promise<void> {
   if (!leadId) return;
@@ -173,6 +247,10 @@ export async function touchLead(
         touchCount: { increment: 1 },
         lastTouchedAt: at,
         lastTouchKind: kind,
+        // Only overwrite the actor when we actually know one — passing
+        // undefined leaves the column alone, so a caller without a user in
+        // hand cannot blank out a name the reconcile already resolved.
+        ...(by ? { lastTouchedById: by.id, lastTouchedByName: by.name || by.email || null } : {}),
       },
     });
   } catch {

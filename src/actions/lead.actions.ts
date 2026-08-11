@@ -1312,3 +1312,37 @@ export async function backfillLeadPipeline() {
     return { success: false as const, error: "Failed to backfill pipeline deals" };
   }
 }
+
+/**
+ * Run the engagement roll-up now, instead of waiting for the nightly cron.
+ *
+ * Exists because the counters ship at their defaults and stay there until the
+ * daily lane next fires — so the whole feature reads "Not logged" on every row
+ * for up to 24h, which is indistinguishable from it being broken.
+ *
+ * A button rather than only a cron is the established pattern here: `vercel env
+ * pull` redacts CRON_SECRET, so the cron endpoints cannot be triggered from a
+ * dev machine, and there is no way to run a one-off script against production.
+ * Same shape as the enquiry-source repair.
+ *
+ * Idempotent — it recomputes from source, so pressing it twice is harmless.
+ */
+export async function runLeadEngagementRepair() {
+  const session = await auth();
+  if (!session?.user) return { success: false as const, error: "Unauthorized" };
+  // Reuses the lead-manager permission rather than inventing a key: anyone who
+  // may reassign the whole board may also recompute its counters.
+  if (!hasPermission(session.user.role, "leads:assign")) {
+    return { success: false as const, error: "Insufficient permissions" };
+  }
+
+  try {
+    const { reconcileLeadEngagement } = await import("@/lib/crm/engagement");
+    const { scanned, updated } = await reconcileLeadEngagement();
+    revalidatePath("/leads");
+    return { success: true as const, scanned, updated };
+  } catch (e) {
+    console.error("[LEAD_ENGAGEMENT_REPAIR_ERROR]", e);
+    return { success: false as const, error: "Repair failed" };
+  }
+}

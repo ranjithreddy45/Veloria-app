@@ -593,6 +593,23 @@ model Lead {
   touchCount       Int       @default(0)
   lastTouchedAt    DateTime?
   lastTouchKind    String? // NOTE | CALL | EMAIL | SMS | WHATSAPP | MEETING
+
+  // WHO last reached the customer, and WHO last edited the record. Two
+  // different questions that a single "updated" timestamp cannot answer, and
+  // both are accountability questions — "who is on this?" and "who changed
+  // it?" — so the name matters as much as the time.
+  lastTouchedById   String?
+  lastTouchedByName String?
+
+  // Deliberately NOT derived from `updatedAt`.
+  //
+  // `updatedAt` fires on ANY write, including the nightly engagement reconcile
+  // writing these very columns. Reading it as "last modified" would show every
+  // lead edited by the system last night and bury every real human edit. These
+  // come from ActivityLog instead, which only records deliberate actions.
+  lastModifiedAt     DateTime?
+  lastModifiedById   String?
+  lastModifiedByName String?
   deletedAt        DateTime? // soft-delete; auto-purged after 30 days by cron
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt

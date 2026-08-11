@@ -7,6 +7,7 @@ import { getVenues } from "@/actions/booking.actions";
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
 import { CleanupTestLeadsButton } from "./_components/cleanup-test-leads-button";
+import { EngagementRepairButton } from "./_components/engagement-repair-button";
 import { PageHeader } from "@/components/layout/page-header";
 import { HelpHint } from "@/components/layout/help-hint";
 import { Button } from "@/components/ui/button";
@@ -182,6 +183,7 @@ export default async function LeadsPage({
         }
         description="Track and qualify every inbound opportunity — from first contact to close."
       >
+        {canViewAll && <EngagementRepairButton />}
         {canDeleteLeads && <CleanupTestLeadsButton count={testLeadCount} />}
         <Button variant="outline" asChild>
           <Link href="/leads/import">

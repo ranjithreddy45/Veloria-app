@@ -107,7 +107,10 @@ export async function addCrmNote(input: {
   // A logged note or call IS the engagement. Bump the lead's roll-up now so the
   // rep sees their own action reflected immediately; the nightly reconcile is
   // the authority and will correct this if anything here is off.
-  await touchLead(input.leadId, input.kind === "CALL" ? "CALL" : "NOTE");
+  await touchLead(input.leadId, input.kind === "CALL" ? "CALL" : "NOTE", {
+    id: u.id,
+    name: u.name,
+  });
 
   revalidateScope({ leadId: input.leadId, contactId: input.contactId });
   return { success: true, data: { id: n.id } };
