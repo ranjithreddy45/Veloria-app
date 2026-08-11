@@ -101,20 +101,21 @@ export function ConsoleClient({ initialConversations }: ConsoleClientProps) {
   function renderChat(onBack?: () => void) {
     if (!selectedConversation) return <WhatsAppEmptyState />;
     return (
-      <div className="flex h-full flex-col">
+      <div className="flex h-full min-h-0 flex-col overflow-hidden">
         {/* Session-window badge strip above the reused chat view. */}
-        <div className="flex items-center gap-2 border-b bg-muted/20 px-4 py-1.5">
+        <div className="flex shrink-0 items-center gap-2 border-b bg-muted/20 px-4 py-1.5">
           <SessionWindowBadge state={sessionState} />
         </div>
-        <div className="min-h-0 flex-1">
+        <div className="min-h-0 flex-1 overflow-hidden">
           <InboxChatView
             key={`${selectedConversation.contactId}-${threadRefreshKey}`}
             conversation={selectedConversation}
             onBack={onBack}
           />
         </div>
-        {/* Co-pilot near the composer. */}
-        <div className="border-t bg-background p-3">
+        {/* Co-pilot near the composer. Capped + scrollable so a long set of AI
+            drafts can never push the chat/composer off-screen. */}
+        <div className="max-h-[45%] shrink-0 overflow-y-auto border-t bg-background p-3">
           <CopilotPanel
             contactId={selectedConversation.contactId}
             sessionOpen={sessionOpen}
@@ -134,19 +135,27 @@ export function ConsoleClient({ initialConversations }: ConsoleClientProps) {
       />
 
       <Card className="overflow-hidden">
-        <div className="h-[calc(100vh-260px)] min-h-[520px]">
-          {/* Desktop: side-by-side */}
-          <div className="hidden h-full md:grid md:grid-cols-[360px_1fr]">
-            <ConversationList
-              conversations={conversations}
-              selectedContactId={selectedContactId}
-              onSelect={handleSelect}
-            />
-            {renderChat()}
+        <div className="h-[calc(100vh-260px)] min-h-[520px] overflow-hidden">
+          {/* Desktop: side-by-side. Flex (not grid) so each pane fills the CARD
+              height — a grid's implicit row is auto-sized to the (unbounded)
+              conversation list, which made the chat's messages area overflow the
+              card and hide the composer. min-h-0 lets the inner scroll areas
+              bound to the viewport instead of expanding to content height. */}
+          <div className="hidden h-full min-h-0 md:flex">
+            <div className="w-[360px] shrink-0 min-h-0 overflow-hidden">
+              <ConversationList
+                conversations={conversations}
+                selectedContactId={selectedContactId}
+                onSelect={handleSelect}
+              />
+            </div>
+            <div className="min-w-0 min-h-0 flex-1 overflow-hidden">
+              {renderChat()}
+            </div>
           </div>
 
           {/* Mobile: stacked */}
-          <div className="h-full md:hidden">
+          <div className="h-full min-h-0 overflow-hidden md:hidden">
             {showChat && selectedConversation ? (
               renderChat(handleBack)
             ) : (

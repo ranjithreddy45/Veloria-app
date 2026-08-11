@@ -92,23 +92,29 @@ export function WhatsAppInbox({
 
       {/* Inbox Panel */}
       <Card className="overflow-hidden">
-        <div className="h-[calc(100vh-320px)] min-h-[500px]">
-          {/* Desktop: side-by-side */}
-          <div className="hidden h-full md:grid md:grid-cols-[360px_1fr]">
-            <ConversationList
-              conversations={conversations}
-              selectedContactId={selectedContactId}
-              onSelect={handleSelect}
-            />
-            {selectedConversation ? (
-              <InboxChatView conversation={selectedConversation} />
-            ) : (
-              <WhatsAppEmptyState />
-            )}
+        <div className="h-[calc(100vh-320px)] min-h-[500px] overflow-hidden">
+          {/* Desktop: side-by-side. Flex + min-h-0 so each pane fills the CARD
+              height and the chat's messages area bounds to the viewport (a grid's
+              auto row sizes to the unbounded conversation list and overflows). */}
+          <div className="hidden h-full min-h-0 md:flex">
+            <div className="w-[360px] shrink-0 min-h-0 overflow-hidden">
+              <ConversationList
+                conversations={conversations}
+                selectedContactId={selectedContactId}
+                onSelect={handleSelect}
+              />
+            </div>
+            <div className="min-w-0 min-h-0 flex-1 overflow-hidden">
+              {selectedConversation ? (
+                <InboxChatView conversation={selectedConversation} />
+              ) : (
+                <WhatsAppEmptyState />
+              )}
+            </div>
           </div>
 
           {/* Mobile: stacked */}
-          <div className="h-full md:hidden">
+          <div className="h-full min-h-0 overflow-hidden md:hidden">
             {showChat && selectedConversation ? (
               <InboxChatView
                 conversation={selectedConversation}
