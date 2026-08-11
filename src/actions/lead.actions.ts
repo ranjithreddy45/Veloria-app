@@ -95,6 +95,15 @@ export interface LeadListFilters {
    * reconciled against. "NONE" = no channel recorded.
    */
   enquirySource?: string;
+  /**
+   * The two worklist buckets the leads strip counts.
+   *   "overdue"   — follow-up date has passed, lead still open
+   *   "untouched" — open and never engaged at all (worse: never even started)
+   * These exist so the strip's numbers and the links behind them resolve to the
+   * SAME set. A counter that opens a different list than it counted is the
+   * silent-mismatch bug this codebase keeps producing.
+   */
+  due?: string;
   /** Hall/Property (preferred venue). "UNASSIGNED" → leads with no venue. */
   venueId?: string;
   scope?: LeadScope;
@@ -219,6 +228,15 @@ function buildLeadListWhere(
   // "NONE" selects contacts with no channel recorded. Those are real and must
   // stay findable: defaulting them into Direct would invent attribution in a
   // report someone spends money against.
+  const OPEN_STATUSES = ["NEW", "CONTACTED", "QUALIFIED", "PROPOSAL_SENT", "NEGOTIATION"];
+  if (filters?.due === "overdue") {
+    where.status = { in: OPEN_STATUSES };
+    where.followUpDate = { not: null, lt: new Date() };
+  } else if (filters?.due === "untouched") {
+    where.status = { in: OPEN_STATUSES };
+    where.lastTouchedAt = null;
+  }
+
   const channel = filters?.enquirySource?.trim();
   if (channel === "NONE") {
     where.contact = { ...(where.contact as Record<string, unknown>), enquirySource: null };

@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LeadsViews } from "./_components/leads-views";
 import { LeadsFilterBar } from "./_components/leads-filter-bar";
+import { WorkStrip } from "./_components/work-strip";
 
 export const metadata: Metadata = { title: "Leads" };
 // Filters live in the URL, so this page always renders per-request.
@@ -51,6 +52,7 @@ export default async function LeadsPage({
     // Marketing channel. Pair it with createdFrom/createdTo to reconcile a
     // month against what an ad platform reports (e.g. Google Ads' August count).
     enquirySource: first(sp.channel),
+    due: first(sp.due),
   };
 
   // Ceiling lets the client-side table page through records without the
@@ -98,7 +100,8 @@ export default async function LeadsPage({
       filters.eventTo ||
       filters.createdFrom ||
       filters.createdTo ||
-      filters.enquirySource
+      filters.enquirySource ||
+      filters.due
   );
 
   // KPIs come from a dedicated DB aggregate, NOT the paginated rows above —
@@ -201,7 +204,11 @@ export default async function LeadsPage({
       {/* The filter bar renders even on an empty result — otherwise a filter that
           matches nothing would hide the only control that can clear it. */}
       <div className="animate-rise-in animate-stagger-1 space-y-4">
-        <LeadsFilterBar canViewAll={canViewAll} scope={scope} venues={venues} unassignedCount={unassignedCount} />
+        {/* Standing + next actions, above the filters: the first thing a rep sees
+          on the page they live on, rather than eleven pages away. */}
+      <WorkStrip />
+
+      <LeadsFilterBar canViewAll={canViewAll} scope={scope} venues={venues} unassignedCount={unassignedCount} />
 
         {leads.length === 0 ? (
           <div className="rounded-2xl border border-dashed bg-card shadow-card">
