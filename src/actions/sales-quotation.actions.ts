@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/../auth";
+import { awardVelos } from "@/lib/velos/award";
 import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
@@ -534,6 +535,18 @@ export async function sendSalesQuotation(
   });
   revalidatePath("/quotations");
   revalidatePath(`/quotations/${id}`);
+  // "Quote sent" has been worth 20 points in VELOS_DEFAULTS since the engine
+  // shipped, and nothing ever awarded it. Keyed on the quotation id with no
+  // suffix, so re-sending the same quote does not pay twice.
+  await awardVelos(prisma, {
+    userId: user.id,
+    eventType: "quote_sent",
+    entityType: "quotation",
+    entityId: id,
+  }).catch(() => {
+    /* never fail a send because the ledger did not move */
+  });
+
   return { success: true, data: { status: "SENT" } };
 }
 

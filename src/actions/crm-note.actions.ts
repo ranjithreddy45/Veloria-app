@@ -7,6 +7,7 @@
 // ============================================================
 
 import { auth } from "@/../auth";
+import { recordFirstContact } from "@/lib/crm/first-contact";
 import { touchLead } from "@/lib/crm/engagement";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
@@ -111,6 +112,15 @@ export async function addCrmNote(input: {
     id: u.id,
     name: u.name,
   });
+
+  // A logged CALL is the evidence that someone actually spoke to the customer:
+  // it stops the speed-to-lead SLA clock and pays the rep for it. An internal
+  // NOTE deliberately does neither — it still counts as a touch above, but
+  // letting typing stop the SLA would reduce speed-to-lead to "did someone
+  // write something".
+  if (input.kind === "CALL") {
+    await recordFirstContact(input.leadId, u.id);
+  }
 
   revalidateScope({ leadId: input.leadId, contactId: input.contactId });
   return { success: true, data: { id: n.id } };
