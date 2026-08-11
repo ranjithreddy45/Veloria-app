@@ -29,14 +29,15 @@ export interface WefluxResult {
   error?: string;
 }
 
-const DEFAULT_BASE = "https://api.weflux.in/v2";
+// Weflux public REST API base (per the CRM integration spec). The API key
+// identifies the workspace, so the host is the same for everyone.
+const DEFAULT_BASE = "https://app.weflux.in/api/public/v1";
 
-/** Normalise the base: default host, strip trailing slashes, tolerate a value
- *  entered with or without the /v2 suffix. */
+/** Normalise the base: default host, strip trailing slashes. A custom endpoint
+ *  is used verbatim (minus any trailing slash). */
 function apiBase(endpoint?: string | null): string {
   const raw = (endpoint || "").trim().replace(/\/+$/, "");
-  if (!raw) return DEFAULT_BASE;
-  return /\/v\d+$/i.test(raw) ? raw : `${raw}/v2`;
+  return raw || DEFAULT_BASE;
 }
 
 function authHeaders(token: string): Record<string, string> {
@@ -47,10 +48,12 @@ function authHeaders(token: string): Record<string, string> {
   };
 }
 
-/** weflux wants the recipient in E.164 with a leading "+". */
-function toE164(to: string): string {
-  const digits = to.trim().replace(/^\+/, "");
-  return `+${digits}`;
+/** Weflux's public API keys the recipient by digits-with-country-code (no "+"),
+ *  e.g. 919812345678. A bare 10-digit Indian mobile gets a 91 prefix. */
+function toPhone(to: string): string {
+  let d = (to || "").replace(/[^\d]/g, "").replace(/^0+/, "");
+  if (/^[6-9]\d{9}$/.test(d)) d = "91" + d;
+  return d;
 }
 
 function extractMessageId(data: unknown): string | undefined {
@@ -91,10 +94,10 @@ export async function wefluxSendTemplate(
       method: "POST",
       headers: authHeaders(creds.token),
       body: JSON.stringify({
-        to: toE164(to),
+        phone: toPhone(to),
         template: templateName,
         language: "en",
-        vars: params ?? {},
+        variables: params ?? {},
       }),
     });
     const data = await res.json().catch(() => ({}));
@@ -108,7 +111,9 @@ export async function wefluxSendTemplate(
   }
 }
 
-/** Free-text message — only deliverable inside the 24h customer-service window. */
+/** Free-text message — only deliverable inside the 24h customer-service window.
+ *  Weflux returns `window_closed` (rather than a downstream failure) when the
+ *  window has lapsed; we surface that as a clear, actionable error. */
 export async function wefluxSendText(
   creds: WefluxCreds,
   to: string,
@@ -118,9 +123,16 @@ export async function wefluxSendText(
     const res = await fetch(`${apiBase(creds.endpoint)}/messages`, {
       method: "POST",
       headers: authHeaders(creds.token),
-      body: JSON.stringify({ to: toE164(to), text: message }),
+      body: JSON.stringify({ phone: toPhone(to), text: message }),
     });
     const data = await res.json().catch(() => ({}));
+    // 24h-window guard — Weflux signals this in the body rather than failing.
+    if (JSON.stringify(data).includes("window_closed")) {
+      return {
+        success: false,
+        error: "24-hour window closed — send an approved template instead of free text.",
+      };
+    }
     if (!res.ok) {
       console.error("[Weflux] text send failed", res.status, JSON.stringify(data));
       return { success: false, error: errorOf(res.status, data) };
@@ -131,8 +143,8 @@ export async function wefluxSendText(
   }
 }
 
-/** Validate the key with a cheap authenticated GET. A 401/403 means the key is
- *  wrong; other responses mean the endpoint is reachable. */
+/** Validate the key with a cheap authenticated GET (contacts lookup). A 401/403
+ *  means the key is wrong; other responses mean the endpoint is reachable. */
 export async function wefluxTestConnection(
   creds: WefluxCreds
 ): Promise<{ success: boolean; message: string }> {
@@ -140,20 +152,22 @@ export async function wefluxTestConnection(
     if (!creds.token) {
       return { success: false, message: "Weflux API key is required." };
     }
-    const res = await fetch(`${apiBase(creds.endpoint)}/templates`, {
+    const res = await fetch(`${apiBase(creds.endpoint)}/contacts?phone=910000000000`, {
       headers: authHeaders(creds.token),
     });
     if (res.status === 401 || res.status === 403) {
       return {
         success: false,
-        message: "Weflux rejected the API key (401/403). Re-copy it from your weflux workspace.",
+        message: "Weflux rejected the API key (401/403). Re-copy it from your weflux workspace (API keys).",
       };
+    }
+    if (res.status === 404) {
+      // Auth passed, contact simply not found — the key + endpoint are good.
+      return { success: true, message: "Connected to Weflux successfully." };
     }
     if (res.ok) {
       return { success: true, message: "Connected to Weflux successfully." };
     }
-    // Reachable but unexpected status — key auth wasn't rejected, so it's likely
-    // fine; the true proof is a live send.
     return {
       success: true,
       message: `Weflux reachable (endpoint responded ${res.status}). Send a test message to fully confirm.`,

@@ -15,6 +15,7 @@ import { notify } from "@/lib/notify";
 import { evaluateAssignmentRules } from "@/actions/assignment-rule.actions";
 import { runLeadIntake, leadSlaDeadline } from "@/lib/lead-pipeline";
 import { resolveBdRange, istDateStr } from "@/lib/acq/analytics-range";
+import { pushLeadToWeflux } from "@/lib/integrations/weflux-crm";
 import { after } from "next/server";
 // LeadStatus enum values matching Prisma schema
 type LeadStatus = "NEW" | "CONTACTED" | "QUALIFIED" | "PROPOSAL_SENT" | "NEGOTIATION" | "WON" | "LOST";
@@ -618,6 +619,33 @@ export async function createLead(data: LeadInput & { images?: string[] }) {
         });
       } catch (e) {
         console.error("[LEAD_INTAKE_ERROR]", e);
+      }
+    });
+
+    // Mirror manually-created leads into Weflux (creates the contact there so
+    // Weflux can message/automate it). Non-blocking; needs the phone (the join
+    // key), which the lead's include doesn't carry, so fetch it here.
+    after(async () => {
+      try {
+        const c = await prisma.contact.findUnique({
+          where: { id: lead.contactId },
+          select: { phone: true, email: true, city: true },
+        });
+        if (c?.phone) {
+          await pushLeadToWeflux("lead.created", {
+            id: lead.id,
+            name: `${lead.contact.firstName} ${lead.contact.lastName}`.trim(),
+            phone: c.phone,
+            email: c.email,
+            city: c.city,
+            source: lead.source,
+            stage: lead.status,
+            value: leadData.estimatedValue ?? undefined,
+            currency: "INR",
+          });
+        }
+      } catch (e) {
+        console.error("[Weflux CRM push]", e);
       }
     });
 

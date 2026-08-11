@@ -8,6 +8,7 @@ import { evaluateAssignmentRules } from "@/actions/assignment-rule.actions";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
 import { runLeadIntake, leadSlaDeadline } from "@/lib/lead-pipeline";
 import { attachAttributionToLead, type AttributionInput } from "@/lib/attribution";
+import { pushLeadToWeflux } from "@/lib/integrations/weflux-crm";
 import { normalizePhone } from "@/lib/sales/lead-import";
 import { coarseContactWhere, matchesContactKey, phoneDigits } from "@/lib/dedup";
 import { toEnquirySource, eventTypeTag, classifyWebChannel } from "@/lib/enquiry-source";
@@ -605,6 +606,20 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
     } else {
       await runTail();
     }
+
+    // Mirror the new lead into Weflux (creates the contact there so Weflux can
+    // run its "first message" automation and open an inbox thread). Fire-and-
+    // forget — a Weflux outage must never fail lead capture.
+    void pushLeadToWeflux("lead.created", {
+      id: lead.id,
+      name: `${firstName} ${lastName}`.trim() || data.name,
+      phone: contact.phone || data.phone || "",
+      email: contact.email,
+      source: data.source,
+      stage: lead.status,
+      value: estimatedValue ?? undefined,
+      currency: "INR",
+    }).catch(() => {});
 
     return { success: true, leadId: lead.id, contactId: contact.id };
   } catch (error) {
