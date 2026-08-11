@@ -441,6 +441,28 @@ export async function getLead(id: string) {
       where: { id, deletedAt: null },
       include: {
         contact: true,
+        // First-touch marketing attribution. It has been captured on every
+        // web/ad lead since the attribution layer shipped — utm_campaign,
+        // gclid, source, medium — and NOTHING has ever rendered it, so the
+        // campaign that produced a lead sat in the database invisible.
+        //
+        // It matters here specifically because the Google Ads campaigns are
+        // split by LOCATION: knowing which one a lead came from tells the rep
+        // which venue the enquiry is really about before they call.
+        attribution: {
+          select: {
+            campaign: true,
+            utmCampaign: true,
+            source: true,
+            utmSource: true,
+            medium: true,
+            utmMedium: true,
+            term: true,
+            content: true,
+            gclid: true,
+            campaignRef: { select: { id: true, name: true } },
+          },
+        },
         assignedTo: {
           select: { id: true, name: true, email: true, image: true },
         },

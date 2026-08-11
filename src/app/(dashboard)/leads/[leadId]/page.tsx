@@ -16,6 +16,7 @@ import {
   FileTextIcon,
   ImageIcon,
   UserPlus as UserPlusIcon,
+  Megaphone as MegaphoneIcon,
 } from "lucide-react";
 
 import { prisma } from "@/lib/prisma";
@@ -91,6 +92,29 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
     status: lead.status,
     createdAt: lead.createdAt,
   });
+
+  // ---- Ad attribution ----------------------------------------------------
+  // A resolved MarketingCampaign name wins over the raw utm string: it is the
+  // label the marketing team actually uses. The raw utm_campaign is the
+  // fallback, because a lead from a campaign nobody has registered in the CRM
+  // yet must still show WHICH campaign — an unmapped campaign is exactly the
+  // one you most need to notice.
+  const attr = lead.attribution;
+  const campaignName =
+    attr?.campaignRef?.name || attr?.campaign || attr?.utmCampaign || null;
+
+  // Supporting detail, only what is actually present. Joined rather than
+  // rendered as fixed rows so a lead with source but no medium does not show a
+  // dangling separator.
+  const adContext =
+    [
+      attr?.source || attr?.utmSource,
+      attr?.medium || attr?.utmMedium,
+      attr?.term,
+      attr?.gclid ? "Google click" : null,
+    ]
+      .filter(Boolean)
+      .join(" · ") || null;
 
   // Format currency in Indian format
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -216,6 +240,41 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                     />
                   </div>
                 </div>
+                {/*
+                  The ad campaign that produced this lead.
+
+                  utm_campaign has been captured on every web/ad lead since the
+                  attribution layer shipped — the embed forwards it, the capture
+                  route parses it, LeadAttribution stores it — and nothing had
+                  ever rendered it. The campaign name sat in the database,
+                  invisible to the person on the phone.
+
+                  It earns a place next to Source rather than in a details
+                  drawer because the Google Ads campaigns are split by LOCATION:
+                  the campaign name tells the rep which venue this enquiry is
+                  actually about, before they dial.
+
+                  Rendered only when there is a real value. An empty "Campaign —"
+                  row on every walk-in and referral would be noise, and the
+                  absence is itself informative: no campaign means this lead did
+                  not come from a click.
+                */}
+                {campaignName && (
+                  <div className="flex items-start gap-3">
+                    <MegaphoneIcon className="text-muted-foreground mt-0.5 size-4" />
+                    <div className="min-w-0 space-y-1">
+                      <p className="text-meta uppercase tracking-wide text-muted-foreground">
+                        Campaign
+                      </p>
+                      <p className="text-sm font-medium break-words">{campaignName}</p>
+                      {adContext && (
+                        <p className="text-detail text-muted-foreground break-words">
+                          {adContext}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
                 {lead.eventType && (
                   <div className="flex items-start gap-3">
                     <CalendarIcon className="text-muted-foreground mt-0.5 size-4" />
