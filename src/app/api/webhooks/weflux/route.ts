@@ -12,15 +12,15 @@ import { captureLeadFromExternal } from "@/lib/lead-capture";
 // ============================================================
 // Weflux → CRM webhook (Inbox sync)
 // ------------------------------------------------------------
-// Weflux POSTs signed events to this endpoint (registered under Weflux →
-// Outbound endpoints). We verify the signature, ACK 2xx fast (<15s), then
-// process asynchronously — mirroring Weflux conversations into the CRM inbox
-// and capturing WhatsApp-first leads.
+// Weflux POSTs events here (registered under Weflux → Outbound endpoints). We
+// authenticate, ACK 2xx fast (<15s), then process asynchronously — mirroring
+// Weflux conversations into the CRM inbox and capturing WhatsApp-first leads.
 //
-// Signature (per the Weflux spec):
-//   X-Weflux-Timestamp: <unix seconds>   (reject > 300s skew — anti-replay)
-//   X-Weflux-Signature: sha256=<hex of HMAC-SHA256(`${ts}.${raw}`, secret)>
-// Secret from env WEFLUX_ENDPOINT_SECRET (the wfx_sub_… endpoint signing secret).
+// Two accepted auth methods (either passes):
+//   1. Shared token in the URL — ?token=<verifyToken> — matching the token the
+//      settings page bakes into the webhook URL (read from the saved config).
+//   2. HMAC signature — X-Weflux-Signature: sha256=<hex of `${ts}.${raw}`> with
+//      env WEFLUX_ENDPOINT_SECRET, X-Weflux-Timestamp within 300s (anti-replay).
 // ============================================================
 
 export const runtime = "nodejs";
@@ -32,33 +32,72 @@ function timingSafe(a: string, b: string): boolean {
   return crypto.timingSafeEqual(ab, bb);
 }
 
+function hmacHex(secret: string, data: string): string {
+  return crypto.createHmac("sha256", secret).update(data, "utf8").digest("hex");
+}
+
 function str(v: unknown): string {
   return typeof v === "string" ? v : v == null ? "" : String(v);
 }
 
+/** The shared token from the saved WhatsApp config (what the settings page puts
+ *  in the webhook URL). Reading it here is the fix for the handler reporting
+ *  "not configured" even though the settings were saved. */
+async function getConfigToken(): Promise<string | null> {
+  try {
+    const config = await prisma.whatsAppConfig.findFirst({
+      where: { isActive: true },
+      select: { verifyToken: true },
+    });
+    return config?.verifyToken || null;
+  } catch {
+    return null;
+  }
+}
+
+// GET — handshake. Some providers verify with a hub.challenge / challenge echo.
+export async function GET(request: NextRequest) {
+  const sp = request.nextUrl.searchParams;
+  const challenge = sp.get("hub.challenge") || sp.get("challenge");
+  const token = sp.get("hub.verify_token") || sp.get("token") || "";
+  const expected = (await getConfigToken()) || process.env.WEFLUX_ENDPOINT_SECRET || "";
+  if (challenge && expected && token === expected) {
+    return new NextResponse(challenge, { status: 200 });
+  }
+  // Never 405 — return 200 so a provider's reachability check passes.
+  return NextResponse.json({ ok: true }, { status: 200 });
+}
+
 export async function POST(request: NextRequest) {
-  const secret = process.env.WEFLUX_ENDPOINT_SECRET;
-  if (!secret) {
-    // Fail closed — never accept an unverifiable inbound webhook.
+  const raw = await request.text();
+  const configToken = await getConfigToken();
+  const envSecret = process.env.WEFLUX_ENDPOINT_SECRET || null;
+
+  // Fail closed only if there's genuinely nothing to authenticate against.
+  if (!configToken && !envSecret) {
     return NextResponse.json({ error: "Webhook not configured" }, { status: 503 });
   }
 
-  const raw = await request.text();
-  const ts = request.headers.get("x-weflux-timestamp") || "";
-  const sig = request.headers.get("x-weflux-signature") || ""; // "sha256=<hex>"
+  // Method 1 — shared token (URL query or header).
+  const providedToken =
+    request.nextUrl.searchParams.get("token") || request.headers.get("x-weflux-token") || "";
+  const tokenOk = !!(configToken && providedToken && timingSafe(providedToken, configToken));
 
-  // Anti-replay: reject a signature more than 5 minutes off.
-  const nowSec = Math.floor(Date.now() / 1000);
-  if (ts && Math.abs(nowSec - Number(ts)) > 300) {
-    return NextResponse.json({ error: "Stale timestamp" }, { status: 401 });
+  // Method 2 — HMAC signature over `${ts}.${raw}` (body-only fallback).
+  let sigOk = false;
+  const sig = request.headers.get("x-weflux-signature") || "";
+  const ts = request.headers.get("x-weflux-timestamp") || "";
+  if (envSecret && sig) {
+    const staleTs = ts && Math.abs(Math.floor(Date.now() / 1000) - Number(ts)) > 300;
+    if (!staleTs) {
+      const expTs = "sha256=" + hmacHex(envSecret, `${ts}.${raw}`);
+      const expBody = "sha256=" + hmacHex(envSecret, raw);
+      sigOk = timingSafe(sig, expTs) || timingSafe(sig, expBody);
+    }
   }
 
-  // Signature is over `${ts}.${raw}` (the documented scheme). If a delivery
-  // arrives without a timestamp, fall back to signing the raw body alone.
-  const expectedWithTs = "sha256=" + crypto.createHmac("sha256", secret).update(`${ts}.${raw}`, "utf8").digest("hex");
-  const expectedBodyOnly = "sha256=" + crypto.createHmac("sha256", secret).update(raw, "utf8").digest("hex");
-  if (!sig || (!timingSafe(sig, expectedWithTs) && !timingSafe(sig, expectedBodyOnly))) {
-    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+  if (!tokenOk && !sigOk) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   let payload: Record<string, unknown>;
@@ -82,16 +121,16 @@ export async function POST(request: NextRequest) {
 
 async function processWefluxEvent(payload: Record<string, unknown>): Promise<void> {
   const event = str(payload.event ?? payload.type).toLowerCase();
-  // Message/contact data may sit at the top level or nested under message/data.
   const m = (payload.message ?? payload.data ?? payload) as Record<string, unknown>;
   const contactObj = (payload.contact ?? m.contact ?? null) as Record<string, unknown> | null;
 
-  // Log the shape (keys only — no PII) so exact field names can be confirmed.
   console.log("[Weflux Webhook]", event || "(no event)", "keys:", Object.keys(payload).join(","));
 
   const phone = str(
     m.phone ?? m.waid ?? m.wa_id ?? m.to ?? m.from ?? payload.phone ?? contactObj?.phone
-  ).replace(/^\+/, "").trim();
+  )
+    .replace(/^\+/, "")
+    .trim();
   const waId = str(m.id ?? m.message_id ?? m.wamid ?? payload.message_id) || null;
   const textField = m.text ?? m.body ?? m.content ?? payload.text;
   const text =
@@ -119,8 +158,6 @@ async function processWefluxEvent(payload: Record<string, unknown>): Promise<voi
     }
     case "contact.opted_out":
     case "unsubscribe": {
-      // Honour the opt-out in the CRM so a later export can't re-import someone
-      // who said no. Tag the contact (idempotent); best-effort.
       if (phone) {
         const contact = await prisma.contact.findFirst({
           where: { OR: [{ phone }, { phone: `+${phone}` }, { phone: `+91${phone}` }] },
@@ -138,9 +175,8 @@ async function processWefluxEvent(payload: Record<string, unknown>): Promise<voi
     case "lead.created":
     case "new_lead":
     case "lead_created": {
-      // A lead that started on WhatsApp (or arrived in Weflux from a sheet /
-      // import) reaches the CRM here. Only capture if we don't already have the
-      // number — avoids echoing back the leads WE pushed to Weflux.
+      // WhatsApp-first / imported lead reaches the CRM. Only capture if the
+      // number is new — avoids echoing back leads WE pushed to Weflux.
       if (phone) {
         const existing = await prisma.contact.findFirst({
           where: { OR: [{ phone }, { phone: `+${phone}` }, { phone: `+91${phone}` }] },
@@ -158,7 +194,6 @@ async function processWefluxEvent(payload: Record<string, unknown>): Promise<voi
       break;
     }
     default:
-      // contact.updated, deal.stage_changed, etc. — logged above; no-op for now.
       break;
   }
 }

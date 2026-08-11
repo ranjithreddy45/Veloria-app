@@ -15,6 +15,8 @@
 // adjusted once confirmed against a live send.
 // ============================================================
 
+import { toPositionalVars } from "@/lib/whatsapp/template-vars";
+
 export interface WefluxCreds {
   /** API base, defaults to https://api.weflux.in/v2 (a fixed host for all
    *  weflux workspaces — the key identifies the workspace). Overridable. */
@@ -90,6 +92,9 @@ export async function wefluxSendTemplate(
   params?: Record<string, string>
 ): Promise<WefluxResult> {
   try {
+    // Meta only supports POSITIONAL placeholders; map the named params to their
+    // authoritative order ({{1}},{{2}},…) before sending.
+    const { object: positional } = toPositionalVars(templateName, params);
     const res = await fetch(`${apiBase(creds.endpoint)}/messages`, {
       method: "POST",
       headers: authHeaders(creds.token),
@@ -97,7 +102,7 @@ export async function wefluxSendTemplate(
         phone: toPhone(to),
         template: templateName,
         language: "en",
-        variables: params ?? {},
+        variables: positional,
       }),
     });
     const data = await res.json().catch(() => ({}));

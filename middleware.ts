@@ -191,6 +191,6 @@ export const config = {
      * - favicon.ico, sitemap.xml, robots.txt
      * - Public assets (images, svgs, etc.)
      */
-    "/((?!api/auth|api/widget|api/track|api/webforms|api/ota|form|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|\\.well-known|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.gif$|.*\\.svg$|.*\\.ico$|.*\\.webp$).*)",
+    "/((?!api/auth|api/widget|api/track|api/webforms|api/webhooks|api/ota|form|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|\\.well-known|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.gif$|.*\\.svg$|.*\\.ico$|.*\\.webp$).*)",
   ],
 };

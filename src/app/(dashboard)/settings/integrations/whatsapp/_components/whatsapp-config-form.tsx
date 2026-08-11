@@ -98,22 +98,29 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
 
   function handleSave() {
     startTransition(async () => {
-      const result = await saveWhatsAppConfig({
-        id: initialConfig?.id,
-        provider,
-        accessToken,
-        phoneNumberId: phoneNumberId || undefined,
-        businessAccountId: businessAccountId || undefined,
-        appSecret: appSecret || undefined,
-        apiEndpoint: apiEndpoint || undefined,
-        verifyToken,
-        isActive: true,
-      });
+      // A thrown/5xx save must SURFACE, never silently revert: without this
+      // try/catch a transient 503 left the admin thinking it saved when it
+      // didn't (Issue 6).
+      try {
+        const result = await saveWhatsAppConfig({
+          id: initialConfig?.id,
+          provider,
+          accessToken,
+          phoneNumberId: phoneNumberId || undefined,
+          businessAccountId: businessAccountId || undefined,
+          appSecret: appSecret || undefined,
+          apiEndpoint: apiEndpoint || undefined,
+          verifyToken,
+          isActive: true,
+        });
 
-      if (result.success) {
-        toast.success("WhatsApp configuration saved successfully");
-      } else {
-        toast.error(result.error || "Failed to save configuration");
+        if (result.success) {
+          toast.success("WhatsApp configuration saved successfully");
+        } else {
+          toast.error(result.error || "Failed to save configuration");
+        }
+      } catch {
+        toast.error("Couldn't save — the server didn't respond. Nothing was changed; please try again.");
       }
     });
   }
@@ -250,13 +257,13 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
               <Label htmlFor="waApiEndpoint">Weflux API Endpoint (optional)</Label>
               <Input
                 id="waApiEndpoint"
-                placeholder="https://api.weflux.in/v2"
+                placeholder="https://app.weflux.in/api/public/v1"
                 value={apiEndpoint}
                 onChange={(e) => setApiEndpoint(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                Leave blank to use the default (<code>https://api.weflux.in/v2</code>). Only
-                change this if weflux gives you a different base URL.
+                Leave blank to use the default (<code>https://app.weflux.in/api/public/v1</code>).
+                Only change this if weflux gives you a different base URL.
               </p>
             </div>
           )}
