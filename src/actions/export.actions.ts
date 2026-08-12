@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/../auth";
+import { buildLeadListWhere, type LeadListFilters } from "@/lib/crm/lead-filters";
 import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/utils";
@@ -217,7 +218,16 @@ export async function exportContacts() {
   }
 }
 
-export async function exportLeads() {
+/**
+ * CSV of the leads the caller is looking at.
+ *
+ * `filters` is the SAME shape the list uses, run through the SAME
+ * buildLeadListWhere — not a copy. This took no arguments at all before, so a
+ * user who filtered to Google Ads in August and pressed Export silently got
+ * their entire book. Nothing on screen said the filters had been dropped, which
+ * made a wrong file look like a right one.
+ */
+export async function exportLeads(filters?: LeadListFilters) {
   try {
     const session = await auth();
     if (!session?.user) {
@@ -231,9 +241,17 @@ export async function exportLeads() {
     // Mirror the leads LIST scoping: reps see (and therefore export) only their
     // own book; managers with leads:assign export org-wide. Without this, an
     // own-book-only rep could CSV-download every lead in the company.
-    const canViewAll = hasPermission(session.user.role, "leads:assign");
+    // Scope AND filters both come from the shared builder, so the file can
+    // never contain a different set of rows than the screen that asked for it.
+    // buildLeadListWhere already downgrades scope to "mine" for anyone without
+    // the manager permission, so the own-book guard is inherited rather than
+    // re-implemented here.
+    const { where } = buildLeadListWhere(filters, {
+      id: session.user.id as string,
+      role: session.user.role,
+    });
     const leads = await prisma.lead.findMany({
-      where: { deletedAt: null, ...(canViewAll ? {} : { assignedToId: session.user.id }) },
+      where,
       orderBy: { createdAt: "desc" },
       take: 10000,
       include: {
@@ -304,6 +322,10 @@ export async function exportLeads() {
       "Status",
       "Source",
       "Event Type",
+      // The date the customer is asking about. It was simply never in the file:
+      // "Event Type" was, "Event Date" was not, so every export lost the one
+      // field the sales team sorts and plans by.
+      "Event Date",
       "Est. Value",
       "Assigned To",
       "Notes",
@@ -325,6 +347,9 @@ export async function exportLeads() {
         l.status,
         l.source,
         l.eventType || "",
+        // ISO yyyy-mm-dd: unambiguous in a spreadsheet, and sorts correctly as
+        // text. A localised "12/08/2026" is read as December by half of Excel.
+        l.eventDate ? l.eventDate.toISOString().split("T")[0] : "",
         l.estimatedValue ? Number(l.estimatedValue) : "",
         l.assignedTo?.name || "",
         t.notes,

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import { type ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import Link from "next/link";
@@ -741,11 +742,29 @@ function AIScoreAllButton() {
 
 function ExportButton() {
   const [loading, setLoading] = React.useState(false);
+  const searchParams = useSearchParams();
 
   async function handleExport() {
     setLoading(true);
     try {
-      const result = await exportLeads();
+      // Send the SAME filters the URL is showing. Previously this called
+      // exportLeads() with nothing, so the file ignored every filter on screen
+      // and quietly contained the whole book.
+      //
+      // Read straight from the URL rather than from component state because the
+      // URL is what the server page itself filtered on — anything else would be
+      // a second opinion about what the user is looking at.
+      const result = await exportLeads({
+        scope: (searchParams.get("scope") as "mine" | "all" | "unassigned") ?? "mine",
+        status: searchParams.get("status") ?? undefined,
+        venueId: searchParams.get("venue") ?? undefined,
+        eventFrom: searchParams.get("eventFrom") ?? undefined,
+        eventTo: searchParams.get("eventTo") ?? undefined,
+        createdFrom: searchParams.get("createdFrom") ?? undefined,
+        createdTo: searchParams.get("createdTo") ?? undefined,
+        enquirySource: searchParams.get("channel") ?? undefined,
+        due: searchParams.get("due") ?? undefined,
+      });
       if (result.success) {
         const csv = toCSV(result.data.headers, result.data.rows);
         downloadCSV(`leads-${new Date().toISOString().split("T")[0]}.csv`, csv);
