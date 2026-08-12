@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/layout/page-header";
-import { getWhatsAppTemplates } from "@/actions/whatsapp.actions";
+import { getWhatsAppTemplates, getSyncedWhatsAppTemplates } from "@/actions/whatsapp.actions";
 import { getWhatsAppConfig } from "@/actions/whatsapp-config.actions";
 import { WhatsAppConfigForm } from "./_components/whatsapp-config-form";
 import { WhatsAppTemplateList } from "./_components/whatsapp-template-list";
+import { SyncedTemplates } from "./_components/synced-templates";
 
 export const metadata: Metadata = { title: "WhatsApp Integration" };
 
@@ -12,9 +13,10 @@ export const metadata: Metadata = { title: "WhatsApp Integration" };
 // ============================================================
 
 export default async function WhatsAppIntegrationPage() {
-  const [templatesResult, configResult] = await Promise.all([
+  const [templatesResult, configResult, syncedResult] = await Promise.all([
     getWhatsAppTemplates(),
     getWhatsAppConfig(),
+    getSyncedWhatsAppTemplates(),
   ]);
 
   const templates = templatesResult.success ? templatesResult.data : [];
@@ -28,6 +30,10 @@ export default async function WhatsAppIntegrationPage() {
       />
 
       <WhatsAppConfigForm initialConfig={config ?? null} />
+
+      {/* Meta's real list, above the hand-maintained one: what CAN be sent
+          should outrank what a developer last typed into an array. */}
+      <SyncedTemplates templates={syncedResult.success ? syncedResult.data : []} />
 
       <WhatsAppTemplateList templates={templates} />
     </div>

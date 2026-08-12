@@ -538,3 +538,74 @@ export async function bulkSendWhatsApp(data: BulkSendWhatsAppInput) {
     return { success: false as const, error: "Failed to send bulk WhatsApp messages" };
   }
 }
+
+// ============================================================
+// Approved-template registry
+// ------------------------------------------------------------
+// Every template reference in this app was a free-text name, so nothing knew
+// which templates existed or which Meta had approved. These expose the synced
+// mirror (lib/integrations/whatsapp-templates) to the settings UI.
+// ============================================================
+
+/**
+ * Pull the template list from Meta and mirror it locally.
+ *
+ * Gated on `settings:update` rather than `whatsapp:send`: this rewrites shared
+ * configuration that every automation reads, which is a different privilege
+ * from being allowed to message one customer.
+ */
+export async function syncApprovedTemplates() {
+  const session = await auth();
+  if (!session?.user) return { success: false as const, error: "Unauthorized" };
+  // `settings:update` — the same gate the WhatsApp config form uses. NOT an
+  // invented "whatsapp:manage": hasPermission returns false for a key that does
+  // not exist, so the button would have been silently dead for everyone.
+  if (!hasPermission(session.user.role as string, "settings:update")) {
+    return { success: false as const, error: "Insufficient permissions" };
+  }
+
+  const { syncWhatsAppTemplates } = await import("@/lib/integrations/whatsapp-templates");
+  const res = await syncWhatsAppTemplates();
+  if (!res.ok) return { success: false as const, error: res.error ?? "Sync failed" };
+
+  revalidatePath("/settings/integrations/whatsapp");
+  return {
+    success: true as const,
+    synced: res.synced ?? 0,
+    approved: res.approved ?? 0,
+    removed: res.removed ?? 0,
+  };
+}
+
+/**
+ * The templates SYNCED FROM META, approved or not.
+ *
+ * Distinct from getWhatsAppTemplates() above, which returns WHATSAPP_TEMPLATES —
+ * a hand-maintained array compiled into the app. That list is why nobody could
+ * "connect to the approved templates": it is whatever a developer last typed,
+ * with no knowledge of what Meta has actually approved, paused or rejected.
+ * This one is the mirror of Meta's real state.
+ */
+export async function getSyncedWhatsAppTemplates() {
+  const session = await auth();
+  if (!session?.user) return { success: false as const, error: "Unauthorized" };
+  if (!hasPermission(session.user.role as string, "whatsapp:read")) {
+    return { success: false as const, error: "Insufficient permissions" };
+  }
+  const rows = await prisma.whatsAppTemplate.findMany({
+    // Approved first — those are the ones anyone can actually use. Within a
+    // status, alphabetical, because people look templates up by name.
+    orderBy: [{ status: "asc" }, { name: "asc" }],
+    select: {
+      id: true,
+      name: true,
+      language: true,
+      category: true,
+      status: true,
+      body: true,
+      variableCount: true,
+      syncedAt: true,
+    },
+  });
+  return { success: true as const, data: rows };
+}

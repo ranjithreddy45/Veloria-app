@@ -3959,6 +3959,49 @@ model LeadCaptureConfig {
 // WHATSAPP CONFIG: Meta WhatsApp Cloud API credentials
 // ============================================================
 
+/// A message template as Meta actually holds it.
+///
+/// Templates were referenced by FREE-TEXT NAME everywhere (AutoWelcomeConfig
+/// .templateName, cadence steps, reminders). Nothing in the CRM knew which
+/// templates existed, which were APPROVED, what language they were in, or how
+/// many variables they took — so a typo or a template Meta later rejected
+/// failed silently at send time, and nobody could pick from the approved list
+/// because there was no list.
+///
+/// This is a SYNCED MIRROR, never a source of truth: Meta owns template state
+/// and approval. Rows are refreshed wholesale from the Graph API, so a template
+/// deleted or rejected upstream stops being offered here.
+model WhatsAppTemplate {
+  id String @id @default(cuid())
+
+  /// Meta's own template id, so a rename upstream updates rather than duplicates.
+  metaId String @unique
+
+  name     String
+  language String
+  /// MARKETING | UTILITY | AUTHENTICATION
+  category String
+  /// APPROVED | PENDING | REJECTED | PAUSED | DISABLED — only APPROVED can send.
+  status   String
+
+  /// The BODY text as approved, with {{1}} placeholders left intact so the UI
+  /// can preview exactly what the customer receives.
+  body String? @db.Text
+  /// How many {{n}} placeholders the body takes. Sending the wrong number of
+  /// params is the most common template failure and it is silent from the
+  /// caller's side, so it is stored and checked rather than guessed.
+  variableCount Int @default(0)
+
+  /// Raw components payload, kept for headers/buttons/footers we do not model.
+  components Json?
+
+  syncedAt DateTime @default(now())
+
+  @@unique([name, language])
+  @@index([status])
+  @@index([name])
+}
+
 model WhatsAppConfig {
   id                String   @id @default(cuid())
   // "META" (Cloud API) or "WATI" (wati.io). Legacy rows default to META.
