@@ -38,8 +38,10 @@ const JOBS = [
   "contract-reminders",
   "project-escalation", // Projects SLA escalation
   "velos-slump", // Velos slump-catch sweep
-  "hold-expiry", // cancel expired booking HOLDs so they stop blocking slots
-  "public-hold-expiry", // release stale public (no-login) date holds
+  // Ordered pair: public-hold-expiry documents that it must run AFTER
+  // hold-expiry. Declared as a chain so the lane can run everything else
+  // concurrently without breaking the one real dependency.
+  ["hold-expiry", "public-hold-expiry"],
   "site-visit-reminders", // ~24h-ahead site-visit reminders + past no-show sweep
   "vendor-reminders", // nudge still-NOTIFIED vendor assignments for upcoming events (confirm/decline link)
   "review-requests", // enqueue + send Google-review requests for COMPLETED bookings
