@@ -1,4 +1,5 @@
 import { after } from "next/server";
+import { canonicalPhone } from "@/lib/phone";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { notify } from "@/lib/notify";
@@ -47,23 +48,6 @@ function normalizeExternalEmail(raw?: string): string | undefined {
  * hint, and will still be read as Indian. Only a country selector on the form
  * can close that, which is a product change, not a parsing one.
  */
-function canonicalPhone(raw: string): string {
-  const trimmed = raw.trim();
-  const digits = trimmed.replace(/\D/g, "");
-  if (!digits) return trimmed;
-
-  // 1. Explicit international form — trust it.
-  if (trimmed.startsWith("+")) return `+${digits}`;
-  if (digits.startsWith("00")) return `+${digits.slice(2)}`;
-
-  const local = digits.replace(/^0+/, "");
-  // 2. Indian mobile: exactly 10 digits, first digit 6-9.
-  if (/^[6-9]\d{9}$/.test(local)) return `+91${local}`;
-  // 12 digits already country-coded as 91.
-  if (local.length === 12 && local.startsWith("91")) return `+${local}`;
-  // 3. Unknown country — store what we were given rather than guess.
-  return local;
-}
 
 /** The country code of an E.164 number, or null when it carries none. */
 function countryCodeOf(phone: string | null | undefined): string | null {

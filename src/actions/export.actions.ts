@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/../auth";
+import { phoneForExport } from "@/lib/phone";
 import { buildLeadListWhere, type LeadListFilters } from "@/lib/crm/lead-filters";
 import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
@@ -346,11 +347,16 @@ export async function exportLeads(filters?: LeadListFilters) {
       return [
         l.title,
         `${l.contact.firstName} ${l.contact.lastName}`,
-        // Verbatim. Capture canonicalises to +91XXXXXXXXXX, and the leading "+"
-        // is what stops Excel reading a phone number as a number and rendering
-        // it in scientific notation. Deliberately NOT wrapped in ="…" — that
-        // survives Excel and breaks Google Sheets and every plain CSV parser.
-        l.contact.phone || "",
+        // Normalised, NOT verbatim. Only capture and CSV import canonicalise on
+        // write; manual entry, the configurator, the public hold flow and the
+        // widget all store whatever was typed. So the column held a mixture,
+        // and a spreadsheet TYPES each cell — "+91…" stays text while a bare
+        // run of digits becomes a number, loses a leading zero, and past eleven
+        // digits renders as 9.19008E+11.
+        //
+        // Deliberately NOT wrapped in ="…": that survives Excel and breaks
+        // Google Sheets and every plain CSV parser.
+        phoneForExport(l.contact.phone),
         l.preferredVenue?.name || "",
         l.status,
         l.source,
