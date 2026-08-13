@@ -255,7 +255,7 @@ export async function exportLeads(filters?: LeadListFilters) {
       orderBy: { createdAt: "desc" },
       take: 10000,
       include: {
-        contact: { select: { firstName: true, lastName: true } },
+        contact: { select: { firstName: true, lastName: true, phone: true } },
         assignedTo: { select: { name: true } },
         preferredVenue: { select: { name: true } },
       },
@@ -318,6 +318,9 @@ export async function exportLeads(filters?: LeadListFilters) {
     const headers = [
       "Title",
       "Contact",
+      // The number the rep actually calls. Absent until now, which made a
+      // "leads export" useless for the one thing an exported lead list is for.
+      "Phone",
       "Hall / Property",
       "Status",
       "Source",
@@ -343,6 +346,11 @@ export async function exportLeads(filters?: LeadListFilters) {
       return [
         l.title,
         `${l.contact.firstName} ${l.contact.lastName}`,
+        // Verbatim. Capture canonicalises to +91XXXXXXXXXX, and the leading "+"
+        // is what stops Excel reading a phone number as a number and rendering
+        // it in scientific notation. Deliberately NOT wrapped in ="…" — that
+        // survives Excel and breaks Google Sheets and every plain CSV parser.
+        l.contact.phone || "",
         l.preferredVenue?.name || "",
         l.status,
         l.source,
