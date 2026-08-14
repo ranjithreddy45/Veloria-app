@@ -701,6 +701,45 @@ model Deal {
 // BOOKINGS & CALENDAR
 // ============================================================
 
+/// A tax rate a property can charge.
+///
+/// Tax was hardcoded: Invoice defaults cgstRate 9 / sgstRate 9 / igstRate 0,
+/// i.e. 18% GST for everything, everywhere. Different properties and different
+/// service mixes attract different rates, and there was nowhere to say so.
+///
+/// Rates are stored SPLIT (CGST/SGST/IGST) rather than as one percentage
+/// because Invoice already posts them separately and a GST invoice must show
+/// the split. Collapsing to a single number here would mean re-deriving it at
+/// invoice time, which is where a rounding difference between the quoted total
+/// and the invoiced total would come from.
+model VenueTaxSlab {
+  id      String @id @default(cuid())
+  venueId String
+  venue   Venue  @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  /// What staff pick from — "GST 18%", "GST 5% (no ITC)".
+  name String
+
+  cgstRate Decimal @default(0) @db.Decimal(5, 2)
+  sgstRate Decimal @default(0) @db.Decimal(5, 2)
+  igstRate Decimal @default(0) @db.Decimal(5, 2)
+
+  /// Applied without asking when a property has exactly one usable slab.
+  isDefault Boolean @default(false)
+  /// Retired slabs stay for historical quotes but stop being offered.
+  isActive  Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  salesQuotations SalesQuotation[] @relation("SalesQuotationTaxSlab")
+
+  /// One slab per name per property — two "GST 18%" rows would make the picker
+  /// ambiguous and the audit trail meaningless.
+  @@unique([venueId, name])
+  @@index([venueId, isActive])
+}
+
 model Venue {
   id            String   @id @default(cuid())
   name          String
@@ -723,6 +762,7 @@ model Venue {
   preferredLeads      Lead[]               @relation("LeadPreferredVenue")
   enquiryContacts     Contact[]            @relation("ContactEnquiryVenue")
   salesQuotations     SalesQuotation[]     @relation("SalesQuotationVenue")
+  taxSlabs            VenueTaxSlab[]
   publicHolds         PublicHold[]         @relation("VenuePublicHolds")
   publicQuoteDrafts   PublicQuoteDraft[]   @relation("VenuePublicQuoteDrafts")
   demandSignals       VenueDemandSignal[]  @relation("VenueDemandSignals")
@@ -5249,6 +5289,13 @@ model SalesQuotation {
   contact     Contact? @relation(fields: [contactId], references: [id])
   venueId     String?
   venue       Venue?   @relation("SalesQuotationVenue", fields: [venueId], references: [id])
+
+  /// Which slab produced taxAmount. Nullable because historical quotes predate
+  /// slabs entirely, and because a quote for a property with several slabs is
+  /// legitimately undecided until someone chooses — that undecided state is
+  /// what blocks it from going for approval.
+  taxSlabId   String?
+  taxSlab     VenueTaxSlab? @relation("SalesQuotationTaxSlab", fields: [taxSlabId], references: [id])
   createdById String
   createdBy   User     @relation("SalesQuotationCreatedBy", fields: [createdById], references: [id])
 
