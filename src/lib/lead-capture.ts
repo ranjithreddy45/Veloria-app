@@ -1,4 +1,5 @@
 import { after } from "next/server";
+import { sendLeadAssignedEmail } from "@/lib/crm/lead-assigned-email";
 import { canonicalPhone } from "@/lib/phone";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -460,15 +461,29 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
         userId: assignedToId || "system",
       });
 
-      // Notify assigned agent
+      // Notify assigned agent — in-app AND by email.
+      //
+      // notify() only ever wrote an in-app row despite its name, so a lead
+      // landing at 9pm sat unseen until someone opened the CRM. That is the
+      // opposite of what the speed-to-lead SLA on this same lead requires.
+      //
+      // actionUrl now points at the lead itself rather than the list: sending
+      // someone to a list to hunt for the row they were just told about is a
+      // small tax paid on every single notification.
       if (assignedToId) {
         notify({
           userId: assignedToId,
           title: "New Lead Captured",
           message: `New ${data.source} lead: ${firstName} ${lastName}`,
           type: "LEAD_ASSIGNED",
-          actionUrl: `/leads`,
+          actionUrl: `/leads/${lead.id}`,
         });
+        // Awaited inside the deferred tail, not fire-and-forget: an unawaited
+        // send can be frozen when the serverless invocation ends.
+        const mail = await sendLeadAssignedEmail(lead.id, assignedToId);
+        if (!mail.sent) {
+          console.warn(`[CAPTURE] assignment email not sent: ${mail.reason}`);
+        }
       }
 
       // Check for auto-welcome config
