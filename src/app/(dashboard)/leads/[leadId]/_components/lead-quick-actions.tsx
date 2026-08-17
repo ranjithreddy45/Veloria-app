@@ -10,11 +10,12 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { MailIcon, GitBranchPlusIcon, Loader2Icon } from "lucide-react";
+import { MailIcon, GitBranchPlusIcon, Loader2Icon, PhoneIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { convertLeadToDeal } from "@/actions/lead.actions";
+import { initiateRunoCall } from "@/actions/runo.actions";
 
 interface LeadQuickActionsProps {
   leadId: string;
@@ -43,6 +44,20 @@ export function LeadQuickActions({
     window.location.href = `mailto:${contactEmail}?subject=${subject}`;
   }
 
+  async function handleRunoCall() {
+    toast.info("Initiating call via Runo...");
+    try {
+      const result = await initiateRunoCall(leadId);
+      if (result.success) {
+        toast.success("Call allocated in Runo app. Please check your phone.");
+      } else {
+        toast.error(result.error || "Failed to initiate call.");
+      }
+    } catch {
+      toast.error("Failed to initiate call.");
+    }
+  }
+
   async function handleConvert() {
     setConverting(true);
     try {
@@ -67,6 +82,10 @@ export function LeadQuickActions({
 
   return (
     <>
+      <Button size="sm" variant="outline" onClick={handleRunoCall}>
+        <PhoneIcon className="mr-2 size-4" />
+        Call via Runo
+      </Button>
       <Button size="sm" variant="outline" onClick={handleSendEmail}>
         <MailIcon className="mr-2 size-4" />
         Send Email
