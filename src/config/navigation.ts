@@ -893,6 +893,12 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["settings:read"],
       },
       {
+        title: "Integration Health",
+        href: "/settings/integrations/health",
+        icon: "PlugZap",
+        permissions: ["settings:read"],
+      },
+      {
         title: "OTA Syndication",
         href: "/settings/integrations/ota",
         icon: "Store",
