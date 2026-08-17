@@ -38,6 +38,11 @@ export interface IntegrationStatus {
   missing: string[];
   /** What silently does not happen while this is off. */
   impact: string;
+  /**
+   * Where a STRONGER check lives, when this row can only see configuration.
+   * Presence of a credential is not proof it works.
+   */
+  authority?: string;
 }
 
 const has = (v?: string | null) => Boolean(v && v.trim());
@@ -146,6 +151,12 @@ export async function getIntegrationHealth(): Promise<IntegrationStatus[]> {
     missing: [...rzpMissing, ...rzpHookMissing],
     impact:
       "Without the webhook secret a paid booking may never be marked paid, because the confirmation cannot be trusted.",
+    // This row reports whether the keys EXIST. It cannot tell a valid key from
+    // a rotated one — only Razorpay can. getPaymentGatewayHealth() on the
+    // Payments page does exactly that (a read-only authenticated probe, 401 =
+    // wrong or rotated), so point there rather than implying this check is the
+    // final word on whether money can actually be collected.
+    authority: "Payments page runs a live key-validity probe against Razorpay.",
   });
 
   // ---- Lead capture ------------------------------------------------------

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CreditCard } from "lucide-react";
 import type { Metadata } from "next";
 import {
   Calculator,
@@ -74,6 +75,25 @@ const integrations = [
     href: "/settings/integrations/lead-capture",
     icon: Webhook,
     color: "bg-violet-100 text-violet-600 dark:bg-violet-950 dark:text-violet-400",
+    status: "Active",
+    statusColor: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/40",
+  },
+  {
+    // Payments were missing from this hub entirely — the only integration that
+    // moves money, and the one page nobody could find. It is env-configured
+    // (RAZORPAY_KEY_*) rather than DB-configured, so it has no settings form
+    // like WhatsApp or Tally do, and it was simply never given a card.
+    //
+    // The authoritative status lives on the Payments page, which runs a LIVE
+    // probe against Razorpay — it can tell a rotated key from a missing one,
+    // which neither a settings form nor an env check can. So this links there
+    // rather than duplicating a weaker answer.
+    title: "Payment Gateway",
+    description:
+      "Razorpay — live/test mode, key validity and webhook status. Checked against Razorpay directly, not just read from config.",
+    href: "/payments",
+    icon: CreditCard,
+    color: "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
     status: "Active",
     statusColor: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/40",
   },

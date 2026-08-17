@@ -143,6 +143,12 @@ export default async function IntegrationHealthPage() {
                     </p>
                   )}
 
+                  {r.authority && (
+                    <p className="mt-1.5 text-detail text-muted-foreground">
+                      {r.authority}
+                    </p>
+                  )}
+
                   {r.state !== "LIVE" && (
                     <p className="mt-1.5 text-detail text-muted-foreground">
                       While off: {r.impact}
