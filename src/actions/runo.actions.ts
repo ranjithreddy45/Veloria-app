@@ -52,7 +52,7 @@ export async function initiateRunoCall(leadId: string) {
       action: "RUNO_CALL_INITIATED",
       entityType: "LEAD",
       entityId: lead.id,
-      details: "Initiated a Runo call allocation.",
+      changes: { details: "Initiated a Runo call allocation." },
       userId: session.user.id,
     });
 
