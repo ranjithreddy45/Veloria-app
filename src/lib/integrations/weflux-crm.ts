@@ -18,6 +18,7 @@
 
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
+import { wefluxSyncContact } from "@/lib/integrations/weflux";
 
 export type WefluxCrmEvent =
   | "lead.created"
@@ -53,15 +54,27 @@ function normalizePhone(raw: string): string {
 
 /** Resolve the CRM-webhook URL + secret. Prefers the in-app WhatsApp config
  *  (Settings → Integrations → WhatsApp); falls back to env for back-compat. */
-async function resolveConfig(): Promise<{ url: string; secret: string } | null> {
+async function resolveConfig(): Promise<{ url: string; secret: string; token?: string; endpoint?: string } | null> {
   try {
     const c = await prisma.whatsAppConfig.findFirst({
       where: { isActive: true },
-      select: { crmWebhookUrl: true, crmWebhookSecret: true },
+      select: { crmWebhookUrl: true, crmWebhookSecret: true, accessToken: true, apiEndpoint: true },
     });
+    
     const url = c?.crmWebhookUrl || process.env.WEFLUX_CRM_WEBHOOK_URL || "";
     const secret = c?.crmWebhookSecret || process.env.WEFLUX_CRM_SECRET || "";
-    if (url && secret) return { url, secret };
+    const token = c?.accessToken || "";
+    
+    // If we have token, we return it so we can at least sync the contact 
+    // even if the CRM webhook is not fully configured.
+    if ((url && secret) || token) {
+      return { 
+        url, 
+        secret, 
+        token: token || undefined, 
+        endpoint: c?.apiEndpoint || undefined 
+      };
+    }
   } catch {
     // fall through to env-only
   }
@@ -82,11 +95,24 @@ export async function pushLeadToWeflux(
   try {
     const cfg = await resolveConfig();
     if (!cfg) return { ok: false, skipped: true };
-    const { url, secret } = cfg;
+    const { url, secret, token, endpoint } = cfg;
 
     const phone = normalizePhone(lead.phone);
     if (!phone) return { ok: false, skipped: true }; // phone is the join key
 
+    // 1. Direct Contact Sync (Fallback/Guarantee)
+    // If the user hasn't configured the CRM Webhook, or if Weflux's webhook drops
+    // the name/email fields, we explicitly sync the contact using the Public API.
+    if (token) {
+      await wefluxSyncContact({ token, endpoint }, phone, lead.name, lead.email);
+    }
+
+    // If no CRM webhook URL is configured, we're done (we just did the contact sync).
+    if (!url || !secret) {
+      return { ok: true, skipped: true };
+    }
+
+    // 2. CRM Webhook payload
     // Stable event_id so Weflux dedupes retries instead of double-creating.
     const eventId = opts?.eventId || `${event}:${lead.id}`;
 
@@ -96,6 +122,8 @@ export async function pushLeadToWeflux(
       lead: {
         id: lead.id,
         name: lead.name || "Lead",
+        first_name: lead.name ? lead.name.split(" ")[0] : "Lead",
+        last_name: lead.name && lead.name.includes(" ") ? lead.name.split(" ").slice(1).join(" ") : "",
         phone,
         ...(lead.email ? { email: lead.email } : {}),
         ...(lead.company ? { company: lead.company } : {}),

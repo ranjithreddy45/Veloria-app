@@ -114,6 +114,39 @@ export async function wefluxSendTemplate(
   }
 }
 
+/** 
+ * Force-syncs a contact's name and email into Weflux. 
+ * Call this before sending a message to ensure the Weflux CRM UI shows 
+ * their name/email rather than just a raw phone number. 
+ */
+export async function wefluxSyncContact(
+  creds: WefluxCreds,
+  phone: string,
+  name?: string | null,
+  email?: string | null
+): Promise<void> {
+  if (!name && !email) return; // Nothing to sync
+  try {
+    const res = await fetch(`${apiBase(creds.endpoint)}/contacts`, {
+      method: "POST",
+      headers: authHeaders(creds.token),
+      body: JSON.stringify({
+        phone: toPhone(phone),
+        name: name || undefined,
+        email: email || undefined,
+        // Send common alternative keys just in case Weflux maps them differently
+        first_name: name ? name.split(" ")[0] : undefined,
+        last_name: name && name.includes(" ") ? name.split(" ").slice(1).join(" ") : undefined
+      }),
+    });
+    if (!res.ok) {
+      console.warn("[Weflux] Failed to sync contact info", res.status, await res.text().catch(() => ""));
+    }
+  } catch (e) {
+    console.warn("[Weflux] Network error syncing contact info", e);
+  }
+}
+
 /** Free-text message — only deliverable inside the 24h customer-service window.
  *  Weflux returns `window_closed` (rather than a downstream failure) when the
  *  window has lapsed; we surface that as a clear, actionable error. */
