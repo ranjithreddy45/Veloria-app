@@ -70,6 +70,15 @@ export async function getIntegrationHealth(): Promise<IntegrationStatus[]> {
     })
     .catch(() => null);
 
+  // Telephony is DB-configured too (TelephonyConfig), for the same reason:
+  // checking env would report it dead when it is live.
+  const telConfig = await prisma.telephonyConfig
+    .findFirst({
+      where: { isActive: true },
+      select: { provider: true, apiKey: true, callerId: true, webhookSecret: true },
+    })
+    .catch(() => null);
+
   const out: IntegrationStatus[] = [];
 
   // ---- Messaging ---------------------------------------------------------
@@ -133,6 +142,37 @@ export async function getIntegrationHealth(): Promise<IntegrationStatus[]> {
       : "No Meta Business Account ID saved, so the approved-template list cannot be fetched. A Weflux API key alone cannot list templates; they live on Meta.",
     missing: templatesReady ? [] : ["WhatsAppConfig.businessAccountId (saved in WhatsApp settings, not env)"],
     impact: "Template names stay free text, so a wrong or paused template fails at send time with no warning.",
+  });
+
+  // Cloud telephony. MISSED on the first pass of this registry — which is
+  // precisely the failure the header comment warns about, arriving within a day
+  // of the file being written. A registry only helps if adding an integration
+  // means adding a row here, so this one is a reminder that the discipline is
+  // the point, not the list.
+  const telLive = has(telConfig?.apiKey) && has(telConfig?.callerId);
+  const telHookMissing = telLive && !has(telConfig?.webhookSecret);
+  out.push({
+    key: "telephony",
+    label: `Cloud telephony${telConfig?.provider ? ` (${telConfig.provider})` : ""}`,
+    category: "Messaging",
+    state: !telLive ? "NOT_CONFIGURED" : telHookMissing ? "PARTIAL" : "LIVE",
+    detail: !telLive
+      ? "No active telephony configuration with an API key and caller ID."
+      : telHookMissing
+        ? "Outbound calling is configured. No webhook secret, so call-status and recording callbacks cannot be verified."
+        : "Calling and callbacks both configured.",
+    missing: !telLive
+      ? ["TelephonyConfig.apiKey / callerId (saved in Telephony settings, not env)"]
+      : telHookMissing
+        ? ["TelephonyConfig.webhookSecret"]
+        : [],
+    // Worth spelling out because it reaches further than the phone: CallLog
+    // rows are one of the three sources the lead engagement roll-up counts, so
+    // while this is off the Touches column silently undercounts every lead
+    // that was actually phoned.
+    impact:
+      "Click-to-call does nothing, and calls are never logged — so lead engagement counts undercount real activity.",
+    authority: "Telephony settings has a Test Connection button that calls the provider directly.",
   });
 
   // ---- Payments ----------------------------------------------------------
