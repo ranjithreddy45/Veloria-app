@@ -198,6 +198,8 @@ export async function getCallLogs(filters?: CallFiltersInput) {
               direction: true,
               createdAt: true,
               bookingId: true,
+              metadata: true,
+              content: true,
             },
           },
           contact: {

@@ -43,6 +43,7 @@ import {
   CALL_DISPOSITION_LABELS,
   CALL_DISPOSITION_COLORS,
 } from "@/lib/constants";
+import { CallInsightsDialog } from "./call-insights-dialog";
 
 interface CallLogItem {
   id: string;
@@ -57,6 +58,8 @@ interface CallLogItem {
   communication: {
     direction: string;
     bookingId: string | null;
+    content?: string | null;
+    metadata?: any;
   };
   contact: {
     id: string;
@@ -152,6 +155,7 @@ export function CallsTable({ data, total, page, limit }: CallsTableProps) {
               <TableHead className="w-[100px]">Duration</TableHead>
               <TableHead>Recording</TableHead>
               <TableHead>Agent</TableHead>
+              <TableHead>AI Insights</TableHead>
               <TableHead>Date</TableHead>
               <TableHead className="w-[60px]"></TableHead>
             </TableRow>
@@ -216,6 +220,16 @@ export function CallsTable({ data, total, page, limit }: CallsTableProps) {
                   </TableCell>
                   <TableCell className="text-sm">
                     {log.agent.name || log.agent.email}
+                  </TableCell>
+                  <TableCell>
+                    {log.communication.metadata?.isAiTranscription ? (
+                      <CallInsightsDialog 
+                        content={log.communication.content} 
+                        metadata={log.communication.metadata} 
+                      />
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {format(new Date(log.createdAt), "MMM d, h:mm a")}
