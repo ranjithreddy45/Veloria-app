@@ -102,7 +102,7 @@ export async function wefluxSendTemplate(
         phone: toPhone(to),
         template: { name: templateName },
         language: "en",
-        variables: positional,
+        vars: positional,
       }),
     });
     const data = await res.json().catch(() => ({}));

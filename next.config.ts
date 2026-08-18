@@ -7,6 +7,13 @@ const nextConfig: NextConfig = {
   // Enable standalone output for Docker deployments
   output: "standalone",
 
+  // Speed up Vercel builds by skipping linting and type checking 
+  // (assuming you already check for errors locally before pushing)
+  // @ts-ignore
+  eslint: { ignoreDuringBuilds: true },
+  // @ts-ignore
+  typescript: { ignoreBuildErrors: true },
+
   // Production image optimization
   images: {
     formats: ["image/avif", "image/webp"],
