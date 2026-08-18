@@ -39,20 +39,30 @@ export async function GET(req: Request) {
     const runoUsers = usersJson.data || [];
     
     // Build a map of Runo userId -> Veloria User ID
-    // Match by phone or email
+    // Match by phone, email, or fallback to name
     const veloriaUsers = await prisma.user.findMany({
       where: { isActive: true },
-      select: { id: true, phone: true, email: true },
+      select: { id: true, phone: true, email: true, name: true },
     });
 
     const runoUserToVeloriaUserId = new Map<string, string>();
     for (const ru of runoUsers) {
       const runoPhone = ru.phoneNumber?.replace(/\D/g, "").slice(-10);
       const runoEmail = ru.email?.toLowerCase();
+      const runoName = ru.name?.trim().toLowerCase();
       
       const vUser = veloriaUsers.find((vu) => {
         const vuPhone = vu.phone?.replace(/\D/g, "").slice(-10);
-        return (vuPhone && vuPhone === runoPhone) || (vu.email.toLowerCase() === runoEmail);
+        // 1. Try matching by Phone
+        if (vuPhone && vuPhone === runoPhone) return true;
+        // 2. Try matching by Email
+        if (vu.email && vu.email.toLowerCase() === runoEmail) return true;
+        // 3. Fallback to matching by Name (e.g. "Divya" matching "Divya G")
+        const vuName = vu.name?.trim().toLowerCase();
+        if (runoName && vuName && (vuName === runoName || vuName.startsWith(runoName) || runoName.startsWith(vuName))) {
+          return true;
+        }
+        return false;
       });
       
       if (vUser) {
