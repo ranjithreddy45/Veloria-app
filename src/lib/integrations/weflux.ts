@@ -100,7 +100,7 @@ export async function wefluxSendTemplate(
       headers: authHeaders(creds.token),
       body: JSON.stringify({
         phone: toPhone(to),
-        template: templateName,
+        template: { name: templateName },
         language: "en",
         variables: positional,
       }),
