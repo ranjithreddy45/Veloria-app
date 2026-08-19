@@ -980,6 +980,20 @@ export async function updateLeadStatus(id: string, status: LeadStatus) {
       return { success: false as const, error: "Assign an owner to this lead before marking it Won." };
     }
 
+    // A booking is proof the lead was real, so a lead marked junk/duplicate can't
+    // be Won without first re-reviewing its quality (marketing spec).
+    if (
+      status === "WON" &&
+      existing.leadQuality &&
+      existing.leadQuality !== "QUALIFIED" &&
+      existing.leadQuality !== "UNREVIEWED"
+    ) {
+      return {
+        success: false as const,
+        error: "This lead is marked junk/duplicate. Change its Lead quality before marking it Won.",
+      };
+    }
+
     // Recalculate score with new status
     const score = calculateLeadScore({
       estimatedValue: existing.estimatedValue
@@ -997,7 +1011,7 @@ export async function updateLeadStatus(id: string, status: LeadStatus) {
     // open/working status and still has no follow-up scheduled, default one to
     // the next business day so it never silently drops out (S-11).
     const statusData: { status: LeadStatus; score: number; followUpDate?: Date } = { status, score };
-    const OPEN_FOR_FOLLOWUP: LeadStatus[] = ["CONTACTED", "QUALIFIED", "PROPOSAL_SENT", "NEGOTIATION"];
+    const OPEN_FOR_FOLLOWUP: LeadStatus[] = ["NOT_CONNECTED", "CONTACTED", "QUALIFIED", "PROPOSAL_SENT", "NEGOTIATION"];
     if (OPEN_FOR_FOLLOWUP.includes(status) && !existing.followUpDate) {
       statusData.followUpDate = nextBusinessDay();
     }

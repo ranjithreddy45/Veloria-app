@@ -56,6 +56,32 @@ enum LeadStatus {
   LOST
 }
 
+// Google Ads lead-quality review — what a human decided about the lead. Only
+// QUALIFIED (and WON, implicitly) is ever uploaded to Google; JUNK_*/DUPLICATE
+// are deliberately never uploaded.
+enum LeadQuality {
+  UNREVIEWED
+  QUALIFIED
+  JUNK_ACCIDENTAL // filled the form by mistake, no real intent
+  JUNK_WRONG_SERVICE // wanted catering/decor/event mgmt — not a venue
+  JUNK_OUT_OF_AREA // outside the catchment for that venue
+  JUNK_PRICE_ONLY // budget far below our entry package
+  JUNK_UNREACHABLE // wrong or dead number after 3 attempts
+  DUPLICATE
+}
+
+// Offline-conversion upload lifecycle for a lead's Qualified-Lead / Booking
+// conversion rows.
+enum UploadStatus {
+  PENDING // not yet reviewed / not yet eligible
+  READY // eligible for the next upload
+  UPLOADED
+  FAILED
+  SKIPPED // junk/duplicate — deliberately not uploaded
+  SKIPPED_NO_CLICK_ID // no gclid/gbraid/wbraid — organic, walk-in, referral
+  SKIPPED_EXPIRED // click older than 90 days — can no longer be uploaded
+}
+
 enum LeadSource {
   WEBSITE
   REFERRAL
@@ -636,6 +662,20 @@ model Lead {
   intentAt          DateTime?
   coolingEnrolledAt DateTime?
 
+  // ---- Google Ads lead-quality & offline-conversion loop (marketing spec) ----
+  // Ad attribution (gclid/gbraid/wbraid/utm/campaign) lives on the related
+  // LeadAttribution row; these are the human review + booking outcome + the
+  // upload state for the two Google offline conversions.
+  leadQuality         LeadQuality  @default(UNREVIEWED)
+  qualityReason       String?
+  qualifiedAt         DateTime?
+  bookingValue        Decimal?     @db.Decimal(12, 2)
+  bookedAt            DateTime?
+  qlUploadStatus      UploadStatus @default(PENDING) // Qualified Lead conversion
+  qlUploadedAt        DateTime?
+  bookingUploadStatus UploadStatus @default(PENDING) // Booking Confirmed conversion
+  bookingUploadedAt   DateTime?
+
   @@index([status])
   @@index([assignedToId])
   @@index([source])
@@ -646,6 +686,9 @@ model Lead {
   // "Which open leads have gone quiet?" — the follow-up worklist's sort.
   // NULLs (never touched) are the most urgent rows, not the least.
   @@index([status, lastTouchedAt])
+  @@index([leadQuality, qualifiedAt])
+  @@index([qlUploadStatus])
+  @@index([bookingUploadStatus])
 }
 
 // ============================================================
@@ -7530,6 +7573,15 @@ model LeadAttribution {
   wbraid        String? // Google click id for iOS web→web (privacy-safe)
   fbclid        String? // Facebook click id
   clientId      String? // GA/analytics client id
+  // Google Ads ValueTrack ids (from the webhook's campaign_id/adgroup_id/
+  // creative_id and the site's {campaignid}/{adgroupid}/{keyword}/… params).
+  gadsCampaignId String?
+  gadsAdgroupId  String?
+  gadsCreativeId String?
+  gadsKeyword    String?
+  gadsMatchType  String?
+  gadsNetwork    String?
+  gadsDevice     String?
   // Closed-loop denormalised outcome (refreshed by cron from Lead→Booking)
   bookedRevenue Decimal? @db.Decimal(12, 2)
   createdAt     DateTime @default(now())
@@ -7543,6 +7595,8 @@ model LeadAttribution {
   @@index([utmCampaign])
   @@index([source])
   @@index([campaignId])
+  @@index([gadsCampaignId])
+  @@index([gclid])
 }
 
 // ------------------------------------------------------------

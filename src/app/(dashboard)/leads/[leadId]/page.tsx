@@ -41,6 +41,7 @@ import {
 import { cn } from "@/lib/utils";
 import { MacroButton } from "@/components/shared/macro-button";
 import { LeadStatusSelect } from "./_components/lead-status-select";
+import { LeadQualitySelect } from "./_components/lead-quality-select";
 import { LeadDeleteButton } from "./_components/lead-delete-button";
 import { LeadQuickActions } from "./_components/lead-quick-actions";
 import { LeadInlineFields } from "./_components/lead-inline-fields";
@@ -204,6 +205,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
             </Link>
           </Button>
           <LeadStatusSelect leadId={lead.id} currentStatus={lead.status} />
+          <LeadQualitySelect leadId={lead.id} currentQuality={lead.leadQuality} />
           <LeadDeleteButton leadId={lead.id} leadTitle={lead.title} />
         </div>
       </PageHeader>
