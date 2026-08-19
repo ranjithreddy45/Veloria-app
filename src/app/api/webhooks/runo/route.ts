@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { CallDisposition, CommunicationDirection, CommunicationType } from "@prisma/client";
 import { RunoCallTranscriptionPayload } from "@/types/runo";
 
+export const maxDuration = 60; // Allow up to 60 seconds to prevent timeouts
+
 export async function POST(request: NextRequest) {
   try {
     const payload = await request.json();
