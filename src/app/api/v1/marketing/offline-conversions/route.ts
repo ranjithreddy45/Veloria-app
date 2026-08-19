@@ -28,16 +28,18 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
+  const sp = request.nextUrl.searchParams;
   if (
     !(await isAuthorizedOfflineApi(
       request.headers.get("authorization"),
-      request.headers.get("x-api-key")
+      // Header preferred; ?key= supported so Google Ads scheduled HTTPS uploads
+      // (which can't set a custom auth header) can pull the CSV directly.
+      request.headers.get("x-api-key") || sp.get("key")
     ))
   ) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const sp = request.nextUrl.searchParams;
   const conversion = sp.get("conversion");
   if (conversion !== "qualified_lead" && conversion !== "booking") {
     return NextResponse.json(
