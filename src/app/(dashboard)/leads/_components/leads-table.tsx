@@ -105,7 +105,44 @@ export interface LeadWithContact {
     name: string | null;
     email: string;
   } | null;
+  leadQuality?: string;
+  attribution?: {
+    gadsCampaignId: string | null;
+    utmCampaign: string | null;
+    campaign: string | null;
+    gclid: string | null;
+    gbraid: string | null;
+    wbraid: string | null;
+    campaignRef: { name: string } | null;
+  } | null;
 }
+
+// Campaign label + whether any Google click id was captured — used by the
+// list's Campaign / Click-ID columns and their facets (Change 5).
+function campaignLabel(l: LeadWithContact): string {
+  const a = l.attribution;
+  return (
+    a?.campaignRef?.name ||
+    (a?.gadsCampaignId ? `Campaign ${a.gadsCampaignId}` : "") ||
+    a?.utmCampaign ||
+    a?.campaign ||
+    "—"
+  );
+}
+function hasClickId(l: LeadWithContact): boolean {
+  const a = l.attribution;
+  return !!(a?.gclid || a?.gbraid || a?.wbraid);
+}
+const QUALITY_LABEL: Record<string, string> = {
+  UNREVIEWED: "Unreviewed",
+  QUALIFIED: "Qualified",
+  JUNK_ACCIDENTAL: "Junk · mistake",
+  JUNK_WRONG_SERVICE: "Junk · wrong service",
+  JUNK_OUT_OF_AREA: "Junk · out of area",
+  JUNK_PRICE_ONLY: "Junk · budget",
+  JUNK_UNREACHABLE: "Junk · unreachable",
+  DUPLICATE: "Duplicate",
+};
 
 // ============================================================
 // Currency formatter — Indian lakh/crore
@@ -646,6 +683,49 @@ const columns: ColumnDef<LeadWithContact>[] = [
     cell: ({ row }) => <InlineStatusCell lead={row.original} />,
   },
   {
+    id: "leadQuality",
+    header: "Quality",
+    accessorFn: (row) => QUALITY_LABEL[row.leadQuality ?? "UNREVIEWED"] ?? "Unreviewed",
+    cell: ({ row }) => {
+      const q = row.original.leadQuality ?? "UNREVIEWED";
+      const label = QUALITY_LABEL[q] ?? q;
+      const tone =
+        q === "QUALIFIED"
+          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400"
+          : q === "UNREVIEWED"
+            ? "bg-muted text-muted-foreground"
+            : "bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400";
+      return (
+        <span className={cn("inline-block rounded px-1.5 py-0.5 text-detail font-medium", tone)}>
+          {label}
+        </span>
+      );
+    },
+  },
+  {
+    id: "campaign",
+    header: "Campaign",
+    accessorFn: (row) => campaignLabel(row),
+    cell: ({ row }) => (
+      <span className="block max-w-[160px] truncate text-detail text-foreground/85" title={campaignLabel(row.original)}>
+        {campaignLabel(row.original)}
+      </span>
+    ),
+  },
+  {
+    id: "clickId",
+    header: "Click ID",
+    accessorFn: (row) => (hasClickId(row) ? "Yes" : "No"),
+    cell: ({ row }) =>
+      hasClickId(row.original) ? (
+        <span className="inline-block rounded bg-emerald-50 px-1.5 py-0.5 text-detail font-medium text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">
+          Yes
+        </span>
+      ) : (
+        <span className="text-detail text-muted-foreground/60">No</span>
+      ),
+  },
+  {
     id: "assignedTo",
     accessorFn: (row) => row.assignedTo?.name ?? "",
     header: "Owner",
@@ -706,6 +786,23 @@ const leadFacets: FacetDef<LeadWithContact>[] = [
     key: "owner",
     label: "Owner",
     get: (l) => l.assignedTo?.name ?? "Unassigned",
+  },
+  {
+    key: "quality",
+    label: "Quality",
+    get: (l) => QUALITY_LABEL[l.leadQuality ?? "UNREVIEWED"] ?? "Unreviewed",
+    max: 8,
+  },
+  {
+    key: "campaign",
+    label: "Campaign",
+    get: (l) => campaignLabel(l),
+    max: 12,
+  },
+  {
+    key: "clickId",
+    label: "Click ID",
+    get: (l) => (hasClickId(l) ? "Captured" : "None"),
   },
 ];
 

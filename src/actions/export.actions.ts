@@ -259,6 +259,17 @@ export async function exportLeads(filters?: LeadListFilters) {
         contact: { select: { firstName: true, lastName: true, phone: true } },
         assignedTo: { select: { name: true } },
         preferredVenue: { select: { name: true } },
+        attribution: {
+          select: {
+            gadsCampaignId: true,
+            utmCampaign: true,
+            campaign: true,
+            gclid: true,
+            gbraid: true,
+            wbraid: true,
+            campaignRef: { select: { name: true } },
+          },
+        },
       },
     });
 
@@ -325,6 +336,9 @@ export async function exportLeads(filters?: LeadListFilters) {
       "Hall / Property",
       "Status",
       "Source",
+      "Lead Quality",
+      "Campaign",
+      "Click ID",
       "Event Type",
       // The date the customer is asking about. It was simply never in the file:
       // "Event Type" was, "Event Date" was not, so every export lost the one
@@ -360,6 +374,13 @@ export async function exportLeads(filters?: LeadListFilters) {
         l.preferredVenue?.name || "",
         l.status,
         l.source,
+        String(l.leadQuality || "UNREVIEWED").replace(/_/g, " "),
+        l.attribution?.campaignRef?.name ||
+          (l.attribution?.gadsCampaignId ? `Campaign ${l.attribution.gadsCampaignId}` : "") ||
+          l.attribution?.utmCampaign ||
+          l.attribution?.campaign ||
+          "",
+        l.attribution?.gclid || l.attribution?.gbraid || l.attribution?.wbraid ? "Yes" : "No",
         l.eventType || "",
         // ISO yyyy-mm-dd: unambiguous in a spreadsheet, and sorts correctly as
         // text. A localised "12/08/2026" is read as December by half of Excel.

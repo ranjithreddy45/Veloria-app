@@ -152,6 +152,18 @@ export async function getLeads(params?: LeadListFilters & {
           assignedTo: {
             select: { id: true, name: true, email: true },
           },
+          // Ad attribution for the list's Campaign + Click-ID-present columns.
+          attribution: {
+            select: {
+              gadsCampaignId: true,
+              utmCampaign: true,
+              campaign: true,
+              gclid: true,
+              gbraid: true,
+              wbraid: true,
+              campaignRef: { select: { name: true } },
+            },
+          },
         },
       }),
       prisma.lead.count({ where }),
