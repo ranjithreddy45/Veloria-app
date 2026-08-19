@@ -31,6 +31,14 @@ export interface AttributionInput {
   wbraid?: string;
   fbclid?: string;
   clientId?: string;
+  // Google Ads ValueTrack ids (from the webhook + site ValueTrack params).
+  gadsCampaignId?: string;
+  gadsAdgroupId?: string;
+  gadsCreativeId?: string;
+  gadsKeyword?: string;
+  gadsMatchType?: string;
+  gadsNetwork?: string;
+  gadsDevice?: string;
 }
 
 // Trim + collapse empty strings to undefined so we never persist "".
@@ -102,6 +110,15 @@ export async function parseAttributionFromRequest(
       wbraid: fromBody("wbraid") ?? qp("wbraid"),
       fbclid: fromBody("fbclid") ?? qp("fbclid"),
       clientId: fromBody("clientId", "client_id", "_ga") ?? qp("_ga") ?? qp("client_id"),
+      // Google Ads ValueTrack — accept both the webhook shapes (campaign_id) and
+      // the site's ValueTrack params (campaignid / {campaignid}).
+      gadsCampaignId: fromBody("gadsCampaignId", "campaign_id", "campaignid") ?? qp("campaignid"),
+      gadsAdgroupId: fromBody("gadsAdgroupId", "adgroup_id", "adgroupid") ?? qp("adgroupid"),
+      gadsCreativeId: fromBody("gadsCreativeId", "creative_id", "creative") ?? qp("creative"),
+      gadsKeyword: fromBody("gadsKeyword", "keyword") ?? qp("keyword"),
+      gadsMatchType: fromBody("gadsMatchType", "matchtype") ?? qp("matchtype"),
+      gadsNetwork: fromBody("gadsNetwork", "network") ?? qp("network"),
+      gadsDevice: fromBody("gadsDevice", "device") ?? qp("device"),
     };
 
     // Validate + strip through the zod schema (drops over-length / non-strings).
@@ -234,6 +251,13 @@ export async function attachAttributionToLead(
       wbraid: data.wbraid ?? null,
       fbclid: data.fbclid ?? null,
       clientId: data.clientId ?? null,
+      gadsCampaignId: data.gadsCampaignId ?? null,
+      gadsAdgroupId: data.gadsAdgroupId ?? null,
+      gadsCreativeId: data.gadsCreativeId ?? null,
+      gadsKeyword: data.gadsKeyword ?? null,
+      gadsMatchType: data.gadsMatchType ?? null,
+      gadsNetwork: data.gadsNetwork ?? null,
+      gadsDevice: data.gadsDevice ?? null,
       campaignId,
     };
 
@@ -245,6 +269,10 @@ export async function attachAttributionToLead(
       update: {
         // Re-link campaign in case the MarketingCampaign was created later.
         campaignId,
+        // Backfill Google ids if the first touch didn't carry them.
+        gadsCampaignId: fields.gadsCampaignId ?? undefined,
+        gadsAdgroupId: fields.gadsAdgroupId ?? undefined,
+        gadsCreativeId: fields.gadsCreativeId ?? undefined,
       },
     });
 

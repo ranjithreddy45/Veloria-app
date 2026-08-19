@@ -40,6 +40,13 @@ export const attributionInputSchema = z.object({
   wbraid: optLabel,
   fbclid: optLabel,
   clientId: optLabel,
+  gadsCampaignId: optLabel,
+  gadsAdgroupId: optLabel,
+  gadsCreativeId: optLabel,
+  gadsKeyword: optLabel,
+  gadsMatchType: optLabel,
+  gadsNetwork: optLabel,
+  gadsDevice: optLabel,
 });
 
 export type AttributionInput = z.infer<typeof attributionInputSchema>;

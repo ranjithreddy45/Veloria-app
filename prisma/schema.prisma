@@ -7599,6 +7599,18 @@ model LeadAttribution {
   @@index([gclid])
 }
 
+// Google Ads offline-conversion config (single row, id = "singleton").
+// valueMap overrides the per-event-type ₹/qualified-lead defaults; offlineApiKey
+// is the Bearer key the offline-conversion read API authenticates against — both
+// tunable in Settings without a deploy.
+model GadsConfig {
+  id            String   @id @default("singleton")
+  valueMap      Json?
+  offlineApiKey String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
 // ------------------------------------------------------------
 // (4) REPUTATION FLYWHEEL — auto Google-review request engine.
 // Reuses Review + WhatsApp send + cron. ReviewRequest is the enqueue/lifecycle
