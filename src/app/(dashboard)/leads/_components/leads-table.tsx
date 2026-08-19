@@ -319,11 +319,12 @@ function QuickActions({ lead }: { lead: LeadWithContact }) {
 // Status segment tabs
 // ============================================================
 
-type StatusFilter = "ALL" | "NEW" | "CONTACTED" | "QUALIFIED" | "PROPOSAL_SENT" | "NEGOTIATION" | "WON" | "LOST";
+type StatusFilter = "ALL" | "NEW" | "NOT_CONNECTED" | "CONTACTED" | "QUALIFIED" | "PROPOSAL_SENT" | "NEGOTIATION" | "WON" | "LOST";
 
 const TABS: Array<{ id: StatusFilter; label: string }> = [
   { id: "ALL", label: "All" },
   { id: "NEW", label: "New" },
+  { id: "NOT_CONNECTED", label: "Not Connected" },
   { id: "CONTACTED", label: "Contacted" },
   { id: "QUALIFIED", label: "Qualified" },
   { id: "PROPOSAL_SENT", label: "Proposal" },
@@ -401,6 +402,7 @@ function StatusTabs({
 
 const ROW_STATUSES: Array<{ value: string; label: string }> = [
   { value: "NEW", label: "New" },
+  { value: "NOT_CONNECTED", label: "Not Connected" },
   { value: "CONTACTED", label: "Contacted" },
   { value: "QUALIFIED", label: "Qualified" },
   { value: "PROPOSAL_SENT", label: "Proposal Sent" },
@@ -419,7 +421,7 @@ function InlineStatusCell({ lead }: { lead: LeadWithContact }) {
     try {
       const result = await updateLeadStatus(
         lead.id,
-        next as "NEW" | "CONTACTED" | "QUALIFIED" | "PROPOSAL_SENT" | "NEGOTIATION" | "WON" | "LOST"
+        next as "NEW" | "NOT_CONNECTED" | "CONTACTED" | "QUALIFIED" | "PROPOSAL_SENT" | "NEGOTIATION" | "WON" | "LOST"
       );
       if (result.success) {
         toast.success(`Status updated to ${next.replace(/_/g, " ").toLowerCase()}`);

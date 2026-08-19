@@ -19,7 +19,7 @@ import { resolveBdRange, istDateStr } from "@/lib/acq/analytics-range";
 import { pushLeadToWeflux } from "@/lib/integrations/weflux-crm";
 import { after } from "next/server";
 // LeadStatus enum values matching Prisma schema
-type LeadStatus = "NEW" | "CONTACTED" | "QUALIFIED" | "PROPOSAL_SENT" | "NEGOTIATION" | "WON" | "LOST";
+type LeadStatus = "NEW" | "NOT_CONNECTED" | "CONTACTED" | "QUALIFIED" | "PROPOSAL_SENT" | "NEGOTIATION" | "WON" | "LOST";
 
 
 // Roles a lead can be assigned to (mirrors the new/edit form's user list).

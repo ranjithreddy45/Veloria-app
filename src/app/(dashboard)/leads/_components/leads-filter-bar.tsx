@@ -64,6 +64,7 @@ const NO_CHANNEL = "NONE";
 const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
   { value: ANY_STATUS, label: "All statuses" },
   { value: "NEW", label: "New" },
+  { value: "NOT_CONNECTED", label: "Not Connected" },
   { value: "CONTACTED", label: "Contacted" },
   { value: "QUALIFIED", label: "Qualified" },
   { value: "PROPOSAL_SENT", label: "Proposal Sent" },

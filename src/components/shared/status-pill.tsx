@@ -104,6 +104,7 @@ export function StatusPill({
 
 const LEAD_STATUS_HUE: Record<string, Hue> = {
   NEW: "slate",
+  NOT_CONNECTED: "orange",
   CONTACTED: "blue",
   QUALIFIED: "cyan",
   PROPOSAL_SENT: "indigo",
@@ -114,6 +115,7 @@ const LEAD_STATUS_HUE: Record<string, Hue> = {
 
 const LEAD_STATUS_LABEL: Record<string, string> = {
   NEW: "New",
+  NOT_CONNECTED: "Not Connected",
   CONTACTED: "Contacted",
   QUALIFIED: "Qualified",
   PROPOSAL_SENT: "Proposal Sent",

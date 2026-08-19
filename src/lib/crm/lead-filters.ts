@@ -24,7 +24,7 @@ import { resolveBdRange, istDateStr } from "@/lib/acq/analytics-range";
 // Allowed filter values — an invalid enum string passed straight to Prisma throws
 // a generic error, so we validate against these sets and ignore unknown values.
 const LEAD_STATUS_VALUES = new Set<string>([
-  "NEW", "CONTACTED", "QUALIFIED", "PROPOSAL_SENT", "NEGOTIATION", "WON", "LOST",
+  "NEW", "NOT_CONNECTED", "CONTACTED", "QUALIFIED", "PROPOSAL_SENT", "NEGOTIATION", "WON", "LOST",
 ]);
 const LEAD_SOURCE_VALUES = new Set<string>([
   "WEBSITE", "REFERRAL", "SOCIAL_MEDIA", "WALK_IN", "PHONE_INQUIRY", "EMAIL",
@@ -178,7 +178,7 @@ export function buildLeadListWhere(
   // "NONE" selects contacts with no channel recorded. Those are real and must
   // stay findable: defaulting them into Direct would invent attribution in a
   // report someone spends money against.
-  const OPEN_STATUSES = ["NEW", "CONTACTED", "QUALIFIED", "PROPOSAL_SENT", "NEGOTIATION"];
+  const OPEN_STATUSES = ["NEW", "NOT_CONNECTED", "CONTACTED", "QUALIFIED", "PROPOSAL_SENT", "NEGOTIATION"];
   if (filters?.due === "overdue") {
     where.status = { in: OPEN_STATUSES };
     where.followUpDate = { not: null, lt: new Date() };

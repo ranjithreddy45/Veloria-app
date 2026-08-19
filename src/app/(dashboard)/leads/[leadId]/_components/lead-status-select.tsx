@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 // LeadStatus type matching Prisma schema
-type LeadStatus = "NEW" | "CONTACTED" | "QUALIFIED" | "PROPOSAL_SENT" | "NEGOTIATION" | "WON" | "LOST";
+type LeadStatus = "NEW" | "NOT_CONNECTED" | "CONTACTED" | "QUALIFIED" | "PROPOSAL_SENT" | "NEGOTIATION" | "WON" | "LOST";
 
 import { updateLeadStatus } from "@/actions/lead.actions";
 import {
@@ -22,6 +22,7 @@ import { LEAD_STATUS_COLORS } from "@/lib/constants";
 
 const LEAD_STATUSES: { value: LeadStatus; label: string }[] = [
   { value: "NEW", label: "New" },
+  { value: "NOT_CONNECTED", label: "Not Connected" },
   { value: "CONTACTED", label: "Contacted" },
   { value: "QUALIFIED", label: "Qualified" },
   { value: "PROPOSAL_SENT", label: "Proposal Sent" },

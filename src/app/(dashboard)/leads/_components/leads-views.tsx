@@ -24,6 +24,7 @@ type ViewMode = "list" | "board";
 // early = blue/cyan, mid = violet/amber/pink, won = emerald, lost = rose.
 const STAGE_ORDER: Array<{ status: string; label: string; hue: ColumnHue }> = [
   { status: "NEW", label: "New", hue: "blue" },
+  { status: "NOT_CONNECTED", label: "Not Connected", hue: "orange" },
   { status: "CONTACTED", label: "Contacted", hue: "cyan" },
   { status: "QUALIFIED", label: "Qualified", hue: "violet" },
   { status: "PROPOSAL_SENT", label: "Proposal Sent", hue: "amber" },

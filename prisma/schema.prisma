@@ -47,6 +47,7 @@ enum ContactType {
 
 enum LeadStatus {
   NEW
+  NOT_CONNECTED
   CONTACTED
   QUALIFIED
   PROPOSAL_SENT
