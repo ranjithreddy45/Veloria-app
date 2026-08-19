@@ -1892,6 +1892,182 @@ components:
                   createdAt:
                     type: "number"
                     description: "Interaction created at epoch (in seconds since 1970)"
+                  customerEmail:
+                    type: "string"
+                    nullable: true
+                  userEmail:
+                    type: "string"
+                    nullable: true
+                  userPhone:
+                    type: "string"
+                    nullable: true
+                  processId:
+                    type: "string"
+                    nullable: true
+                  transcription:
+                    type: "array"
+                    nullable: true
+                    items:
+                      type: "object"
+                      properties:
+                        speaker:
+                          type: "string"
+                        utterance:
+                          type: "string"
+                  chapters:
+                    type: "string"
+                    nullable: true
+                  summary:
+                    type: "string"
+                    nullable: true
+                  keyQuestions:
+                    type: "string"
+                    nullable: true
+                  callNotes:
+                    type: "string"
+                    nullable: true
+                  issuesDiscussed:
+                    type: "string"
+                    nullable: true
+                  actionItems:
+                    type: "array"
+                    nullable: true
+                    items:
+                      type: "string"
+                  fillerWords:
+                    type: "string"
+                    nullable: true
+                  agentIntroduced:
+                    type: "string"
+                    nullable: true
+                  agentClosure:
+                    type: "string"
+                    nullable: true
+                  issueResolved:
+                    type: "string"
+                    nullable: true
+                  feedbackRequested:
+                    type: "string"
+                    nullable: true
+                  verification:
+                    type: "string"
+                    nullable: true
+                  objectionHandling:
+                    type: "string"
+                    nullable: true
+                  acknowledgementProactiveness:
+                    type: "string"
+                    nullable: true
+                  empathy:
+                    type: "string"
+                    nullable: true
+                  effectiveListening:
+                    type: "string"
+                    nullable: true
+                  slangJargons:
+                    type: "string"
+                    nullable: true
+                  unprofessionalSpeech:
+                    type: "string"
+                    nullable: true
+                  abruptCallDisconnection:
+                    type: "string"
+                    nullable: true
+                  rudeness:
+                    type: "string"
+                    nullable: true
+                  relevantInformation:
+                    type: "string"
+                    nullable: true
+                  probing:
+                    type: "string"
+                    nullable: true
+                  customerFcr:
+                    type: "string"
+                    nullable: true
+                  appRating:
+                    type: "string"
+                    nullable: true
+                  agentSpeakingTime:
+                    type: "number"
+                    nullable: true
+                  customerSpeakingTime:
+                    type: "number"
+                    nullable: true
+                  holdTime:
+                    type: "number"
+                    nullable: true
+                  deadAirTime:
+                    type: "number"
+                    nullable: true
+                  noiseTime:
+                    type: "number"
+                    nullable: true
+                  agentLoudness:
+                    type: "string"
+                    nullable: true
+                  customerLoudness:
+                    type: "string"
+                    nullable: true
+                  agentSentiment:
+                    type: "string"
+                    nullable: true
+                  customerSentiment:
+                    type: "string"
+                    nullable: true
+                  score:
+                    type: "number"
+                    nullable: true
+                  callCategories:
+                    type: "array"
+                    nullable: true
+                    items:
+                      type: "string"
+                  Confirm OP number:
+                    type: "string"
+                    nullable: true
+                  odered date:
+                    type: "string"
+                    nullable: true
+                  customer unsatisfied:
+                    type: "string"
+                    nullable: true
+                  complaint number:
+                    type: "string"
+                    nullable: true
+                  broken package:
+                    type: "string"
+                    nullable: true
+                  App Rating:
+                    type: "string"
+                    nullable: true
+                  leadSummary:
+                    type: "string"
+                    nullable: true
+                  leadHealth:
+                    type: "string"
+                    nullable: true
+                  leadScore:
+                    type: "number"
+                    nullable: true
+                  leadSentiment:
+                    type: "string"
+                    nullable: true
+                  conversionPrediction:
+                    type: "string"
+                    nullable: true
+                  confidenceScore:
+                    type: "number"
+                    nullable: true
+                  actionableInsight:
+                    type: "string"
+                    nullable: true
+                  sourceCallCount:
+                    type: "number"
+                    nullable: true
+                  leadLastUpdatedAt:
+                    type: "number"
+                    nullable: true
       description: "Schema for crm interactions"
       example:
         statusCode: 0

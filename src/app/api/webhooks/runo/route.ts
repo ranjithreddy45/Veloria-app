@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { CallDisposition, CommunicationDirection, CommunicationType } from "@prisma/client";
+import { RunoCallTranscriptionPayload } from "@/types/runo";
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
 // --------------------------------------------------------------------------------------
 // HANDLER 1: AI Transcription Payload
 // --------------------------------------------------------------------------------------
-async function handleAiTranscriptionPayload(payload: any) {
+async function handleAiTranscriptionPayload(payload: RunoCallTranscriptionPayload | any) {
   const {
     callId,
     phoneNumber,
@@ -42,12 +43,23 @@ async function handleAiTranscriptionPayload(payload: any) {
     key_questions,
     keyQuestions,
     key_issues_discussed,
-    issuesDiscussed
+    issuesDiscussed,
+    agentSpeakingTime,
+    customerSpeakingTime,
+    holdTime,
+    deadAirTime,
+    noiseTime
   } = payload;
 
   const actualTranscription = Transcription || transcription;
   const actualKeyQuestions = key_questions || keyQuestions;
   const actualIssuesDiscussed = key_issues_discussed || issuesDiscussed;
+
+  const totalDuration = (Number(agentSpeakingTime) || 0) + 
+                        (Number(customerSpeakingTime) || 0) + 
+                        (Number(holdTime) || 0) + 
+                        (Number(deadAirTime) || 0) + 
+                        (Number(noiseTime) || 0);
 
   if (!phoneNumber) {
     return NextResponse.json({ error: "Missing phoneNumber in AI payload" }, { status: 400 });
@@ -131,7 +143,7 @@ async function handleAiTranscriptionPayload(payload: any) {
       callLog: {
         create: {
           disposition: CallDisposition.COMPLETED,
-          durationSeconds: 0, // Fallback if missing
+          durationSeconds: totalDuration || 0, // Fallback if missing
           externalCallId: callId || `ai_${logPhone}_${Date.now()}`,
           agentId: agentId,
           contactId: contact.id,
