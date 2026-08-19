@@ -60,6 +60,7 @@ const JOBS = [
   "handover-sla", // nag booking owners when a Sales→Ops handover is past its 24h SLA
   "acq-lostat-backfill", // stamp lostAt on deals lost before the column existed
   "enquiry-source-backfill", // fill blank Contact.enquirySource from the contact's first lead
+  "gads-expire-clicks", // retire offline-conversion rows whose click is >90 days old
 ] as const;
 
 export async function GET(request: Request) {

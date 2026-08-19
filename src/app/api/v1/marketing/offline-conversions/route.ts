@@ -128,9 +128,43 @@ export async function GET(request: NextRequest) {
       .catch(() => {});
   }
 
+  // CSV variant — so Google Ads "Scheduled uploads" (or any tool) can pull a
+  // ready-to-import file directly, no external uploader. NOTE: match the column
+  // order to your Google Ads upload template if it rejects rows.
+  if (sp.get("format") === "csv") {
+    const esc = (v: unknown) => {
+      const s = v == null ? "" : String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const header =
+      "Google Click ID,GBRAID,WBRAID,Conversion Name,Conversion Time,Conversion Value,Conversion Currency,Order ID";
+    const lines = conversions.map((c) =>
+      [
+        c.gclid,
+        c.gbraid,
+        c.wbraid,
+        c.conversion_action,
+        c.conversion_date_time,
+        c.conversion_value,
+        c.currency_code,
+        c.order_id,
+      ]
+        .map(esc)
+        .join(",")
+    );
+    return new NextResponse([header, ...lines].join("\n"), {
+      status: 200,
+      headers: {
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": `attachment; filename="offline-conversions-${conversion}.csv"`,
+      },
+    });
+  }
+
   return NextResponse.json({
     timezone: "Asia/Calcutta",
     count: conversions.length,
     conversions,
   });
 }
+
