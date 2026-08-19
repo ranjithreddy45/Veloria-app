@@ -48,6 +48,19 @@ import {
 // DataTable Props
 // ============================================================
 
+/**
+ * Rows-per-page choices.
+ *
+ * Every list in this app was fixed at 10, so 24 leads meant three pages of
+ * clicking to see a book that fits on one screen. The server already sends up
+ * to 500 rows to these tables, so the larger sizes cost nothing extra — they
+ * page through data that is ALREADY in the browser.
+ *
+ * 500 is the ceiling deliberately: it matches the server-side fetch ceiling, so
+ * the selector can never promise more rows than were actually loaded.
+ */
+const PAGE_SIZE_OPTIONS = [10, 50, 100, 200, 300, 400, 500] as const;
+
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
@@ -65,6 +78,8 @@ interface DataTableProps<TData, TValue> {
    * already narrow enough (2–3 columns) that the grid reads fine as-is.
    */
   mobileCards?: boolean;
+  /** Starting rows-per-page. Stays 10 so no existing table changes behaviour. */
+  defaultPageSize?: number;
 }
 
 // ============================================================
@@ -150,6 +165,7 @@ export function DataTable<TData, TValue>({
   onSelectionChange,
   getRowId,
   mobileCards = true,
+  defaultPageSize = 10,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -180,7 +196,7 @@ export function DataTable<TData, TValue>({
     },
     initialState: {
       pagination: {
-        pageSize: 10,
+        pageSize: defaultPageSize,
       },
     },
   });
@@ -423,6 +439,34 @@ export function DataTable<TData, TValue>({
           )}
         </div>
         <div className="flex items-center gap-3">
+          {/*
+            Rows per page. Sits beside the page counter because that is where
+            someone looks the moment they realise "Page 1 of 3" is standing
+            between them and 24 records.
+
+            Changing size jumps back to the first page on purpose: keeping
+            pageIndex while the page grows can land you past the end and show an
+            empty table, which reads as data loss rather than a resize.
+          */}
+          <label className="flex items-center gap-1.5">
+            <span className="hidden sm:inline text-muted-foreground">Rows</span>
+            <select
+              aria-label="Rows per page"
+              value={table.getState().pagination.pageSize}
+              onChange={(e) => {
+                table.setPageSize(Number(e.target.value));
+                table.setPageIndex(0);
+              }}
+              className="h-7 rounded-md border border-border bg-card px-1.5 text-detail tabular-nums text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {PAGE_SIZE_OPTIONS.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </label>
+
           <div className="tabular-nums">
             Page {table.getState().pagination.pageIndex + 1} of {Math.max(table.getPageCount(), 1)}
           </div>

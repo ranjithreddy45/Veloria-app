@@ -689,6 +689,12 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["marketing:read"],
       },
       {
+        title: "Marketing attribution",
+        href: "/reports/marketing-attribution",
+        icon: "Target",
+        permissions: ["leads:read"],
+      },
+      {
         title: "Brochures",
         href: "/marketing/brochures",
         icon: "FileImage",
@@ -896,6 +902,12 @@ export const sidebarNavigation: NavItem[] = [
         title: "Integration Health",
         href: "/settings/integrations/health",
         icon: "PlugZap",
+        permissions: ["settings:read"],
+      },
+      {
+        title: "Google Ads",
+        href: "/settings/google-ads",
+        icon: "Target",
         permissions: ["settings:read"],
       },
       {
