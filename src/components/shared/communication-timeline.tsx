@@ -30,6 +30,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LogCommunicationDialog } from "@/components/shared/log-communication-dialog";
 import { humanizeWhatsAppContent } from "@/lib/whatsapp-render";
+import { CallInsightsDialog } from "@/app/(dashboard)/crm/calls/_components/call-insights-dialog";
 
 // ============================================================
 // Props
@@ -223,6 +224,16 @@ export function CommunicationTimeline({
                         <p className="mt-1 text-sm text-muted-foreground line-clamp-3 whitespace-pre-wrap">
                           {humanizeWhatsAppContent(comm.content)}
                         </p>
+
+                        {/* AI Call Insights */}
+                        {comm.metadata && (comm.metadata as any).isAiTranscription && (
+                          <div className="mt-3">
+                            <CallInsightsDialog
+                              content={comm.content}
+                              metadata={comm.metadata}
+                            />
+                          </div>
+                        )}
 
                         {/* Contact name (when viewing from booking context) */}
                         {bookingId && !contactId && (
