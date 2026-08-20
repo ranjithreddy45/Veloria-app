@@ -24,6 +24,12 @@ export const sidebarNavigation: NavItem[] = [
     permissions: ["dashboard:read"],
   },
   {
+    title: "Team Chat",
+    href: "/chat",
+    icon: "MessagesSquare",
+    permissions: ["dashboard:read"],
+  },
+  {
     title: "Playbook",
     href: "/playbook",
     icon: "Workflow",

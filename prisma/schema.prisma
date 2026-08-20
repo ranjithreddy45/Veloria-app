@@ -431,9 +431,65 @@ model User {
   leadFirstResponsesAssigned LeadFirstResponse[]        @relation("LeadFirstResponseAssignee")
   franchisePartnersOwned     FranchisePartner[]         @relation("FranchisePartnerOwner")
   signedOffOperations        EventOperation[]           @relation("OperationSignedOffBy")
+  // Internal team chat
+  chatMemberships            ChatChannelMember[]        @relation("ChatMemberships")
+  chatMessagesSent           ChatMessage[]              @relation("ChatMessagesSent")
+  chatChannelsCreated        ChatChannel[]              @relation("ChatChannelCreatedBy")
 
   @@index([email])
   @@index([role])
+}
+
+// ============================================================
+// INTERNAL TEAM CHAT — channels + direct messages between staff.
+// ============================================================
+
+enum ChatChannelType {
+  DIRECT // 1:1 between two users
+  GROUP // named channel with any number of members
+}
+
+model ChatChannel {
+  id          String          @id @default(cuid())
+  type        ChatChannelType @default(GROUP)
+  name        String? // group name; a DM derives its name from the other member
+  // Stable dedupe key for DMs: the two user ids sorted + joined. Null for groups.
+  dmKey       String?         @unique
+  createdById String?
+  createdBy   User?           @relation("ChatChannelCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt // bumped on each new message → activity sort
+
+  members  ChatChannelMember[]
+  messages ChatMessage[]
+
+  @@index([type])
+  @@index([updatedAt])
+}
+
+model ChatChannelMember {
+  id         String      @id @default(cuid())
+  channelId  String
+  channel    ChatChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User        @relation("ChatMemberships", fields: [userId], references: [id])
+  lastReadAt DateTime? // for unread badges
+  createdAt  DateTime    @default(now())
+
+  @@unique([channelId, userId])
+  @@index([userId])
+}
+
+model ChatMessage {
+  id        String      @id @default(cuid())
+  channelId String
+  channel   ChatChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User        @relation("ChatMessagesSent", fields: [senderId], references: [id])
+  body      String      @db.Text
+  createdAt DateTime    @default(now())
+
+  @@index([channelId, createdAt])
 }
 
 model Account {

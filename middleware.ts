@@ -55,6 +55,7 @@ const VENDOR_PORTAL_ROLES = ["VENDOR", "SUPER_ADMIN", "ADMIN"] as const;
 const INTERNAL_ROUTES = [
   "/dashboard",
   "/admin", // staff-only admin surfaces (e.g. /admin/draw). Public draw is /draw.
+  "/chat", // internal team chat — any logged-in staff (no per-route permission)
   "/my-work",
   "/recruitment",
   "/contacts",
