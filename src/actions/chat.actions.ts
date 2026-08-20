@@ -3,7 +3,6 @@
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { notify } from "@/lib/notify";
 
 // ============================================================
 // Internal team chat — channels + DMs between staff.
@@ -273,25 +272,9 @@ export async function sendChatMessage(channelId: string, body: string) {
     }),
   ]);
 
-  // Notify the other members (in-app bell), best-effort.
-  try {
-    const others = await prisma.chatChannelMember.findMany({
-      where: { channelId, userId: { not: me.id } },
-      select: { userId: true },
-    });
-    const preview = text.length > 80 ? `${text.slice(0, 80)}…` : text;
-    for (const o of others) {
-      notify({
-        userId: o.userId,
-        type: "SYSTEM",
-        title: `Message from ${me.name || "a teammate"}`,
-        message: preview,
-        actionUrl: `/chat?c=${channelId}`,
-      });
-    }
-  } catch {
-    // non-critical
-  }
+  // No per-message bell notification: it would create a Notification row per
+  // recipient per message (thousands fast) and spam the bell. Unread state is
+  // carried by the chat's own per-channel badges instead.
 
   revalidatePath("/chat");
   return { success: true as const, data: { id: msg.id } };

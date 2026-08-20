@@ -100,10 +100,10 @@ export function ChatClient({
   }, []);
 
   function selectChannel(id: string) {
-    setSelectedId(id);
     setShowChatOnMobile(true);
     setThread(null);
-    loadThread(id, true);
+    // The [selectedId] effect loads the thread — don't also load here (double fetch).
+    setSelectedId(id);
     // Optimistically clear the unread badge.
     setChannels((prev) => prev.map((c) => (c.id === id ? { ...c, unread: 0 } : c)));
   }
@@ -132,16 +132,27 @@ export function ChatClient({
   async function send() {
     const text = draft.trim();
     if (!text || !selectedId) return;
+    const chan = selectedId;
     setSending(true);
+    setDraft("");
+    // Optimistic: show my message immediately, then reconcile with the server.
+    const optimistic: ChatMessageDto = {
+      id: `tmp-${Date.now()}`,
+      body: text,
+      createdAt: new Date().toISOString(),
+      senderId: "__me__",
+      senderName: "You",
+      mine: true,
+    };
+    setThread((t) => (t ? { ...t, messages: [...t.messages, optimistic] } : t));
     try {
-      const res = await sendChatMessage(selectedId, text);
-      if (res.success) {
-        setDraft("");
-        await loadThread(selectedId);
-        refreshChannels();
-      } else {
+      const res = await sendChatMessage(chan, text);
+      if (!res.success) {
         toast.error(res.error);
+        setDraft(text); // restore so the message isn't lost
       }
+      await loadThread(chan);
+      refreshChannels();
     } finally {
       setSending(false);
     }
@@ -184,7 +195,11 @@ export function ChatClient({
       : (u.name || u.email).toLowerCase().includes(userSearch.toLowerCase())
   );
 
-  function ChannelRail() {
+  // Render helpers (NOT components used as <X/>): defining them as nested
+  // components and rendering <ThreadView/> gave them a new identity every
+  // render, so React remounted the whole subtree on each keystroke/poll and the
+  // composer lost focus. Calling them as functions keeps the DOM stable.
+  function renderRail() {
     return (
       <div className="flex h-full min-h-0 flex-col border-r">
         <div className="flex items-center justify-between gap-2 p-3 pb-2">
@@ -258,7 +273,7 @@ export function ChatClient({
     );
   }
 
-  function ThreadView() {
+  function renderThread() {
     if (!selectedId) {
       return (
         <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
@@ -369,14 +384,14 @@ export function ChatClient({
         <div className="h-[calc(100vh-240px)] min-h-[520px] overflow-hidden">
           <div className="hidden h-full min-h-0 md:flex">
             <div className="w-[340px] shrink-0 min-h-0 overflow-hidden">
-              <ChannelRail />
+              {renderRail()}
             </div>
             <div className="min-w-0 min-h-0 flex-1 overflow-hidden">
-              <ThreadView />
+              {renderThread()}
             </div>
           </div>
           <div className="h-full min-h-0 overflow-hidden md:hidden">
-            {showChatOnMobile && selectedId ? <ThreadView /> : <ChannelRail />}
+            {showChatOnMobile && selectedId ? renderThread() : renderRail()}
           </div>
         </div>
       </Card>
