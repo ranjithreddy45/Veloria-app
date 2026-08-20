@@ -68,7 +68,7 @@ export function RevenueReports({ range }: RevenueReportsProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20 text-zinc-500">
+      <div className="flex items-center justify-center py-20 text-muted-foreground">
         <Loader2 className="mr-2 size-5 animate-spin" /> Loading revenue data...
       </div>
     );
@@ -96,7 +96,7 @@ export function RevenueReports({ range }: RevenueReportsProps) {
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="space-y-2">
-                <p className="text-sm font-medium text-zinc-500">Total Revenue</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
                 <p className="text-2xl font-bold">{formatINR(data.totalRevenue)}</p>
               </div>
               <div className="flex size-10 items-center justify-center rounded-lg bg-emerald-100">
@@ -109,7 +109,7 @@ export function RevenueReports({ range }: RevenueReportsProps) {
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="space-y-2">
-                <p className="text-sm font-medium text-zinc-500">Avg. Booking Value</p>
+                <p className="text-sm font-medium text-muted-foreground">Avg. Booking Value</p>
                 <p className="text-2xl font-bold">{formatINR(data.averageBookingValue)}</p>
               </div>
               <div className="flex size-10 items-center justify-center rounded-lg bg-indigo-100">
@@ -122,7 +122,7 @@ export function RevenueReports({ range }: RevenueReportsProps) {
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="space-y-2">
-                <p className="text-sm font-medium text-zinc-500">Total Bookings</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Bookings</p>
                 <p className="text-2xl font-bold">{data.totalBookings}</p>
               </div>
               <div className="flex size-10 items-center justify-center rounded-lg bg-blue-100">
@@ -139,7 +139,7 @@ export function RevenueReports({ range }: RevenueReportsProps) {
         <Card className="border-zinc-200/80 shadow-sm lg:col-span-8">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Revenue Trend</CardTitle>
-            <p className="text-xs text-zinc-500">Monthly revenue over time</p>
+            <p className="text-xs text-muted-foreground">Monthly revenue over time</p>
           </CardHeader>
           <CardContent className="px-2 pb-4">
             <ChartContainer config={revenueConfig} className="h-[300px] w-full">
@@ -164,7 +164,7 @@ export function RevenueReports({ range }: RevenueReportsProps) {
         <Card className="border-zinc-200/80 shadow-sm lg:col-span-4">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Revenue by Event Type</CardTitle>
-            <p className="text-xs text-zinc-500">Distribution of revenue</p>
+            <p className="text-xs text-muted-foreground">Distribution of revenue</p>
           </CardHeader>
           <CardContent className="pb-4">
             {data.revenueByEventType.length > 0 ? (
@@ -194,13 +194,13 @@ export function RevenueReports({ range }: RevenueReportsProps) {
                   {data.revenueByEventType.map((item) => (
                     <div key={item.type} className="flex items-center gap-2">
                       <div className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.fill }} />
-                      <span className="truncate text-xs text-zinc-600">{item.type}</span>
+                      <span className="truncate text-xs text-muted-foreground">{item.type}</span>
                     </div>
                   ))}
                 </div>
               </>
             ) : (
-              <p className="py-8 text-center text-sm text-zinc-400">No revenue data</p>
+              <p className="py-8 text-center text-sm text-muted-foreground">No revenue data</p>
             )}
           </CardContent>
         </Card>
@@ -211,7 +211,7 @@ export function RevenueReports({ range }: RevenueReportsProps) {
         <Card className="border-zinc-200/80 shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Revenue by Venue</CardTitle>
-            <p className="text-xs text-zinc-500">Revenue breakdown across venues</p>
+            <p className="text-xs text-muted-foreground">Revenue breakdown across venues</p>
           </CardHeader>
           <CardContent className="px-2 pb-4">
             <ChartContainer config={{ revenue: { label: "Revenue", color: "hsl(239, 84%, 67%)" } }} className="h-[200px] w-full">
@@ -232,7 +232,7 @@ export function RevenueReports({ range }: RevenueReportsProps) {
         <Card className="border-zinc-200/80 shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Payment Collection by Method</CardTitle>
-            <p className="text-xs text-zinc-500">Breakdown of payments received by method</p>
+            <p className="text-xs text-muted-foreground">Breakdown of payments received by method</p>
           </CardHeader>
           <CardContent className="pb-4">
             <div className="grid gap-6 lg:grid-cols-2">
@@ -274,11 +274,11 @@ export function RevenueReports({ range }: RevenueReportsProps) {
                   <div key={item.method} className="flex items-center justify-between rounded-lg border border-zinc-100 px-3 py-2">
                     <div className="flex items-center gap-2">
                       <div className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.fill }} />
-                      <span className="text-sm text-zinc-700">{item.method.replace(/_/g, " ")}</span>
+                      <span className="text-sm text-foreground/80">{item.method.replace(/_/g, " ")}</span>
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-medium">{formatINR(item.amount)}</p>
-                      <p className="text-xs text-zinc-400">{item.count} payments</p>
+                      <p className="text-xs text-muted-foreground">{item.count} payments</p>
                     </div>
                   </div>
                 ))}

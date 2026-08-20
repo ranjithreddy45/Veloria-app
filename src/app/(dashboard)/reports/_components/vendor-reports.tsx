@@ -68,7 +68,7 @@ export function VendorReports({ range }: VendorReportsProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20 text-zinc-500">
+      <div className="flex items-center justify-center py-20 text-muted-foreground">
         <Loader2 className="mr-2 size-5 animate-spin" /> Loading vendor data...
       </div>
     );
@@ -89,7 +89,7 @@ export function VendorReports({ range }: VendorReportsProps) {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-base">Vendor Payment Summary</CardTitle>
-                <p className="text-xs text-zinc-500">Payment status across all vendors</p>
+                <p className="text-xs text-muted-foreground">Payment status across all vendors</p>
               </div>
               <ReportExportButton
                 data={vendorData.vendors as unknown as Record<string, unknown>[]}
@@ -138,7 +138,7 @@ export function VendorReports({ range }: VendorReportsProps) {
                   ].filter((d) => d.value > 0);
                   return (
                     <div>
-                      <p className="mb-2 text-xs font-medium text-zinc-500 text-center">Payment Status Distribution</p>
+                      <p className="mb-2 text-xs font-medium text-muted-foreground text-center">Payment Status Distribution</p>
                       <ChartContainer
                         config={statusData.reduce((acc, s) => {
                           acc[s.name] = { label: s.name, color: s.fill };
@@ -159,7 +159,7 @@ export function VendorReports({ range }: VendorReportsProps) {
                         {statusData.map((s) => (
                           <div key={s.name} className="flex items-center gap-2">
                             <div className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: s.fill }} />
-                            <span className="text-xs text-zinc-600">{s.name}: {formatINR(s.value)}</span>
+                            <span className="text-xs text-muted-foreground">{s.name}: {formatINR(s.value)}</span>
                           </div>
                         ))}
                       </div>
@@ -169,7 +169,7 @@ export function VendorReports({ range }: VendorReportsProps) {
 
                 {/* Top Vendors by Amount Paid */}
                 <div>
-                  <p className="mb-2 text-xs font-medium text-zinc-500 text-center">Top Vendors by Amount Paid</p>
+                  <p className="mb-2 text-xs font-medium text-muted-foreground text-center">Top Vendors by Amount Paid</p>
                   <ChartContainer
                     config={{ totalPaid: { label: "Total Paid", color: "hsl(142, 71%, 45%)" } }}
                     className="h-[200px] w-full"
@@ -202,18 +202,18 @@ export function VendorReports({ range }: VendorReportsProps) {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-zinc-200 text-left">
-                      <th className="pb-2 pr-4 font-medium text-zinc-500">Vendor Name</th>
-                      <th className="pb-2 pr-4 font-medium text-zinc-500">Category</th>
-                      <th className="pb-2 pr-4 font-medium text-zinc-500 text-right">Paid</th>
-                      <th className="pb-2 pr-4 font-medium text-zinc-500 text-right">Approved</th>
-                      <th className="pb-2 font-medium text-zinc-500 text-right">Pending</th>
+                      <th className="pb-2 pr-4 font-medium text-muted-foreground">Vendor Name</th>
+                      <th className="pb-2 pr-4 font-medium text-muted-foreground">Category</th>
+                      <th className="pb-2 pr-4 font-medium text-muted-foreground text-right">Paid</th>
+                      <th className="pb-2 pr-4 font-medium text-muted-foreground text-right">Approved</th>
+                      <th className="pb-2 font-medium text-muted-foreground text-right">Pending</th>
                     </tr>
                   </thead>
                   <tbody>
                     {vendorData.vendors.map((vendor) => (
                       <tr key={vendor.vendorId} className="border-b border-zinc-100">
                         <td className="py-2.5 pr-4 font-medium">{vendor.name}</td>
-                        <td className="py-2.5 pr-4 text-zinc-600">{vendor.category}</td>
+                        <td className="py-2.5 pr-4 text-muted-foreground">{vendor.category}</td>
                         <td className="py-2.5 pr-4 text-right text-green-700">{formatINR(vendor.totalPaid)}</td>
                         <td className="py-2.5 pr-4 text-right text-blue-700">{formatINR(vendor.approved)}</td>
                         <td className="py-2.5 text-right text-amber-700">{formatINR(vendor.pending)}</td>
@@ -223,7 +223,7 @@ export function VendorReports({ range }: VendorReportsProps) {
                 </table>
               </div>
             ) : (
-              <p className="py-8 text-center text-sm text-zinc-400">No vendor payment data</p>
+              <p className="py-8 text-center text-sm text-muted-foreground">No vendor payment data</p>
             )}
           </CardContent>
         </Card>
@@ -234,7 +234,7 @@ export function VendorReports({ range }: VendorReportsProps) {
         <Card className="border-zinc-200/80 shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Net Revenue Analysis</CardTitle>
-            <p className="text-xs text-zinc-500">Gross revenue vs vendor costs per month</p>
+            <p className="text-xs text-muted-foreground">Gross revenue vs vendor costs per month</p>
           </CardHeader>
           <CardContent className="pb-4">
             {/* KPI Row */}
@@ -273,22 +273,22 @@ export function VendorReports({ range }: VendorReportsProps) {
                 </ComposedChart>
               </ChartContainer>
             ) : (
-              <p className="py-8 text-center text-sm text-zinc-400">No revenue data</p>
+              <p className="py-8 text-center text-sm text-muted-foreground">No revenue data</p>
             )}
 
             {/* Legend */}
             <div className="mt-3 flex items-center justify-center gap-6">
               <div className="flex items-center gap-2">
                 <div className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: "hsl(142, 71%, 45%)" }} />
-                <span className="text-xs text-zinc-600">Gross Revenue</span>
+                <span className="text-xs text-muted-foreground">Gross Revenue</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: "hsl(0, 84%, 60%)" }} />
-                <span className="text-xs text-zinc-600">Vendor Costs</span>
+                <span className="text-xs text-muted-foreground">Vendor Costs</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: "hsl(217, 91%, 60%)" }} />
-                <span className="text-xs text-zinc-600">Net Revenue</span>
+                <span className="text-xs text-muted-foreground">Net Revenue</span>
               </div>
             </div>
           </CardContent>

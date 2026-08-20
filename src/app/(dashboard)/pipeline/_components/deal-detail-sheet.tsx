@@ -302,7 +302,7 @@ export function DealDetailSheet({
             {/* Value & Probability */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-                <div className="flex items-center gap-1.5 text-zinc-500">
+                <div className="flex items-center gap-1.5 text-muted-foreground">
                   <IndianRupee className="size-3.5" />
                   <span className="text-xs font-medium">Deal Value</span>
                 </div>
@@ -314,13 +314,13 @@ export function DealDetailSheet({
                     className="mt-1 h-8 text-sm"
                   />
                 ) : (
-                  <p className="mt-1 text-lg font-bold text-zinc-900">
+                  <p className="mt-1 text-lg font-bold text-foreground">
                     {formatIndianCurrency(Number(deal.value))}
                   </p>
                 )}
               </div>
               <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-                <div className="flex items-center gap-1.5 text-zinc-500">
+                <div className="flex items-center gap-1.5 text-muted-foreground">
                   <TrendingUp className="size-3.5" />
                   <span className="text-xs font-medium">Probability</span>
                 </div>
@@ -334,7 +334,7 @@ export function DealDetailSheet({
                     className="mt-1 h-8 text-sm"
                   />
                 ) : (
-                  <p className="mt-1 text-lg font-bold text-zinc-900">
+                  <p className="mt-1 text-lg font-bold text-foreground">
                     {deal.probability}%
                   </p>
                 )}
@@ -353,7 +353,7 @@ export function DealDetailSheet({
             {/* Move to Stage */}
             {!deal.wonDate && !deal.lostDate && stagesLoaded && (
               <div>
-                <Label className="text-xs text-zinc-500">Move to Stage</Label>
+                <Label className="text-xs text-muted-foreground">Move to Stage</Label>
                 <Select
                   value={deal.stageId}
                   onValueChange={handleMoveToStage}
@@ -407,34 +407,34 @@ export function DealDetailSheet({
 
             {/* Contact Info */}
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-3">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
                 Contact Information
               </h4>
               <div className="space-y-2.5">
                 <div className="flex items-center gap-2.5">
-                  <User className="size-4 text-zinc-400" />
-                  <span className="text-sm text-zinc-700">{contactName}</span>
+                  <User className="size-4 text-muted-foreground" />
+                  <span className="text-sm text-foreground/80">{contactName}</span>
                 </div>
                 {deal.contact?.company && (
                   <div className="flex items-center gap-2.5">
-                    <Building2 className="size-4 text-zinc-400" />
-                    <span className="text-sm text-zinc-700">
+                    <Building2 className="size-4 text-muted-foreground" />
+                    <span className="text-sm text-foreground/80">
                       {deal.contact.company}
                     </span>
                   </div>
                 )}
                 {deal.contact?.email && (
                   <div className="flex items-center gap-2.5">
-                    <Mail className="size-4 text-zinc-400" />
-                    <span className="text-sm text-zinc-700">
+                    <Mail className="size-4 text-muted-foreground" />
+                    <span className="text-sm text-foreground/80">
                       {deal.contact.email}
                     </span>
                   </div>
                 )}
                 {deal.contact?.phone && (
                   <div className="flex items-center gap-2.5">
-                    <Phone className="size-4 text-zinc-400" />
-                    <span className="text-sm text-zinc-700">
+                    <Phone className="size-4 text-muted-foreground" />
+                    <span className="text-sm text-foreground/80">
                       {deal.contact.phone}
                     </span>
                   </div>
@@ -446,28 +446,28 @@ export function DealDetailSheet({
 
             {/* Lead Info */}
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-3">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
                 Lead Details
               </h4>
               <div className="space-y-2.5">
                 <div className="flex items-center gap-2.5">
-                  <FileText className="size-4 text-zinc-400" />
-                  <span className="text-sm text-zinc-700">
+                  <FileText className="size-4 text-muted-foreground" />
+                  <span className="text-sm text-foreground/80">
                     {deal.lead.title}
                   </span>
                 </div>
                 {deal.lead.eventType && (
                   <div className="flex items-center gap-2.5">
-                    <Tag className="size-4 text-zinc-400" />
-                    <span className="text-sm text-zinc-700">
+                    <Tag className="size-4 text-muted-foreground" />
+                    <span className="text-sm text-foreground/80">
                       {deal.lead.eventType}
                     </span>
                   </div>
                 )}
                 {deal.lead.eventDate && (
                   <div className="flex items-center gap-2.5">
-                    <Calendar className="size-4 text-zinc-400" />
-                    <span className="text-sm text-zinc-700">
+                    <Calendar className="size-4 text-muted-foreground" />
+                    <span className="text-sm text-foreground/80">
                       Event: {formatFullDate(deal.lead.eventDate)}
                     </span>
                   </div>
@@ -479,19 +479,19 @@ export function DealDetailSheet({
 
             {/* Key Dates */}
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-3">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
                 Key Dates
               </h4>
               <div className="space-y-2.5">
                 <div className="flex items-center gap-2.5">
-                  <Calendar className="size-4 text-zinc-400" />
-                  <span className="text-sm text-zinc-600">
+                  <Calendar className="size-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">
                     Expected Close: {formatFullDate(deal.expectedCloseDate)}
                   </span>
                 </div>
                 <div className="flex items-center gap-2.5">
-                  <Clock className="size-4 text-zinc-400" />
-                  <span className="text-sm text-zinc-600">
+                  <Clock className="size-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">
                     Created: {formatFullDate(deal.createdAt)}
                   </span>
                 </div>
@@ -519,7 +519,7 @@ export function DealDetailSheet({
               <>
                 <Separator />
                 <div>
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-2">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                     Lost Reason
                   </h4>
                   <p className="text-sm text-red-600 bg-red-50 rounded-lg p-3">
@@ -532,7 +532,7 @@ export function DealDetailSheet({
             {/* Notes */}
             <Separator />
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-2">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                 Notes
               </h4>
               {isEditing ? (
@@ -543,7 +543,7 @@ export function DealDetailSheet({
                   placeholder="Add notes about this deal..."
                 />
               ) : (
-                <p className="text-sm text-zinc-600 whitespace-pre-wrap">
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                   {deal.notes || "No notes added."}
                 </p>
               )}
@@ -552,7 +552,7 @@ export function DealDetailSheet({
             {/* Activity Timeline */}
             <Separator />
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-3">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
                 Activity Timeline
               </h4>
               <EntityActivityTimeline

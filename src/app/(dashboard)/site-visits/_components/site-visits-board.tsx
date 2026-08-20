@@ -126,7 +126,7 @@ function VisitList({
     <div className="space-y-6">
       {groups.map(([day, dayRows]) => (
         <div key={day} className="space-y-2">
-          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             <CalendarClock className="size-3.5" />
             {day}
           </p>
@@ -183,7 +183,7 @@ function VisitCard({
               {badge.label}
             </span>
           </div>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-500">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <Clock className="size-3" />
               {row.timeLabel}
@@ -194,7 +194,7 @@ function VisitCard({
                 {row.venueName}
               </span>
             )}
-            <a href={`tel:${row.customerPhone}`} className="flex items-center gap-1 hover:text-zinc-700">
+            <a href={`tel:${row.customerPhone}`} className="flex items-center gap-1 hover:text-foreground/80">
               <Phone className="size-3" />
               {row.customerPhone}
             </a>
@@ -287,7 +287,7 @@ function VisitCard({
 
       {showReassign && canManage && (
         <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-zinc-100 pt-3 dark:border-zinc-800">
-          <span className="text-xs text-zinc-500">Reassign to:</span>
+          <span className="text-xs text-muted-foreground">Reassign to:</span>
           <select
             defaultValue={row.assignedToId ?? ""}
             disabled={pending}

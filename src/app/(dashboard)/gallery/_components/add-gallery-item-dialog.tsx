@@ -198,7 +198,7 @@ export function AddGalleryItemDialog({
                 />
                 <Label
                   htmlFor="is-public"
-                  className="cursor-pointer text-sm font-normal text-zinc-600"
+                  className="cursor-pointer text-sm font-normal text-muted-foreground"
                 >
                   {isPublic ? "Public" : "Private"}
                 </Label>

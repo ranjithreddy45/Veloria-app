@@ -249,7 +249,7 @@ export function UploadDocumentDialog({
                 />
                 <Label
                   htmlFor="doc-is-public"
-                  className="cursor-pointer text-sm font-normal text-zinc-600"
+                  className="cursor-pointer text-sm font-normal text-muted-foreground"
                 >
                   {isPublic ? "Public" : "Private"}
                 </Label>
@@ -269,7 +269,7 @@ export function UploadDocumentDialog({
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://storage.example.com/files/document.pdf"
             />
-            <p className="text-xs text-zinc-400">
+            <p className="text-xs text-muted-foreground">
               Enter the URL where the file is stored or hosted.
             </p>
           </div>

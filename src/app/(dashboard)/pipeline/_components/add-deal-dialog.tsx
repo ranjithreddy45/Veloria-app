@@ -260,7 +260,7 @@ export function AddDealDialog({
                   <CommandList>
                     {leadsLoading && (
                       <div className="flex items-center justify-center py-6">
-                        <Loader2 className="size-4 animate-spin text-zinc-400" />
+                        <Loader2 className="size-4 animate-spin text-muted-foreground" />
                       </div>
                     )}
                     {!leadsLoading && leads.length === 0 && (
@@ -293,7 +293,7 @@ export function AddDealDialog({
                             <span className="text-sm font-medium truncate">
                               {lead.title}
                             </span>
-                            <span className="text-xs text-zinc-500 truncate">
+                            <span className="text-xs text-muted-foreground truncate">
                               {lead.contact.firstName} {lead.contact.lastName}
                               {lead.contact.company
                                 ? ` - ${lead.contact.company}`

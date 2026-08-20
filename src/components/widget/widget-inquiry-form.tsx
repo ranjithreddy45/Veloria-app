@@ -133,10 +133,10 @@ export function WidgetInquiryForm({ venues = [] }: WidgetInquiryFormProps) {
       <Card className="mx-auto max-w-2xl">
         <CardContent className="flex flex-col items-center justify-center py-12 text-center">
           <CheckCircleIcon className="mb-4 size-16 text-emerald-500" />
-          <h2 className="mb-2 text-2xl font-bold text-zinc-900">
+          <h2 className="mb-2 text-2xl font-bold text-foreground">
             Thank You!
           </h2>
-          <p className="mb-6 text-zinc-500">
+          <p className="mb-6 text-muted-foreground">
             Your inquiry has been submitted successfully. Our team will get back
             to you shortly.
           </p>

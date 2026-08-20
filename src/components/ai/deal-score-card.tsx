@@ -114,7 +114,7 @@ function getImpactIcon(impact: string) {
     case "NEGATIVE":
       return <TrendingDown className="size-3.5 text-red-600 shrink-0" />;
     default:
-      return <Minus className="size-3.5 text-zinc-400 shrink-0" />;
+      return <Minus className="size-3.5 text-muted-foreground shrink-0" />;
   }
 }
 
@@ -177,7 +177,7 @@ function ScoreGauge({ score }: { score: number }) {
         <span className={cn("text-xl font-bold", getScoreColor(score))}>
           {score}
         </span>
-        <span className="text-meta text-zinc-400 font-medium">/ 100</span>
+        <span className="text-meta text-muted-foreground font-medium">/ 100</span>
       </div>
     </div>
   );
@@ -254,7 +254,7 @@ export function DealScoreCard({
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             <Brain className="size-4 text-indigo-600 animate-pulse" />
-            <CardTitle className="text-sm font-semibold text-zinc-700">
+            <CardTitle className="text-sm font-semibold text-foreground/80">
               AI Deal Score
             </CardTitle>
           </div>
@@ -287,10 +287,10 @@ export function DealScoreCard({
             <Sparkles className="size-5 text-indigo-600" />
           </div>
           <div className="text-center">
-            <p className="text-sm font-medium text-zinc-700">
+            <p className="text-sm font-medium text-foreground/80">
               AI Deal Scoring
             </p>
-            <p className="text-xs text-zinc-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Analyze this deal with AI to get win probability, risk assessment, and recommendations.
             </p>
           </div>
@@ -317,13 +317,13 @@ export function DealScoreCard({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Brain className="size-4 text-indigo-600" />
-            <CardTitle className="text-sm font-semibold text-zinc-700">
+            <CardTitle className="text-sm font-semibold text-foreground/80">
               AI Deal Score
             </CardTitle>
           </div>
           <div className="flex items-center gap-1.5">
             {localScoredAt && (
-              <span className="flex items-center gap-1 text-meta text-zinc-400">
+              <span className="flex items-center gap-1 text-meta text-muted-foreground">
                 <Clock className="size-3" />
                 {formatScoredAt(localScoredAt)}
               </span>
@@ -338,7 +338,7 @@ export function DealScoreCard({
             >
               <RefreshCw
                 className={cn(
-                  "size-3.5 text-zinc-500",
+                  "size-3.5 text-muted-foreground",
                   isPending && "animate-spin"
                 )}
               />
@@ -361,7 +361,7 @@ export function DealScoreCard({
                 {riskConfig!.label}
               </Badge>
             </div>
-            <p className="text-xs text-zinc-600 leading-relaxed line-clamp-3">
+            <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
               {localScore >= 70
                 ? "Strong deal with high win probability. Focus on closing activities."
                 : localScore >= 50
@@ -411,7 +411,7 @@ export function DealScoreCard({
                       {getImpactIcon(factor.impact)}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <span className="text-meta font-medium text-zinc-700">
+                          <span className="text-meta font-medium text-foreground/80">
                             {factor.name}
                           </span>
                           <span
@@ -421,13 +421,13 @@ export function DealScoreCard({
                                 ? "text-green-600"
                                 : factor.impact === "NEGATIVE"
                                   ? "text-red-600"
-                                  : "text-zinc-500"
+                                  : "text-muted-foreground"
                             )}
                           >
                             +{factor.score}
                           </span>
                         </div>
-                        <p className="text-meta text-zinc-500 leading-relaxed mt-0.5">
+                        <p className="text-meta text-muted-foreground leading-relaxed mt-0.5">
                           {factor.description}
                         </p>
                       </div>
@@ -440,7 +440,7 @@ export function DealScoreCard({
                   <div>
                     <div className="flex items-center gap-1.5 mb-1.5">
                       <Lightbulb className="size-3 text-amber-500" />
-                      <span className="text-meta font-medium text-zinc-600">
+                      <span className="text-meta font-medium text-muted-foreground">
                         Recommendations
                       </span>
                     </div>
@@ -448,7 +448,7 @@ export function DealScoreCard({
                       {recommendations.map((rec, i) => (
                         <li
                           key={i}
-                          className="flex items-start gap-1.5 text-meta text-zinc-600 leading-relaxed"
+                          className="flex items-start gap-1.5 text-meta text-muted-foreground leading-relaxed"
                         >
                           <CheckCircle2 className="size-3 text-indigo-400 mt-0.5 shrink-0" />
                           {rec}

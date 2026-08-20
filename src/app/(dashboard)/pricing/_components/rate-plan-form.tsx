@@ -209,7 +209,7 @@ export function RatePlanForm({ plan, venues }: RatePlanFormProps) {
                   <FormLabel>Base Rate (INR) *</FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
                         ₹
                       </span>
                       <Input
@@ -240,7 +240,7 @@ export function RatePlanForm({ plan, venues }: RatePlanFormProps) {
                   <FormLabel>Per Guest Rate (INR) *</FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
                         ₹
                       </span>
                       <Input

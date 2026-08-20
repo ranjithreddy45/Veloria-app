@@ -65,7 +65,7 @@ function CustomTooltip({
               ? "text-green-600"
               : data.avgScore < -0.2
                 ? "text-red-600"
-                : "text-zinc-600"
+                : "text-muted-foreground"
           }
         >
           {data.avgScore > 0 ? "+" : ""}
@@ -74,7 +74,7 @@ function CustomTooltip({
       </p>
       <div className="text-muted-foreground mt-1 flex gap-3 text-xs">
         <span className="text-green-600">{data.positive} positive</span>
-        <span className="text-zinc-500">{data.neutral} neutral</span>
+        <span className="text-muted-foreground">{data.neutral} neutral</span>
         <span className="text-red-600">{data.negative} negative</span>
       </div>
       <p className="text-muted-foreground mt-1 text-xs">

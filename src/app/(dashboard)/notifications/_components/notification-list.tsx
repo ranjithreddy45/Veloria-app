@@ -98,7 +98,7 @@ const NOTIFICATION_ICONS: Record<
   },
   SYSTEM: {
     icon: Info,
-    color: "text-zinc-600",
+    color: "text-muted-foreground",
     bg: "bg-zinc-100",
   },
   TASK_ESCALATED: {
@@ -291,7 +291,7 @@ export function NotificationList({
               "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
               filter === "all"
                 ? "bg-background text-foreground shadow-sm"
-                : "text-zinc-500 hover:text-zinc-700"
+                : "text-muted-foreground hover:text-foreground/80"
             )}
           >
             All ({notifications.length})
@@ -302,7 +302,7 @@ export function NotificationList({
               "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
               filter === "unread"
                 ? "bg-background text-foreground shadow-sm"
-                : "text-zinc-500 hover:text-zinc-700"
+                : "text-muted-foreground hover:text-foreground/80"
             )}
           >
             Unread ({unreadCount})
@@ -326,7 +326,7 @@ export function NotificationList({
       {/* Notification cards */}
       {filteredNotifications.length === 0 ? (
         <Card className="border-zinc-200/80 shadow-sm">
-          <CardContent className="flex flex-col items-center justify-center py-16 text-zinc-400">
+          <CardContent className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <Bell className="mb-3 size-10" />
             <p className="text-sm font-medium">
               {filter === "unread"
@@ -376,13 +376,13 @@ export function NotificationList({
                             className={cn(
                               "text-sm",
                               notification.isRead
-                                ? "text-zinc-700"
-                                : "font-semibold text-zinc-900"
+                                ? "text-foreground/80"
+                                : "font-semibold text-foreground"
                             )}
                           >
                             {safeText(notification.title, 200)}
                           </p>
-                          <p className="mt-1 text-sm text-zinc-500">
+                          <p className="mt-1 text-sm text-muted-foreground">
                             {safeText(notification.message, 500)}
                           </p>
                         </div>
@@ -392,14 +392,14 @@ export function NotificationList({
                       </div>
 
                       <div className="mt-2 flex items-center gap-3">
-                        <span className="text-xs text-zinc-400">
+                        <span className="text-xs text-muted-foreground">
                           {formatDistanceToNow(
                             new Date(notification.createdAt),
                             { addSuffix: true }
                           )}
                         </span>
                         <span className="text-xs text-zinc-300">&middot;</span>
-                        <span className="text-xs text-zinc-400">
+                        <span className="text-xs text-muted-foreground">
                           {format(
                             new Date(notification.createdAt),
                             "MMM d, yyyy 'at' h:mm a"
@@ -425,7 +425,7 @@ export function NotificationList({
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-7 text-xs text-zinc-500"
+                            className="h-7 text-xs text-muted-foreground"
                             onClick={() => handleToggleRead(notification.id)}
                             disabled={isPending}
                           >

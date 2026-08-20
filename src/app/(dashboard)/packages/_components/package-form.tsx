@@ -382,7 +382,7 @@ export function PackageForm({ eventPackage }: PackageFormProps) {
                 >
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <GripVerticalIcon className="size-4 text-zinc-400" />
+                      <GripVerticalIcon className="size-4 text-muted-foreground" />
                       <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
                         Item {index + 1}
                       </span>

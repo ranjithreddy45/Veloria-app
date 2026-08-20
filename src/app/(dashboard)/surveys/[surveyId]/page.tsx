@@ -88,8 +88,8 @@ export default async function SurveyDetailPage({
                 <ClipboardList className="size-5 text-indigo-600" />
               </div>
               <div>
-                <p className="text-xs font-medium text-zinc-500">Questions</p>
-                <p className="text-xl font-bold text-zinc-900">
+                <p className="text-xs font-medium text-muted-foreground">Questions</p>
+                <p className="text-xl font-bold text-foreground">
                   {survey._count.questions}
                 </p>
               </div>
@@ -103,8 +103,8 @@ export default async function SurveyDetailPage({
                 <MessageSquare className="size-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-xs font-medium text-zinc-500">Responses</p>
-                <p className="text-xl font-bold text-zinc-900">
+                <p className="text-xs font-medium text-muted-foreground">Responses</p>
+                <p className="text-xl font-bold text-foreground">
                   {survey._count.responses}
                 </p>
               </div>
@@ -118,8 +118,8 @@ export default async function SurveyDetailPage({
                 <Star className="size-5 text-amber-600" />
               </div>
               <div>
-                <p className="text-xs font-medium text-zinc-500">Avg Rating</p>
-                <p className="text-xl font-bold text-zinc-900">
+                <p className="text-xs font-medium text-muted-foreground">Avg Rating</p>
+                <p className="text-xl font-bold text-foreground">
                   {results?.averageRating !== null && results?.averageRating !== undefined
                     ? `${results.averageRating.toFixed(1)} / 5`
                     : "N/A"}
@@ -135,8 +135,8 @@ export default async function SurveyDetailPage({
                 <BarChart3 className="size-5 text-emerald-600" />
               </div>
               <div>
-                <p className="text-xs font-medium text-zinc-500">NPS Score</p>
-                <p className="text-xl font-bold text-zinc-900">
+                <p className="text-xs font-medium text-muted-foreground">NPS Score</p>
+                <p className="text-xl font-bold text-foreground">
                   {results?.npsScore !== null && results?.npsScore !== undefined
                     ? results.npsScore > 0
                       ? `+${results.npsScore}`
@@ -166,7 +166,7 @@ export default async function SurveyDetailPage({
               ) : (
                 <Card className="border-zinc-200/80 shadow-sm">
                   <CardContent className="py-12 text-center">
-                    <p className="text-sm text-zinc-500">
+                    <p className="text-sm text-muted-foreground">
                       No results available yet
                     </p>
                   </CardContent>
@@ -193,13 +193,13 @@ export default async function SurveyDetailPage({
         <TabsContent value="questions">
           <Card className="border-zinc-200/80 shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold text-zinc-900">
+              <CardTitle className="text-base font-semibold text-foreground">
                 Survey Questions
               </CardTitle>
             </CardHeader>
             <CardContent>
               {survey.questions.length === 0 ? (
-                <p className="py-6 text-center text-sm text-zinc-500">
+                <p className="py-6 text-center text-sm text-muted-foreground">
                   No questions in this survey
                 </p>
               ) : (
@@ -216,7 +216,7 @@ export default async function SurveyDetailPage({
                         Q{index + 1}
                       </Badge>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-zinc-900">
+                        <p className="text-sm font-medium text-foreground">
                           {question.question}
                           {question.isRequired && (
                             <span className="text-red-500 ml-1">*</span>
@@ -231,7 +231,7 @@ export default async function SurveyDetailPage({
                           </Badge>
                           {question.type === "MULTIPLE_CHOICE" &&
                             Array.isArray(question.options) && (
-                              <span className="text-xs text-zinc-400">
+                              <span className="text-xs text-muted-foreground">
                                 {(question.options as string[]).length} options
                               </span>
                             )}
@@ -263,7 +263,7 @@ export default async function SurveyDetailPage({
         <TabsContent value="responses">
           <Card className="border-zinc-200/80 shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold text-zinc-900">
+              <CardTitle className="text-base font-semibold text-foreground">
                 Individual Responses
               </CardTitle>
             </CardHeader>
@@ -271,10 +271,10 @@ export default async function SurveyDetailPage({
               {survey.responses.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-8 text-center">
                   <MessageSquare className="size-10 text-zinc-300" />
-                  <p className="mt-3 text-sm font-medium text-zinc-500">
+                  <p className="mt-3 text-sm font-medium text-muted-foreground">
                     No responses yet
                   </p>
-                  <p className="text-xs text-zinc-400">
+                  <p className="text-xs text-muted-foreground">
                     Share the survey link to start collecting feedback.
                   </p>
                 </div>
@@ -290,7 +290,7 @@ export default async function SurveyDetailPage({
                           <Badge variant="outline" className="text-xs">
                             #{rIndex + 1}
                           </Badge>
-                          <span className="text-xs text-zinc-400">
+                          <span className="text-xs text-muted-foreground">
                             {formatDate(response.createdAt)}
                           </span>
                         </div>
@@ -319,10 +319,10 @@ export default async function SurveyDetailPage({
                             key={answer.id}
                             className="flex gap-2 text-sm"
                           >
-                            <span className="font-medium text-zinc-600 flex-shrink-0">
+                            <span className="font-medium text-muted-foreground flex-shrink-0">
                               {answer.question?.question ?? "Question"}:
                             </span>
-                            <span className="text-zinc-700">{answer.value}</span>
+                            <span className="text-foreground/80">{answer.value}</span>
                           </div>
                         ))}
                       </div>

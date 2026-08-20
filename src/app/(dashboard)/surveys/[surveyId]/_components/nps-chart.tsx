@@ -46,13 +46,13 @@ export function NpsChart({ npsScore, breakdown, totalResponses }: NpsChartProps)
     return (
       <Card className="border-zinc-200/80 shadow-sm">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold text-zinc-900">
+          <CardTitle className="text-base font-semibold text-foreground">
             Net Promoter Score
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-6 text-center">
-            <p className="text-sm text-zinc-500">No NPS data yet</p>
+            <p className="text-sm text-muted-foreground">No NPS data yet</p>
           </div>
         </CardContent>
       </Card>
@@ -67,7 +67,7 @@ export function NpsChart({ npsScore, breakdown, totalResponses }: NpsChartProps)
   return (
     <Card className="border-zinc-200/80 shadow-sm">
       <CardHeader className="pb-3">
-        <CardTitle className="text-base font-semibold text-zinc-900">
+        <CardTitle className="text-base font-semibold text-foreground">
           Net Promoter Score
         </CardTitle>
       </CardHeader>
@@ -79,10 +79,10 @@ export function NpsChart({ npsScore, breakdown, totalResponses }: NpsChartProps)
           >
             {npsScore > 0 ? `+${npsScore}` : npsScore}
           </div>
-          <p className="mt-1 text-sm font-medium text-zinc-500">
+          <p className="mt-1 text-sm font-medium text-muted-foreground">
             {getNpsLabel(npsScore)}
           </p>
-          <p className="text-xs text-zinc-400 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Based on {total} response{total !== 1 ? "s" : ""}
           </p>
         </div>
@@ -114,38 +114,38 @@ export function NpsChart({ npsScore, breakdown, totalResponses }: NpsChartProps)
           <div className="space-y-1">
             <div className="flex items-center justify-center gap-1.5">
               <span className="size-2.5 rounded-full bg-emerald-500" />
-              <span className="text-xs font-medium text-zinc-600">
+              <span className="text-xs font-medium text-muted-foreground">
                 Promoters
               </span>
             </div>
             <p className="text-lg font-semibold text-emerald-600">
               {breakdown.promoters}
             </p>
-            <p className="text-xs text-zinc-400">{promoterPct}% (9-10)</p>
+            <p className="text-xs text-muted-foreground">{promoterPct}% (9-10)</p>
           </div>
           <div className="space-y-1">
             <div className="flex items-center justify-center gap-1.5">
               <span className="size-2.5 rounded-full bg-amber-400" />
-              <span className="text-xs font-medium text-zinc-600">
+              <span className="text-xs font-medium text-muted-foreground">
                 Passives
               </span>
             </div>
             <p className="text-lg font-semibold text-amber-600">
               {breakdown.passives}
             </p>
-            <p className="text-xs text-zinc-400">{passivePct}% (7-8)</p>
+            <p className="text-xs text-muted-foreground">{passivePct}% (7-8)</p>
           </div>
           <div className="space-y-1">
             <div className="flex items-center justify-center gap-1.5">
               <span className="size-2.5 rounded-full bg-red-500" />
-              <span className="text-xs font-medium text-zinc-600">
+              <span className="text-xs font-medium text-muted-foreground">
                 Detractors
               </span>
             </div>
             <p className="text-lg font-semibold text-red-600">
               {breakdown.detractors}
             </p>
-            <p className="text-xs text-zinc-400">{detractorPct}% (0-6)</p>
+            <p className="text-xs text-muted-foreground">{detractorPct}% (0-6)</p>
           </div>
         </div>
       </CardContent>

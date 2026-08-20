@@ -213,7 +213,7 @@ export function SurveyForm({ survey }: SurveyFormProps) {
       {/* Survey Details */}
       <Card className="border-zinc-200/80 shadow-sm">
         <CardHeader className="pb-4">
-          <CardTitle className="text-base font-semibold text-zinc-900">
+          <CardTitle className="text-base font-semibold text-foreground">
             Survey Details
           </CardTitle>
         </CardHeader>
@@ -254,7 +254,7 @@ export function SurveyForm({ survey }: SurveyFormProps) {
       {/* Questions Builder */}
       <Card className="border-zinc-200/80 shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between pb-4">
-          <CardTitle className="text-base font-semibold text-zinc-900">
+          <CardTitle className="text-base font-semibold text-foreground">
             Questions ({questions.length})
           </CardTitle>
           <Button type="button" size="sm" variant="outline" onClick={addQuestion}>
@@ -265,7 +265,7 @@ export function SurveyForm({ survey }: SurveyFormProps) {
         <CardContent className="space-y-4">
           {questions.length === 0 && (
             <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 py-8">
-              <p className="text-sm text-zinc-500">No questions added yet</p>
+              <p className="text-sm text-muted-foreground">No questions added yet</p>
               <Button
                 type="button"
                 size="sm"
@@ -287,7 +287,7 @@ export function SurveyForm({ survey }: SurveyFormProps) {
               {/* Question Header */}
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <GripVertical className="size-4 text-zinc-400 flex-shrink-0" />
+                  <GripVertical className="size-4 text-muted-foreground flex-shrink-0" />
                   <Badge variant="outline" className="text-xs">
                     Q{index + 1}
                   </Badge>

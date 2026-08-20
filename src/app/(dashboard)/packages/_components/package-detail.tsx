@@ -272,7 +272,7 @@ export function PackageDetail({ eventPackage }: PackageDetailProps) {
                   <span className="text-zinc-500 dark:text-zinc-400">
                     Optional Items ({optionalItems.length})
                   </span>
-                  <span className="font-medium text-zinc-400">
+                  <span className="font-medium text-muted-foreground">
                     +{formatINR(optionalTotal)}
                   </span>
                 </div>
@@ -358,7 +358,7 @@ export function PackageDetail({ eventPackage }: PackageDetailProps) {
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
-                <CircleIcon className="size-4 text-zinc-400" />
+                <CircleIcon className="size-4 text-muted-foreground" />
                 Optional Add-ons ({optionalItems.length})
               </CardTitle>
             </CardHeader>

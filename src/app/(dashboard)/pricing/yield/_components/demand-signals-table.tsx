@@ -377,7 +377,7 @@ export function DemandSignalsTable({ data, venues }: DemandSignalsTableProps) {
             {row.original.manualMultiplier}x
           </span>
         ) : (
-          <span className="text-sm text-zinc-400">--</span>
+          <span className="text-sm text-muted-foreground">--</span>
         ),
     },
     {

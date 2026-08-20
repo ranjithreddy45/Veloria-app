@@ -98,7 +98,7 @@ export function SocialProofStrip({
               <div className="flex items-center justify-between gap-2">
                 <Stars rating={Math.min(5, Math.max(0, r.rating))} />
                 {r.eventTypeLabel && (
-                  <span className="truncate text-meta font-medium text-zinc-400">
+                  <span className="truncate text-meta font-medium text-muted-foreground">
                     {r.eventTypeLabel}
                   </span>
                 )}

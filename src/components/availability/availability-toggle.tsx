@@ -45,7 +45,7 @@ const STATUS_META: Record<
   },
   AWAY: {
     label: "Away",
-    dot: "fill-slate-400 text-slate-400",
+    dot: "fill-slate-400 text-muted-foreground",
     text: "text-slate-500 dark:text-slate-400",
   },
   OFFLINE: {

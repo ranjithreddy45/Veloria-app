@@ -91,8 +91,8 @@ export function SurveysTable({ data }: SurveysTableProps) {
   if (data.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 py-12">
-        <p className="text-sm font-medium text-zinc-500">No surveys yet</p>
-        <p className="mt-1 text-xs text-zinc-400">
+        <p className="text-sm font-medium text-muted-foreground">No surveys yet</p>
+        <p className="mt-1 text-xs text-muted-foreground">
           Create your first survey to start collecting feedback.
         </p>
         <Button asChild className="mt-4" size="sm">
@@ -121,12 +121,12 @@ export function SurveysTable({ data }: SurveysTableProps) {
               <TableCell>
                 <Link
                   href={`/surveys/${survey.id}`}
-                  className="font-medium text-zinc-900 hover:text-indigo-600 transition-colors"
+                  className="font-medium text-foreground hover:text-indigo-600 transition-colors"
                 >
                   {survey.title}
                 </Link>
                 {survey.description && (
-                  <p className="mt-0.5 text-xs text-zinc-500 line-clamp-1">
+                  <p className="mt-0.5 text-xs text-muted-foreground line-clamp-1">
                     {survey.description}
                   </p>
                 )}
@@ -153,7 +153,7 @@ export function SurveysTable({ data }: SurveysTableProps) {
                   {survey.isActive ? "Active" : "Inactive"}
                 </Badge>
               </TableCell>
-              <TableCell className="text-sm text-zinc-500">
+              <TableCell className="text-sm text-muted-foreground">
                 {formatDate(survey.createdAt)}
               </TableCell>
               <TableCell className="text-right">

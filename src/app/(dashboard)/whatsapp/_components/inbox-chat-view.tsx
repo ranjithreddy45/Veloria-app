@@ -69,13 +69,13 @@ function StatusIcon({ status }: { status: string }) {
     case "READ":
       return <CheckCheck className="size-3.5 text-blue-400" />;
     case "DELIVERED":
-      return <CheckCheck className="size-3.5 text-zinc-400" />;
+      return <CheckCheck className="size-3.5 text-muted-foreground" />;
     case "SENT":
-      return <Check className="size-3.5 text-zinc-400" />;
+      return <Check className="size-3.5 text-muted-foreground" />;
     case "FAILED":
       return <XCircle className="size-3.5 text-red-400" />;
     default:
-      return <Check className="size-3.5 text-zinc-400" />;
+      return <Check className="size-3.5 text-muted-foreground" />;
   }
 }
 

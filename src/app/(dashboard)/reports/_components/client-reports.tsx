@@ -90,7 +90,7 @@ export function ClientReports({ range }: ClientReportsProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20 text-zinc-500">
+      <div className="flex items-center justify-center py-20 text-muted-foreground">
         <Loader2 className="mr-2 size-5 animate-spin" /> Loading client data...
       </div>
     );
@@ -112,7 +112,7 @@ export function ClientReports({ range }: ClientReportsProps) {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-base">VIP Clients</CardTitle>
-                <p className="text-xs text-zinc-500">Gold &amp; Platinum loyalty tier clients</p>
+                <p className="text-xs text-muted-foreground">Gold &amp; Platinum loyalty tier clients</p>
               </div>
               <ReportExportButton
                 data={vipData.clients as unknown as Record<string, unknown>[]}
@@ -132,7 +132,7 @@ export function ClientReports({ range }: ClientReportsProps) {
             {/* VIP Clients – Top Spenders Bar Chart */}
             {vipData.clients.length > 0 && (
               <div className="mb-6">
-                <p className="mb-2 text-xs font-medium text-zinc-500">Top VIP Clients by Total Spend</p>
+                <p className="mb-2 text-xs font-medium text-muted-foreground">Top VIP Clients by Total Spend</p>
                 <ChartContainer
                   config={{ totalSpend: { label: "Total Spend", color: "hsl(262, 83%, 58%)" } }}
                   className="h-[220px] w-full"
@@ -169,11 +169,11 @@ export function ClientReports({ range }: ClientReportsProps) {
                 <div className="mt-2 flex items-center justify-center gap-6">
                   <div className="flex items-center gap-2">
                     <div className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: "hsl(262, 83%, 58%)" }} />
-                    <span className="text-xs text-zinc-600">Platinum</span>
+                    <span className="text-xs text-muted-foreground">Platinum</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: "hsl(38, 92%, 50%)" }} />
-                    <span className="text-xs text-zinc-600">Gold</span>
+                    <span className="text-xs text-muted-foreground">Gold</span>
                   </div>
                 </div>
               </div>
@@ -184,19 +184,19 @@ export function ClientReports({ range }: ClientReportsProps) {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-zinc-200 text-left">
-                      <th className="pb-2 pr-4 font-medium text-zinc-500">Client Name</th>
-                      <th className="pb-2 pr-4 font-medium text-zinc-500">Email</th>
-                      <th className="pb-2 pr-4 font-medium text-zinc-500">Tier</th>
-                      <th className="pb-2 pr-4 font-medium text-zinc-500 text-right">Points</th>
-                      <th className="pb-2 pr-4 font-medium text-zinc-500 text-right">Total Spend</th>
-                      <th className="pb-2 font-medium text-zinc-500 text-right">Bookings</th>
+                      <th className="pb-2 pr-4 font-medium text-muted-foreground">Client Name</th>
+                      <th className="pb-2 pr-4 font-medium text-muted-foreground">Email</th>
+                      <th className="pb-2 pr-4 font-medium text-muted-foreground">Tier</th>
+                      <th className="pb-2 pr-4 font-medium text-muted-foreground text-right">Points</th>
+                      <th className="pb-2 pr-4 font-medium text-muted-foreground text-right">Total Spend</th>
+                      <th className="pb-2 font-medium text-muted-foreground text-right">Bookings</th>
                     </tr>
                   </thead>
                   <tbody>
                     {vipData.clients.map((client) => (
                       <tr key={client.contactId} className="border-b border-zinc-100">
                         <td className="py-2.5 pr-4 font-medium">{client.name}</td>
-                        <td className="py-2.5 pr-4 text-zinc-600">{client.email}</td>
+                        <td className="py-2.5 pr-4 text-muted-foreground">{client.email}</td>
                         <td className="py-2.5 pr-4">
                           <span
                             className={cn(
@@ -218,7 +218,7 @@ export function ClientReports({ range }: ClientReportsProps) {
                 </table>
               </div>
             ) : (
-              <p className="py-8 text-center text-sm text-zinc-400">No VIP clients found</p>
+              <p className="py-8 text-center text-sm text-muted-foreground">No VIP clients found</p>
             )}
           </CardContent>
         </Card>
@@ -229,7 +229,7 @@ export function ClientReports({ range }: ClientReportsProps) {
         <Card className="border-zinc-200/80 shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Client Type Breakdown</CardTitle>
-            <p className="text-xs text-zinc-500">Individual vs Corporate clients</p>
+            <p className="text-xs text-muted-foreground">Individual vs Corporate clients</p>
           </CardHeader>
           <CardContent className="pb-4">
             {/* KPI: Total Clients */}
@@ -238,7 +238,7 @@ export function ClientReports({ range }: ClientReportsProps) {
                 <Users className="size-5 text-violet-600" />
               </div>
               <div>
-                <p className="text-sm font-medium text-zinc-500">Total Clients</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Clients</p>
                 <p className="text-xl font-bold">{typeData.totalClients}</p>
               </div>
             </div>
@@ -247,7 +247,7 @@ export function ClientReports({ range }: ClientReportsProps) {
               <div className="grid gap-6 md:grid-cols-2">
                 {/* Bookings Pie */}
                 <div>
-                  <p className="mb-2 text-center text-xs font-medium text-zinc-500">Bookings</p>
+                  <p className="mb-2 text-center text-xs font-medium text-muted-foreground">Bookings</p>
                   <ChartContainer config={typeConfig} className="mx-auto h-[200px] w-full">
                     <PieChart>
                       <Tooltip content={<ChartTooltipContent hideLabel />} />
@@ -273,7 +273,7 @@ export function ClientReports({ range }: ClientReportsProps) {
 
                 {/* Revenue Pie */}
                 <div>
-                  <p className="mb-2 text-center text-xs font-medium text-zinc-500">Revenue</p>
+                  <p className="mb-2 text-center text-xs font-medium text-muted-foreground">Revenue</p>
                   <ChartContainer config={typeConfig} className="mx-auto h-[200px] w-full">
                     <PieChart>
                       <Tooltip content={<ChartTooltipContent hideLabel formatter={(v) => formatINR(Number(v))} />} />
@@ -298,7 +298,7 @@ export function ClientReports({ range }: ClientReportsProps) {
                 </div>
               </div>
             ) : (
-              <p className="py-8 text-center text-sm text-zinc-400">No client data</p>
+              <p className="py-8 text-center text-sm text-muted-foreground">No client data</p>
             )}
 
             {typeData.types.length > 0 && (
@@ -306,9 +306,9 @@ export function ClientReports({ range }: ClientReportsProps) {
                 {typeData.types.map((item) => (
                   <div key={item.type} className="flex items-center gap-2">
                     <div className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.fill }} />
-                    <span className="text-xs text-zinc-600">{item.type}</span>
+                    <span className="text-xs text-muted-foreground">{item.type}</span>
                     <span className="text-xs font-medium">{item.bookingCount} bookings</span>
-                    <span className="text-xs text-zinc-400">({formatINR(item.revenue)})</span>
+                    <span className="text-xs text-muted-foreground">({formatINR(item.revenue)})</span>
                   </div>
                 ))}
               </div>
@@ -321,12 +321,12 @@ export function ClientReports({ range }: ClientReportsProps) {
       <Card className="border-zinc-200/80 shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-base">Client Ledger Lookup</CardTitle>
-          <p className="text-xs text-zinc-500">Search and view a client&apos;s financial history</p>
+          <p className="text-xs text-muted-foreground">Search and view a client&apos;s financial history</p>
         </CardHeader>
         <CardContent className="pb-4">
           <div className="flex items-end gap-3">
             <div className="flex-1">
-              <label htmlFor="contactId" className="mb-1 block text-xs font-medium text-zinc-500">
+              <label htmlFor="contactId" className="mb-1 block text-xs font-medium text-muted-foreground">
                 Contact ID
               </label>
               <Input
@@ -363,7 +363,7 @@ export function ClientReports({ range }: ClientReportsProps) {
                 <h3 className="text-sm font-semibold">
                   {ledgerData.contactName}
                 </h3>
-                <span className="text-xs text-zinc-400">{ledgerData.contactEmail}</span>
+                <span className="text-xs text-muted-foreground">{ledgerData.contactEmail}</span>
               </div>
 
               <div className="flex flex-wrap gap-3">
@@ -379,8 +379,8 @@ export function ClientReports({ range }: ClientReportsProps) {
                   "rounded-lg px-3 py-2",
                   ledgerData.balance > 0 ? "bg-red-50" : "bg-zinc-50"
                 )}>
-                  <p className={cn("text-xs", ledgerData.balance > 0 ? "text-red-600" : "text-zinc-600")}>Balance</p>
-                  <p className={cn("text-sm font-bold", ledgerData.balance > 0 ? "text-red-700" : "text-zinc-700")}>
+                  <p className={cn("text-xs", ledgerData.balance > 0 ? "text-red-600" : "text-muted-foreground")}>Balance</p>
+                  <p className={cn("text-sm font-bold", ledgerData.balance > 0 ? "text-red-700" : "text-foreground/80")}>
                     {formatINR(ledgerData.balance)}
                   </p>
                 </div>
@@ -407,7 +407,7 @@ export function ClientReports({ range }: ClientReportsProps) {
                     }));
                     return (
                       <div>
-                        <p className="mb-1 text-xs font-medium text-zinc-500 text-center">Invoice Status</p>
+                        <p className="mb-1 text-xs font-medium text-muted-foreground text-center">Invoice Status</p>
                         <ChartContainer
                           config={statusChartData.reduce((acc, s) => {
                             acc[s.status] = { label: s.status, color: s.fill };
@@ -428,7 +428,7 @@ export function ClientReports({ range }: ClientReportsProps) {
                           {statusChartData.map((s) => (
                             <div key={s.status} className="flex items-center gap-1.5">
                               <div className="size-2 shrink-0 rounded-full" style={{ backgroundColor: s.fill }} />
-                              <span className="text-meta text-zinc-600">{s.status} ({s.count})</span>
+                              <span className="text-meta text-muted-foreground">{s.status} ({s.count})</span>
                             </div>
                           ))}
                         </div>
@@ -455,7 +455,7 @@ export function ClientReports({ range }: ClientReportsProps) {
                     }));
                     return (
                       <div>
-                        <p className="mb-1 text-xs font-medium text-zinc-500 text-center">Payment Methods</p>
+                        <p className="mb-1 text-xs font-medium text-muted-foreground text-center">Payment Methods</p>
                         <ChartContainer
                           config={methodChartData.reduce((acc, m) => {
                             acc[m.method] = { label: m.method, color: m.fill };
@@ -476,7 +476,7 @@ export function ClientReports({ range }: ClientReportsProps) {
                           {methodChartData.map((m) => (
                             <div key={m.method} className="flex items-center gap-1.5">
                               <div className="size-2 shrink-0 rounded-full" style={{ backgroundColor: m.fill }} />
-                              <span className="text-meta text-zinc-600">{m.method} ({formatINR(m.amount)})</span>
+                              <span className="text-meta text-muted-foreground">{m.method} ({formatINR(m.amount)})</span>
                             </div>
                           ))}
                         </div>
@@ -488,16 +488,16 @@ export function ClientReports({ range }: ClientReportsProps) {
 
               {/* Invoices Table */}
               <div>
-                <h4 className="mb-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Invoices</h4>
+                <h4 className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Invoices</h4>
                 {ledgerData.invoices.length > 0 ? (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-zinc-200 text-left">
-                          <th className="pb-2 pr-4 font-medium text-zinc-500">Invoice #</th>
-                          <th className="pb-2 pr-4 font-medium text-zinc-500 text-right">Amount</th>
-                          <th className="pb-2 pr-4 font-medium text-zinc-500">Status</th>
-                          <th className="pb-2 font-medium text-zinc-500">Date</th>
+                          <th className="pb-2 pr-4 font-medium text-muted-foreground">Invoice #</th>
+                          <th className="pb-2 pr-4 font-medium text-muted-foreground text-right">Amount</th>
+                          <th className="pb-2 pr-4 font-medium text-muted-foreground">Status</th>
+                          <th className="pb-2 font-medium text-muted-foreground">Date</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -520,28 +520,28 @@ export function ClientReports({ range }: ClientReportsProps) {
                                 {inv.status.replace(/_/g, " ")}
                               </span>
                             </td>
-                            <td className="py-2 text-zinc-600">{inv.date}</td>
+                            <td className="py-2 text-muted-foreground">{inv.date}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
                 ) : (
-                  <p className="py-4 text-center text-sm text-zinc-400">No invoices found</p>
+                  <p className="py-4 text-center text-sm text-muted-foreground">No invoices found</p>
                 )}
               </div>
 
               {/* Payments Table */}
               <div>
-                <h4 className="mb-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Payments</h4>
+                <h4 className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Payments</h4>
                 {ledgerData.payments.length > 0 ? (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-zinc-200 text-left">
-                          <th className="pb-2 pr-4 font-medium text-zinc-500 text-right">Amount</th>
-                          <th className="pb-2 pr-4 font-medium text-zinc-500">Method</th>
-                          <th className="pb-2 font-medium text-zinc-500">Date</th>
+                          <th className="pb-2 pr-4 font-medium text-muted-foreground text-right">Amount</th>
+                          <th className="pb-2 pr-4 font-medium text-muted-foreground">Method</th>
+                          <th className="pb-2 font-medium text-muted-foreground">Date</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -555,14 +555,14 @@ export function ClientReports({ range }: ClientReportsProps) {
                                 {p.method.replace(/_/g, " ")}
                               </span>
                             </td>
-                            <td className="py-2 text-zinc-600">{p.date}</td>
+                            <td className="py-2 text-muted-foreground">{p.date}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
                 ) : (
-                  <p className="py-4 text-center text-sm text-zinc-400">No payments found</p>
+                  <p className="py-4 text-center text-sm text-muted-foreground">No payments found</p>
                 )}
               </div>
             </div>

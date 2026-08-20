@@ -101,7 +101,7 @@ function EnquiryStatusControl({ inquiry }: { inquiry: InquiryData }) {
   };
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="text-sm font-medium text-zinc-700">Status:</span>
+      <span className="text-sm font-medium text-foreground/80">Status:</span>
       {ENQUIRY_STATUSES.map((s) => (
         <Button
           key={s}
@@ -134,36 +134,36 @@ function InquiryDetailDialog({ inquiry }: { inquiry: InquiryData }) {
       <div className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="flex items-center gap-2 text-sm">
-            <MailIcon className="size-4 text-zinc-400" />
+            <MailIcon className="size-4 text-muted-foreground" />
             <span>{inquiry.email}</span>
           </div>
           {inquiry.phone && (
             <div className="flex items-center gap-2 text-sm">
-              <PhoneIcon className="size-4 text-zinc-400" />
+              <PhoneIcon className="size-4 text-muted-foreground" />
               <span>{inquiry.phone}</span>
             </div>
           )}
           {inquiry.eventType && (
             <div className="flex items-center gap-2 text-sm">
-              <CalendarIcon className="size-4 text-zinc-400" />
+              <CalendarIcon className="size-4 text-muted-foreground" />
               <span>{inquiry.eventType}</span>
             </div>
           )}
           {inquiry.eventDate && (
             <div className="flex items-center gap-2 text-sm">
-              <CalendarIcon className="size-4 text-zinc-400" />
+              <CalendarIcon className="size-4 text-muted-foreground" />
               <span>{format(new Date(inquiry.eventDate), "dd MMM yyyy")}</span>
             </div>
           )}
           {inquiry.guestCount && (
             <div className="flex items-center gap-2 text-sm">
-              <UsersIcon className="size-4 text-zinc-400" />
+              <UsersIcon className="size-4 text-muted-foreground" />
               <span>{inquiry.guestCount} guests</span>
             </div>
           )}
         </div>
         <div>
-          <p className="mb-1 text-sm font-medium text-zinc-700">Message</p>
+          <p className="mb-1 text-sm font-medium text-foreground/80">Message</p>
           <p className="whitespace-pre-wrap rounded-md bg-zinc-50 p-3 text-sm text-zinc-600">
             {inquiry.message}
           </p>

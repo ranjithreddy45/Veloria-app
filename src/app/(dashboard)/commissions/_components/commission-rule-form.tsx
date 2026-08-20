@@ -262,7 +262,7 @@ export function CommissionRuleForm({ initialRules }: CommissionRuleFormProps) {
             {/* Rule Info */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-zinc-800 truncate">
+                <span className="text-sm font-medium text-foreground truncate">
                   {rule.name}
                 </span>
                 {!rule.isActive && (
@@ -308,7 +308,7 @@ export function CommissionRuleForm({ initialRules }: CommissionRuleFormProps) {
               <Button
                 size="icon-xs"
                 variant="ghost"
-                className="text-zinc-400 hover:text-zinc-700"
+                className="text-muted-foreground hover:text-foreground/80"
                 onClick={() => openEditDialog(rule)}
               >
                 <Pencil className="size-3.5" />
@@ -319,7 +319,7 @@ export function CommissionRuleForm({ initialRules }: CommissionRuleFormProps) {
                   <Button
                     size="icon-xs"
                     variant="ghost"
-                    className="text-zinc-400 hover:text-red-600"
+                    className="text-muted-foreground hover:text-red-600"
                     disabled={rule._count.entries > 0}
                     title={
                       rule._count.entries > 0
@@ -360,7 +360,7 @@ export function CommissionRuleForm({ initialRules }: CommissionRuleFormProps) {
 
         {rules.length === 0 && (
           <div className="flex items-center justify-center py-12">
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-muted-foreground">
               No commission rules configured yet.
             </p>
           </div>

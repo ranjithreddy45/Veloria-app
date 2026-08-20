@@ -38,8 +38,8 @@ interface StatusPillProps {
 
 // Tailwind needs full classnames at build time, so we map explicitly.
 const HUE_CLASSES: Record<Hue, { bg: string; text: string; ring: string; dot: string }> = {
-  slate:   { bg: "bg-slate-50",   text: "text-slate-700",   ring: "ring-slate-200/80",   dot: "bg-slate-500"   },
-  neutral: { bg: "bg-zinc-50",    text: "text-zinc-700",    ring: "ring-zinc-200/80",    dot: "bg-zinc-500"    },
+  slate:   { bg: "bg-slate-50",   text: "text-foreground/80",   ring: "ring-slate-200/80",   dot: "bg-slate-500"   },
+  neutral: { bg: "bg-zinc-50",    text: "text-foreground/80",    ring: "ring-zinc-200/80",    dot: "bg-zinc-500"    },
   indigo:  { bg: "bg-indigo-50",  text: "text-indigo-700",  ring: "ring-indigo-200/80",  dot: "bg-indigo-500"  },
   blue:    { bg: "bg-blue-50",    text: "text-blue-700",    ring: "ring-blue-200/80",    dot: "bg-blue-500"    },
   sky:     { bg: "bg-sky-50",     text: "text-sky-700",     ring: "ring-sky-200/80",     dot: "bg-sky-500"     },

@@ -176,7 +176,7 @@ export function GalleryGrid({ data, venues }: GalleryGridProps) {
         <div className="flex flex-1 flex-wrap items-center gap-3">
           {/* Search */}
           <div className="relative w-full sm:w-64">
-            <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
+            <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search gallery..."
               value={search}
@@ -233,7 +233,7 @@ export function GalleryGrid({ data, venues }: GalleryGridProps) {
               variant="ghost"
               size="sm"
               onClick={clearFilters}
-              className="text-zinc-500"
+              className="text-muted-foreground"
             >
               <XIcon className="mr-1 size-3" />
               Clear
@@ -252,7 +252,7 @@ export function GalleryGrid({ data, venues }: GalleryGridProps) {
       </div>
 
       {/* Results Count */}
-      <div className="flex items-center gap-2 text-sm text-zinc-500">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <FilterIcon className="size-3.5" />
         <span>
           {filteredItems.length} of {data.length} items
@@ -264,12 +264,12 @@ export function GalleryGrid({ data, venues }: GalleryGridProps) {
         <Card className="border-zinc-200/80 shadow-sm">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <div className="flex size-16 items-center justify-center rounded-full bg-zinc-100">
-              <ImageIcon className="size-8 text-zinc-400" />
+              <ImageIcon className="size-8 text-muted-foreground" />
             </div>
-            <h3 className="mt-4 text-base font-semibold text-zinc-900">
+            <h3 className="mt-4 text-base font-semibold text-foreground">
               No gallery items found
             </h3>
-            <p className="mt-1 max-w-sm text-sm text-zinc-500">
+            <p className="mt-1 max-w-sm text-sm text-muted-foreground">
               {hasActiveFilters
                 ? "Try adjusting your filters to find what you are looking for."
                 : "Upload your first photo or video to get started."}
@@ -296,7 +296,7 @@ export function GalleryGrid({ data, venues }: GalleryGridProps) {
               <div className="relative aspect-[4/3] overflow-hidden bg-zinc-100">
                 {item.mediaType === "VIDEO" ? (
                   <div className="flex size-full items-center justify-center bg-zinc-900/5">
-                    <VideoIcon className="size-12 text-zinc-400" />
+                    <VideoIcon className="size-12 text-muted-foreground" />
                     {item.thumbnailUrl && (
                       <Image
                         src={item.thumbnailUrl}
@@ -398,11 +398,11 @@ export function GalleryGrid({ data, venues }: GalleryGridProps) {
 
               {/* Item Info */}
               <CardContent className="p-3">
-                <p className="truncate text-sm font-medium text-zinc-900">
+                <p className="truncate text-sm font-medium text-foreground">
                   {item.title || "Untitled"}
                 </p>
                 {item.description && (
-                  <p className="mt-0.5 truncate text-xs text-zinc-500">
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
                     {item.description}
                   </p>
                 )}
@@ -412,7 +412,7 @@ export function GalleryGrid({ data, venues }: GalleryGridProps) {
                       <Badge
                         key={tag}
                         variant="outline"
-                        className="text-meta py-0 px-1.5 text-zinc-500"
+                        className="text-meta py-0 px-1.5 text-muted-foreground"
                       >
                         <TagIcon className="mr-0.5 size-2" />
                         {tag}
@@ -421,14 +421,14 @@ export function GalleryGrid({ data, venues }: GalleryGridProps) {
                     {item.tags.length > 3 && (
                       <Badge
                         variant="outline"
-                        className="text-meta py-0 px-1.5 text-zinc-400"
+                        className="text-meta py-0 px-1.5 text-muted-foreground"
                       >
                         +{item.tags.length - 3}
                       </Badge>
                     )}
                   </div>
                 )}
-                <p className="mt-2 text-meta text-zinc-400">
+                <p className="mt-2 text-meta text-muted-foreground">
                   {new Date(item.createdAt).toLocaleDateString("en-IN", {
                     day: "2-digit",
                     month: "short",

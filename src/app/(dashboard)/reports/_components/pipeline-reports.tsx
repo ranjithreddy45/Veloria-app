@@ -58,7 +58,7 @@ export function PipelineReports({ range }: PipelineReportsProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20 text-zinc-500">
+      <div className="flex items-center justify-center py-20 text-muted-foreground">
         <Loader2 className="mr-2 size-5 animate-spin" /> Loading pipeline data...
       </div>
     );
@@ -81,9 +81,9 @@ export function PipelineReports({ range }: PipelineReportsProps) {
         <Card className="border-zinc-200/80 shadow-sm">
           <CardContent className="p-6">
             <div className="space-y-2">
-              <p className="text-sm font-medium text-zinc-500">Conversion Rate</p>
+              <p className="text-sm font-medium text-muted-foreground">Conversion Rate</p>
               <p className="text-2xl font-bold text-green-600">{data.conversionRate}%</p>
-              <p className="text-xs text-zinc-400">
+              <p className="text-xs text-muted-foreground">
                 {data.wonDeals} won / {data.wonDeals + data.lostDeals} decided
               </p>
             </div>
@@ -92,7 +92,7 @@ export function PipelineReports({ range }: PipelineReportsProps) {
         <Card className="border-zinc-200/80 shadow-sm">
           <CardContent className="p-6">
             <div className="space-y-2">
-              <p className="text-sm font-medium text-zinc-500">Avg. Deal Value</p>
+              <p className="text-sm font-medium text-muted-foreground">Avg. Deal Value</p>
               <p className="text-2xl font-bold">{formatINR(data.averageDealValue)}</p>
             </div>
           </CardContent>
@@ -100,7 +100,7 @@ export function PipelineReports({ range }: PipelineReportsProps) {
         <Card className="border-zinc-200/80 shadow-sm">
           <CardContent className="p-6">
             <div className="space-y-2">
-              <p className="text-sm font-medium text-zinc-500">Pipeline Value</p>
+              <p className="text-sm font-medium text-muted-foreground">Pipeline Value</p>
               <p className="text-2xl font-bold">{formatINR(data.totalPipelineValue)}</p>
             </div>
           </CardContent>
@@ -108,10 +108,10 @@ export function PipelineReports({ range }: PipelineReportsProps) {
         <Card className="border-zinc-200/80 shadow-sm">
           <CardContent className="p-6">
             <div className="space-y-2">
-              <p className="text-sm font-medium text-zinc-500">Won vs Lost</p>
+              <p className="text-sm font-medium text-muted-foreground">Won vs Lost</p>
               <div className="flex items-baseline gap-2">
                 <span className="text-2xl font-bold text-green-600">{data.wonDeals}</span>
-                <span className="text-zinc-400">/</span>
+                <span className="text-muted-foreground">/</span>
                 <span className="text-2xl font-bold text-red-500">{data.lostDeals}</span>
               </div>
             </div>
@@ -125,7 +125,7 @@ export function PipelineReports({ range }: PipelineReportsProps) {
         <Card className="border-zinc-200/80 shadow-sm lg:col-span-7">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Deals by Pipeline Stage</CardTitle>
-            <p className="text-xs text-zinc-500">Number of deals at each stage</p>
+            <p className="text-xs text-muted-foreground">Number of deals at each stage</p>
           </CardHeader>
           <CardContent className="px-2 pb-4">
             {data.dealsByStage.length > 0 ? (
@@ -143,7 +143,7 @@ export function PipelineReports({ range }: PipelineReportsProps) {
                 </BarChart>
               </ChartContainer>
             ) : (
-              <p className="py-8 text-center text-sm text-zinc-400">No deal data</p>
+              <p className="py-8 text-center text-sm text-muted-foreground">No deal data</p>
             )}
           </CardContent>
         </Card>
@@ -152,7 +152,7 @@ export function PipelineReports({ range }: PipelineReportsProps) {
         <Card className="border-zinc-200/80 shadow-sm lg:col-span-5">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Won vs Lost Deals</CardTitle>
-            <p className="text-xs text-zinc-500">Conversion outcome distribution</p>
+            <p className="text-xs text-muted-foreground">Conversion outcome distribution</p>
           </CardHeader>
           <CardContent className="pb-4">
             {(data.wonDeals > 0 || data.lostDeals > 0) ? (
@@ -189,16 +189,16 @@ export function PipelineReports({ range }: PipelineReportsProps) {
                 <div className="mt-2 flex items-center justify-center gap-6">
                   <div className="flex items-center gap-2">
                     <div className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: "hsl(142, 71%, 45%)" }} />
-                    <span className="text-xs text-zinc-600">Won: {data.wonDeals}</span>
+                    <span className="text-xs text-muted-foreground">Won: {data.wonDeals}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: "hsl(0, 84%, 60%)" }} />
-                    <span className="text-xs text-zinc-600">Lost: {data.lostDeals}</span>
+                    <span className="text-xs text-muted-foreground">Lost: {data.lostDeals}</span>
                   </div>
                 </div>
               </>
             ) : (
-              <p className="py-8 text-center text-sm text-zinc-400">No won/lost data</p>
+              <p className="py-8 text-center text-sm text-muted-foreground">No won/lost data</p>
             )}
           </CardContent>
         </Card>
@@ -210,7 +210,7 @@ export function PipelineReports({ range }: PipelineReportsProps) {
         <Card className="border-zinc-200/80 shadow-sm lg:col-span-7">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Pipeline Value by Stage</CardTitle>
-            <p className="text-xs text-zinc-500">Revenue value at each pipeline stage</p>
+            <p className="text-xs text-muted-foreground">Revenue value at each pipeline stage</p>
           </CardHeader>
           <CardContent className="px-2 pb-4">
             {data.dealsByStage.length > 0 ? (
@@ -228,7 +228,7 @@ export function PipelineReports({ range }: PipelineReportsProps) {
                 </BarChart>
               </ChartContainer>
             ) : (
-              <p className="py-8 text-center text-sm text-zinc-400">No pipeline value data</p>
+              <p className="py-8 text-center text-sm text-muted-foreground">No pipeline value data</p>
             )}
           </CardContent>
         </Card>
@@ -237,7 +237,7 @@ export function PipelineReports({ range }: PipelineReportsProps) {
         <Card className="border-zinc-200/80 shadow-sm lg:col-span-5">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Leads by Source</CardTitle>
-            <p className="text-xs text-zinc-500">Where your leads come from</p>
+            <p className="text-xs text-muted-foreground">Where your leads come from</p>
           </CardHeader>
           <CardContent className="pb-4">
             {data.leadsBySource.length > 0 ? (
@@ -267,14 +267,14 @@ export function PipelineReports({ range }: PipelineReportsProps) {
                   {data.leadsBySource.map((item) => (
                     <div key={item.source} className="flex items-center gap-2">
                       <div className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.fill }} />
-                      <span className="truncate text-xs text-zinc-600">{item.source.replace(/_/g, " ")}</span>
+                      <span className="truncate text-xs text-muted-foreground">{item.source.replace(/_/g, " ")}</span>
                       <span className="ml-auto text-xs font-medium">{item.count}</span>
                     </div>
                   ))}
                 </div>
               </>
             ) : (
-              <p className="py-8 text-center text-sm text-zinc-400">No lead data</p>
+              <p className="py-8 text-center text-sm text-muted-foreground">No lead data</p>
             )}
           </CardContent>
         </Card>

@@ -56,7 +56,7 @@ export function BookingReports({ range }: BookingReportsProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20 text-zinc-500">
+      <div className="flex items-center justify-center py-20 text-muted-foreground">
         <Loader2 className="mr-2 size-5 animate-spin" /> Loading booking data...
       </div>
     );
@@ -80,7 +80,7 @@ export function BookingReports({ range }: BookingReportsProps) {
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="space-y-2">
-                <p className="text-sm font-medium text-zinc-500">Total Bookings</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Bookings</p>
                 <p className="text-2xl font-bold">{data.totalBookings}</p>
               </div>
               <div className="flex size-10 items-center justify-center rounded-lg bg-blue-100">
@@ -93,7 +93,7 @@ export function BookingReports({ range }: BookingReportsProps) {
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="space-y-2">
-                <p className="text-sm font-medium text-zinc-500">Completion Rate</p>
+                <p className="text-sm font-medium text-muted-foreground">Completion Rate</p>
                 <p className="text-2xl font-bold">{data.completionRate}%</p>
               </div>
               <div className="flex size-10 items-center justify-center rounded-lg bg-green-100">
@@ -110,7 +110,7 @@ export function BookingReports({ range }: BookingReportsProps) {
         <Card className="border-zinc-200/80 shadow-sm lg:col-span-8">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Bookings Over Time</CardTitle>
-            <p className="text-xs text-zinc-500">Monthly booking count</p>
+            <p className="text-xs text-muted-foreground">Monthly booking count</p>
           </CardHeader>
           <CardContent className="px-2 pb-4">
             <ChartContainer config={{ count: { label: "Bookings", color: "hsl(217, 91%, 60%)" } }} className="h-[300px] w-full">
@@ -135,7 +135,7 @@ export function BookingReports({ range }: BookingReportsProps) {
         <Card className="border-zinc-200/80 shadow-sm lg:col-span-4">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Bookings by Status</CardTitle>
-            <p className="text-xs text-zinc-500">Current distribution</p>
+            <p className="text-xs text-muted-foreground">Current distribution</p>
           </CardHeader>
           <CardContent className="pb-4">
             {data.bookingsByStatus.length > 0 ? (
@@ -165,14 +165,14 @@ export function BookingReports({ range }: BookingReportsProps) {
                   {data.bookingsByStatus.map((item) => (
                     <div key={item.status} className="flex items-center gap-2">
                       <div className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.fill }} />
-                      <span className="truncate text-xs text-zinc-600">{item.status.replace(/_/g, " ")}</span>
+                      <span className="truncate text-xs text-muted-foreground">{item.status.replace(/_/g, " ")}</span>
                       <span className="ml-auto text-xs font-medium">{item.count}</span>
                     </div>
                   ))}
                 </div>
               </>
             ) : (
-              <p className="py-8 text-center text-sm text-zinc-400">No booking data</p>
+              <p className="py-8 text-center text-sm text-muted-foreground">No booking data</p>
             )}
           </CardContent>
         </Card>
@@ -183,7 +183,7 @@ export function BookingReports({ range }: BookingReportsProps) {
         <Card className="border-zinc-200/80 shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Bookings by Venue</CardTitle>
-            <p className="text-xs text-zinc-500">Distribution across venues</p>
+            <p className="text-xs text-muted-foreground">Distribution across venues</p>
           </CardHeader>
           <CardContent className="px-2 pb-4">
             <ChartContainer config={{ count: { label: "Bookings", color: "hsl(142, 71%, 45%)" } }} className="h-[200px] w-full">
@@ -204,7 +204,7 @@ export function BookingReports({ range }: BookingReportsProps) {
         <Card className="border-zinc-200/80 shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Bookings by Lead Source</CardTitle>
-            <p className="text-xs text-zinc-500">Where bookings originate from</p>
+            <p className="text-xs text-muted-foreground">Where bookings originate from</p>
           </CardHeader>
           <CardContent className="px-2 pb-4">
             <ChartContainer

@@ -36,7 +36,7 @@ const RANK_STYLES: Record<
   },
   2: {
     bg: "bg-zinc-50 border-zinc-300 dark:bg-zinc-800/30 dark:border-zinc-600",
-    icon: <MedalIcon className="size-5 text-zinc-400" />,
+    icon: <MedalIcon className="size-5 text-muted-foreground" />,
   },
   3: {
     bg: "bg-orange-50 border-orange-300 dark:bg-orange-950/30 dark:border-orange-700",

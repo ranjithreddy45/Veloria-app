@@ -44,7 +44,7 @@ const RANK_STYLES: Record<number, { bg: string; icon: React.ReactNode; label: st
   },
   2: {
     bg: "bg-zinc-50 border-zinc-300 dark:bg-zinc-800/30 dark:border-zinc-600",
-    icon: <MedalIcon className="size-5 text-zinc-400" />,
+    icon: <MedalIcon className="size-5 text-muted-foreground" />,
     label: "Silver",
   },
   3: {

@@ -134,7 +134,7 @@ function getFileIcon(mimeType: string) {
   if (mimeType.includes("pdf")) {
     return <FileTextIcon className="size-8 text-red-500" />;
   }
-  return <FileIcon className="size-8 text-zinc-400" />;
+  return <FileIcon className="size-8 text-muted-foreground" />;
 }
 
 function getFileTypeLabel(mimeType: string): string {
@@ -210,7 +210,7 @@ export function DocumentList({ data, venues }: DocumentListProps) {
         <div className="flex flex-1 flex-wrap items-center gap-3">
           {/* Search */}
           <div className="relative w-full sm:w-64">
-            <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
+            <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search documents..."
               value={search}
@@ -240,7 +240,7 @@ export function DocumentList({ data, venues }: DocumentListProps) {
               variant="ghost"
               size="sm"
               onClick={clearFilters}
-              className="text-zinc-500"
+              className="text-muted-foreground"
             >
               <XIcon className="mr-1 size-3" />
               Clear
@@ -259,7 +259,7 @@ export function DocumentList({ data, venues }: DocumentListProps) {
       </div>
 
       {/* Results Count */}
-      <div className="flex items-center gap-2 text-sm text-zinc-500">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <FilterIcon className="size-3.5" />
         <span>
           {filteredItems.length} of {data.length} documents
@@ -271,12 +271,12 @@ export function DocumentList({ data, venues }: DocumentListProps) {
         <Card className="border-zinc-200/80 shadow-sm">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <div className="flex size-16 items-center justify-center rounded-full bg-zinc-100">
-              <FileTextIcon className="size-8 text-zinc-400" />
+              <FileTextIcon className="size-8 text-muted-foreground" />
             </div>
-            <h3 className="mt-4 text-base font-semibold text-zinc-900">
+            <h3 className="mt-4 text-base font-semibold text-foreground">
               No documents found
             </h3>
-            <p className="mt-1 max-w-sm text-sm text-zinc-500">
+            <p className="mt-1 max-w-sm text-sm text-muted-foreground">
               {hasActiveFilters
                 ? "Try adjusting your filters to find what you are looking for."
                 : "Upload your first document to get started."}
@@ -372,7 +372,7 @@ export function DocumentList({ data, venues }: DocumentListProps) {
 
               {/* Document Info */}
               <CardContent className="p-3">
-                <p className="truncate text-sm font-medium text-zinc-900">
+                <p className="truncate text-sm font-medium text-foreground">
                   {doc.name}
                 </p>
                 <div className="mt-1.5 flex items-center gap-2">
@@ -385,7 +385,7 @@ export function DocumentList({ data, venues }: DocumentListProps) {
                   >
                     {CATEGORY_LABELS[doc.category] || doc.category}
                   </Badge>
-                  <span className="text-meta text-zinc-400">
+                  <span className="text-meta text-muted-foreground">
                     {formatFileSize(doc.size)}
                   </span>
                 </div>
@@ -395,7 +395,7 @@ export function DocumentList({ data, venues }: DocumentListProps) {
                       <Badge
                         key={tag}
                         variant="outline"
-                        className="text-meta py-0 px-1.5 text-zinc-500"
+                        className="text-meta py-0 px-1.5 text-muted-foreground"
                       >
                         <TagIcon className="mr-0.5 size-2" />
                         {tag}
@@ -404,14 +404,14 @@ export function DocumentList({ data, venues }: DocumentListProps) {
                     {doc.tags.length > 3 && (
                       <Badge
                         variant="outline"
-                        className="text-meta py-0 px-1.5 text-zinc-400"
+                        className="text-meta py-0 px-1.5 text-muted-foreground"
                       >
                         +{doc.tags.length - 3}
                       </Badge>
                     )}
                   </div>
                 )}
-                <p className="mt-2 text-meta text-zinc-400">
+                <p className="mt-2 text-meta text-muted-foreground">
                   {new Date(doc.createdAt).toLocaleDateString("en-IN", {
                     day: "2-digit",
                     month: "short",

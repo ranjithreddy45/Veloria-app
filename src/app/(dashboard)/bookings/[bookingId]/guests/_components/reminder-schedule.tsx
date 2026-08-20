@@ -37,8 +37,8 @@ const STAGE_ICONS: Record<string, React.ReactNode> = {
 const STATUS_ICONS: Record<string, React.ReactNode> = {
   REMINDER_SENT: <CheckCircle2 className="size-3.5 text-emerald-500" />,
   REMINDER_FAILED: <XCircle className="size-3.5 text-red-500" />,
-  REMINDER_PENDING: <Clock className="size-3.5 text-zinc-400" />,
-  REMINDER_SKIPPED: <SkipForward className="size-3.5 text-zinc-400" />,
+  REMINDER_PENDING: <Clock className="size-3.5 text-muted-foreground" />,
+  REMINDER_SKIPPED: <SkipForward className="size-3.5 text-muted-foreground" />,
 };
 
 interface StageStats {

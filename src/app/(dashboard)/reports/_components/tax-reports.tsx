@@ -65,7 +65,7 @@ export function TaxReports({ range }: TaxReportsProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20 text-zinc-500">
+      <div className="flex items-center justify-center py-20 text-muted-foreground">
         <Loader2 className="mr-2 size-5 animate-spin" /> Loading tax data...
       </div>
     );
@@ -97,7 +97,7 @@ export function TaxReports({ range }: TaxReportsProps) {
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="space-y-2">
-                <p className="text-sm font-medium text-zinc-500">Total Taxable Amount</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Taxable Amount</p>
                 <p className="text-2xl font-bold">{formatINR(data.totalTaxable)}</p>
               </div>
               <div className="flex size-10 items-center justify-center rounded-lg bg-indigo-100">
@@ -110,7 +110,7 @@ export function TaxReports({ range }: TaxReportsProps) {
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="space-y-2">
-                <p className="text-sm font-medium text-zinc-500">Total Tax Collected</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Tax Collected</p>
                 <p className="text-2xl font-bold">{formatINR(data.totalTax)}</p>
               </div>
               <div className="flex size-10 items-center justify-center rounded-lg bg-emerald-100">
@@ -125,7 +125,7 @@ export function TaxReports({ range }: TaxReportsProps) {
       <Card className="border-zinc-200/80 shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-base">Monthly GST Summary</CardTitle>
-          <p className="text-xs text-zinc-500">CGST and SGST breakdown by month</p>
+          <p className="text-xs text-muted-foreground">CGST and SGST breakdown by month</p>
         </CardHeader>
         <CardContent className="px-2 pb-4">
           {data.months.length > 0 ? (
@@ -140,7 +140,7 @@ export function TaxReports({ range }: TaxReportsProps) {
               </BarChart>
             </ChartContainer>
           ) : (
-            <p className="py-8 text-center text-sm text-zinc-400">No GST data</p>
+            <p className="py-8 text-center text-sm text-muted-foreground">No GST data</p>
           )}
         </CardContent>
       </Card>
@@ -151,7 +151,7 @@ export function TaxReports({ range }: TaxReportsProps) {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-base">GST Detail</CardTitle>
-              <p className="text-xs text-zinc-500">Monthly tax breakdown</p>
+              <p className="text-xs text-muted-foreground">Monthly tax breakdown</p>
             </div>
             {data.months.length > 0 && (
               <ReportExportButton
@@ -202,7 +202,7 @@ export function TaxReports({ range }: TaxReportsProps) {
               </TableFooter>
             </Table>
           ) : (
-            <p className="py-8 text-center text-sm text-zinc-400">No GST data</p>
+            <p className="py-8 text-center text-sm text-muted-foreground">No GST data</p>
           )}
         </CardContent>
       </Card>

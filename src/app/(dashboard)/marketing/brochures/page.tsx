@@ -112,7 +112,7 @@ export default async function BrochuresPage() {
                       >
                         {b.title}
                       </Link>
-                      <div className="text-xs text-zinc-500">/v/{b.slug}</div>
+                      <div className="text-xs text-muted-foreground">/v/{b.slug}</div>
                     </TableCell>
                     <TableCell className="text-sm text-zinc-600 dark:text-zinc-300">
                       {b.venueName || (b.eventType ? `Event: ${b.eventType}` : "—")}

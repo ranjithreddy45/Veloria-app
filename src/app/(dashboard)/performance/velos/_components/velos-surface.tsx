@@ -149,7 +149,7 @@ export function VelosSurface({
           <div className="divide-y">
             {leaderboard.map((r, i) => {
               const mostImproved = leaderboard.length > 1 && r.delta === Math.max(...leaderboard.map((x) => x.delta)) && r.delta > 0;
-              const medal = i === 0 ? "text-[#C9A96E]" : i === 1 ? "text-slate-400" : i === 2 ? "text-amber-700" : null;
+              const medal = i === 0 ? "text-[#C9A96E]" : i === 1 ? "text-muted-foreground" : i === 2 ? "text-amber-700" : null;
               const isMe = r.userId === myId;
               // Goal-gradient chase line: show ME the small remaining gap, not just totals.
               const chase = isMe

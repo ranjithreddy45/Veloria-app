@@ -99,7 +99,7 @@ export function OperationsReports({ range }: OperationsReportsProps) {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-base">Daily Operations Summary</CardTitle>
-              <p className="text-xs text-zinc-500">Overview for a selected day</p>
+              <p className="text-xs text-muted-foreground">Overview for a selected day</p>
             </div>
             <input
               type="date"
@@ -111,7 +111,7 @@ export function OperationsReports({ range }: OperationsReportsProps) {
         </CardHeader>
         <CardContent className="pb-4">
           {dailyLoading ? (
-            <div className="flex items-center justify-center py-12 text-zinc-500">
+            <div className="flex items-center justify-center py-12 text-muted-foreground">
               <Loader2 className="mr-2 size-5 animate-spin" /> Loading daily summary...
             </div>
           ) : dailyData ? (
@@ -123,7 +123,7 @@ export function OperationsReports({ range }: OperationsReportsProps) {
                     <CalendarCheck className="size-4 text-blue-600" />
                   </div>
                   <div>
-                    <p className="text-xs text-zinc-500">Bookings Today</p>
+                    <p className="text-xs text-muted-foreground">Bookings Today</p>
                     <p className="text-lg font-bold">{dailyData.bookingsToday}</p>
                   </div>
                 </div>
@@ -132,7 +132,7 @@ export function OperationsReports({ range }: OperationsReportsProps) {
                     <IndianRupee className="size-4 text-emerald-600" />
                   </div>
                   <div>
-                    <p className="text-xs text-zinc-500">Payments Collected</p>
+                    <p className="text-xs text-muted-foreground">Payments Collected</p>
                     <p className="text-lg font-bold">{formatINR(dailyData.paymentsCollected)}</p>
                   </div>
                 </div>
@@ -141,7 +141,7 @@ export function OperationsReports({ range }: OperationsReportsProps) {
                     <CheckCircle className="size-4 text-green-600" />
                   </div>
                   <div>
-                    <p className="text-xs text-zinc-500">Tasks Completed</p>
+                    <p className="text-xs text-muted-foreground">Tasks Completed</p>
                     <p className="text-lg font-bold">{dailyData.tasksCompleted}</p>
                   </div>
                 </div>
@@ -150,7 +150,7 @@ export function OperationsReports({ range }: OperationsReportsProps) {
                     <Clock className="size-4 text-amber-600" />
                   </div>
                   <div>
-                    <p className="text-xs text-zinc-500">Tasks Pending</p>
+                    <p className="text-xs text-muted-foreground">Tasks Pending</p>
                     <p className="text-lg font-bold">{dailyData.tasksPending}</p>
                   </div>
                 </div>
@@ -159,7 +159,7 @@ export function OperationsReports({ range }: OperationsReportsProps) {
                     <Users className="size-4 text-violet-600" />
                   </div>
                   <div>
-                    <p className="text-xs text-zinc-500">Staff On Duty</p>
+                    <p className="text-xs text-muted-foreground">Staff On Duty</p>
                     <p className="text-lg font-bold">{dailyData.staffOnDuty}</p>
                   </div>
                 </div>
@@ -168,7 +168,7 @@ export function OperationsReports({ range }: OperationsReportsProps) {
               {/* Upcoming Events */}
               {dailyData.upcomingEvents.length > 0 && (
                 <div>
-                  <h4 className="mb-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+                  <h4 className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     Events for this Day
                   </h4>
                   <div className="space-y-2">
@@ -179,7 +179,7 @@ export function OperationsReports({ range }: OperationsReportsProps) {
                       >
                         <div>
                           <p className="text-sm font-medium">{event.name}</p>
-                          <p className="text-xs text-zinc-500">{event.venue}</p>
+                          <p className="text-xs text-muted-foreground">{event.venue}</p>
                         </div>
                         <span className="text-sm font-medium text-indigo-600">{event.time}</span>
                       </div>
@@ -189,11 +189,11 @@ export function OperationsReports({ range }: OperationsReportsProps) {
               )}
 
               {dailyData.upcomingEvents.length === 0 && (
-                <p className="py-4 text-center text-sm text-zinc-400">No events scheduled for this day</p>
+                <p className="py-4 text-center text-sm text-muted-foreground">No events scheduled for this day</p>
               )}
             </div>
           ) : (
-            <p className="py-8 text-center text-sm text-zinc-400">No data available</p>
+            <p className="py-8 text-center text-sm text-muted-foreground">No data available</p>
           )}
         </CardContent>
       </Card>
@@ -204,7 +204,7 @@ export function OperationsReports({ range }: OperationsReportsProps) {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-base">Task Completion by Assignee</CardTitle>
-              <p className="text-xs text-zinc-500">Performance metrics per team member</p>
+              <p className="text-xs text-muted-foreground">Performance metrics per team member</p>
             </div>
             {taskData && (
               <ReportExportButton
@@ -224,7 +224,7 @@ export function OperationsReports({ range }: OperationsReportsProps) {
         </CardHeader>
         <CardContent className="pb-4">
           {taskLoading ? (
-            <div className="flex items-center justify-center py-12 text-zinc-500">
+            <div className="flex items-center justify-center py-12 text-muted-foreground">
               <Loader2 className="mr-2 size-5 animate-spin" /> Loading task data...
             </div>
           ) : taskData ? (
@@ -258,7 +258,7 @@ export function OperationsReports({ range }: OperationsReportsProps) {
                   <div className="grid gap-6 lg:grid-cols-12">
                     {/* Task Status Overview Pie */}
                     <div className="lg:col-span-4">
-                      <p className="mb-2 text-xs font-medium text-zinc-500 text-center">Task Status Overview</p>
+                      <p className="mb-2 text-xs font-medium text-muted-foreground text-center">Task Status Overview</p>
                       <ChartContainer
                         config={taskStatusData.reduce((acc, s) => {
                           acc[s.name] = { label: s.name, color: s.fill };
@@ -279,7 +279,7 @@ export function OperationsReports({ range }: OperationsReportsProps) {
                         {taskStatusData.map((s) => (
                           <div key={s.name} className="flex items-center gap-1.5">
                             <div className="size-2 shrink-0 rounded-full" style={{ backgroundColor: s.fill }} />
-                            <span className="text-meta text-zinc-600">{s.name}: {s.value}</span>
+                            <span className="text-meta text-muted-foreground">{s.name}: {s.value}</span>
                           </div>
                         ))}
                       </div>
@@ -287,7 +287,7 @@ export function OperationsReports({ range }: OperationsReportsProps) {
 
                     {/* Stacked Bar: Completed / Pending / Overdue per Assignee */}
                     <div className="lg:col-span-8">
-                      <p className="mb-2 text-xs font-medium text-zinc-500 text-center">Tasks by Assignee (Completed / Pending / Overdue)</p>
+                      <p className="mb-2 text-xs font-medium text-muted-foreground text-center">Tasks by Assignee (Completed / Pending / Overdue)</p>
                       <ChartContainer
                         config={{
                           completed: { label: "Completed", color: "hsl(142, 71%, 45%)" },
@@ -322,12 +322,12 @@ export function OperationsReports({ range }: OperationsReportsProps) {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-zinc-200 text-left">
-                        <th className="pb-2 pr-4 font-medium text-zinc-500">Assignee Name</th>
-                        <th className="pb-2 pr-4 font-medium text-zinc-500 text-right">Total</th>
-                        <th className="pb-2 pr-4 font-medium text-zinc-500 text-right">Completed</th>
-                        <th className="pb-2 pr-4 font-medium text-zinc-500 text-right">Pending</th>
-                        <th className="pb-2 pr-4 font-medium text-zinc-500 text-right">Overdue</th>
-                        <th className="pb-2 font-medium text-zinc-500 text-right">Rate</th>
+                        <th className="pb-2 pr-4 font-medium text-muted-foreground">Assignee Name</th>
+                        <th className="pb-2 pr-4 font-medium text-muted-foreground text-right">Total</th>
+                        <th className="pb-2 pr-4 font-medium text-muted-foreground text-right">Completed</th>
+                        <th className="pb-2 pr-4 font-medium text-muted-foreground text-right">Pending</th>
+                        <th className="pb-2 pr-4 font-medium text-muted-foreground text-right">Overdue</th>
+                        <th className="pb-2 font-medium text-muted-foreground text-right">Rate</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -345,11 +345,11 @@ export function OperationsReports({ range }: OperationsReportsProps) {
                   </table>
                 </div>
               ) : (
-                <p className="py-8 text-center text-sm text-zinc-400">No task data</p>
+                <p className="py-8 text-center text-sm text-muted-foreground">No task data</p>
               )}
             </div>
           ) : (
-            <p className="py-8 text-center text-sm text-zinc-400">No data available</p>
+            <p className="py-8 text-center text-sm text-muted-foreground">No data available</p>
           )}
         </CardContent>
       </Card>

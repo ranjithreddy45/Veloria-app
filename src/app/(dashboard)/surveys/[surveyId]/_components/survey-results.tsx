@@ -89,7 +89,7 @@ export function SurveyResults({ questionResults }: SurveyResultsProps) {
     return (
       <Card className="border-zinc-200/80 shadow-sm">
         <CardContent className="flex flex-col items-center justify-center py-12">
-          <p className="text-sm text-zinc-500">No question results to display</p>
+          <p className="text-sm text-muted-foreground">No question results to display</p>
         </CardContent>
       </Card>
     );
@@ -105,7 +105,7 @@ export function SurveyResults({ questionResults }: SurveyResultsProps) {
                 <Badge variant="outline" className="text-xs">
                   Q{index + 1}
                 </Badge>
-                <CardTitle className="text-sm font-semibold text-zinc-900">
+                <CardTitle className="text-sm font-semibold text-foreground">
                   {result.question}
                 </CardTitle>
               </div>
@@ -116,7 +116,7 @@ export function SurveyResults({ questionResults }: SurveyResultsProps) {
                 {SURVEY_QUESTION_TYPE_LABELS[result.type]}
               </Badge>
             </div>
-            <p className="text-xs text-zinc-400">
+            <p className="text-xs text-muted-foreground">
               {result.totalAnswers} response{result.totalAnswers !== 1 ? "s" : ""}
             </p>
           </CardHeader>
@@ -124,11 +124,11 @@ export function SurveyResults({ questionResults }: SurveyResultsProps) {
             {result.type === "RATING" && (
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl font-bold text-zinc-900">
+                  <span className="text-2xl font-bold text-foreground">
                     {result.average}
                   </span>
                   <StarRating value={result.average} />
-                  <span className="text-sm text-zinc-400">/ 5</span>
+                  <span className="text-sm text-muted-foreground">/ 5</span>
                 </div>
                 <div className="space-y-1.5">
                   {[5, 4, 3, 2, 1].map((star) => {
@@ -142,13 +142,13 @@ export function SurveyResults({ questionResults }: SurveyResultsProps) {
                         key={star}
                         className="flex items-center gap-2 text-sm"
                       >
-                        <span className="w-4 text-right text-zinc-500">
+                        <span className="w-4 text-right text-muted-foreground">
                           {star}
                         </span>
                         <div className="flex-1">
                           <Progress value={pct} className="h-2" />
                         </div>
-                        <span className="w-12 text-right text-xs text-zinc-400">
+                        <span className="w-12 text-right text-xs text-muted-foreground">
                           {count} ({pct}%)
                         </span>
                       </div>
@@ -160,10 +160,10 @@ export function SurveyResults({ questionResults }: SurveyResultsProps) {
 
             {result.type === "NPS" && (
               <div className="flex items-center gap-3">
-                <span className="text-2xl font-bold text-zinc-900">
+                <span className="text-2xl font-bold text-foreground">
                   {result.average}
                 </span>
-                <span className="text-sm text-zinc-400">
+                <span className="text-sm text-muted-foreground">
                   average score out of 10
                 </span>
               </div>
@@ -181,8 +181,8 @@ export function SurveyResults({ questionResults }: SurveyResultsProps) {
                     return (
                       <div key={option} className="space-y-1">
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-zinc-700">{option}</span>
-                          <span className="text-xs text-zinc-400">
+                          <span className="text-foreground/80">{option}</span>
+                          <span className="text-xs text-muted-foreground">
                             {count} ({pct}%)
                           </span>
                         </div>
@@ -196,14 +196,14 @@ export function SurveyResults({ questionResults }: SurveyResultsProps) {
             {result.type === "TEXT" && (
               <div className="space-y-2">
                 {result.recentAnswers.length === 0 ? (
-                  <p className="text-sm text-zinc-400">No text responses yet</p>
+                  <p className="text-sm text-muted-foreground">No text responses yet</p>
                 ) : (
                   result.recentAnswers.map((answer, i) => (
                     <div
                       key={i}
                       className="rounded-md border border-zinc-100 bg-zinc-50 p-3"
                     >
-                      <p className="text-sm text-zinc-700">{answer}</p>
+                      <p className="text-sm text-foreground/80">{answer}</p>
                     </div>
                   ))
                 )}

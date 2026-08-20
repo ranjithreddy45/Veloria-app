@@ -337,7 +337,7 @@ export function BrochureEditor({
         </CardHeader>
         <CardContent>
           {options.galleryItems.length === 0 ? (
-            <p className="text-sm text-zinc-500">No public gallery items available.</p>
+            <p className="text-sm text-muted-foreground">No public gallery items available.</p>
           ) : (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
               {options.galleryItems.map((g) => {
@@ -378,7 +378,7 @@ export function BrochureEditor({
         </CardHeader>
         <CardContent className="space-y-2">
           {options.reviews.length === 0 ? (
-            <p className="text-sm text-zinc-500">No approved reviews available.</p>
+            <p className="text-sm text-muted-foreground">No approved reviews available.</p>
           ) : (
             options.reviews.map((r) => {
               const selected = form.reviewIds.includes(r.id);
@@ -400,8 +400,8 @@ export function BrochureEditor({
                   </div>
                   <div className="min-w-0">
                     {r.title && <p className="text-sm font-medium">{r.title}</p>}
-                    <p className="line-clamp-2 text-xs text-zinc-500">{r.content}</p>
-                    <p className="mt-1 text-meta text-zinc-400">— {r.authorFirstName}</p>
+                    <p className="line-clamp-2 text-xs text-muted-foreground">{r.content}</p>
+                    <p className="mt-1 text-meta text-muted-foreground">— {r.authorFirstName}</p>
                   </div>
                 </button>
               );
@@ -454,7 +454,7 @@ function Field({
     <div className="space-y-1.5">
       <Label>{label}</Label>
       {children}
-      {hint && <p className="text-xs text-zinc-400">{hint}</p>}
+      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
     </div>
   );
 }

@@ -32,7 +32,7 @@ const TONE_ACCENT: Record<ChecklistTone, string> = {
 
 function ToneDot({ tone }: { tone: ChecklistTone }) {
   if (tone === "done") return <Check className="size-3.5 text-emerald-600" strokeWidth={3} />;
-  if (tone === "na") return <Minus className="size-3.5 text-zinc-400" strokeWidth={3} />;
+  if (tone === "na") return <Minus className="size-3.5 text-muted-foreground" strokeWidth={3} />;
   return <Circle className="size-3 fill-amber-400 text-amber-400" />;
 }
 

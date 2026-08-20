@@ -199,7 +199,7 @@ export function PriceSimulator({ venues }: PriceSimulatorProps) {
 
             {result.appliedRules.length > 0 ? (
               <div className="space-y-2">
-                <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Applied rules ({result.appliedRules.length})
                 </p>
                 {result.appliedRules.map((r) => (
@@ -216,7 +216,7 @@ export function PriceSimulator({ venues }: PriceSimulatorProps) {
                       <span className="truncate text-zinc-700 dark:text-zinc-300">
                         {r.name}
                       </span>
-                      <span className="text-xs text-zinc-400">
+                      <span className="text-xs text-muted-foreground">
                         ×{r.multiplier}
                       </span>
                     </div>

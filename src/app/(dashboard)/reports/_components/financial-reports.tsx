@@ -100,7 +100,7 @@ export function FinancialReports({ range }: FinancialReportsProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20 text-zinc-500">
+      <div className="flex items-center justify-center py-20 text-muted-foreground">
         <Loader2 className="mr-2 size-5 animate-spin" /> Loading financial data...
       </div>
     );
@@ -129,13 +129,13 @@ export function FinancialReports({ range }: FinancialReportsProps) {
         <Card className="border-zinc-200/80 shadow-sm lg:col-span-4">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Payment Method Breakdown</CardTitle>
-            <p className="text-xs text-zinc-500">Distribution by payment method</p>
+            <p className="text-xs text-muted-foreground">Distribution by payment method</p>
           </CardHeader>
           <CardContent className="pb-4">
             {/* KPI */}
             <div className="mb-4 flex items-start justify-between rounded-lg bg-zinc-50 p-3">
               <div className="space-y-1">
-                <p className="text-xs font-medium text-zinc-500">Total Payments Collected</p>
+                <p className="text-xs font-medium text-muted-foreground">Total Payments Collected</p>
                 <p className="text-xl font-bold">{formatINR(paymentData?.total ?? 0)}</p>
               </div>
               <div className="flex size-9 items-center justify-center rounded-lg bg-emerald-100">
@@ -170,13 +170,13 @@ export function FinancialReports({ range }: FinancialReportsProps) {
                   {paymentData.methods.map((item) => (
                     <div key={item.method} className="flex items-center gap-2">
                       <div className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.fill }} />
-                      <span className="truncate text-xs text-zinc-600">{item.method.replace(/_/g, " ")}</span>
+                      <span className="truncate text-xs text-muted-foreground">{item.method.replace(/_/g, " ")}</span>
                     </div>
                   ))}
                 </div>
               </>
             ) : (
-              <p className="py-8 text-center text-sm text-zinc-400">No payment data</p>
+              <p className="py-8 text-center text-sm text-muted-foreground">No payment data</p>
             )}
           </CardContent>
         </Card>
@@ -282,7 +282,7 @@ export function FinancialReports({ range }: FinancialReportsProps) {
                 </TableBody>
               </Table>
             ) : (
-              <p className="py-8 text-center text-sm text-zinc-400">No settlement data</p>
+              <p className="py-8 text-center text-sm text-muted-foreground">No settlement data</p>
             )}
           </CardContent>
         </Card>
@@ -294,7 +294,7 @@ export function FinancialReports({ range }: FinancialReportsProps) {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-base">Advance Deposits</CardTitle>
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-muted-foreground">
                 Total deposits: {formatINR(depositData?.totalDeposits ?? 0)}
               </p>
             </div>
@@ -330,7 +330,7 @@ export function FinancialReports({ range }: FinancialReportsProps) {
             ];
             return (
               <div className="mb-6">
-                <p className="mb-2 text-xs font-medium text-zinc-500">Deposits by Payment Method</p>
+                <p className="mb-2 text-xs font-medium text-muted-foreground">Deposits by Payment Method</p>
                 <ChartContainer
                   config={methodChartData.reduce((acc, item, i) => {
                     acc[item.method] = { label: item.method, color: DEPOSIT_COLORS[i % DEPOSIT_COLORS.length] };
@@ -378,7 +378,7 @@ export function FinancialReports({ range }: FinancialReportsProps) {
               </TableBody>
             </Table>
           ) : (
-            <p className="py-8 text-center text-sm text-zinc-400">No deposit data</p>
+            <p className="py-8 text-center text-sm text-muted-foreground">No deposit data</p>
           )}
         </CardContent>
       </Card>
@@ -388,7 +388,7 @@ export function FinancialReports({ range }: FinancialReportsProps) {
         <Card className="border-zinc-200/80 shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Revenue by Category</CardTitle>
-            <p className="text-xs text-zinc-500">Breakdown across service categories</p>
+            <p className="text-xs text-muted-foreground">Breakdown across service categories</p>
           </CardHeader>
           <CardContent className="px-2 pb-4">
             <ChartContainer config={categoryConfig} className="h-[250px] w-full">
@@ -418,7 +418,7 @@ export function FinancialReports({ range }: FinancialReportsProps) {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-base">Discounts Applied</CardTitle>
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-muted-foreground">
                 Total discounts given: {formatINR(discountData?.totalDiscounts ?? 0)}
               </p>
             </div>
@@ -442,7 +442,7 @@ export function FinancialReports({ range }: FinancialReportsProps) {
           {/* Discounts by Event Horizontal Bar Chart */}
           {discountData && discountData.discounts.length > 0 && (
             <div className="mb-6">
-              <p className="mb-2 text-xs font-medium text-zinc-500">Discount Amount by Event</p>
+              <p className="mb-2 text-xs font-medium text-muted-foreground">Discount Amount by Event</p>
               <ChartContainer
                 config={{ discountAmount: { label: "Discount", color: "hsl(30, 95%, 50%)" } }}
                 className="h-[200px] w-full"
@@ -492,7 +492,7 @@ export function FinancialReports({ range }: FinancialReportsProps) {
               </TableBody>
             </Table>
           ) : (
-            <p className="py-8 text-center text-sm text-zinc-400">No discount data</p>
+            <p className="py-8 text-center text-sm text-muted-foreground">No discount data</p>
           )}
         </CardContent>
       </Card>
