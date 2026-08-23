@@ -96,7 +96,7 @@ export function CampaignBoard({ data }: CampaignBoardProps) {
         totalSent={stats.totalSent}
         totalOpened={stats.totalOpened}
       />
-      <div className="flex gap-4">
+      <div className="flex flex-col lg:flex-row gap-4">
         <FacetFilterRail
           items={data}
           facets={facets}

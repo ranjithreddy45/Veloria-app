@@ -518,7 +518,7 @@ export function Candidates({
         {canWrite && <NewCandidateDialog />}
       </div>
 
-      <div className="flex gap-4">
+      <div className="flex flex-col lg:flex-row gap-4">
         <FacetFilterRail
           items={data.rows}
           facets={FACETS}

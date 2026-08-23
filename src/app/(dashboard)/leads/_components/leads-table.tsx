@@ -1027,7 +1027,7 @@ export function LeadsTable({ data, statusFiltered = false }: LeadsTableProps) {
           onChange={setStatusFilter}
         />
       )}
-      <div className="flex items-start gap-4">
+      <div className="flex flex-col lg:flex-row items-start gap-4">
         <FacetFilterRail
           items={filtered}
           facets={leadFacets}

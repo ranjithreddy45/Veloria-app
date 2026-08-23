@@ -312,7 +312,7 @@ export function PaymentsTable({ data, canCancel = false, isManager = false }: Pa
   }
 
   return (
-    <div className="flex items-start gap-4">
+    <div className="flex flex-col lg:flex-row items-start gap-4">
       <FacetFilterRail
         items={data}
         facets={PAYMENT_FACETS}
