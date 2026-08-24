@@ -20,6 +20,7 @@ interface Props {
 export function FacebookConfig({ initialConfig }: Props) {
   const creds = initialConfig?.credentials || {};
   const [appId, setAppId] = useState(creds.appId || "");
+  const [appSecret, setAppSecret] = useState(creds.appSecret || "");
   const [accessToken, setAccessToken] = useState(creds.accessToken || "");
   const [verifyToken, setVerifyToken] = useState(creds.verifyToken || "veloria_fb_verify");
   const [pageId, setPageId] = useState(creds.pageId || "");
@@ -36,7 +37,7 @@ export function FacebookConfig({ initialConfig }: Props) {
     startTransition(async () => {
       const result = await upsertLeadCaptureConfig({
         platform: "FACEBOOK",
-        credentials: { appId, accessToken, verifyToken, pageId },
+        credentials: { appId, appSecret, accessToken, verifyToken, pageId },
         isActive: true,
       });
 
@@ -124,6 +125,21 @@ export function FacebookConfig({ initialConfig }: Props) {
         </div>
 
         <div className="space-y-1.5">
+          <Label>App Secret</Label>
+          <Input
+            type="password"
+            value={appSecret}
+            onChange={(e) => setAppSecret(e.target.value)}
+            placeholder="Facebook App Secret"
+          />
+          <p className="text-xs text-muted-foreground">
+            <strong>Required to receive leads.</strong> Meta signs every lead
+            webhook with this secret; without it, incoming leads are rejected.
+            Find it in Meta Developer Dashboard → App Settings → Basic → App Secret.
+          </p>
+        </div>
+
+        <div className="space-y-1.5">
           <Label>Page Access Token</Label>
           <Input
             type="password"
@@ -183,7 +199,9 @@ export function FacebookConfig({ initialConfig }: Props) {
               <li>Subscribe to the <strong>&quot;leadgen&quot;</strong> field</li>
               <li>Go to <strong>Page Settings → Connected Apps</strong> and ensure your app has the <code>leads_retrieval</code> permission</li>
               <li>Generate a <strong>long-lived Page Access Token</strong> with <code>pages_manage_ads</code>, <code>ads_management</code>, <code>leads_retrieval</code> permissions</li>
-              <li>Paste the token above and click <strong>Save</strong></li>
+              <li>Copy your <strong>App Secret</strong> from <strong>App Settings → Basic</strong> — this is required, leads are rejected without it</li>
+              <li>Paste the App Secret and token above and click <strong>Save</strong></li>
+              <li><strong>Publish your app</strong> (App Review → make live) — Meta only delivers real leads from a Live app, not one in Development mode</li>
             </ol>
           )}
         </div>
