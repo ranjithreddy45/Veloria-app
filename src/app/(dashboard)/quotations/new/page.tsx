@@ -13,20 +13,23 @@ export default async function NewQuotationPage({
 }) {
   const { leadId } = await searchParams;
 
-  const [leadsRaw, venues] = await Promise.all([
+  // Field shape shared by the dropdown list and the single-lead lookup below.
+  const leadSelect = {
+    id: true,
+    title: true,
+    contactId: true,
+    eventType: true,
+    eventDate: true,
+    guestCount: true,
+    slot: true,
+    preferredVenueId: true,
+    contact: { select: { firstName: true, lastName: true, phone: true, email: true } },
+  } as const;
+
+  const [leadsRaw, venues, targetLead] = await Promise.all([
     prisma.lead.findMany({
       where: { deletedAt: null, status: { notIn: ["WON", "LOST"] } },
-      select: {
-        id: true,
-        title: true,
-        contactId: true,
-        eventType: true,
-        eventDate: true,
-        guestCount: true,
-        slot: true,
-        preferredVenueId: true,
-        contact: { select: { firstName: true, lastName: true, phone: true, email: true } },
-      },
+      select: leadSelect,
       orderBy: { createdAt: "desc" },
       take: 300,
     }),
@@ -35,9 +38,23 @@ export default async function NewQuotationPage({
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
+    // Always resolve the lead we were sent from, even if it falls outside the
+    // 300-row / non-WON-LOST window above. Without this, quoting from an older
+    // or already-closed lead silently dropped the link and the quotation saved
+    // unassigned — the dropdown never held the lead, so it couldn't prefill.
+    leadId
+      ? prisma.lead.findFirst({ where: { id: leadId, deletedAt: null }, select: leadSelect })
+      : Promise.resolve(null),
   ]);
 
-  const leads = leadsRaw.map((l) => ({
+  // Merge the target lead into the option list if the window missed it, so the
+  // "Link to Lead" picker can display it as the selected value.
+  const leadsForOptions =
+    targetLead && !leadsRaw.some((l) => l.id === targetLead.id)
+      ? [targetLead, ...leadsRaw]
+      : leadsRaw;
+
+  const leads = leadsForOptions.map((l) => ({
     id: l.id,
     title: l.title,
     contactId: l.contactId,
@@ -62,7 +79,7 @@ export default async function NewQuotationPage({
   // `id` keeps this a CREATE flow. We carry over everything the team already
   // collected on the lead — customer, event details and guest count — so the
   // rep only has to pick packages and pricing.
-  const preRaw = leadId ? leadsRaw.find((l) => l.id === leadId) : undefined;
+  const preRaw = targetLead ?? undefined;
   const initial = preRaw
     ? {
         id: "",
