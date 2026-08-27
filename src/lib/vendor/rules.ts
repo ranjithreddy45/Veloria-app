@@ -52,6 +52,7 @@ export interface VendorCatalogInput {
   vendorType?: string | null; // EXTERNAL | PROPERTY_OWNER | BILLION_EVENTS
   venueIds?: string[]; // specific venue ids when allVenues is false
   allVenues?: boolean; // true ⇒ applies to all venues (overrides venueIds)
+  inHouseCatering?: boolean; // hall's own mandatory food/catering vendor
 }
 
 export interface PackageItemInput {
@@ -81,6 +82,9 @@ export interface VendorPackageInput {
   minPax?: number | null; // minimum pax / units
   maxDiscountType?: string | null; // PERCENT | AMOUNT
   maxDiscountValue?: number | null; // discount cap value
+  // Hall/venue scope for this specific menu/package.
+  venueIds?: string[]; // specific venue ids when allVenues is false
+  allVenues?: boolean; // true ⇒ available at all halls (overrides venueIds)
 }
 
 // Validate the pricing-extra fields for a package. Returns a fields error map.

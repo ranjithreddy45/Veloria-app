@@ -31,8 +31,13 @@ import {
   setPackageCover,
   deletePackageImage,
   reorderPackageImages,
+  getPackage,
 } from "@/actions/vendor-catalog.actions";
-import type { CategoryOption } from "@/app/(dashboard)/vendors/_components/vendor-module";
+import type {
+  CategoryOption,
+  VenueOption,
+} from "@/app/(dashboard)/vendors/_components/vendor-module";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -93,6 +98,8 @@ interface FullPackage {
   maxDiscountType: string | null;
   maxDiscountValue: number | null;
   coverImageId: string | null;
+  allVenues?: boolean;
+  venueIds?: string[];
   vendor: { id: string; name: string; categories: string[] };
   sections: {
     id: string;
@@ -111,9 +118,19 @@ interface FullPackage {
   images: Image[];
 }
 
+interface PackageTemplateOption {
+  id: string;
+  name: string;
+  vendorName: string;
+  category: string;
+  status: string;
+}
+
 interface PackageBuilderProps {
   vendors: { id: string; name: string; categories: string[] }[];
   categories: CategoryOption[];
+  venues: VenueOption[];
+  templates?: PackageTemplateOption[];
   initial?: FullPackage;
   defaultVendorId?: string;
 }
@@ -471,7 +488,7 @@ function SectionEditor({
 // PackageBuilder — main component
 // ============================================================
 
-export function PackageBuilder({ vendors, categories, initial, defaultVendorId }: PackageBuilderProps) {
+export function PackageBuilder({ vendors, categories, venues, templates, initial, defaultVendorId }: PackageBuilderProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -519,6 +536,45 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
       ? toLocalSections(initial.sections)
       : [emptySection()]
   );
+
+  // ── Hall/venue scope (item 1) — which halls this menu applies to ──
+  const [allVenues, setAllVenues] = React.useState<boolean>(initial?.allVenues ?? true);
+  const [venueIds, setVenueIds] = React.useState<string[]>(initial?.venueIds ?? []);
+  const toggleVenue = (id: string) =>
+    setVenueIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  // ── Template picker (item 4) — start a new package from an existing one ──
+  const [templateId, setTemplateId] = React.useState<string>("");
+  const [templatePending, startTemplateTransition] = useTransition();
+  const applyTemplate = (id: string) => {
+    setTemplateId(id);
+    if (!id) return;
+    startTemplateTransition(async () => {
+      const res = await getPackage(id);
+      if (!res.success) {
+        toast.error(res.error ?? "Could not load that package");
+        return;
+      }
+      const p = res.data as FullPackage;
+      // Copy everything EXCEPT identity — this becomes a brand-new draft. The
+      // name gets a "(copy)" suffix so it never collides with the source.
+      if (p.vendorId) handleVendorChange(p.vendorId);
+      setName(p.name ? `${p.name} (copy)` : "");
+      setCategory(p.category ?? "");
+      setStatus("DRAFT");
+      setPrice(p.customerPrice != null ? String(p.customerPrice) : p.price != null ? String(p.price) : "");
+      setVendorPrice(p.vendorPrice != null ? String(p.vendorPrice) : "");
+      setMinPax(p.minPax != null ? String(p.minPax) : "");
+      setMaxDiscountType(p.maxDiscountType ?? "NONE");
+      setMaxDiscountValue(p.maxDiscountValue != null ? String(p.maxDiscountValue) : "");
+      setPriceUnit(p.priceUnit ?? "PER_PLATE");
+      setDescription(p.description ?? "");
+      setAllVenues(p.allVenues ?? true);
+      setVenueIds(p.venueIds ?? []);
+      setSections(p.sections && p.sections.length > 0 ? toLocalSections(p.sections) : [emptySection()]);
+      toast.success("Loaded from template — edit and save as a new package");
+    });
+  };
 
   // Swap a section with its neighbour. sortOrder is renumbered from the array
   // index on save, so reordering the array is all that's needed to persist.
@@ -731,6 +787,8 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
       priceUnit,
       currency: "INR",
       description: description || null,
+      allVenues,
+      venueIds: allVenues ? [] : venueIds,
       sections: sections.map((s) => ({
         title: s.title,
         items: s.items.map((it) => ({
@@ -775,6 +833,31 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
         {/* Basic details card */}
         <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-card space-y-4">
           <h2 className="text-copy font-semibold text-foreground">Package details</h2>
+
+          {/* Start from an existing package (create mode only) — item 4 */}
+          {!pkgId && templates && templates.length > 0 && (
+            <div className="space-y-1.5 rounded-xl border border-dashed border-border/70 bg-muted/30 p-3">
+              <Label htmlFor="template" className="text-body">
+                Start from an existing package
+              </Label>
+              <Select value={templateId || "__none__"} onValueChange={(v) => applyTemplate(v === "__none__" ? "" : v)} disabled={templatePending}>
+                <SelectTrigger id="template" className="h-9 text-body">
+                  <SelectValue placeholder={templatePending ? "Loading…" : "Blank package"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Blank package</SelectItem>
+                  {templates.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.name} — {t.vendorName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-meta text-muted-foreground/80">
+                Copies pricing, inclusions and hall mapping into a new draft you can edit.
+              </p>
+            </div>
+          )}
 
           {/* Vendor select */}
           <div className="space-y-1.5">
@@ -1054,6 +1137,60 @@ export function PackageBuilder({ vendors, categories, initial, defaultVendorId }
               rows={3}
               className="resize-none text-body"
             />
+          </div>
+
+          {/* ── Hall / venue scope (item 1) ── */}
+          <div className="space-y-2">
+            <Label className="text-body">Applicable halls / banquets</Label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setAllVenues(true)}
+                className={cn(
+                  "rounded-lg border px-3 py-1.5 text-body font-medium transition-colors",
+                  allVenues
+                    ? "border-teal-500/35 bg-teal-500/12 text-teal-700 dark:text-teal-300"
+                    : "border-border bg-background text-muted-foreground hover:border-border/80"
+                )}
+              >
+                All halls
+              </button>
+              <button
+                type="button"
+                onClick={() => setAllVenues(false)}
+                className={cn(
+                  "rounded-lg border px-3 py-1.5 text-body font-medium transition-colors",
+                  !allVenues
+                    ? "border-teal-500/35 bg-teal-500/12 text-teal-700 dark:text-teal-300"
+                    : "border-border bg-background text-muted-foreground hover:border-border/80"
+                )}
+              >
+                Specific halls
+              </button>
+            </div>
+            {!allVenues && (
+              <div className="space-y-1.5 rounded-xl border border-border/60 bg-muted/20 p-3">
+                {venues.length === 0 ? (
+                  <p className="text-detail text-muted-foreground/70">No active halls found.</p>
+                ) : (
+                  venues.map((v) => (
+                    <label
+                      key={v.id}
+                      className="flex cursor-pointer items-center gap-2 text-body"
+                    >
+                      <Checkbox
+                        checked={venueIds.includes(v.id)}
+                        onCheckedChange={() => toggleVenue(v.id)}
+                      />
+                      <span>{v.name}</span>
+                    </label>
+                  ))
+                )}
+              </div>
+            )}
+            <p className="text-meta text-muted-foreground/80">
+              Restrict this menu to particular halls, or leave on “All halls”.
+            </p>
           </div>
         </div>
 

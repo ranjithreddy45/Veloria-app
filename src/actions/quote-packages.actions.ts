@@ -31,7 +31,9 @@ const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
  * (then name). Decimals → plain numbers; customerPrice falls back to `price`.
  * Requires quotes:read (the builder is a sales surface).
  */
-export async function getQuotePackageOptions(): Promise<QuotePackageOption[]> {
+export async function getQuotePackageOptions(
+  venueId?: string | null
+): Promise<QuotePackageOption[]> {
   const session = await auth();
   const role = (session?.user as { role?: string } | undefined)?.role;
   if (!role || !hasPermission(role, "quotes:read")) return [];
@@ -48,12 +50,33 @@ export async function getQuotePackageOptions(): Promise<QuotePackageOption[]> {
       maxDiscountType: true,
       maxDiscountValue: true,
       priceUnit: true,
-      vendor: { select: { name: true } },
+      allVenues: true,
+      venueIds: true,
+      vendor: { select: { name: true, allVenues: true, venueIds: true, inHouseCatering: true } },
     },
     orderBy: [{ category: "asc" }, { name: "asc" }],
   });
 
-  return rows.map((r) => ({
+  const wantVenue = venueId?.trim() || null;
+
+  // Hall-scoped visibility (items 1–2): when a hall is selected, only show
+  // packages available at that hall. A package's own venue scope wins; if the
+  // package is set to "all halls" (the default), fall back to the vendor's
+  // assigned-hall scope. With no hall selected, everything is shown.
+  const availableAtVenue = (r: (typeof rows)[number]): boolean => {
+    if (!wantVenue) return true;
+    // Package-level scope takes precedence when it names specific halls.
+    if (!r.allVenues) return r.venueIds.includes(wantVenue);
+    // Package = all halls → defer to the vendor's hall assignment.
+    if (r.vendor?.allVenues) return true;
+    const vScope = r.vendor?.venueIds ?? [];
+    // A vendor with NO hall assignment at all is treated as available
+    // everywhere (unconfigured), so existing data keeps working.
+    if (vScope.length === 0) return true;
+    return vScope.includes(wantVenue);
+  };
+
+  return rows.filter(availableAtVenue).map((r) => ({
     id: r.id,
     name: r.name,
     category: r.category,
@@ -64,6 +87,7 @@ export async function getQuotePackageOptions(): Promise<QuotePackageOption[]> {
     maxDiscountType: r.maxDiscountType ?? null,
     maxDiscountValue: r.maxDiscountValue != null ? num(r.maxDiscountValue) : null,
     priceUnit: String(r.priceUnit),
+    inHouseCatering: r.vendor?.inHouseCatering === true,
   }));
 }
 

@@ -4,6 +4,7 @@ import { PackageIcon } from "lucide-react";
 
 import { getPackage, listCatalogVendors } from "@/actions/vendor-catalog.actions";
 import { listVendorCategories } from "@/actions/vendor-category.actions";
+import { getVenues } from "@/actions/booking.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { PackageBuilder } from "../../_components/package-builder";
 
@@ -16,10 +17,11 @@ interface EditPackagePageProps {
 export default async function EditPackagePage({ params }: EditPackagePageProps) {
   const { id } = await params;
 
-  const [pkgResult, vendorsResult, categoriesResult] = await Promise.all([
+  const [pkgResult, vendorsResult, categoriesResult, venuesResult] = await Promise.all([
     getPackage(id),
     listCatalogVendors({ pageSize: 200 }),
     listVendorCategories(),
+    getVenues({ activeOnly: true }),
   ]);
 
   if (!pkgResult.success) notFound();
@@ -30,6 +32,9 @@ export default async function EditPackagePage({ params }: EditPackagePageProps) 
     : [];
   const categories = categoriesResult.success
     ? categoriesResult.data.map((c) => ({ key: c.key, label: c.label }))
+    : [];
+  const venues = venuesResult.success
+    ? venuesResult.data.map((v: { id: string; name: string }) => ({ id: v.id, name: v.name }))
     : [];
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -45,7 +50,7 @@ export default async function EditPackagePage({ params }: EditPackagePageProps) 
         description="Update package details, sections, items, and images."
       />
 
-      <PackageBuilder vendors={vendors} categories={categories} initial={pkg} />
+      <PackageBuilder vendors={vendors} categories={categories} venues={venues} initial={pkg} />
     </div>
   );
 }

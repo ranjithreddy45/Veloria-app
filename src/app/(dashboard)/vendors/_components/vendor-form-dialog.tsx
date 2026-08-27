@@ -54,6 +54,7 @@ type ExistingVendor = {
   vendorType?: string | null;
   venueIds?: string[];
   allVenues?: boolean;
+  inHouseCatering?: boolean;
   // optional — only present if vendor-catalog action returns them
   contactPerson?: string | null;
   keyPersonnel?: { name: string; role?: string }[];
@@ -124,6 +125,9 @@ export function VendorFormDialog({ vendor, categories, venues, trigger }: Vendor
   const [venueIds, setVenueIds] = React.useState<string[]>(
     vendor?.venueIds ?? []
   );
+  const [inHouseCatering, setInHouseCatering] = React.useState<boolean>(
+    vendor?.inHouseCatering ?? false
+  );
   const [contactPerson, setContactPerson] = React.useState(
     vendor?.contactPerson ?? ""
   );
@@ -157,6 +161,7 @@ export function VendorFormDialog({ vendor, categories, venues, trigger }: Vendor
       setVendorType(vendor?.vendorType ?? "EXTERNAL");
       setAllVenues(vendor?.allVenues ?? false);
       setVenueIds(vendor?.venueIds ?? []);
+      setInHouseCatering(vendor?.inHouseCatering ?? false);
       setContactPerson(vendor?.contactPerson ?? "");
       setPhone(vendor?.phone ?? "");
       setEmail(vendor?.email ?? "");
@@ -241,6 +246,7 @@ export function VendorFormDialog({ vendor, categories, venues, trigger }: Vendor
       vendorType,
       allVenues,
       venueIds: allVenues ? [] : venueIds,
+      inHouseCatering,
       contactPerson: contactPerson.trim() || null,
       phone: phone.trim() || null,
       email: email.trim() || null,
@@ -439,6 +445,22 @@ export function VendorFormDialog({ vendor, categories, venues, trigger }: Vendor
               </p>
             )}
           </div>
+
+          {/* ── In-house catering flag (item 3) ── */}
+          <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-border/70 bg-muted/20 p-2.5">
+            <Checkbox
+              checked={inHouseCatering}
+              onCheckedChange={(c) => setInHouseCatering(c === true)}
+              className="mt-0.5"
+            />
+            <span className="text-detail">
+              <span className="font-medium text-foreground">Hall&apos;s in-house caterer</span>
+              <span className="block text-meta text-muted-foreground">
+                This vendor is a hall&apos;s mandatory food/catering supplier (e.g. HHI). Marks
+                it clearly so the right food vendor is picked on the quote.
+              </span>
+            </span>
+          </label>
 
           <Separator />
 

@@ -72,11 +72,14 @@ async function validCategoryKeys(): Promise<Set<string>> {
 // Normalise the venue scope for persistence. When allVenues is true, the
 // specific venueIds are cleared (allVenues overrides). Otherwise dedupe + trim
 // AND filter to ids that reference real Venue rows (never persist junk ids).
-async function resolveVenueScope(input: VendorCatalogInput): Promise<{ allVenues: boolean; venueIds: string[] }> {
-  const allVenues = input.allVenues === true;
+async function normaliseVenueScope(
+  wantAllVenues: boolean | undefined,
+  wantVenueIds: string[] | undefined
+): Promise<{ allVenues: boolean; venueIds: string[] }> {
+  const allVenues = wantAllVenues === true;
   if (allVenues) return { allVenues: true, venueIds: [] };
   const requested = Array.from(
-    new Set((input.venueIds ?? []).map((v) => v?.trim()).filter((v): v is string => !!v))
+    new Set((wantVenueIds ?? []).map((v) => v?.trim()).filter((v): v is string => !!v))
   );
   if (requested.length === 0) return { allVenues: false, venueIds: [] };
   const valid = await prisma.venue.findMany({
@@ -85,6 +88,10 @@ async function resolveVenueScope(input: VendorCatalogInput): Promise<{ allVenues
   });
   const validSet = new Set(valid.map((r) => r.id));
   return { allVenues: false, venueIds: requested.filter((id) => validSet.has(id)) };
+}
+
+async function resolveVenueScope(input: VendorCatalogInput): Promise<{ allVenues: boolean; venueIds: string[] }> {
+  return normaliseVenueScope(input.allVenues, input.venueIds);
 }
 
 function normaliseVendorType(input: VendorCatalogInput): string {
@@ -156,6 +163,7 @@ export async function listCatalogVendors(params?: {
           id: true, name: true, categories: true, category: true, city: true,
           email: true, phone: true, empanelmentStatus: true, qualityScore: true,
           isArchived: true, vendorType: true, venueIds: true, allVenues: true,
+          inHouseCatering: true,
           _count: { select: { packages: true } },
         },
         orderBy: { name: "asc" },
@@ -245,6 +253,7 @@ export async function createCatalogVendor(input: VendorCatalogInput): Promise<Re
         vendorType: normaliseVendorType(input),
         venueIds,
         allVenues,
+        inHouseCatering: input.inHouseCatering === true,
         company: input.contactPerson?.trim() || null,
         phone: input.phone?.trim() || null,
         email: input.email?.trim() || null,
@@ -313,6 +322,7 @@ export async function updateCatalogVendor(
     if (input.keyPersonnel !== undefined) data.keyPersonnel = input.keyPersonnel as unknown as Prisma.InputJsonValue;
     if (input.licences !== undefined) data.licences = input.licences as unknown as Prisma.InputJsonValue;
     if (input.notes !== undefined) data.notes = input.notes?.trim() || null;
+    if (input.inHouseCatering !== undefined) data.inHouseCatering = input.inHouseCatering === true;
     // Venue scope is a paired concept (allVenues overrides venueIds); only touch
     // it when the input actually carries venue intent — otherwise preserve.
     if (input.allVenues !== undefined || input.venueIds !== undefined) {
@@ -449,6 +459,35 @@ export async function getPackage(id: string): Promise<Result<unknown>> {
   }
 }
 
+// Lightweight list of existing packages usable as a starting template when
+// creating a new one (item 4 — "start from an existing package"). Returns just
+// enough to populate a picker; the full graph is loaded via getPackage on select.
+export async function listPackageTemplates(): Promise<
+  { id: string; name: string; vendorName: string; category: string; status: string }[]
+> {
+  const u = await requirePerm("vendors:read");
+  if (!u) return [];
+  const rows = await prisma.vendorPackage.findMany({
+    where: { status: { not: "ARCHIVED" } },
+    select: {
+      id: true,
+      name: true,
+      category: true,
+      status: true,
+      vendor: { select: { name: true } },
+    },
+    orderBy: [{ vendor: { name: "asc" } }, { name: "asc" }],
+    take: 500,
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    vendorName: r.vendor?.name ?? "—",
+    category: r.category,
+    status: String(r.status),
+  }));
+}
+
 export async function createPackage(input: VendorPackageInput): Promise<Result<{ id: string }>> {
   const u = await requirePerm("vendors:create");
   if (!u) return { success: false, error: "Unauthorized" };
@@ -496,6 +535,7 @@ export async function createPackage(input: VendorPackageInput): Promise<Result<{
       status = "ACTIVE";
     }
 
+    const pkgScope = await normaliseVenueScope(input.allVenues, input.venueIds);
     const created = await prisma.vendorPackage.create({
       data: {
         vendorId: input.vendorId,
@@ -506,6 +546,8 @@ export async function createPackage(input: VendorPackageInput): Promise<Result<{
         priceUnit: input.priceUnit as "PER_PLATE" | "PER_EVENT" | "PER_PIECE" | "PER_HOUR" | "PER_DAY",
         currency: input.currency || "INR",
         description: input.description?.trim() || null,
+        allVenues: pkgScope.allVenues,
+        venueIds: pkgScope.venueIds,
         sections: { create: buildSectionsCreate(input.sections ?? []) },
       },
       select: { id: true },
@@ -556,6 +598,7 @@ export async function updatePackage(id: string, input: VendorPackageInput): Prom
       status = "ARCHIVED";
     }
 
+    const pkgScope = await normaliseVenueScope(input.allVenues, input.venueIds);
     // Replace the whole section/item graph transactionally (R9, atomic).
     await prisma.$transaction(async (tx) => {
       await tx.vendorPackageSection.deleteMany({ where: { packageId: id } });
@@ -570,6 +613,8 @@ export async function updatePackage(id: string, input: VendorPackageInput): Prom
           priceUnit: input.priceUnit as "PER_PLATE" | "PER_EVENT" | "PER_PIECE" | "PER_HOUR" | "PER_DAY",
           currency: input.currency || "INR",
           description: input.description?.trim() || null,
+          allVenues: pkgScope.allVenues,
+          venueIds: pkgScope.venueIds,
           sections: { create: buildSectionsCreate(input.sections ?? []) },
         },
       });

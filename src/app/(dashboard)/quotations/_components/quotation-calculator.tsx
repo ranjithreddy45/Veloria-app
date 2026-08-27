@@ -62,6 +62,8 @@ interface LeadOpt {
 interface VenueOpt {
   id: string;
   name: string;
+  inHouseCateringRequired?: boolean;
+  inHouseCateringNote?: string | null;
 }
 
 export interface QuotationInitial {
@@ -139,14 +141,17 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
   const [packageLines, setPackageLines] = useState<PackageLine[]>(
     (initial?.input.packageLines ?? []).map((p) => ({ ...p, id: p.id ?? rowId() }))
   );
+  // Re-fetch package options whenever the selected hall changes so only the
+  // vendors/menus available at that hall are offered (items 1–2).
   useEffect(() => {
     let active = true;
-    getQuotePackageOptions()
+    setPkgLoaded(false);
+    getQuotePackageOptions(venueId || null)
       .then((opts) => { if (active) setPkgOptions(opts); })
       .catch(() => { if (active) setPkgOptions([]); })
       .finally(() => { if (active) setPkgLoaded(true); });
     return () => { active = false; };
-  }, []);
+  }, [venueId]);
 
   // Packages grouped by category for the grouped Select.
   const pkgByCategory = useMemo(() => {
@@ -267,6 +272,8 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
     return () => { active = false; };
   }, [eventDate, venueId, timeSlot]);
 
+  const selectedVenue = venues.find((v) => v.id === venueId) ?? null;
+
   const meta: QuotationMeta = {
     clientName, clientPhone, clientEmail, occasion,
     eventDate: eventDate || null, timeSlot, notes,
@@ -353,6 +360,13 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
                   ))}
                 </SelectContent>
               </Select>
+              {selectedVenue?.inHouseCateringRequired && (
+                <p className="rounded-md bg-amber-50 px-2.5 py-1.5 text-meta text-amber-800 ring-1 ring-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:ring-amber-800/50">
+                  In-house catering required at this hall.{" "}
+                  {selectedVenue.inHouseCateringNote?.trim() ||
+                    "Food must be purchased from the hall's own caterer."}
+                </p>
+              )}
             </div>
             <div className={field}>
               <Label>Client Name</Label>

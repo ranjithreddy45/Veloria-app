@@ -40,7 +40,12 @@ export default async function QuotationPage({ params }: { params: Promise<{ id: 
     }),
     prisma.venue.findMany({
       where: { isActive: true },
-      select: { id: true, name: true },
+      select: {
+        id: true,
+        name: true,
+        inHouseCateringRequired: true,
+        inHouseCateringNote: true,
+      },
       orderBy: { name: "asc" },
     }),
   ]);

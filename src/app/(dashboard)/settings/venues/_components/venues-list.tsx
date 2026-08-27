@@ -46,6 +46,8 @@ interface VenueData {
   pricePerSlot: unknown;
   amenities: string[];
   isActive: boolean;
+  inHouseCateringRequired?: boolean;
+  inHouseCateringNote?: string | null;
   _count: { bookings: number };
 }
 
@@ -69,6 +71,8 @@ export function VenuesList({ venues }: VenuesListProps) {
   const [capacity, setCapacity] = React.useState(0);
   const [pricePerSlot, setPricePerSlot] = React.useState(0);
   const [amenities, setAmenities] = React.useState("");
+  const [inHouseCatering, setInHouseCatering] = React.useState(false);
+  const [inHouseNote, setInHouseNote] = React.useState("");
 
   function openCreateDialog() {
     setEditingVenue(null);
@@ -77,6 +81,8 @@ export function VenuesList({ venues }: VenuesListProps) {
     setCapacity(0);
     setPricePerSlot(0);
     setAmenities("");
+    setInHouseCatering(false);
+    setInHouseNote("");
     setDialogOpen(true);
   }
 
@@ -87,6 +93,8 @@ export function VenuesList({ venues }: VenuesListProps) {
     setCapacity(venue.capacity);
     setPricePerSlot(Number(venue.pricePerSlot));
     setAmenities(venue.amenities.join(", "));
+    setInHouseCatering(venue.inHouseCateringRequired ?? false);
+    setInHouseNote(venue.inHouseCateringNote ?? "");
     setDialogOpen(true);
   }
 
@@ -114,6 +122,8 @@ export function VenuesList({ venues }: VenuesListProps) {
           capacity,
           pricePerSlot,
           amenities: amenitiesArray,
+          inHouseCateringRequired: inHouseCatering,
+          inHouseCateringNote: inHouseNote.trim(),
         });
         if (result.success) {
           toast.success("Venue updated successfully");
@@ -129,6 +139,8 @@ export function VenuesList({ venues }: VenuesListProps) {
           capacity,
           pricePerSlot,
           amenities: amenitiesArray,
+          inHouseCateringRequired: inHouseCatering,
+          inHouseCateringNote: inHouseNote.trim(),
         });
         if (result.success) {
           toast.success("Venue created successfully");
@@ -360,6 +372,31 @@ export function VenuesList({ venues }: VenuesListProps) {
                 value={amenities}
                 onChange={(e) => setAmenities(e.target.value)}
               />
+            </div>
+            {/* In-house catering requirement (item 3) */}
+            <div className="space-y-2 rounded-lg border border-border/60 bg-muted/20 p-3">
+              <label className="flex items-start gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 size-4"
+                  checked={inHouseCatering}
+                  onChange={(e) => setInHouseCatering(e.target.checked)}
+                />
+                <span className="text-sm">
+                  <span className="font-medium">Requires in-house catering</span>
+                  <span className="block text-xs text-muted-foreground">
+                    Food must be bought from this hall&apos;s own caterer (e.g. HHI). Shows an
+                    advisory on the quotation.
+                  </span>
+                </span>
+              </label>
+              {inHouseCatering && (
+                <Input
+                  placeholder="Note shown on quote (optional) — e.g. Catering by HHI only"
+                  value={inHouseNote}
+                  onChange={(e) => setInHouseNote(e.target.value)}
+                />
+              )}
             </div>
           </div>
           <DialogFooter>

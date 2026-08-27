@@ -1429,6 +1429,8 @@ export async function createVenue(data: {
   capacity: number;
   pricePerSlot: number;
   amenities?: string[];
+  inHouseCateringRequired?: boolean;
+  inHouseCateringNote?: string;
 }) {
   try {
     const session = await auth();
@@ -1447,6 +1449,8 @@ export async function createVenue(data: {
         capacity: data.capacity,
         pricePerSlot: data.pricePerSlot,
         amenities: data.amenities || [],
+        inHouseCateringRequired: data.inHouseCateringRequired ?? false,
+        inHouseCateringNote: data.inHouseCateringNote?.trim() || null,
       },
     });
 
@@ -1468,6 +1472,8 @@ export async function updateVenue(
     pricePerSlot?: number;
     amenities?: string[];
     isActive?: boolean;
+    inHouseCateringRequired?: boolean;
+    inHouseCateringNote?: string;
   }
 ) {
   try {
@@ -1493,6 +1499,12 @@ export async function updateVenue(
         }),
         ...(data.amenities !== undefined && { amenities: data.amenities }),
         ...(data.isActive !== undefined && { isActive: data.isActive }),
+        ...(data.inHouseCateringRequired !== undefined && {
+          inHouseCateringRequired: data.inHouseCateringRequired,
+        }),
+        ...(data.inHouseCateringNote !== undefined && {
+          inHouseCateringNote: data.inHouseCateringNote.trim() || null,
+        }),
       },
     });
 

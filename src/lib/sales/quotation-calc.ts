@@ -77,6 +77,8 @@ export interface QuotePackageOption {
   maxDiscountType: string | null;
   maxDiscountValue: number | null;
   priceUnit: string;
+  /** True when this package's vendor is a hall's mandatory in-house caterer. */
+  inHouseCatering?: boolean;
 }
 
 /**

@@ -35,7 +35,12 @@ export default async function NewQuotationPage({
     }),
     prisma.venue.findMany({
       where: { isActive: true },
-      select: { id: true, name: true },
+      select: {
+        id: true,
+        name: true,
+        inHouseCateringRequired: true,
+        inHouseCateringNote: true,
+      },
       orderBy: { name: "asc" },
     }),
     // Always resolve the lead we were sent from, even if it falls outside the
