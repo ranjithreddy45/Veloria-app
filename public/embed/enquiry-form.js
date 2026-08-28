@@ -58,8 +58,13 @@
       : "");
   var ENDPOINT = base + "/api/landing-lead";
 
-  var ACCENT = d.accent || "#006742"; // brand emerald
+  var ACCENT = d.accent || "#006742"; // brand emerald — focus rings, success tick
   var GOLD = d.gold || "#b88513"; // the second metal, used as a hairline only
+  // Primary CTA colour. Defaults to the site's champagne gold so the button
+  // matches the maroon/gold marketing site instead of the emerald app. Override
+  // per-site with data-cta="#rrggbb".
+  var CTA = d.cta || "#c9a24b";
+  var CTA_INK = d.ctaInk || "#2a1c07"; // dark text — gold needs a dark label to stay legible
   var DARK = (d.theme || "light").toLowerCase() === "dark";
   var EVENTS = (d.events || "Wedding,Reception,Engagement,Birthday Party,Corporate Event,Baby Shower,Anniversary,Other")
     .split(",")
@@ -83,7 +88,7 @@
   var css = [
     // Reset first so a host site's global styles can't distort the form.
     S + " *{box-sizing:border-box;margin:0;padding:0;font-family:inherit;letter-spacing:normal;text-transform:none}",
-    S + "{--vg:" + ACCENT + ";--vgold:" + GOLD + ";max-width:36rem;font-family:" + SANS +
+    S + "{--vg:" + ACCENT + ";--vgold:" + GOLD + ";--vgcta:" + CTA + ";--vgctaink:" + CTA_INK + ";max-width:36rem;font-family:" + SANS +
       ";color:" + C.ink + ";line-height:1.5;text-align:left}",
 
     // Card — soft gradient + a GOLD hairline at the very top. The hairline is the
@@ -160,11 +165,12 @@
       "border-right:1.6px solid " + C.sub + ";border-bottom:1.6px solid " + C.sub + ";transform:translateY(-70%) rotate(45deg)}",
     S + " select{padding-right:36px}",
 
-    // Submit — emerald with a soft sheen, matching the app's primary button.
+    // Submit — champagne gold with a soft sheen, matching the marketing site's
+    // primary CTA. Dark ink keeps the label legible on gold.
     S + " button{position:relative;overflow:hidden;width:100%;height:52px;margin-top:18px;border:0;border-radius:14px;" +
-      "background:linear-gradient(180deg,var(--vg) 0%,color-mix(in srgb,var(--vg) 88%,#000) 100%);" +
-      "color:#fff;font-size:15.5px;font-weight:600;letter-spacing:.005em;cursor:pointer;" +
-      "box-shadow:0 1px 0 rgba(255,255,255,.18) inset,0 10px 22px -12px color-mix(in srgb,var(--vg) 70%,transparent);" +
+      "background:linear-gradient(180deg,color-mix(in srgb,var(--vgcta) 92%,#fff) 0%,var(--vgcta) 55%,color-mix(in srgb,var(--vgcta) 82%,#000) 100%);" +
+      "color:var(--vgctaink);font-size:15.5px;font-weight:700;letter-spacing:.005em;cursor:pointer;" +
+      "box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 10px 22px -12px color-mix(in srgb,var(--vgcta) 70%,transparent);" +
       "transition:transform .12s,filter .15s,box-shadow .15s}",
     S + " button:hover{filter:brightness(1.06)}",
     S + " button:active{transform:translateY(1px)}",
