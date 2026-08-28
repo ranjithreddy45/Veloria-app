@@ -6,6 +6,7 @@ import { findDuplicates } from "@/actions/dedup.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { MergeGroup } from "./_components/merge-group";
 
 export const metadata: Metadata = { title: "Duplicate finder" };
 
@@ -50,19 +51,28 @@ export default async function DuplicatesPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ul className="divide-y divide-border/60">
-                    {g.members.map((m) => (
-                      <li key={m.id} className="flex items-center justify-between py-2">
-                        <span className="text-body">{m.label}</span>
-                        <Link
-                          href={m.href}
-                          className="text-body font-medium text-primary hover:underline"
-                        >
-                          Open →
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
+                  {g.entity === "Contacts" ? (
+                    <MergeGroup members={g.members} />
+                  ) : (
+                    <ul className="divide-y divide-border/60">
+                      {g.members.map((m) => (
+                        <li key={m.id} className="flex items-center justify-between py-2">
+                          <span className="text-body">
+                            {m.label}
+                            {m.detail && (
+                              <span className="block text-meta text-muted-foreground">{m.detail}</span>
+                            )}
+                          </span>
+                          <Link
+                            href={m.href}
+                            className="text-body font-medium text-primary hover:underline"
+                          >
+                            Open →
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </CardContent>
               </Card>
             ))}
