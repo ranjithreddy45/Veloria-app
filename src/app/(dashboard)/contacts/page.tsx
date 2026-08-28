@@ -7,6 +7,7 @@ import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { CHANNEL_TAG_LIST } from "@/lib/enquiry-source-backfill";
 import { EnquiryRepairButton } from "./_components/enquiry-repair-button";
+import { CleanupEmptyFbButton } from "./_components/cleanup-empty-fb-button";
 import { getContacts } from "@/actions/contact.actions";
 import { getVenues } from "@/actions/booking.actions";
 import { PageHeader } from "@/components/layout/page-header";
@@ -65,6 +66,22 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
         },
       })
     : 0;
+  // Empty "Facebook Lead" placeholders (name "Facebook Lead", no phone/email) —
+  // offer a one-click removal, admin only, and only while some exist.
+  const canDeleteContacts =
+    !!session?.user?.role && hasPermission(session.user.role, "contacts:delete");
+  const emptyFbCount = canDeleteContacts
+    ? await prisma.contact.count({
+        where: {
+          deletedAt: null,
+          firstName: { equals: "Facebook", mode: "insensitive" },
+          lastName: { equals: "Lead", mode: "insensitive" },
+          phone: null,
+          email: null,
+          bookings: { none: {} },
+        },
+      })
+    : 0;
   const venues = venuesResult.success
     ? venuesResult.data.map((v) => ({ id: v.id, name: v.name }))
     : [];
@@ -115,6 +132,7 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
         }
         description="Your people. Every conversation, deal, and booking ties back here."
       >
+        {emptyFbCount > 0 && <CleanupEmptyFbButton count={emptyFbCount} />}
         {repairable > 0 && <EnquiryRepairButton affected={repairable} />}
         <Button asChild>
           <Link href="/contacts/new">

@@ -764,3 +764,76 @@ export async function checkDuplicates(email?: string, phone?: string) {
     return { success: false as const, error: "Failed to check duplicates" };
   }
 }
+
+// ============================================================
+// Empty "Facebook Lead" cleanup — placeholder enquiries the FB webhook created
+// when it couldn't fetch the real lead data (no Page Access Token). They carry
+// the literal name "Facebook Lead" with NO phone and NO email, so there is no
+// way to follow up — pure noise in the enquiry list. Matched precisely
+// (name + both contacts blank) so a genuine enquiry can never be caught.
+// Soft-delete (trash), recoverable for 30 days.
+// ============================================================
+
+// The exact fingerprint of a junk placeholder enquiry.
+const EMPTY_FB_WHERE = {
+  deletedAt: null,
+  firstName: { equals: "Facebook", mode: "insensitive" as const },
+  lastName: { equals: "Lead", mode: "insensitive" as const },
+  phone: null,
+  email: null,
+  // Never touch one that somehow reached a booking — real, keep it.
+  bookings: { none: {} },
+} as const;
+
+export async function getEmptyFacebookEnquiriesCount(): Promise<
+  { success: true; count: number } | { success: false; error: string }
+> {
+  const session = await auth();
+  if (!session?.user) return { success: false as const, error: "Unauthorized" };
+  if (!hasPermission(session.user.role, "contacts:read")) {
+    return { success: false as const, error: "Insufficient permissions" };
+  }
+  const count = await prisma.contact.count({ where: EMPTY_FB_WHERE });
+  return { success: true as const, count };
+}
+
+export async function deleteEmptyFacebookEnquiries(): Promise<
+  { success: true; deleted: number } | { success: false; error: string }
+> {
+  const session = await auth();
+  if (!session?.user) return { success: false as const, error: "Unauthorized" };
+  if (!hasPermission(session.user.role, "contacts:delete")) {
+    return { success: false as const, error: "Insufficient permissions" };
+  }
+
+  const targets = await prisma.contact.findMany({
+    where: EMPTY_FB_WHERE,
+    select: { id: true },
+  });
+  if (targets.length === 0) return { success: true as const, deleted: 0 };
+  const ids = targets.map((t) => t.id);
+
+  await prisma.$transaction([
+    // Soft-delete the placeholder leads attached to these contacts (never a
+    // converted one), then the contacts themselves.
+    prisma.lead.updateMany({
+      where: { contactId: { in: ids }, deletedAt: null, deal: { is: null } },
+      data: { deletedAt: new Date() },
+    }),
+    prisma.contact.updateMany({
+      where: { id: { in: ids } },
+      data: { deletedAt: new Date(), isActive: false },
+    }),
+  ]);
+
+  await logActivity({
+    userId: session.user.id as string,
+    action: "deleted_empty_facebook_enquiries",
+    entityType: "Contact",
+    entityId: "bulk",
+  });
+  revalidatePath("/contacts");
+  revalidatePath("/leads");
+  revalidatePath("/settings/trash");
+  return { success: true as const, deleted: ids.length };
+}

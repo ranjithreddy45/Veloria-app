@@ -129,11 +129,7 @@ export async function POST(request: NextRequest) {
           const leadgenId = change.value?.leadgen_id;
 
           if (leadgenId) {
-            const leadData = {
-              name: "Facebook Lead",
-              email: "",
-              phone: "",
-            };
+            const leadData = { name: "", email: "", phone: "" };
 
             if (pageAccessToken) {
               try {
@@ -160,14 +156,32 @@ export async function POST(request: NextRequest) {
                       leadData.phone = value;
                     }
                   }
+                } else {
+                  console.error(
+                    `[FacebookLeads] Graph API returned ${fbRes.status} for leadgen ${leadgenId}`
+                  );
                 }
               } catch (err) {
                 console.error("[FacebookLeads] Failed to fetch lead from FB:", err);
               }
             }
 
+            // GUARD: never create a contactless placeholder enquiry. A real Lead
+            // Ad always returns at least a phone or email; getting neither means
+            // the Page Access Token is missing/expired (or this was a bare test
+            // ping). Creating a "Facebook Lead" row with no way to reach anyone
+            // just pollutes the enquiry list, so skip it and log loudly instead.
+            if (!leadData.phone && !leadData.email) {
+              console.error(
+                `[FacebookLeads] No contact data for leadgen ${leadgenId} ` +
+                  `(hasToken=${!!pageAccessToken}). Skipping — check the Page Access Token in ` +
+                  `Settings → Integrations → Lead Capture → Facebook.`
+              );
+              continue;
+            }
+
             await captureLeadFromExternal({
-              name: leadData.name,
+              name: leadData.name || "Facebook Lead",
               email: leadData.email || undefined,
               phone: leadData.phone || undefined,
               source: "facebook_ads",
@@ -176,7 +190,7 @@ export async function POST(request: NextRequest) {
               attribution: await parseAttributionFromRequest(request, body),
             });
 
-            // Update lastSyncAt
+            // Update lastSyncAt (only when a real lead was actually captured)
             if (configId) {
               try {
                 await prisma.leadCaptureConfig.update({
