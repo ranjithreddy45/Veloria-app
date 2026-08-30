@@ -81,7 +81,7 @@ export function VendorRating({
               "transition-colors",
               readonly
                 ? "cursor-default"
-                : "cursor-pointer hover:scale-110 transition-transform"
+                : "cursor-pointer transition-transform"
             )}
             onClick={() => handleRate(starValue)}
             onMouseEnter={() => !readonly && setHoveredStar(starValue)}

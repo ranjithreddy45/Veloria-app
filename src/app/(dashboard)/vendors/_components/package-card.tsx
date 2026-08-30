@@ -66,7 +66,7 @@ export function PackageCard({ data, href }: PackageCardProps) {
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
           />
         ) : (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 bg-gradient-to-br from-teal-500/10 via-muted to-muted">
+          <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 bg-muted">
             <ImageIcon className="size-7 text-muted-foreground/50" />
             <span className="text-meta font-medium uppercase tracking-[0.14em] text-muted-foreground/60">
               No photo yet

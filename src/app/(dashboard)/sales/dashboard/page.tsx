@@ -55,7 +55,7 @@ function FunnelBar({ label, count, max, conv }: { label: string; count: number; 
     <div className="flex items-center gap-3">
       <div className="w-28 shrink-0 truncate text-body text-muted-foreground sm:w-36">{label}</div>
       <div className="relative h-8 flex-1 overflow-hidden rounded-lg border border-border/70 bg-muted/25">
-        <div className="h-full bg-gradient-to-r from-violet-500/35 to-violet-500/10" style={{ width: `${w}%` }} />
+        <div className="h-full bg-primary/25" style={{ width: `${w}%` }} />
         <div className="numeric absolute inset-0 flex items-center px-3 text-body font-medium text-foreground">
           {count.toLocaleString("en-IN")}
         </div>

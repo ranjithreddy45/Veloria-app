@@ -417,7 +417,7 @@ export default async function BookingDetailPage({
                         "h-full rounded-full transition-all",
                         pending <= 0
                           ? "bg-success"
-                          : "bg-gradient-to-r from-violet-500 to-emerald-500"
+                          : "bg-primary"
                       )}
                       style={{ width: `${pct}%` }}
                     />

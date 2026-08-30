@@ -25,7 +25,7 @@ export default async function FinanceRevenuePage() {
     <div className="space-y-6">
       <PageHeader
         icon={TrendingUpIcon}
-        accent="emerald"
+        accent="gold"
         aura
         eyebrow="Finance · Revenue Automation"
         title="Revenue Automation"

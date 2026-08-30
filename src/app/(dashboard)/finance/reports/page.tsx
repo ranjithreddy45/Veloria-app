@@ -28,7 +28,7 @@ export default async function FinanceReportsPage({ searchParams }: { searchParam
     <div className="space-y-6">
       <PageHeader
         icon={FileBarChart2Icon}
-        accent="emerald"
+        accent="gold"
         eyebrow={fy ? <span className="numeric">FY {fy}</span> : "Finance"}
         title="Financial reports"
         description="Profit & Loss, Balance Sheet and Trial Balance — derived live from the posted ledger."

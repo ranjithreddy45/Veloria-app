@@ -35,7 +35,7 @@ export default function WebsiteFormPage() {
      data-title="Plan your celebration with us"
      data-subtitle="Share a few details and we'll call you back."
      data-events="Wedding,Reception,Engagement,Corporate"
-     data-accent="#006742"></div>
+     data-accent="#6d1b52"></div>
 <script src="${origin}/embed/enquiry-form.js" defer></script>`;
 
   return (

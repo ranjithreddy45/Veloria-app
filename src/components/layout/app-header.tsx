@@ -231,7 +231,7 @@ export function AppHeader() {
         {/* Search trigger — opens command palette */}
         <Button
           variant="outline"
-          className="group/search relative hidden h-9 w-64 justify-start rounded-full border-border/70 bg-muted/40 pl-9! text-body font-normal text-muted-foreground shadow-none transition-all duration-200 hover:border-primary/30 hover:bg-muted/70 hover:shadow-[0_0_0_3px_oklch(0.45_0.11_162/0.08)] lg:flex"
+          className="group/search relative hidden h-9 w-64 justify-start rounded-full border-border/70 bg-muted/40 pl-9! text-body font-normal text-muted-foreground shadow-none transition-all duration-200 hover:border-primary/30 hover:bg-muted/70 lg:flex"
           onClick={() => setCommandOpen(true)}
         >
           <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground transition-colors group-hover/search:text-primary" />
@@ -363,7 +363,7 @@ export function AppHeader() {
               variant="ghost"
               className={cn(
                 "relative h-9 shrink-0 gap-2 rounded-full px-1.5 pr-1.5 transition-all duration-200 active:scale-[0.97] sm:pr-3",
-                "hover:bg-accent hover:shadow-[0_0_0_3px_oklch(0.45_0.11_162/0.08)]"
+                "hover:bg-accent"
               )}
             >
               <Avatar size="sm">

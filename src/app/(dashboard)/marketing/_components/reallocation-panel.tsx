@@ -102,7 +102,7 @@ export function ReallocationPanel({
 
   return (
     <Card className="relative overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-violet-500/8 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-primary/5" />
       <CardHeader className="relative flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
           <CardTitle className="flex items-center gap-2">

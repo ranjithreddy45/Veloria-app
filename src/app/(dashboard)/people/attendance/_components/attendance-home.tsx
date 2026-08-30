@@ -216,7 +216,7 @@ function CheckInCard({ today }: { today: Rec | null }) {
   }
 
   return (
-    <div className="rounded-2xl border bg-gradient-to-br from-card to-muted/30 p-4 shadow-card sm:p-5">
+    <div className="rounded-2xl border bg-card p-4 shadow-card sm:p-5">
       <div className="flex items-center gap-2 text-meta font-semibold uppercase tracking-[0.12em] text-muted-foreground">
         <Clock className="size-3.5" /> Today
       </div>

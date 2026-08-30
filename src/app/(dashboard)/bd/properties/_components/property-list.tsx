@@ -123,7 +123,7 @@ export function PropertyList({ properties }: PropertyListProps) {
                 className="h-32 w-full shrink-0 border-b border-border/60 object-cover transition-transform duration-300 group-hover:scale-[1.02]"
               />
             ) : (
-              <div className="flex h-32 w-full shrink-0 items-center justify-center border-b border-border/60 bg-gradient-to-br from-indigo-500/10 via-violet-500/10 to-fuchsia-500/10">
+              <div className="flex h-32 w-full shrink-0 items-center justify-center border-b border-border/60 bg-muted">
                 <Building2 className="size-7 text-muted-foreground/50" />
               </div>
             )}

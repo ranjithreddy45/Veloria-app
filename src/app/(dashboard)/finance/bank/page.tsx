@@ -26,7 +26,7 @@ export default async function BankPage({ searchParams }: { searchParams: Promise
     <div className="space-y-6">
       <PageHeader
         icon={BanknoteIcon}
-        accent="emerald"
+        accent="gold"
         eyebrow="Finance"
         title="Bank & Reconcile"
         description="Import statements, auto-match to the ledger, and categorize what's left."

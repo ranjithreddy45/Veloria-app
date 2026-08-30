@@ -27,13 +27,13 @@ import {
 const STATUS_META: Record<string, { label: string; variant: "success" | "warning" | "outline"; bar: string; fill: string }> = {
   ACTIVE: {
     label: "Active", variant: "warning",
-    bar: "bg-gradient-to-b from-indigo-500 to-violet-500",
-    fill: "bg-gradient-to-r from-indigo-500 to-violet-500",
+    bar: "bg-primary",
+    fill: "bg-primary",
   },
   DONE: {
     label: "Done", variant: "success",
-    bar: "bg-gradient-to-b from-emerald-500 to-teal-500",
-    fill: "bg-gradient-to-r from-emerald-500 to-teal-500",
+    bar: "bg-success",
+    fill: "bg-success",
   },
   ARCHIVED: {
     label: "Archived", variant: "outline",
@@ -324,7 +324,7 @@ function KeyResultRow({
       <div className="mt-2">
         <GradientProgress
           value={kr.progress}
-          fill={kr.progress >= 100 ? "bg-gradient-to-r from-emerald-500 to-teal-500" : "bg-gradient-to-r from-violet-500 to-violet-400"}
+          fill={kr.progress >= 100 ? "bg-success" : "bg-primary"}
           className="h-1.5"
         />
       </div>

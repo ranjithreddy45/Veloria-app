@@ -29,7 +29,7 @@ export default async function CommandCenterPage() {
     <div className="space-y-6">
       <PageHeader
         icon={GaugeIcon}
-        accent="emerald"
+        accent="gold"
         aura
         eyebrow="Finance · Command Center"
         title="Owner cockpit"

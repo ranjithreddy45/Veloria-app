@@ -55,7 +55,7 @@ function Stars({
           aria-label={`${n} star${n > 1 ? "s" : ""}`}
           className={cn(
             "rounded p-0.5",
-            !readOnly && "cursor-pointer hover:scale-110 transition-transform"
+            !readOnly && "cursor-pointer transition-transform"
           )}
         >
           <StarIcon

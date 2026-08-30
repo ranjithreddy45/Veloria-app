@@ -10,7 +10,7 @@ export function ComingSoon({ title, description, bullets }: { title: string; des
         <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
           <Sparkles className="size-6" />
         </div>
-        <h3 className="font-editorial mt-5 text-title leading-tight">Coming soon</h3>
+        <h3 className="mt-5 text-title leading-tight">Coming soon</h3>
         <p className="mx-auto mt-2 max-w-sm text-body leading-relaxed text-muted-foreground">
           {title} is on the People roadmap. It’ll build on the same employee master, org chart and approval engine already live.
         </p>

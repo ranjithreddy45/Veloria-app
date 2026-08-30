@@ -366,7 +366,7 @@ function SidebarNavItem({
           "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
           "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0!",
           isActive &&
-            "bg-primary font-semibold text-primary-foreground shadow-[0_1px_2px_oklch(0.4_0.12_162/0.22)] hover:bg-primary hover:text-primary-foreground"
+            "bg-primary font-semibold text-primary-foreground shadow-[0_1px_2px_oklch(0.4_0.12_352/0.22)] hover:bg-primary hover:text-primary-foreground"
         )}
       >
         <Link href={item.href} onClick={closeDrawer}>
@@ -414,7 +414,7 @@ function SidebarCollapsibleItem({
                 "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
                 "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0!",
                 isGroupActive &&
-                  "bg-primary/[0.07] font-semibold text-sidebar-accent-foreground shadow-[inset_0_0_0_1px_oklch(0.45_0.11_162/0.14)]"
+                  "bg-primary/[0.07] font-semibold text-sidebar-accent-foreground shadow-[inset_0_0_0_1px_oklch(0.45_0.11_352/0.14)]"
               )}
             >
               <span className={cn("flex size-6 shrink-0 items-center justify-center rounded-[7px] transition-colors duration-200", tileClass)}>
@@ -438,7 +438,7 @@ function SidebarCollapsibleItem({
                         "rounded-lg text-sidebar-foreground/70 transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
                         NAV_SUBROW_TOUCH,
                         "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
-                        isChildActive && "bg-primary/[0.11] font-semibold text-primary shadow-[inset_0_0_0_1px_oklch(0.45_0.11_162/0.16)] hover:bg-primary/[0.14] hover:text-primary"
+                        isChildActive && "bg-primary/[0.11] font-semibold text-primary shadow-[inset_0_0_0_1px_oklch(0.45_0.11_352/0.16)] hover:bg-primary/[0.14] hover:text-primary"
                       )}
                     >
                       <Link href={child.href} onClick={closeDrawer}>

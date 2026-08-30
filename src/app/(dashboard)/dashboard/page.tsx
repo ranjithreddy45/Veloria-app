@@ -45,9 +45,9 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
     <div className="flex items-center gap-2">
       <span
         aria-hidden
-        className="h-3.5 w-[3px] rounded-full bg-gradient-to-b from-violet-500 to-violet-400"
+        className="h-3.5 w-[3px] rounded-full bg-primary"
       />
-      <h2 className="text-brand-gradient text-meta font-semibold uppercase tracking-[0.12em]">
+      <h2 className="text-meta font-semibold uppercase tracking-[0.06em] text-muted-foreground">
         {children}
       </h2>
     </div>
@@ -128,7 +128,7 @@ export default async function DashboardPage() {
           ============================================================ */}
       <div className="bg-aura bg-grid-faint relative -mx-4 -mt-4 overflow-hidden rounded-3xl px-4 pb-7 pt-7 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
         <div className="relative flex items-start gap-4">
-          <Avatar className="hidden size-14 ring-2 ring-violet-500/20 ring-offset-2 ring-offset-background sm:flex">
+          <Avatar className="hidden size-14 ring-1 ring-border ring-offset-2 ring-offset-background sm:flex">
             <AvatarImage src={userImage} alt={fullName} />
             <AvatarFallback className="bg-violet-500/10 text-base font-semibold text-violet-600 dark:text-violet-300">
               {initials}
@@ -141,12 +141,12 @@ export default async function DashboardPage() {
                 <span className="absolute inset-0 animate-ping rounded-full bg-emerald-500/60 opacity-75" />
                 <span className="relative size-1.5 rounded-full bg-emerald-500" />
               </span>
-              <span className="text-brand-gradient">{today}</span>
+              <span className="text-muted-foreground">{today}</span>
             </div>
             {/* Greeting — large-title display type */}
             <h1 className="large-title text-h1 leading-[1.05] text-foreground sm:text-h1">
               {greeting},{" "}
-              <span className="text-brand-gradient">{userName}</span>
+              <span className="text-primary">{userName}</span>
             </h1>
             {/* Briefing chips — the at-a-glance "what needs me today" */}
             <div className="mt-0.5 flex flex-wrap items-center gap-2">
@@ -155,7 +155,7 @@ export default async function DashboardPage() {
                   key={i}
                   className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/70 px-2.5 py-1 text-detail backdrop-blur-sm"
                 >
-                  <b.icon className="size-3.5 text-violet-500/80" strokeWidth={2} />
+                  <b.icon className="size-3.5 text-muted-foreground" strokeWidth={2} />
                   <span className="text-foreground/80">
                     <span className="numeric font-semibold text-foreground">
                       {b.value}
@@ -167,7 +167,7 @@ export default async function DashboardPage() {
               {velos && velos.players > 0 && (
                 <Link
                   href="/performance/velos"
-                  className="hover-lift inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-violet-500/15 to-violet-400/15 px-2.5 py-1 text-detail font-semibold text-violet-600 ring-1 ring-inset ring-violet-500/20 transition-colors hover:from-violet-500/20 hover:to-violet-400/20 dark:text-violet-300"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-detail font-semibold text-primary ring-1 ring-inset ring-primary/20 transition-colors hover:bg-primary/15"
                 >
                   <Trophy className="size-3.5" strokeWidth={2} />
                   <span className="numeric">

@@ -121,7 +121,7 @@ export default async function QualityPage() {
       />
 
       {/* Overall sigma hero */}
-      <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-br from-violet-500/10 via-card to-card p-6 shadow-card sm:p-8">
+      <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-card p-6 shadow-card sm:p-8">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <span className="flex size-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-600 dark:bg-violet-950/50 dark:text-violet-300">

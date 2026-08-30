@@ -47,8 +47,7 @@ export function GettingStarted({ steps, doneCount, total }: { steps: OnboardingS
   };
 
   return (
-    <Card className="relative overflow-hidden rounded-2xl border-primary/20 bg-gradient-to-br from-primary/[0.06] via-card to-card shadow-card">
-      <div className="pointer-events-none absolute -right-16 -top-16 size-52 rounded-full bg-primary/10 blur-3xl" />
+    <Card className="relative overflow-hidden rounded-2xl border-border/60 bg-card shadow-card">
       <CardContent className="relative space-y-5 px-5 py-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2.5">
@@ -82,7 +81,7 @@ export function GettingStarted({ steps, doneCount, total }: { steps: OnboardingS
         {/* Progress bar */}
         <div className="space-y-1.5">
           <div className="h-2 overflow-hidden rounded-full bg-muted">
-            <div className="h-full rounded-full bg-gradient-to-r from-primary to-violet-500 transition-all duration-500" style={{ width: `${pct}%` }} />
+            <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${pct}%` }} />
           </div>
           <div className="flex justify-between text-meta text-muted-foreground">
             <span className="numeric">{pct}% complete</span>

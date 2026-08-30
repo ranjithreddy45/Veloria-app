@@ -133,7 +133,7 @@ export default async function PackageDetailPage({
                 className="h-full w-full object-cover"
               />
             ) : (
-              <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-teal-500/10 via-muted to-muted">
+              <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-muted">
                 <ImageIcon className="size-10 text-muted-foreground/50" />
                 <span className="text-meta font-medium uppercase tracking-[0.14em] text-muted-foreground/60">
                   No photos on this package yet
@@ -180,7 +180,7 @@ export default async function PackageDetailPage({
                     className={cn(
                       "relative h-16 w-24 shrink-0 overflow-hidden rounded-xl border bg-muted",
                       img.id === (coverImage?.id ?? null)
-                        ? "border-teal-400 ring-2 ring-teal-500"
+                        ? "border-primary ring-1 ring-primary"
                         : "border-border"
                     )}
                   >

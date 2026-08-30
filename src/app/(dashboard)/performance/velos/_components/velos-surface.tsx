@@ -54,7 +54,7 @@ export function VelosSurface({
     <div className="space-y-5">
       {/* Personal Pace — the primary view (motivates all eight) */}
       {pace && (
-        <div className="overflow-hidden rounded-2xl border-0 bg-gradient-to-br from-[#2D1B3D] to-[#43295c] p-5 text-white shadow-card">
+        <div className="overflow-hidden rounded-2xl border-0 bg-primary p-5 text-white shadow-card">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-detail font-medium text-white/70"><TrendingUp className="size-4" /> Your pace this month</div>
             <StatusPill label={pace.onTrack ? "On track" : "Push needed"} hue={pace.onTrack ? "emerald" : "amber"} size="sm" />

@@ -29,7 +29,7 @@ export default async function FinancePage() {
       <PageHeader
         aura
         icon={LandmarkIcon}
-        accent="emerald"
+        accent="gold"
         eyebrow="General Ledger"
         title="Finance"
         description="General ledger, trial balance and journal entries — double-entry, period-locked."

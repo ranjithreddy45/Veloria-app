@@ -48,7 +48,7 @@ export function TopExpenses({ fy, rows }: TopExpensesProps) {
                 </div>
                 <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-muted">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-rose-500 to-amber-500"
+                    className="h-full rounded-full bg-rose-500"
                     style={{ width: `${Math.max(4, r.pct)}%` }}
                   />
                 </div>

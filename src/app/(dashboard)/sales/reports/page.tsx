@@ -322,7 +322,7 @@ export default async function SalesReportsPage({
                   </div>
                   <div className="relative h-8 flex-1 overflow-hidden rounded-lg border border-border/70 bg-muted/25">
                     <div
-                      className="h-full bg-gradient-to-r from-violet-500/35 to-violet-500/10"
+                      className="h-full bg-primary/25"
                       style={{ width: `${width}%` }}
                     />
                     <div className="numeric absolute inset-0 flex items-center px-3 text-body font-medium text-foreground">
@@ -455,7 +455,7 @@ export default async function SalesReportsPage({
                                 className={`block h-full rounded-full ${
                                   done
                                     ? "bg-success"
-                                    : "bg-gradient-to-r from-violet-500 to-success"
+                                    : "bg-primary"
                                 }`}
                                 style={{ width: `${barPct}%` }}
                               />
@@ -714,7 +714,7 @@ export default async function SalesReportsPage({
                       </span>
                       <div className="flex h-20 w-full items-end overflow-hidden rounded-md bg-muted/25">
                         <div
-                          className="w-full rounded-t-md bg-gradient-to-t from-violet-500/50 to-violet-500/20 transition-colors group-hover:from-violet-500/70 group-hover:to-violet-500/30"
+                          className="w-full rounded-t-md bg-primary/30 transition-colors group-hover:bg-primary/40"
                           style={{ height: `${h}px` }}
                         />
                       </div>

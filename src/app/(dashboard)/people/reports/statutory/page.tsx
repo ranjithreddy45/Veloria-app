@@ -87,7 +87,7 @@ export default async function StatutoryReportsIndexPage() {
             <Link
               key={r.href}
               href={r.href}
-              className="group flex items-start gap-3.5 rounded-xl border bg-card p-5 transition-colors hover:border-emerald-500/40 hover:bg-accent/40"
+              className="group flex items-start gap-3.5 rounded-xl border bg-card p-5 transition-colors hover:border-primary/40 hover:bg-accent/40"
             >
               <span className={`mt-0.5 flex size-11 shrink-0 items-center justify-center rounded-2xl ${r.chip}`} aria-hidden>
                 <Icon className="size-[22px]" strokeWidth={2} />

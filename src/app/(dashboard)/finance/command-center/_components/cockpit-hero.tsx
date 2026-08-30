@@ -21,7 +21,7 @@ export function CockpitHero({ fy, cashPosition, mtdRevenue, mtdExpense, mtdNet }
   const profitable = mtdNet >= 0;
 
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#2D1B3D] to-[#43295c] p-6 text-white shadow-card sm:p-8">
+    <div className="relative overflow-hidden rounded-2xl bg-primary p-6 text-white shadow-card sm:p-8">
       <div className="grid gap-8 sm:grid-cols-[1.4fr_1fr] sm:items-center">
         <div className="space-y-6">
           <div>

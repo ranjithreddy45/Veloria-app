@@ -24,7 +24,7 @@ export default function DashboardError({
             <AlertTriangle className="size-6" />
           </div>
           <div className="space-y-1.5">
-            <h2 className="font-editorial text-title font-semibold">
+            <h2 className="text-title font-semibold">
               Something went wrong
             </h2>
             <p className="text-body leading-relaxed text-muted-foreground">
