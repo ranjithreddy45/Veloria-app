@@ -372,11 +372,13 @@ function SidebarNavItem({
         <Link href={item.href} onClick={closeDrawer}>
           <span
             className={cn(
-              "flex size-6 shrink-0 items-center justify-center rounded-[7px] transition-colors duration-200",
-              isActive ? "bg-white/20 text-primary-foreground" : tileClass
+              "flex size-6 shrink-0 items-center justify-center transition-colors duration-200",
+              isActive
+                ? "text-primary-foreground"
+                : "text-sidebar-foreground/55 group-hover/nav:text-sidebar-foreground"
             )}
           >
-            <Icon className="size-3.5" strokeWidth={isActive ? 2.4 : 2} />
+            <Icon className="size-[18px]" strokeWidth={2} />
           </span>
           <span className={cn(isActive && "tracking-[-0.01em]")}>{item.title}</span>
         </Link>
@@ -417,8 +419,8 @@ function SidebarCollapsibleItem({
                   "bg-primary/[0.07] font-semibold text-sidebar-accent-foreground shadow-[inset_0_0_0_1px_oklch(0.45_0.11_352/0.14)]"
               )}
             >
-              <span className={cn("flex size-6 shrink-0 items-center justify-center rounded-[7px] transition-colors duration-200", tileClass)}>
-                <Icon className="size-3.5" strokeWidth={isGroupActive ? 2.4 : 2} />
+              <span className={cn("flex size-6 shrink-0 items-center justify-center transition-colors duration-200", isGroupActive ? "text-primary" : "text-sidebar-foreground/55 group-hover/nav:text-sidebar-foreground")}>
+                <Icon className="size-[18px]" strokeWidth={2} />
               </span>
               <span className={cn(isGroupActive && "tracking-[-0.01em]")}>{item.title}</span>
               <ChevronRight className="ml-auto size-3.5 text-sidebar-foreground/40 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
@@ -585,8 +587,7 @@ export function AppSidebar() {
                   return (
                     <Fragment key={item.href}>
                       {showHeader && (
-                        <SidebarGroupLabel className="mt-4 mb-1 flex items-center gap-1.5 px-2.5 text-meta font-semibold uppercase tracking-[0.1em] text-sidebar-foreground/40">
-                          <span className={cn("size-1.5 rounded-full", SECTION_DOT[section] ?? "bg-muted-foreground/40")} />
+                        <SidebarGroupLabel className="mt-5 mb-1 px-2.5 text-meta font-semibold uppercase tracking-[0.06em] text-sidebar-foreground/45">
                           {section}
                         </SidebarGroupLabel>
                       )}
