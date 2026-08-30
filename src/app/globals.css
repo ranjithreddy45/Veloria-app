@@ -584,60 +584,37 @@ summary:focus-visible,
 /* Ambient aura — soft multi-stop violet/indigo/teal mesh for hero sections.
  * Very low opacity so foreground text stays crisp. (Hue 280 rather than the
  * old 320: magenta read as stray pink against the violet accent.) */
+/* Apple restraint: the ambient aura + dotted-grid textures are retired. Kept as
+ * no-op utilities so existing call sites render on the plain canvas. */
 @utility bg-aura {
-  background-image:
-    radial-gradient(60% 80% at 10% -10%, oklch(0.45 0.11 162 / 8%) 0%, transparent 60%),
-    radial-gradient(48% 70% at 105% 0%, oklch(0.62 0.2 280 / 6%) 0%, transparent 60%),
-    radial-gradient(70% 90% at 55% 130%, oklch(0.68 0.13 200 / 5%) 0%, transparent 55%);
+  background-image: none;
 }
 .dark .bg-aura {
-  background-image:
-    radial-gradient(60% 80% at 10% -10%, oklch(0.66 0.13 163 / 16%) 0%, transparent 60%),
-    radial-gradient(48% 70% at 105% 0%, oklch(0.6 0.2 280 / 11%) 0%, transparent 60%),
-    radial-gradient(70% 90% at 55% 130%, oklch(0.65 0.13 200 / 8%) 0%, transparent 55%);
+  background-image: none;
 }
 
-/* Faint dotted grid — premium texture behind hero headers. Rendered on a
- * ::before layer (behind content via z-index:-1 + isolation) so the fade
- * MASK only clips the grid, never the heading text sitting on top. */
 @utility bg-grid-faint {
   position: relative;
   isolation: isolate;
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    pointer-events: none;
-    background-image: radial-gradient(oklch(0.45 0.05 286 / 7%) 1px, transparent 1px);
-    background-size: 22px 22px;
-    -webkit-mask-image: radial-gradient(75% 65% at 25% 0%, black, transparent 78%);
-    mask-image: radial-gradient(75% 65% at 25% 0%, black, transparent 78%);
-  }
+  &::before { content: none; }
 }
-.dark .bg-grid-faint::before {
-  background-image: radial-gradient(oklch(1 0 0 / 6%) 1px, transparent 1px);
-}
+.dark .bg-grid-faint::before { content: none; }
 
-/* Gradient ink — emerald→ink fill for hero numerals & titles. */
+/* Gradient-ink text retired — one flat ink colour reads as system UI. */
 @utility text-ink-gradient {
-  background-image: linear-gradient(135deg, oklch(0.42 0.1 162) 0%, oklch(0.235 0.02 286) 72%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  background-image: none;
+  -webkit-text-fill-color: currentColor;
+  color: var(--foreground);
 }
 .dark .text-ink-gradient {
-  background-image: linear-gradient(135deg, oklch(0.84 0.1 165) 0%, oklch(0.97 0.01 286) 78%);
+  background-image: none;
+  color: var(--foreground);
 }
 
-/* Brand gradient — emerald→gold, the brand's two metals in one ramp. Both stops
- * stay dark enough to survive background-clip:text on white (the gold stop is the
- * deepened --gold, never --gold-bright, which would wash out at small sizes). */
 @utility text-brand-gradient {
-  background-image: linear-gradient(120deg, oklch(0.45 0.11 162), oklch(0.6 0.12 79));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  background-image: none;
+  -webkit-text-fill-color: currentColor;
+  color: var(--primary);
 }
 
 /* Premium elevation — layered shadow with a crafted inset top light,
@@ -653,47 +630,28 @@ summary:focus-visible,
     0 12px 34px -18px oklch(0 0 0 / 70%);
 }
 
-/* Spring hover-lift — gentle rise + richer shadow with overshoot ease. */
+/* Hover-lift — Apple restraint: a shadow deepen only, no spring, no travel. */
 @utility hover-lift {
-  transition: transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 240ms ease;
+  transition: box-shadow 200ms ease;
   &:hover {
-    transform: translateY(-3px);
     box-shadow:
-      0 2px 4px oklch(0.2 0.03 286 / 6%),
-      0 18px 40px oklch(0.2 0.03 286 / 13%);
+      0 1px 2px oklch(0.2 0.03 286 / 5%),
+      0 16px 40px -20px oklch(0.2 0.03 286 / 30%);
   }
 }
 .dark .hover-lift:hover {
-  box-shadow: 0 18px 44px oklch(0 0 0 / 48%);
+  box-shadow: 0 16px 40px -20px oklch(0 0 0 / 60%);
 }
 
-/* Sheen sweep — a diagonal light streak crosses the surface on hover.
- * Host must be position:relative + overflow:hidden (rounded ok). */
+/* Sheen sweep retired — the animated streak reads as flashy, not system. No-op. */
 @utility sheen-sweep {
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(115deg, transparent 32%, oklch(1 0 0 / 40%) 50%, transparent 68%);
-    transform: translateX(-130%);
-    transition: transform 760ms cubic-bezier(0.4, 0, 0.2, 1);
-    pointer-events: none;
-  }
-  &:hover::after { transform: translateX(130%); }
+  &::after { content: none; }
 }
-.dark .sheen-sweep::after {
-  background: linear-gradient(115deg, transparent 32%, oklch(1 0 0 / 9%) 50%, transparent 68%);
-}
+.dark .sheen-sweep::after { content: none; }
 
-/* Ring glow — soft violet halo around icon chips / focused affordances. */
-/* Paired with `logo-chip` on the brand mark. Both set box-shadow, so this one wins
- * the cascade — it must therefore carry the gold hairline itself, or the ring would
- * silently fall back to all-emerald wherever the two are used together (which is
- * the sign-in screen and the sidebar, i.e. the brand's two most visible marks). */
+/* Icon-chip ring — a quiet hairline, no coloured halo. */
 @utility ring-glow-brand {
-  box-shadow:
-    0 0 0 1px oklch(0.8 0.15 86 / 55%),
-    0 6px 18px oklch(0.45 0.11 162 / 24%);
+  box-shadow: inset 0 0 0 0.5px oklch(1 0 0 / 12%);
 }
 
 /* Premium shimmer — elegant left-to-right sheen for loading skeletons. */
@@ -727,11 +685,11 @@ summary:focus-visible,
 
 /* Soft entrance with a touch of spring — for hero/landing reveals. */
 @keyframes rise-in {
-  from { opacity: 0; transform: translateY(10px) scale(0.985); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 @utility animate-rise-in {
-  animation: rise-in 0.45s cubic-bezier(0.34, 1.3, 0.64, 1) both;
+  animation: rise-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 /* --------------------------------------------------------------

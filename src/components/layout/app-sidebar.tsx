@@ -366,7 +366,7 @@ function SidebarNavItem({
           "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
           "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0!",
           isActive &&
-            "sheen-sweep bg-gradient-to-b from-primary to-[color-mix(in_oklab,var(--primary)_90%,black_10%)] font-semibold text-primary-foreground shadow-[inset_0_1px_0_oklch(1_0_0/0.28),0_2px_8px_oklch(0.4_0.12_162/0.32)] hover:text-primary-foreground hover:from-primary hover:to-[color-mix(in_oklab,var(--primary)_90%,black_10%)]"
+            "bg-primary font-semibold text-primary-foreground shadow-[0_1px_2px_oklch(0.4_0.12_162/0.22)] hover:bg-primary hover:text-primary-foreground"
         )}
       >
         <Link href={item.href} onClick={closeDrawer}>
@@ -529,7 +529,7 @@ export function AppSidebar() {
                     <Gem className="size-3.5" strokeWidth={2.5} />
                   </div>
                   <div className="flex flex-col">
-                    <span className="font-editorial text-copy font-semibold tracking-[-0.01em] text-ink-gradient">
+                    <span className="text-copy font-semibold tracking-[-0.02em] text-sidebar-foreground">
                       Veloria Grand
                     </span>
                     <span className="text-meta font-medium tracking-wide text-sidebar-foreground/45">
