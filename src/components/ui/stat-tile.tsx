@@ -53,11 +53,11 @@ export function StatTile({ label, value, accent = "indigo", icon, sub, delta, de
     // "₹12,45,000" overflowed its own card; the mobile-first values below shrink
     // the padding and type just enough to fit, and `sm:` restores today's
     // desktop look exactly.
-    <div className={cn("group sheen-sweep relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-br bg-card p-4 shadow-premium transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.34,1.4,0.64,1)] hover:-translate-y-1 hover:shadow-card-hover sm:p-5", a.wash, className)}>
+    <div className={cn("group relative overflow-hidden rounded-2xl border border-border/60 bg-card p-4 shadow-card transition-shadow duration-200 hover:shadow-card-hover sm:p-5", className)}>
       <div className="relative z-[1] flex items-start justify-between gap-2 sm:gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            {icon && <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-xl shadow-sm transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.34,1.4,0.64,1)] group-hover:scale-110 group-hover:shadow-md [&>svg]:size-4", a.chip)}>{icon}</span>}
+            {icon && <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-[10px] [&>svg]:size-4", a.chip)}>{icon}</span>}
             {/* min-w-0 + wrapping: labels like "Leads created this month" must
                 wrap rather than push the tile wider than its grid cell. */}
             <span className="min-w-0 text-meta font-medium leading-snug tracking-[-0.005em] text-muted-foreground sm:text-xs">{label}</span>
@@ -69,9 +69,12 @@ export function StatTile({ label, value, accent = "indigo", icon, sub, delta, de
           </div>
           {sub && <p className="mt-2 text-meta leading-snug text-muted-foreground">{sub}</p>}
           {typeof delta === "number" && delta !== 0 && (
-            <p className={cn("mt-2 inline-flex items-center gap-0.5 text-meta font-semibold tabular-nums", delta > 0 ? "text-success" : "text-destructive")}>
-              {delta > 0 ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />}
-              {delta > 0 ? "+" : ""}{delta}{deltaLabel ?? ""}
+            <p className="mt-2 flex items-center gap-1.5 text-meta">
+              <span className={cn("inline-flex items-center gap-0.5 font-semibold tabular-nums", delta > 0 ? "text-success" : "text-destructive")}>
+                {delta > 0 ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />}
+                {delta > 0 ? "+" : ""}{delta}
+              </span>
+              {deltaLabel && <span className="min-w-0 truncate text-muted-foreground">{deltaLabel}</span>}
             </p>
           )}
         </div>
@@ -86,9 +89,6 @@ export function StatTile({ label, value, accent = "indigo", icon, sub, delta, de
           </span>
         )}
       </div>
-      {typeof pct !== "number" && typeof delta !== "number" && (
-        <span aria-hidden className={cn("mt-3.5 block h-1 w-10 rounded-full", a.bar)} />
-      )}
     </div>
   );
 }
