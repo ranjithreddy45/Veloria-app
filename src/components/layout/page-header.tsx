@@ -62,7 +62,6 @@ export function PageHeader({
   accent = "brand",
   children,
   help,
-  aura = false,
   className,
 }: PageHeaderProps) {
   return (
@@ -72,8 +71,9 @@ export function PageHeader({
         // unbroken title (or a wide action button) sets the flex basis and
         // pushes the whole page into a horizontal scroll on a 375px screen.
         "relative flex min-w-0 flex-col gap-4 pb-2 sm:flex-row sm:items-end sm:justify-between",
-        aura &&
-          "bg-aura bg-grid-faint -mx-4 -mt-4 rounded-3xl px-4 pb-5 pt-5 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8",
+        // `aura` retained for API compatibility but intentionally no longer
+        // paints an ambient glow / dotted grid — Apple restraint keeps the
+        // header on the plain canvas.
         className
       )}
     >
@@ -91,9 +91,8 @@ export function PageHeader({
         )}
         <div className="min-w-0 space-y-2">
           {eyebrow && (
-            <div className="flex items-center gap-2 text-meta font-semibold uppercase tracking-[0.12em]">
-              <span aria-hidden className="from-gold-bright to-gold h-3 w-[3px] rounded-full bg-gradient-to-b" />
-              <span className="text-brand-gradient">{eyebrow}</span>
+            <div className="text-meta font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+              {eyebrow}
             </div>
           )}
           {/* The help "?" must not be pushed off-screen by a long title, so the
