@@ -224,7 +224,7 @@ export async function POST(req: Request) {
       // both through the capture pipeline's Serializable externalId guard, so
       // the loser folds into the winner. A genuine new enquiry a minute later
       // gets a different bucket and is unaffected.
-      externalId: `web:${phone.replace(/\D/g, "").slice(-10)}:${Math.floor(Date.now() / 60000)}`,
+      externalId: `web:${phone.replace(/\D/g, "").slice(-10)}:${(eventType || "").trim().toLowerCase()}:${Math.floor(Date.now() / 60000)}`, // event type in the key: a different enquiry in the same minute must not be swallowed
       source: "WEBSITE",
       eventType,
       eventDate,
