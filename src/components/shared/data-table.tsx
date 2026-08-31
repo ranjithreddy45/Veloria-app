@@ -215,29 +215,30 @@ export function DataTable<TData, TValue>({
       rowSelection,
       ...(searchFields ? { globalFilter } : {}),
     },
-    ...(searchFields
-      ? {
-          onGlobalFilterChange: setGlobalFilter,
-          globalFilterFn: (row, _columnId, value: string) => {
-            const q = String(value ?? "").trim().toLowerCase();
-            if (!q) return true;
-            // Digits-only comparison for phone matching: someone searching
-            // "9008123456" must find a contact stored as "+91 90081-23456".
-            const digits = q.replace(/\D/g, "");
-            return searchFields(row.original as TData).some((f) => {
-              if (!f) return false;
-              const v = String(f).toLowerCase();
-              if (v.includes(q)) return true;
-              if (digits.length >= 4) {
-                const vd = v.replace(/\D/g, "");
-                // Suffix match so a local number finds its +91 form and back.
-                if (vd && (vd.endsWith(digits) || digits.endsWith(vd))) return true;
-              }
-              return false;
-            });
-          },
+    // Passed unconditionally (not via a conditional spread): spreading a
+    // `{...} | {}` union into the options object broke TypeScript's inference
+    // of the table's TData generic, which surfaced as a bogus error on
+    // `columns`. When searchFields is unset the filter fn simply matches all.
+    onGlobalFilterChange: setGlobalFilter,
+    globalFilterFn: (row, _columnId, value) => {
+      if (!searchFields) return true;
+      const q = String(value ?? "").trim().toLowerCase();
+      if (!q) return true;
+      // Digits-only comparison for phone matching: someone searching
+      // "9008123456" must find a contact stored as "+91 90081-23456".
+      const digits = q.replace(/\D/g, "");
+      return searchFields(row.original as TData).some((f) => {
+        if (!f) return false;
+        const v = String(f).toLowerCase();
+        if (v.includes(q)) return true;
+        if (digits.length >= 4) {
+          const vd = v.replace(/\D/g, "");
+          // Suffix match so a local number finds its +91 form and back.
+          if (vd && (vd.endsWith(digits) || digits.endsWith(vd))) return true;
         }
-      : {}),
+        return false;
+      });
+    },
     initialState: {
       pagination: {
         pageSize: defaultPageSize,
