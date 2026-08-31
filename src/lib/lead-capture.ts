@@ -272,6 +272,10 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
     const channel =
       namedChannel === "LEAD_FORM" && observedChannel ? observedChannel : namedChannel;
 
+    // Remember whether this person already existed BEFORE the create below —
+    // only a pre-existing contact can possibly hold an open lead.
+    const isExistingContact = !!contact;
+
     if (!contact) {
       contact = await prisma.contact.create({
         data: {
@@ -300,6 +304,67 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
         .update({ where: { id: contact.id }, data: { enquirySource: channel } })
         .catch(() => {}); // best-effort: never fail a capture over attribution
       contact.enquirySource = channel;
+    }
+
+    // ------------------------------------------------------------------
+    // REPEAT-ENQUIRY GUARD — the actual lead-duplication fix.
+    // The same person enquiring again (form resubmit, second ad click, a
+    // WhatsApp after the web form) used to mint a brand-new Lead every time,
+    // splitting one customer's story across duplicate pipeline rows. If this
+    // contact already has an OPEN lead (not Won/Lost/deleted), fold the new
+    // enquiry into it: append what they said, fill any still-blank event
+    // fields, and return that lead. A closed lead does NOT block — a past
+    // customer enquiring for a new event correctly gets a fresh lead.
+    // ------------------------------------------------------------------
+    if (isExistingContact) {
+      const openLead = await prisma.lead.findFirst({
+        where: {
+          contactId: contact.id,
+          deletedAt: null,
+          status: { notIn: ["WON", "LOST"] },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+      if (openLead) {
+        const stamp = new Date().toISOString().slice(0, 10);
+        const note = `Re-enquired via ${data.source} on ${stamp}${data.message ? ` — ${data.message}` : ""}`;
+        await prisma.lead
+          .update({
+            where: { id: openLead.id },
+            data: {
+              description: [openLead.description, note].filter(Boolean).join("\n"),
+              // Fill only what the open lead is still missing — a repeat
+              // enquiry must never overwrite details a rep already recorded.
+              eventType: openLead.eventType ?? data.eventType ?? undefined,
+              eventDate:
+                openLead.eventDate ??
+                (data.eventDate ? new Date(data.eventDate) : undefined),
+              guestCount: openLead.guestCount ?? data.guestCount ?? undefined,
+              preferredVenueId: openLead.preferredVenueId ?? data.venueId ?? undefined,
+            },
+          })
+          .catch(() => {}); // enrichment is best-effort; the dedup return below is the point
+        try {
+          const sysId = await getSystemUserId();
+          if (sysId) {
+            await logActivity({
+              userId: sysId,
+              action: "re_enquired",
+              entityType: "Lead",
+              entityId: openLead.id,
+              changes: { source: data.source },
+            });
+          }
+        } catch {
+          // non-critical
+        }
+        return {
+          success: true,
+          leadId: openLead.id,
+          contactId: contact.id,
+          deduped: true,
+        };
+      }
     }
 
     // Evaluate assignment rules to auto-assign
