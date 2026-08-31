@@ -78,17 +78,9 @@ export function PageHeader({
       )}
     >
       <div className="flex min-w-0 items-start gap-3.5">
-        {Icon && (
-          <span
-            className={cn(
-              "mt-0.5 hidden size-11 shrink-0 items-center justify-center rounded-2xl shadow-[inset_0_0_0_1px_oklch(1_0_0/0.06)] sm:flex",
-              ACCENT_CHIP[accent]
-            )}
-            aria-hidden
-          >
-            <Icon className="size-[22px]" strokeWidth={2} />
-          </span>
-        )}
+        {/* Apple restraint: the coloured icon tile next to every page title made
+            each page open with a badge of colour. The large title now stands on
+            its own; `icon`/`accent` remain accepted for API compatibility. */}
         <div className="min-w-0 space-y-2">
           {eyebrow && (
             <div className="text-meta font-semibold uppercase tracking-[0.06em] text-muted-foreground">

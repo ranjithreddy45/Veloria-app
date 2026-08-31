@@ -70,7 +70,7 @@ export function VelosChip() {
           href="/performance/velos"
           aria-label={`Velos: ${data.points} points this month, rank ${rankLabel}`}
           className={cn(
-            "group/velos hidden items-center gap-2 rounded-full border border-border/70 bg-card/70 px-2.5 py-1 text-detail font-semibold shadow-card backdrop-blur transition-colors duration-200 hover:border-primary/40 hover:ring-1 hover:ring-primary/20 active:scale-[0.98] sm:inline-flex"
+            "group/velos hidden items-center gap-1.5 rounded-full px-2.5 py-1 text-detail font-semibold transition-colors duration-150 hover:bg-muted active:scale-[0.98] sm:inline-flex"
           )}
         >
           <Sparkles className="size-3.5 text-primary" />

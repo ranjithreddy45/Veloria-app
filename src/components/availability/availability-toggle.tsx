@@ -118,7 +118,7 @@ export function AvailabilityToggle() {
           variant="ghost"
           size="sm"
           className={cn(
-            "h-9 gap-1.5 rounded-full border border-border/70 bg-muted/40 px-2.5 text-detail font-medium transition-all duration-200 hover:bg-muted/70 active:scale-[0.97]",
+            "h-9 gap-1.5 rounded-full px-2.5 text-detail font-medium text-muted-foreground transition-colors duration-150 hover:bg-muted active:scale-[0.98]",
             meta.text
           )}
           title="Set your routing availability"

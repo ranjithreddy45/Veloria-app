@@ -336,7 +336,8 @@ export function LeadsFilterBar({ canViewAll, scope, venues, unassignedCount = 0 
       </div>
 
       {/* Desktop: the original inline rail, unchanged (scope pills included). */}
-      <div className="hidden flex-wrap items-center gap-2 rounded-xl border border-border/70 bg-card/80 px-3 py-2.5 shadow-sm md:flex">
+      {/* Flat toolbar row — no card chrome; the page canvas is the surface. */}
+      <div className="hidden flex-wrap items-center gap-2 py-1 md:flex">
         {scopeTabs}
         {controls}
 
