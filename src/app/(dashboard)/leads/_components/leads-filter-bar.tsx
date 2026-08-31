@@ -42,6 +42,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   Sheet,
   SheetContent,
   SheetHeader,
@@ -145,7 +150,7 @@ export function LeadsFilterBar({ canViewAll, scope, venues, unassignedCount = 0 
         onValueChange={(v) => push({ status: v === ANY_STATUS ? null : v })}
       >
         <SelectTrigger
-          className="h-9 w-full md:w-[150px]"
+          className="h-9 w-full"
           aria-label="Filter by status"
         >
           <SelectValue />
@@ -165,7 +170,7 @@ export function LeadsFilterBar({ canViewAll, scope, venues, unassignedCount = 0 
         onValueChange={(v) => push({ venue: v === ANY_VENUE ? null : v })}
       >
         <SelectTrigger
-          className="h-9 w-full md:w-[180px]"
+          className="h-9 w-full"
           aria-label="Filter by hall / property"
         >
           <SelectValue />
@@ -211,7 +216,7 @@ export function LeadsFilterBar({ canViewAll, scope, venues, unassignedCount = 0 
         onValueChange={(v) => push({ channel: v === ANY_CHANNEL ? null : v })}
       >
         <SelectTrigger
-          className="h-9 w-full md:w-[180px]"
+          className="h-9 w-full"
           aria-label="Filter by marketing channel"
         >
           <SelectValue />
@@ -335,11 +340,29 @@ export function LeadsFilterBar({ canViewAll, scope, venues, unassignedCount = 0 
         )}
       </div>
 
-      {/* Desktop: the original inline rail, unchanged (scope pills included). */}
-      {/* Flat toolbar row — no card chrome; the page canvas is the surface. */}
+      {/* Desktop: Apple-style editing — scope tabs stay one tap away, and the
+          five filter controls collapse behind ONE "Filters" button with an
+          active-count badge (the same pattern mobile already uses). The page
+          opens with content, not a wall of dropdowns. */}
       <div className="hidden flex-wrap items-center gap-2 py-1 md:flex">
         {scopeTabs}
-        {controls}
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="h-9">
+              <SlidersHorizontal className="size-4" />
+              Filters
+              {filtersActive && (
+                <span className="numeric rounded-full bg-primary/12 px-2 py-0.5 text-meta font-semibold text-primary">
+                  {activeCount}
+                </span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="start" sideOffset={8} className="w-80 space-y-4 p-4">
+            {controls}
+          </PopoverContent>
+        </Popover>
 
         {filtersActive && (
           <Button
@@ -385,7 +408,7 @@ function DateRangeField({
   // line and the two inputs share the row via flex-1/min-w-0; from `md` the
   // original single-row, fixed-width rail returns.
   return (
-    <div className="flex flex-col gap-1.5 md:flex-row md:items-center">
+    <div className="flex flex-col gap-1.5">
       <div className="flex items-center gap-1.5">
         {icon}
         <span className="text-detail font-medium text-muted-foreground">
@@ -398,7 +421,7 @@ function DateRangeField({
           value={from}
           max={to || undefined}
           aria-label={`${label} period from`}
-          className="h-9 w-full min-w-0 flex-1 md:w-[145px] md:flex-none"
+          className="h-9 w-full min-w-0 flex-1"
           onChange={(e) => onFrom(e.target.value)}
         />
         <span className="shrink-0 text-sm text-muted-foreground">→</span>
@@ -407,7 +430,7 @@ function DateRangeField({
           value={to}
           min={from || undefined}
           aria-label={`${label} period to`}
-          className="h-9 w-full min-w-0 flex-1 md:w-[145px] md:flex-none"
+          className="h-9 w-full min-w-0 flex-1"
           onChange={(e) => onTo(e.target.value)}
         />
       </div>
