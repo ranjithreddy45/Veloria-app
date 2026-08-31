@@ -1038,7 +1038,17 @@ export function LeadsTable({ data, statusFiltered = false }: LeadsTableProps) {
             columns={columns}
             data={facetFiltered}
             searchKey="identity"
-            searchPlaceholder="Search leads…"
+            // Name, email AND phone. The box used to filter the identity column
+            // alone, so searching a phone number or an email returned nothing —
+            // and neither is a column here, so no column filter could have
+            // reached them.
+            searchFields={(l) => [
+              l.title,
+              `${l.contact.firstName} ${l.contact.lastName}`,
+              l.contact.email,
+              l.contact.phone,
+            ]}
+            searchPlaceholder="Search name, email or phone…"
             enableRowSelection
             onSelectionChange={setSelectedRows}
             getRowId={(row) => row.id}

@@ -598,7 +598,14 @@ export function ContactsTable({ data }: ContactsTableProps) {
             columns={columns}
             data={faceted}
             searchKey="name"
-            searchPlaceholder="Search contacts…"
+            // Name, email and phone — searching an email or a number used to
+            // match nothing because only the name column was filtered.
+            searchFields={(c) => [
+              `${c.firstName} ${c.lastName}`,
+              c.email,
+              c.phone,
+            ]}
+            searchPlaceholder="Search name, email or phone…"
             enableRowSelection
             onSelectionChange={setSelectedRows}
             getRowId={(row) => row.id}

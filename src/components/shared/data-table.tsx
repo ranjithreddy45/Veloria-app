@@ -80,6 +80,20 @@ interface DataTableProps<TData, TValue> {
   mobileCards?: boolean;
   /** Starting rows-per-page. Stays 10 so no existing table changes behaviour. */
   defaultPageSize?: number;
+  /**
+   * The values the search box should match, per row.
+   *
+   * The box previously filtered a SINGLE column (`getColumn(searchKey)`), so on
+   * Leads it searched only the identity column and on Enquiry only the name —
+   * typing a phone number or an email found nothing. Worse, on Leads the phone
+   * and email are not columns at all, so no column-based filter could ever have
+   * reached them.
+   *
+   * This reads the underlying ROW instead, so a caller can offer search over
+   * fields the table never renders. When omitted, the old single-column
+   * behaviour is kept so the other tables are untouched.
+   */
+  searchFields?: (row: TData) => (string | null | undefined)[];
 }
 
 // ============================================================
@@ -166,6 +180,7 @@ export function DataTable<TData, TValue>({
   getRowId,
   mobileCards = true,
   defaultPageSize = 10,
+  searchFields,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -193,7 +208,31 @@ export function DataTable<TData, TValue>({
       columnFilters,
       columnVisibility,
       rowSelection,
+      ...(searchFields ? { globalFilter } : {}),
     },
+    ...(searchFields
+      ? {
+          onGlobalFilterChange: setGlobalFilter,
+          globalFilterFn: (row, _columnId, value: string) => {
+            const q = String(value ?? "").trim().toLowerCase();
+            if (!q) return true;
+            // Digits-only comparison for phone matching: someone searching
+            // "9008123456" must find a contact stored as "+91 90081-23456".
+            const digits = q.replace(/\D/g, "");
+            return searchFields(row.original as TData).some((f) => {
+              if (!f) return false;
+              const v = String(f).toLowerCase();
+              if (v.includes(q)) return true;
+              if (digits.length >= 4) {
+                const vd = v.replace(/\D/g, "");
+                // Suffix match so a local number finds its +91 form and back.
+                if (vd && (vd.endsWith(digits) || digits.endsWith(vd))) return true;
+              }
+              return false;
+            });
+          },
+        }
+      : {}),
     initialState: {
       pagination: {
         pageSize: defaultPageSize,
@@ -222,15 +261,19 @@ export function DataTable<TData, TValue>({
               <Input
                 placeholder={searchPlaceholder}
                 value={
-                  (table
-                    .getColumn(searchKey)
-                    ?.getFilterValue() as string) ?? ""
+                  searchFields
+                    ? globalFilter
+                    : ((table.getColumn(searchKey)?.getFilterValue() as string) ?? "")
                 }
-                onChange={(event) =>
-                  table
-                    .getColumn(searchKey)
-                    ?.setFilterValue(event.target.value)
-                }
+                onChange={(event) => {
+                  const v = event.target.value;
+                  if (searchFields) {
+                    setGlobalFilter(v);
+                    table.setPageIndex(0);
+                  } else {
+                    table.getColumn(searchKey)?.setFilterValue(v);
+                  }
+                }}
                 className="pl-9"
               />
             </div>
