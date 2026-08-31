@@ -422,11 +422,9 @@ export function Applications({
         {canWrite && <NewApplicationDialog options={options} />}
       </div>
 
-      <div className="flex gap-4">
-        {/* Faceted filter rail */}
-        <div className="hidden lg:block">
-          <FacetFilterRail items={apps} facets={facets} onChange={onChange} />
-        </div>
+      <div className="flex flex-col gap-4">
+        {/* Faceted filter — collapsed button + popover/sheet at every breakpoint */}
+        <FacetFilterRail items={apps} facets={facets} onChange={onChange} />
 
         {/* Table */}
         <Card className="min-w-0 flex-1 overflow-hidden p-0">

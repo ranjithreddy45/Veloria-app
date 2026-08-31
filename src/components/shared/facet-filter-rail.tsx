@@ -18,6 +18,11 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 
 export interface FacetDef<T> {
@@ -166,23 +171,35 @@ export function FacetFilterRail<T>({
 
   return (
     <>
-      {/* Desktop rail — unchanged. `hidden lg:block` lives HERE now rather than
-          being passed in by every call site, so the mobile affordance below can
-          never be forgotten by a new caller. */}
-      <aside
-        className={cn(
-          "hidden w-56 shrink-0 rounded-xl border border-border/70 bg-card p-3 shadow-card lg:block",
-          className
-        )}
-      >
-        <div className="flex items-center justify-between pb-1">
-          <span className="inline-flex items-center gap-1.5 text-detail font-semibold">
-            <SlidersHorizontal className="size-3.5 text-muted-foreground" /> Filter by
-          </span>
+      {/* Desktop — Apple edit: the always-open 224px rail is retired. The same
+          facet list now lives behind ONE "Filter by" button (count-badged) in a
+          popover, so the list gets the full width and the page opens with
+          content. Same single component instance ⇒ same shared state. */}
+      <div className={cn("hidden lg:block", className)}>
+        <div className="flex items-center gap-1.5">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <SlidersHorizontal className="size-3.5" />
+                Filter by
+                {activeCount > 0 && (
+                  <span className="bg-primary text-primary-foreground numeric ml-0.5 inline-flex min-w-4 items-center justify-center rounded-full px-1.5 py-0.5 text-meta font-semibold leading-none">
+                    {activeCount}
+                  </span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent
+              align="start"
+              sideOffset={8}
+              className="max-h-[70vh] w-64 overflow-y-auto p-3"
+            >
+              {body}
+            </PopoverContent>
+          </Popover>
           {clearButton}
         </div>
-        {body}
-      </aside>
+      </div>
 
       {/* Below lg the rail was simply `hidden`, so these lists had NO faceted
           filtering on a phone or tablet at all. Same state, shown in a sheet. */}

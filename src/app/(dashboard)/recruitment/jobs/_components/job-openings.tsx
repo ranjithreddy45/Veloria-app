@@ -213,7 +213,7 @@ export function JobOpenings({
       )}
 
       {/* Filter rail + table */}
-      <div className="flex flex-col lg:flex-row items-start gap-4">
+      <div className="flex flex-col gap-4">
         <FacetFilterRail
           items={openings}
           facets={facets}

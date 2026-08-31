@@ -375,7 +375,7 @@ export function VendorsTable({ data }: VendorsTableProps) {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row items-start gap-4">
+    <div className="flex flex-col gap-4">
       <FacetFilterRail
         items={data}
         facets={VENDOR_FACETS}

@@ -587,7 +587,7 @@ export function ContactsTable({ data }: ContactsTableProps) {
   return (
     <>
       <TypeTabs data={data} active={typeFilter} onChange={setTypeFilter} />
-      <div className="flex flex-col lg:flex-row items-start gap-4">
+      <div className="flex flex-col gap-4">
         <FacetFilterRail
           items={filtered}
           facets={CONTACT_FACETS}
