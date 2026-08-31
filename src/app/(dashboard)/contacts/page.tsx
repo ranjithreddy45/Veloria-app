@@ -52,6 +52,16 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
     getVenues({ activeOnly: true }),
   ]);
   const contacts = result.success ? result.data.data : [];
+  // The TRUE row count, not contacts.length.
+  //
+  // getContacts already returns a real prisma.contact.count alongside the rows,
+  // and the header was printing the length of the LOADED array instead. Today
+  // that happens to agree, because 142 contacts fit inside the 500-row ceiling.
+  // Past 500 it would have frozen at "500 total" while the real number kept
+  // growing — a header quietly contradicting the database, which is the exact
+  // failure the leads list had at 100.
+  const totalContacts = result.success ? result.data.total : contacts.length;
+  const contactsTruncated = contacts.length < totalContacts;
 
   // Only offer the one-off tidy-up to an admin, and only while there is
   // something left to tidy — otherwise it is a button that does nothing.
@@ -121,7 +131,7 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
             <span>CRM · Directory</span>
             <span className="h-3 w-px bg-border" />
             <span className="text-foreground/80">
-              <span className="font-semibold numeric">{contacts.length}</span> total
+              <span className="font-semibold numeric">{totalContacts}</span> total
             </span>
             <span className="h-3 w-px bg-border" />
             <span>
@@ -133,6 +143,12 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
         description="Your people. Every conversation, deal, and booking ties back here."
       >
         {emptyFbCount > 0 && <CleanupEmptyFbButton count={emptyFbCount} />}
+        {/* A cap that does not announce itself reads as "this is all of it". */}
+        {contactsTruncated && (
+          <span className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-detail text-foreground/80">
+            Showing {contacts.length} of {totalContacts} — narrow the filters to see the rest.
+          </span>
+        )}
         {repairable > 0 && <EnquiryRepairButton affected={repairable} />}
         <Button asChild>
           <Link href="/contacts/new">
