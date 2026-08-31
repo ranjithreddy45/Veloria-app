@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { notify } from "@/lib/notify";
 import { logActivity } from "@/lib/activity-logger";
 import { calculateLeadScore } from "@/lib/lead-scoring";
-import { evaluateAssignmentRules } from "@/actions/assignment-rule.actions";
+import { evaluateAssignmentRules } from "@/lib/assignment/evaluate";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
 import { runLeadIntake, leadSlaDeadline } from "@/lib/lead-pipeline";
 import { attachAttributionToLead, type AttributionInput } from "@/lib/attribution";
@@ -325,14 +325,36 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
         },
         orderBy: { createdAt: "desc" },
       });
-      if (openLead) {
+      // (Audit fix) Only fold when it plausibly IS the same event. A different
+      // event type, or a different concrete event date, is a genuinely new
+      // opportunity (the same family can plan a wedding AND a corporate event)
+      // and must become its own lead — blank incoming fields still fold.
+      const sameEvent =
+        openLead != null &&
+        (!data.eventType ||
+          !openLead.eventType ||
+          data.eventType.trim().toLowerCase() === openLead.eventType.trim().toLowerCase()) &&
+        (!data.eventDate ||
+          !openLead.eventDate ||
+          new Date(data.eventDate).toDateString() === openLead.eventDate.toDateString());
+      if (openLead && sameEvent) {
         const stamp = new Date().toISOString().slice(0, 10);
         const note = `Re-enquired via ${data.source} on ${stamp}${data.message ? ` — ${data.message}` : ""}`;
         await prisma.lead
           .update({
             where: { id: openLead.id },
             data: {
-              description: [openLead.description, note].filter(Boolean).join("\n"),
+              // (Audit fix) Persist the incoming externalId marker on the fold
+              // path too, so a webhook REDELIVERY of the same provider lead hits
+              // the top-of-function idempotency check instead of appending a
+              // duplicate re-enquiry note on every retry.
+              description: [
+                openLead.description,
+                note,
+                externalId ? externalIdMarker(externalId) : null,
+              ]
+                .filter(Boolean)
+                .join("\n"),
               // Fill only what the open lead is still missing — a repeat
               // enquiry must never overwrite details a rep already recorded.
               eventType: openLead.eventType ?? data.eventType ?? undefined,

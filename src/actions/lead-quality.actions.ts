@@ -123,9 +123,27 @@ export async function setLeadBooking(
 
     const lead = await prisma.lead.findFirst({
       where: { id: leadId, deletedAt: null },
-      select: { id: true, qualifiedAt: true },
+      select: { id: true, qualifiedAt: true, status: true, leadQuality: true },
     });
     if (!lead) return { success: false as const, error: "Lead not found" };
+
+    // Audit fix: a booking conversion may only be recorded on a WON lead, and
+    // never on one marked junk. Without these gates, any lead could be armed as
+    // a Google Ads booking conversion — silently overwriting the junk flag and
+    // feeding false signals to the ad optimiser this module exists to train.
+    if (lead.status !== "WON") {
+      return {
+        success: false as const,
+        error: "Mark the lead as Won before recording a booking value.",
+      };
+    }
+    if (lead.leadQuality?.startsWith("JUNK") || lead.leadQuality === "DUPLICATE") {
+      return {
+        success: false as const,
+        error:
+          "This lead is marked junk/duplicate. Clear that quality first if it actually booked.",
+      };
+    }
 
     const clickId = await hasClickId(leadId);
 

@@ -109,7 +109,12 @@ export async function getQuotePackageOptions(
  * Gated on quotes:read — it is a "use server" export, hence a callable endpoint.
  */
 export async function validatePackageLinesAgainstCatalog(
-  lines: PackageLine[] | undefined | null
+  lines: PackageLine[] | undefined | null,
+  /** Quotation's hall — when set, packages not offered at that hall are rejected
+   *  server-side (audit fix: the hall filter was UI-only, so a crafted payload
+   *  or add-then-switch-hall could freeze an out-of-scope package into an
+   *  approved quote). */
+  venueId?: string | null
 ): Promise<{ errors: string[]; lines: PackageLine[] }> {
   const list = (lines ?? []).filter((p) => p && p.vendorPackageId);
   if (list.length === 0) return { errors: [], lines: [] }; // nothing to price → no gate needed
@@ -133,9 +138,25 @@ export async function validatePackageLinesAgainstCatalog(
       minPax: true,
       maxDiscountType: true,
       maxDiscountValue: true,
+      allVenues: true,
+      venueIds: true,
+      vendor: { select: { allVenues: true, venueIds: true } },
     },
   });
   const byId = new Map(pkgs.map((p) => [p.id, p]));
+
+  // Same availability rule as getQuotePackageOptions: package scope wins; a
+  // package set to "all halls" defers to the vendor's hall assignment; a vendor
+  // with no scope at all counts as available everywhere (unconfigured data).
+  const wantVenue = venueId?.trim() || null;
+  const offeredAtVenue = (pkg: (typeof pkgs)[number]): boolean => {
+    if (!wantVenue) return true;
+    if (!pkg.allVenues) return pkg.venueIds.includes(wantVenue);
+    if (pkg.vendor?.allVenues) return true;
+    const vScope = pkg.vendor?.venueIds ?? [];
+    if (vScope.length === 0) return true;
+    return vScope.includes(wantVenue);
+  };
 
   const errs: string[] = [];
   const corrected: PackageLine[] = [];
@@ -145,6 +166,10 @@ export async function validatePackageLinesAgainstCatalog(
     if (!pkg || pkg.status !== "ACTIVE") {
       errs.push(`Package "${label}" is no longer available.`);
       continue; // drop it from the sanitised lines
+    }
+    if (!offeredAtVenue(pkg)) {
+      errs.push(`Package "${pkg.name}" is not offered at the selected hall.`);
+      continue;
     }
     const qty = Math.floor(p.qty ?? 0);
     if (qty < 1) {

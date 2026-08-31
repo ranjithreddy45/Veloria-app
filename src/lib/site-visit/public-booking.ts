@@ -24,7 +24,7 @@ import { notifyAwait } from "@/lib/notify";
 import { logActivity } from "@/lib/activity-logger";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
 import { captureLeadFromExternal, getSystemUserId } from "@/lib/lead-capture";
-import { evaluateAssignmentRules } from "@/actions/assignment-rule.actions";
+import { evaluateAssignmentRules } from "@/lib/assignment/evaluate";
 import type { SiteVisitKind } from "@prisma/client";
 import {
   SITE_VISIT_DEFAULT_DURATION_MIN,

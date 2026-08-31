@@ -35,7 +35,7 @@ import { prisma } from "@/lib/prisma";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
 import { notifyAwait } from "@/lib/notify";
 import { logActivity } from "@/lib/activity-logger";
-import { evaluateAssignmentRules } from "@/actions/assignment-rule.actions";
+import { evaluateAssignmentRules } from "@/lib/assignment/evaluate";
 import { getSystemUserId } from "@/lib/lead-capture";
 import { leadSlaDeadline } from "@/lib/lead-pipeline";
 import {

@@ -271,9 +271,17 @@ export async function createContact(data: ContactInput) {
         contactData.phone || undefined
       );
       if (duplicateResult.success && duplicateResult.data.length > 0) {
+        // (Audit fix) Name the field that ACTUALLY matched — saying "email"
+        // whenever an email was supplied sent people chasing the wrong field
+        // on a phone-only match.
+        const dup = duplicateResult.data[0] as { email?: string | null; phone?: string | null };
+        const emailMatched =
+          !!contactData.email &&
+          !!dup.email &&
+          dup.email.trim().toLowerCase() === contactData.email.trim().toLowerCase();
         return {
           success: false as const,
-          error: `A contact with this ${contactData.email ? "email" : "phone"} already exists`,
+          error: `A contact with this ${emailMatched ? "email" : "phone number"} already exists`,
         };
       }
     }
@@ -344,28 +352,38 @@ export async function updateContact(id: string, data: ContactInput) {
 
     const contactData = parsed.data;
 
-    // Check duplicates excluding current contact
-    if (contactData.email && contactData.email !== existing.email) {
-      const emailDup = await prisma.contact.findFirst({
-        where: { email: contactData.email, id: { not: id }, deletedAt: null },
-      });
-      if (emailDup) {
-        return {
-          success: false as const,
-          error: "Another contact with this email already exists",
-        };
-      }
-    }
-
-    if (contactData.phone && contactData.phone !== existing.phone) {
-      const phoneDup = await prisma.contact.findFirst({
-        where: { phone: contactData.phone, id: { not: id }, deletedAt: null },
-      });
-      if (phoneDup) {
-        return {
-          success: false as const,
-          error: "Another contact with this phone already exists",
-        };
+    // Check duplicates excluding current contact.
+    // (Audit fix) Use the SAME normalized, format-insensitive matching as the
+    // create path — the old exact-string compare let "+91 98765 43210" sail
+    // past an existing "9876543210" and mint exactly the duplicate the dedup
+    // layer exists to prevent.
+    if (contactData.email || contactData.phone) {
+      const coarse = coarseContactWhere(
+        contactData.email || null,
+        contactData.phone || null
+      );
+      if (coarse) {
+        const candidates = await prisma.contact.findMany({
+          where: { AND: [{ deletedAt: null }, { id: { not: id } }, coarse] },
+          select: { id: true, email: true, phone: true },
+          take: 25,
+        });
+        const dups = matchesContactKey(
+          candidates,
+          contactData.email || null,
+          contactData.phone || null
+        );
+        if (dups.length > 0) {
+          const d = dups[0];
+          const emailMatched =
+            !!contactData.email &&
+            !!d.email &&
+            d.email.trim().toLowerCase() === contactData.email.trim().toLowerCase();
+          return {
+            success: false as const,
+            error: `Another contact with this ${emailMatched ? "email" : "phone number"} already exists`,
+          };
+        }
       }
     }
 
@@ -757,6 +775,17 @@ export async function purgeContact(id: string) {
 
 export async function checkDuplicates(email?: string, phone?: string) {
   try {
+    // Auth gate (audit fix): this action returns names/emails/phones of
+    // matching contacts. Without a session check it was a public PII oracle —
+    // anyone could enumerate the customer base by probing phone numbers.
+    const session = await auth();
+    if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+    if (!hasPermission(session.user.role, "contacts:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
     // Normalised, format-insensitive match: "+91 98765 43210" == "9876543210",
     // "A@B.com" == "a@b.com". A coarse DB filter narrows the set, then
     // matchesContactKey does the exact comparison the DB cannot.

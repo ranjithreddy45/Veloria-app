@@ -217,6 +217,14 @@ export async function POST(req: Request) {
       name,
       phone,
       email,
+      // (Audit fix) Synthetic idempotency key: phone + 1-minute bucket. A
+      // double-tapped submit fires two near-identical requests with no natural
+      // externalId, and the two plain reads raced past each other creating two
+      // contacts + two leads. Keying on the phone within the same minute routes
+      // both through the capture pipeline's Serializable externalId guard, so
+      // the loser folds into the winner. A genuine new enquiry a minute later
+      // gets a different bucket and is unaffected.
+      externalId: `web:${phone.replace(/\D/g, "").slice(-10)}:${Math.floor(Date.now() / 60000)}`,
       source: "WEBSITE",
       eventType,
       eventDate,

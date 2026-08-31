@@ -4,7 +4,7 @@ import { toEnquirySource } from "@/lib/enquiry-source";
 import { webformSubmissionSchema } from "@/schemas/webform.schema";
 import { notify } from "@/lib/notify";
 import { calculateLeadScore } from "@/lib/lead-scoring";
-import { evaluateAssignmentRules } from "@/actions/assignment-rule.actions";
+import { evaluateAssignmentRules } from "@/lib/assignment/evaluate";
 import { runLeadIntake, leadSlaDeadline } from "@/lib/lead-pipeline";
 import { attachAttributionToLead, parseAttributionFromRequest } from "@/lib/attribution";
 import type { Prisma, LeadSource } from "@prisma/client";

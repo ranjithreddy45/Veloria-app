@@ -161,6 +161,8 @@ export const QUOTE_CATALOG: QuoteCatalog = {
 // HALL_ONLY charges the hall per hour (no food line). Min 4 hours.
 export type FoodMode = "WITH_FOOD" | "HALL_ONLY";
 export const MIN_HALL_HOURS = 4;
+/** Server-enforced ceiling on the quote-wide discount percentage (audit fix). */
+export const MAX_OVERALL_DISCOUNT_PCT = 25;
 
 export interface QuotationInput {
   guestCount: number;
@@ -508,6 +510,15 @@ export function validateQuotationInput(i: Partial<QuotationInput>): string[] {
   }
   if (i.discountPct != null && (i.discountPct < 0 || i.discountPct > 100))
     errs.push("Discount must be between 0 and 100%.");
+  // (Audit fix) Server-enforced ceiling on the QUOTE-WIDE discount. Per-package
+  // caps only guard the line-level reduction; without this, a 40%+ overall
+  // discount sailed past every cap with only human approval in the way. 25% is
+  // the operating ceiling — anything larger needs a deliberate config change
+  // here, not a keystroke in the builder.
+  if (i.discountPct != null && i.discountPct > MAX_OVERALL_DISCOUNT_PCT)
+    errs.push(
+      `Overall discount cannot exceed ${MAX_OVERALL_DISCOUNT_PCT}%. For a larger concession, adjust line prices with approval instead.`
+    );
   // Reject negative / non-finite money inputs (a negative override or rate
   // would otherwise produce negative line totals or a negative grand total).
   const nonNeg = (v: number | null | undefined, label: string) => {

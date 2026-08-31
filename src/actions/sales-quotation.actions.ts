@@ -255,7 +255,7 @@ export async function createSalesQuotation(
   // DB-authoritative min-pax + max-discount cap check on vendor-package lines.
   // The returned `lines` carry the catalog unit price / min-pax (never the
   // client's), so the stored snapshot and headline totals can't be forged.
-  const { errors: pkgErrs, lines: safeLines } = await validatePackageLinesAgainstCatalog(input.packageLines);
+  const { errors: pkgErrs, lines: safeLines } = await validatePackageLinesAgainstCatalog(input.packageLines, meta.venueId ?? null);
   if (pkgErrs.length) return { success: false, error: pkgErrs.join(" ") };
   const safeInput: QuotationInput = input.packageLines ? { ...input, packageLines: safeLines } : input;
 
@@ -294,12 +294,16 @@ export async function updateSalesQuotation(
 
   const errs = validateQuotationInput(input);
   if (errs.length) return { success: false, error: errs.join(" ") };
-  const { errors: pkgErrs, lines: safeLines } = await validatePackageLinesAgainstCatalog(input.packageLines);
+  const { errors: pkgErrs, lines: safeLines } = await validatePackageLinesAgainstCatalog(input.packageLines, meta.venueId !== undefined ? meta.venueId : row.venueId);
   if (pkgErrs.length) return { success: false, error: pkgErrs.join(" ") };
   const safeInput: QuotationInput = input.packageLines ? { ...input, packageLines: safeLines } : input;
 
-  await prisma.salesQuotation.update({
-    where: { id },
+  // (Audit fix) Guarded write: the DRAFT check above is a plain read, so a
+  // concurrent submit could land between check and write and the edit would
+  // mutate a quotation already under review. updateMany with the status in the
+  // WHERE makes check-and-write atomic — count 0 ⇒ it left DRAFT, reject.
+  const { count: updated } = await prisma.salesQuotation.updateMany({
+    where: { id, status: "DRAFT" },
     data: {
       inputsJson: safeInput as unknown as Prisma.InputJsonValue,
       // `undefined` = key omitted (keep current); explicit null = clear it.
@@ -317,6 +321,8 @@ export async function updateSalesQuotation(
       }),
     },
   });
+  if (updated === 0)
+    return { success: false, error: "Only a draft quotation can be edited. Create a new version instead.", code: 409 };
   revalidatePath("/quotations");
   revalidatePath(`/quotations/${id}`);
   return { success: true, data: { id } };
@@ -394,7 +400,7 @@ export async function approveSalesQuotation(id: string): Promise<Result<{ status
   // package archived, re-priced or re-capped since the draft was created must
   // not be frozen in unchecked. Block on errors; freeze with the authoritative
   // (re-priced) lines so the stored input and frozen output agree.
-  const { errors: pkgErrs, lines: safeLines } = await validatePackageLinesAgainstCatalog(input.packageLines);
+  const { errors: pkgErrs, lines: safeLines } = await validatePackageLinesAgainstCatalog(input.packageLines, row.venueId);
   if (pkgErrs.length) return { success: false, error: pkgErrs.join(" ") };
   const frozenInput: QuotationInput = input.packageLines ? { ...input, packageLines: safeLines } : input;
   const out = computeQuotation(frozenInput);
@@ -408,6 +414,15 @@ export async function approveSalesQuotation(id: string): Promise<Result<{ status
         approvedAt: new Date(),
         inputsJson: frozenInput as unknown as Prisma.InputJsonValue,
         outputsJson: out as unknown as Prisma.InputJsonValue,
+        // (Audit fix) The freeze re-prices lines against the live catalog, so
+        // the denormalized headline totals MUST be refreshed with it — the
+        // booking amount, 20% advance gate and send-email all read these
+        // columns, and a vendor re-price between draft and approval previously
+        // left them stale while the frozen output/PDF showed the new figures.
+        subtotal: new Prisma.Decimal(out.subtotal),
+        discountPct: new Prisma.Decimal(out.discountPct),
+        taxAmount: new Prisma.Decimal(out.tax),
+        grandTotal: new Prisma.Decimal(out.grandTotal),
         pdfUrl: `/api/quotations/${id}/pdf`,
       },
     });

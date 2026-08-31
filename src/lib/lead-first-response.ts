@@ -19,7 +19,7 @@
 import { prisma } from "@/lib/prisma";
 import { notify } from "@/lib/notify";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
-import { evaluateAssignmentRules } from "@/actions/assignment-rule.actions";
+import { evaluateAssignmentRules } from "@/lib/assignment/evaluate";
 import { buildAiFirstResponse } from "@/lib/ai/first-response-message";
 import { plannerSlotToEnum, SLOT_LABEL, type TimeSlotEnum } from "@/lib/sales/slot";
 import { slotLikelyFree } from "@/lib/sales/slot-availability-internal";

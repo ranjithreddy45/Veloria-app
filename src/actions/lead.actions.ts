@@ -13,7 +13,7 @@ import { calculateLeadScore } from "@/lib/lead-scoring";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
 import { notify } from "@/lib/notify";
-import { evaluateAssignmentRules } from "@/actions/assignment-rule.actions";
+import { evaluateAssignmentRules } from "@/lib/assignment/evaluate";
 import { runLeadIntake, leadSlaDeadline } from "@/lib/lead-pipeline";
 import { resolveBdRange, istDateStr } from "@/lib/acq/analytics-range";
 import { pushLeadToWeflux } from "@/lib/integrations/weflux-crm";
@@ -519,8 +519,9 @@ export async function updateLead(
       return { success: false as const, error: "Insufficient permissions" };
     }
 
-    const existing = await prisma.lead.findUnique({
-      where: { id },
+    const existing = await prisma.lead.findFirst({
+      // (Audit fix) exclude trashed leads — same reasoning as updateLeadStatus.
+      where: { id, deletedAt: null },
       include: { deal: { select: { id: true } } },
     });
     if (!existing) {
@@ -839,20 +840,32 @@ export async function purgeLead(id: string) {
     // without orphaning the deal. Refuse rather than throw a DB error.
     const existing = await prisma.lead.findUnique({
       where: { id },
-      include: { deal: { select: { id: true } }, quotes: { select: { id: true } } },
+      include: {
+        deal: { select: { id: true } },
+        quotes: { select: { id: true } },
+        salesQuotations: { select: { id: true } },
+      },
     });
     if (!existing) {
       return { success: false as const, error: "Lead not found" };
     }
-    if (existing.deal || existing.quotes.length > 0) {
+    if (existing.deal || existing.quotes.length > 0 || existing.salesQuotations.length > 0) {
       return {
         success: false as const,
         error:
-          "Cannot permanently delete a lead with a linked deal or quote. Delete those first.",
+          "Cannot permanently delete a lead with a linked deal or quotation. Delete those first.",
       };
     }
 
-    await prisma.lead.delete({ where: { id } });
+    // (Audit fix) Every captured web/ad lead carries LeadAttribution (and often
+    // LeadFirstResponse) rows whose required relations RESTRICT deletion — so
+    // the purge always threw for exactly the spam leads it exists to remove.
+    // Delete the bookkeeping children first, atomically with the lead.
+    await prisma.$transaction([
+      prisma.leadAttribution.deleteMany({ where: { leadId: id } }),
+      prisma.leadFirstResponse.deleteMany({ where: { leadId: id } }),
+      prisma.lead.delete({ where: { id } }),
+    ]);
 
     await logActivity({
       userId: session.user.id as string,
@@ -942,6 +955,7 @@ export async function getSalesFollowupQueue(): Promise<
   const role = session.user.role;
   const isManager = role === "ADMIN" || role === "SUPER_ADMIN" || role === "SALES_HEAD";
   const where: Prisma.LeadWhereInput = {
+    deletedAt: null, // (audit fix) trashed leads must not haunt the follow-up queue
     status: { notIn: ["WON", "LOST"] },
     followUpDate: { not: null },
   };
@@ -982,7 +996,10 @@ export async function updateLeadStatus(id: string, status: LeadStatus) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
-    const existing = await prisma.lead.findUnique({ where: { id } });
+    // (Audit fix) findFirst + deletedAt filter: a stale tab must not be able to
+    // change status on a trashed lead (which could even mint a pipeline deal
+    // for an invisible lead).
+    const existing = await prisma.lead.findFirst({ where: { id, deletedAt: null } });
     if (!existing) {
       return { success: false as const, error: "Lead not found" };
     }

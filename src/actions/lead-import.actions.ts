@@ -3,6 +3,7 @@
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
+import { coarseContactWhere, matchesContactKey } from "@/lib/dedup";
 import { revalidatePath } from "next/cache";
 import {
   type RawLeadRow,
@@ -142,16 +143,26 @@ export async function importSalesLeads(
             continue;
           }
 
-          // Resolve / create the contact (dedupe by phone).
+          // Resolve / create the contact — format-insensitive phone match.
+          // (Audit fix) The old exact-string match compared the import's bare
+          // digits against a column holding "+91…" canonical numbers, so an
+          // imported customer who already enquired online got a SECOND contact.
+          // Use the same coarse-filter + last-10-digit exact match the rest of
+          // the app dedupes with.
           let contactId: string | null = null;
           if (phone) {
-            const existing = await tx.contact.findFirst({
-              where: { phone, deletedAt: null },
-              select: { id: true },
-            });
-            if (existing) {
-              contactId = existing.id;
-              summary.contactsReused++;
+            const where = coarseContactWhere(null, phone);
+            if (where) {
+              const candidates = await tx.contact.findMany({
+                where: { AND: [{ deletedAt: null }, where] },
+                select: { id: true, email: true, phone: true },
+                take: 25,
+              });
+              const matched = matchesContactKey(candidates, null, phone);
+              if (matched.length > 0) {
+                contactId = matched[0].id;
+                summary.contactsReused++;
+              }
             }
           }
           if (!contactId) {

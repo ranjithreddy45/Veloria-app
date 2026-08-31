@@ -187,12 +187,45 @@ export async function mergeContacts(winnerId: string, loserIds: string[]): Promi
       await tx.reviewRequest.updateMany({ where, data });
       // Enquiry follow-ups / reminders (Task carries a plain contactId).
       await tx.task.updateMany({ where, data });
+      // (Audit fix) Plain-ref relations that were previously left behind — a
+      // merge must carry EVERYTHING, or the losing record's history silently
+      // vanishes behind the soft-deleted contact:
+      await tx.crmNote.updateMany({ where, data }); // notes + logged calls
+      await tx.document.updateMany({ where, data });
+      await tx.menuTasting.updateMany({ where, data });
+      await tx.siteVisitBooking.updateMany({ where, data });
+      await tx.supportTicket.updateMany({ where, data });
+      await tx.smsMessage.updateMany({ where, data });
+      await tx.winbackTarget.updateMany({ where, data });
 
-      // ── One-to-one uniques: move only if the winner doesn't already have one ──
-      const winnerLoyalty = await tx.loyaltyAccount.findUnique({ where: { contactId: winnerId }, select: { id: true } });
-      if (!winnerLoyalty) {
-        const l = await tx.loyaltyAccount.findFirst({ where, select: { id: true } });
-        if (l) await tx.loyaltyAccount.update({ where: { id: l.id }, data });
+      // ── One-to-one uniques ──
+      // Loyalty (audit fix): don't strand points. If the winner has no account,
+      // move the first loser account over; then ADD every remaining loser
+      // account's points onto the winner's account so no balance vanishes with
+      // a hidden record.
+      const winnerLoyalty = await tx.loyaltyAccount.findUnique({
+        where: { contactId: winnerId },
+        select: { id: true },
+      });
+      const loserLoyalty = await tx.loyaltyAccount.findMany({
+        where,
+        select: { id: true, points: true },
+      });
+      let keepAccountId = winnerLoyalty?.id ?? null;
+      let residualPoints = 0;
+      for (const l of loserLoyalty) {
+        if (!keepAccountId) {
+          await tx.loyaltyAccount.update({ where: { id: l.id }, data });
+          keepAccountId = l.id;
+        } else {
+          residualPoints += l.points;
+        }
+      }
+      if (keepAccountId && residualPoints > 0) {
+        await tx.loyaltyAccount.update({
+          where: { id: keepAccountId },
+          data: { points: { increment: residualPoints } },
+        });
       }
       const winnerCorp = await tx.corporateAccount.findUnique({ where: { contactId: winnerId }, select: { id: true } });
       if (!winnerCorp) {
@@ -216,6 +249,7 @@ export async function mergeContacts(winnerId: string, loserIds: string[]): Promi
           city: firstNonEmpty(winner.city, loserRows.map((r) => r.city)),
           state: firstNonEmpty(winner.state, loserRows.map((r) => r.state)),
           pincode: firstNonEmpty(winner.pincode, loserRows.map((r) => r.pincode)),
+          notes: firstNonEmpty(winner.notes, loserRows.map((r) => r.notes)),
           enquiryVenueId: firstNonEmpty(winner.enquiryVenueId, loserRows.map((r) => r.enquiryVenueId)),
           enquirySource: firstNonEmpty(winner.enquirySource, loserRows.map((r) => r.enquirySource)),
           customerType: firstNonEmpty(winner.customerType, loserRows.map((r) => r.customerType)),

@@ -140,12 +140,25 @@ export async function blockSlotFromQuotation(
   // HOLD bookings (orphaning the first when the second overwrites bookingId).
   // The conditional updateMany only succeeds for the first caller; the rest get
   // count === 0 and bail out cleanly.
+  // (Audit fix) `slotBlockedAt: null` in the WHERE is the actual mutex: without
+  // it, a second concurrent call still matched `bookingId: null` (the first
+  // caller hasn't created its booking yet) and both proceeded — two HOLDs, one
+  // orphaned. Now only the first caller flips the null; the rest get count 0.
+  // A claim is only held for the seconds this function runs; one older than
+  // 10 minutes with still no booking is a crashed/legacy orphan and may be
+  // re-claimed (self-heals the pre-fix orphans instead of locking them forever).
+  const staleBefore = new Date(Date.now() - 10 * 60 * 1000);
   const claim = await prisma.salesQuotation.updateMany({
-    where: { id: quotationId, bookingId: null, status: { in: ["APPROVED", "SENT"] } },
+    where: {
+      id: quotationId,
+      bookingId: null,
+      status: { in: ["APPROVED", "SENT"] },
+      OR: [{ slotBlockedAt: null }, { slotBlockedAt: { lt: staleBefore } }],
+    },
     data: { slotBlockedAt: new Date() },
   });
   if (claim.count === 0)
-    return { success: false, error: "This quotation already has a booked slot." };
+    return { success: false, error: "This quotation already has a booked slot or one is being created — refresh and check." };
   // Any failure after this point must release the claim so a retry can proceed.
   const releaseClaim = () =>
     prisma.salesQuotation
@@ -155,8 +168,12 @@ export async function blockSlotFromQuotation(
   // A zero/blank grand total would mint a ₹0 (previously ₹1) booking that
   // pollutes revenue — refuse it outright.
   const grandTotal = Number(q.grandTotal) || 0;
-  if (grandTotal <= 0)
+  if (grandTotal <= 0) {
+    // (Audit fix) release the claim like every other post-claim failure path,
+    // or the quotation stays flagged "slot blocked" with no booking.
+    await releaseClaim();
     return { success: false, error: "This quotation has no grand total — recompute it before blocking a slot." };
+  }
 
   const dateStr = opts.dateISO || (q.eventDate ? q.eventDate.toISOString().slice(0, 10) : "");
   const date = parseLocalDate(dateStr);
