@@ -288,36 +288,9 @@ const SECTIONS: Record<string, string> = {
   "/settings": "System",
 };
 
-// A signature color per section — gives the whole app a colorful, navigable
-// identity (each band reads at a glance, and it makes coming back to check
-// progress feel lively rather than monochrome).
-const SECTION_DOT: Record<string, string> = {
-  "Sales & CRM": "bg-blue-500",
-  "Delivery & Ops": "bg-amber-500",
-  "People": "bg-violet-500",
-  "Finance": "bg-emerald-500",
-  "Catalog": "bg-teal-500",
-  "Marketing & Insights": "bg-pink-500",
-  "Workspace": "bg-cyan-500",
-  "System": "bg-slate-400",
-};
-
-// ClickUp-style colored icon tiles — each nav item's icon sits in a rounded
-// chip tinted with its section's signature hue, so the whole sidebar reads as a
-// colorful, scannable workspace rather than a monochrome list. (Full class
-// strings so Tailwind keeps them at build time.) The active item drops the tint
-// for a translucent white tile on the violet gradient row.
-const DEFAULT_TILE = "bg-muted text-muted-foreground";
-const SECTION_TILE: Record<string, string> = {
-  "Sales & CRM": "bg-blue-500/12 text-blue-600 dark:bg-blue-400/15 dark:text-blue-300",
-  "Delivery & Ops": "bg-amber-500/15 text-amber-600 dark:bg-amber-400/15 dark:text-amber-300",
-  "People": "bg-violet-500/12 text-violet-600 dark:bg-violet-400/15 dark:text-violet-300",
-  "Finance": "bg-emerald-500/12 text-emerald-600 dark:bg-emerald-400/15 dark:text-emerald-300",
-  "Catalog": "bg-teal-500/12 text-teal-600 dark:bg-teal-400/15 dark:text-teal-300",
-  "Marketing & Insights": "bg-pink-500/12 text-pink-600 dark:bg-pink-400/15 dark:text-pink-300",
-  "Workspace": "bg-cyan-500/12 text-cyan-600 dark:bg-cyan-400/15 dark:text-cyan-300",
-  "System": "bg-slate-500/12 text-slate-600 dark:bg-slate-400/15 dark:text-slate-300",
-};
+// (Apple restraint) The per-section colour maps — SECTION_DOT rainbow dots and
+// the ClickUp-style SECTION_TILE icon chips — are retired: the sidebar is
+// monochrome, with colour reserved for the active item.
 
 // ============================================================
 // Role display map
@@ -345,11 +318,9 @@ const ROLE_LABELS: Record<string, string> = {
 function SidebarNavItem({
   item,
   isActive,
-  tileClass,
 }: {
   item: NavItem;
   isActive: boolean;
-  tileClass: string;
 }) {
   const Icon = getIcon(item.icon);
   const closeDrawer = useCloseDrawerOnNavigate();
@@ -394,11 +365,9 @@ function SidebarNavItem({
 function SidebarCollapsibleItem({
   item,
   pathname,
-  tileClass,
 }: {
   item: NavItem;
   pathname: string;
-  tileClass: string;
 }) {
   const Icon = getIcon(item.icon);
   const isGroupActive = pathname.startsWith(item.href);
@@ -570,17 +539,16 @@ export function AppSidebar() {
                   // Each item's icon-tile hue follows the section it belongs to
                   // (items that don't start a section inherit the running one).
                   const effectiveSection = section ?? prevSection;
-                  const tileClass = (effectiveSection && SECTION_TILE[effectiveSection]) || DEFAULT_TILE;
                   if (section) prevSection = section;
 
                   const node =
                     item.children && item.children.length > 0 ? (
-                      <SidebarCollapsibleItem item={item} pathname={pathname} tileClass={tileClass} />
+                      <SidebarCollapsibleItem item={item} pathname={pathname} />
                     ) : (
                       <SidebarNavItem
                         item={item}
                         isActive={pathname === item.href || pathname.startsWith(item.href + "/")}
-                        tileClass={tileClass}
+                       
                       />
                     );
 

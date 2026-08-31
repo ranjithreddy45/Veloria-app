@@ -94,11 +94,14 @@ export function GettingStarted({ steps, doneCount, total }: { steps: OnboardingS
           {steps.map((s) => {
             const Icon = ICONS[s.icon] ?? FileText;
             return (
-              <li key={s.key}>
+              // min-w-0 on the grid item AND the flex link: without both, the
+              // truncate text's nowrap min-content blows the grid track past
+              // the viewport on phones (page scrolled sideways at 375px).
+              <li key={s.key} className="min-w-0">
                 <Link
                   href={s.href}
                   className={cn(
-                    "group flex items-center gap-3 rounded-xl border p-3 transition",
+                    "group flex min-w-0 items-center gap-3 rounded-xl border p-3 transition",
                     s.done
                       ? "border-emerald-200/60 bg-emerald-50/40 dark:border-emerald-900/40 dark:bg-emerald-950/20"
                       : "border-border bg-card hover:border-primary/40 hover:bg-primary/[0.03]"

@@ -70,14 +70,17 @@ export function PageHeader({
         // min-w-0 on the wrapper AND the text column: without it a long
         // unbroken title (or a wide action button) sets the flex basis and
         // pushes the whole page into a horizontal scroll on a 375px screen.
-        "relative flex min-w-0 flex-col gap-4 pb-2 sm:flex-row sm:items-end sm:justify-between",
+        // sm:flex-wrap + a minimum title width: a dense action row (lead detail
+        // has nine controls) must wrap BELOW the title, never crush it into
+        // letter-by-letter line breaks.
+        "relative flex min-w-0 flex-col gap-4 pb-2 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between",
         // `aura` retained for API compatibility but intentionally no longer
         // paints an ambient glow / dotted grid — Apple restraint keeps the
         // header on the plain canvas.
         className
       )}
     >
-      <div className="flex min-w-0 items-start gap-3.5">
+      <div className="flex min-w-0 items-start gap-3.5 sm:min-w-[280px] sm:flex-1">
         {/* Apple restraint: the coloured icon tile next to every page title made
             each page open with a badge of colour. The large title now stands on
             its own; `icon`/`accent` remain accepted for API compatibility. */}

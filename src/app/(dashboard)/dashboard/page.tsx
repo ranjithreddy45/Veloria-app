@@ -222,11 +222,11 @@ export default async function DashboardPage() {
           ============================================================ */}
       <section className="animate-fade-in-up space-y-3" style={{ animationDelay: "120ms" }}>
         <SectionLabel>Performance</SectionLabel>
-        <div className="grid gap-4 lg:grid-cols-12">
-          <div className="lg:col-span-8">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+          <div className="min-w-0 lg:col-span-8">
             <RevenueChart data={stats.monthlyRevenue} />
           </div>
-          <div className="lg:col-span-4">
+          <div className="min-w-0 lg:col-span-4">
             <BookingsChart data={stats.bookingsByType} />
           </div>
         </div>
@@ -239,7 +239,7 @@ export default async function DashboardPage() {
           ============================================================ */}
       <section className="animate-fade-in-up space-y-3" style={{ animationDelay: "180ms" }}>
         <SectionLabel>What needs me</SectionLabel>
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <UpcomingEvents events={stats.upcomingEvents} />
           <OverdueItems
             tasks={stats.overdueTasks}
