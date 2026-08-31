@@ -189,6 +189,11 @@ export function DataTable<TData, TValue>({
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+  // Declared here, ABOVE useReactTable, because the table's state object reads
+  // it. A previous edit failed to insert this line and the reference survived
+  // the build — TypeScript checking is disabled in next.config, so a plain
+  // ReferenceError shipped to production and broke every page with a table.
+  const [globalFilter, setGlobalFilter] = React.useState("");
 
   const table = useReactTable({
     data,
