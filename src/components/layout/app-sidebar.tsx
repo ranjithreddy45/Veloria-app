@@ -500,7 +500,7 @@ export function AppSidebar() {
                     <Gem className="size-3.5" strokeWidth={2.5} />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-copy font-semibold tracking-[-0.02em] text-sidebar-foreground">
+                    <span className="font-editorial text-copy font-semibold tracking-[-0.01em] text-sidebar-foreground">
                       Veloria Grand
                     </span>
                     <span className="text-meta font-medium tracking-wide text-sidebar-foreground/45">

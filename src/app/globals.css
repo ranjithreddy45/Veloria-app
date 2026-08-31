@@ -264,15 +264,19 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-  /* Type hierarchy: one family (San Francisco), Apple-style — hierarchy comes
-   * from size, weight and tight tracking, not a second typeface. Large titles
-   * are heavy and optically tightened, exactly like a macOS/iOS large title. */
+  /* Type hierarchy: PREMIUM two-voice system. Fraunces — the luxury editorial
+   * serif from the marketing site — owns the ONE big title on every page
+   * (optical sizing makes it grow more refined at display sizes). Everything
+   * below it stays San Francisco, so data screens keep their Apple density.
+   * The serif/sans contrast is the premium cue; it never touches body or UI. */
   h1 {
-    font-family: var(--brand-sans);
-    font-size: 32px; /* text-h1 */
-    line-height: 1.1;
-    letter-spacing: -0.028em;
-    font-weight: 700;
+    font-family: var(--brand-serif);
+    font-size: 34px; /* text-h1 */
+    line-height: 1.12;
+    letter-spacing: -0.015em;
+    font-weight: 600;
+    font-optical-sizing: auto;
+    font-variation-settings: "SOFT" 0, "WONK" 0;
   }
   h2 { font-family: var(--brand-sans); font-size: 26px; line-height: 1.25; letter-spacing: -0.018em; font-weight: 600; } /* text-h2 */
   h3 { font-family: var(--brand-sans); font-size: 20px; line-height: 1.35; letter-spacing: -0.012em; font-weight: 600; } /* text-title */
@@ -375,12 +379,15 @@
   background-color: oklch(0.185 0.003 286 / 80%);
 }
 
-/* Large-title — Apple large title. One family (SF), heavy weight, tight track. */
+/* Large-title — the premium display moment: Fraunces with optical sizing.
+ * Reserved for hero/greeting headlines; UI text below stays SF. */
 @utility large-title {
-  font-family: var(--brand-sans);
-  font-weight: 700;
-  letter-spacing: -0.028em;
-  line-height: 1.06;
+  font-family: var(--brand-serif);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.08;
+  font-optical-sizing: auto;
+  font-variation-settings: "SOFT" 0, "WONK" 0;
 }
 
 /* Opt-in editorial serif for a deliberate luxury moment (hero copy, quotes,
