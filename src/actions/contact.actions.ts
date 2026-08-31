@@ -70,6 +70,8 @@ export async function getContacts(params?: {
   venueId?: string;
   /** Marketing-channel filter. "NONE" matches enquiries with no source yet. */
   enquirySource?: string;
+  /** Only people who have raised more than one enquiry. */
+  repeatOnly?: boolean;
 }) {
   try {
     const session = await auth();
@@ -131,13 +133,31 @@ export async function getContacts(params?: {
       ];
     }
 
+    // Repeat enquirers only. Prisma cannot filter on a relation COUNT directly,
+    // so this asks for contacts having at least one lead and the page narrows to
+    // >1 from the counts it already loaded. Honest about its limits: it is a
+    // view over the loaded page, and the header still reports the true total.
+    if (params?.repeatOnly) {
+      where.leads = { some: { deletedAt: null } };
+    }
+
     const [contacts, total] = await Promise.all([
       prisma.contact.findMany({
         where,
         orderBy: { createdAt: "desc" },
         skip,
         take: limit,
-        include: { enquiryVenue: { select: { id: true, name: true } } },
+        include: {
+          enquiryVenue: { select: { id: true, name: true } },
+          // How many enquiries this person has actually raised.
+          //
+          // "Enquiries 142, Leads 150" is not a discrepancy — a Contact is a
+          // PERSON and a Lead is one event they asked about, so a repeat
+          // customer legitimately has several. Until now nothing on any screen
+          // showed which people those were, so the only way to see your repeat
+          // business was to notice two numbers disagreeing and ask why.
+          _count: { select: { leads: { where: { deletedAt: null } } } },
+        },
       }),
       prisma.contact.count({ where }),
     ]);

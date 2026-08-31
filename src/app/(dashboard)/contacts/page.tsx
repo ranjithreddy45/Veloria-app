@@ -31,14 +31,21 @@ interface ContactsPageProps {
     status?: string;
     venue?: string;
     source?: string;
+    repeat?: string;
   }>;
 }
 
 export default async function ContactsPage({ searchParams }: ContactsPageProps) {
-  const { from, to, status, venue, source } = await searchParams;
+  const { from, to, status, venue, source, repeat } = await searchParams;
 
   // Ceiling lets the client table page through rows without the default-50
   // cutoff, while keeping the payload far lighter than 1000.
+  // ?repeat=1 — the people who have raised more than one enquiry. This is the
+  // answer to "which enquirers gave multiple leads": a Contact is a person, a
+  // Lead is one event, and the difference between the two headline numbers IS
+  // this list.
+  const repeatOnly = repeat === "1";
+
   const [session, result, venuesResult] = await Promise.all([
     auth(),
     getContacts({
@@ -48,10 +55,27 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
       enquiryStatus: status,
       venueId: venue,
       enquirySource: source,
+      repeatOnly,
     }),
     getVenues({ activeOnly: true }),
   ]);
-  const contacts = result.success ? result.data.data : [];
+  const allLoaded = result.success ? result.data.data : [];
+
+  // The DB filter narrows to "has at least one lead"; Prisma cannot filter on a
+  // relation COUNT, so the >1 cut happens here over the counts already loaded.
+  const contacts = repeatOnly
+    ? allLoaded.filter(
+        (c) => ((c as { _count?: { leads?: number } })._count?.leads ?? 0) > 1
+      )
+    : allLoaded;
+
+  const repeatCount = allLoaded.filter(
+    (c) => ((c as { _count?: { leads?: number } })._count?.leads ?? 0) > 1
+  ).length;
+  const extraLeads = allLoaded.reduce(
+    (n, c) => n + Math.max(0, ((c as { _count?: { leads?: number } })._count?.leads ?? 0) - 1),
+    0
+  );
   // The TRUE row count, not contacts.length.
   //
   // getContacts already returns a real prisma.contact.count alongside the rows,
@@ -143,6 +167,26 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
         description="Your people. Every conversation, deal, and booking ties back here."
       >
         {emptyFbCount > 0 && <CleanupEmptyFbButton count={emptyFbCount} />}
+        {/*
+          Explains the two headline numbers instead of leaving them to be
+          discovered as a contradiction. Enquiries counts PEOPLE, Leads counts
+          EVENTS, and the difference is exactly these repeat customers — which
+          is good news, so it is worth naming rather than hiding.
+        */}
+        {(repeatCount > 0 || repeatOnly) && (
+          <Link
+            href={repeatOnly ? "/contacts" : "/contacts?repeat=1"}
+            className={
+              repeatOnly
+                ? "rounded-lg border border-primary bg-primary px-3 py-1.5 text-detail font-medium text-primary-foreground"
+                : "rounded-lg border border-border bg-card px-3 py-1.5 text-detail text-foreground/80 hover:bg-muted"
+            }
+          >
+            {repeatOnly
+              ? "Showing repeat enquirers — show all"
+              : `${repeatCount} repeat enquirer${repeatCount === 1 ? "" : "s"} (+${extraLeads} extra lead${extraLeads === 1 ? "" : "s"})`}
+          </Link>
+        )}
         {/* A cap that does not announce itself reads as "this is all of it". */}
         {contactsTruncated && (
           <span className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-detail text-foreground/80">
