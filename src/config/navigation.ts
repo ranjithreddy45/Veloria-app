@@ -2,6 +2,8 @@
 // Sidebar Navigation Configuration
 // ============================================================
 
+import { LEAD_OPS_PAGES_ENABLED } from "@/config/feature-flags";
+
 export interface NavItem {
   title: string;
   href: string;
@@ -115,30 +117,36 @@ export const sidebarNavigation: NavItem[] = [
         icon: "UserPlus",
         permissions: ["leads:read"],
       },
-      {
-        title: "Speed-to-Lead",
-        href: "/leads/sla",
-        icon: "Zap",
-        permissions: ["leads:read"],
-      },
-      {
-        title: "SLA War-Room",
-        href: "/leads/war-room",
-        icon: "Siren",
-        permissions: ["leads:read"],
-      },
-      {
-        title: "Missed Calls",
-        href: "/leads/missed-calls",
-        icon: "PhoneMissed",
-        permissions: ["leads:read"],
-      },
-      {
-        title: "Cooling Leads",
-        href: "/leads/cooling",
-        icon: "Snowflake",
-        permissions: ["leads:read"],
-      },
+      // Lead-ops sub-modules — behind LEAD_OPS_PAGES_ENABLED (see
+      // src/config/feature-flags.ts). Flip the flag to bring them back.
+      ...(LEAD_OPS_PAGES_ENABLED
+        ? [
+            {
+              title: "Speed-to-Lead",
+              href: "/leads/sla",
+              icon: "Zap",
+              permissions: ["leads:read"],
+            },
+            {
+              title: "SLA War-Room",
+              href: "/leads/war-room",
+              icon: "Siren",
+              permissions: ["leads:read"],
+            },
+            {
+              title: "Missed Calls",
+              href: "/leads/missed-calls",
+              icon: "PhoneMissed",
+              permissions: ["leads:read"],
+            },
+            {
+              title: "Cooling Leads",
+              href: "/leads/cooling",
+              icon: "Snowflake",
+              permissions: ["leads:read"],
+            },
+          ]
+        : []),
       {
         title: "Public Quotes",
         href: "/settings/public-quotes",

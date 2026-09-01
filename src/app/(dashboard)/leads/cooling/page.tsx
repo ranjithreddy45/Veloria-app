@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { LEAD_OPS_PAGES_ENABLED } from "@/config/feature-flags";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SnowflakeIcon, SendIcon, TrophyIcon, FlameIcon } from "lucide-react";
@@ -53,6 +55,8 @@ const STATUS_VARIANT: Record<WinbackStatus, "default" | "secondary" | "success" 
 };
 
 export default async function CoolingLeadsPage() {
+  // Soft-disabled (see src/config/feature-flags.ts) — flip the flag to restore.
+  if (!LEAD_OPS_PAGES_ENABLED) notFound();
   const session = await auth();
   if (!session?.user) {
     redirect("/sign-in");

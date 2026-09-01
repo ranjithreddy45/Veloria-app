@@ -34,6 +34,7 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 import { globalSearch, type SearchResult } from "@/actions/search.actions";
+import { LEAD_OPS_PAGES_ENABLED } from "@/config/feature-flags";
 
 // ============================================================
 // Quick navigation entries (shown on the empty landing view)
@@ -79,9 +80,14 @@ const PAGE_INDEX: PageEntry[] = [
   { label: "Dashboard", href: "/dashboard", keywords: "home overview kpis" },
   { label: "Contacts", href: "/contacts", keywords: "customers people clients" },
   { label: "Leads", href: "/leads", keywords: "enquiries prospects sales crm" },
-  { label: "SLA War-Room", href: "/leads/war-room", keywords: "sla breach escalation speed to lead overdue response" },
-  { label: "Missed Calls", href: "/leads/missed-calls", keywords: "rescue telephony inbound call abandoned" },
-  { label: "Cooling Leads", href: "/leads/cooling", keywords: "stale going cold dormant decay re-engage" },
+  // Lead-ops sub-modules — behind LEAD_OPS_PAGES_ENABLED (feature-flags.ts).
+  ...(LEAD_OPS_PAGES_ENABLED
+    ? [
+        { label: "SLA War-Room", href: "/leads/war-room", keywords: "sla breach escalation speed to lead overdue response" },
+        { label: "Missed Calls", href: "/leads/missed-calls", keywords: "rescue telephony inbound call abandoned" },
+        { label: "Cooling Leads", href: "/leads/cooling", keywords: "stale going cold dormant decay re-engage" },
+      ]
+    : []),
   { label: "Sales Pipeline", href: "/pipeline", keywords: "deals stages kanban funnel" },
   { label: "Quotations", href: "/quotations", keywords: "quotes pricing estimate proposal" },
   { label: "Quotation Builder", href: "/quotations/new", keywords: "new quote calculator pricing hall food" },

@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { LEAD_OPS_PAGES_ENABLED } from "@/config/feature-flags";
 import { Siren, Timer, AlertTriangle, ShieldAlert, Gauge } from "lucide-react";
 
 import {
@@ -14,6 +16,8 @@ export const metadata: Metadata = { title: "SLA War-Room" };
 export const dynamic = "force-dynamic";
 
 export default async function SlaWarRoomPage() {
+  // Soft-disabled (see src/config/feature-flags.ts) — flip the flag to restore.
+  if (!LEAD_OPS_PAGES_ENABLED) notFound();
   const [boardRes, configRes] = await Promise.all([
     getSlaWarRoomBoard(),
     getSlaWarRoomTierConfig(),

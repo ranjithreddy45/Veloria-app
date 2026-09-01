@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { LEAD_OPS_PAGES_ENABLED } from "@/config/feature-flags";
 import { Zap, AlertTriangle, Timer, Gauge, Send } from "lucide-react";
 
 import { getSpeedToLeadDashboard } from "@/actions/speed-to-lead.actions";
@@ -17,6 +19,8 @@ function formatLatency(ms: number | null): string {
 }
 
 export default async function SpeedToLeadPage() {
+  // Soft-disabled (see src/config/feature-flags.ts) — flip the flag to restore.
+  if (!LEAD_OPS_PAGES_ENABLED) notFound();
   const res = await getSpeedToLeadDashboard();
 
   if (!res.success) {

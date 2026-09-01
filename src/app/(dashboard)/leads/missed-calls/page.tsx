@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { LEAD_OPS_PAGES_ENABLED } from "@/config/feature-flags";
 import { PhoneMissed, UserCheck, MessageCircle, Clock } from "lucide-react";
 
 import {
@@ -14,6 +16,8 @@ export const metadata: Metadata = { title: "Missed Calls" };
 export const dynamic = "force-dynamic";
 
 export default async function MissedCallsPage() {
+  // Soft-disabled (see src/config/feature-flags.ts) — flip the flag to restore.
+  if (!LEAD_OPS_PAGES_ENABLED) notFound();
   const [listRes, statsRes] = await Promise.all([
     getMissedCallRescues({ page: 1, limit: 50 }),
     getMissedCallRescueStats(),
