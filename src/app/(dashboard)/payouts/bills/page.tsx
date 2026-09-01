@@ -4,6 +4,7 @@ import { ReceiptTextIcon, IndianRupeeIcon, ClockIcon, FileCheck2Icon } from "luc
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
 import { listVendorBills, getBillableBookingVendors } from "@/actions/vendor-bill.actions";
+import { getVendors } from "@/actions/vendor.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { StatTile } from "@/components/ui/stat-tile";
 import { formatINR } from "@/lib/utils";
@@ -19,10 +20,22 @@ export default async function VendorBillsPage() {
   const role = session?.user?.role ?? "";
   if (!hasPermission(role, "payouts:read")) redirect("/payouts");
 
-  const [bills, billable] = await Promise.all([
+  const [bills, billable, vendorsResult] = await Promise.all([
     listVendorBills(),
     getBillableBookingVendors(),
+    // The Manual tab needs the vendor DIRECTORY. It previously reused the
+    // billable lines, so with every agreed line billed the picker was empty.
+    getVendors({ status: "ACTIVE", limit: 500 }),
   ]);
+
+  // getVendors returns { data: { data, total, ... } } — the rows are nested one
+  // level, same as the vendors page reads them.
+  const vendors = vendorsResult.success
+    ? (vendorsResult.data.data as { id: string; name: string }[]).map((v) => ({
+        id: v.id,
+        name: v.name,
+      }))
+    : [];
 
   const totalOutstanding = bills.reduce((s, b) => s + (b.outstanding ?? 0), 0);
   const awaitingApproval = bills.filter((b) => b.effectiveStatus === "DRAFT").length;
@@ -39,7 +52,7 @@ export default async function VendorBillsPage() {
         title="Vendor Bills"
         description="Accrue what vendors are owed and reconcile against payouts."
       >
-        <NewBillButton billable={billable} />
+        <NewBillButton billable={billable} vendors={vendors} />
       </PageHeader>
 
       {/* Stat strip */}

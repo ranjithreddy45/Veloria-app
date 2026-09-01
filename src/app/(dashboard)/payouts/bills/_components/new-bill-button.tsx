@@ -64,7 +64,14 @@ type Mode = "line" | "manual";
 // NewBillButton
 // ============================================================
 
-export function NewBillButton({ billable }: { billable: BillableLine[] }) {
+export function NewBillButton({
+  billable,
+  vendors,
+}: {
+  billable: BillableLine[];
+  /** The vendor DIRECTORY — the Manual tab's source. See the note below. */
+  vendors: { id: string; name: string }[];
+}) {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [mode, setMode] = React.useState<Mode>("line");
@@ -80,14 +87,18 @@ export function NewBillButton({ billable }: { billable: BillableLine[] }) {
   const [description, setDescription] = React.useState("");
   const [notes, setNotes] = React.useState("");
 
-  // Distinct vendors derived from the billable lines (manual picker source).
-  const vendorOptions = React.useMemo(() => {
-    const map = new Map<string, string>();
-    for (const l of billable) if (!map.has(l.vendorId)) map.set(l.vendorId, l.vendorName);
-    return Array.from(map, ([id, name]) => ({ id, name })).sort((a, b) =>
-      a.name.localeCompare(b.name)
-    );
-  }, [billable]);
+  // The Manual tab lists the VENDOR DIRECTORY, not the billable lines.
+  //
+  // It used to derive its options from `billable` — the un-billed booking-vendor
+  // lines. So once every agreed line was billed, this dropdown was empty and
+  // read "No vendors available", making the Manual tab unusable in exactly the
+  // situation it exists for: billing a vendor for something that is NOT tied to
+  // a booking line. If it could only ever offer vendors that already had a
+  // billable line, the "From agreed line" tab would do the same job better.
+  const vendorOptions = React.useMemo(
+    () => [...vendors].sort((a, b) => a.name.localeCompare(b.name)),
+    [vendors]
+  );
 
   function reset() {
     setBookingVendorId("");
@@ -105,7 +116,17 @@ export function NewBillButton({ billable }: { billable: BillableLine[] }) {
         return;
       }
       startTransition(async () => {
-        const res = await createVendorBill({ bookingVendorId });
+        // Send the classification fields too. This used to post ONLY the id,
+        // so every booking-derived bill landed on the default expense account
+        // (5230 Procurement) whatever it was actually for — catering, décor and
+        // AV all filed as procurement, quietly miscategorising the P&L. The
+        // amount still comes from the line's agreed rate server-side.
+        const res = await createVendorBill({
+          bookingVendorId,
+          expenseCode,
+          description: description.trim() || undefined,
+          notes: notes.trim() || undefined,
+        });
         if (res.success) {
           toast.success("Vendor bill created");
           setOpen(false);
@@ -218,6 +239,52 @@ export function NewBillButton({ billable }: { billable: BillableLine[] }) {
             <p className="text-xs text-muted-foreground">
               The vendor and amount are derived from the agreed rate on the booking line.
             </p>
+
+            {/*
+              Classification belongs on BOTH paths. These fields existed only on
+              the Manual tab, so a bill raised from an agreed line always posted
+              to the default expense account and carried no description — the
+              accounts payable ledger ended up full of undescribed Procurement
+              entries no matter what the vendor actually supplied.
+            */}
+            {billable.length > 0 && (
+              <div className="space-y-4 pt-2">
+                <div className="space-y-2">
+                  <Label>Expense account</Label>
+                  <Select value={expenseCode} onValueChange={setExpenseCode}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EXPENSE_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>
+                          {o.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Description</Label>
+                  <Input
+                    placeholder="What is this bill for?"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Notes</Label>
+                  <Textarea
+                    placeholder="Any additional notes…"
+                    rows={3}
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
@@ -230,7 +297,7 @@ export function NewBillButton({ billable }: { billable: BillableLine[] }) {
                 <SelectContent>
                   {vendorOptions.length === 0 ? (
                     <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                      No vendors available
+                      No active vendors. Add one in Vendors first.
                     </div>
                   ) : (
                     vendorOptions.map((v) => (
