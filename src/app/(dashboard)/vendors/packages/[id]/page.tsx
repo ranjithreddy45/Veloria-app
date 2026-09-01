@@ -22,6 +22,7 @@ import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { PageHeader } from "@/components/layout/page-header";
 import { PackageStatusControl } from "./_components/package-status-control";
+import { DeletePackageButton } from "./_components/delete-package-button";
 
 // ============================================================
 // Metadata
@@ -118,6 +119,7 @@ export default async function PackageDetailPage({
             Edit package
           </Link>
         </Button>
+        <DeletePackageButton packageId={id} packageName={pkg.name} />
       </PageHeader>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">

@@ -74,23 +74,44 @@ export async function listVendorBills(filter?: { status?: string }) {
   if (!u) return [];
   const where: Prisma.VendorBillWhereInput = {};
   if (filter?.status && filter.status !== "ALL") where.status = filter.status;
-  const bills = await prisma.vendorBill.findMany({
-    where, orderBy: { createdAt: "desc" },
-    include: { payouts: { select: { amount: true, status: true } } },
-  });
+  // Bounded, and it says so. This loaded EVERY bill with its payouts included —
+  // fine at today's volume, unbounded as the ledger grows. The count is fetched
+  // alongside so the page can never imply the list is complete when it is not.
+  const [bills, total] = await Promise.all([
+    prisma.vendorBill.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      take: 500,
+      include: { payouts: { select: { amount: true, status: true } } },
+    }),
+    prisma.vendorBill.count({ where }),
+  ]);
   const vendors = await prisma.vendor.findMany({
     where: { id: { in: Array.from(new Set(bills.map((b) => b.vendorId))) } },
     select: { id: true, name: true },
   });
   const byId = new Map(vendors.map((v) => [v.id, v.name]));
-  return bills.map((b) => serializeBill(b, byId.get(b.vendorId) ?? "Unknown vendor"));
+  const rows = bills.map((b) => serializeBill(b, byId.get(b.vendorId) ?? "Unknown vendor"));
+  // Callers that only destructure the array keep working; the truncation flag is
+  // there for the page to render honestly.
+  return Object.assign(rows, { total, truncated: total > rows.length });
 }
 
 /** BookingVendor lines with an agreed rate that don't yet have a bill — the create picker. */
 export async function getBillableBookingVendors() {
   const u = await gate("payouts:read");
   if (!u) return [];
-  const billed = await prisma.vendorBill.findMany({ where: { bookingVendorId: { not: null } }, select: { bookingVendorId: true } });
+  // A CANCELLED bill must not block re-billing.
+  //
+  // This asked only "does a bill exist for this line", so cancelling a bill
+  // raised in error made its booking-vendor line disappear from this picker
+  // permanently — the work could never be billed again and the vendor could
+  // never be paid through the system. Cancelling is the documented way to void
+  // a draft, so it must not be a one-way door.
+  const billed = await prisma.vendorBill.findMany({
+    where: { bookingVendorId: { not: null }, status: { not: "CANCELLED" } },
+    select: { bookingVendorId: true },
+  });
   const billedIds = new Set(billed.map((b) => b.bookingVendorId));
   const rows = await prisma.bookingVendor.findMany({
     where: { agreedRate: { not: null } },
@@ -163,8 +184,18 @@ export async function createVendorBill(input: CreateVendorBillInput): Promise<Re
     bookingId = bv.bookingId;
     if (!Number.isFinite(amount) || amount <= 0) amount = Number(bv.agreedRate ?? 0);
     // Guard: one bill per booking-vendor line.
-    const existing = await prisma.vendorBill.findFirst({ where: { bookingVendorId: input.bookingVendorId }, select: { id: true } });
-    if (existing) return { success: false, error: "This booking-vendor line is already billed." };
+    // Same rule as the picker: a cancelled bill does not count as billed. The
+    // old check also produced a misleading message — "already billed" when the
+    // only bill had been voided.
+    const existing = await prisma.vendorBill.findFirst({
+      where: { bookingVendorId: input.bookingVendorId, status: { not: "CANCELLED" } },
+      select: { id: true, billNumber: true },
+    });
+    if (existing)
+      return {
+        success: false,
+        error: `This booking-vendor line is already billed on ${existing.billNumber}.`,
+      };
   }
 
   if (!vendorId) return { success: false, error: "Select a vendor." };

@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/page-header";
 import { VendorDetail } from "../_components/vendor-detail";
 import { VendorInviteButton } from "./_components/vendor-invite-button";
+import { DeleteVendorButton } from "../_components/delete-vendor-button";
 
 export const metadata: Metadata = { title: "Vendor Details" };
 
@@ -123,6 +124,7 @@ export default async function VendorDetailPage({
           </Link>
         </Button>
         {vendor.email && <VendorInviteButton vendorId={vendor.id} />}
+        <DeleteVendorButton vendorId={vendor.id} vendorName={vendor.name} />
       </PageHeader>
 
       {/* Type + venue scope */}

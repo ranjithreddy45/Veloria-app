@@ -4,6 +4,7 @@ import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { hasPermission } from "@/lib/permissions";
+import { coarseContactWhere, matchesContactKey } from "@/lib/dedup";
 import { createInvoice, createInstallmentPlan } from "@/actions/invoice.actions";
 import {
   computeQuotation,
@@ -16,6 +17,56 @@ import {
 } from "@/lib/sales/quotation-calc";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
+
+/**
+ * Resolve the customer for a quotation that was built without one linked:
+ * 1. the linked lead's contact, else
+ * 2. an existing contact matched by normalized phone/email (same rule as the
+ *    rest of the app's dedup), else
+ * 3. a new contact created from the quote's client name/phone/email.
+ * Returns null only when the quote has no phone AND no email to work from.
+ */
+async function resolveQuotationContact(q: {
+  leadId: string | null;
+  clientName: string | null;
+  clientPhone: string | null;
+  clientEmail: string | null;
+}): Promise<string | null> {
+  if (q.leadId) {
+    const lead = await prisma.lead.findUnique({
+      where: { id: q.leadId },
+      select: { contactId: true },
+    });
+    if (lead?.contactId) return lead.contactId;
+  }
+  const phone = q.clientPhone?.trim() || null;
+  const email = q.clientEmail?.trim() || null;
+  if (!phone && !email) return null;
+
+  const coarse = coarseContactWhere(email, phone);
+  if (coarse) {
+    const candidates = await prisma.contact.findMany({
+      where: { AND: [{ deletedAt: null }, coarse] },
+      select: { id: true, email: true, phone: true },
+      take: 25,
+    });
+    const matched = matchesContactKey(candidates, email, phone);
+    if (matched.length > 0) return matched[0].id;
+  }
+
+  const nameParts = (q.clientName?.trim() || "Customer").split(/\s+/);
+  const created = await prisma.contact.create({
+    data: {
+      firstName: nameParts[0] || "Customer",
+      lastName: nameParts.slice(1).join(" ") || "",
+      phone,
+      email,
+      enquirySource: "DIRECT",
+    },
+    select: { id: true },
+  });
+  return created.id;
+}
 
 async function requireUser() {
   const session = await auth();
@@ -46,8 +97,26 @@ export async function createBookingInvoiceFromQuotation(
   // only blocked AFTER the advance is paid. So the booking may not exist yet;
   // the invoice attaches to it later, when the slot is blocked (see
   // blockSlotFromQuotation, which links + auto-confirms once the advance clears).
-  if (!q.contactId)
-    return { success: false, error: "Link a customer/contact to the quotation first." };
+  //
+  // Missing contact: a quotation built without picking a lead (client typed in
+  // by hand) has no contactId, and this step used to dead-end with "Link a
+  // customer/contact to the quotation first" — with no UI to actually do that.
+  // Resolve it automatically instead: lead's contact → normalized phone/email
+  // match → create a contact from the quote's client details. Only give up when
+  // the quote holds no client identity at all.
+  let contactId = q.contactId;
+  if (!contactId) {
+    contactId = await resolveQuotationContact(q);
+    if (!contactId)
+      return {
+        success: false,
+        error:
+          "This quotation has no client phone or email to create the customer from. Edit the quotation and add the client's phone number first.",
+      };
+    await prisma.salesQuotation
+      .update({ where: { id: quotationId }, data: { contactId } })
+      .catch(() => {}); // persistence is a convenience; the invoice uses contactId directly
+  }
   const PENDING = "__pending__";
   // A real invoice already exists (the sentinel doesn't count — see below).
   if (q.invoiceId && q.invoiceId !== PENDING)
@@ -119,7 +188,7 @@ export async function createBookingInvoiceFromQuotation(
     dueNow.setDate(dueNow.getDate() + 1);
 
     const inv = await createInvoice({
-      contactId: q.contactId,
+      contactId, // resolved above (q.contactId, lead's contact, matched, or created)
       // May be null in the proforma-first flow (slot blocked later); the invoice
       // is linked to the booking when the slot is blocked after the advance.
       bookingId: q.bookingId ?? undefined,

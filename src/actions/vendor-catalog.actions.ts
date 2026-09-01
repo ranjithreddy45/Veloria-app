@@ -349,6 +349,42 @@ export async function updateCatalogVendor(
 }
 
 // R10 — soft delete (archive) / restore
+/**
+ * Permanently delete a vendor (and, via cascade, its packages). Refused when
+ * the vendor has operational history — bookings, payouts or bids — because
+ * money and event records must never lose their counterparty; archive those
+ * vendors instead. Admin-gated via vendors:delete.
+ */
+export async function deleteVendor(id: string): Promise<Result<{ id: string }>> {
+  const u = await requirePerm("vendors:delete");
+  if (!u) return { success: false, error: "Unauthorized" };
+  try {
+    const v = await prisma.vendor.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        _count: { select: { bookingVendors: true, payouts: true, bids: true } },
+      },
+    });
+    if (!v) return { success: false, error: "Vendor not found" };
+    const { bookingVendors, payouts, bids } = v._count;
+    if (bookingVendors > 0 || payouts > 0 || bids > 0) {
+      return {
+        success: false,
+        error:
+          "This vendor has booking/payout/bid history and can't be permanently deleted — use Archive instead, which hides it everywhere while keeping the records intact.",
+      };
+    }
+    await prisma.vendor.delete({ where: { id } }); // packages cascade
+    await logActivity({ userId: u.id, action: "deleted", entityType: "Vendor", entityId: id });
+    revalidatePath("/vendors");
+    return { success: true, data: { id } };
+  } catch (e) {
+    console.error("[DELETE_VENDOR]", e);
+    return { success: false, error: "Failed to delete vendor" };
+  }
+}
+
 export async function archiveVendor(id: string): Promise<Result<{ id: string }>> {
   const u = await requirePerm("vendors:delete");
   if (!u) return { success: false, error: "Unauthorized" };
