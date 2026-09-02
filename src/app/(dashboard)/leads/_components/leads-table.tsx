@@ -32,6 +32,7 @@ import { LeadStatusPill, LeadSourcePill } from "@/components/shared/status-pill"
 import { FacetFilterRail, type FacetDef } from "@/components/shared/facet-filter-rail";
 import { ScoreBar } from "@/components/shared/score-bar";
 import { DotAvatar } from "@/components/shared/dot-avatar";
+import { AssignOwnerPopover } from "./assign-owner-popover";
 import { LeadsStatStrip } from "./leads-stat-strip";
 import { Button } from "@/components/ui/button";
 import {
@@ -732,11 +733,9 @@ const columns: ColumnDef<LeadWithContact>[] = [
     cell: ({ row }) => {
       const a = row.original.assignedTo;
       if (!a) {
-        return (
-          <span className="text-detail text-muted-foreground/60 italic">
-            Unassigned
-          </span>
-        );
+        // Assign right here — routing the Unassigned inbox must not require
+        // opening every lead.
+        return <AssignOwnerPopover leadId={row.original.id} />;
       }
       return (
         <div className="inline-flex items-center gap-1.5">

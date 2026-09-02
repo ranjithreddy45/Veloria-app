@@ -25,6 +25,24 @@ type LeadStatus = "NEW" | "NOT_CONNECTED" | "CONTACTED" | "QUALIFIED" | "PROPOSA
 // Roles a lead can be assigned to (mirrors the new/edit form's user list).
 const ASSIGNABLE_ROLES = ["SALES_EXEC", "SALES_HEAD", "EVENT_COORDINATOR", "ADMIN", "SUPER_ADMIN"];
 
+/** Active users a lead may be assigned to — powers the inline Assign control
+ *  on the leads list. Gated on leads:read (names only, no contact details). */
+export async function getAssignableUsers(): Promise<
+  { success: true; data: { id: string; name: string | null }[] } | { success: false; error: string }
+> {
+  const session = await auth();
+  if (!session?.user) return { success: false as const, error: "Unauthorized" };
+  if (!hasPermission(session.user.role, "leads:read")) {
+    return { success: false as const, error: "Insufficient permissions" };
+  }
+  const users = await prisma.user.findMany({
+    where: { isActive: true, role: { in: ASSIGNABLE_ROLES as never } },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+  return { success: true as const, data: users };
+}
+
 // Next business day (skips Sat/Sun) at 09:00 local — used as a default
 // follow-up when a lead is created without one, so active leads always surface
 // in the Sales Follow-ups queue instead of silently falling out of it (S-11).
