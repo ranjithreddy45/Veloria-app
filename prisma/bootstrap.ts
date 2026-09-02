@@ -672,6 +672,44 @@ async function main() {
     console.error("[bootstrap] BEO backfill failed (non-fatal):", e);
   }
 
+  // ---- Seed the Employee Handbook v1.1 into the HR-managed document store ----
+  // Runs ONCE: only when no HANDBOOK document exists AND no handbook_* activity
+  // was ever logged — so if HR deliberately removed the handbook, a redeploy
+  // must NOT resurrect it. Non-fatal like every other seed.
+  try {
+    const existingHandbook = await prisma.document.findFirst({
+      where: { category: "HANDBOOK" },
+      select: { id: true },
+    });
+    const everManaged = await prisma.activityLog.findFirst({
+      where: { action: { in: ["handbook_uploaded", "handbook_removed"] } },
+      select: { id: true },
+    });
+    if (!existingHandbook && !everManaged) {
+      const fs = await import("fs");
+      const path = await import("path");
+      const pdfPath = path.join(process.cwd(), "public", "hr", "employee-handbook-v1.1.pdf");
+      if (fs.existsSync(pdfPath)) {
+        const bytes = fs.readFileSync(pdfPath);
+        await prisma.document.create({
+          data: {
+            name: "Employee Handbook v1.1",
+            fileName: "employee-handbook-v1.1.pdf",
+            mimeType: "application/pdf",
+            size: bytes.length,
+            category: "HANDBOOK",
+            url: `data:application/pdf;base64,${bytes.toString("base64")}`,
+            isPublic: false,
+            tags: ["hr", "handbook"],
+          },
+        });
+        console.log("[bootstrap] Employee Handbook v1.1 seeded into document store");
+      }
+    }
+  } catch (e) {
+    console.error("[bootstrap] handbook seeding failed (non-fatal):", e);
+  }
+
   console.log("[bootstrap] Done.");
 }
 
