@@ -84,6 +84,7 @@ const ROLES = [
   { value: "LEGAL", label: "Legal" },
   { value: "HR_MANAGER", label: "HR Manager" },
   { value: "HR_EXECUTIVE", label: "HR Executive" },
+  { value: "MARKETING", label: "Marketing" },
   { value: "AUDITOR", label: "Auditor" },
 ] as const;
 
@@ -103,6 +104,7 @@ const ROLE_LABELS: Record<string, string> = {
   LEGAL: "Legal",
   HR_MANAGER: "HR Manager",
   HR_EXECUTIVE: "HR Exec",
+  MARKETING: "Marketing",
   AUDITOR: "Auditor",
 };
 
@@ -122,6 +124,7 @@ const ROLE_COLORS: Record<string, string> = {
   LEGAL: "bg-slate-100 text-slate-700 border-slate-200",
   HR_MANAGER: "bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200",
   HR_EXECUTIVE: "bg-pink-100 text-pink-700 border-pink-200",
+  MARKETING: "bg-orange-100 text-orange-700 border-orange-200",
   AUDITOR: "bg-stone-100 text-stone-700 border-stone-200",
 };
 

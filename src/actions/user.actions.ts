@@ -29,6 +29,7 @@ const ASSIGNABLE_ROLES = [
   "LEGAL",
   "HR_MANAGER",
   "HR_EXECUTIVE",
+  "MARKETING",
   "AUDITOR",
 ] as const;
 

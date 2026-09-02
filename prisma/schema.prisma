@@ -38,6 +38,8 @@ enum UserRole {
   HR_MANAGER
   HR_EXECUTIVE
   AUDITOR
+  // Marketing team — campaigns, attribution analytics, creative assets
+  MARKETING
 }
 
 enum ContactType {

@@ -1194,6 +1194,26 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "owners:read",
     "contracts:read",
   ],
+  // Marketing team — campaigns end-to-end, channel/attribution analytics, the
+  // lead + enquiry books (read-only, to see what each channel produced),
+  // creative assets and shared documents. No pricing, money or settings.
+  MARKETING: [
+    "dashboard:read",
+    "campaigns:read",
+    "campaigns:create",
+    "campaigns:update",
+    "campaigns:send",
+    "analytics:read",
+    "leads:read",
+    "contacts:read",
+    "gallery:read",
+    "gallery:create",
+    "gallery:update",
+    "documents:read",
+    "documents:create",
+    "tasks:read",
+    "tasks:create",
+  ],
   // HR / People module roles
   HR_MANAGER: [
     "dashboard:read",

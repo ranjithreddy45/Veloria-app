@@ -65,6 +65,7 @@ export const GENDER_OPTIONS = ["Female", "Male", "Other", "Prefer not to say"] a
 export const HR_ROLE_LABELS: Record<string, string> = {
   HR_MANAGER: "HR Manager",
   HR_EXECUTIVE: "HR Executive",
+  MARKETING: "Marketing",
   AUDITOR: "Auditor (read-only)",
 };
 

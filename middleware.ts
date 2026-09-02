@@ -37,6 +37,7 @@ const INTERNAL_ROLES = [
   "HR_MANAGER",
   "HR_EXECUTIVE",
   "AUDITOR",
+  "MARKETING",
 ] as const;
 
 /**
