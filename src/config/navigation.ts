@@ -435,6 +435,9 @@ export const sidebarNavigation: NavItem[] = [
       { title: "Org Chart", href: "/people/org", icon: "Network", permissions: ["hr:read"] },
       { title: "Joining & Exits", href: "/people/lifecycle", icon: "UserPlus", permissions: ["hr:read"] },
       { title: "Documents", href: "/people/documents", icon: "FileText", permissions: ["hr:read"] },
+      // Readable by ALL staff (route override in permissions.ts) — a handbook
+      // that only HR can open defeats its purpose.
+      { title: "Employee Handbook", href: "/people/handbook", icon: "FileText", permissions: ["dashboard:read"] },
     ],
   },
   {

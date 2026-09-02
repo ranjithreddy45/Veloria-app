@@ -1247,6 +1247,9 @@ export const ROUTE_PERMISSIONS: { prefix: string; permission: Permission }[] = [
   { prefix: "/franchise", permission: "franchise:read" },
   { prefix: "/bd", permission: "owners:read" },
   { prefix: "/projects", permission: "projects:read" },
+  // Employee Handbook is for EVERY staff member, not just HR — the specific
+  // prefix must sit before the broad /people gate (first match wins).
+  { prefix: "/people/handbook", permission: "dashboard:read" },
   { prefix: "/people", permission: "hr:read" },
   { prefix: "/recruitment", permission: "recruit:read" },
   { prefix: "/owners", permission: "owners:read" },
