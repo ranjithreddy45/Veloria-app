@@ -10,6 +10,7 @@
 // ============================================================
 
 import { auth } from "@/../auth";
+import { checkAttachments, type IncomingAttachment } from "@/lib/hr/claim-attachments";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
@@ -220,4 +221,269 @@ export async function decideReimbursement(id: string, input: DecideReimbursement
   revalidatePath("/people/payroll/reimbursements");
   revalidatePath("/me/reimbursements");
   return { success: true, data: { id } };
+}
+
+// ============================================================
+// Attachments, the send-back loop, and the audit trail.
+//
+// Three gaps this closes:
+//   • a claim could carry ONE bill, so a trip with a hotel, a cab and a meal
+//     receipt arrived with two of them missing;
+//   • HR could only approve or reject — there was no way to say "you forgot the
+//     invoice", so incomplete claims were rejected outright and re-raised from
+//     scratch, losing the original date and any discussion;
+//   • only the CURRENT status was stored, so nobody could see that a claim had
+//     been sent back once, or when the missing bill arrived.
+// ============================================================
+
+/** Statuses an employee may still edit. */
+const EDITABLE_BY_EMPLOYEE = ["PENDING", "NEEDS_INFO"];
+
+async function recordClaimEvent(
+  claimId: string,
+  action: string,
+  opts: { from?: string | null; to?: string | null; note?: string | null; actorId?: string; actorName?: string | null }
+) {
+  // Best-effort: an audit row must never be the reason a money action fails.
+  // A missing trail entry is recoverable; a blocked approval is not.
+  try {
+    await prisma.hrClaimEvent.create({
+      data: {
+        claimId,
+        action,
+        fromStatus: opts.from ?? null,
+        toStatus: opts.to ?? null,
+        note: opts.note ?? null,
+        actorId: opts.actorId ?? null,
+        actorName: opts.actorName ?? null,
+      },
+    });
+  } catch (e) {
+    console.error("[CLAIM_EVENT]", action, claimId, e);
+  }
+}
+
+/** Attachments + full history for one claim. */
+export async function getClaimDetail(claimId: string) {
+  const u = await requireUser();
+  if (!u?.id) return { success: false as const, error: "Not signed in." };
+
+  const claim = await prisma.hrReimbursementClaim.findUnique({
+    where: { id: claimId },
+    select: {
+      id: true, employeeId: true, status: true, title: true, amount: true,
+      category: true, claimDate: true, note: true, decisionNote: true, billUrl: true,
+      attachments: {
+        orderBy: { createdAt: "asc" },
+        select: { id: true, fileName: true, mimeType: true, sizeBytes: true, createdAt: true },
+      },
+      events: { orderBy: { createdAt: "asc" } },
+    },
+  });
+  if (!claim) return { success: false as const, error: "Claim not found." };
+
+  // An employee may see their OWN claim; HR may see any. Without this an
+  // employee could read a colleague's claim, its amount and its receipts by id.
+  const me = await myEmployee(u.id);
+  const isOwner = me?.id === claim.employeeId;
+  if (!isOwner && !can(u.role, "hr:payroll")) {
+    return { success: false as const, error: "Insufficient permissions" };
+  }
+
+  return {
+    success: true as const,
+    data: {
+      ...claim,
+      amount: Number(claim.amount),
+      hasLegacyBill: !!claim.billUrl,
+      canEdit: isOwner && EDITABLE_BY_EMPLOYEE.includes(claim.status),
+    },
+  };
+}
+
+/** The bytes of one attachment, for viewing/downloading. */
+export async function getClaimAttachment(attachmentId: string) {
+  const u = await requireUser();
+  if (!u?.id) return { success: false as const, error: "Not signed in." };
+
+  const att = await prisma.hrClaimAttachment.findUnique({
+    where: { id: attachmentId },
+    select: { fileName: true, mimeType: true, data: true, claim: { select: { employeeId: true } } },
+  });
+  if (!att) return { success: false as const, error: "Attachment not found." };
+
+  const me = await myEmployee(u.id);
+  if (me?.id !== att.claim.employeeId && !can(u.role, "hr:payroll")) {
+    return { success: false as const, error: "Insufficient permissions" };
+  }
+  return { success: true as const, data: { fileName: att.fileName, mimeType: att.mimeType, data: att.data } };
+}
+
+/** Attach one or more supporting documents to a claim. */
+export async function addClaimAttachments(
+  claimId: string,
+  files: IncomingAttachment[]
+): Promise<Result<{ added: number }>> {
+  const u = await requireUser();
+  if (!u?.id) return { success: false, error: "Not signed in." };
+  if (!files?.length) return { success: false, error: "Pick at least one file." };
+
+  const claim = await prisma.hrReimbursementClaim.findUnique({
+    where: { id: claimId },
+    select: {
+      employeeId: true, status: true,
+      attachments: { select: { sizeBytes: true } },
+    },
+  });
+  if (!claim) return { success: false, error: "Claim not found." };
+
+  const me = await myEmployee(u.id);
+  const isOwner = me?.id === claim.employeeId;
+  const isHr = can(u.role, "hr:payroll");
+  if (!isOwner && !isHr) return { success: false, error: "Insufficient permissions" };
+
+  // A settled claim is evidence of a payment decision. Letting anyone bolt a
+  // receipt onto an APPROVED or PAID claim would change what was approved after
+  // the fact, with the approval still showing as given.
+  if (!EDITABLE_BY_EMPLOYEE.includes(claim.status) && !isHr) {
+    return { success: false, error: `A ${claim.status.toLowerCase()} claim can no longer be edited.` };
+  }
+
+  const existingBytes = claim.attachments.reduce((s, a) => s + (a.sizeBytes || 0), 0);
+  const check = checkAttachments(files, claim.attachments.length, existingBytes);
+  if (!check.ok) return { success: false, error: check.error ?? "Those attachments could not be accepted." };
+
+  await prisma.hrClaimAttachment.createMany({
+    data: files.map((f, i) => ({
+      claimId,
+      fileName: f.fileName.slice(0, 180),
+      mimeType: f.mimeType,
+      sizeBytes: check.sizes[i] ?? 0,
+      data: f.data,
+      uploadedById: u.id,
+    })),
+  });
+
+  await recordClaimEvent(claimId, "EDITED", {
+    from: claim.status, to: claim.status, actorId: u.id, actorName: u.name ?? null,
+    note: `Added ${files.length} attachment${files.length === 1 ? "" : "s"}`,
+  });
+
+  revalidatePath("/me/reimbursements");
+  revalidatePath("/people/payroll/reimbursements");
+  return { success: true, data: { added: files.length } };
+}
+
+/** Remove one attachment before the claim is settled. */
+export async function removeClaimAttachment(attachmentId: string): Promise<Result<{ id: string }>> {
+  const u = await requireUser();
+  if (!u?.id) return { success: false, error: "Not signed in." };
+
+  const att = await prisma.hrClaimAttachment.findUnique({
+    where: { id: attachmentId },
+    select: { id: true, fileName: true, claimId: true, claim: { select: { employeeId: true, status: true } } },
+  });
+  if (!att) return { success: false, error: "Attachment not found." };
+
+  const me = await myEmployee(u.id);
+  const isOwner = me?.id === att.claim.employeeId;
+  const isHr = can(u.role, "hr:payroll");
+  if (!isOwner && !isHr) return { success: false, error: "Insufficient permissions" };
+  if (!EDITABLE_BY_EMPLOYEE.includes(att.claim.status) && !isHr) {
+    return { success: false, error: `A ${att.claim.status.toLowerCase()} claim can no longer be edited.` };
+  }
+
+  await prisma.hrClaimAttachment.delete({ where: { id: attachmentId } });
+  await recordClaimEvent(att.claimId, "EDITED", {
+    from: att.claim.status, to: att.claim.status, actorId: u.id, actorName: u.name ?? null,
+    note: `Removed attachment ${att.fileName}`,
+  });
+
+  revalidatePath("/me/reimbursements");
+  revalidatePath("/people/payroll/reimbursements");
+  return { success: true, data: { id: attachmentId } };
+}
+
+/**
+ * HR sends a claim back for missing information instead of rejecting it.
+ *
+ * Rejection is final and loses the thread; most "bad" claims are simply
+ * incomplete. This keeps the claim, its date and its history intact while
+ * handing it back to the employee.
+ */
+export async function requestClaimInfo(claimId: string, note: string): Promise<Result<{ id: string }>> {
+  const u = await requireUser();
+  if (!u?.id) return { success: false, error: "Not signed in." };
+  if (!can(u.role, "hr:payroll")) return { success: false, error: "Insufficient permissions" };
+
+  const reason = (note ?? "").trim();
+  if (!reason) return { success: false, error: "Say what is missing — the employee has to know what to add." };
+
+  const claim = await prisma.hrReimbursementClaim.findUnique({ where: { id: claimId }, select: { status: true } });
+  if (!claim) return { success: false, error: "Claim not found." };
+  if (claim.status !== "PENDING") {
+    return { success: false, error: `Only a pending claim can be sent back (this one is ${claim.status.toLowerCase()}).` };
+  }
+
+  await prisma.hrReimbursementClaim.updateMany({
+    where: { id: claimId, status: "PENDING" },
+    data: { status: "NEEDS_INFO", decisionNote: reason },
+  });
+  await recordClaimEvent(claimId, "INFO_REQUESTED", {
+    from: "PENDING", to: "NEEDS_INFO", note: reason, actorId: u.id, actorName: u.name ?? null,
+  });
+
+  revalidatePath("/me/reimbursements");
+  revalidatePath("/people/payroll/reimbursements");
+  return { success: true, data: { id: claimId } };
+}
+
+/** The employee edits the details and sends it back to HR. */
+export async function resubmitClaim(
+  claimId: string,
+  patch: { title?: string; amount?: number; note?: string }
+): Promise<Result<{ id: string }>> {
+  const u = await requireUser();
+  if (!u?.id) return { success: false, error: "Not signed in." };
+  const me = await myEmployee(u.id);
+  if (!me) return { success: false, error: "Your account isn't linked to an employee record." };
+
+  const claim = await prisma.hrReimbursementClaim.findUnique({
+    where: { id: claimId },
+    select: { employeeId: true, status: true },
+  });
+  if (!claim) return { success: false, error: "Claim not found." };
+  if (claim.employeeId !== me.id) return { success: false, error: "That isn't your claim." };
+  if (!EDITABLE_BY_EMPLOYEE.includes(claim.status)) {
+    return { success: false, error: `A ${claim.status.toLowerCase()} claim can no longer be edited.` };
+  }
+
+  const data: Record<string, unknown> = {};
+  if (patch.title !== undefined) {
+    const t = patch.title.trim();
+    if (!t) return { success: false, error: "A short description is required." };
+    data.title = t;
+  }
+  if (patch.amount !== undefined) {
+    const a = Number(patch.amount);
+    if (!Number.isFinite(a) || a <= 0) return { success: false, error: "Claim amount must be greater than zero." };
+    data.amount = new Prisma.Decimal(a.toFixed(2));
+  }
+  if (patch.note !== undefined) data.note = patch.note.trim() || null;
+
+  // Back to PENDING so it re-enters HR's queue. Clearing decisionNote matters:
+  // leaving "missing the hotel invoice" on a claim that now HAS it makes the
+  // queue read as though the problem is outstanding.
+  data.status = "PENDING";
+  data.decisionNote = null;
+
+  await prisma.hrReimbursementClaim.update({ where: { id: claimId }, data });
+  await recordClaimEvent(claimId, "RESUBMITTED", {
+    from: claim.status, to: "PENDING", actorId: u.id, actorName: u.name ?? null,
+    note: "Employee updated the claim and sent it back for approval",
+  });
+
+  revalidatePath("/me/reimbursements");
+  revalidatePath("/people/payroll/reimbursements");
+  return { success: true, data: { id: claimId } };
 }

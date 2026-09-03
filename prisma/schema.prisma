@@ -8940,6 +8940,100 @@ model HrArrear {
 // approve→pay lifecycle). Non-taxable by default (paid against actual bills); HR
 // flags the taxable exceptions. No Prisma relation to Employee — the join is done
 // in memory, matching HrSalaryStructure / HrPayComponent.
+/// One supporting document on a reimbursement claim.
+///
+/// Claims carried a single `billUrl`, so an employee with a hotel bill, a cab
+/// receipt and a meal receipt for one trip could attach exactly one of them.
+/// The rest arrived by WhatsApp or not at all, and HR approved money against
+/// evidence that was not in the system.
+///
+/// STORAGE NOTE, stated plainly because it is a real ceiling: `data` holds a
+/// base64 data-URL, the same way every other upload in this app works — there
+/// is no object storage. Images are compressed client-side before they get
+/// here, and the claim actions enforce a hard count and total-size limit that
+/// FAILS LOUDLY rather than truncating. Moving to object storage would remove
+/// that ceiling; until then it is enforced and visible instead of silent.
+model HrClaimAttachment {
+  id      String              @id @default(cuid())
+  claimId String
+  claim   HrReimbursementClaim @relation(fields: [claimId], references: [id], onDelete: Cascade)
+
+  /// Original file name, so HR sees "hotel-invoice.pdf" not a cuid.
+  fileName String
+  /// image/jpeg | image/png | image/webp | application/pdf
+  mimeType String
+  /// Approximate decoded size in bytes — used to enforce the per-claim budget
+  /// without decoding every attachment on every check.
+  sizeBytes Int    @default(0)
+  data      String @db.Text
+
+  uploadedById String?
+  createdAt    DateTime @default(now())
+
+  @@index([claimId])
+}
+
+/// Every state change on a reimbursement claim, and who made it.
+///
+/// The claim carried only its CURRENT status plus one decision note, so a claim
+/// that went PENDING → NEEDS_INFO → PENDING → APPROVED looked identical to one
+/// approved first time. There was no way to see that HR had asked for a missing
+/// bill, or when the employee supplied it. Money decisions need a trail.
+model HrClaimEvent {
+  id      String              @id @default(cuid())
+  claimId String
+  claim   HrReimbursementClaim @relation(fields: [claimId], references: [id], onDelete: Cascade)
+
+  /// SUBMITTED | INFO_REQUESTED | RESUBMITTED | EDITED | APPROVED | REJECTED | PAID | WITHDRAWN
+  action String
+  /// Status before and after, so the trail is readable without replaying it.
+  fromStatus String?
+  toStatus   String?
+  /// What HR asked for, or what the employee changed.
+  note String? @db.Text
+
+  actorId   String?
+  actorName String?
+  createdAt DateTime @default(now())
+
+  @@index([claimId, createdAt])
+}
+
+/// A payslip DOCUMENT uploaded by HR for a given month.
+///
+/// Deliberately separate from HrPayslip, which is COMPUTED by a payroll run
+/// (earnings, deductions, PF/ESI/PT/TDS). These are files HR uploads — typically
+/// because payroll is run elsewhere. Keeping them in one table would create two
+/// meanings for "the payslip" with no way to tell which is authoritative.
+///
+/// One document per employee per month: re-uploading REPLACES rather than
+/// accumulating, which is what "Edit/Replace" means and stops a month growing a
+/// pile of near-identical files nobody can choose between.
+model HrPayslipDocument {
+  id         String @id @default(cuid())
+  employeeId String
+
+  /// Calendar month the payslip is FOR. Stored as ints rather than a date so a
+  /// month can never drift across a timezone boundary — the bug that has bitten
+  /// date handling elsewhere in this app.
+  year  Int
+  month Int // 1-12
+
+  fileName  String
+  mimeType  String
+  sizeBytes Int    @default(0)
+  data      String @db.Text
+
+  note         String?
+  uploadedById String?
+  uploadedByName String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([employeeId, year, month])
+  @@index([employeeId, year, month])
+}
+
 model HrReimbursementClaim {
   id           String    @id @default(cuid())
   entityId     String    @default("BILLION")
@@ -8964,6 +9058,12 @@ model HrReimbursementClaim {
   createdById  String?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+
+  /// Multiple supporting documents. `billUrl` above is kept for claims raised
+  /// before this existed — read it as "the first attachment".
+  attachments HrClaimAttachment[]
+  /// Full status trail: who asked for what, and when it was supplied.
+  events      HrClaimEvent[]
 
   @@index([employeeId, status])
   @@index([entityId, status])
