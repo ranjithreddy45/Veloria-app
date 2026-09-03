@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, X } from "lucide-react";
+import { Check, X, MessageCircleQuestion } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -41,6 +41,10 @@ const MONTH_LABEL = [
 
 const STATUS_HUE: Record<string, Hue> = {
   PENDING: "amber",
+  // Distinct from PENDING: the ball is with the EMPLOYEE, not with HR. Sharing
+  // amber would make HR's queue look longer than the work actually waiting on
+  // them.
+  NEEDS_INFO: "orange",
   APPROVED: "indigo",
   REJECTED: "rose",
   PAID: "emerald",
@@ -49,6 +53,7 @@ const STATUS_HUE: Record<string, Hue> = {
 const FILTERS = [
   { v: "ALL", label: "All" },
   { v: "PENDING", label: "Pending" },
+  { v: "NEEDS_INFO", label: "Sent back" },
   { v: "APPROVED", label: "Approved" },
   { v: "REJECTED", label: "Rejected" },
   { v: "PAID", label: "Paid" },
@@ -67,14 +72,14 @@ const payRunLabel = (r: ReimbursementRow) =>
 export function ReimbursementsTable({ rows }: { rows: ReimbursementRow[] }) {
   const [filter, setFilter] = React.useState("ALL");
   const [target, setTarget] = React.useState<ReimbursementRow | null>(null);
-  const [mode, setMode] = React.useState<"APPROVED" | "REJECTED" | null>(null);
+  const [mode, setMode] = React.useState<"APPROVED" | "REJECTED" | "NEEDS_INFO" | null>(null);
 
   const visible = React.useMemo(
     () => (filter === "ALL" ? rows : rows.filter((r) => r.status === filter)),
     [rows, filter],
   );
 
-  function decide(r: ReimbursementRow, m: "APPROVED" | "REJECTED") {
+  function decide(r: ReimbursementRow, m: "APPROVED" | "REJECTED" | "NEEDS_INFO") {
     setTarget(r);
     setMode(m);
   }
@@ -162,6 +167,18 @@ export function ReimbursementsTable({ rows }: { rows: ReimbursementRow[] }) {
                         >
                           <Check className="size-4" /> Approve
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 gap-1"
+                          onClick={() => decide(r, "NEEDS_INFO")}
+                        >
+                          <MessageCircleQuestion className="size-4" /> Send back
+                        </Button>
+                        {/* Reject is LAST and stays destructive. Most rejected
+                            claims were only incomplete; putting "Send back"
+                            before it makes the recoverable action the easier
+                            one to reach. */}
                         <Button
                           size="sm"
                           variant="ghost"

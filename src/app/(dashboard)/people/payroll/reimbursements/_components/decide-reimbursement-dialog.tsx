@@ -14,7 +14,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { decideReimbursement } from "@/actions/hr-reimbursement.actions";
+import { decideReimbursement, requestClaimInfo } from "@/actions/hr-reimbursement.actions";
 import type { ReimbursementRow } from "./reimbursements-table";
 
 const MONTHS = [
@@ -50,7 +50,7 @@ export function DecideReimbursementDialog({
   onClose,
 }: {
   claim: ReimbursementRow | null;
-  mode: "APPROVED" | "REJECTED" | null;
+  mode: "APPROVED" | "REJECTED" | "NEEDS_INFO" | null;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -83,22 +83,43 @@ export function DecideReimbursementDialog({
 
   const open = claim !== null && mode !== null;
   const approving = mode === "APPROVED";
+  // Sending back is neither approving nor rejecting: the claim stays alive and
+  // returns to the employee. Rejection was the only tool for an incomplete
+  // claim, so claims were killed and re-raised from scratch, losing the date
+  // and the discussion.
+  const sendingBack = mode === "NEEDS_INFO";
 
   async function submit() {
     if (!claim || !mode) return;
     setBusy(true);
-    const res = await decideReimbursement(
-      claim.id,
-      approving
-        ? { decision: "APPROVED", payFy: fy, payMonth: Number(month), taxable, note: note.trim() || undefined }
-        : { decision: "REJECTED", note: note.trim() || undefined },
-    );
+    // The note is OPTIONAL on approve/reject but MANDATORY here — an employee
+    // who is told only "more information needed" cannot act on it.
+    if (sendingBack && !note.trim()) {
+      setBusy(false);
+      toast.error("Say what is missing — the employee has to know what to add.");
+      return;
+    }
+
+    const res = sendingBack
+      ? await requestClaimInfo(claim.id, note.trim())
+      : await decideReimbursement(
+          claim.id,
+          approving
+            ? { decision: "APPROVED", payFy: fy, payMonth: Number(month), taxable, note: note.trim() || undefined }
+            : { decision: "REJECTED", note: note.trim() || undefined },
+        );
     setBusy(false);
     if (!res.success) {
       toast.error(res.error);
       return;
     }
-    toast.success(approving ? "Reimbursement approved." : "Reimbursement rejected.");
+    toast.success(
+      sendingBack
+        ? "Sent back to the employee for more information."
+        : approving
+          ? "Reimbursement approved."
+          : "Reimbursement rejected."
+    );
     onClose();
     router.refresh();
   }
@@ -107,7 +128,13 @@ export function DecideReimbursementDialog({
     <Dialog open={open} onOpenChange={(o) => { if (!o && !busy) onClose(); }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{approving ? "Approve reimbursement" : "Reject reimbursement"}</DialogTitle>
+          <DialogTitle>
+            {sendingBack
+              ? "Ask for more information"
+              : approving
+                ? "Approve reimbursement"
+                : "Reject reimbursement"}
+          </DialogTitle>
         </DialogHeader>
 
         {claim && (
@@ -203,11 +230,11 @@ export function DecideReimbursementDialog({
           <Button
             onClick={submit}
             disabled={busy}
-            variant={approving ? "default" : "destructive"}
+            variant={approving || sendingBack ? "default" : "destructive"}
             className="gap-1.5"
           >
             {busy && <Loader2 className="size-4 animate-spin" />}
-            {approving ? "Approve & queue" : "Reject claim"}
+            {sendingBack ? "Send back to employee" : approving ? "Approve & queue" : "Reject claim"}
           </Button>
         </DialogFooter>
       </DialogContent>

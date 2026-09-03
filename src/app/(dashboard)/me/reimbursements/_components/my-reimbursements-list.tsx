@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { FixClaimDialog } from "./fix-claim-dialog";
 import { useRouter } from "next/navigation";
 import { Loader2, X, ReceiptText, Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,9 @@ const INR = new Intl.NumberFormat("en-IN", {
 // run, PAID has been disbursed, REJECTED (incl. employee-withdrawn) is closed.
 const STATUS: Record<string, { variant: "warning" | "success" | "destructive" | "secondary"; label: string; className?: string }> = {
   PENDING: { variant: "warning", label: "Pending" },
+  // The ball is with the EMPLOYEE here, not HR — labelled so it reads as an
+  // action to take rather than another queue to wait in.
+  NEEDS_INFO: { variant: "warning", label: "Needs your input" },
   APPROVED: {
     variant: "secondary",
     label: "Approved",
@@ -63,6 +67,12 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export function MyReimbursementsList({ claims }: { claims: ReimbursementClaim[] }) {
+  // The claim currently being fixed, or null. Held here rather than per-row so
+  // only one dialog can ever be open.
+  const [fixing, setFixing] = React.useState<
+    { id: string; title: string; amount: number; decisionNote: string | null } | null
+  >(null);
+
   return (
     <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
       <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
@@ -109,6 +119,11 @@ export function MyReimbursementsList({ claims }: { claims: ReimbursementClaim[] 
                       )}
                     </div>
                     {c.note && <div className="text-detail break-words text-muted-foreground">{c.note}</div>}
+                    {c.status === "NEEDS_INFO" && c.decisionNote && (
+                      <div className="mt-0.5 text-detail break-words text-warning">
+                        HR asked for: {c.decisionNote}
+                      </div>
+                    )}
                     {c.status === "REJECTED" && c.decisionNote && (
                       <div className="mt-0.5 text-detail break-words text-destructive">{c.decisionNote}</div>
                     )}
@@ -136,6 +151,22 @@ export function MyReimbursementsList({ claims }: { claims: ReimbursementClaim[] 
                   </TableCell>
                   <TableCell>
                     {c.status === "PENDING" && <WithdrawButton id={c.id} label={label} />}
+                    {c.status === "NEEDS_INFO" && (
+                      <Button
+                        size="sm"
+                        className="h-8"
+                        onClick={() =>
+                          setFixing({
+                            id: c.id,
+                            title: c.title,
+                            amount: c.amount,
+                            decisionNote: c.decisionNote ?? null,
+                          })
+                        }
+                      >
+                        Add details
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               );
@@ -173,6 +204,7 @@ function WithdrawButton({ id }: { id: string; label: string }) {
         {pending ? <Loader2 className="size-3.5 animate-spin" /> : <X className="size-3.5" />} Withdraw
       </Button>
       {error && <span className="text-meta text-destructive">{error}</span>}
+      <FixClaimDialog claim={fixing} onClose={() => setFixing(null)} />
     </div>
   );
 }
