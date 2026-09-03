@@ -1,9 +1,15 @@
 import type { Metadata } from "next";
 import { auth } from "@/../auth";
-import { getAcqLeads, getAcqLeadStatusCounts, getBdUsers } from "@/actions/acq-lead.actions";
+import {
+  getAcqLeads,
+  getAcqLeadStatusCounts,
+  getBdPipelineCounts,
+  getBdUsers,
+} from "@/actions/acq-lead.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { PageHelp } from "@/lib/page-help";
-import { ACQ_LEAD_STATUS } from "@/lib/acq/constants";
+import { ACQ_LEAD_STATUS, ACQ_PROPERTY_TYPE } from "@/lib/acq/constants";
+import { BD_PIPELINE_KEYS } from "@/lib/bd/pipeline";
 import { LeadInbox, type AcqLead, type BdUser } from "./_components/lead-inbox";
 
 export const metadata: Metadata = { title: "Leads" };
@@ -11,7 +17,17 @@ export const metadata: Metadata = { title: "Leads" };
 export default async function BdLeadsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; view?: string }>;
+  searchParams: Promise<{
+    status?: string;
+    view?: string;
+    stage?: string;
+    stMin?: string;
+    stMax?: string;
+    sfMin?: string;
+    sfMax?: string;
+    ptype?: string;
+    parking?: string;
+  }>;
 }) {
   const sp = await searchParams;
   // Validate the URL value against the allowed set before it reaches Prisma —
@@ -24,9 +40,31 @@ export default async function BdLeadsPage({
   // redirects here, so links and bookmarks survive the consolidation.
   const dueFollowup = sp.view === "followup";
 
-  const [leadsResult, countsResult, bdUsers, session] = await Promise.all([
-    getAcqLeads({ status, dueFollowup }),
+  // Unified pipeline stage + property particulars — same unknown-→-undefined
+  // treatment as status, and numbers parsed defensively (NaN → no bound).
+  const pipelineStage =
+    sp.stage && (BD_PIPELINE_KEYS as readonly string[]).includes(sp.stage) ? sp.stage : undefined;
+  const num = (v: string | undefined) => {
+    if (!v) return undefined;
+    const n = Number(v);
+    return Number.isFinite(n) && n >= 0 ? Math.floor(n) : undefined;
+  };
+  const particulars = {
+    seatingTheatreMin: num(sp.stMin),
+    seatingTheatreMax: num(sp.stMax),
+    seatingFloatingMin: num(sp.sfMin),
+    seatingFloatingMax: num(sp.sfMax),
+    propertyType:
+      sp.ptype && (ACQ_PROPERTY_TYPE as readonly string[]).includes(sp.ptype)
+        ? sp.ptype
+        : undefined,
+    parkingAvailable: sp.parking === "1" ? true : undefined,
+  };
+
+  const [leadsResult, countsResult, pipelineCountsResult, bdUsers, session] = await Promise.all([
+    getAcqLeads({ status, dueFollowup, pipelineStage, ...particulars }),
     getAcqLeadStatusCounts(),
+    getBdPipelineCounts(),
     getBdUsers(),
     auth(),
   ]);
@@ -62,6 +100,9 @@ export default async function BdLeadsPage({
         activeStatus={status}
         dueFollowup={dueFollowup}
         statusCounts={statusCounts}
+        pipelineCounts={pipelineCountsResult.success ? pipelineCountsResult.data : {}}
+        activeStage={pipelineStage}
+        particulars={particulars}
       />
     </div>
   );

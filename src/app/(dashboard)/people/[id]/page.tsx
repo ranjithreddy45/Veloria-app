@@ -390,7 +390,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
                 payslips above. See hr-payslip-doc.actions for why they are kept
                 apart rather than merged into one list. */}
             <PayslipDocuments
-              employeeId={employee.id}
+              employeeId={emp.id}
               docs={payslipDocs}
               canManage={canPayroll}
             />

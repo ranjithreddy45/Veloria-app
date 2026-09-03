@@ -30,6 +30,7 @@ import {
   type AcqLeadStatus,
 } from "@/lib/acq/constants";
 import { isSafeReceiptDataUrl } from "@/lib/sales/receipt";
+import { BD_PIPELINE_KEYS, bdPipelineWhere, deriveBdPipelineStage } from "@/lib/bd/pipeline";
 import { z } from "zod";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
@@ -124,12 +125,58 @@ export async function getAcqLeads(filters?: {
    * and one fewer thing to learn.
    */
   dueFollowup?: boolean;
+  /** Unified pipeline stage (lead+deal funnel) — see lib/bd/pipeline.ts. */
+  pipelineStage?: string;
+  /** Property-particular filters (min/max are inclusive). */
+  seatingTheatreMin?: number;
+  seatingTheatreMax?: number;
+  seatingFloatingMin?: number;
+  seatingFloatingMax?: number;
+  propertyType?: string;
+  parkingAvailable?: boolean;
 }): Promise<Result<unknown[]> & { total?: number; truncated?: boolean }> {
   const user = await requireUser();
   if (!user || !acqHasAnyAccess(user.role)) {
     return { success: false, error: "Unauthorized" };
   }
   const where: Record<string, unknown> = { deletedAt: null };
+
+  // Unified pipeline stage — validated key → where fragment spanning lead+deal.
+  if (filters?.pipelineStage) {
+    if (!(BD_PIPELINE_KEYS as readonly string[]).includes(filters.pipelineStage)) {
+      return { success: false, error: "Unknown pipeline stage filter." };
+    }
+    // Under AND so it composes with (rather than overwrites) the status filter.
+    where.AND = [bdPipelineWhere(filters.pipelineStage as never)];
+  }
+
+  // Property particulars. Bounds are numbers ≥ 0; a min>max pair simply
+  // returns no rows (the honest result of the filter as stated).
+  const bound = (v: number | undefined) =>
+    typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.floor(v) : undefined;
+  const stMin = bound(filters?.seatingTheatreMin);
+  const stMax = bound(filters?.seatingTheatreMax);
+  if (stMin !== undefined || stMax !== undefined) {
+    where.seatingTheatre = {
+      ...(stMin !== undefined ? { gte: stMin } : {}),
+      ...(stMax !== undefined ? { lte: stMax } : {}),
+    };
+  }
+  const sfMin = bound(filters?.seatingFloatingMin);
+  const sfMax = bound(filters?.seatingFloatingMax);
+  if (sfMin !== undefined || sfMax !== undefined) {
+    where.seatingFloating = {
+      ...(sfMin !== undefined ? { gte: sfMin } : {}),
+      ...(sfMax !== undefined ? { lte: sfMax } : {}),
+    };
+  }
+  if (filters?.propertyType) {
+    if (!(ACQ_PROPERTY_TYPE as readonly string[]).includes(filters.propertyType)) {
+      return { success: false, error: "Unknown property type filter." };
+    }
+    where.propertyType = filters.propertyType;
+  }
+  if (filters?.parkingAvailable === true) where.parkingAvailable = true;
 
   // Mirrors getFollowupQueue's condition exactly. If these two ever drift, the
   // chip count and the list stop agreeing — which is the class of bug this
@@ -157,14 +204,22 @@ export async function getAcqLeads(filters?: {
     prisma.acqLead as never,
     {
       where,
-      include: { bdExecutive: { select: { id: true, name: true } } },
+      include: {
+        bdExecutive: { select: { id: true, name: true } },
+        deal: { select: { stage: true } },
+      },
       orderBy: { createdAt: "desc" },
     },
     500
   );
+  // Attach the derived unified-pipeline stage so every row carries its funnel
+  // position regardless of whether it lives on the lead or its deal.
+  const rows = (page.rows as unknown as { status: string; deal?: { stage: string } | null }[]).map(
+    (r) => ({ ...r, pipelineStage: deriveBdPipelineStage(r) })
+  );
   return {
     success: true,
-    data: serialize(page.rows) as unknown[],
+    data: serialize(rows) as unknown[],
     total: page.total,
     truncated: page.truncated,
   };
@@ -198,6 +253,42 @@ export async function getAcqLeadStatusCounts(): Promise<Result<Record<string, nu
   for (const row of grouped) {
     counts[row.status] = row._count._all;
     counts.ALL += row._count._all;
+  }
+  return { success: true, data: counts };
+}
+
+/**
+ * Per-stage totals for the unified pipeline filter chips. Two grouped queries
+ * (deal-less leads by status, deals by stage) folded through the SAME deriver
+ * the list rows use, so chip numbers and filtered lists can never disagree.
+ */
+export async function getBdPipelineCounts(): Promise<Result<Record<string, number>>> {
+  const user = await requireUser();
+  if (!user || !acqHasAnyAccess(user.role)) return { success: false, error: "Unauthorized" };
+
+  const [leadGroups, dealGroups] = await Promise.all([
+    prisma.acqLead.groupBy({
+      by: ["status"],
+      where: { deletedAt: null, deal: { is: null } },
+      _count: { _all: true },
+    }),
+    prisma.acqDeal.groupBy({
+      by: ["stage"],
+      where: { lead: { deletedAt: null } },
+      _count: { _all: true },
+    }),
+  ]);
+  const counts: Record<string, number> = { ALL: 0 };
+  for (const s of BD_PIPELINE_KEYS) counts[s] = 0;
+  for (const g of leadGroups) {
+    const key = deriveBdPipelineStage({ status: g.status, deal: null });
+    counts[key] += g._count._all;
+    counts.ALL += g._count._all;
+  }
+  for (const g of dealGroups) {
+    const key = deriveBdPipelineStage({ status: "DEAL_CREATED", deal: { stage: g.stage } });
+    counts[key] += g._count._all;
+    counts.ALL += g._count._all;
   }
   return { success: true, data: counts };
 }

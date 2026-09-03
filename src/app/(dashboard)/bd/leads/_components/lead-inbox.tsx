@@ -13,6 +13,7 @@ import {
   Clock,
   Loader2,
   Phone,
+  SlidersHorizontal,
 } from "lucide-react";
 
 import {
@@ -58,7 +59,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { StatusPill } from "@/components/shared/status-pill";
+import { BD_PIPELINE_STAGES, bdStageMeta } from "@/lib/bd/pipeline";
 import { cn } from "@/lib/utils";
 
 // ============================================================
@@ -88,6 +91,9 @@ export interface AcqLead {
   firstContactDue: string;
   createdAt: string;
   bdExecutive?: { id: string; name: string | null } | null;
+  /** Unified funnel stage derived server-side across lead + deal. */
+  pipelineStage?: string;
+  parkingAvailable?: boolean | null;
 }
 
 export interface BdUser {
@@ -106,6 +112,19 @@ interface LeadInboxProps {
   dueFollowup?: boolean;
   /** True per-status totals from the server (ALL + one key per status). */
   statusCounts?: Record<string, number>;
+  /** True per-unified-stage totals from the server (ALL + one key per stage). */
+  pipelineCounts?: Record<string, number>;
+  /** Server-validated ?stage= unified-pipeline filter currently in effect. */
+  activeStage?: string;
+  /** Server-validated property-particular filters currently in effect. */
+  particulars?: {
+    seatingTheatreMin?: number;
+    seatingTheatreMax?: number;
+    seatingFloatingMin?: number;
+    seatingFloatingMax?: number;
+    propertyType?: string;
+    parkingAvailable?: boolean;
+  };
 }
 
 /** Minimal shape we read off a `duplicateOf` payload. */
@@ -136,8 +155,6 @@ interface OwnerLookupResult {
 // surface can never drift (and DEAL_CREATED is picked up automatically).
 const STATUS_HUE = ACQ_LEAD_STATUS_HUE;
 const STATUS_LABEL = ACQ_LEAD_STATUS_LABEL;
-
-const STATUS_TABS: Array<"ALL" | AcqLeadStatus> = ["ALL", ...ACQ_LEAD_STATUS];
 
 /** Convert an UPPER_SNAKE enum value into a human label. */
 function humanizeEnum(value: string): string {
@@ -185,6 +202,9 @@ export function LeadInbox({
   bdUsers,
   activeStatus,
   statusCounts,
+  pipelineCounts,
+  activeStage,
+  particulars,
   dueFollowup = false,
 }: LeadInboxProps) {
   const [query, setQuery] = React.useState("");
@@ -206,14 +226,18 @@ export function LeadInbox({
       ? (activeStatus as AcqLeadStatus)
       : "ALL";
 
-  const setActiveTab = React.useCallback(
-    (tab: "ALL" | AcqLeadStatus) => {
+  // Unified funnel chips (contacted → … → won/on hold/lost). ?status= deep
+  // links from the dashboard still work server-side; the visible chips now
+  // speak the funnel language the BD team actually uses.
+  const setActiveStage = React.useCallback(
+    (stage: string | null) => {
       const params = new URLSearchParams(searchParams.toString());
-      if (tab === "ALL") params.delete("status");
-      else params.set("status", tab);
-      // Picking a status leaves the follow-up view — two filters that each
-      // narrow the list would otherwise combine invisibly and show a set
+      if (!stage) params.delete("stage");
+      else params.set("stage", stage);
+      // Picking a stage leaves the other narrowing views — two filters that
+      // each narrow the list would otherwise combine invisibly and show a set
       // matching neither chip.
+      params.delete("status");
       params.delete("view");
       const qs = params.toString();
       router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
@@ -239,17 +263,7 @@ export function LeadInbox({
     [query]
   );
 
-  // Chip counts are the SERVER's per-status totals. They can't be derived from
-  // `leads` any more: that array is already filtered to the active status (and
-  // capped), so every other chip would read 0. The "Showing X of Y" line below
-  // keeps the visible-rows number honest while a search is typed.
-  const counts = React.useMemo(() => {
-    const base: Record<string, number> = { ALL: 0 };
-    for (const s of ACQ_LEAD_STATUS) base[s] = 0;
-    return { ...base, ...(statusCounts ?? {}) };
-  }, [statusCounts]);
-
-  // Status is applied server-side; only the text search runs here.
+  // Stage/status filtering is applied server-side; only the text search runs here.
   const filtered = React.useMemo(
     () => leads.filter((lead) => matchesQuery(lead)),
     [leads, matchesQuery]
@@ -304,14 +318,16 @@ export function LeadInbox({
             </span>
           </button>
 
-          {STATUS_TABS.map((tab) => {
-            const active = !dueFollowup && activeTab === tab;
-            const label = tab === "ALL" ? "All" : STATUS_LABEL[tab];
+          {[{ key: "ALL", label: "All" }, ...BD_PIPELINE_STAGES].map((stage) => {
+            const active =
+              !dueFollowup &&
+              activeTab === "ALL" &&
+              (stage.key === "ALL" ? !activeStage : activeStage === stage.key);
             return (
               <button
-                key={tab}
+                key={stage.key}
                 type="button"
-                onClick={() => setActiveTab(tab)}
+                onClick={() => setActiveStage(stage.key === "ALL" ? null : stage.key)}
                 className={cn(
                   "inline-flex shrink-0 snap-start items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-1 font-medium transition-colors",
                   active
@@ -319,7 +335,7 @@ export function LeadInbox({
                     : "border-border bg-background text-muted-foreground hover:bg-muted/50"
                 )}
               >
-                {label}
+                {stage.label}
                 <span
                   className={cn(
                     "rounded-md px-1 text-meta tabular-nums",
@@ -328,7 +344,7 @@ export function LeadInbox({
                       : "bg-muted text-muted-foreground"
                   )}
                 >
-                  {counts[tab]}
+                  {pipelineCounts?.[stage.key] ?? 0}
                 </span>
               </button>
             );
@@ -345,6 +361,7 @@ export function LeadInbox({
               className="h-8 w-full pl-9 text-body sm:w-[230px]"
             />
           </div>
+          <ParticularsFilter particulars={particulars} />
           <Button
             size="sm"
             onClick={() => setCreateOpen(true)}
@@ -360,7 +377,11 @@ export function LeadInbox({
         <p className="text-detail text-muted-foreground">
           Showing {filtered.length} of {leads.length} loaded lead
           {leads.length === 1 ? "" : "s"}
-          {activeTab !== "ALL" ? ` in ${STATUS_LABEL[activeTab]}` : ""}.
+          {activeStage
+            ? ` in ${bdStageMeta(activeStage).label}`
+            : activeTab !== "ALL"
+              ? ` in ${STATUS_LABEL[activeTab]}`
+              : ""}.
         </p>
       )}
 
@@ -429,6 +450,167 @@ export function LeadInbox({
 // Row
 // ============================================================
 
+// ============================================================
+// Property-particulars filter (seating min/max, type, parking)
+// ============================================================
+
+function ParticularsFilter({
+  particulars,
+}: {
+  particulars?: LeadInboxProps["particulars"];
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [open, setOpen] = React.useState(false);
+
+  // Drafts as strings so the inputs can be cleared while typing; applied
+  // values only reach the URL (and the server) on "Apply".
+  const asStr = (n: number | undefined) => (typeof n === "number" ? String(n) : "");
+  const [stMin, setStMin] = React.useState(asStr(particulars?.seatingTheatreMin));
+  const [stMax, setStMax] = React.useState(asStr(particulars?.seatingTheatreMax));
+  const [sfMin, setSfMin] = React.useState(asStr(particulars?.seatingFloatingMin));
+  const [sfMax, setSfMax] = React.useState(asStr(particulars?.seatingFloatingMax));
+  const [ptype, setPtype] = React.useState(particulars?.propertyType ?? "ANY");
+  const [parking, setParking] = React.useState(particulars?.parkingAvailable === true);
+
+  // Re-sync drafts when the popover opens, so it always shows what is applied
+  // (not a stale draft from an earlier, abandoned edit).
+  React.useEffect(() => {
+    if (!open) return;
+    setStMin(asStr(particulars?.seatingTheatreMin));
+    setStMax(asStr(particulars?.seatingTheatreMax));
+    setSfMin(asStr(particulars?.seatingFloatingMin));
+    setSfMax(asStr(particulars?.seatingFloatingMax));
+    setPtype(particulars?.propertyType ?? "ANY");
+    setParking(particulars?.parkingAvailable === true);
+  }, [open, particulars]);
+
+  const activeCount =
+    (particulars?.seatingTheatreMin !== undefined || particulars?.seatingTheatreMax !== undefined
+      ? 1
+      : 0) +
+    (particulars?.seatingFloatingMin !== undefined || particulars?.seatingFloatingMax !== undefined
+      ? 1
+      : 0) +
+    (particulars?.propertyType ? 1 : 0) +
+    (particulars?.parkingAvailable ? 1 : 0);
+
+  const push = (mutate: (params: URLSearchParams) => void) => {
+    const params = new URLSearchParams(searchParams.toString());
+    mutate(params);
+    const qs = params.toString();
+    router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    setOpen(false);
+  };
+
+  const apply = () =>
+    push((params) => {
+      const setNum = (key: string, v: string) => {
+        const n = Number(v);
+        if (v.trim() !== "" && Number.isFinite(n) && n >= 0) params.set(key, String(Math.floor(n)));
+        else params.delete(key);
+      };
+      setNum("stMin", stMin);
+      setNum("stMax", stMax);
+      setNum("sfMin", sfMin);
+      setNum("sfMax", sfMax);
+      if (ptype !== "ANY") params.set("ptype", ptype);
+      else params.delete("ptype");
+      if (parking) params.set("parking", "1");
+      else params.delete("parking");
+    });
+
+  const clearAll = () =>
+    push((params) => {
+      for (const key of ["stMin", "stMax", "sfMin", "sfMax", "ptype", "parking"]) params.delete(key);
+    });
+
+  const rangeRow = (
+    label: string,
+    min: string,
+    setMin: (v: string) => void,
+    max: string,
+    setMax: (v: string) => void
+  ) => (
+    <div className="flex flex-col gap-1.5">
+      <Label className="text-detail text-muted-foreground">{label}</Label>
+      <div className="flex items-center gap-2">
+        <Input
+          type="number"
+          min={0}
+          inputMode="numeric"
+          value={min}
+          onChange={(e) => setMin(e.target.value)}
+          placeholder="Min"
+          className="h-8 text-body"
+        />
+        <span className="text-muted-foreground">–</span>
+        <Input
+          type="number"
+          min={0}
+          inputMode="numeric"
+          value={max}
+          onChange={(e) => setMax(e.target.value)}
+          placeholder="Max"
+          className="h-8 text-body"
+        />
+      </div>
+    </div>
+  );
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="shrink-0 gap-1.5">
+          <SlidersHorizontal className="size-3.5" />
+          Particulars
+          {activeCount > 0 && (
+            <span className="rounded-md bg-primary/10 px-1 text-meta tabular-nums text-primary">
+              {activeCount}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-72 p-4">
+        <div className="flex flex-col gap-3.5">
+          <p className="text-detail font-medium text-foreground">Property particulars</p>
+          {rangeRow("Seating — theatre", stMin, setStMin, stMax, setStMax)}
+          {rangeRow("Seating — floating", sfMin, setSfMin, sfMax, setSfMax)}
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-detail text-muted-foreground">Property type</Label>
+            <Select value={ptype} onValueChange={setPtype}>
+              <SelectTrigger className="h-8 text-body">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ANY">Any type</SelectItem>
+                {ACQ_PROPERTY_TYPE.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {propertyTypeLabel(t)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <label className="flex cursor-pointer items-center gap-2">
+            <Checkbox checked={parking} onCheckedChange={(v) => setParking(v === true)} />
+            <span className="text-body text-foreground">Parking available only</span>
+          </label>
+          <div className="flex items-center justify-between pt-1">
+            <Button variant="ghost" size="sm" onClick={clearAll} disabled={activeCount === 0}>
+              Clear
+            </Button>
+            <Button size="sm" onClick={apply}>
+              Apply
+            </Button>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function LeadRow({
   lead,
   onQualify,
@@ -457,6 +639,17 @@ function LeadRow({
         </Link>
         <div className="text-detail text-muted-foreground">
           {lead.ownerName} · {propertyTypeLabel(lead.propertyType)}
+          {lead.seatingTheatre || lead.seatingFloating ? (
+            <span className="tabular-nums">
+              {" · "}
+              {[
+                lead.seatingTheatre ? `${lead.seatingTheatre} theatre` : null,
+                lead.seatingFloating ? `${lead.seatingFloating} floating` : null,
+              ]
+                .filter(Boolean)
+                .join(" / ")}
+            </span>
+          ) : null}
         </div>
       </td>
       <td className="px-3 py-2.5 text-muted-foreground">
@@ -468,11 +661,21 @@ function LeadRow({
         {ACQ_LEAD_SOURCE_LABEL[lead.leadSource] ?? humanizeEnum(lead.leadSource)}
       </td>
       <td className="px-3 py-2.5">
-        <StatusPill
-          label={STATUS_LABEL[lead.status]}
-          hue={STATUS_HUE[lead.status]}
-          size="xs"
-        />
+        {/* The unified funnel stage (lead + deal), not the raw lead status —
+          * a DEAL_CREATED lead whose deal is in Negotiation reads "Negotiation". */}
+        {lead.pipelineStage ? (
+          <StatusPill
+            label={bdStageMeta(lead.pipelineStage).label}
+            hue={bdStageMeta(lead.pipelineStage).hue}
+            size="xs"
+          />
+        ) : (
+          <StatusPill
+            label={STATUS_LABEL[lead.status]}
+            hue={STATUS_HUE[lead.status]}
+            size="xs"
+          />
+        )}
       </td>
       <td className="px-3 py-2.5 text-muted-foreground">
         {lead.bdExecutive?.name ?? "—"}

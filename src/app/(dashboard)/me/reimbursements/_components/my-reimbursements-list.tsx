@@ -174,6 +174,7 @@ export function MyReimbursementsList({ claims }: { claims: ReimbursementClaim[] 
           </TableBody>
         </Table>
       )}
+      <FixClaimDialog claim={fixing} onClose={() => setFixing(null)} />
     </div>
   );
 }
@@ -204,7 +205,6 @@ function WithdrawButton({ id }: { id: string; label: string }) {
         {pending ? <Loader2 className="size-3.5 animate-spin" /> : <X className="size-3.5" />} Withdraw
       </Button>
       {error && <span className="text-meta text-destructive">{error}</span>}
-      <FixClaimDialog claim={fixing} onClose={() => setFixing(null)} />
     </div>
   );
 }
