@@ -14,7 +14,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { FileUpload } from "@/components/ui/file-upload";
-import { submitReimbursement } from "@/actions/hr-reimbursement.actions";
+import { submitReimbursement, addClaimAttachments } from "@/actions/hr-reimbursement.actions";
 
 // Human labels for the raw category codes (TRAVEL, MEDICAL, …).
 const CATEGORY_LABELS: Record<string, string> = {
@@ -41,6 +41,37 @@ export function NewReimbursementButton({ categories }: { categories: readonly st
   const [amount, setAmount] = React.useState("");
   const [claimDate, setClaimDate] = React.useState(today());
   const [billUrl, setBillUrl] = React.useState<string | null>(null);
+  // Multiple bills. A trip is a hotel bill AND a cab receipt AND a meal
+  // receipt; one slot meant the other two arrived by WhatsApp or not at all.
+  // Held client-side until the claim exists, so an employee can add, remove and
+  // replace freely before committing anything.
+  const [attachments, setAttachments] = React.useState<
+    { fileName: string; mimeType: string; data: string; bytes: number }[]
+  >([]);
+  const extraRef = React.useRef<HTMLInputElement>(null);
+
+  /** Read picked files and hold them until the claim is saved. */
+  async function onExtraFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = ""; // allow re-picking the same file after removing it
+    if (!files.length) return;
+    for (const file of files) {
+      try {
+        const data = await new Promise<string>((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = () => resolve(String(r.result));
+          r.onerror = () => reject(new Error(`Could not read ${file.name}.`));
+          r.readAsDataURL(file);
+        });
+        setAttachments((xs) => [
+          ...xs,
+          { fileName: file.name, mimeType: file.type, data, bytes: file.size },
+        ]);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Could not read that file.");
+      }
+    }
+  }
   const [billName, setBillName] = React.useState<string | null>(null);
   const [note, setNote] = React.useState("");
 
@@ -76,6 +107,22 @@ export function NewReimbursementButton({ categories }: { categories: readonly st
         note: note.trim() || undefined,
       });
       if (!res.success) { setError(res.error); return; }
+
+      // Attach the rest now the claim has an id. Reported separately because
+      // the claim IS saved at this point — a failed attachment must never read
+      // as "your claim was not submitted".
+      if (attachments.length > 0 && res.data?.id) {
+        const att = await addClaimAttachments(
+          res.data.id,
+          attachments.map((a) => ({ fileName: a.fileName, mimeType: a.mimeType, data: a.data }))
+        );
+        if (!att.success) {
+          setError(`Claim saved, but the extra bills were not attached: ${att.error}`);
+          router.refresh();
+          return;
+        }
+      }
+
       setOpen(false);
       router.refresh();
     });
@@ -142,7 +189,7 @@ export function NewReimbursementButton({ categories }: { categories: readonly st
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-detail">Receipt (optional)</Label>
+            <Label className="text-detail">Receipts (optional)</Label>
             <div className="flex items-center gap-2">
               <FileUpload
                 label={billUrl ? "Replace bill" : "Attach bill"}
@@ -156,10 +203,56 @@ export function NewReimbursementButton({ categories }: { categories: readonly st
               )}
               {!billName && (
                 <span className="flex items-center gap-1 text-detail text-muted-foreground">
-                  <Paperclip className="size-3.5" /> Image or PDF, up to 5 MB
+                  <Paperclip className="size-3.5" /> Image or PDF
                 </span>
               )}
             </div>
+
+            {/* Every OTHER bill for this claim. Held client-side until the claim
+                is saved, so add / remove / replace are free actions with nothing
+                written yet — which is what "before submitting" means. */}
+            <input
+              ref={extraRef}
+              type="file"
+              multiple
+              accept="application/pdf,image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={onExtraFiles}
+            />
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <Button type="button" variant="outline" size="sm" className="h-8"
+                onClick={() => extraRef.current?.click()}>
+                <Paperclip className="mr-1.5 size-3.5" />
+                Add more bills
+              </Button>
+              <span className="text-detail text-muted-foreground">
+                {attachments.length > 0
+                  ? `${attachments.length} more attached`
+                  : "Attach every supporting bill for this claim"}
+              </span>
+            </div>
+
+            {attachments.length > 0 && (
+              <ul className="divide-y divide-border rounded-md border border-border">
+                {attachments.map((a, i) => (
+                  <li key={`${a.fileName}-${i}`} className="flex items-center justify-between gap-3 px-3 py-2">
+                    <span className="min-w-0 truncate text-detail">
+                      {a.fileName}{" "}
+                      <span className="text-muted-foreground">
+                        ({a.bytes >= 1_000_000
+                          ? `${(a.bytes / 1_000_000).toFixed(1)} MB`
+                          : `${Math.max(1, Math.round(a.bytes / 1000))} KB`})
+                      </span>
+                    </span>
+                    <Button type="button" variant="ghost" size="sm"
+                      className="h-7 shrink-0 text-destructive hover:text-destructive"
+                      onClick={() => setAttachments((xs) => xs.filter((_, j) => j !== i))}>
+                      Remove
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <div className="space-y-1.5">

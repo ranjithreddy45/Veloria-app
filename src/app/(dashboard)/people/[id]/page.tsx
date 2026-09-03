@@ -30,6 +30,7 @@ import { CompensationPanel } from "./_components/compensation-panel";
 import { CustomFieldsCard, RequestEditButton, type ActiveFieldDef } from "./_components/profile-extras";
 import { ProfileDetailsPanel } from "./_components/profile-details-panel";
 import { EmployeePayslips, type EmployeePayslipRow } from "./_components/employee-payslips";
+import { PayslipDocuments, type PayslipDocRow } from "./_components/payslip-documents";
 import { EmployeeUserLink } from "./_components/employee-user-link";
 import { TAB_LIST_SCROLL } from "@/lib/mobile-tabs";
 
@@ -67,6 +68,19 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
 
   // Payslip history (HR-side). employeeId holds a real Employee.id; there is
   // deliberately no FK relation, so we query HrPayslip directly.
+  // Uploaded payslip documents. Metadata only — selecting `data` would pull
+  // every PDF into memory just to render a list of months.
+  const payslipDocs: PayslipDocRow[] = canPayroll
+    ? await prisma.hrPayslipDocument.findMany({
+        where: { employeeId: id },
+        orderBy: [{ year: "desc" }, { month: "desc" }],
+        select: {
+          id: true, year: true, month: true, fileName: true, mimeType: true,
+          sizeBytes: true, uploadedByName: true, updatedAt: true,
+        },
+      })
+    : [];
+
   const payslips: EmployeePayslipRow[] = canPayroll
     ? (
         await prisma.hrPayslip.findMany({
@@ -372,6 +386,14 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
         {canPayroll && (
           <TabsContent value="payslips" className="space-y-4">
             <EmployeePayslips payslips={payslips} />
+            {/* Uploaded files, month by month — distinct from the generated
+                payslips above. See hr-payslip-doc.actions for why they are kept
+                apart rather than merged into one list. */}
+            <PayslipDocuments
+              employeeId={employee.id}
+              docs={payslipDocs}
+              canManage={canPayroll}
+            />
           </TabsContent>
         )}
 
