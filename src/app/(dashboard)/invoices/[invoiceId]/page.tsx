@@ -12,6 +12,7 @@ import { INVOICE_STATUS_COLORS } from "@/lib/constants";
 import { formatINR } from "@/lib/utils";
 import { InvoicePreview } from "./_components/invoice-preview";
 import { RecordPaymentDialog } from "./_components/record-payment-dialog";
+import { AdjustAmountsDialog } from "./_components/adjust-amounts-dialog";
 import { PendingProofs } from "./_components/pending-proofs";
 import { InstallmentPlanDialog } from "./_components/installment-plan-dialog";
 import { PaymentLinkDialog } from "./_components/payment-link-dialog";
@@ -110,6 +111,13 @@ export default async function InvoiceDetailPage({
                 </Button>
               </form>
             </>
+          )}
+          {invoice.status !== "CANCELLED" && invoice.status !== "DRAFT" && (
+            <AdjustAmountsDialog
+              invoiceId={invoice.id}
+              totalAmount={Number(invoice.totalAmount)}
+              paidAmount={Number(invoice.paidAmount)}
+            />
           )}
           {invoice.status !== "PAID" &&
             invoice.status !== "CANCELLED" &&

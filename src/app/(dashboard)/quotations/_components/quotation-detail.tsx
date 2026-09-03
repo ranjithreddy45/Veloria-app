@@ -12,6 +12,7 @@ import {
   Loader2,
   Mail,
   MessageCircle,
+  PencilLine,
   Send,
   Trash2,
   XCircle,
@@ -21,6 +22,7 @@ import { computeQuotation, type QuotationInput, type QuotationResult } from "@/l
 import { formatDate, formatDateTime } from "@/lib/utils";
 import {
   approveSalesQuotation,
+  reopenSalesQuotation,
   rejectSalesQuotation,
   sendSalesQuotation,
   submitSalesQuotation,
@@ -206,6 +208,24 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, isSu
             )}
           </>
         )}
+        {(quote.status === "APPROVED" || quote.status === "SENT" || quote.status === "CONVERTED") &&
+          perms.canApprove && (
+            <Button
+              variant="outline"
+              disabled={busy}
+              onClick={() => {
+                if (
+                  !confirm(
+                    "Reopen this quotation for editing? It returns to Draft and must be re-approved. An invoice or blocked slot already raised from it is NOT changed — adjust those on the invoice/booking."
+                  )
+                )
+                  return;
+                run(() => reopenSalesQuotation(quote.id), "Reopened — the quotation is editable again.");
+              }}
+            >
+              <PencilLine className="h-4 w-4" /> Reopen for Editing
+            </Button>
+          )}
         {perms.canEdit && (
           <Button
             variant="outline"

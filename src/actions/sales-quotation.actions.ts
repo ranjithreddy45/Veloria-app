@@ -454,6 +454,52 @@ export async function approveSalesQuotation(id: string): Promise<Result<{ status
 // ------------------------------------------------------------
 // Reject (PENDING_APPROVAL -> DRAFT) with a required comment.
 // ------------------------------------------------------------
+/**
+ * Reopen an APPROVED/SENT quotation back to DRAFT so it can be edited — even
+ * after an invoice was raised from it. Approver-gated (quotes:approve): an
+ * approved commercial document must not be silently editable by its author.
+ * The re-edited quote goes through submit → approve again; an already-issued
+ * invoice or blocked slot is NOT touched (adjust those on the invoice itself).
+ */
+export async function reopenSalesQuotation(id: string): Promise<Result<{ status: string }>> {
+  const user = await requireUser();
+  if (!user || !can(user.role, "quotes:approve"))
+    return { success: false, error: "Only a sales manager / head can reopen an approved quotation." };
+  const row = await prisma.salesQuotation.findUnique({ where: { id } });
+  if (!row) return { success: false, error: "Quotation not found" };
+  if (row.status !== "APPROVED" && row.status !== "SENT" && row.status !== "CONVERTED")
+    return { success: false, error: `Cannot reopen from ${row.status}.`, code: 409 };
+
+  const fromStatus = row.status;
+  const guarded = await prisma.$transaction(async (tx) => {
+    const { count } = await tx.salesQuotation.updateMany({
+      where: { id, status: fromStatus },
+      data: {
+        status: "DRAFT",
+        // Clear the approval so the resubmit → approve cycle runs clean.
+        approvedById: null,
+        approvedAt: null,
+        rejectedReason: null,
+      },
+    });
+    if (count === 0) return false;
+    await tx.salesQuotationTransition.create({
+      data: {
+        quotationId: id,
+        fromStatus,
+        toStatus: "DRAFT",
+        actorId: user.id,
+        note: "Reopened for editing after approval",
+      },
+    });
+    return true;
+  });
+  if (!guarded) return { success: false, error: `Cannot reopen from ${row.status}.`, code: 409 };
+  revalidatePath("/quotations");
+  revalidatePath(`/quotations/${id}`);
+  return { success: true, data: { status: "DRAFT" } };
+}
+
 export async function rejectSalesQuotation(id: string, reason: string): Promise<Result<{ status: string }>> {
   const user = await requireUser();
   if (!user || !can(user.role, "quotes:approve"))

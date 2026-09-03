@@ -808,3 +808,97 @@ export async function getBookingsForInvoice(contactId?: string) {
     return { success: false as const, error: "Failed to fetch bookings" };
   }
 }
+
+// ============================================================
+// Manual amount correction — Finance can fix the invoice total and/or the
+// paid amount on a non-draft invoice ("Adjust amounts" on the invoice view).
+// A reason is mandatory and the before/after is activity-logged; the reason is
+// also appended to the invoice notes so the paper trail lives on the document.
+// Deliberately does NOT touch line items or GST rows — this is a correction
+// mechanism, not a re-bill (use Edit on a draft, or cancel + re-issue, for
+// structural changes).
+// ============================================================
+
+export async function adjustInvoiceAmounts(
+  id: string,
+  input: { totalAmount?: number; paidAmount?: number; reason: string }
+) {
+  try {
+    const session = await auth();
+    if (!session?.user) return { success: false as const, error: "Unauthorized" };
+    if (!hasPermission(session.user.role, "invoices:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+    const reason = input.reason?.trim();
+    if (!reason) return { success: false as const, error: "A reason for the correction is required." };
+
+    const inv = await prisma.invoice.findUnique({
+      where: { id },
+      select: { status: true, totalAmount: true, paidAmount: true, notes: true, invoiceNumber: true },
+    });
+    if (!inv) return { success: false as const, error: "Invoice not found" };
+    if (inv.status === "CANCELLED")
+      return { success: false as const, error: "A cancelled invoice can't be adjusted." };
+
+    const newTotal =
+      input.totalAmount !== undefined ? Math.round(Number(input.totalAmount) * 100) / 100 : Number(inv.totalAmount);
+    const newPaid =
+      input.paidAmount !== undefined ? Math.round(Number(input.paidAmount) * 100) / 100 : Number(inv.paidAmount);
+    if (!Number.isFinite(newTotal) || newTotal < 0)
+      return { success: false as const, error: "The invoice total must be zero or more." };
+    if (!Number.isFinite(newPaid) || newPaid < 0)
+      return { success: false as const, error: "The paid amount must be zero or more." };
+    if (newPaid > newTotal)
+      return {
+        success: false as const,
+        error: "Paid amount can't exceed the invoice total. Reduce the paid figure or raise the total.",
+      };
+
+    const balanceDue = Math.round((newTotal - newPaid) * 100) / 100;
+    // Status follows the money for issued invoices; drafts stay drafts.
+    const nextStatus =
+      inv.status === "DRAFT"
+        ? "DRAFT"
+        : balanceDue <= 0 && newTotal > 0
+          ? "PAID"
+          : newPaid > 0
+            ? "PARTIALLY_PAID"
+            : inv.status === "PAID" || inv.status === "PARTIALLY_PAID"
+              ? "SENT"
+              : inv.status;
+
+    const stamp = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+    const auditLine = `Amounts corrected on ${stamp} by ${session.user.name ?? "staff"}: total ₹${Number(inv.totalAmount)} → ₹${newTotal}, paid ₹${Number(inv.paidAmount)} → ₹${newPaid}. Reason: ${reason}`;
+
+    await prisma.invoice.update({
+      where: { id },
+      data: {
+        totalAmount: newTotal,
+        paidAmount: newPaid,
+        balanceDue,
+        status: nextStatus as never,
+        notes: [inv.notes, auditLine].filter(Boolean).join("\n"),
+      },
+    });
+
+    await logActivity({
+      userId: session.user.id as string,
+      action: "invoice_amounts_adjusted",
+      entityType: "Invoice",
+      entityId: id,
+      changes: {
+        reason,
+        totalBefore: Number(inv.totalAmount),
+        totalAfter: newTotal,
+        paidBefore: Number(inv.paidAmount),
+        paidAfter: newPaid,
+      },
+    });
+    revalidatePath("/invoices");
+    revalidatePath(`/invoices/${id}`);
+    return { success: true as const, data: { totalAmount: newTotal, paidAmount: newPaid, balanceDue } };
+  } catch (error) {
+    console.error("[ADJUST_INVOICE_AMOUNTS_ERROR]", error);
+    return { success: false as const, error: "Failed to adjust the invoice" };
+  }
+}

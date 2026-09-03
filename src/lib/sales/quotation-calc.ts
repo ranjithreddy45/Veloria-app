@@ -118,7 +118,7 @@ export interface QuoteCatalog {
 }
 
 export const QUOTE_CATALOG: QuoteCatalog = {
-  timeSlots: ["Afternoon", "Evening", "Full Day"],
+  timeSlots: ["Morning", "Afternoon", "Evening", "Full Day"],
   hallRates: [5999, 6999, 7999, 8999, 9999, 12999],
   food: [
     { id: "veg_silver", label: "Veg Silver package", perPlate: 599, veg: true },
