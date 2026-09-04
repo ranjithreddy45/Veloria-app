@@ -12,7 +12,7 @@ import { READINESS_CHECKLIST, readinessSeverity } from "@/lib/projects/readiness
 import { OPS_AUDIT_CHECKLIST } from "@/lib/projects/ops-audit-config";
 import { normalizePhase, phaseMatchValues, PROJECT_PHASES, type ProjectPhase } from "@/lib/projects/phases";
 import { Prisma } from "@prisma/client";
-import { ensureVenueForProperty } from "@/actions/acq-property.actions";
+import { ensureVenueForProperty } from "@/lib/acq/venue-bridge";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 

@@ -6,7 +6,7 @@ import { serialize } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 import { notify } from "@/lib/notify";
 import { ensureDealProperty } from "@/lib/acq/conversion";
-import { acqHasAnyAccess } from "@/lib/acq/rbac";
+import { acqCan, acqHasAnyAccess } from "@/lib/acq/rbac";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -39,7 +39,10 @@ export async function convertDealToProject(
   dealId: string
 ): Promise<Result<{ projectId: string; propertyName: string }>> {
   const user = await requireUser();
-  if (!user || !acqHasAnyAccess(user.role)) return { success: false, error: "Unauthorized" };
+  // Creating the property + onboarding project is a deal-stage side effect, so
+  // it takes the same permission as moving the deal — not mere BD visibility
+  // (acqHasAnyAccess also covers Legal/Projects, who only read this module).
+  if (!user || !acqCan(user.role, "deal:transition")) return { success: false, error: "Unauthorized" };
 
   const deal = await prisma.acqDeal.findFirst({ where: { id: dealId, deletedAt: null } });
   if (!deal) return { success: false, error: "Deal not found" };

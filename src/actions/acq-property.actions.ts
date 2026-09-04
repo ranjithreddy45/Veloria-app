@@ -9,7 +9,7 @@ import { notify } from "@/lib/notify";
 import { logActivity } from "@/lib/activity-logger";
 import { acqCan, acqHasAnyAccess } from "@/lib/acq/rbac";
 import { isSafeReceiptDataUrl } from "@/lib/sales/receipt";
-import { Prisma } from "@prisma/client";
+import { ensureVenueForProperty } from "@/lib/acq/venue-bridge";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -250,52 +250,8 @@ export async function removeAcqPropertyDocument(
   return { success: true, data: { id: propertyId } };
 }
 
-// ------------------------------------------------------------
-// BD → Bookings bridge: every published property must have a bookable Venue.
-// Idempotent — if property.venueId is already set, it's a no-op (never creates a
-// second venue for the same property). Run inside the same tx as the status flip.
-// Exported async because this is a "use server" file.
-// ------------------------------------------------------------
-type EnsureVenueProperty = {
-  id: string;
-  venueId: string | null;
-  propertyName: string;
-  city: string;
-  locality: string;
-  address: string | null;
-  seatingTheatre: number | null;
-  seatingFloating: number | null;
-};
-
-export async function ensureVenueForProperty(
-  tx: Prisma.TransactionClient,
-  property: EnsureVenueProperty,
-): Promise<string> {
-  // Idempotency guard #1: in-memory — property already carries a venue id.
-  if (property.venueId) return property.venueId;
-
-  // Idempotency guard #2: re-read inside the tx in case venueId was set
-  // concurrently (the in-param may be stale).
-  const fresh = await tx.acqProperty.findUnique({
-    where: { id: property.id },
-    select: { venueId: true },
-  });
-  if (fresh?.venueId) return fresh.venueId;
-
-  const capacity = property.seatingTheatre ?? property.seatingFloating ?? 0;
-  const venue = await tx.venue.create({
-    data: {
-      name: property.propertyName,
-      description: [property.address, property.locality, property.city].filter(Boolean).join(", ") || null,
-      capacity,
-      pricePerSlot: 0,
-      amenities: [],
-      isActive: true,
-    },
-  });
-  await tx.acqProperty.update({ where: { id: property.id }, data: { venueId: venue.id } });
-  return venue.id;
-}
+// BD → Bookings venue bridge moved to lib/acq/venue-bridge.ts — it takes a
+// transaction client, which a public "use server" export can never receive.
 
 // ------------------------------------------------------------
 // §6.2 — THE critical gate: ONBOARDING → AVAILABLE notifies Sales.

@@ -421,6 +421,12 @@ export async function updateAcqLead(
 
   const data: Record<string, unknown> = {};
   if (patch.status === "CONTACTED") {
+    // Only an early-funnel lead can be marked Contacted here — without this
+    // check, a DEAL_CREATED or DISQUALIFIED lead could be pulled back to
+    // CONTACTED around the guarded state machine (setAcqLeadStatus).
+    if (lead.status !== "NEW" && lead.status !== "CONTACTED") {
+      return { success: false, error: `Can't mark a ${lead.status.toLowerCase().replace(/_/g, " ")} lead as Contacted.` };
+    }
     if (!patch.nextFollowupAt) return { success: false, error: "A follow-up date is required when marking Contacted." };
     const next = new Date(patch.nextFollowupAt);
     if (Number.isNaN(next.getTime()) || next <= new Date()) {
@@ -428,6 +434,10 @@ export async function updateAcqLead(
     }
     data.status = "CONTACTED";
     data.nextFollowupAt = next;
+    // This is one of the two contact-logging paths (the other is
+    // logAcqLeadContact). Stamp the first real contact here too, or leads
+    // contacted from the inbox dialog never clear the first-response SLA.
+    if (!lead.firstContactAt) data.firstContactAt = new Date();
   }
   if (patch.incrementContactAttempt) data.contactAttempts = { increment: 1 };
   if (patch.mobileAlternate !== undefined) data.mobileAlternate = patch.mobileAlternate ? normalizeMobile(patch.mobileAlternate) : null;
@@ -690,7 +700,17 @@ export async function qualifyAcqLead(
     };
   }
 
-  const result = await prisma.$transaction(async (tx) => {
+  let result: { id: string };
+  try {
+    result = await prisma.$transaction(async (tx) => {
+    // Guarded flip FIRST: if a concurrent qualify already moved the lead, the
+    // count is 0 and we stop before creating a second deal (leadId is @unique,
+    // so the race would otherwise surface as a raw P2002 crash).
+    const flipped = await tx.acqLead.updateMany({
+      where: { id: lead.id, status: lead.status },
+      data: { status: "DEAL_CREATED" },
+    });
+    if (flipped.count === 0) throw new Error("ALREADY_QUALIFIED");
     const deal = await tx.acqDeal.create({
       data: {
         name: `Acquire – ${lead.propertyName}, ${lead.locality}`,
@@ -712,9 +732,8 @@ export async function qualifyAcqLead(
       where: { id: lead.id },
       data: {
         // Qualifying CREATES the deal in this same transaction, so the lead lands
-        // on DEAL_CREATED, not QUALIFIED (item 11). Setting it here — inside the
-        // one path that can create a deal — is what makes it impossible to forget.
-        status: "DEAL_CREATED",
+        // on DEAL_CREATED, not QUALIFIED (item 11) — the guarded flip above
+        // already moved status; here we link the deal + persist the checklist.
         convertedDealId: deal.id,
         qualSeating100: payload.seating_100_plus,
         qualOwnerInterested: payload.owner_interested_in_management_model,
@@ -736,7 +755,16 @@ export async function qualifyAcqLead(
       data: { entity: "DEAL", entityId: deal.id, fromState: null, toState: "QUALIFIED", actorId: user.id, reason: "Created from qualified lead" },
     });
     return deal;
-  });
+    });
+  } catch (e) {
+    if (
+      (e as Error).message === "ALREADY_QUALIFIED" ||
+      (e as { code?: string }).code === "P2002"
+    ) {
+      return { success: false, error: "This lead was just qualified by someone else — refresh to see its deal." };
+    }
+    throw e;
+  }
 
   revalidatePath("/bd/leads");
   revalidatePath(`/bd/leads/${id}`);
@@ -817,6 +845,11 @@ export async function getBdUsers(): Promise<{ id: string; name: string | null; r
 const PROPERTY_MANAGER_ROLES = ["OPERATIONS", "BD_HEAD", "ADMIN", "SUPER_ADMIN"] as const;
 
 export async function getPropertyManagerCandidates(): Promise<{ id: string; name: string | null; role: string }[]> {
+  // Same rule as getBdUsers above: a server action is a public endpoint, and
+  // this one enumerates staff names + roles — gate it on BD access.
+  const session = await auth();
+  if (!session?.user || !acqHasAnyAccess(session.user.role as string)) return [];
+
   const users = await prisma.user.findMany({
     where: { isActive: true, role: { in: [...PROPERTY_MANAGER_ROLES] } },
     select: { id: true, name: true, role: true },

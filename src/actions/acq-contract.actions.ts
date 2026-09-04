@@ -408,6 +408,19 @@ export async function sendAcqContractToOwner(
     sent = !!r.success;
   }
 
+  // A failed send must NOT advance the contract — NEGOTIATED is what unlocks
+  // markSigned, and it has to mean the owner actually received the document.
+  if (!sent) {
+    await logActivity(id, user.id, "NOTE", `Send to owner via ${channel.toLowerCase()} FAILED`);
+    revalidatePath(`/bd/contracts/${id}`);
+    return {
+      success: false,
+      error:
+        channel === "EMAIL"
+          ? "The email could not be sent — check the owner's email address and the email settings, then try again."
+          : "The WhatsApp message could not be sent — check the owner's number and the WhatsApp settings, then try again.",
+    };
+  }
   await logActivity(id, user.id, "SENT_FOR_SIGN", `Sent to owner via ${channel.toLowerCase()}`);
   // Move into the NEGOTIATED status (not just the phase) so the negotiation state
   // and signing-reminder filters work, and markSigned isn't reachable straight
@@ -892,46 +905,9 @@ export async function addAcqContractNote(id: string, body: string): Promise<Resu
   return { success: true, data: { id } };
 }
 
-// Signing reminders — notify the BD owner + managers about contracts whose
-// target sign date is near or overdue and not yet signed. Called by the daily cron.
-export async function remindContractSignings(): Promise<number> {
-  const soon = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
-  let reminded = 0;
-  try {
-    const due = await prisma.acqContract.findMany({
-      where: {
-        deletedAt: null,
-        status: { in: ["DRAFT", "APPROVED", "NEGOTIATED", "SIGNED"] },
-        signByDate: { not: null, lte: soon },
-      },
-      select: { id: true, title: true, propertyName: true, signByDate: true, bdExecutiveId: true },
-      take: 200,
-    });
-    if (due.length === 0) return 0;
-    const managers = await prisma.user.findMany({
-      where: { isActive: true, role: { in: ["SUPER_ADMIN", "ADMIN", "BD_HEAD"] } },
-      select: { id: true },
-    });
-    const now = new Date();
-    for (const c of due) {
-      const overdue = c.signByDate! < now;
-      const ids = new Set<string>([c.bdExecutiveId, ...managers.map((m) => m.id)]);
-      for (const id of ids) {
-        notify({
-          userId: id,
-          type: "SLA_WARNING",
-          title: overdue ? "⏰ Contract signing overdue" : "Contract signing due soon",
-          message: `${c.propertyName} — ${c.title}`,
-          actionUrl: `/bd/contracts/${c.id}`,
-        });
-      }
-      reminded++;
-    }
-  } catch (e) {
-    console.error("[remindContractSignings] error:", e);
-  }
-  return reminded;
-}
+// Signing reminders moved to lib/acq/contract-reminders.ts — cron-only
+// internals must not be public "use server" endpoints (anyone invoking the
+// action could spam every manager with duplicate SLA notifications).
 
 // Won deals available to turn into a contract.
 export type ContractableDeal = {

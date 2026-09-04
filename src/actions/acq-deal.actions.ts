@@ -221,11 +221,21 @@ export async function updateAcqDeal(
   if (rmCapacity != null && rmMinPax != null && rmMinPax > rmCapacity) {
     return { success: false, error: "Minimum pax can't exceed the hall capacity." };
   }
-  // Coerce date strings → Date for every date field; null clears them.
+  // Coerce date strings → Date for every date field; null clears them. An
+  // unparseable string must be rejected here — an Invalid Date makes Prisma
+  // throw an opaque 500 instead of a form error.
   for (const dk of ["expectedCloseDate", "expectedSigningDate", "expectedCollectionDate"]) {
     if (dk in data) {
       const v = data[dk];
-      data[dk] = v == null || v === "" ? null : new Date(v as string);
+      if (v == null || v === "") {
+        data[dk] = null;
+      } else {
+        const parsed = new Date(v as string);
+        if (Number.isNaN(parsed.getTime())) {
+          return { success: false, error: `Enter a valid date for ${dk}.` };
+        }
+        data[dk] = parsed;
+      }
     }
   }
 
@@ -797,10 +807,18 @@ export async function transitionAcqDeal(
     }
   }
 
-  // (c)+(d) apply transition + automations atomically
+  // (c)+(d) apply transition + automations atomically. The stage flip is
+  // GUARDED on the stage we validated against — two concurrent transitions
+  // both passing isLegalTransition would otherwise last-write-wins past the
+  // entry gates; the loser now gets a clean 409 instead.
   let createdPropertyId: string | null = null;
+  let raced = false;
   await prisma.$transaction(async (tx) => {
-    await tx.acqDeal.update({ where: { id: dealId }, data });
+    const flipped = await tx.acqDeal.updateMany({ where: { id: dealId, stage: from }, data });
+    if (flipped.count === 0) {
+      raced = true;
+      return;
+    }
     await tx.acqStageTransition.create({
       data: { entity: "DEAL", entityId: dealId, fromState: from, toState: toStage, actorId: user.id, reason: payload.reason || null },
     });
@@ -812,6 +830,9 @@ export async function transitionAcqDeal(
       createdPropertyId = res.propertyId;
     }
   });
+  if (raced) {
+    return { success: false, error: "The deal's stage just changed — refresh and try again.", code: 409 };
+  }
 
   // Post-commit automations (notifications — fire-and-forget).
   if (toStage === "WON" && createdPropertyId) {

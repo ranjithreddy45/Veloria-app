@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
-import { remindContractSignings } from "@/actions/acq-contract.actions";
+import { remindContractSignings } from "@/lib/acq/contract-reminders";
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
