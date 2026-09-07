@@ -26,7 +26,7 @@ export function LeaveSetup() {
       </div>
       <h3 className="mt-5 text-title leading-tight">Set up leave</h3>
       <p className="mx-auto mt-2 max-w-sm text-body leading-relaxed text-muted-foreground">
-        Create the standard leave types (Casual, Sick, Earned, Comp-off, Maternity, LOP) and 2026 public holidays.
+        Create the standard leave types (Sick, Earned, Comp-off, Maternity, LOP) and 2026 public holidays.
         Everything is editable afterwards.
       </p>
       <Button onClick={run} disabled={loading} className="mt-5 gap-1.5">

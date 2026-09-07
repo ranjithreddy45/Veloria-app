@@ -226,14 +226,14 @@ function LeaveTypeDialog({ existing, nextOrder }: { existing?: LeaveTypeRow; nex
           <div className="grid grid-cols-3 gap-3">
             <div className="col-span-2 space-y-1.5">
               <Label className="text-detail">Name</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Casual Leave" />
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Earned Leave" />
             </div>
             <div className="space-y-1.5">
               <Label className="text-detail">Code</Label>
               <Input
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
-                placeholder="CL"
+                placeholder="EL"
                 maxLength={12}
                 className="uppercase"
               />

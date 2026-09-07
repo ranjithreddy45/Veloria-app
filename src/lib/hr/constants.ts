@@ -75,13 +75,14 @@ export function employeeName(e: { firstName: string; lastName: string }): string
 }
 
 // --- Leave types (default seed; admin-editable) ---
+// Policy 2026-09: Casual Leave retired entirely; Sick Leave is 6 days/year.
+// prisma/bootstrap.ts migrates existing installs to match (one-time, marker-guarded).
 export const LEAVE_TYPE_SEED = [
-  { name: "Casual Leave", code: "CL", paid: true, accrualPerYear: 12, carryForwardMax: 0, allowHalfDay: true, allowNegative: false, requiresApproval: true, color: "blue", order: 1 },
-  { name: "Sick Leave", code: "SL", paid: true, accrualPerYear: 12, carryForwardMax: 0, allowHalfDay: true, allowNegative: false, requiresApproval: true, color: "rose", order: 2 },
-  { name: "Earned Leave", code: "EL", paid: true, accrualPerYear: 18, carryForwardMax: 30, allowHalfDay: true, allowNegative: false, requiresApproval: true, color: "emerald", order: 3 },
-  { name: "Comp Off", code: "COMP", paid: true, accrualPerYear: 0, carryForwardMax: 0, allowHalfDay: true, allowNegative: false, requiresApproval: true, color: "violet", order: 4 },
-  { name: "Maternity Leave", code: "ML", paid: true, accrualPerYear: 182, carryForwardMax: 0, allowHalfDay: false, allowNegative: false, requiresApproval: true, color: "pink", order: 5 },
-  { name: "Loss of Pay", code: "LOP", paid: false, accrualPerYear: 0, carryForwardMax: 0, allowHalfDay: true, allowNegative: true, requiresApproval: true, color: "slate", order: 6 },
+  { name: "Sick Leave", code: "SL", paid: true, accrualPerYear: 6, carryForwardMax: 0, allowHalfDay: true, allowNegative: false, requiresApproval: true, color: "rose", order: 1 },
+  { name: "Earned Leave", code: "EL", paid: true, accrualPerYear: 18, carryForwardMax: 30, allowHalfDay: true, allowNegative: false, requiresApproval: true, color: "emerald", order: 2 },
+  { name: "Comp Off", code: "COMP", paid: true, accrualPerYear: 0, carryForwardMax: 0, allowHalfDay: true, allowNegative: false, requiresApproval: true, color: "violet", order: 3 },
+  { name: "Maternity Leave", code: "ML", paid: true, accrualPerYear: 182, carryForwardMax: 0, allowHalfDay: false, allowNegative: false, requiresApproval: true, color: "pink", order: 4 },
+  { name: "Loss of Pay", code: "LOP", paid: false, accrualPerYear: 0, carryForwardMax: 0, allowHalfDay: true, allowNegative: true, requiresApproval: true, color: "slate", order: 5 },
 ] as const;
 
 // Fixed-date national / Karnataka holidays for 2026 (admin adds movable festivals).

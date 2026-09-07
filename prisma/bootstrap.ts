@@ -710,6 +710,74 @@ async function main() {
     console.error("[bootstrap] handbook seeding failed (non-fatal):", e);
   }
 
+  // ---- Leave policy 2026-09: retire Casual Leave, Sick Leave 12 → 6 ----
+  // Runs ONCE (ActivityLog marker), so if HR later re-activates CL or changes
+  // SL on purpose, a redeploy must NOT undo their decision. Every write is
+  // additionally value-guarded, so a partial first run heals on the next one.
+  try {
+    const MARKER = "leave_policy_cl_removed_sl6";
+    const done = await prisma.activityLog.findFirst({
+      where: { action: MARKER },
+      select: { id: true },
+    });
+    if (!done) {
+      const year = new Date().getFullYear();
+      // 1) Retire Casual Leave — deactivate, never delete: past requests and
+      //    used balances stay on record; ensureBalances/apply skip inactive types.
+      const cl = await prisma.leaveType.updateMany({
+        where: { code: "CL", isActive: true },
+        data: { isActive: false },
+      });
+      // 2) Remove untouched CL balance rows (pure provisioning artifacts) so no
+      //    Casual card lingers on employee dashboards. Rows with any usage,
+      //    pending days or carry-forward are kept — that history is real.
+      const clBalances = await prisma.leaveBalance.deleteMany({
+        where: {
+          leaveType: { code: "CL" },
+          used: 0,
+          pending: 0,
+          carriedForward: 0,
+        },
+      });
+      // 3) Sick Leave entitlement 12 → 6 — only where still at the old default,
+      //    so a manually adjusted figure is never clobbered.
+      const sl = await prisma.leaveType.updateMany({
+        where: { code: "SL", accrualPerYear: 12 },
+        data: { accrualPerYear: 6 },
+      });
+      const slBalances = await prisma.leaveBalance.updateMany({
+        where: { leaveType: { code: "SL" }, year, entitled: 12 },
+        data: { entitled: 6 },
+      });
+      const admin = await prisma.user.findFirst({
+        where: { role: "SUPER_ADMIN", isActive: true },
+        select: { id: true },
+      });
+      if (admin) {
+        await prisma.activityLog.create({
+          data: {
+            action: MARKER,
+            entityType: "leaveType",
+            entityId: "policy-2026-09",
+            userId: admin.id,
+            changes: {
+              clDeactivated: cl.count,
+              clBalancesRemoved: clBalances.count,
+              slTypeUpdated: sl.count,
+              slBalancesUpdated: slBalances.count,
+              year,
+            },
+          },
+        });
+      }
+      console.log(
+        `[bootstrap] Leave policy applied: CL deactivated=${cl.count}, CL balances removed=${clBalances.count}, SL type 12→6=${sl.count}, SL ${year} balances 12→6=${slBalances.count}`
+      );
+    }
+  } catch (e) {
+    console.error("[bootstrap] leave policy migration failed (non-fatal):", e);
+  }
+
   console.log("[bootstrap] Done.");
 }
 
