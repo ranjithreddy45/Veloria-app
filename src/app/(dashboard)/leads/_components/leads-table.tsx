@@ -21,6 +21,7 @@ import {
 import { toast } from "sonner";
 
 import { DataTable, DataTableColumnHeader, getSelectionColumn } from "@/components/shared/data-table";
+import { BulkAssignPopover } from "./bulk-assign-popover";
 import { SavedViewSelector, type SavedViewState } from "@/components/shared/saved-view-selector";
 import type { SavedViewData } from "@/actions/saved-view.actions";
 import {
@@ -1070,6 +1071,12 @@ export function LeadsTable({ data, statusFiltered = false }: LeadsTableProps) {
         selectedIds={selectedIds}
         actions={bulkActions}
         onClearSelection={() => setSelectedRows([])}
+        extra={
+          <BulkAssignPopover
+            selectedIds={selectedIds}
+            onDone={() => setSelectedRows([])}
+          />
+        }
       />
     </div>
   );

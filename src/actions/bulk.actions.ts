@@ -239,6 +239,7 @@ export async function bulkAssignLeads(
       )
     );
 
+    revalidatePath("/leads");
     return { success: true as const, data: { count: result.count } };
   } catch (error) {
     console.error("bulkAssignLeads error:", error);

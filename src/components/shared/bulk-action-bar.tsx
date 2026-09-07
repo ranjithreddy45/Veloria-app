@@ -43,6 +43,12 @@ interface BulkActionBarProps {
   selectedIds: string[];
   actions: BulkAction[];
   onClearSelection: () => void;
+  /**
+   * Actions that need their own UI (a picker, a popover) rather than a plain
+   * fire-once button — rendered first in the actions row. The plain `actions`
+   * API stays untouched for every existing caller.
+   */
+  extra?: React.ReactNode;
 }
 
 // ============================================================
@@ -54,6 +60,7 @@ export function BulkActionBar({
   selectedIds,
   actions,
   onClearSelection,
+  extra,
 }: BulkActionBarProps) {
   const [loadingAction, setLoadingAction] = React.useState<string | null>(null);
 
@@ -72,7 +79,7 @@ export function BulkActionBar({
     <div
       className={cn(
         "fixed bottom-[calc(1.5rem+max(var(--sab),0px))] left-1/2 z-50 -translate-x-1/2",
-        "flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-lg",
+        "flex max-w-[calc(100vw-1.5rem)] flex-wrap items-center justify-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-lg",
         "animate-in slide-in-from-bottom-4 fade-in duration-200"
       )}
     >
@@ -85,7 +92,8 @@ export function BulkActionBar({
 
       <div className="mx-1 h-6 w-px bg-border" />
 
-      <div className="flex items-center gap-1.5">
+      <div className="flex flex-wrap items-center justify-center gap-1.5">
+        {extra}
         {actions.map((action) => {
           if (action.requireConfirm) {
             return (
