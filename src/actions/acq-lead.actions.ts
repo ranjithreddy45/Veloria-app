@@ -125,6 +125,8 @@ export async function getAcqLeads(filters?: {
    * and one fewer thing to learn.
    */
   dueFollowup?: boolean;
+  /** With dueFollowup: narrow to follow-ups whose time has already passed. */
+  due?: "overdue";
   /** Unified pipeline stage (lead+deal funnel) — see lib/bd/pipeline.ts. */
   pipelineStage?: string;
   /** Property-particular filters (min/max are inclusive). */
@@ -181,9 +183,11 @@ export async function getAcqLeads(filters?: {
   // Mirrors getFollowupQueue's condition exactly. If these two ever drift, the
   // chip count and the list stop agreeing — which is the class of bug this
   // consolidation exists to remove, so they are kept literally identical.
+  // `due: "overdue"` narrows the same view to follow-ups already in the past —
+  // the work-strip's "overdue" tile links here, so tile and list must agree.
   if (filters?.dueFollowup) {
     where.status = { in: ["NEW", "CONTACTED"] };
-    where.nextFollowupAt = { not: null };
+    where.nextFollowupAt = filters.due === "overdue" ? { lt: new Date() } : { not: null };
   }
   // Validate the status against the allowed set BEFORE it reaches Prisma — an
   // arbitrary ?status= string in the URL would otherwise throw a Prisma
@@ -207,16 +211,33 @@ export async function getAcqLeads(filters?: {
       include: {
         bdExecutive: { select: { id: true, name: true } },
         deal: { select: { stage: true } },
+        // Newest activity only — powers the "Last activity" accountability
+        // column without shipping whole activity logs for 500 rows.
+        activities: {
+          select: { createdAt: true, channel: true },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+        },
       },
       orderBy: { createdAt: "desc" },
     },
     500
   );
   // Attach the derived unified-pipeline stage so every row carries its funnel
-  // position regardless of whether it lives on the lead or its deal.
-  const rows = (page.rows as unknown as { status: string; deal?: { stage: string } | null }[]).map(
-    (r) => ({ ...r, pipelineStage: deriveBdPipelineStage(r) })
-  );
+  // position regardless of whether it lives on the lead or its deal, and
+  // flatten the newest activity into lastActivityAt/lastActivityChannel.
+  const rows = (
+    page.rows as unknown as {
+      status: string;
+      deal?: { stage: string } | null;
+      activities?: { createdAt: Date; channel: string }[];
+    }[]
+  ).map(({ activities, ...r }) => ({
+    ...r,
+    pipelineStage: deriveBdPipelineStage(r),
+    lastActivityAt: activities?.[0]?.createdAt ?? null,
+    lastActivityChannel: activities?.[0]?.channel ?? null,
+  }));
   return {
     success: true,
     data: serialize(rows) as unknown[],
@@ -291,6 +312,94 @@ export async function getBdPipelineCounts(): Promise<Result<Record<string, numbe
     counts.ALL += g._count._all;
   }
   return { success: true, data: counts };
+}
+
+/**
+ * The BD rep's strip: where they stand, and what to do next — the BD twin of
+ * the Sales work strip. Every counter links to the exact filtered list it
+ * counted, so "3 overdue" is not a number to feel bad about, it is the next
+ * three calls. Executives see their own book; BD Head / admins see the team's.
+ */
+export async function getBdWorkStrip(): Promise<
+  Result<{
+    scope: "mine" | "team";
+    overdue: number;
+    dueToday: number;
+    slaBreached: number;
+    callsToday: number;
+    visitsUpcoming: number;
+  }>
+> {
+  const user = await requireUser();
+  if (!user || !acqHasAnyAccess(user.role)) return { success: false, error: "Unauthorized" };
+
+  const teamWide = acqCan(user.role, "lead:reassign");
+  const own = teamWide ? {} : { bdExecutiveId: user.id };
+
+  // "Today" in IST — the team works in one timezone; the server does not.
+  const IST_OFFSET_MS = 5.5 * 3600 * 1000;
+  const now = new Date();
+  const istNow = new Date(now.getTime() + IST_OFFSET_MS);
+  const istStartUtc = new Date(
+    Date.UTC(istNow.getUTCFullYear(), istNow.getUTCMonth(), istNow.getUTCDate()) - IST_OFFSET_MS
+  );
+  const istEndUtc = new Date(istStartUtc.getTime() + 24 * 3600 * 1000);
+
+  const [overdue, dueToday, slaBreached, callsToday, visitsUpcoming] = await Promise.all([
+    prisma.acqLead.count({
+      where: {
+        deletedAt: null,
+        ...own,
+        status: { in: ["NEW", "CONTACTED"] },
+        nextFollowupAt: { lt: now },
+      },
+    }),
+    prisma.acqLead.count({
+      where: {
+        deletedAt: null,
+        ...own,
+        status: { in: ["NEW", "CONTACTED"] },
+        nextFollowupAt: { gte: now, lt: istEndUtc },
+      },
+    }),
+    // First-contact SLA breaches: NEW, never contacted, past the due time.
+    prisma.acqLead.count({
+      where: {
+        deletedAt: null,
+        ...own,
+        status: "NEW",
+        firstContactAt: null,
+        firstContactDue: { lt: now },
+      },
+    }),
+    prisma.acqLeadActivity.count({
+      where: {
+        ...(teamWide ? {} : { actorId: user.id }),
+        channel: "CALL",
+        createdAt: { gte: istStartUtc, lt: istEndUtc },
+        lead: { deletedAt: null },
+      },
+    }),
+    prisma.acqSiteVisit.count({
+      where: {
+        ...(teamWide ? {} : { assignedToId: user.id }),
+        status: "SCHEDULED",
+        scheduledAt: { gte: now, lt: new Date(now.getTime() + 7 * 24 * 3600 * 1000) },
+      },
+    }),
+  ]);
+
+  return {
+    success: true,
+    data: {
+      scope: teamWide ? "team" : "mine",
+      overdue,
+      dueToday,
+      slaBreached,
+      callsToday,
+      visitsUpcoming,
+    },
+  };
 }
 
 export async function getAcqLead(id: string): Promise<Result<unknown>> {

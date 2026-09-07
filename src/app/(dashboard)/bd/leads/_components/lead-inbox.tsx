@@ -61,6 +61,8 @@ import {
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { StatusPill } from "@/components/shared/status-pill";
+import { ReassignOwnerPopover } from "./reassign-owner-popover";
+import { acqCan } from "@/lib/acq/rbac";
 import { BD_PIPELINE_STAGES, bdStageMeta } from "@/lib/bd/pipeline";
 import { cn } from "@/lib/utils";
 
@@ -89,10 +91,15 @@ export interface AcqLead {
   status: AcqLeadStatus;
   contactAttempts: number;
   firstContactDue: string;
+  firstContactAt?: string | null;
+  nextFollowupAt?: string | null;
   createdAt: string;
   bdExecutive?: { id: string; name: string | null } | null;
   /** Unified funnel stage derived server-side across lead + deal. */
   pipelineStage?: string;
+  /** Newest activity, flattened server-side — the "Last activity" column. */
+  lastActivityAt?: string | null;
+  lastActivityChannel?: string | null;
   parkingAvailable?: boolean | null;
 }
 
@@ -193,6 +200,60 @@ function slaCopy(firstContactDue: string): {
   return { text: `${minutes}m left`, overdue: false };
 }
 
+/**
+ * The "Next step" cell — one answer to "what happens next on this lead, and is
+ * it late?". Priority: unmade first call (SLA) → scheduled follow-up → the
+ * honest gap ("none planned") on open leads, which is itself the finding.
+ */
+function nextStepCopy(lead: {
+  status: string;
+  firstContactAt?: string | null;
+  firstContactDue: string;
+  nextFollowupAt?: string | null;
+}): { text: string; tone: "urgent" | "warn" | "plain" | "muted" } {
+  const open = lead.status === "NEW" || lead.status === "CONTACTED";
+  if (lead.status === "NEW" && !lead.firstContactAt) {
+    const sla = slaCopy(lead.firstContactDue);
+    return sla.overdue
+      ? { text: "First call overdue", tone: "urgent" }
+      : { text: `First call · ${sla.text}`, tone: "plain" };
+  }
+  if (open && lead.nextFollowupAt) {
+    const at = new Date(lead.nextFollowupAt).getTime();
+    if (!Number.isFinite(at)) return { text: "—", tone: "muted" };
+    const diffMs = at - Date.now();
+    if (diffMs < 0) {
+      const days = Math.floor(-diffMs / 86400000);
+      const hours = Math.floor(-diffMs / 3600000);
+      const late = days >= 1 ? `${days}d` : hours >= 1 ? `${hours}h` : "just now";
+      return { text: `Follow-up ${late === "just now" ? "due now" : `${late} late`}`, tone: "urgent" };
+    }
+    if (diffMs < 86400000) {
+      const t = new Date(at).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+      return { text: `Today ${t}`, tone: "warn" };
+    }
+    return {
+      text: new Date(at).toLocaleDateString(undefined, { day: "numeric", month: "short" }),
+      tone: "plain",
+    };
+  }
+  // An open lead with nothing scheduled is a lead nobody is accountable for.
+  if (open) return { text: "None planned", tone: "warn" };
+  return { text: "—", tone: "muted" };
+}
+
+/** Compact relative time for the Last-activity column ("3d ago"). */
+function agoCopy(iso?: string | null): string | null {
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return null;
+  const diff = Date.now() - t;
+  if (diff < 3600000) return "just now";
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+  if (diff < 30 * 86400000) return `${Math.floor(diff / 86400000)}d ago`;
+  return new Date(t).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+}
+
 // ============================================================
 // Lead Inbox
 // ============================================================
@@ -200,6 +261,7 @@ function slaCopy(firstContactDue: string): {
 export function LeadInbox({
   leads,
   bdUsers,
+  userRole,
   activeStatus,
   statusCounts,
   pipelineCounts,
@@ -209,6 +271,8 @@ export function LeadInbox({
 }: LeadInboxProps) {
   const [query, setQuery] = React.useState("");
   const [createOpen, setCreateOpen] = React.useState(false);
+  // Inline owner changes in the table — manager-only (server re-checks too).
+  const canReassign = acqCan(userRole, "lead:reassign");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -239,6 +303,7 @@ export function LeadInbox({
       // matching neither chip.
       params.delete("status");
       params.delete("view");
+      params.delete("due");
       const qs = params.toString();
       router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
     },
@@ -292,8 +357,10 @@ export function LeadInbox({
             type="button"
             onClick={() => {
               const params = new URLSearchParams(searchParams.toString());
-              if (dueFollowup) params.delete("view");
-              else {
+              if (dueFollowup) {
+                params.delete("view");
+                params.delete("due");
+              } else {
                 params.set("view", "followup");
                 params.delete("status");
               }
@@ -387,15 +454,15 @@ export function LeadInbox({
 
       {/* Table */}
       <div className="overflow-x-auto rounded-lg border border-border">
-        <table className="w-full min-w-[720px] border-collapse">
+        <table className="w-full min-w-[860px] border-collapse">
           <thead>
             <tr className="border-b border-border bg-muted/40 text-left text-meta font-medium uppercase tracking-wide text-muted-foreground">
               <th className="px-3 py-2 font-medium">Owner / Property</th>
               <th className="px-3 py-2 font-medium">City · Locality</th>
-              <th className="px-3 py-2 font-medium">Source</th>
-              <th className="px-3 py-2 font-medium">Status</th>
+              <th className="px-3 py-2 font-medium">Stage</th>
               <th className="px-3 py-2 font-medium">BD Exec</th>
-              <th className="px-3 py-2 font-medium">SLA</th>
+              <th className="px-3 py-2 font-medium">Next step</th>
+              <th className="px-3 py-2 font-medium">Last activity</th>
               <th className="px-3 py-2 font-medium text-right">Actions</th>
             </tr>
           </thead>
@@ -414,6 +481,8 @@ export function LeadInbox({
                 <LeadRow
                   key={lead.id}
                   lead={lead}
+                  canReassign={canReassign}
+                  bdUsers={bdUsers}
                   onQualify={() => setQualifyLead(lead)}
                   onLogContact={() => setLogContactLead(lead)}
                 />
@@ -613,10 +682,14 @@ function ParticularsFilter({
 
 function LeadRow({
   lead,
+  canReassign,
+  bdUsers,
   onQualify,
   onLogContact,
 }: {
   lead: AcqLead;
+  canReassign: boolean;
+  bdUsers: BdUser[];
   onQualify: () => void;
   onLogContact: () => void;
 }) {
@@ -626,7 +699,8 @@ function LeadRow({
     lead.status === "DISQUALIFIED";
   const canLogContact =
     lead.status === "NEW" || lead.status === "CONTACTED";
-  const sla = lead.status === "NEW" ? slaCopy(lead.firstContactDue) : null;
+  const next = nextStepCopy(lead);
+  const ago = agoCopy(lead.lastActivityAt);
 
   return (
     <tr className="border-b border-border last:border-0 hover:bg-muted/30">
@@ -639,6 +713,9 @@ function LeadRow({
         </Link>
         <div className="text-detail text-muted-foreground">
           {lead.ownerName} · {propertyTypeLabel(lead.propertyType)}
+          {/* Source folded in (label map, so legacy WALK_IN reads "Incoming lead"). */}
+          {" · "}
+          {ACQ_LEAD_SOURCE_LABEL[lead.leadSource] ?? humanizeEnum(lead.leadSource)}
           {lead.seatingTheatre || lead.seatingFloating ? (
             <span className="tabular-nums">
               {" · "}
@@ -655,10 +732,6 @@ function LeadRow({
       <td className="px-3 py-2.5 text-muted-foreground">
         <span className="text-foreground">{lead.city}</span>
         <span className="text-muted-foreground"> · {lead.locality}</span>
-      </td>
-      <td className="px-3 py-2.5 text-muted-foreground">
-        {/* Label map, so a legacy WALK_IN row reads "Incoming lead" and never a raw enum. */}
-        {ACQ_LEAD_SOURCE_LABEL[lead.leadSource] ?? humanizeEnum(lead.leadSource)}
       </td>
       <td className="px-3 py-2.5">
         {/* The unified funnel stage (lead + deal), not the raw lead status —
@@ -678,23 +751,45 @@ function LeadRow({
         )}
       </td>
       <td className="px-3 py-2.5 text-muted-foreground">
-        {lead.bdExecutive?.name ?? "—"}
+        {canReassign ? (
+          <ReassignOwnerPopover
+            leadId={lead.id}
+            current={lead.bdExecutive ?? null}
+            bdUsers={bdUsers}
+          />
+        ) : (
+          (lead.bdExecutive?.name ?? "—")
+        )}
       </td>
       <td className="px-3 py-2.5">
-        {sla ? (
-          <span
-            className={cn(
-              "inline-flex items-center gap-1 tabular-nums",
-              sla.overdue
-                ? "font-medium text-red-600"
+        <span
+          className={cn(
+            "inline-flex items-center gap-1 whitespace-nowrap tabular-nums",
+            next.tone === "urgent"
+              ? "font-medium text-red-600 dark:text-red-400"
+              : next.tone === "warn"
+                ? "font-medium text-amber-600 dark:text-amber-400"
                 : "text-muted-foreground"
-            )}
-          >
-            <Clock className="size-3" />
-            {sla.text}
+          )}
+        >
+          {next.tone === "urgent" && <Clock className="size-3" />}
+          {next.text}
+        </span>
+      </td>
+      <td className="px-3 py-2.5 text-muted-foreground">
+        {ago ? (
+          <span className="whitespace-nowrap tabular-nums">
+            {ago}
+            {lead.contactAttempts > 0 ? (
+              <span className="text-meta"> · {lead.contactAttempts} attempt{lead.contactAttempts === 1 ? "" : "s"}</span>
+            ) : null}
           </span>
         ) : (
-          <span className="text-muted-foreground">—</span>
+          // No activity ever logged — said plainly, because an untouched lead
+          // hiding behind a dash is how leads go cold unnoticed.
+          <span className={cn(lead.status === "NEW" ? "text-amber-600 dark:text-amber-400" : "")}>
+            No activity yet
+          </span>
         )}
       </td>
       <td className="px-3 py-2.5 text-right">

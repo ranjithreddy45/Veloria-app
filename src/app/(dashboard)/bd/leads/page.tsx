@@ -11,6 +11,7 @@ import { PageHelp } from "@/lib/page-help";
 import { ACQ_LEAD_STATUS, ACQ_PROPERTY_TYPE } from "@/lib/acq/constants";
 import { BD_PIPELINE_KEYS } from "@/lib/bd/pipeline";
 import { LeadInbox, type AcqLead, type BdUser } from "./_components/lead-inbox";
+import { BdWorkStrip } from "./_components/bd-work-strip";
 
 export const metadata: Metadata = { title: "Leads" };
 
@@ -20,6 +21,7 @@ export default async function BdLeadsPage({
   searchParams: Promise<{
     status?: string;
     view?: string;
+    due?: string;
     stage?: string;
     stMin?: string;
     stMax?: string;
@@ -39,6 +41,9 @@ export default async function BdLeadsPage({
   // The old /bd/followups page, folded in as a view. Its URL still works and
   // redirects here, so links and bookmarks survive the consolidation.
   const dueFollowup = sp.view === "followup";
+  // ?due=overdue narrows the follow-up view to what's already late — the
+  // work-strip's "overdue" tile deep-links here.
+  const due = dueFollowup && sp.due === "overdue" ? ("overdue" as const) : undefined;
 
   // Unified pipeline stage + property particulars — same unknown-→-undefined
   // treatment as status, and numbers parsed defensively (NaN → no bound).
@@ -62,7 +67,7 @@ export default async function BdLeadsPage({
   };
 
   const [leadsResult, countsResult, pipelineCountsResult, bdUsers, session] = await Promise.all([
-    getAcqLeads({ status, dueFollowup, pipelineStage, ...particulars }),
+    getAcqLeads({ status, dueFollowup, due, pipelineStage, ...particulars }),
     getAcqLeadStatusCounts(),
     getBdPipelineCounts(),
     getBdUsers(),
@@ -93,6 +98,7 @@ export default async function BdLeadsPage({
             : "Owner enquiries — SLA-tracked and de-duplicated. Tap a lead to view, call, message and qualify."
         }
       />
+      <BdWorkStrip />
       <LeadInbox
         leads={leads}
         bdUsers={bdUsers as BdUser[]}
