@@ -23,9 +23,10 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
-import { requiresBdHeadApproval, LEGAL_TRANSITIONS } from "@/lib/acq/domain";
+import { requiresBdHeadApproval, LEGAL_TRANSITIONS, computeEvaluation } from "@/lib/acq/domain";
 import { acqCan } from "@/lib/acq/rbac";
 import { cn } from "@/lib/utils";
+import { DEAL_CONTRACT_TAB_ENABLED, DEAL_PROJECTION_TAB_ENABLED } from "@/config/feature-flags";
 
 import {
   transitionAcqDeal,
@@ -244,8 +245,8 @@ function forwardStep(deal: AcqDealDetail): NextStep | null {
       return {
         stage: "EVALUATION_COMPLETED",
         reqs: [
-          { label: "Site evaluation passed (≥70, high criteria ≥3)", met: passedEval },
-          { label: `8+ site photos uploaded (${photos}/8)`, met: photos >= 8 },
+          { label: "Site scorecard submitted and passed", met: passedEval },
+          { label: `Site photos uploaded (${Math.min(photos, 8)}/8)`, met: photos >= 8 },
         ],
       };
     case "EVALUATION_COMPLETED": {
@@ -391,12 +392,18 @@ const selectHumanNotes = (notes: AcqNoteRow[]) => notes.filter((n) => !isChangeL
 export function DealDetail({
   deal,
   userRole,
+  evalPassThreshold,
 }: {
   deal: AcqDealDetail;
   userRole?: string;
+  /** Configured pass mark for the evaluation scorecard (AcqConfig). */
+  evalPassThreshold: number;
 }) {
   const router = useRouter();
 
+  // Fewer doors: Overview now carries notes + schedule; Projection and Contract
+  // are flag-gated off (the contract lifecycle lives in BD → Contracts and the
+  // pre-contract checks moved into Negotiation). Nothing was deleted.
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_300px]">
       <div className="min-w-0">
@@ -408,10 +415,13 @@ export function DealDetail({
             <TabsTrigger value="contact" className="shrink-0 whitespace-nowrap">Contact</TabsTrigger>
             <TabsTrigger value="economics" className="shrink-0 whitespace-nowrap">Economics &amp; Model</TabsTrigger>
             <TabsTrigger value="evaluation" className="shrink-0 whitespace-nowrap">Evaluation</TabsTrigger>
-            <TabsTrigger value="projection" className="shrink-0 whitespace-nowrap">Projection</TabsTrigger>
-            <TabsTrigger value="schedule" className="shrink-0 whitespace-nowrap">Schedule</TabsTrigger>
+            {DEAL_PROJECTION_TAB_ENABLED && (
+              <TabsTrigger value="projection" className="shrink-0 whitespace-nowrap">Projection</TabsTrigger>
+            )}
             <TabsTrigger value="negotiation" className="shrink-0 whitespace-nowrap">Negotiation</TabsTrigger>
-            <TabsTrigger value="contract" className="shrink-0 whitespace-nowrap">Contract</TabsTrigger>
+            {DEAL_CONTRACT_TAB_ENABLED && (
+              <TabsTrigger value="contract" className="shrink-0 whitespace-nowrap">Contract</TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="overview" className="mt-4">
@@ -424,46 +434,45 @@ export function DealDetail({
             <EconomicsTab deal={deal} userRole={userRole} onMutate={() => router.refresh()} />
           </TabsContent>
           <TabsContent value="evaluation" className="mt-4">
-            <EvaluationTab deal={deal} onMutate={() => router.refresh()} />
-          </TabsContent>
-          <TabsContent value="projection" className="mt-4">
-            {/* One projection lifecycle for every model. A Revenue-Margin deal
-                seeds the RM engine from its agreed economics; the builder freezes
-                those numbers onto the projection when it saves. */}
-            <ProjectionTab
-              dealId={deal.id}
-              userRole={userRole}
-              dealModel={deal.model}
-              rmDefaults={{
-                basePrice: num(deal.rmBasePrice),
-                bestPrice: num(deal.rmBestPrice),
-                priceBasis: deal.rmPriceBasis === "PER_PAX" ? "PER_PAX" : "PER_EVENT",
-                hallCapacity: deal.rmHallCapacity ?? null,
-                minimumPax: deal.rmMinimumPax ?? null,
-                eventsPerMonth: num(deal.expectedMonthlyEvents),
-                expectedPax:
-                  Math.max(
-                    num(deal.seatingTheatre) ?? 0,
-                    num(deal.seatingFloating) ?? 0
-                  ) || null,
-              }}
-            />
-          </TabsContent>
-          <TabsContent value="schedule" className="mt-4">
-            {/* Calls / site-visits / meetings against this deal (shared panel). */}
-            <AcqSchedulePanel
-              scope="deal"
-              id={deal.id}
-              userRole={userRole}
+            <EvaluationTab
+              deal={deal}
+              passThreshold={evalPassThreshold}
               onMutate={() => router.refresh()}
             />
           </TabsContent>
+          {DEAL_PROJECTION_TAB_ENABLED && (
+            <TabsContent value="projection" className="mt-4">
+              {/* One projection lifecycle for every model. A Revenue-Margin deal
+                  seeds the RM engine from its agreed economics; the builder freezes
+                  those numbers onto the projection when it saves. */}
+              <ProjectionTab
+                dealId={deal.id}
+                userRole={userRole}
+                dealModel={deal.model}
+                rmDefaults={{
+                  basePrice: num(deal.rmBasePrice),
+                  bestPrice: num(deal.rmBestPrice),
+                  priceBasis: deal.rmPriceBasis === "PER_PAX" ? "PER_PAX" : "PER_EVENT",
+                  hallCapacity: deal.rmHallCapacity ?? null,
+                  minimumPax: deal.rmMinimumPax ?? null,
+                  eventsPerMonth: num(deal.expectedMonthlyEvents),
+                  expectedPax:
+                    Math.max(
+                      num(deal.seatingTheatre) ?? 0,
+                      num(deal.seatingFloating) ?? 0
+                    ) || null,
+                }}
+              />
+            </TabsContent>
+          )}
           <TabsContent value="negotiation" className="mt-4">
-            <NegotiationTab deal={deal} onMutate={() => router.refresh()} />
+            <NegotiationTab deal={deal} userRole={userRole} onMutate={() => router.refresh()} />
           </TabsContent>
-          <TabsContent value="contract" className="mt-4">
-            <ContractTab deal={deal} userRole={userRole} onMutate={() => router.refresh()} />
-          </TabsContent>
+          {DEAL_CONTRACT_TAB_ENABLED && (
+            <TabsContent value="contract" className="mt-4">
+              <ContractTab deal={deal} userRole={userRole} onMutate={() => router.refresh()} />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
 
@@ -863,18 +872,38 @@ function OverviewTab({
 }) {
   const [busy, setBusy] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const [leadEditOpen, setLeadEditOpen] = useState(false);
   const [datesOpen, setDatesOpen] = useState(false);
   const canApprove = acqCan(userRole, "bdhead:approve");
   const canEdit = acqCan(userRole, "lead:write");
   // Shared selector (see isChangeLogNote) — identical history to the Negotiation tab.
   const changeLog = selectChangeLog(deal.notes);
-  const seating = [num(deal.seatingTheatre), num(deal.seatingFloating)]
-    .filter((n) => n != null)
-    .map((n, i) => `${n} ${i === 0 ? "theatre" : "floating"}`)
-    .join(" · ");
   const lead = deal.lead ?? null;
   const taFees = num(deal.taFees);
+
+  // ONE set of property facts. The deal snapshot and the originating lead used
+  // to be printed as two separate grids with two separate Edit buttons — same
+  // owner, same hall, twice. The lead is the richer record (phones, parking,
+  // stage, source), so it is preferred field-by-field with the deal as fallback.
+  const facts = {
+    ownerName: lead?.ownerName || deal.ownerName,
+    ownerType: lead?.ownerType || deal.ownerType,
+    mobilePrimary: lead?.mobilePrimary ?? null,
+    mobileAlternate: lead?.mobileAlternate ?? null,
+    email: lead?.email ?? null,
+    propertyName: lead?.propertyName || deal.propertyName,
+    propertyType: lead?.propertyType || deal.propertyType,
+    propertyStage: lead?.propertyStage ?? null,
+    city: lead?.city || deal.city,
+    locality: lead?.locality || deal.locality,
+    seatingTheatre: num(lead?.seatingTheatre) ?? num(deal.seatingTheatre),
+    seatingFloating: num(lead?.seatingFloating) ?? num(deal.seatingFloating),
+    parkingAvailable: lead?.parkingAvailable ?? null,
+    leadSource: lead?.leadSource ?? null,
+  };
+  const seating = [facts.seatingTheatre, facts.seatingFloating]
+    .map((n, i) => (n != null ? `${n} ${i === 0 ? "theatre" : "floating"}` : null))
+    .filter(Boolean)
+    .join(" · ");
 
   async function approve() {
     setBusy(true);
@@ -889,120 +918,104 @@ function OverviewTab({
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-body tracking-[-0.01em]">Overview</CardTitle>
-        {canEdit && (
-          <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-            <Pencil className="size-3.5" /> Edit
-          </Button>
-        )}
-      </CardHeader>
-      <CardContent className="space-y-5">
-        <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-          <Field label="Owner" value={deal.ownerName} />
-          <Field label="Owner type" value={deal.ownerType?.replaceAll("_", " ")} />
-          <Field label="Property" value={deal.propertyName} />
-          <Field label="Type" value={deal.propertyType?.replaceAll("_", " ")} />
-          <Field label="Location" value={`${deal.city} · ${deal.locality}`} />
-          <Field label="Seating" value={seating} />
-          <Field
-            label="Stage"
-            value={
-              <StatusPill
-                label={ACQ_DEAL_STAGE_LABEL[deal.stage]}
-                hue={STAGE_HUE[deal.stage]}
-                size="xs"
-              />
-            }
-          />
-          <Field
-            label="Contract status"
-            value={deal.contractStatus?.replaceAll("_", " ")}
-          />
-        </dl>
-
-        <div className="rounded-md border border-border/60 bg-muted/30 p-3">
-          {deal.bdHeadApprovedById ? (
-            <div className="flex items-center gap-2 text-body text-foreground">
-              <BadgeCheck className="size-4 text-emerald-600" />
-              BD Head approved
-              {deal.bdHeadApprovedBy?.name
-                ? ` by ${deal.bdHeadApprovedBy.name}`
-                : ""}
-            </div>
-          ) : (
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-detail text-muted-foreground">
-                {canApprove
-                  ? "Not yet approved by BD Head."
-                  : "Not yet approved by BD Head. Only a BD Head can approve."}
-              </span>
-              {canApprove && (
-                <Button size="sm" onClick={approve} disabled={busy}>
-                  {busy && <Loader2 className="size-3.5 animate-spin" />}
-                  Approve (BD Head)
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Deal preview — full lead-stage details captured at lead stage */}
-        <div className="space-y-3 rounded-md border border-border/60 bg-muted/20 p-3.5">
-          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-            <div className="text-meta font-medium uppercase tracking-[0.06em] text-muted-foreground">
-              Deal preview · lead details
-            </div>
-            {canEdit && lead && (
-              <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setLeadEditOpen(true)}>
-                <Pencil className="size-3.5" /> Edit lead details
-              </Button>
-            )}
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-body tracking-[-0.01em]">Overview</CardTitle>
+            <CardDescription>Owner, property and where the deal stands.</CardDescription>
           </div>
-          {lead ? (
-            <>
-              <dl className="grid grid-cols-2 gap-3.5 sm:grid-cols-3">
-                <Field label="Owner name" value={lead.ownerName} />
-                <Field label="Primary phone" value={lead.mobilePrimary} />
-                <Field label="Alternate phone" value={lead.mobileAlternate} />
-                <Field label="Email" value={lead.email} />
-                <Field label="Owner type" value={lead.ownerType?.replaceAll("_", " ")} />
-                <Field label="Lead source" value={lead.leadSource?.replaceAll("_", " ")} />
-                <Field label="Property name" value={lead.propertyName} />
-                <Field label="Property type" value={lead.propertyType?.replaceAll("_", " ")} />
-                <Field label="Property stage" value={lead.propertyStage?.replaceAll("_", " ")} />
-                <Field label="City" value={lead.city} />
-                <Field label="Locality" value={lead.locality} />
-                <Field
-                  label="Seating"
-                  value={[num(lead.seatingTheatre), num(lead.seatingFloating)]
-                    .filter((n) => n != null)
-                    .map((n, i) => `${n} ${i === 0 ? "theatre" : "floating"}`)
-                    .join(" · ")}
+          {canEdit && (
+            <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+              <Pencil className="size-3.5" /> Edit details
+            </Button>
+          )}
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {/* Stage strip */}
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-md border border-border/60 bg-muted/30 px-3 py-2.5">
+            <Field
+              label="Stage"
+              value={
+                <StatusPill
+                  label={ACQ_DEAL_STAGE_LABEL[deal.stage]}
+                  hue={STAGE_HUE[deal.stage]}
+                  size="xs"
                 />
-                <Field label="Seating range" value={lead.seatingRange?.replaceAll("R_", "").replaceAll("_", "–").replace("–PLUS", "+")} />
-                <Field
-                  label="Parking"
-                  value={lead.parkingAvailable == null ? "—" : lead.parkingAvailable ? "Available" : "Not available"}
-                />
+              }
+            />
+            <Field label="Contract" value={deal.contractStatus?.replaceAll("_", " ")} />
+            <Field
+              label="BD Head approval"
+              value={
+                deal.bdHeadApprovedById ? (
+                  <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-300">
+                    <BadgeCheck className="size-3.5" />
+                    Approved{deal.bdHeadApprovedBy?.name ? ` · ${deal.bdHeadApprovedBy.name}` : ""}
+                  </span>
+                ) : (
+                  <span className="inline-flex flex-wrap items-center gap-2">
+                    <span className="text-muted-foreground">Pending</span>
+                    {canApprove && (
+                      <Button size="xs" variant="outline" onClick={approve} disabled={busy}>
+                        {busy && <Loader2 className="size-3 animate-spin" />}
+                        Approve now
+                      </Button>
+                    )}
+                  </span>
+                )
+              }
+            />
+          </div>
+
+          {/* Owner & property — one grid, one Edit */}
+          <div className="space-y-3">
+            <div className="text-meta font-medium uppercase tracking-[0.06em] text-muted-foreground">
+              Owner &amp; property
+            </div>
+            <dl className="grid grid-cols-2 gap-3.5 sm:grid-cols-3">
+              <Field label="Owner" value={facts.ownerName} />
+              <Field label="Owner type" value={facts.ownerType?.replaceAll("_", " ")} />
+              <Field label="Lead source" value={facts.leadSource?.replaceAll("_", " ")} />
+              <Field label="Primary phone" value={facts.mobilePrimary} />
+              <Field label="Alternate phone" value={facts.mobileAlternate} />
+              <Field label="Email" value={facts.email} />
+              <Field label="Property" value={facts.propertyName} />
+              <Field label="Property type" value={facts.propertyType?.replaceAll("_", " ")} />
+              <Field label="Property stage" value={facts.propertyStage?.replaceAll("_", " ")} />
+              <Field label="Location" value={`${facts.city} · ${facts.locality}`} />
+              <Field label="Seating" value={seating} />
+              <Field
+                label="Parking"
+                value={
+                  facts.parkingAvailable == null
+                    ? "—"
+                    : facts.parkingAvailable
+                      ? "Available"
+                      : "Not available"
+                }
+              />
+            </dl>
+
+            {lead && (lead.referrerName || lead.referrerPhone || lead.referrerEmail || lead.brokerageDemand) && (
+              <dl className="grid grid-cols-2 gap-3.5 border-t border-border/50 pt-3 sm:grid-cols-3">
+                <Field label="Referrer name" value={lead.referrerName} />
+                <Field label="Referrer phone" value={lead.referrerPhone} />
+                <Field label="Referrer email" value={lead.referrerEmail} />
+                <Field label="Brokerage demand" value={lead.brokerageDemand} />
               </dl>
+            )}
 
-              {(lead.referrerName || lead.referrerPhone || lead.referrerEmail || lead.brokerageDemand) && (
-                <dl className="grid grid-cols-2 gap-3.5 border-t border-border/50 pt-3 sm:grid-cols-3">
-                  <Field label="Referrer name" value={lead.referrerName} />
-                  <Field label="Referrer phone" value={lead.referrerPhone} />
-                  <Field label="Referrer email" value={lead.referrerEmail} />
-                  <Field label="Brokerage demand" value={lead.brokerageDemand} />
-                </dl>
-              )}
+            {lead?.notes && (
+              <div className="border-t border-border/50 pt-3">
+                <Field
+                  label="Lead notes"
+                  value={<span className="whitespace-pre-wrap">{lead.notes}</span>}
+                />
+              </div>
+            )}
 
-              {lead.notes && (
-                <div className="border-t border-border/50 pt-3">
-                  <Field label="Notes" value={<span className="whitespace-pre-wrap">{lead.notes}</span>} />
-                </div>
-              )}
-
+            {lead && (
               <div className="border-t border-border/50 pt-3">
                 <div className="mb-1.5 text-meta uppercase tracking-[0.06em] text-muted-foreground">
                   Qualification checklist
@@ -1025,77 +1038,85 @@ function OverviewTab({
                   ))}
                 </ul>
               </div>
-            </>
-          ) : (
-            <p className="text-detail text-muted-foreground">No linked lead record.</p>
-          )}
-        </div>
-
-        {/* Commercial dates & TA fees (deal-level) */}
-        <div className="space-y-3 rounded-md border border-border/60 p-3.5">
-          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-            <div className="text-meta font-medium uppercase tracking-[0.06em] text-muted-foreground">
-              Signing &amp; collection
-            </div>
-            {canEdit && (
-              <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setDatesOpen(true)}>
-                <Pencil className="size-3.5" /> Edit
-              </Button>
             )}
           </div>
-          <dl className="grid grid-cols-2 gap-3.5 sm:grid-cols-3">
-            <Field label="Expected signing date" value={deal.expectedSigningDate ? fmtDate(deal.expectedSigningDate) : "—"} />
-            <Field label="TA fees" value={taFees != null ? INR.format(taFees) : "—"} />
-            <Field label="Expected collection date" value={deal.expectedCollectionDate ? fmtDate(deal.expectedCollectionDate) : "—"} />
-          </dl>
-        </div>
 
-        {/* Property photos captured on the deal (shown on the linked property) */}
-        <DealImagesSection deal={deal} userRole={userRole} onMutate={onMutate} />
-
-        {/* Transparent change log */}
-        <div className="space-y-2">
-          <div className="text-meta uppercase tracking-[0.06em] text-muted-foreground">
-            Change log
+          {/* Commercial dates & TA fees (deal-level) */}
+          <div className="space-y-3 rounded-md border border-border/60 p-3.5">
+            <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+              <div className="text-meta font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                Signing &amp; collection
+              </div>
+              {canEdit && (
+                <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setDatesOpen(true)}>
+                  <Pencil className="size-3.5" /> Edit
+                </Button>
+              )}
+            </div>
+            <dl className="grid grid-cols-2 gap-3.5 sm:grid-cols-3">
+              <Field label="Expected signing date" value={deal.expectedSigningDate ? fmtDate(deal.expectedSigningDate) : "—"} />
+              <Field label="TA fees" value={taFees != null ? INR.format(taFees) : "—"} />
+              <Field label="Expected collection date" value={deal.expectedCollectionDate ? fmtDate(deal.expectedCollectionDate) : "—"} />
+            </dl>
           </div>
-          {changeLog.length === 0 ? (
-            <p className="text-detail text-muted-foreground">No edits yet.</p>
-          ) : (
-            <ul className="space-y-2">
-              {changeLog.map((n) => (
-                <li key={n.id} className="rounded-md border border-border/60 p-2.5 text-detail">
-                  <pre className="whitespace-pre-wrap font-sans text-foreground">{n.body}</pre>
-                  <div className="pt-1 text-meta text-muted-foreground">
-                    {n.author?.name ?? "—"} · {fmtDate(n.createdAt)}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </CardContent>
 
-      <OverviewEditDialog
-        deal={deal}
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        onMutate={onMutate}
-      />
-      <DealDatesEditDialog
-        deal={deal}
-        open={datesOpen}
-        onOpenChange={setDatesOpen}
-        onMutate={onMutate}
-      />
-      {lead && (
-        <LeadDetailsEditDialog
-          lead={lead}
-          open={leadEditOpen}
-          onOpenChange={setLeadEditOpen}
+          {/* Property photos captured on the deal (shown on the linked property) */}
+          <DealImagesSection deal={deal} userRole={userRole} onMutate={onMutate} />
+
+          {/* Post-signature hand-off (was on the Contract tab) */}
+          {deal.contractStatus === "SIGNED" && (
+            <AlignTeamsPanel deal={deal} onMutate={onMutate} />
+          )}
+
+          {/* Transparent change log */}
+          <div className="space-y-2">
+            <div className="text-meta uppercase tracking-[0.06em] text-muted-foreground">
+              Change log
+            </div>
+            {changeLog.length === 0 ? (
+              <p className="text-detail text-muted-foreground">No edits yet.</p>
+            ) : (
+              <ul className="space-y-2">
+                {changeLog.map((n) => (
+                  <li key={n.id} className="rounded-md border border-border/60 p-2.5 text-detail">
+                    <pre className="whitespace-pre-wrap font-sans text-foreground">{n.body}</pre>
+                    <div className="pt-1 text-meta text-muted-foreground">
+                      {n.author?.name ?? "—"} · {fmtDate(n.createdAt)}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </CardContent>
+
+        <DetailsEditDialog
+          deal={deal}
+          open={editOpen}
+          onOpenChange={setEditOpen}
           onMutate={onMutate}
         />
-      )}
-    </Card>
+        <DealDatesEditDialog
+          deal={deal}
+          open={datesOpen}
+          onOpenChange={setDatesOpen}
+          onMutate={onMutate}
+        />
+      </Card>
+
+      {/* Notes — right here, where the team is looking. */}
+      <DealNotesPanel
+        deal={deal}
+        userRole={userRole}
+        title="Notes"
+        description="Calls, owner asks, internal remarks — everything the team should know."
+        defaultType="GENERAL"
+        onMutate={onMutate}
+      />
+
+      {/* Calls / site-visits / meetings against this deal (shared panel). */}
+      <AcqSchedulePanel scope="deal" id={deal.id} userRole={userRole} onMutate={onMutate} />
+    </div>
   );
 }
 
@@ -1256,58 +1277,123 @@ function DealDatesEditDialog({
 }
 
 // Edit ALL lead-stage details captured at the lead stage (saved via editAcqLead).
-function LeadDetailsEditDialog({
-  lead,
+// ------------------------------------------------------------
+// ONE edit dialog for everything shown under "Owner & property". It writes the
+// deal snapshot (editAcqDealOverview → change log) AND the originating lead
+// (editAcqLead → phones, parking, stage, source, referral, notes), so the two
+// records can't drift and the rep never has to guess which Edit to press.
+// ------------------------------------------------------------
+function FormSection({ title }: { title: string }) {
+  return (
+    <div className="pt-1 text-meta font-medium uppercase tracking-[0.06em] text-muted-foreground sm:col-span-2">
+      {title}
+    </div>
+  );
+}
+
+function detailsFormState(deal: AcqDealDetail) {
+  const lead = deal.lead ?? null;
+  return {
+    ownerName: lead?.ownerName || deal.ownerName || "",
+    ownerType: lead?.ownerType || deal.ownerType || "SOLE_OWNER",
+    mobilePrimary: lead?.mobilePrimary ?? "",
+    mobileAlternate: lead?.mobileAlternate ?? "",
+    email: lead?.email ?? "",
+    propertyName: lead?.propertyName || deal.propertyName || "",
+    propertyType: lead?.propertyType || deal.propertyType || "BANQUET",
+    propertyStage: lead?.propertyStage ?? "",
+    city: lead?.city || deal.city || "",
+    locality: lead?.locality || deal.locality || "",
+    seatingTheatre: numStr(lead?.seatingTheatre ?? deal.seatingTheatre),
+    seatingFloating: numStr(lead?.seatingFloating ?? deal.seatingFloating),
+    leadSource: lead?.leadSource ?? "OTHER",
+    parking: lead?.parkingAvailable == null ? "" : lead.parkingAvailable ? "yes" : "no",
+    referrerName: lead?.referrerName ?? "",
+    referrerPhone: lead?.referrerPhone ?? "",
+    referrerEmail: lead?.referrerEmail ?? "",
+    brokerageDemand: lead?.brokerageDemand ?? "",
+    notes: lead?.notes ?? "",
+  };
+}
+
+function DetailsEditDialog({
+  deal,
   open,
   onOpenChange,
   onMutate,
 }: {
-  lead: AcqLeadPreview;
+  deal: AcqDealDetail;
   open: boolean;
   onOpenChange: (o: boolean) => void;
   onMutate: () => void;
 }) {
-  const [f, setF] = useState(() => leadFormState(lead));
+  const lead = deal.lead ?? null;
+  const [f, setF] = useState(() => detailsFormState(deal));
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (open) setF(leadFormState(lead));
-  }, [open, lead]);
+    if (open) setF(detailsFormState(deal));
+  }, [open, deal]);
 
-  const set = <K extends keyof ReturnType<typeof leadFormState>>(
+  const set = <K extends keyof ReturnType<typeof detailsFormState>>(
     k: K,
-    v: ReturnType<typeof leadFormState>[K]
+    v: ReturnType<typeof detailsFormState>[K]
   ) => setF((p) => ({ ...p, [k]: v }));
 
+  const toInt = (s: string) => (s.trim() === "" ? null : Math.trunc(Number(s)));
+
   async function save() {
+    if (!f.ownerName.trim() || !f.propertyName.trim()) {
+      toast.error("Owner and property name are required.");
+      return;
+    }
     setBusy(true);
     try {
-      const res = await editAcqLead(lead.id, {
+      // 1) Deal snapshot — logged in the change log.
+      const dealRes = await editAcqDealOverview(deal.id, {
         ownerName: f.ownerName.trim(),
-        mobilePrimary: f.mobilePrimary.trim(),
-        mobileAlternate: f.mobileAlternate.trim(),
-        email: f.email.trim(),
+        ownerType: f.ownerType,
         propertyName: f.propertyName.trim(),
-        propertyType: f.propertyType as never,
+        propertyType: f.propertyType,
         city: f.city.trim(),
         locality: f.locality.trim(),
-        seatingTheatre: f.seatingTheatre.trim() === "" ? null : Math.trunc(Number(f.seatingTheatre)),
-        seatingFloating: f.seatingFloating.trim() === "" ? null : Math.trunc(Number(f.seatingFloating)),
-        propertyStage: (f.propertyStage || null) as never,
-        leadSource: f.leadSource as never,
-        ownerType: f.ownerType as never,
-        parkingAvailable: f.parking === "" ? null : f.parking === "yes",
-        referrerName: f.referrerName.trim(),
-        referrerPhone: f.referrerPhone.trim(),
-        referrerEmail: f.referrerEmail.trim(),
-        brokerageDemand: f.brokerageDemand.trim(),
-        notes: f.notes.trim(),
+        seatingTheatre: toInt(f.seatingTheatre),
+        seatingFloating: toInt(f.seatingFloating),
       });
-      if (!res.success) {
-        toast.error(res.error);
+      if (!dealRes.success) {
+        toast.error(dealRes.error);
         return;
       }
-      toast.success("Lead details updated");
+      // 2) The lead record — the fields the deal snapshot doesn't carry.
+      if (lead) {
+        const leadRes = await editAcqLead(lead.id, {
+          ownerName: f.ownerName.trim(),
+          mobilePrimary: f.mobilePrimary.trim(),
+          mobileAlternate: f.mobileAlternate.trim(),
+          email: f.email.trim(),
+          propertyName: f.propertyName.trim(),
+          propertyType: f.propertyType as never,
+          city: f.city.trim(),
+          locality: f.locality.trim(),
+          seatingTheatre: toInt(f.seatingTheatre),
+          seatingFloating: toInt(f.seatingFloating),
+          propertyStage: (f.propertyStage || null) as never,
+          leadSource: f.leadSource as never,
+          ownerType: f.ownerType as never,
+          parkingAvailable: f.parking === "" ? null : f.parking === "yes",
+          referrerName: f.referrerName.trim(),
+          referrerPhone: f.referrerPhone.trim(),
+          referrerEmail: f.referrerEmail.trim(),
+          brokerageDemand: f.brokerageDemand.trim(),
+          notes: f.notes.trim(),
+        });
+        if (!leadRes.success) {
+          toast.error(`Deal saved, but the lead record didn't update: ${leadRes.error}`);
+          onMutate();
+          return;
+        }
+      }
+      toast.success("Details updated");
       onOpenChange(false);
       onMutate();
     } catch {
@@ -1321,10 +1407,13 @@ function LeadDetailsEditDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Edit lead details</DialogTitle>
-          <DialogDescription>All details captured at the lead stage.</DialogDescription>
+          <DialogTitle>Edit details</DialogTitle>
+          <DialogDescription>
+            Owner, property and contact details. Changes are logged for the team.
+          </DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <FormSection title="Owner" />
           <div className="space-y-1.5"><Label>Owner name</Label><Input value={f.ownerName} onChange={(e) => set("ownerName", e.target.value)} /></div>
           <div className="space-y-1.5">
             <Label>Owner type</Label>
@@ -1333,9 +1422,22 @@ function LeadDetailsEditDialog({
               <SelectContent>{ACQ_OWNER_TYPE.map((o) => (<SelectItem key={o} value={o}>{o.replaceAll("_", " ")}</SelectItem>))}</SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5"><Label>Primary phone</Label><Input value={f.mobilePrimary} onChange={(e) => set("mobilePrimary", e.target.value)} /></div>
-          <div className="space-y-1.5"><Label>Alternate phone</Label><Input value={f.mobileAlternate} onChange={(e) => set("mobileAlternate", e.target.value)} /></div>
-          <div className="space-y-1.5 sm:col-span-2"><Label>Email</Label><Input value={f.email} onChange={(e) => set("email", e.target.value)} /></div>
+          {lead && (
+            <>
+              <div className="space-y-1.5"><Label>Primary phone</Label><Input value={f.mobilePrimary} onChange={(e) => set("mobilePrimary", e.target.value)} /></div>
+              <div className="space-y-1.5"><Label>Alternate phone</Label><Input value={f.mobileAlternate} onChange={(e) => set("mobileAlternate", e.target.value)} /></div>
+              <div className="space-y-1.5"><Label>Email</Label><Input value={f.email} onChange={(e) => set("email", e.target.value)} /></div>
+              <div className="space-y-1.5">
+                <Label>Lead source</Label>
+                <Select value={f.leadSource} onValueChange={(v) => set("leadSource", v)}>
+                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>{ACQ_LEAD_SOURCE.map((o) => (<SelectItem key={o} value={o}>{o.replaceAll("_", " ")}</SelectItem>))}</SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
+
+          <FormSection title="Property" />
           <div className="space-y-1.5"><Label>Property name</Label><Input value={f.propertyName} onChange={(e) => set("propertyName", e.target.value)} /></div>
           <div className="space-y-1.5">
             <Label>Property type</Label>
@@ -1344,43 +1446,42 @@ function LeadDetailsEditDialog({
               <SelectContent>{ACQ_PROPERTY_TYPE.map((o) => (<SelectItem key={o} value={o}>{o.replaceAll("_", " ")}</SelectItem>))}</SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5">
-            <Label>Property stage</Label>
-            <Select value={f.propertyStage || "__none"} onValueChange={(v) => set("propertyStage", v === "__none" ? "" : v)}>
-              <SelectTrigger className="w-full"><SelectValue placeholder="—" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none">—</SelectItem>
-                {ACQ_PROPERTY_STAGE.map((o) => (<SelectItem key={o} value={o}>{o.replaceAll("_", " ")}</SelectItem>))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Parking</Label>
-            <Select value={f.parking || "__none"} onValueChange={(v) => set("parking", v === "__none" ? "" : (v as "yes" | "no"))}>
-              <SelectTrigger className="w-full"><SelectValue placeholder="—" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none">—</SelectItem>
-                <SelectItem value="yes">Available</SelectItem>
-                <SelectItem value="no">Not available</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
           <div className="space-y-1.5"><Label>City</Label><Input value={f.city} onChange={(e) => set("city", e.target.value)} /></div>
           <div className="space-y-1.5"><Label>Locality</Label><Input value={f.locality} onChange={(e) => set("locality", e.target.value)} /></div>
           <div className="space-y-1.5"><Label>Seating — theatre</Label><Input inputMode="numeric" value={f.seatingTheatre} onChange={(e) => set("seatingTheatre", e.target.value)} /></div>
           <div className="space-y-1.5"><Label>Seating — floating</Label><Input inputMode="numeric" value={f.seatingFloating} onChange={(e) => set("seatingFloating", e.target.value)} /></div>
-          <div className="space-y-1.5">
-            <Label>Lead source</Label>
-            <Select value={f.leadSource} onValueChange={(v) => set("leadSource", v)}>
-              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-              <SelectContent>{ACQ_LEAD_SOURCE.map((o) => (<SelectItem key={o} value={o}>{o.replaceAll("_", " ")}</SelectItem>))}</SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5"><Label>Brokerage demand</Label><Input value={f.brokerageDemand} onChange={(e) => set("brokerageDemand", e.target.value)} /></div>
-          <div className="space-y-1.5"><Label>Referrer name</Label><Input value={f.referrerName} onChange={(e) => set("referrerName", e.target.value)} /></div>
-          <div className="space-y-1.5"><Label>Referrer phone</Label><Input value={f.referrerPhone} onChange={(e) => set("referrerPhone", e.target.value)} /></div>
-          <div className="space-y-1.5 sm:col-span-2"><Label>Referrer email</Label><Input value={f.referrerEmail} onChange={(e) => set("referrerEmail", e.target.value)} /></div>
-          <div className="space-y-1.5 sm:col-span-2"><Label>Notes</Label><Textarea rows={3} value={f.notes} onChange={(e) => set("notes", e.target.value)} /></div>
+          {lead && (
+            <>
+              <div className="space-y-1.5">
+                <Label>Property stage</Label>
+                <Select value={f.propertyStage || "__none"} onValueChange={(v) => set("propertyStage", v === "__none" ? "" : v)}>
+                  <SelectTrigger className="w-full"><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none">—</SelectItem>
+                    {ACQ_PROPERTY_STAGE.map((o) => (<SelectItem key={o} value={o}>{o.replaceAll("_", " ")}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Parking</Label>
+                <Select value={f.parking || "__none"} onValueChange={(v) => set("parking", v === "__none" ? "" : (v as "yes" | "no"))}>
+                  <SelectTrigger className="w-full"><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none">—</SelectItem>
+                    <SelectItem value="yes">Available</SelectItem>
+                    <SelectItem value="no">Not available</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <FormSection title="Referral & notes (optional)" />
+              <div className="space-y-1.5"><Label>Referrer name</Label><Input value={f.referrerName} onChange={(e) => set("referrerName", e.target.value)} /></div>
+              <div className="space-y-1.5"><Label>Referrer phone</Label><Input value={f.referrerPhone} onChange={(e) => set("referrerPhone", e.target.value)} /></div>
+              <div className="space-y-1.5"><Label>Referrer email</Label><Input value={f.referrerEmail} onChange={(e) => set("referrerEmail", e.target.value)} /></div>
+              <div className="space-y-1.5"><Label>Brokerage demand</Label><Input value={f.brokerageDemand} onChange={(e) => set("brokerageDemand", e.target.value)} /></div>
+              <div className="space-y-1.5 sm:col-span-2"><Label>Lead notes</Label><Textarea rows={3} value={f.notes} onChange={(e) => set("notes", e.target.value)} /></div>
+            </>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>Cancel</Button>
@@ -1391,132 +1492,6 @@ function LeadDetailsEditDialog({
   );
 }
 
-function leadFormState(lead: AcqLeadPreview) {
-  return {
-    ownerName: lead.ownerName ?? "",
-    ownerType: lead.ownerType ?? "SOLE_OWNER",
-    mobilePrimary: lead.mobilePrimary ?? "",
-    mobileAlternate: lead.mobileAlternate ?? "",
-    email: lead.email ?? "",
-    propertyName: lead.propertyName ?? "",
-    propertyType: lead.propertyType ?? "BANQUET",
-    propertyStage: lead.propertyStage ?? "",
-    city: lead.city ?? "",
-    locality: lead.locality ?? "",
-    seatingTheatre: numStr(lead.seatingTheatre),
-    seatingFloating: numStr(lead.seatingFloating),
-    leadSource: lead.leadSource ?? "OTHER",
-    parking: lead.parkingAvailable == null ? "" : lead.parkingAvailable ? "yes" : "no",
-    referrerName: lead.referrerName ?? "",
-    referrerPhone: lead.referrerPhone ?? "",
-    referrerEmail: lead.referrerEmail ?? "",
-    brokerageDemand: lead.brokerageDemand ?? "",
-    notes: lead.notes ?? "",
-  };
-}
-
-function OverviewEditDialog({
-  deal,
-  open,
-  onOpenChange,
-  onMutate,
-}: {
-  deal: AcqDealDetail;
-  open: boolean;
-  onOpenChange: (o: boolean) => void;
-  onMutate: () => void;
-}) {
-  const [ownerName, setOwnerName] = useState(deal.ownerName ?? "");
-  const [ownerType, setOwnerType] = useState(deal.ownerType ?? "SOLE_OWNER");
-  const [propertyName, setPropertyName] = useState(deal.propertyName ?? "");
-  const [propertyType, setPropertyType] = useState(deal.propertyType ?? "BANQUET");
-  const [city, setCity] = useState(deal.city ?? "");
-  const [locality, setLocality] = useState(deal.locality ?? "");
-  const [seatTheatre, setSeatTheatre] = useState(numStr(deal.seatingTheatre));
-  const [seatFloating, setSeatFloating] = useState(numStr(deal.seatingFloating));
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    if (open) {
-      setOwnerName(deal.ownerName ?? "");
-      setOwnerType(deal.ownerType ?? "SOLE_OWNER");
-      setPropertyName(deal.propertyName ?? "");
-      setPropertyType(deal.propertyType ?? "BANQUET");
-      setCity(deal.city ?? "");
-      setLocality(deal.locality ?? "");
-      setSeatTheatre(numStr(deal.seatingTheatre));
-      setSeatFloating(numStr(deal.seatingFloating));
-    }
-  }, [open, deal]);
-
-  async function save() {
-    setBusy(true);
-    try {
-      const res = await editAcqDealOverview(deal.id, {
-        ownerName: ownerName.trim(),
-        ownerType,
-        propertyName: propertyName.trim(),
-        propertyType,
-        city: city.trim(),
-        locality: locality.trim(),
-        seatingTheatre: seatTheatre.trim() === "" ? null : Math.trunc(Number(seatTheatre)),
-        seatingFloating: seatFloating.trim() === "" ? null : Math.trunc(Number(seatFloating)),
-      });
-      if (!res.success) {
-        toast.error(res.error);
-        return;
-      }
-      toast.success("Overview updated");
-      onOpenChange(false);
-      onMutate();
-    } catch {
-      toast.error("Couldn't save — please try again.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Edit overview</DialogTitle>
-          <DialogDescription>Changes are logged below for the team.</DialogDescription>
-        </DialogHeader>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="space-y-1.5"><Label>Owner</Label><Input value={ownerName} onChange={(e) => setOwnerName(e.target.value)} /></div>
-          <div className="space-y-1.5">
-            <Label>Owner type</Label>
-            <Select value={ownerType} onValueChange={setOwnerType}>
-              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {ACQ_OWNER_TYPE.map((o) => (<SelectItem key={o} value={o}>{o.replaceAll("_", " ")}</SelectItem>))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5"><Label>Property</Label><Input value={propertyName} onChange={(e) => setPropertyName(e.target.value)} /></div>
-          <div className="space-y-1.5">
-            <Label>Property type</Label>
-            <Select value={propertyType} onValueChange={setPropertyType}>
-              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {ACQ_PROPERTY_TYPE.map((o) => (<SelectItem key={o} value={o}>{o.replaceAll("_", " ")}</SelectItem>))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5"><Label>City</Label><Input value={city} onChange={(e) => setCity(e.target.value)} /></div>
-          <div className="space-y-1.5"><Label>Locality</Label><Input value={locality} onChange={(e) => setLocality(e.target.value)} /></div>
-          <div className="space-y-1.5"><Label>Seating — theatre</Label><Input inputMode="numeric" value={seatTheatre} onChange={(e) => setSeatTheatre(e.target.value)} /></div>
-          <div className="space-y-1.5"><Label>Seating — floating</Label><Input inputMode="numeric" value={seatFloating} onChange={(e) => setSeatFloating(e.target.value)} /></div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>Cancel</Button>
-          <Button onClick={save} disabled={busy}>{busy ? "Saving…" : "Save changes"}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 // ------------------------------------------------------------
 // Economics & Model tab
@@ -1962,26 +1937,93 @@ const EVAL_CRITERIA: {
   { key: "avAmenitiesScore", label: "A/V" },
 ];
 
+const EVAL_HIGH_LABELS = "Capacity, Parking, Condition and Location";
+const EVAL_MIN_PHOTOS = 8;
+const EVAL_DEFAULT_SCORES: Record<string, number> = {
+  capacityScore: 3,
+  parkingScore: 3,
+  kitchenScore: 3,
+  roomsScore: 3,
+  conditionScore: 3,
+  locationScore: 3,
+  avAmenitiesScore: 3,
+};
+
+function EvalStepHeader({
+  n,
+  title,
+  met,
+  hint,
+}: {
+  n: number;
+  title: string;
+  met: boolean;
+  hint?: string;
+}) {
+  return (
+    <div className="flex items-start gap-2.5">
+      <span
+        className={cn(
+          "mt-px flex size-6 shrink-0 items-center justify-center rounded-full text-meta font-semibold",
+          met ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" : "bg-muted text-muted-foreground"
+        )}
+      >
+        {met ? <CheckCircle2 className="size-3.5" /> : n}
+      </span>
+      <div className="min-w-0">
+        <p className="text-body font-medium text-foreground">{title}</p>
+        {hint && <p className="text-detail text-muted-foreground">{hint}</p>}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Evaluation as three plain steps: score the site → add photos → mark done.
+ * Everything needed to finish evaluation is on this one tab, including the
+ * "done" button itself (it calls the same guarded transition as the stage
+ * panel — no bypass). Before evaluation starts the tab says how to start it;
+ * after it is done the tab shows the result and tucks the scorecard away.
+ */
 function EvaluationTab({
   deal,
+  passThreshold,
   onMutate,
 }: {
   deal: AcqDealDetail;
+  passThreshold: number;
   onMutate: () => void;
 }) {
-  const [scores, setScores] = useState<Record<string, number>>({
-    capacityScore: 3,
-    parkingScore: 3,
-    kitchenScore: 3,
-    roomsScore: 3,
-    conditionScore: 3,
-    locationScore: 3,
-    avAmenitiesScore: 3,
-  });
+  const [scores, setScores] = useState<Record<string, number>>(EVAL_DEFAULT_SCORES);
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
+  const [finishing, setFinishing] = useState(false);
+  const [rescoring, setRescoring] = useState(false);
 
   const photos = deal.attachments.filter((a) => a.kind === "PHOTO");
+  const photosOk = photos.length >= EVAL_MIN_PHOTOS;
+  // Newest first (server orderBy) — the latest passed card is what counts.
+  const passedEval = deal.evaluations.find((e) => e.passed) ?? null;
+  const latestEval = deal.evaluations[0] ?? null;
+
+  const notStarted = deal.stage === "QUALIFIED" || deal.stage === "ON_HOLD";
+  const inEvaluation = deal.stage === "EVALUATION";
+  const done = !notStarted && !inEvaluation;
+
+  // Live preview with the SAME formula the server applies, so "Passes" here
+  // always equals "Passed" after submit.
+  const preview = computeEvaluation(
+    {
+      capacityScore: scores.capacityScore,
+      parkingScore: scores.parkingScore,
+      kitchenScore: scores.kitchenScore,
+      roomsScore: scores.roomsScore,
+      conditionScore: scores.conditionScore,
+      locationScore: scores.locationScore,
+      avAmenitiesScore: scores.avAmenitiesScore,
+    },
+    passThreshold
+  );
 
   async function submit() {
     setBusy(true);
@@ -2001,82 +2043,247 @@ function EvaluationTab({
       return;
     }
     toast.success(
-      `Score ${res.data.totalScore} — ${res.data.passed ? "Passed" : "Did not pass"}`
+      res.data.passed
+        ? `Scorecard saved — ${res.data.totalScore}, passed`
+        : `Scorecard saved — ${res.data.totalScore}, below the pass mark`
     );
+    setRescoring(false);
     onMutate();
   }
+
+  async function start() {
+    setFinishing(true);
+    const res = await transitionAcqDeal(deal.id, "EVALUATION");
+    setFinishing(false);
+    if (!res.success) {
+      toast.error(res.error);
+      return;
+    }
+    toast.success("Evaluation started");
+    onMutate();
+  }
+
+  async function finish() {
+    setFinishing(true);
+    const res = await transitionAcqDeal(deal.id, "EVALUATION_COMPLETED");
+    setFinishing(false);
+    if (!res.success) {
+      toast.error(res.error);
+      return;
+    }
+    toast.success("Evaluation done — deal moved to Evaluation completed");
+    onMutate();
+  }
+
+  const scorecard = (
+    <div className="space-y-3">
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+        {EVAL_CRITERIA.map((c) => (
+          <div key={c.key} className="flex items-center justify-between gap-3 rounded-md border border-border/60 px-3 py-2">
+            <span className="text-body text-foreground">{c.label}</span>
+            <div className="flex gap-1" role="radiogroup" aria-label={c.label}>
+              {[1, 2, 3, 4, 5].map((n) => {
+                const on = scores[c.key] === n;
+                return (
+                  <button
+                    key={n}
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    onClick={() => setScores((s) => ({ ...s, [c.key]: n }))}
+                    className={cn(
+                      "size-7 rounded-md border text-detail tabular-nums transition-colors",
+                      on
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-background text-muted-foreground hover:bg-muted"
+                    )}
+                  >
+                    {n}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div
+        className={cn(
+          "flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2 text-detail",
+          preview.passed
+            ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+            : "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+        )}
+      >
+        <span>
+          Score <b className="tabular-nums">{preview.totalScore}</b> / 100 —{" "}
+          {preview.passed ? "passes" : `needs ${passThreshold}+`}
+        </span>
+        <span className="text-meta">
+          Pass mark: {passThreshold}+, with {EVAL_HIGH_LABELS} each 3 or more.
+        </span>
+      </div>
+      <Textarea
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        placeholder="Anything worth noting about the site (optional)"
+        rows={2}
+      />
+      <div className="flex justify-end gap-2">
+        {rescoring && (
+          <Button variant="ghost" size="sm" onClick={() => setRescoring(false)} disabled={busy}>
+            Cancel
+          </Button>
+        )}
+        <Button onClick={submit} disabled={busy} size="sm">
+          {busy && <Loader2 className="size-3.5 animate-spin" />}
+          Save scorecard
+        </Button>
+      </div>
+    </div>
+  );
+
+  const history = deal.evaluations.length > 0 && (
+    <div className="space-y-1.5">
+      <div className="text-meta uppercase tracking-[0.06em] text-muted-foreground">Scorecard history</div>
+      {deal.evaluations.map((ev) => (
+        <div
+          key={ev.id}
+          className="flex items-center justify-between rounded-md border border-border/60 px-3 py-2 text-detail"
+        >
+          <span className="text-muted-foreground">
+            {fmtDate(ev.createdAt)}
+            {ev.evaluatedBy?.name ? ` · ${ev.evaluatedBy.name}` : ""}
+          </span>
+          <span className="flex items-center gap-2">
+            <span className="font-medium tabular-nums">Score {ev.totalScore}</span>
+            <StatusPill label={ev.passed ? "Passed" : "Below mark"} hue={ev.passed ? "emerald" : "red"} size="xs" />
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+
+  // ---- Not started yet ----
+  if (notStarted) {
+    return (
+      <div className="space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-body tracking-[-0.01em]">Site evaluation</CardTitle>
+            <CardDescription>
+              The site visit and scorecard happen in the Evaluation stage. Start it when the team is ready to visit.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={start} disabled={finishing}>
+              {finishing ? <Loader2 className="size-3.5 animate-spin" /> : <ArrowRight className="size-3.5" />}
+              Start evaluation
+            </Button>
+          </CardContent>
+        </Card>
+        {history && <Card><CardContent className="pt-5">{history}</CardContent></Card>}
+      </div>
+    );
+  }
+
+  // ---- Done ----
+  if (done) {
+    return (
+      <div className="space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-body tracking-[-0.01em]">
+              <CheckCircle2 className="size-4 text-emerald-600" /> Evaluation done
+            </CardTitle>
+            <CardDescription>
+              {passedEval
+                ? `Score ${passedEval.totalScore} · passed on ${fmtDate(passedEval.createdAt)}${passedEval.evaluatedBy?.name ? ` by ${passedEval.evaluatedBy.name}` : ""} · ${photos.length} photos`
+                : `${photos.length} photos on file`}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {history}
+            {rescoring ? (
+              scorecard
+            ) : (
+              <Button variant="outline" size="sm" onClick={() => setRescoring(true)}>
+                Score the site again
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+        <PhotoGrid deal={deal} photos={photos} onMutate={onMutate} />
+        <AttachmentAdder deal={deal} onMutate={onMutate} />
+      </div>
+    );
+  }
+
+  // ---- In evaluation: the three steps ----
+  const missing = [
+    !passedEval ? "a passed scorecard" : null,
+    !photosOk ? `${EVAL_MIN_PHOTOS - photos.length} more photo${EVAL_MIN_PHOTOS - photos.length === 1 ? "" : "s"}` : null,
+  ].filter(Boolean) as string[];
+  const ready = missing.length === 0;
 
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle className="text-body tracking-[-0.01em]">Evaluation scorecard</CardTitle>
-          <CardDescription>Score each criterion 1–5.</CardDescription>
+          <CardTitle className="text-body tracking-[-0.01em]">Site evaluation</CardTitle>
+          <CardDescription>Three steps. When all three are green, the deal moves on.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {EVAL_CRITERIA.map((c) => (
-              <div key={c.key} className="space-y-1.5">
-                <Label>{c.label}</Label>
-                <Select
-                  value={String(scores[c.key])}
-                  onValueChange={(v) =>
-                    setScores((s) => ({ ...s, [c.key]: Number(v) }))
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[1, 2, 3, 4, 5].map((n) => (
-                      <SelectItem key={n} value={String(n)}>
-                        {n}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            ))}
-          </div>
-          <div className="space-y-1.5">
-            <Label>Notes</Label>
-            <Textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Optional evaluation notes"
-              rows={3}
+        <CardContent className="space-y-6">
+          {/* Step 1 — score */}
+          <div className="space-y-3">
+            <EvalStepHeader
+              n={1}
+              title="Score the site"
+              met={!!passedEval}
+              hint={
+                passedEval
+                  ? `Passed — ${passedEval.totalScore} on ${fmtDate(passedEval.createdAt)}${passedEval.evaluatedBy?.name ? ` by ${passedEval.evaluatedBy.name}` : ""}`
+                  : latestEval
+                    ? `Last card scored ${latestEval.totalScore} — below the pass mark. Score again after fixes, or mark the deal lost.`
+                    : "Rate each item 1 (poor) to 5 (excellent)."
+              }
             />
-          </div>
-          <div className="flex justify-end">
-            <Button onClick={submit} disabled={busy}>
-              {busy && <Loader2 className="size-3.5 animate-spin" />}
-              Submit evaluation
-            </Button>
+            <div className="pl-8">
+              {passedEval && !rescoring ? (
+                <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setRescoring(true)}>
+                  Score again
+                </Button>
+              ) : (
+                scorecard
+              )}
+              {history && <div className="pt-3">{history}</div>}
+            </div>
           </div>
 
-          {deal.evaluations.length > 0 && (
-            <div className="space-y-2 border-t border-border/60 pt-3">
-              {deal.evaluations.map((ev) => (
-                <div
-                  key={ev.id}
-                  className="flex items-center justify-between rounded-md border border-border/60 px-3 py-2 text-detail"
-                >
-                  <span className="text-muted-foreground">
-                    {fmtDate(ev.createdAt)}
-                    {ev.evaluatedBy?.name ? ` · ${ev.evaluatedBy.name}` : ""}
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <span className="font-medium">Score {ev.totalScore}</span>
-                    <StatusPill
-                      label={ev.passed ? "Passed" : "Failed"}
-                      hue={ev.passed ? "emerald" : "red"}
-                      size="xs"
-                    />
-                  </span>
-                </div>
-              ))}
+          {/* Step 2 — photos */}
+          <div className="space-y-3">
+            <EvalStepHeader
+              n={2}
+              title={`Add site photos (${Math.min(photos.length, EVAL_MIN_PHOTOS)}/${EVAL_MIN_PHOTOS})`}
+              met={photosOk}
+              hint={photosOk ? "Enough photos on file." : `At least ${EVAL_MIN_PHOTOS} photos of the property are needed.`}
+            />
+          </div>
+
+          {/* Step 3 — done */}
+          <div className="space-y-3">
+            <EvalStepHeader
+              n={3}
+              title="Mark evaluation done"
+              met={false}
+              hint={ready ? "Everything's in place." : `Still needed: ${missing.join(" and ")}.`}
+            />
+            <div className="pl-8">
+              <Button onClick={finish} disabled={!ready || finishing}>
+                {finishing ? <Loader2 className="size-3.5 animate-spin" /> : <CheckCircle2 className="size-3.5" />}
+                Mark evaluation done
+              </Button>
             </div>
-          )}
+          </div>
         </CardContent>
       </Card>
 
@@ -2244,22 +2451,38 @@ function AttachmentAdder({
 // ------------------------------------------------------------
 // Negotiation tab
 // ------------------------------------------------------------
-function NegotiationTab({
+// ------------------------------------------------------------
+// Notes panel — shared by Overview (general notes) and Negotiation (owner asks).
+// One form, one list: every human note on the deal, newest first. The system
+// edit history is deliberately NOT here — it lives in Overview's Change log
+// (see selectChangeLog) so the two can never contradict.
+// ------------------------------------------------------------
+type DealNoteType = "NEGOTIATION" | "INTERNAL" | "GENERAL";
+
+function DealNotesPanel({
   deal,
+  userRole,
+  title,
+  description,
+  defaultType,
   onMutate,
 }: {
   deal: AcqDealDetail;
+  userRole?: string;
+  title: string;
+  description?: string;
+  defaultType: DealNoteType;
   onMutate: () => void;
 }) {
-  const [noteType, setNoteType] = useState<
-    "NEGOTIATION" | "INTERNAL" | "GENERAL"
-  >("NEGOTIATION");
+  const [noteType, setNoteType] = useState<DealNoteType>(defaultType);
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
+  const canWrite = acqCan(userRole, "lead:write");
+  const humanNotes = selectHumanNotes(deal.notes);
 
   async function add() {
     if (!body.trim()) {
-      toast.error("Note body required.");
+      toast.error("Write the note first.");
       return;
     }
     setBusy(true);
@@ -2277,55 +2500,43 @@ function NegotiationTab({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-body tracking-[-0.01em]">Negotiation notes</CardTitle>
+        <CardTitle className="text-body tracking-[-0.01em]">{title}</CardTitle>
+        {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-[160px_1fr]">
-            <Select
-              value={noteType}
-              onValueChange={(v) =>
-                setNoteType(v as "NEGOTIATION" | "INTERNAL" | "GENERAL")
-              }
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="NEGOTIATION">Negotiation</SelectItem>
-                <SelectItem value="INTERNAL">Internal</SelectItem>
-                <SelectItem value="GENERAL">General</SelectItem>
-              </SelectContent>
-            </Select>
+        {canWrite && (
+          <div className="space-y-2">
+            <Textarea
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              placeholder="Add a note…"
+              rows={3}
+            />
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Select value={noteType} onValueChange={(v) => setNoteType(v as DealNoteType)}>
+                <SelectTrigger className="h-8 w-[160px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="GENERAL">General</SelectItem>
+                  <SelectItem value="NEGOTIATION">Negotiation</SelectItem>
+                  <SelectItem value="INTERNAL">Internal</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button onClick={add} disabled={busy || !body.trim()} size="sm">
+                {busy && <Loader2 className="size-3.5 animate-spin" />}
+                Add note
+              </Button>
+            </div>
           </div>
-          <Textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder="Add a note…"
-            rows={3}
-          />
-          <div className="flex justify-end">
-            <Button onClick={add} disabled={busy} size="sm">
-              {busy && <Loader2 className="size-3.5 animate-spin" />}
-              Add note
-            </Button>
-          </div>
-        </div>
+        )}
 
-        {/* Human notes only; the edit history lives in Overview's Change log
-            (shared selector — see selectChangeLog) so the two never contradict. */}
-        {(() => {
-        const humanNotes = selectHumanNotes(deal.notes);
-        return (
-        <div className="space-y-2 border-t border-border/60 pt-3">
+        <div className={cn("space-y-2", canWrite && "border-t border-border/60 pt-3")}>
           {humanNotes.length === 0 ? (
             <p className="text-detail text-muted-foreground">No notes yet.</p>
           ) : (
             humanNotes.map((n) => (
-              <div
-                key={n.id}
-                className="rounded-md border border-border/60 p-3"
-              >
+              <div key={n.id} className="rounded-md border border-border/60 p-3">
                 <div className="flex items-center justify-between gap-2 pb-1">
                   <StatusPill
                     label={n.noteType}
@@ -2336,19 +2547,51 @@ function NegotiationTab({
                     {n.author?.name ?? "—"} · {fmtDate(n.createdAt)}
                   </span>
                 </div>
-                <p className="whitespace-pre-wrap text-detail text-foreground">
-                  {n.body}
-                </p>
+                <p className="whitespace-pre-wrap text-detail text-foreground">{n.body}</p>
               </div>
             ))
           )}
         </div>
-        );
-        })()}
       </CardContent>
     </Card>
   );
 }
+
+// ------------------------------------------------------------
+// Negotiation tab — owner asks + counter-offers, and (once the deal reaches
+// negotiation) the pre-contract checks that used to sit on the Contract tab.
+// ------------------------------------------------------------
+const CONTRACT_PHASE_STAGES: AcqDealStage[] = ["NEGOTIATION", "CONTRACT_SENT", "SIGNED", "WON"];
+
+function NegotiationTab({
+  deal,
+  userRole,
+  onMutate,
+}: {
+  deal: AcqDealDetail;
+  userRole?: string;
+  onMutate: () => void;
+}) {
+  const inContractPhase = CONTRACT_PHASE_STAGES.includes(deal.stage);
+  return (
+    <div className="space-y-4">
+      <DealNotesPanel
+        deal={deal}
+        userRole={userRole}
+        title="Negotiation notes"
+        description="Owner asks and counter-offers. Negotiation notes alert BD Head and management."
+        defaultType="NEGOTIATION"
+        onMutate={onMutate}
+      />
+      {/* Signatory check, GPA and agreement documents gate the contract stages;
+        * with the Contract tab retired they live here, where negotiation ends. */}
+      {inContractPhase && !DEAL_CONTRACT_TAB_ENABLED && (
+        <ContractTab deal={deal} userRole={userRole} onMutate={onMutate} />
+      )}
+    </div>
+  );
+}
+
 
 // ------------------------------------------------------------
 // Required agreement documents (Aadhaar, PAN, property tax, ownership…)
@@ -2591,9 +2834,7 @@ function ContractTab({
           )}
         </div>
 
-        {deal.contractStatus === "SIGNED" && (
-          <AlignTeamsPanel deal={deal} onMutate={onMutate} />
-        )}
+        {/* Post-signature hand-off (AlignTeamsPanel) renders on the Overview. */}
       </CardContent>
     </Card>
   );

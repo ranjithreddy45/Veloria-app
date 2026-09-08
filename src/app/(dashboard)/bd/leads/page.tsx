@@ -29,6 +29,7 @@ export default async function BdLeadsPage({
     sfMax?: string;
     ptype?: string;
     parking?: string;
+    exec?: string;
   }>;
 }) {
   const sp = await searchParams;
@@ -65,9 +66,12 @@ export default async function BdLeadsPage({
         : undefined,
     parkingAvailable: sp.parking === "1" ? true : undefined,
   };
+  // Lead-owner filter: a plain id equality on the server — an unknown id just
+  // matches nothing, so no validation round-trip is needed before the query.
+  const bdExecutiveId = sp.exec?.trim() || undefined;
 
   const [leadsResult, countsResult, pipelineCountsResult, bdUsers, session] = await Promise.all([
-    getAcqLeads({ status, dueFollowup, due, pipelineStage, ...particulars }),
+    getAcqLeads({ status, dueFollowup, due, pipelineStage, bdExecutiveId, ...particulars }),
     getAcqLeadStatusCounts(),
     getBdPipelineCounts(),
     getBdUsers(),
@@ -108,6 +112,7 @@ export default async function BdLeadsPage({
         statusCounts={statusCounts}
         pipelineCounts={pipelineCountsResult.success ? pipelineCountsResult.data : {}}
         activeStage={pipelineStage}
+        activeExec={bdExecutiveId}
         particulars={particulars}
       />
     </div>

@@ -123,6 +123,8 @@ interface LeadInboxProps {
   pipelineCounts?: Record<string, number>;
   /** Server-validated ?stage= unified-pipeline filter currently in effect. */
   activeStage?: string;
+  /** ?exec= lead-owner filter currently in effect (a BD user id). */
+  activeExec?: string;
   /** Server-validated property-particular filters currently in effect. */
   particulars?: {
     seatingTheatreMin?: number;
@@ -266,6 +268,7 @@ export function LeadInbox({
   statusCounts,
   pipelineCounts,
   activeStage,
+  activeExec,
   particulars,
   dueFollowup = false,
 }: LeadInboxProps) {
@@ -428,7 +431,12 @@ export function LeadInbox({
               className="h-8 w-full pl-9 text-body sm:w-[230px]"
             />
           </div>
-          <ParticularsFilter particulars={particulars} />
+          <LeadFiltersPopover
+            particulars={particulars}
+            bdUsers={bdUsers}
+            activeExec={activeExec}
+            activeStatus={activeStatus}
+          />
           <Button
             size="sm"
             onClick={() => setCreateOpen(true)}
@@ -520,13 +528,21 @@ export function LeadInbox({
 // ============================================================
 
 // ============================================================
-// Property-particulars filter (seating min/max, type, parking)
+// Filters popover — lead owner, lead status, and the property particulars
+// (seating min/max, type, parking). All of it lives in the URL, so the server
+// applies it past the row cap and a filtered view can be bookmarked or shared.
 // ============================================================
 
-function ParticularsFilter({
+function LeadFiltersPopover({
   particulars,
+  bdUsers,
+  activeExec,
+  activeStatus,
 }: {
   particulars?: LeadInboxProps["particulars"];
+  bdUsers: BdUser[];
+  activeExec?: string;
+  activeStatus?: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -536,6 +552,8 @@ function ParticularsFilter({
   // Drafts as strings so the inputs can be cleared while typing; applied
   // values only reach the URL (and the server) on "Apply".
   const asStr = (n: number | undefined) => (typeof n === "number" ? String(n) : "");
+  const [exec, setExec] = React.useState(activeExec ?? "ANY");
+  const [status, setStatus] = React.useState(activeStatus ?? "ANY");
   const [stMin, setStMin] = React.useState(asStr(particulars?.seatingTheatreMin));
   const [stMax, setStMax] = React.useState(asStr(particulars?.seatingTheatreMax));
   const [sfMin, setSfMin] = React.useState(asStr(particulars?.seatingFloatingMin));
@@ -547,15 +565,19 @@ function ParticularsFilter({
   // (not a stale draft from an earlier, abandoned edit).
   React.useEffect(() => {
     if (!open) return;
+    setExec(activeExec ?? "ANY");
+    setStatus(activeStatus ?? "ANY");
     setStMin(asStr(particulars?.seatingTheatreMin));
     setStMax(asStr(particulars?.seatingTheatreMax));
     setSfMin(asStr(particulars?.seatingFloatingMin));
     setSfMax(asStr(particulars?.seatingFloatingMax));
     setPtype(particulars?.propertyType ?? "ANY");
     setParking(particulars?.parkingAvailable === true);
-  }, [open, particulars]);
+  }, [open, particulars, activeExec, activeStatus]);
 
   const activeCount =
+    (activeExec ? 1 : 0) +
+    (activeStatus ? 1 : 0) +
     (particulars?.seatingTheatreMin !== undefined || particulars?.seatingTheatreMax !== undefined
       ? 1
       : 0) +
@@ -575,6 +597,15 @@ function ParticularsFilter({
 
   const apply = () =>
     push((params) => {
+      if (exec !== "ANY") params.set("exec", exec);
+      else params.delete("exec");
+      if (status !== "ANY") {
+        params.set("status", status);
+        // A raw status is a different cut from the follow-up view; don't
+        // stack them invisibly.
+        params.delete("view");
+        params.delete("due");
+      } else params.delete("status");
       const setNum = (key: string, v: string) => {
         const n = Number(v);
         if (v.trim() !== "" && Number.isFinite(n) && n >= 0) params.set(key, String(Math.floor(n)));
@@ -592,7 +623,9 @@ function ParticularsFilter({
 
   const clearAll = () =>
     push((params) => {
-      for (const key of ["stMin", "stMax", "sfMin", "sfMax", "ptype", "parking"]) params.delete(key);
+      for (const key of ["exec", "status", "stMin", "stMax", "sfMin", "sfMax", "ptype", "parking"]) {
+        params.delete(key);
+      }
     });
 
   const rangeRow = (
@@ -633,7 +666,7 @@ function ParticularsFilter({
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm" className="shrink-0 gap-1.5">
           <SlidersHorizontal className="size-3.5" />
-          Particulars
+          Filters
           {activeCount > 0 && (
             <span className="rounded-md bg-primary/10 px-1 text-meta tabular-nums text-primary">
               {activeCount}
@@ -641,9 +674,43 @@ function ParticularsFilter({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-72 p-4">
+      <PopoverContent align="end" className="w-80 p-4">
         <div className="flex flex-col gap-3.5">
-          <p className="text-detail font-medium text-foreground">Property particulars</p>
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-detail text-muted-foreground">Lead owner</Label>
+            <Select value={exec} onValueChange={setExec}>
+              <SelectTrigger className="h-8 text-body">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ANY">All owners</SelectItem>
+                {bdUsers.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.name ?? "Unnamed"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-detail text-muted-foreground">Lead status</Label>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger className="h-8 text-body">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ANY">Any status</SelectItem>
+                {ACQ_LEAD_STATUS.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {STATUS_LABEL[s]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <p className="border-t border-border/60 pt-3 text-detail font-medium text-foreground">
+            Property particulars
+          </p>
           {rangeRow("Seating — theatre", stMin, setStMin, stMax, setStMax)}
           {rangeRow("Seating — floating", sfMin, setSfMin, sfMax, setSfMax)}
           <div className="flex flex-col gap-1.5">

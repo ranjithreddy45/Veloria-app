@@ -12,3 +12,11 @@
  * Background automations (SLA reminder crons) are unaffected.
  */
 export const LEAD_OPS_PAGES_ENABLED = false;
+
+/**
+ * BD deal page — Projection and Contract tabs. Removed from the deal page
+ * 2026-09 on request (the contract lifecycle lives in BD → Contracts; the
+ * pre-contract checks moved into the Negotiation tab). Code stays intact.
+ */
+export const DEAL_PROJECTION_TAB_ENABLED = false;
+export const DEAL_CONTRACT_TAB_ENABLED = false;
