@@ -452,6 +452,65 @@ export async function getLinkableUsers(employeeId?: string): Promise<LinkableUse
   return users.map((x) => ({ ...x, role: String(x.role) }));
 }
 
+/**
+ * Why is a given email not in the linkable list? The dropdown can only show
+ * what qualifies — it can't say WHY something is missing, which turns every
+ * missing login into a support ticket. This answers by email, precisely.
+ */
+export async function diagnoseLoginEmail(email: string): Promise<
+  Result<{
+    status: "NOT_FOUND" | "DEACTIVATED" | "LINKED" | "AVAILABLE";
+    message: string;
+    userId?: string;
+  }>
+> {
+  const u = await requireUser();
+  if (!can(u?.role, "hr:admin")) return { success: false, error: "Not authorized." };
+  const clean = (email || "").trim().toLowerCase();
+  if (!clean || !clean.includes("@")) return { success: false, error: "Enter the login email to check." };
+
+  const user = await prisma.user.findUnique({
+    where: { email: clean },
+    select: { id: true, isActive: true },
+  });
+  if (!user) {
+    return {
+      success: true,
+      data: {
+        status: "NOT_FOUND",
+        message: `No login exists for ${clean}. Create it first in Settings → Users, then link it here.`,
+      },
+    };
+  }
+  if (!user.isActive) {
+    return {
+      success: true,
+      data: {
+        status: "DEACTIVATED",
+        message: `${clean} exists but is deactivated. Reactivate it in Settings → Users, then link it here.`,
+      },
+    };
+  }
+  const claimed = await prisma.employee.findFirst({
+    where: { userId: user.id },
+    select: { id: true, empCode: true, firstName: true, lastName: true, deletedAt: true },
+  });
+  if (claimed) {
+    const who = `${claimed.firstName} ${claimed.lastName} (${claimed.empCode}${claimed.deletedAt ? ", archived" : ""})`;
+    return {
+      success: true,
+      data: {
+        status: "LINKED",
+        message: `${clean} is already linked to ${who}. Unlink it on that employee's profile first.`,
+      },
+    };
+  }
+  return {
+    success: true,
+    data: { status: "AVAILABLE", message: `${clean} is free to link.`, userId: user.id },
+  };
+}
+
 /** Connect an employee record to a login. `Employee.userId` is @unique, so a
  *  user can back exactly one employee; a P2002 means someone claimed it first. */
 export async function linkEmployeeUser(employeeId: string, userId: string): Promise<Result<{ id: string }>> {
@@ -623,9 +682,17 @@ export async function archiveEmployee(id: string, reason?: string): Promise<Resu
   if (!existing) return { success: false, error: "Employee not found." };
 
   await prisma.$transaction(async (tx) => {
+    // Release the login on archive. Employee.userId is @unique, so an archived
+    // record holding it would silently block that login from ever being linked
+    // to a new employee record — and remove self-service for the exited person.
     await tx.employee.update({
       where: { id },
-      data: { deletedAt: new Date(), status: "EXITED", dateOfExit: existing.dateOfExit ?? new Date() },
+      data: {
+        deletedAt: new Date(),
+        status: "EXITED",
+        dateOfExit: existing.dateOfExit ?? new Date(),
+        userId: null,
+      },
     });
     // Unstrand pending approvals routed to this manager — clear the approver so
     // they fall to the HR queue (which sees all pending) instead of a dead user.

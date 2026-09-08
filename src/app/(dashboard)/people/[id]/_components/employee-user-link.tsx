@@ -6,12 +6,14 @@ import { toast } from "sonner";
 import { Link2, Link2Off, Loader2, ShieldCheck, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  getLinkableUsers, linkEmployeeUser, unlinkEmployeeUser, type LinkableUser,
+  diagnoseLoginEmail, getLinkableUsers, linkEmployeeUser, unlinkEmployeeUser, type LinkableUser,
 } from "@/actions/hr-employee.actions";
+import { cn } from "@/lib/utils";
 
 // ============================================================
 // Login ↔ employee link panel.
@@ -32,6 +34,35 @@ export function EmployeeUserLink({ employeeId, employeeName, linkedUser, canAdmi
   const [users, setUsers] = React.useState<LinkableUser[] | null>(null);
   const [picked, setPicked] = React.useState("");
   const [busy, setBusy] = React.useState(false);
+  // "Why isn't the login I expect in the list?" — email diagnosis.
+  const [checkEmail, setCheckEmail] = React.useState("");
+  const [checking, setChecking] = React.useState(false);
+  const [diagnosis, setDiagnosis] = React.useState<{
+    status: "NOT_FOUND" | "DEACTIVATED" | "LINKED" | "AVAILABLE";
+    message: string;
+    userId?: string;
+  } | null>(null);
+
+  async function doCheck() {
+    if (!checkEmail.trim()) { toast.error("Type the login email to check."); return; }
+    setChecking(true);
+    setDiagnosis(null);
+    try {
+      const res = await diagnoseLoginEmail(checkEmail);
+      if (!res.success) { toast.error(res.error); return; }
+      setDiagnosis(res.data);
+    } finally { setChecking(false); }
+  }
+
+  async function linkDiagnosed(userId: string) {
+    setBusy(true);
+    try {
+      const res = await linkEmployeeUser(employeeId, userId);
+      if (!res.success) { toast.error(res.error); return; }
+      toast.success(`Login linked — ${employeeName} can now use self-service.`);
+      router.refresh();
+    } finally { setBusy(false); }
+  }
 
   React.useEffect(() => {
     if (canAdmin && !linkedUser && users === null) {
@@ -120,6 +151,49 @@ export function EmployeeUserLink({ employeeId, employeeName, linkedUser, canAdmi
               <Button size="sm" onClick={doLink} disabled={busy || !picked} className="gap-1.5">
                 {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Link2 className="size-3.5" />} Link login
               </Button>
+
+              {/* Missing from the list? The dropdown can only show what
+                * qualifies; this says WHY a specific email doesn't. */}
+              <div className="w-full space-y-1.5 pt-1">
+                <p className="text-meta text-muted-foreground">
+                  Can&rsquo;t find the login you expect? Check the email:
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input
+                    type="email"
+                    value={checkEmail}
+                    onChange={(e) => { setCheckEmail(e.target.value); setDiagnosis(null); }}
+                    placeholder="name@company.com"
+                    className="h-8 w-full text-body sm:w-72"
+                  />
+                  <Button variant="outline" size="sm" onClick={doCheck} disabled={checking}>
+                    {checking ? <Loader2 className="size-3.5 animate-spin" /> : "Check"}
+                  </Button>
+                </div>
+                {diagnosis && (
+                  <div
+                    className={cn(
+                      "flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 text-detail",
+                      diagnosis.status === "AVAILABLE"
+                        ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                        : "border-warning/25 bg-warning/10 text-warning"
+                    )}
+                  >
+                    <span className="min-w-0">{diagnosis.message}</span>
+                    {diagnosis.status === "AVAILABLE" && diagnosis.userId && (
+                      <Button
+                        size="sm"
+                        onClick={() => linkDiagnosed(diagnosis.userId!)}
+                        disabled={busy}
+                        className="gap-1.5"
+                      >
+                        {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Link2 className="size-3.5" />}
+                        Link this login
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <p className="text-detail text-muted-foreground">Ask an HR admin to link this employee&rsquo;s login.</p>

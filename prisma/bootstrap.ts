@@ -778,6 +778,23 @@ async function main() {
     console.error("[bootstrap] leave policy migration failed (non-fatal):", e);
   }
 
+  // ---- Release logins held by archived employees ----
+  // archiveEmployee now clears userId, but rows archived before that fix still
+  // hold their login — and Employee.userId is @unique, so each one silently
+  // blocks that login from ever being linked to a new employee record.
+  // Naturally idempotent (an archived employee should never hold a login).
+  try {
+    const released = await prisma.employee.updateMany({
+      where: { deletedAt: { not: null }, userId: { not: null } },
+      data: { userId: null },
+    });
+    if (released.count > 0) {
+      console.log(`[bootstrap] Released ${released.count} login(s) held by archived employees`);
+    }
+  } catch (e) {
+    console.error("[bootstrap] archived-login release failed (non-fatal):", e);
+  }
+
   console.log("[bootstrap] Done.");
 }
 
