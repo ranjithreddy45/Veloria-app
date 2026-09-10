@@ -421,6 +421,12 @@ export const sidebarNavigation: NavItem[] = [
       { title: "My Leave", href: "/me/leave", icon: "CalendarCheck", permissions: [] },
       { title: "My Payslips", href: "/me/payslips", icon: "FileText", permissions: [] },
       { title: "My Reimbursements", href: "/me/reimbursements", icon: "Receipt", permissions: [] },
+      // Claims waiting on THIS user's approval (level 1 / level 2 approvers).
+      { title: "My Approvals", href: "/me/approvals", icon: "CheckCircle2", permissions: [] },
+      // The handbook is for everyone. Its route is open (dashboard:read
+      // override in permissions.ts) but it used to be linked only from the
+      // hr:read-gated People section, so ordinary staff never saw it exist.
+      { title: "Employee Handbook", href: "/people/handbook", icon: "BookOpen", permissions: [] },
       { title: "Help Desk", href: "/me/helpdesk", icon: "MessageCircle", permissions: [] },
     ],
   },
@@ -503,6 +509,7 @@ export const sidebarNavigation: NavItem[] = [
       { title: "Gratuity", href: "/people/gratuity", icon: "Gift", permissions: ["hr:payroll"] },
       { title: "Full & Final", href: "/people/payroll/fnf", icon: "FileInput", permissions: ["hr:payroll"] },
       { title: "Pay Components", href: "/people/payroll/settings", icon: "Settings", permissions: ["hr:payroll"] },
+      { title: "Reimbursement Approvers", href: "/people/payroll/reimbursements/approvers", icon: "UserCheck", permissions: ["hr:admin"] },
     ],
   },
   {
@@ -567,6 +574,8 @@ export const sidebarNavigation: NavItem[] = [
       { title: "Bank & Reconcile", href: "/finance/bank", icon: "Landmark", permissions: ["finance:read"] },
       { title: "Reports", href: "/finance/reports", icon: "TrendingUp", permissions: ["finance:read"] },
       { title: "Tax & Compliance", href: "/finance/tax", icon: "Percent", permissions: ["finance:read"] },
+      // Fully approved employee expense claims, ready to pay.
+      { title: "Reimbursements", href: "/finance/reimbursements", icon: "Receipt", permissions: ["finance:read"] },
     ],
   },
   {

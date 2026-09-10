@@ -3,7 +3,8 @@
 import * as React from "react";
 import { FixClaimDialog } from "./fix-claim-dialog";
 import { useRouter } from "next/navigation";
-import { Loader2, X, ReceiptText, Paperclip } from "lucide-react";
+import { Loader2, X, ReceiptText, Paperclip, History } from "lucide-react";
+import { ClaimTrailDialog } from "@/components/hr/claim-trail-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -48,13 +49,18 @@ const INR = new Intl.NumberFormat("en-IN", {
 // Status → Badge variant + label. PENDING awaits HR, APPROVED is queued for a pay
 // run, PAID has been disbursed, REJECTED (incl. employee-withdrawn) is closed.
 const STATUS: Record<string, { variant: "warning" | "success" | "destructive" | "secondary"; label: string; className?: string }> = {
-  PENDING: { variant: "warning", label: "Pending" },
+  PENDING: { variant: "warning", label: "Awaiting 1st approval" },
+  PENDING_L2: {
+    variant: "secondary",
+    label: "Awaiting 2nd approval",
+    className: "bg-violet-500/12 text-violet-700 dark:bg-violet-400/15 dark:text-violet-300",
+  },
   // The ball is with the EMPLOYEE here, not HR — labelled so it reads as an
   // action to take rather than another queue to wait in.
   NEEDS_INFO: { variant: "warning", label: "Needs your input" },
   APPROVED: {
     variant: "secondary",
-    label: "Approved",
+    label: "Approved · with Finance",
     className: "bg-blue-500/12 text-blue-600 dark:bg-blue-400/15 dark:text-blue-300",
   },
   PAID: { variant: "success", label: "Paid" },
@@ -72,6 +78,7 @@ export function MyReimbursementsList({ claims }: { claims: ReimbursementClaim[] 
   const [fixing, setFixing] = React.useState<
     { id: string; title: string; amount: number; decisionNote: string | null } | null
   >(null);
+  const [trailId, setTrailId] = React.useState<string | null>(null);
 
   return (
     <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
@@ -150,7 +157,16 @@ export function MyReimbursementsList({ claims }: { claims: ReimbursementClaim[] 
                     <StatusBadge status={c.status} />
                   </TableCell>
                   <TableCell>
-                    {c.status === "PENDING" && <WithdrawButton id={c.id} label={label} />}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                    {(c.status === "PENDING" || c.status === "PENDING_L2") && <WithdrawButton id={c.id} label={label} />}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 gap-1 text-muted-foreground"
+                      onClick={() => setTrailId(c.id)}
+                    >
+                      <History className="size-3.5" /> History
+                    </Button>
                     {c.status === "NEEDS_INFO" && (
                       <Button
                         size="sm"
@@ -167,6 +183,7 @@ export function MyReimbursementsList({ claims }: { claims: ReimbursementClaim[] 
                         Add details
                       </Button>
                     )}
+                    </div>
                   </TableCell>
                 </TableRow>
               );
@@ -175,6 +192,7 @@ export function MyReimbursementsList({ claims }: { claims: ReimbursementClaim[] 
         </Table>
       )}
       <FixClaimDialog claim={fixing} onClose={() => setFixing(null)} />
+      <ClaimTrailDialog claimId={trailId} open={trailId !== null} onOpenChange={(o) => { if (!o) setTrailId(null); }} />
     </div>
   );
 }

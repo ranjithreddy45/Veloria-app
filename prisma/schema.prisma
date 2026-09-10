@@ -8979,6 +8979,22 @@ model HrClaimAttachment {
 /// that went PENDING → NEEDS_INFO → PENDING → APPROVED looked identical to one
 /// approved first time. There was no way to see that HR had asked for a missing
 /// bill, or when the employee supplied it. Money decisions need a trail.
+/// Who approves reimbursement claims. level 1 = first-level validation
+/// (scope "ALL"); level 2 = second-level, per department (scope = departmentId)
+/// with an optional "ALL" fallback. Managed from HR → Payroll → Reimbursement
+/// approvers; resolved per claim from the employee's department.
+model HrReimbursementApprover {
+  id        String   @id @default(cuid())
+  level     Int
+  scope     String   @default("ALL")
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([level, scope])
+  @@index([userId])
+}
+
 model HrClaimEvent {
   id      String              @id @default(cuid())
   claimId String
@@ -9045,11 +9061,22 @@ model HrReimbursementClaim {
   claimDate    DateTime  @db.Date
   billUrl      String?   @db.Text // receipt (base64/URL now; object storage later)
   note         String?
-  /// PENDING (awaiting HR) | APPROVED (awaiting its pay run) | REJECTED | PAID
+  /// PENDING (awaiting 1st-level approval) | PENDING_L2 (awaiting 2nd-level)
+  /// | NEEDS_INFO (with the employee) | APPROVED (with Finance, awaiting pay)
+  /// | REJECTED | PAID
   status       String    @default("PENDING")
   decidedById  String?
   decidedAt    DateTime?
   decisionNote String?
+  // Two-level approval trail (mirrored in HrClaimEvent with timestamps).
+  level1ById   String?
+  level1At     DateTime?
+  level1Note   String?
+  level2ById   String?
+  level2At     DateTime?
+  level2Note   String?
+  // Finance's payment reference when paid outside a payroll run.
+  paymentRef   String?
   // The run that should PAY it (set on approval; mirrors HrArrear).
   payFy        String?
   payMonth     Int?

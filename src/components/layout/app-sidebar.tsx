@@ -93,6 +93,9 @@ import {
   MessagesSquare,
   Handshake,
   FileImage,
+  BookOpen,
+  UserCheck,
+  CheckCircle2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -134,6 +137,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 // ============================================================
 
 const iconMap: Record<string, LucideIcon> = {
+  BookOpen,
+  UserCheck,
+  CheckCircle2,
   LayoutDashboard,
   Users,
   Contact,
