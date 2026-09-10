@@ -82,6 +82,7 @@ export function LeadImagesField({
             files from the picker, so the user sees an empty photo list and
             assumes the app is broken instead of getting the explanatory toast. */}
         <FileUpload
+          googleDrive
           accept="image/png,image/jpeg,image/webp,image/gif,image/heic,image/heif"
           label="Add images"
           multiple

@@ -519,6 +519,7 @@ function ContractSigning({
                 {canMove && (
                   <div className="ml-auto flex items-center gap-2">
                     <FileUpload
+                      googleDrive
                       onUploaded={onUploaded}
                       label={busy ? "Uploading…" : "Replace"}
                       disabled={busy}
@@ -532,6 +533,7 @@ function ContractSigning({
             ) : canMove ? (
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <FileUpload
+                  googleDrive
                   onUploaded={onUploaded}
                   label={busy ? "Uploading…" : "Upload signed contract"}
                   disabled={busy || contract.status === "TERMINATED"}
@@ -577,7 +579,7 @@ function ContractDocs({ contractId, docs }: { contractId: string; docs: Contract
       <CardHeader><CardTitle className="text-body tracking-[-0.01em]">Documents</CardTitle></CardHeader>
       <CardContent className="space-y-3">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <FileUpload onUploaded={onUploaded} label={busy ? "Uploading…" : "Upload document"} disabled={busy} />
+          <FileUpload googleDrive onUploaded={onUploaded} label={busy ? "Uploading…" : "Upload document"} disabled={busy} />
           <span className="text-meta text-muted-foreground">Images or PDF, up to ~5 MB.</span>
         </div>
         {docs.length === 0 ? (

@@ -9,11 +9,12 @@
 // prop comment for why multi-select gets its own batched callback).
 
 import * as React from "react";
-import { Loader2, Upload } from "lucide-react";
+import { Loader2, Upload, CloudDownload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { readAsDataUrl, readImageAsDataUrl } from "@/lib/images/downscale-image";
+import { DRIVE_SETUP_HINT, isDrivePickerConfigured, pickFilesFromDrive } from "@/lib/google/drive-picker";
 
 interface FileUploadBaseProps {
   /** Accept attribute. Defaults to images + PDF. */
@@ -37,6 +38,12 @@ interface FileUploadBaseProps {
   variant?: "default" | "outline" | "secondary" | "ghost";
   disabled?: boolean;
   className?: string;
+  /**
+   * Also offer "From Google Drive" beside the local picker. Files chosen in
+   * Drive come back as ordinary File objects and go through the exact same
+   * size guard / downscale / data-URL path as a local pick.
+   */
+  googleDrive?: boolean;
 }
 
 interface SingleFileUploadProps extends FileUploadBaseProps {
@@ -73,13 +80,38 @@ export function FileUpload({
   variant = "outline",
   disabled,
   className,
+  googleDrive = false,
 }: FileUploadProps) {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [busy, setBusy] = React.useState(false);
+  const [driveBusy, setDriveBusy] = React.useState(false);
 
   async function onChange(e: React.ChangeEvent<HTMLInputElement>) {
     const picked = Array.from(e.target.files ?? []);
     e.target.value = ""; // allow re-picking the same file(s)
+    await processFiles(picked);
+  }
+
+  async function fromDrive() {
+    if (!isDrivePickerConfigured()) {
+      toast.error(DRIVE_SETUP_HINT, { duration: 9000 });
+      return;
+    }
+    setDriveBusy(true);
+    let picked: File[] = [];
+    try {
+      picked = await pickFilesFromDrive({ accept, multiple });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't pick from Google Drive.");
+      setDriveBusy(false);
+      return;
+    }
+    setDriveBusy(false);
+    // Same guard/read/hand-off as a local pick — Drive is just another source.
+    await processFiles(multiple ? picked : picked.slice(0, 1));
+  }
+
+  async function processFiles(picked: File[]) {
     if (picked.length === 0) return;
 
     // Oversized files are skipped, not fatal — dropping the whole pick because
@@ -129,7 +161,7 @@ export function FileUpload({
   }
 
   return (
-    <>
+    <span className="inline-flex flex-wrap items-center gap-2">
       <input
         ref={inputRef}
         type="file"
@@ -142,13 +174,27 @@ export function FileUpload({
         type="button"
         size={size}
         variant={variant}
-        disabled={disabled || busy}
+        disabled={disabled || busy || driveBusy}
         onClick={() => inputRef.current?.click()}
         className={cn(className)}
       >
         {busy ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
         {label}
       </Button>
-    </>
+      {googleDrive && (
+        <Button
+          type="button"
+          size={size}
+          variant={variant}
+          disabled={disabled || busy || driveBusy}
+          onClick={fromDrive}
+          className={cn(className)}
+          title="Pick files from your Google Drive"
+        >
+          {driveBusy ? <Loader2 className="size-4 animate-spin" /> : <CloudDownload className="size-4" />}
+          From Google Drive
+        </Button>
+      )}
+    </span>
   );
 }

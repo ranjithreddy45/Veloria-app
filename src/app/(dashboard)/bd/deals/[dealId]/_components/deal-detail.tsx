@@ -2351,6 +2351,7 @@ function PhotoGrid({
         )}
         <div className="flex flex-wrap items-center gap-2">
           <FileUpload
+            googleDrive
             onUploaded={upload}
             accept="image/png,image/jpeg,image/webp"
             label="Upload photo"
@@ -2441,7 +2442,7 @@ function AttachmentAdder({
             onChange={(e) => setLabel(e.target.value)}
             placeholder="Label (optional — defaults to file name)"
           />
-          <FileUpload onUploaded={upload} label="Upload" />
+          <FileUpload googleDrive onUploaded={upload} label="Upload" />
         </div>
       </CardContent>
     </Card>
@@ -2656,6 +2657,7 @@ function ContractDocuments({
                 </a>
               ) : (
                 <FileUpload
+                  googleDrive
                   onUploaded={(dataUrl) => add(label, dataUrl)}
                   label="Upload"
                 />
@@ -2794,7 +2796,7 @@ function ContractTab({
         <div className="space-y-1.5">
           <Label>GPA document</Label>
           <div className="flex flex-wrap items-center gap-2">
-            <FileUpload onUploaded={uploadGpa} label="Upload GPA" disabled={savingGpa} />
+            <FileUpload googleDrive onUploaded={uploadGpa} label="Upload GPA" disabled={savingGpa} />
             {deal.gpaDocumentUrl && (
               <a
                 href={deal.gpaDocumentUrl}

@@ -715,6 +715,7 @@ function StatutoryDocRow({
       {canEdit && (
         <div className="flex flex-wrap items-center gap-2">
           <FileUpload
+            googleDrive
             onUploaded={onUploaded}
             label={url ? "Replace file" : "Upload file"}
             disabled={busy}
