@@ -64,7 +64,7 @@ export default async function LeadsPage({
       // default hot-lead ordering.
       getLeads({
         ...filters,
-        limit: 500,
+        limit: 50_000,
         sort: first(sp.sort) === "cold" ? "cold" : undefined,
       }),
       getLeadStats(filters),
@@ -357,9 +357,9 @@ export default async function LeadsPage({
               <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-foreground/80">
                 Showing{" "}
                 <span className="font-semibold numeric">{leads.length}</span> of{" "}
-                <span className="font-semibold numeric">{totalLeads}</span> leads.
-                Narrow the filters to see the rest — the hidden ones are the
-                lowest-scoring, which usually means newest and unworked.
+                <span className="font-semibold numeric">{totalLeads}</span> leads
+                — the list loads up to 50,000 at a time. Narrow the filters to
+                see the rest.
               </div>
             )}
             <LeadsViews data={leads} statusFiltered={Boolean(statusFilter)} />

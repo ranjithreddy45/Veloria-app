@@ -90,8 +90,10 @@ export type { LeadListFilters, LeadScope } from "@/lib/crm/lead-filters";
 /**
  * Ceiling on one page of leads. Deliberately above what any caller asks for, so
  * the cap is a memory backstop rather than a silent editor of the result set.
+ * Raised from 500 to 50,000 (2026-09-10) — the leads page loads the whole
+ * pipeline in one go, and the 500 cap started hiding real leads at 782.
  */
-const MAX_LEAD_PAGE_SIZE = 500;
+const MAX_LEAD_PAGE_SIZE = 50_000;
 
 // ============================================================
 // Get Leads (Paginated + Filters)
@@ -157,6 +159,10 @@ export async function getLeads(params?: LeadListFilters & {
               : [{ score: "desc" }, { createdAt: "desc" }],
         skip,
         take: limit,
+        // The list never renders lead photos, but `images` holds base64
+        // data-URLs — shipping them for every row multiplied the payload by
+        // orders of magnitude. The detail page loads them on its own.
+        omit: { images: true },
         include: {
           contact: {
             select: {
