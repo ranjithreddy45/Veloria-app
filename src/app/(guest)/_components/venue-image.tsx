@@ -50,7 +50,8 @@ export function VenueImage({
   if (src) {
     const safe = src.replace(/["\\]/g, "\\$&");
     return (
-      <div role="img" aria-label={alt} className={cn("relative overflow-hidden bg-gradient-to-br bg-cover bg-center", gradient, className)} style={{ backgroundImage: `url("${safe}")` }}>
+      <div role="img" aria-label={alt} className={cn("relative overflow-hidden bg-gradient-to-br", gradient, className)}>
+        <div aria-hidden className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url("${safe}")` }} />
         <div aria-hidden className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/35 to-transparent" />
       </div>
     );

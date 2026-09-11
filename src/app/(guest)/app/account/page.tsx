@@ -4,6 +4,7 @@ import { getGuestAccount, getGuestOverview } from "@/actions/guest-host.actions"
 import { Screen, Title, Card, Row } from "../../_components/ui";
 import { initials, inr } from "../../_components/format";
 import { SignOutButton } from "./_components/sign-out";
+import { ShortlistCount } from "../../_components/shortlist";
 
 export const dynamic = "force-dynamic";
 const TIER: Record<string, string> = { BRONZE: "Bronze", SILVER: "Silver", GOLD: "Gold", PLATINUM: "Platinum" };
@@ -27,6 +28,7 @@ export default async function AccountPage() {
         <Row href="/app/notifications" detail={ov && ov.unread > 0 ? `${ov.unread} new` : "All read"}>Notifications</Row>
         <Row href="/app/payments" detail={ov && ov.balanceDue > 0 ? `${inr(ov.balanceDue)} due` : "Settled"}>Payments</Row>
         <Row href="/app/event/documents">Documents</Row>
+        <Row href="/app/venues" detail={<ShortlistCount />}>Saved halls</Row>
         <Row href="/app/rate">Rate your experience</Row>
         <Row href="/app/concierge">Help &amp; house rules</Row>
         <Row href="/get-app">Install the app</Row>

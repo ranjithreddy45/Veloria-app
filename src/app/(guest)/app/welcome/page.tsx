@@ -4,6 +4,7 @@ import { getGuestUser } from "@/lib/guest-session";
 import { getStorefrontVenues } from "@/actions/storefront.actions";
 import { getGuestPhotos } from "@/actions/guest-public.actions";
 import { OtpSignIn } from "./_components/otp-sign-in";
+import { STOCK } from "../../_components/stock";
 
 export const metadata = { title: "Welcome — Veloria Grand" };
 export const dynamic = "force-dynamic";
@@ -15,7 +16,7 @@ export default async function WelcomePage({ searchParams }: { searchParams: Prom
   if (user) redirect(dest);
 
   const [venues, photos] = await Promise.all([getStorefrontVenues(), getGuestPhotos({ limit: 1 })]);
-  const hero = photos[0]?.url ?? null;
+  const hero = photos[0]?.url ?? STOCK.welcome;
   const halls = venues.length;
 
   return (

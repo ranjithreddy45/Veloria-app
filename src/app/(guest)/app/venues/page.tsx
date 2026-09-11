@@ -5,6 +5,8 @@ import { getGuestPhotos, getGuestVenueRatings } from "@/actions/guest-public.act
 import { VenueImage } from "../../_components/venue-image";
 import { Screen, Title, Chip, EmptyNote } from "../../_components/ui";
 import { formatPrice } from "../../_components/format";
+import { hallStock } from "../../_components/stock";
+import { SavedMark } from "../../_components/shortlist";
 
 export const metadata = { title: "Our halls — Veloria Grand" };
 export const revalidate = 60;
@@ -49,7 +51,8 @@ export default async function VenuesPage({ searchParams }: { searchParams: Promi
           return (
             <NavLink key={v.id} href={`/app/venues/${v.id}`} kind="push" className="vg-press block overflow-hidden rounded-[20px] border border-black/[.06] bg-white shadow-[0_12px_28px_-20px_rgba(29,29,31,.25)]">
               <div className="relative h-[170px]">
-                <VenueImage seed={v.id} alt={v.name} name={v.name} src={cover.get(v.id)} priority={i === 0} className="h-full w-full" />
+                <VenueImage seed={v.id} alt={v.name} name={v.name} src={cover.get(v.id) ?? hallStock(v.id).cover} priority={i === 0} className="h-full w-full" />
+                <SavedMark venueId={v.id} className="absolute left-3 top-3" />
                 {r && (
                   <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-[#fdf5f3]/[.92] px-2.5 py-1 text-meta font-semibold text-[#1d1d1f]">
                     <Star className="size-3 fill-[#b88513] text-[#b88513]" /> {r.rating}

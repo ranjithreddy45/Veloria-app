@@ -1,6 +1,6 @@
 import { requireGuest } from "@/lib/guest-session";
 import { getGuestRewards } from "@/actions/guest-host.actions";
-import { Screen, ScreenHeader, Card, EmptyNote, SectionTitle } from "../../_components/ui";
+import { Screen, ScreenHeader, Card, EmptyNote, SectionTitle, ProgressBar } from "../../_components/ui";
 import { fmtDate } from "../../_components/format";
 import { Perks, ReferralForm } from "./_components/rewards-client";
 
@@ -22,7 +22,14 @@ export default async function RewardsPage() {
             <div className="relative">
               <div className="flex items-center justify-between"><span className="text-[10.5px] font-bold uppercase tracking-[.14em] text-[#b88513]">{TIER_LABEL[r.tier] ?? r.tier}</span><span className="font-editorial text-body italic text-[#8a6a1a]">{user.name}</span></div>
               <div className="mt-3 flex items-baseline gap-2"><span className="numeric text-[46px] font-semibold leading-none tracking-[-.025em]">{r.points.toLocaleString("en-IN")}</span><span className="text-body text-[#6e6e73]">points</span></div>
-              <div className="mt-3 text-meta text-[#8a6a1a]">{r.totalEarned.toLocaleString("en-IN")} earned to date</div>
+              {r.nextTier ? (
+                <div className="mt-4">
+                  <ProgressBar pct={r.nextTier.pct} className="h-1.5" track="bg-[#b88513]/[.18]" fill="bg-[#b88513]" />
+                  <div className="mt-2 flex justify-between text-meta font-semibold uppercase tracking-[.08em] text-[#8a8a8e]"><span>{TIER_LABEL[r.tier]?.replace(" member", "") ?? r.tier}</span><span>{r.nextTier.toGo.toLocaleString("en-IN")} to {r.nextTier.name.charAt(0) + r.nextTier.name.slice(1).toLowerCase()}</span></div>
+                </div>
+              ) : (
+                <div className="mt-3 text-meta text-[#8a6a1a]">Top tier · {r.totalEarned.toLocaleString("en-IN")} earned to date</div>
+              )}
             </div>
           </div>
 

@@ -30,9 +30,9 @@ export default async function LivePage({ searchParams }: { searchParams: Promise
       {!live ? <p className="text-body text-white/70">No booking linked yet.</p> : (
         <>
           <div className="rounded-[22px] border border-white/[.08] bg-white/[.06] p-5">
-            <div className="text-[11px] font-semibold uppercase tracking-[.12em] text-[#e8b631]">{live.isEventDay ? "Today" : `In ${live.daysToGo} day${live.daysToGo === 1 ? "" : "s"}`}</div>
-            <div className="mt-1.5 font-editorial text-[28px] font-semibold leading-[1.1] tracking-[-.015em]">{live.booking.eventName}</div>
-            <div className="mt-1 text-detail text-white/60">{live.booking.venueName} · {live.staffOnDuty} team member{live.staffOnDuty === 1 ? "" : "s"} assigned · {live.vendorsConfirmed}/{live.vendorsTotal} partners confirmed</div>
+            <div className="text-[11px] font-semibold uppercase tracking-[.12em] text-[#e8b631]">{live.now ? `${live.now.live ? "Now" : "Next"} · ${live.now.time}` : live.isEventDay ? "Today" : `In ${live.daysToGo} day${live.daysToGo === 1 ? "" : "s"}`}</div>
+            <div className="mt-1.5 font-editorial text-[28px] font-semibold leading-[1.1] tracking-[-.015em]">{live.now?.activity ?? live.booking.eventName}</div>
+            <div className="mt-1 text-detail text-white/60">{live.now ? `${live.booking.eventName} · ` : ""}{live.booking.venueName} · {live.staffOnDuty} team member{live.staffOnDuty === 1 ? "" : "s"} · {live.vendorsConfirmed}/{live.vendorsTotal} partners confirmed</div>
           </div>
           <div className="grid grid-cols-3 gap-2">
             {[{ n: live.arrived, l: "guests arrived" }, { n: live.invited, l: "confirmed coming" }, { n: live.vendorsTotal ? `${Math.round((live.vendorsConfirmed / live.vendorsTotal) * 100)}%` : "—", l: "partners ready" }].map((s) => (

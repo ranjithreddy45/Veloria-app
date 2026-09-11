@@ -9,6 +9,8 @@ import { COMPANY_ADDRESS } from "@/lib/constants";
 import { VenueImage } from "../../../_components/venue-image";
 import { formatPrice } from "../../../_components/format";
 import { Card } from "../../../_components/ui";
+import { hallStock } from "../../../_components/stock";
+import { SaveButton } from "../../../_components/shortlist";
 import { AvailabilityMonth } from "./_components/availability-month";
 
 export const revalidate = 60;
@@ -19,18 +21,25 @@ export default async function VenueDetailPage({ params }: { params: Promise<{ ve
   if (!venue) notFound();
   const [photos, social] = await Promise.all([getGuestPhotos({ venueId, limit: 12 }), getGuestVenueSocial(venueId)]);
   const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(COMPANY_ADDRESS)}`;
+  const stock = hallStock(venue.id);
+  const heroSrc = photos[0]?.url ?? stock.cover;
+  const strip = photos.length > 1
+    ? photos.slice(1, 9).map((p) => ({ id: p.id, url: p.url, title: p.title }))
+    : stock.shots.map((s, i) => ({ id: `s${i}`, url: s, title: null as string | null }));
+  const photoCount = photos.length > 1 ? photos.length : strip.length + 1;
 
   return (
     <div className="vg-rise">
       {/* Hero */}
       <div className="relative h-[330px] overflow-hidden">
         <ParallaxHero className="absolute inset-0">
-          <VenueImage seed={venue.id} alt={venue.name} name={venue.name} src={photos[0]?.url} className="h-full w-full" />
+          <VenueImage seed={venue.id} alt={venue.name} name={venue.name} src={heroSrc} className="h-full w-full" />
         </ParallaxHero>
         <BackButton href="/app/venues" light className="absolute left-4 top-[calc(var(--sat)+0.75rem)]" />
-        {photos.length > 1 && (
+        <SaveButton venueId={venue.id} className="absolute right-4 top-[calc(var(--sat)+0.75rem)]" />
+        {photoCount > 1 && (
           <span className="absolute bottom-10 right-4 rounded-full bg-[#1d1d1f]/55 px-2.5 py-1 text-meta font-semibold text-white backdrop-blur">
-            {photos.length} photos
+            1 / {photoCount}
           </span>
         )}
       </div>
@@ -64,9 +73,9 @@ export default async function VenueDetailPage({ params }: { params: Promise<{ ve
           <MapPin className="size-4" /> {COMPANY_ADDRESS}
         </a>
 
-        {photos.length > 1 && (
+        {strip.length > 0 && (
           <div className="vg-scroll-x vg-bleed">
-            {photos.slice(1, 9).map((p) => (
+            {strip.map((p) => (
               <Photo key={p.id} src={p.url} alt={p.title ?? venue.name} className="h-[90px] w-[120px] shrink-0 rounded-xl" />
             ))}
           </div>

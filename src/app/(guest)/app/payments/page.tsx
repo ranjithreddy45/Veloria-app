@@ -38,6 +38,22 @@ export default async function PaymentsPage() {
             </div>
           </div>
 
+          {p.breakdown && (
+            <div>
+              <SectionTitle title="Breakdown" sub={p.breakdown.invoiceNumber} />
+              <div className="mt-2.5">
+                <KeyValue
+                  rows={[
+                    ...p.breakdown.lines.map((l) => ({ k: l.k, v: inr(l.v) })),
+                    ...(p.breakdown.discount > 0 ? [{ k: "Discount", v: `− ${inr(p.breakdown.discount)}` }] : []),
+                    ...(p.breakdown.gst > 0 ? [{ k: "GST", v: inr(p.breakdown.gst) }] : []),
+                  ]}
+                  total={{ k: "Invoice total", v: inr(p.breakdown.total) }}
+                />
+              </div>
+            </div>
+          )}
+
           <div>
             <SectionTitle title="Invoices" />
             <div className="mt-2.5">

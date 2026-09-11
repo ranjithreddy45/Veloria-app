@@ -73,7 +73,7 @@ async function readiness(bookingId: string): Promise<{ pct: number | null; open:
   if (plan) {
     for (const ph of plan.phases) for (const t of ph.tasks) { total++; if (t.status === "COMPLETED") done++; }
   } else {
-    const tasks = await prisma.task.findMany({ where: { bookingId }, select: { status: true } });
+    const tasks = await prisma.task.findMany({ where: { bookingId, OR: [{ taskType: null }, { taskType: { notIn: ["CLIENT_TODO", "CLIENT_REQUEST"] } }] }, select: { status: true } });
     total = tasks.length; done = tasks.filter((t) => t.status === "DONE").length;
   }
   return { pct: total > 0 ? Math.round((done / total) * 100) : null, open: total - done, done, total };
@@ -190,9 +190,12 @@ export async function getGuestEvent(bookingId?: string): Promise<GuestEvent | nu
 }
 
 // ------------------------------------------------------------ checklist (read-only view of the team's plan)
+export interface GuestTodo { id: string; label: string; done: boolean }
 export interface GuestChecklist {
   done: number; total: number; pct: number | null;
   groups: { title: string; due: string | null; items: { id: string; label: string; owner: string; done: boolean }[] }[];
+  /** The host's own to-dos — real Task rows (CLIENT_TODO) the team can also see on the booking. */
+  todos: GuestTodo[];
 }
 export async function getGuestChecklist(bookingId: string): Promise<GuestChecklist | null> {
   const u = await me(); if (!u) return null;
@@ -208,13 +211,34 @@ export async function getGuestChecklist(bookingId: string): Promise<GuestCheckli
       items: p.tasks.map((t) => ({ id: t.id, label: t.title, owner: t.vendor?.name ?? t.assignee?.name ?? "Veloria team", done: t.status === "COMPLETED" })),
     }));
   } else {
-    const tasks = await prisma.task.findMany({ where: { bookingId: b.id }, orderBy: [{ dueDate: "asc" }, { order: "asc" }], select: { id: true, title: true, status: true, dueDate: true, assignee: { select: { name: true } } } });
+    const tasks = await prisma.task.findMany({ where: { bookingId: b.id, OR: [{ taskType: null }, { taskType: { notIn: ["CLIENT_TODO", "CLIENT_REQUEST"] } }] }, orderBy: [{ dueDate: "asc" }, { order: "asc" }], select: { id: true, title: true, status: true, dueDate: true, assignee: { select: { name: true } } } });
     const byMonth = new Map<string, typeof tasks>();
     for (const t of tasks) { const k = t.dueDate ? t.dueDate.toLocaleDateString("en-IN", { month: "long", year: "numeric" }) : "No date yet"; byMonth.set(k, [...(byMonth.get(k) ?? []), t]); }
     groups = [...byMonth.entries()].map(([title, items]) => ({ title, due: null, items: items.map((t) => ({ id: t.id, label: t.title, owner: t.assignee?.name ?? "Veloria team", done: t.status === "DONE" })) }));
   }
-  const r = await readiness(b.id);
-  return { done: r.done, total: r.total, pct: r.pct, groups };
+  const [r, todoRows] = await Promise.all([
+    readiness(b.id),
+    prisma.task.findMany({ where: { bookingId: b.id, taskType: "CLIENT_TODO" }, orderBy: { createdAt: "asc" }, select: { id: true, title: true, status: true } }),
+  ]);
+  return { done: r.done, total: r.total, pct: r.pct, groups, todos: todoRows.map((t) => ({ id: t.id, label: t.title, done: t.status === "DONE" })) };
+}
+
+export async function addGuestTodo(bookingId: string, title: string): Promise<Result<GuestTodo>> {
+  const u = await me(); if (!u) return { success: false, error: "Please sign in." };
+  const { b } = await pickBooking(u.id, bookingId); if (!b) return { success: false, error: "Not authorized." };
+  const clean = title.trim().slice(0, 160); if (clean.length < 2) return { success: false, error: "Type a to-do first." };
+  const t = await prisma.task.create({ data: { title: clean, status: "TODO", priority: "MEDIUM", taskType: "CLIENT_TODO", bookingId: b.id, creatorId: u.id }, select: { id: true } });
+  return { success: true, data: { id: t.id, label: clean, done: false } };
+}
+
+export async function toggleGuestTodo(taskId: string): Promise<Result<{ done: boolean }>> {
+  const u = await me(); if (!u) return { success: false, error: "Please sign in." };
+  const contactIds = await getVerifiedContactIds(u.id);
+  const t = await prisma.task.findFirst({ where: { id: taskId, taskType: "CLIENT_TODO", booking: { contactId: { in: contactIds } } }, select: { id: true, status: true } });
+  if (!t) return { success: false, error: "Not found." };
+  const done = t.status !== "DONE";
+  await prisma.task.update({ where: { id: t.id }, data: { status: done ? "DONE" : "TODO", completedAt: done ? new Date() : null } });
+  return { success: true, data: { done } };
 }
 
 // ------------------------------------------------------------ guest list
@@ -268,6 +292,8 @@ export interface GuestLive {
   booking: GuestBooking; isEventDay: boolean; daysToGo: number;
   arrived: number; invited: number; staffOnDuty: number; vendorsConfirmed: number; vendorsTotal: number;
   stations: { name: string; note: string | null; status: string }[];
+  /** The item in progress, else the next planned one. */
+  now: { time: string; activity: string; live: boolean } | null;
 }
 export async function getGuestLive(bookingId: string): Promise<GuestLive | null> {
   const u = await me(); if (!u) return null;
@@ -288,6 +314,7 @@ export async function getGuestLive(bookingId: string): Promise<GuestLive | null>
     vendorsConfirmed: vendors.find((v) => v.status === "CONFIRMED")?._count ?? 0,
     vendorsTotal: vendors.reduce((a, v) => a + v._count, 0),
     stations: (timeline?.items ?? []).map((i) => ({ name: i.activity, note: i.notes ? i.notes : i.time, status: String(i.status) })),
+    now: (() => { const items = timeline?.items ?? []; const cur = items.find((i) => i.status === "IN_PROGRESS") ?? items.find((i) => i.status === "PENDING"); return cur ? { time: cur.time, activity: cur.activity, live: cur.status === "IN_PROGRESS" } : null; })(),
   };
 }
 
@@ -338,7 +365,13 @@ export async function getGuestRequests(bookingId: string): Promise<GuestRequest[
 
 // ------------------------------------------------------------ rewards & referrals
 export interface GuestReferral { id: string; name: string; status: string; createdAt: string }
-export interface GuestRewards { points: number; tier: string; totalEarned: number; activity: { what: string; when: string; pts: number }[]; referrals: GuestReferral[]; bookingId: string | null }
+export interface GuestRewards {
+  points: number; tier: string; totalEarned: number;
+  activity: { what: string; when: string; pts: number }[]; referrals: GuestReferral[]; bookingId: string | null;
+  /** Progress from the current tier's floor to the next tier, on total points earned. */
+  nextTier: { name: string; toGo: number; pct: number } | null;
+}
+const TIER_FLOORS: [string, number][] = [["BRONZE", 0], ["SILVER", 500], ["GOLD", 2000], ["PLATINUM", 5000]];
 export async function getGuestRewards(): Promise<GuestRewards | null> {
   const u = await me(); if (!u) return null;
   const contactIds = await getVerifiedContactIds(u.id); if (contactIds.length === 0) return null;
@@ -347,8 +380,13 @@ export async function getGuestRewards(): Promise<GuestRewards | null> {
     prisma.referral.findMany({ where: { referrerContactId: { in: contactIds } }, orderBy: { createdAt: "desc" }, take: 10, select: { id: true, referredName: true, status: true, createdAt: true } }),
     pickBooking(u.id),
   ]);
+  const earned = acct?.totalEarned ?? 0;
+  const idx = TIER_FLOORS.reduce((a, [, floor], i) => (earned >= floor ? i : a), 0);
+  const next = TIER_FLOORS[idx + 1];
+  const nextTier = next ? { name: next[0], toGo: next[1] - earned, pct: Math.round(((earned - TIER_FLOORS[idx][1]) / (next[1] - TIER_FLOORS[idx][1])) * 100) } : null;
   return {
-    points: acct?.points ?? 0, tier: acct ? String(acct.tier) : "Member", totalEarned: acct?.totalEarned ?? 0,
+    nextTier,
+    points: acct?.points ?? 0, tier: acct ? String(acct.tier) : "Member", totalEarned: earned,
     activity: (acct?.transactions ?? []).map((t) => ({ what: t.description, when: t.createdAt.toISOString(), pts: t.points })),
     referrals: referrals.map((r) => ({ id: r.id, name: r.referredName, status: String(r.status), createdAt: r.createdAt.toISOString() })),
     bookingId: b?.id ?? null,
@@ -384,6 +422,8 @@ export interface GuestPayments {
   total: number; paid: number; balance: number;
   invoices: { id: string; number: string; status: string; eventName: string | null; total: number; paid: number; balance: number; dueDate: string }[];
   installments: { id: string; label: string; amount: number; dueDate: string; status: string; invoiceId: string; payable: boolean }[];
+  /** Line items of the most recent invoice — the "what am I paying for" view. */
+  breakdown: { invoiceNumber: string; lines: { k: string; v: number }[]; discount: number; gst: number; total: number } | null;
 }
 export async function getGuestPayments(): Promise<GuestPayments | null> {
   const u = await me(); if (!u) return null;
@@ -399,9 +439,22 @@ export async function getGuestPayments(): Promise<GuestPayments | null> {
     select: { id: true, label: true, amount: true, dueDate: true, status: true, invoiceId: true },
   });
   const m = await money(contactIds);
+  const latest = await prisma.invoice.findFirst({
+    where: { contactId: { in: contactIds }, status: { notIn: ["DRAFT", "CANCELLED"] } },
+    orderBy: { issueDate: "desc" },
+    select: { invoiceNumber: true, discountAmount: true, cgstAmount: true, sgstAmount: true, igstAmount: true, totalAmount: true, lineItems: { orderBy: { order: "asc" }, select: { description: true, amount: true } } },
+  });
+  const breakdown = latest && latest.lineItems.length > 0 ? {
+    invoiceNumber: latest.invoiceNumber,
+    lines: latest.lineItems.map((l) => ({ k: l.description, v: Number(l.amount) })),
+    discount: Number(latest.discountAmount ?? 0),
+    gst: Number(latest.cgstAmount) + Number(latest.sgstAmount) + Number(latest.igstAmount),
+    total: Number(latest.totalAmount),
+  } : null;
   let firstUnpaidSeen = false;
   return {
     ...m,
+    breakdown,
     invoices: invoices.map((i) => ({ id: i.id, number: i.invoiceNumber, status: String(i.status), eventName: i.booking?.eventName ?? null, total: Number(i.totalAmount), paid: Number(i.paidAmount), balance: Number(i.balanceDue), dueDate: i.dueDate.toISOString() })),
     installments: inst.map((x) => {
       const paid = x.status === "COMPLETED";

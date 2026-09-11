@@ -3,6 +3,7 @@ import { requireGuest } from "@/lib/guest-session";
 import { getGuestEvent, getGuestChecklist } from "@/actions/guest-host.actions";
 import { Screen, ScreenHeader, Card, EmptyNote } from "../../../_components/ui";
 import { fmtDate } from "../../../_components/format";
+import { HostTodos } from "./_components/host-todos";
 
 export const dynamic = "force-dynamic";
 
@@ -21,8 +22,9 @@ export default async function ChecklistPage({ searchParams }: { searchParams: Pr
             <div className="relative size-16 shrink-0 rounded-full" style={{ background: `conic-gradient(#6d1b52 ${list.pct ?? 0}%, #eeeef0 0)` }}>
               <div className="numeric absolute inset-1.5 flex items-center justify-center rounded-full bg-white text-body font-semibold">{list.pct ?? 0}%</div>
             </div>
-            <div><div className="text-copy font-semibold">{list.done} of {list.total} done</div><div className="mt-0.5 text-detail leading-[1.5] text-[#6e6e73]">Your coordinator works this list with you — anything marked for you, the concierge can take a note on.</div></div>
+            <div><div className="text-copy font-semibold">{list.done} of {list.total} done</div><div className="mt-0.5 text-detail leading-[1.5] text-[#6e6e73]">The team&apos;s plan for your day. Add your own to-dos below — your coordinator sees those too.</div></div>
           </Card>
+          <HostTodos bookingId={ev!.booking.id} initial={list.todos} />
           {list.groups.length === 0 && <EmptyNote>Your coordinator hasn&apos;t published the plan yet. It appears here as soon as they do.</EmptyNote>}
           {list.groups.map((g) => (
             <div key={g.title}>

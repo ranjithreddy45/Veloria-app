@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { requestFromConcierge, type GuestPackage } from "@/actions/guest-host.actions";
 import { Chip } from "../../../_components/ui";
 import { inr } from "../../../_components/format";
+import { packageStock } from "../../../_components/stock";
 
 function unitLabel(u: string) {
   const s = u.toLowerCase().replace(/_/g, " ");
@@ -44,7 +45,7 @@ export function PackagePicker({ packages, bookingId }: { packages: GuestPackage[
           return (
             <div key={p.id} className={`overflow-hidden rounded-[18px] border-[1.5px] bg-white ${on ? "border-[#6d1b52]" : "border-black/[.06]"}`}>
               <div className="flex gap-3 p-3">
-                <div aria-hidden className="size-[84px] shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-[#f7eef2] to-[#efdbe7] bg-cover bg-center" style={p.imageUrl ? { backgroundImage: `url("${p.imageUrl.replace(/["\\]/g, "\\$&")}")` } : undefined} />
+                <div aria-hidden className="size-[84px] shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-[#f7eef2] to-[#efdbe7] bg-cover bg-center" style={{ backgroundImage: `url("${(p.imageUrl ?? packageStock(p.category)).replace(/["\\]/g, "\\$&")}")` }} />
                 <div className="flex min-w-0 flex-1 flex-col">
                   <div className="text-[10.5px] font-semibold uppercase tracking-[.08em] text-[#b88513]">{p.category}</div>
                   <div className="mt-0.5 text-body font-semibold">{p.name}</div>

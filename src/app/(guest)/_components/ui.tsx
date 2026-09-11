@@ -159,12 +159,8 @@ export function KeyValue({ rows, total }: { rows: { k: string; v: React.ReactNod
 export function Photo({ src, alt, className, children }: { src?: string | null; alt: string; className?: string; children?: React.ReactNode }) {
   const safe = src ? src.replace(/["\\]/g, "\\$&") : null;
   return (
-    <div
-      role="img"
-      aria-label={alt}
-      className={cn("relative overflow-hidden bg-gradient-to-br from-[#7a2160] via-[#6d1b52] to-[#4d1239] bg-cover bg-center", className)}
-      style={safe ? { backgroundImage: `url("${safe}")` } : undefined}
-    >
+    <div role="img" aria-label={alt} className={cn("relative overflow-hidden bg-gradient-to-br from-[#7a2160] via-[#6d1b52] to-[#4d1239]", className)}>
+      {safe && <div aria-hidden className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url("${safe}")` }} />}
       {children}
     </div>
   );

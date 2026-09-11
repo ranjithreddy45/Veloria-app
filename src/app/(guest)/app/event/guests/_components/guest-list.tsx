@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Send } from "lucide-react";
 import { addGuestQuick, type GuestListRow } from "@/actions/guest-host.actions";
-import { portalSetGuestRsvp, portalSendInvitation } from "@/actions/portal-guest.actions";
+import { portalSetGuestRsvp, portalSendInvitation, portalBulkSendInvitations } from "@/actions/portal-guest.actions";
 import { ScreenHeader, Card, Chip, Avatar, initialsTone } from "./guest-ui";
 
 type Stats = { confirmed: number; declined: number; pending: number; total: number; families: number };
@@ -50,6 +50,15 @@ export function GuestListClient({ bookingId, initial }: { bookingId: string; ini
     const res = await portalSetGuestRsvp(bookingId, g.id, next);
     if (!res.success) { setGuests((gs) => gs.map((x) => (x.id === g.id ? { ...x, rsvpStatus: g.rsvpStatus } : x))); flash(res.error); }
   }
+  async function inviteAll() {
+    setBusy("all");
+    const res = await portalBulkSendInvitations(bookingId);
+    setBusy(null);
+    if (!res.success) return flash(res.error);
+    setGuests((gs) => gs.map((x) => ({ ...x, invited: true })));
+    flash(`${res.data.sent} invitation${res.data.sent === 1 ? "" : "s"} sent${res.data.skipped ? ` · ${res.data.skipped} skipped` : ""}`);
+    router.refresh();
+  }
   async function invite(g: GuestListRow) {
     setBusy(g.id);
     const res = await portalSendInvitation(bookingId, g.id);
@@ -66,7 +75,7 @@ export function GuestListClient({ bookingId, initial }: { bookingId: string; ini
 
   return (
     <div className="vg-rise flex flex-col gap-4 px-5 pt-[calc(var(--sat)+0.5rem)]">
-      <ScreenHeader title="Guest list" backHref="/app/event" />
+      <ScreenHeader title="Guest list" backHref="/app/event" action={guests.some((g) => !g.invited) ? <button type="button" onClick={inviteAll} disabled={busy === "all"} className="rounded-full bg-[#f7eef2] px-3.5 py-2 text-detail font-semibold text-[#6d1b52] disabled:opacity-60">{busy === "all" ? "Sending…" : "Invite all"}</button> : undefined} />
       {note && <div className="vg-rise fixed inset-x-5 top-[calc(var(--sat)+0.75rem)] z-30 mx-auto flex max-w-md items-center gap-2.5 rounded-[14px] bg-[#1d1d1f]/[.92] px-4 py-3 text-detail font-medium text-white backdrop-blur"><span className="size-2 rounded-full bg-[#e8b631]" />{note}</div>}
 
       <Card className="rounded-[18px] p-4">

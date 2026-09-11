@@ -7,6 +7,7 @@ import { getGuestOverview } from "@/actions/guest-host.actions";
 import { VenueImage } from "../_components/venue-image";
 import { PrimaryButton, ProgressBar, Card, SectionTitle, Photo } from "../_components/ui";
 import { formatPrice, inr, initials, fmtDate, toISODateLocal } from "../_components/format";
+import { hallStock, GALLERY_STOCK } from "../_components/stock";
 
 export const dynamic = "force-dynamic";
 
@@ -25,8 +26,9 @@ export default async function GuestHomePage() {
     getStorefrontVenues(), getGuestPhotos({ limit: 12 }), getGuestMostBookedVenueId(), getGuestPeakDates(toISODateLocal(today), toISODateLocal(in60)), getGuestOverview(),
   ]);
   const hero = venues.find((v) => v.id === mostBooked) ?? [...venues].sort((a, b) => b.capacity - a.capacity)[0] ?? null;
-  const heroPhoto = hero ? photos.find((p) => p.venueId === hero.id)?.url : undefined;
-  const teaser = photos.slice(0, 3);
+  const heroPhoto = hero ? (photos.find((p) => p.venueId === hero.id)?.url ?? hallStock(hero.id).cover) : undefined;
+  // Real public photos first; the design's default set fills the rest.
+  const teaser = [...photos, ...GALLERY_STOCK.map((g) => ({ id: g.src, url: g.src, title: g.label, tags: [g.tag], venueId: null }))].slice(0, 3);
   const b = ov?.booking ?? null;
 
   return (
