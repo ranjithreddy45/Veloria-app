@@ -1,73 +1,75 @@
-import Link from "next/link";
-import { Users, ChevronRight } from "lucide-react";
+import { NavLink } from "../../_components/nav-transition";
+import { Star } from "lucide-react";
 import { getStorefrontVenues } from "@/actions/storefront.actions";
+import { getGuestPhotos, getGuestVenueRatings } from "@/actions/guest-public.actions";
 import { VenueImage } from "../../_components/venue-image";
+import { Screen, Title, Chip, EmptyNote } from "../../_components/ui";
 import { formatPrice } from "../../_components/format";
 
-export const metadata = { title: "Our Venues — Veloria Grand" };
+export const metadata = { title: "Our halls — Veloria Grand" };
 export const revalidate = 60;
 
-export default async function VenuesPage() {
-  const venues = await getStorefrontVenues();
+const CAPS = [
+  { key: "all", label: "All" },
+  { key: "200", label: "Up to 200" },
+  { key: "500", label: "Up to 500" },
+  { key: "501", label: "500+" },
+] as const;
+
+export default async function VenuesPage({ searchParams }: { searchParams: Promise<{ cap?: string }> }) {
+  const { cap = "all" } = await searchParams;
+  const [venues, ratings, photos] = await Promise.all([getStorefrontVenues(), getGuestVenueRatings(), getGuestPhotos({ limit: 60 })]);
+  const cover = new Map<string, string>();
+  for (const p of photos) if (p.venueId && !cover.has(p.venueId)) cover.set(p.venueId, p.url);
+
+  const visible = venues.filter((v) =>
+    cap === "200" ? v.capacity <= 200 : cap === "500" ? v.capacity <= 500 : cap === "501" ? v.capacity > 500 : true
+  );
 
   return (
-    <div className="bg-aura bg-grid-faint min-h-screen bg-zinc-50 px-4 pt-[calc(var(--sat)+1.25rem)]">
-      <h1 className="large-title text-ink-gradient text-h2">Our halls</h1>
-      <p className="mt-1 text-body text-zinc-500">
-        Pick the space that fits your celebration.
-      </p>
-
-      {venues.length === 0 ? (
-        <p className="mt-6 rounded-2xl border border-dashed border-zinc-300 bg-white p-6 text-center text-body text-zinc-500">
-          No venues published yet.
+    <Screen className="gap-4 pt-[calc(var(--sat)+1rem)]">
+      <div>
+        <Title>Our halls</Title>
+        <p className="mt-1.5 text-detail text-[#6e6e73]">
+          {venues.length > 1 ? `${venues.length} spaces, one address.` : "One address."} Pick the one that fits your celebration.
         </p>
+      </div>
+
+      <div className="vg-scroll-x vg-bleed">
+        {CAPS.map((c) => (
+          <Chip key={c.key} active={cap === c.key} href={c.key === "all" ? "/app/venues" : `/app/venues?cap=${c.key}`}>{c.label}</Chip>
+        ))}
+      </div>
+
+      {visible.length === 0 ? (
+        <EmptyNote>{venues.length === 0 ? "Halls will appear here once published." : "No hall matches that size — try another filter."}</EmptyNote>
       ) : (
-        <div className="mt-4 space-y-4">
-          {venues.map((v, i) => (
-            <Link
-              key={v.id}
-              href={`/app/venues/${v.id}`}
-              className="sheen-sweep hover-lift block w-full overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-zinc-100 transition active:scale-[0.99]"
-            >
-              <div className="relative">
-                <VenueImage
-                  seed={v.id}
-                  alt={v.name}
-                  priority={i === 0}
-                  className="h-40 w-full"
-                />
-                <h2 className="absolute bottom-3 left-3 text-lede font-extrabold text-white drop-shadow">
-                  {v.name}
-                </h2>
-              </div>
-              <div className="flex items-center justify-between p-3.5">
-                <div className="min-w-0">
-                  <span className="inline-flex items-center gap-1.5 text-detail text-zinc-500">
-                    <Users className="size-3.5" /> Up to {v.capacity} guests
+        visible.map((v, i) => {
+          const r = ratings[v.id];
+          return (
+            <NavLink key={v.id} href={`/app/venues/${v.id}`} kind="push" className="vg-press block overflow-hidden rounded-[20px] border border-black/[.06] bg-white shadow-[0_12px_28px_-20px_rgba(29,29,31,.25)]">
+              <div className="relative h-[170px]">
+                <VenueImage seed={v.id} alt={v.name} name={v.name} src={cover.get(v.id)} priority={i === 0} className="h-full w-full" />
+                {r && (
+                  <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-[#fdf5f3]/[.92] px-2.5 py-1 text-meta font-semibold text-[#1d1d1f]">
+                    <Star className="size-3 fill-[#b88513] text-[#b88513]" /> {r.rating}
                   </span>
-                  {v.description && (
-                    <p className="mt-0.5 line-clamp-1 text-detail text-zinc-400">
-                      {v.description}
-                    </p>
-                  )}
+                )}
+              </div>
+              <div className="flex items-center justify-between gap-3 px-4 py-3.5">
+                <div className="min-w-0">
+                  <div className="text-copy font-semibold">{v.name}</div>
+                  <div className="mt-0.5 truncate text-meta text-[#6e6e73]">Up to {v.capacity.toLocaleString("en-IN")} guests{v.description ? ` · ${v.description}` : ""}</div>
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <div className="text-right">
-                    <div className="text-meta text-zinc-400">from</div>
-                    <div className="text-copy font-extrabold text-violet-700">
-                      {formatPrice(v.pricePerSlot)}
-                    </div>
-                    <div className="text-meta leading-tight text-zinc-400">
-                      / slot · rental
-                    </div>
-                  </div>
-                  <ChevronRight className="size-5 text-zinc-300" />
+                <div className="shrink-0 text-right">
+                  <div className="text-[10.5px] text-[#8a8a8e]">from</div>
+                  <div className="numeric text-copy font-semibold text-[#6d1b52]">{formatPrice(v.pricePerSlot)}</div>
                 </div>
               </div>
-            </Link>
-          ))}
-        </div>
+            </NavLink>
+          );
+        })
       )}
-    </div>
+    </Screen>
   );
 }

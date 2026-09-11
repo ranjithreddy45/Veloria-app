@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -12,12 +11,12 @@ import { cn } from "@/lib/utils";
 // rendered instead. NEVER fall back to an external stock photo.
 
 const GRADIENTS = [
-  "from-violet-500 via-fuchsia-500 to-rose-500",
-  "from-rose-500 via-orange-400 to-amber-400",
-  "from-indigo-500 via-sky-500 to-cyan-500",
-  "from-emerald-500 via-teal-500 to-cyan-500",
-  "from-amber-400 via-orange-500 to-rose-500",
-  "from-sky-500 via-blue-600 to-indigo-600",
+  "from-[#7a2160] via-[#6d1b52] to-[#4d1239]",
+  "from-[#8a2a6a] via-[#6d1b52] to-[#3b0e2c]",
+  "from-[#b88513] via-[#9a6d0f] to-[#6d1b52]",
+  "from-[#5c1646] via-[#7b2262] to-[#b88513]",
+  "from-[#4d1239] via-[#6d1b52] to-[#8a5a78]",
+  "from-[#2a0b20] via-[#5c1646] to-[#7a2160]",
 ];
 
 function hash(s: string): number {
@@ -32,8 +31,6 @@ export function VenueImage({
   name,
   src,
   className,
-  priority,
-  sizes = "(max-width: 768px) 100vw, 448px",
 }: {
   seed: string;
   alt: string;
@@ -42,20 +39,19 @@ export function VenueImage({
   /** A REAL venue image URL. When absent, always render the placeholder. */
   src?: string | null;
   className?: string;
+  /** Kept for call-site compatibility; background images need no priority hint. */
   priority?: boolean;
-  sizes?: string;
 }) {
   const gradient = GRADIENTS[hash(seed) % GRADIENTS.length];
 
-  // Real image path: only when a genuine src is supplied.
+  // Real image path: a background image (v4), never next/image — uploads are
+  // base64 data URLs the optimiser rejects, and a missing file must degrade to
+  // the gradient rather than a broken glyph.
   if (src) {
+    const safe = src.replace(/["\\]/g, "\\$&");
     return (
-      <div className={cn("relative overflow-hidden bg-gradient-to-br", gradient, className)}>
-        <Image src={src} alt={alt} fill sizes={sizes} priority={priority} className="object-cover" />
-        <div
-          aria-hidden
-          className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/35 to-transparent"
-        />
+      <div role="img" aria-label={alt} className={cn("relative overflow-hidden bg-gradient-to-br bg-cover bg-center", gradient, className)} style={{ backgroundImage: `url("${safe}")` }}>
+        <div aria-hidden className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/35 to-transparent" />
       </div>
     );
   }
@@ -79,7 +75,7 @@ export function VenueImage({
       />
       <Building2 className="relative size-9 opacity-90 drop-shadow-sm" strokeWidth={1.8} />
       {label && (
-        <span className="relative mt-2 max-w-[85%] truncate px-3 text-center font-serif text-lede font-semibold drop-shadow-sm">
+        <span className="relative mt-2 max-w-[85%] truncate px-3 text-center font-editorial text-lede font-semibold drop-shadow-sm">
           {label}
         </span>
       )}

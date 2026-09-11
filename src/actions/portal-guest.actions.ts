@@ -261,3 +261,21 @@ export async function portalBulkSendInvitations(bookingId: string): Promise<Resu
   revalidatePath(`/portal/guests/${bookingId}`);
   return { success: true, data: { sent, skipped } };
 }
+
+/**
+ * Host marks a guest's RSVP by hand (a phone call, a WhatsApp reply). The
+ * guest's own link still wins if they respond later, since it writes the same
+ * field. Guarded by ownership like every other write in this file.
+ */
+export async function portalSetGuestRsvp(
+  bookingId: string,
+  guestId: string,
+  status: "PENDING" | "ACCEPTED" | "DECLINED"
+): Promise<Result<{ id: string }>> {
+  const own = await ownedBooking(bookingId);
+  if (!own) return { success: false, error: "Not authorized." };
+  const guest = await prisma.guest.findFirst({ where: { id: guestId, guestList: { bookingId } }, select: { id: true } });
+  if (!guest) return { success: false, error: "Guest not found." };
+  await prisma.guest.update({ where: { id: guest.id }, data: { rsvpStatus: status } });
+  return { success: true, data: { id: guest.id } };
+}

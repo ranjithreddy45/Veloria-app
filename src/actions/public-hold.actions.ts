@@ -694,6 +694,11 @@ export interface PublicHoldView {
   active: boolean;
 }
 
+/** Token amount + hold window, for the guest app to state BEFORE asking anyone to pay. */
+export async function getPublicHoldTerms(): Promise<{ tokenAmount: number; holdHours: number; currency: string }> {
+  return { tokenAmount: PUBLIC_HOLD_TOKEN_AMOUNT, holdHours: PUBLIC_HOLD_TOKEN_HOLD_HOURS, currency: PUBLIC_CURRENCY };
+}
+
 export async function getPublicHold(token: string): Promise<Result<PublicHoldView>> {
   try {
     if (!token || token.length < 8) return { success: false, error: "Hold not found." };

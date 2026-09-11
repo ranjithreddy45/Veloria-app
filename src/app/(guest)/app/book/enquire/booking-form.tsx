@@ -110,7 +110,7 @@ export function BookingForm({ venues }: { venues: VenueOption[] }) {
         />
         <Link
           href="/app"
-          className="mt-4 text-body font-bold text-violet-600"
+          className="mt-4 text-body font-bold text-[#6d1b52]"
         >
           Back to home
         </Link>
@@ -120,7 +120,7 @@ export function BookingForm({ venues }: { venues: VenueOption[] }) {
 
   // ---- Form ----
   const inputClass =
-    "w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-3 text-copy text-zinc-900 placeholder:text-zinc-400 focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20";
+    "w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-3 text-copy text-zinc-900 placeholder:text-zinc-400 focus:border-[#6d1b52] focus:outline-none focus:ring-2 focus:ring-[#6d1b52]/20";
   const labelClass = "mb-1.5 block text-detail font-bold text-zinc-700";
 
   return (
@@ -248,7 +248,7 @@ export function BookingForm({ venues }: { venues: VenueOption[] }) {
         <button
           type="submit"
           disabled={submitting}
-          className="sheen-sweep relative inline-flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-5 py-3.5 text-copy font-extrabold text-white shadow-md shadow-violet-600/25 transition active:scale-[0.99] disabled:opacity-60"
+          className="sheen-sweep relative inline-flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl bg-gradient-to-r from-[#7b2262] to-[#5c1646] px-5 py-3.5 text-copy font-extrabold text-white shadow-md shadow-[#6d1b52]/25 transition active:scale-[0.99] disabled:opacity-60"
         >
           {submitting ? (
             <>
