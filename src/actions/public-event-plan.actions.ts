@@ -23,8 +23,10 @@ import { randomBytes } from "crypto";
 import { z } from "zod";
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
-import { SLOT_LABEL, type TimeSlotEnum } from "@/lib/sales/slot";
+import { SLOT_LABEL, slotTimeText, type TimeSlotEnum } from "@/lib/sales/slot";
 import { loadBookingMenu, loadBookingServices, buildDefaultRunOfShow } from "@/lib/ops/beo-content";
+import { eventStartUtc } from "@/lib/ops/schedule";
+import { clientIpOfHeaders } from "@/lib/hr/geo";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -54,8 +56,9 @@ function rateLimited(ip: string): boolean {
 
 async function clientIp(): Promise<string> {
   try {
-    const h = await headers();
-    return h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "unknown";
+    // The shared reader (src/lib/hr/geo.ts) takes the X-Forwarded-For entry our proxy
+    // appended; the first entry is whatever the client chose to send.
+    return clientIpOfHeaders(await headers()) || "unknown";
   } catch {
     return "unknown";
   }
@@ -63,21 +66,6 @@ async function clientIp(): Promise<string> {
 
 function appBaseUrl(): string {
   return process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "http://localhost:3000";
-}
-
-/** Build the event datetime (UTC) from the @db.Date day + slot start hour. */
-const SLOT_START_HOUR: Record<TimeSlotEnum, number> = {
-  MORNING: 9,
-  AFTERNOON: 12,
-  EVENING: 18,
-  FULL_DAY: 10,
-};
-
-function eventDateTimeISO(date: Date, slot: TimeSlotEnum): string {
-  // date is a @db.Date (UTC midnight). Anchor the countdown on the slot start.
-  const dt = new Date(date.getTime());
-  dt.setUTCHours(SLOT_START_HOUR[slot] ?? 12, 0, 0, 0);
-  return dt.toISOString();
 }
 
 function firstNameOf(full?: string | null, fallback = "there"): string {
@@ -90,11 +78,17 @@ function firstNameOf(full?: string | null, fallback = "there"): string {
 export interface PublicEventPlan {
   eventName: string;
   eventType: string;
-  /** Anchor for the in-page countdown ("Your wedding is in 12 days"). */
+  /**
+   * When the event starts, for the in-page countdown. For a slot without hours
+   * (Morning, Full Day) this is only the ops planning anchor, never a start time
+   * to show anyone: check slotHasHours.
+   */
   eventAtISO: string;
   /** Plain calendar day, TZ-safe (no time component). */
   eventDateISO: string;
   slotLabel: string;
+  /** The team has set hours for this slot (slotTimeText in src/lib/sales/slot.ts), so a clock countdown is true. */
+  slotHasHours: boolean;
   venueName: string | null;
   guestCount: number;
   clientFirstName: string;
@@ -186,9 +180,13 @@ export async function getPublicEventPlan(token: string): Promise<Result<PublicEv
       data: {
         eventName: b.eventName,
         eventType: b.eventType,
-        eventAtISO: eventDateTimeISO(b.date, slot),
+        // The booking's day (@db.Date: UTC midnight of the Indian calendar day) at
+        // the slot's schedule start in India, as the team's event-day schedule
+        // counts it: an Evening event starts at 17:00 IST, 11:30 UTC.
+        eventAtISO: eventStartUtc(b.date, slot).toISOString(),
         eventDateISO: toUTCDateISO(b.date),
         slotLabel,
+        slotHasHours: slotTimeText(slot) !== null,
         venueName: b.venue?.name ?? null,
         guestCount: b.guestCount,
         clientFirstName: firstNameOf(b.contact?.firstName),

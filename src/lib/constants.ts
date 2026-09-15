@@ -1,3 +1,5 @@
+import { SLOT_LABEL } from "@/lib/sales/slot";
+
 // ============================================================
 // App Info
 // ============================================================
@@ -128,15 +130,10 @@ export const VENDOR_MAX_DISCOUNT_TYPES = [
 ] as const;
 
 // ============================================================
-// Time Slot Labels
+// Time Slot Labels — the team's one slot definition (src/lib/sales/slot.ts)
 // ============================================================
 
-export const TIME_SLOT_LABELS: Record<string, string> = {
-  MORNING: "Morning (8:00 AM - 12:00 PM)",
-  AFTERNOON: "Afternoon (12:00 PM - 5:00 PM)",
-  EVENING: "Evening (5:00 PM - 11:00 PM)",
-  FULL_DAY: "Full Day (8:00 AM - 11:00 PM)",
-} as const;
+export const TIME_SLOT_LABELS: Record<string, string> = SLOT_LABEL;
 
 // ============================================================
 // Booking Status Colors
