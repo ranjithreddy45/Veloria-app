@@ -178,13 +178,18 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
           where: { email: email.toLowerCase() },
         });
 
+        // Every refusal below returns the same generic error to the browser (no
+        // hint about which accounts exist), but the server log says why — so
+        // when a named person "can't log in", one attempt answers it.
         // User not found or no password (OAuth-only account)
         if (!user || !user.hashedPassword) {
+          console.warn(`[auth] password sign-in refused · ${user ? "account has no password" : "no account with this email"} · ${email.toLowerCase()}`);
           return null;
         }
 
         // Check if account is active
         if (!user.isActive) {
+          console.warn(`[auth] password sign-in refused · account deactivated · ${user.email}`);
           return null;
         }
 
@@ -195,6 +200,7 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
         );
 
         if (!isPasswordValid) {
+          console.warn(`[auth] password sign-in refused · wrong password · ${user.email}`);
           return null;
         }
 

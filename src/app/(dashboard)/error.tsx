@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
+import { unstable_isUnrecognizedActionError } from "next/navigation";
+import { reloadForNewBuild } from "@/components/system/stale-build-recovery";
 import Link from "next/link";
 import { AlertTriangle, RotateCcw, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +15,8 @@ export default function DashboardError({
   reset: () => void;
 }) {
   useEffect(() => {
+    // A page from before the latest deploy: reloading fixes it, the error screen wouldn't.
+    if (unstable_isUnrecognizedActionError(error) && reloadForNewBuild()) return;
     console.error("[DASHBOARD_ERROR]", error);
   }, [error]);
 

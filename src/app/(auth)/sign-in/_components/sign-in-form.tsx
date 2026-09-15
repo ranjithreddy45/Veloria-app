@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, unstable_isUnrecognizedActionError } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn } from "next-auth/react";
@@ -12,6 +12,7 @@ import { signInSchema, type SignInInput } from "@/schemas/auth.schema";
 import { signInAction } from "@/actions/auth.actions";
 import { TWO_FACTOR_ERROR_CODES } from "@/lib/security/two-factor-errors";
 import { requestLoginOtp } from "@/actions/otp.actions";
+import { consumeStaleBuildNote, reloadForNewBuild } from "@/components/system/stale-build-recovery";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,7 +28,7 @@ import {
 type AuthMode = "password" | "otp";
 type OtpStep = "phone" | "code";
 
-export default function SignInForm() {
+export default function SignInForm({ googleEnabled = false }: { googleEnabled?: boolean }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
@@ -50,6 +51,11 @@ export default function SignInForm() {
     defaultValues: { email: "", password: "" },
   });
 
+  // Arrived here via a stale-build reload: say why the form is empty again.
+  useEffect(() => {
+    if (consumeStaleBuildNote()) toast.info("Veloria Grand was just updated. Please sign in again.");
+  }, []);
+
   function onSubmit(values: SignInInput) {
     const totp = totpCode.trim();
     if (twoFactorStep && !totp) {
@@ -61,7 +67,16 @@ export default function SignInForm() {
       formData.append("email", values.email);
       formData.append("password", values.password);
       if (twoFactorStep && totp) formData.append("totp", totp);
-      const result = await signInAction(formData);
+      let result: Awaited<ReturnType<typeof signInAction>>;
+      try {
+        result = await signInAction(formData);
+      } catch (err) {
+        // This page was loaded before the latest deploy, so its sign-in action
+        // no longer exists on the server. Retrying can never work — reload.
+        if (unstable_isUnrecognizedActionError(err) && reloadForNewBuild()) return;
+        toast.error("Couldn't reach Veloria Grand. Check your connection and try again.");
+        return;
+      }
       if (result?.success) {
         // Full page load so the client session (sidebar name, role and
         // role-gated menu) is read fresh for the signed-in user.
@@ -108,7 +123,8 @@ export default function SignInForm() {
       }
       toast.success("If this number has an account, a code is on its way via WhatsApp.");
       setOtpStep("code");
-    } catch {
+    } catch (err) {
+      if (unstable_isUnrecognizedActionError(err) && reloadForNewBuild()) return;
       toast.error("Couldn't send code — please try again.");
     } finally {
       setOtpSending(false);
@@ -151,28 +167,32 @@ export default function SignInForm() {
         </p>
       </div>
 
-      {/* Google Sign In */}
-      <Button
-        variant="outline"
-        className="sheen-sweep relative h-10 w-full gap-2 overflow-hidden rounded-lg border-border bg-background text-body font-medium transition-colors hover:bg-muted/60"
-        type="button"
-        disabled={isPending}
-        onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
-      >
-        <Chrome className="size-4" />
-        Continue with Google
-      </Button>
+      {/* Google Sign In — only when the OAuth keys are configured */}
+      {googleEnabled && (
+        <>
+          <Button
+            variant="outline"
+            className="sheen-sweep relative h-10 w-full gap-2 overflow-hidden rounded-lg border-border bg-background text-body font-medium transition-colors hover:bg-muted/60"
+            type="button"
+            disabled={isPending}
+            onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+          >
+            <Chrome className="size-4" />
+            Continue with Google
+          </Button>
 
-      <div className="relative py-0.5">
-        <div className="absolute inset-0 flex items-center" aria-hidden>
-          <span className="divider-fade w-full" />
-        </div>
-        <div className="relative flex justify-center text-meta uppercase tracking-[0.08em]">
-          <span className="bg-card px-2.5 text-muted-foreground/70">
-            {authMode === "otp" ? "or with WhatsApp" : "or with email"}
-          </span>
-        </div>
-      </div>
+          <div className="relative py-0.5">
+            <div className="absolute inset-0 flex items-center" aria-hidden>
+              <span className="divider-fade w-full" />
+            </div>
+            <div className="relative flex justify-center text-meta uppercase tracking-[0.08em]">
+              <span className="bg-card px-2.5 text-muted-foreground/70">
+                {authMode === "otp" ? "or with WhatsApp" : "or with email"}
+              </span>
+            </div>
+          </div>
+        </>
+      )}
 
       {authMode === "password" && twoFactorStep ? (
         <Form {...form}>

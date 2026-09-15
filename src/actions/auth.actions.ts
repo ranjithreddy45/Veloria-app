@@ -174,6 +174,17 @@ export async function forgotPasswordAction(formData: FormData) {
       return { success: false as const, error: "Please enter a valid email address" };
     }
 
+    // Without a mail provider no reset link can be delivered. Say so rather than
+    // showing "check your email" for a message that will never arrive. The answer
+    // doesn't depend on the address entered, so it reveals nothing about accounts.
+    if (!process.env.RESEND_API_KEY?.trim()) {
+      console.warn("[auth] password reset requested but email is not configured");
+      return {
+        success: false as const,
+        error: "Password reset by email isn't available yet. Please ask your administrator to reset your password (Settings → Users).",
+      };
+    }
+
     const normalizedEmail = parsed.data.email.toLowerCase();
 
     // Always return success to prevent email enumeration
