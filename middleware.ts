@@ -59,6 +59,7 @@ const INTERNAL_ROUTES = [
   "/chat", // internal team chat — any logged-in staff (no per-route permission)
   "/my-work",
   "/recruitment",
+  "/concierge", // team inbox for customer-app conversations
   "/contacts",
   "/leads",
   "/pipeline",

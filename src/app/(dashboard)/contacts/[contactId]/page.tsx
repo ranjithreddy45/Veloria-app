@@ -52,6 +52,9 @@ import { EnquirySourceSelect } from "./_components/enquiry-source-select";
 import { getVenues } from "@/actions/booking.actions";
 import { EnquiryNotesPanel } from "./_components/enquiry-notes-panel";
 import { CustomerAccessPanel } from "@/components/customer-app/customer-access-panel";
+import { isCollectibleInvoice } from "@/lib/finance/issued-invoices";
+import { ConsentPanel } from "@/components/customer-app/consent-panel";
+import { ConciergePanel } from "@/components/customer-app/concierge-panel";
 import { EnquiryRemindersPanel } from "./_components/enquiry-reminders-panel";
 import { StatusPill } from "@/components/shared/status-pill";
 import { enquiryStatusOption } from "../_components/enquiry-status";
@@ -305,6 +308,7 @@ export default async function ContactDetailPage({
           <div className="grid gap-6 md:grid-cols-2">
             <EnquiryNotesPanel contactId={contact.id} />
             <CustomerAccessPanel contactId={contact.id} />
+            <ConsentPanel contactId={contact.id} />
             <EnquiryRemindersPanel contactId={contact.id} />
           </div>
 
@@ -482,7 +486,7 @@ export default async function ContactDetailPage({
                           <p className="numeric text-sm font-semibold">
                             {formatCurrency(invoice.totalAmount)}
                           </p>
-                          {Number(invoice.balanceDue) > 0 && (
+                          {isCollectibleInvoice(invoice.status) && Number(invoice.balanceDue) > 0 && (
                             <p className="numeric text-meta text-destructive">
                               {formatCurrency(invoice.balanceDue)} due
                             </p>
@@ -509,7 +513,8 @@ export default async function ContactDetailPage({
           </Card>
         </TabsContent>
         {/* Communications Tab */}
-        <TabsContent value="communications" className="mt-6">
+        <TabsContent value="communications" className="mt-6 space-y-6">
+          <ConciergePanel contactId={contact.id} />
           <CommunicationTimeline contactId={contact.id} />
         </TabsContent>
 

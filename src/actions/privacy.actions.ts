@@ -1,5 +1,7 @@
 "use server";
 
+import { EMAIL_CHANGE_PREFIX } from "@/app/(guest)/app/account/_lib/account-rules";
+
 // ============================================================
 // Data-privacy actions (India DPDP Act 2023).
 // ------------------------------------------------------------
@@ -547,6 +549,8 @@ export async function anonymiseContact(
               isActive: false,
             },
           });
+          // A pending email change for a scrubbed login would otherwise outlive the erasure.
+          await tx.verificationToken.deleteMany({ where: { identifier: { startsWith: `${EMAIL_CHANGE_PREFIX}${u.id}:` } } });
         }
       }
       // Concierge conversations and menu-request notes hold the same personal details.
@@ -558,6 +562,12 @@ export async function anonymiseContact(
         });
       }
       await tx.menuSelectionRequest.updateMany({ where: { contactId }, data: { notes: null } });
+      // Family members and planners this customer invited: their names and numbers go with the erasure,
+      // and they lose access to the anonymised bookings.
+      const erasedBookings = await tx.booking.findMany({ where: { contactId }, select: { id: true } });
+      if (erasedBookings.length > 0) {
+        await tx.bookingCollaborator.deleteMany({ where: { bookingId: { in: erasedBookings.map((b) => b.id) } } });
+      }
     });
 
     await logActivity({

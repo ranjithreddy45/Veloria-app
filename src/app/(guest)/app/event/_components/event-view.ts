@@ -482,6 +482,8 @@ export function partnerCounts(
 
 // ------------------------------------------------------------ money
 
-// Balance due uses finance's shared "issued invoice" rule (src/lib/finance/issued-invoices.ts),
-// the same code the team booking page uses, so both sides always show the same figure.
+// Balance due uses finance's shared OWED rule (src/lib/finance/issued-invoices.ts): the sum of
+// balanceDue over SENT, PARTIALLY_PAID and OVERDUE invoices, so a paid, cancelled or fully
+// refunded invoice adds nothing (`issued` still counts every billed invoice). It is the same
+// code the team booking page uses, so both sides always show the same figure.
 export { bookingBalance } from "@/lib/finance/issued-invoices";

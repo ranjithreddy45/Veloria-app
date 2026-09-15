@@ -2,16 +2,33 @@ import Link from "next/link";
 import { NavLink } from "../_components/nav-transition";
 import { Bell, ChevronRight } from "lucide-react";
 import { getStorefrontVenues } from "@/actions/storefront.actions";
-import { getGuestPhotos, getGuestMostBookedVenueId, getGuestPeakDates } from "@/actions/guest-public.actions";
+import {
+  getGuestHallCovers,
+  getGuestHallPrices,
+  getGuestMostBookedVenueId,
+  getGuestPeakDates,
+  getGuestPhotos,
+  type GuestHallPrice,
+} from "@/actions/guest-public.actions";
 import { getGuestOverview } from "@/actions/guest-host.actions";
 import { VenueImage } from "../_components/venue-image";
+import { ContactChip } from "../_components/contact-chip";
 import { PrimaryButton, ProgressBar, Card, SectionTitle, Photo } from "../_components/ui";
-import { formatPrice, inr, initials, fmtDate, toISODateLocal } from "../_components/format";
-import { hallStock, GALLERY_STOCK } from "../_components/stock";
+import { hallPriceText, inr, initials, toISODateIST } from "../_components/format";
+import { hallCover, teaserPhotos } from "../_components/stock";
+import { daysUntilEvent, formatIstDate } from "./event/_components/event-view";
+import { PlanLinks } from "./venues/_components/plan-links";
 
 export const dynamic = "force-dynamic";
 
 const OCCASIONS = ["Wedding", "Reception", "Engagement", "Sangeet", "Birthday Party", "Corporate Event"];
+
+/** Grid for one to three teaser photos; with three, the first spans both rows. */
+const TEASER_GRID: Record<number, string> = {
+  1: "grid-cols-1 grid-rows-[196px]",
+  2: "grid-cols-2 grid-rows-[160px]",
+  3: "grid-cols-[2fr_1fr] grid-rows-[96px_96px]",
+};
 
 function greeting(name: string | null) {
   // Rendered on the server (UTC) — greet in IST, where every guest is.
@@ -21,16 +38,27 @@ function greeting(name: string | null) {
 }
 
 export default async function GuestHomePage() {
-  const today = new Date();
-  const in60 = new Date(today); in60.setDate(in60.getDate() + 60);
+  const now = new Date();
   const [venues, photos, mostBooked, peaks, ov] = await Promise.all([
-    getStorefrontVenues(), getGuestPhotos({ limit: 12 }), getGuestMostBookedVenueId(), getGuestPeakDates(toISODateLocal(today), toISODateLocal(in60)), getGuestOverview(),
+    getStorefrontVenues(),
+    getGuestPhotos({ limit: 3 }),
+    getGuestMostBookedVenueId(),
+    getGuestPeakDates(toISODateIST(now), toISODateIST(new Date(now.getTime() + 60 * 86400000))),
+    getGuestOverview(),
   ]);
   const hero = venues.find((v) => v.id === mostBooked) ?? [...venues].sort((a, b) => b.capacity - a.capacity)[0] ?? null;
-  const heroPhoto = hero ? (photos.find((p) => p.venueId === hero.id)?.url ?? hallStock(hero.id).cover) : undefined;
-  // Real public photos first; the design's default set fills the rest.
-  const teaser = [...photos, ...GALLERY_STOCK.map((g) => ({ id: g.src, url: g.src, title: g.label, tags: [g.tag], venueId: null }))].slice(0, 3);
+  // The hero's picture and price come from the same sources as its hall page.
+  const [covers, prices] = await Promise.all([
+    hero ? getGuestHallCovers([hero.id]) : Promise.resolve<Record<string, string>>({}),
+    hero ? getGuestHallPrices([hero.id]) : Promise.resolve<Record<string, GuestHallPrice>>({}),
+  ]);
+  const heroCover = hero ? hallCover(covers[hero.id], hero.id) : null;
+  const heroPrice = hallPriceText(hero ? prices[hero.id] : null);
+  // Real public photos; labelled illustrations appear only when none are published.
+  const teaser = teaserPhotos(photos);
   const b = ov?.booking ?? null;
+  // India calendar days, with the same helper the event screen uses, so both always show the same count.
+  const days = b ? daysUntilEvent(b.date, now) : 0;
 
   return (
     <div className="vg-rise flex flex-col gap-[22px] px-5 pt-[calc(var(--sat)+0.75rem)]">
@@ -53,14 +81,20 @@ export default async function GuestHomePage() {
 
       {/* Editorial hero */}
       <h1 className="-mt-1.5 font-editorial text-[30px] font-medium leading-[1.1] tracking-[-.018em] [text-wrap:pretty]">Your celebration, arranged with care.</h1>
-      {hero && (
+      {hero && heroCover && (
         <NavLink href={`/app/venues/${hero.id}`} kind="push" className="relative block h-[360px] overflow-hidden rounded-[22px] shadow-[0_1px_2px_rgba(29,29,31,.06),0_28px_48px_-24px_rgba(109,27,82,.45)]">
-          <VenueImage seed={hero.id} alt={hero.name} name={hero.name} src={heroPhoto} priority className="h-full w-full" />
+          <VenueImage seed={hero.id} alt={hero.name} name={hero.name} src={heroCover.src} illustration={heroCover.isStock} badgeClassName="right-3.5 top-3.5" priority className="h-full w-full" />
           <div aria-hidden className="absolute inset-0 bg-[linear-gradient(180deg,rgba(29,29,31,0)_40%,rgba(29,29,31,.82)_100%)]" />
           {mostBooked === hero.id && <span className="absolute left-3.5 top-3.5 rounded-full bg-[#fdf5f3]/[.92] px-2.5 py-1.5 text-[10.5px] font-bold uppercase tracking-[.08em] text-[#6d1b52] backdrop-blur">Most booked</span>}
           <div className="absolute inset-x-0 bottom-0 p-[18px] text-white">
             <div className="font-editorial text-[26px] font-semibold tracking-[-.01em]">{hero.name}</div>
-            <div className="mt-1 flex items-end justify-between"><span className="text-detail text-white/80">Up to {hero.capacity.toLocaleString("en-IN")} guests</span><span className="numeric text-copy font-semibold">from {formatPrice(hero.pricePerSlot)}</span></div>
+            <div className="mt-1 flex items-end justify-between gap-3">
+              <span className="text-detail text-white/80">Up to {hero.capacity.toLocaleString("en-IN")} guests</span>
+              <span className="text-right">
+                <span className="numeric block text-copy font-semibold">{heroPrice.main}</span>
+                {heroPrice.perGuest && <span className="block text-meta text-white/75">{heroPrice.perGuest}</span>}
+              </span>
+            </div>
           </div>
         </NavLink>
       )}
@@ -75,9 +109,12 @@ export default async function GuestHomePage() {
         <NavLink href="/app/event" kind="push" className="vg-hero vg-press block rounded-[22px] p-5 text-left">
           <div className="text-[10.5px] font-semibold uppercase tracking-[.12em] text-[#e8b631]">Your event</div>
           <div className="mt-1.5 font-editorial text-[24px] font-semibold tracking-[-.01em]">{b.eventName}</div>
-          <div className="mt-1 text-detail text-[#fdf5f3]/75">{fmtDate(b.date)} · {b.venueName}</div>
+          <div className="mt-1 text-detail text-[#fdf5f3]/75">{formatIstDate(b.date)} · {b.venueName}</div>
           <div className="mt-[18px] flex items-end justify-between">
-            <div><div className="numeric text-[42px] font-semibold leading-none tracking-[-.02em]">{Math.max(0, Math.round((new Date(b.date).setHours(0,0,0,0) - new Date().setHours(0,0,0,0)) / 86400000))}</div><div className="mt-1 text-meta text-[#fdf5f3]/75">days to go</div></div>
+            <div>
+              <div className="numeric text-[42px] font-semibold leading-none tracking-[-.02em]">{days === 0 ? "Today" : Math.abs(days)}</div>
+              <div className="mt-1 text-meta text-[#fdf5f3]/75">{days === 0 ? "is your event day" : days > 0 ? `day${days === 1 ? "" : "s"} to go` : `day${days === -1 ? "" : "s"} ago`}</div>
+            </div>
             {ov?.readiness != null && <div className="w-[130px] text-right"><div className="text-meta text-[#fdf5f3]/75">Readiness {ov.readiness}%</div><ProgressBar pct={ov.readiness} className="mt-1.5 h-1" track="bg-white/20" fill="bg-[#e8b631]" /></div>}
           </div>
         </NavLink>
@@ -85,7 +122,7 @@ export default async function GuestHomePage() {
       {ov?.nextTask && (
         <NavLink href="/app/event/checklist" kind="push" className="vg-card vg-press flex items-center gap-3.5 rounded-[18px] px-4 py-3.5">
           <span className="flex size-12 shrink-0 flex-col items-center justify-center rounded-[14px] bg-[#faf3e1]">
-            {ov.nextTask.dueDate ? <><span className="text-[10px] font-bold tracking-[.06em] text-[#b88513]">{fmtDate(ov.nextTask.dueDate, { month: "short" }).toUpperCase()}</span><span className="numeric text-[19px] font-semibold leading-none">{new Date(ov.nextTask.dueDate).getDate()}</span></> : <span className="text-[10px] font-bold text-[#b88513]">NEXT</span>}
+            {ov.nextTask.dueDate ? <><span className="text-[10px] font-bold tracking-[.06em] text-[#b88513]">{formatIstDate(ov.nextTask.dueDate, { month: "short" }).toUpperCase()}</span><span className="numeric text-[19px] font-semibold leading-none">{formatIstDate(ov.nextTask.dueDate, { day: "numeric" })}</span></> : <span className="text-[10px] font-bold text-[#b88513]">NEXT</span>}
           </span>
           <span className="min-w-0 flex-1"><span className="block text-meta font-semibold uppercase tracking-[.08em] text-[#b88513]">Next up</span><span className="mt-0.5 block truncate text-body font-semibold">{ov.nextTask.title}</span><span className="block text-meta text-[#6e6e73]">{ov.openTasks} task{ov.openTasks === 1 ? "" : "s"} still open</span></span>
           <ChevronRight className="size-5 text-[#c7c7cc]" />
@@ -99,7 +136,7 @@ export default async function GuestHomePage() {
           {peaks.length > 0 && (
             <Link href={hero ? `/app/venues/${hero.id}` : "/app/venues"} className="vg-hero flex min-h-[120px] w-[220px] shrink-0 flex-col justify-between rounded-[18px] p-4">
               <span className="text-[10.5px] font-bold uppercase tracking-[.1em] opacity-75">Auspicious dates</span>
-              <span><span className="block font-editorial text-[19px] font-semibold leading-[1.15]">{peaks.length} muhurtham date{peaks.length === 1 ? "" : "s"} in the next 60 days</span><span className="mt-1 block text-meta opacity-80">Next: {fmtDate(peaks[0].dateISO + "T00:00:00")} · {peaks[0].label}</span></span>
+              <span><span className="block font-editorial text-[19px] font-semibold leading-[1.15]">{peaks.length} muhurtham date{peaks.length === 1 ? "" : "s"} in the next 60 days</span><span className="mt-1 block text-meta opacity-80">Next: {formatIstDate(`${peaks[0].dateISO}T00:00:00.000Z`)} · {peaks[0].label}</span></span>
             </Link>
           )}
           <Link href="/app/book" className="flex min-h-[120px] w-[220px] shrink-0 flex-col justify-between rounded-[18px] bg-gradient-to-br from-[#fff8e6] to-[#f3d489] p-4 text-[#3b2a05]">
@@ -113,15 +150,22 @@ export default async function GuestHomePage() {
         </div>
       </div>
 
-      {/* Gallery teaser — real photos only */}
-      {teaser.length >= 3 && (
+      {/* Plan — the public visit scheduler and instant quote (a host's own hall and event prefill the visits) */}
+      <div>
+        <SectionTitle title="Plan your visit" />
+        <PlanLinks className="mt-3" venueId={b?.venueId ?? null} eventType={b?.eventType ?? null} />
+      </div>
+
+      {/* Gallery teaser — real photos; labelled illustrations only when none are published */}
+      {teaser.items.length > 0 && (
         <div>
-          <SectionTitle title="Recent celebrations" action={{ label: "Gallery", href: "/app/gallery" }} />
-          <div className="mt-3 grid grid-cols-[2fr_1fr] grid-rows-[96px_96px] gap-1.5 overflow-hidden rounded-[18px]">
-            {teaser.map((p, i) => (
-              <Photo key={p.id} src={p.url} alt={p.title ?? "Event photo"} className={i === 0 ? "row-span-2" : ""} />
+          <SectionTitle title={teaser.isStock ? "Ideas for your celebration" : "From our gallery"} action={{ label: "Gallery", href: "/app/gallery" }} />
+          <div className={`mt-3 grid gap-1.5 overflow-hidden rounded-[18px] ${TEASER_GRID[teaser.items.length] ?? TEASER_GRID[3]}`}>
+            {teaser.items.map((p, i) => (
+              <Photo key={p.id} src={p.url} alt={p.title ?? "Photo"} illustration={teaser.isStock} className={teaser.items.length === 3 && i === 0 ? "row-span-2" : ""} />
             ))}
           </div>
+          {teaser.isStock && <p className="mt-2 text-meta text-[#8a8a8e]">Illustrations, not photos of Veloria Grand.</p>}
         </div>
       )}
 
@@ -136,6 +180,7 @@ export default async function GuestHomePage() {
 
       <PrimaryButton href="/app/book">Reserve a date</PrimaryButton>
       {ov && ov.balanceDue > 0 && <p className="-mt-3 text-center text-meta text-[#6e6e73]">Balance due {inr(ov.balanceDue)} · <Link href="/app/payments" className="font-semibold text-[#6d1b52]">Payments</Link></p>}
+      <ContactChip context="Hi Veloria Grand, I have a question about an event." />
     </div>
   );
 }
