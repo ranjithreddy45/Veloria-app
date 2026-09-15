@@ -12,6 +12,7 @@ SUPER_ADMIN, drive the real UI, and create their own uniquely-named data
 | `bd-leads.spec.ts` | BD inbox **New Lead** dialog → stage chip filter → search → detail → delete |
 | `hr-reimbursement.spec.ts` | `/me/reimbursements` claim → "Awaiting 1st approval" → History → `/me/approvals` Approve |
 | `people.spec.ts` | `/people` loads (seeds the org on first run), search filters, Employee Handbook opens |
+| `customer-app.spec.ts` | Customer app (`/app`) and team side show the same records: Business contact → Help, published policy → policy page, concierge message ↔ team reply, balance due (draft excluded), guest list, access boundary, VIEWER co-host limits |
 | `smoke-routes.spec.ts` | ~40 key routes from `src/config/navigation.ts` render without the error boundary |
 
 ## Running locally
@@ -68,6 +69,26 @@ test.use({ storageState: { cookies: [], origins: [] } });
 
 If the saved session ever goes stale (e.g. `AUTH_SECRET` rotated), delete
 `tests/e2e/.auth/` — the next run recreates it.
+
+## Customer app specs
+
+The customer app signs in with a WhatsApp code and has no test bypass.
+`customer-app.spec.ts` uses the app's own access rules instead, writing its data
+with Prisma straight to `DATABASE_URL` (`customer-app-data.ts`), so that variable
+must point at the database the server uses:
+
+- a CLIENT login with a bcrypt password (the email + password provider in
+  `auth.ts` accepts any active user; `signInAction` sends a CLIENT to `/portal`);
+- a `CustomerLink` (method `STAFF`, how the team grants access) from that login to
+  a new Contact with a CONFIRMED booking, one issued invoice with a balance and
+  one DRAFT invoice;
+- a second CLIENT with an ACTIVE `BookingCollaborator` row, role VIEWER.
+
+Each customer signs in through `/sign-in` in its own phone-sized browser
+context (`asCustomer`). Everything is named `E2E … <stamp>` and deleted in
+`afterAll`; the Business contact and cancellation-policy rows the settings tests
+change are snapshotted and put back. `whenInteractive(locator)` waits until React
+has hydrated an element, because a click that lands before hydration is lost.
 
 ## Adding a test
 
