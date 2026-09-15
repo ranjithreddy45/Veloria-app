@@ -11,7 +11,10 @@ import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 const authMock = vi.fn();
 vi.mock("@/../auth", () => ({ auth: () => authMock() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("@/lib/integrations/whatsapp", () => ({ sendWhatsApp: vi.fn().mockResolvedValue(undefined) }));
+// WhatsApp accepts every send here: an invitation is recorded as SENT only on a success result.
+vi.mock("@/lib/integrations/whatsapp", () => ({
+  sendWhatsApp: vi.fn().mockResolvedValue({ success: true, messageId: "wamid.test" }),
+}));
 vi.mock("@/lib/reminder-engine", () => ({ scheduleReminders: vi.fn().mockResolvedValue(undefined) }));
 
 import { prisma } from "@/lib/prisma";

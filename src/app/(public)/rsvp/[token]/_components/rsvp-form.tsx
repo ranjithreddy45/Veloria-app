@@ -29,7 +29,6 @@ export function RsvpForm({ token, guestName }: RsvpFormProps) {
   const [submitted, setSubmitted] = useState(false);
   const [plusOnes, setPlusOnes] = useState(0);
   const [dietaryRestrictions, setDietaryRestrictions] = useState("");
-  const [message, setMessage] = useState("");
   const [consent, setConsent] = useState(false);
   const [consentError, setConsentError] = useState<string | null>(null);
 
@@ -47,7 +46,6 @@ export function RsvpForm({ token, guestName }: RsvpFormProps) {
         plusOnes: choice === "ACCEPTED" ? plusOnes : 0,
         dietaryRestrictions:
           choice === "ACCEPTED" ? dietaryRestrictions : undefined,
-        message: message || undefined,
         consent: true,
       });
 
@@ -128,20 +126,8 @@ export function RsvpForm({ token, guestName }: RsvpFormProps) {
             placeholder="e.g., Vegetarian, Gluten-free, Nut allergy..."
           />
         </div>
-
-        <div>
-          <Label htmlFor="message" className="text-muted-foreground text-body font-medium">
-            A note for your hosts (optional)
-          </Label>
-          <Textarea
-            id="message"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            className="mt-1.5 resize-none"
-            rows={2}
-            placeholder="Send a personal note..."
-          />
-        </div>
+        {/* No "note for your hosts" box: nothing on the invitation or guest record
+            holds a reply message, so a note typed here would never reach the host. */}
       </div>
 
       {/* DPDP consent */}

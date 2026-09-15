@@ -1,12 +1,37 @@
 "use server";
 
+// ============================================================
+// STAFF guest invitations: the team's Guest Manager (/bookings/[id]/guests).
+//
+// These write the same GuestInvitation rows as the host portal and the guest
+// app (portal-guest.actions.ts), through the same send module
+// (src/lib/guests/invitation-send.ts), so the team, the host and the public
+// /rsvp/[token] page never disagree:
+//
+//  - An invitation is marked SENT (with sentAt) only after WhatsApp accepted
+//    the message. A refusal, an error or no answer leaves the row as it was,
+//    and the reason goes back to the caller.
+//  - An RSVP token is created once and never replaced, so sending or
+//    re-sending keeps working any link a host has already shared.
+//  - Who may be invited is guest-invites.ts's rule: a usable phone, not yet
+//    invited, no reply on record.
+//  - A send holds the same short lease as the host path, so a team member and
+//    a host can't send one guest two invitations at once.
+//  - Only a committed booking (TENTATIVE, CONFIRMED or IN_PROGRESS) sends.
+//  - The approved invite template when one is set, else a text message, with
+//    the same capped, link-free names.
+//
+// Staff gate on invitations:send, which a host doesn't hold, so the entry
+// points stay separate from portal-guest.actions.ts. Team sends don't count
+// against the customer quotas.
+// ============================================================
+
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
 import { hasPermission } from "@/lib/permissions";
-import { sendWhatsApp } from "@/lib/integrations/whatsapp";
 import { notify } from "@/lib/notify";
 import {
   sendInvitationSchema,
@@ -17,15 +42,60 @@ import {
   type RsvpResponseInput,
 } from "@/schemas/invitation.schema";
 import {
-  buildInvitationMessage,
-  buildInvitationTemplateParams,
-  buildRsvpUrl,
-} from "@/lib/invitation-message-builder";
-import { scheduleReminders } from "@/lib/reminder-engine";
+  INVITE_BOOKING_SELECT,
+  bookingInviteRefusal,
+  deliverInvitation,
+  inviteChannel,
+  sendInBulk,
+  tallySendOutcomes,
+  type BulkSendOutcome,
+  type SendMode,
+} from "@/lib/guests/invitation-send";
 import { recordConsent } from "@/lib/privacy/consent";
 import { CONSENT_TEXT_RSVP } from "@/lib/privacy/consent-text";
-import { nanoid } from "nanoid";
-import { format } from "date-fns";
+
+// ============================================================
+// Team-side pieces around the shared send module
+// ============================================================
+
+const INVITE_GUEST_SELECT = {
+  id: true,
+  name: true,
+  phone: true,
+  rsvpStatus: true,
+  guestList: { select: { bookingId: true, booking: { select: INVITE_BOOKING_SELECT } } },
+} as const;
+
+type NotSent = Exclude<BulkSendOutcome, { outcome: "SENT" }>;
+
+/** Why an invitation wasn't sent, in words the team can act on. */
+function notSentError(res: NotSent, name: string, mode: SendMode, bookingStatus: string): string {
+  if (res.outcome === "FAILED") {
+    return mode === "resend"
+      ? `WhatsApp didn't accept the invitation for ${name}, so nothing was changed. ${res.error}`
+      : `WhatsApp didn't accept the invitation for ${name}, so it is still marked not sent. ${res.error}`;
+  }
+  if (res.reason === "NOT_FOUND") return "Guest not found";
+  if (res.reason === "BOOKING_NOT_ACTIVE") {
+    return bookingInviteRefusal(bookingStatus) ?? "Invitations can't be sent for this booking right now.";
+  }
+  // Team sends aren't held to the customer quotas; kept so every outcome has words.
+  if (res.reason === "DAILY_LIMIT") return `${name}'s invitation is over the sending limit. Try again later.`;
+  if (res.reason === "NO_PHONE") return `${name} doesn't have a phone number WhatsApp can reach.`;
+  if (res.reason === "REPLIED") return `${name} has already replied.`;
+  if (res.reason === "IN_PROGRESS") return `${name}'s invitation is already being sent.`;
+  return "Invitation already sent";
+}
+
+const NOTE_LEFT_OUT =
+  "Sent with the approved WhatsApp invite template, which has fixed wording, so your personal note wasn't included.";
+
+/** Every screen that shows this booking's guests: the team's list, the host portal and the guest app. */
+function revalidateGuestViews(bookingId: string) {
+  revalidatePath(`/bookings/${bookingId}/guests`);
+  revalidatePath(`/portal/guests/${bookingId}`);
+  revalidatePath("/app/event/guests");
+}
 
 // ============================================================
 // Send Guest Invitation
@@ -52,123 +122,48 @@ export async function sendGuestInvitation(data: SendInvitationInput) {
     }
 
     const { guestId, bookingId, customMessage } = parsed.data;
+    const actorId = session.user.id as string;
 
-    // Fetch guest with full chain: guest -> guestList -> booking (with venue, contact)
-    const guest = await prisma.guest.findUnique({
-      where: { id: guestId },
-      include: {
-        guestList: {
-          include: {
-            booking: {
-              include: {
-                venue: { select: { name: true } },
-                contact: { select: { firstName: true, lastName: true } },
-              },
-            },
-          },
-        },
-      },
+    // The guest must be on THIS booking's list, so the invitation row carries the right booking.
+    const guest = await prisma.guest.findFirst({
+      where: { id: guestId, guestList: { bookingId } },
+      select: INVITE_GUEST_SELECT,
     });
-
     if (!guest) {
       return { success: false as const, error: "Guest not found" };
     }
 
-    if (!guest.phone) {
-      return { success: false as const, error: "Guest does not have a phone number" };
+    const res = await deliverInvitation({
+      guest,
+      booking: guest.guestList.booking,
+      channel: await inviteChannel(),
+      actorId,
+      via: "team",
+      mode: "send",
+      customMessage,
+    });
+    if (res.outcome !== "SENT") {
+      return {
+        success: false as const,
+        error: notSentError(res, guest.name, "send", guest.guestList.booking.status),
+      };
     }
 
-    const booking = guest.guestList.booking;
-
-    // Check if invitation already exists and has been sent
-    const existingInvitation = await prisma.guestInvitation.findUnique({
-      where: { guestId },
-    });
-
-    if (existingInvitation && existingInvitation.invitationStatus !== "NOT_SENT") {
-      return { success: false as const, error: "Invitation already sent" };
-    }
-
-    // Generate RSVP token and URLs
-    const rsvpToken = nanoid(16);
-    const rsvpUrl = buildRsvpUrl(rsvpToken);
-
-    // Format event date and time
-    const eventDate = format(new Date(booking.date), "EEEE, MMMM d, yyyy");
-    const eventTime = booking.startTime
-      ? format(new Date(booking.startTime), "h:mm a")
-      : undefined;
-
-    // Build invitation message
-    const messageContent = buildInvitationMessage({
-      guestName: guest.name,
-      eventName: booking.eventName,
-      eventDate,
-      eventTime,
-      venueName: booking.venue.name,
-      hostName: `${booking.contact.firstName} ${booking.contact.lastName}`,
-      rsvpLink: rsvpUrl,
-      customMessage: customMessage || undefined,
-    });
-
-    // Send WhatsApp message (fire-and-forget). Templates need ordered body params —
-    // a free-text `message` is ignored on the template path and Meta rejects the
-    // zero-param send.
-    sendWhatsApp({
-      to: guest.phone,
-      template: "guest_invitation",
-      params: buildInvitationTemplateParams({
-        guestName: guest.name, eventName: booking.eventName, eventDate, eventTime,
-        venueName: booking.venue.name, hostName: `${booking.contact.firstName} ${booking.contact.lastName}`, rsvpLink: rsvpUrl,
-      }),
-    }).catch((err) => {
-      console.error("[SEND_INVITATION_WHATSAPP_ERROR]", err);
-    });
-
-    // Create or update GuestInvitation
-    const invitation = await prisma.guestInvitation.upsert({
-      where: { guestId },
-      create: {
-        guestId,
-        bookingId,
-        rsvpToken,
-        invitationStatus: "SENT",
-        sentAt: new Date(),
-        messageContent,
-      },
-      update: {
-        invitationStatus: "SENT",
-        sentAt: new Date(),
-        messageContent,
-        rsvpToken,
-      },
-    });
-
-    // Schedule reminders (fire-and-forget)
-    scheduleReminders(guest.id, booking.id, booking.date).catch((err) => {
-      console.error("[SCHEDULE_REMINDERS_ERROR]", err);
-    });
-
-    // Log activity (fire-and-forget)
-    logActivity({
-      userId: session.user.id as string,
-      action: "sent_invitation",
-      entityType: "GuestInvitation",
-      entityId: invitation.id,
-      changes: { guestId, guestName: guest.name, bookingId },
-    });
-
-    // Notify (fire-and-forget)
     notify({
-      userId: session.user.id as string,
+      userId: actorId,
       type: "SYSTEM",
       title: "Invitation Sent",
-      message: `Invitation sent to ${guest.name} for ${booking.eventName}.`,
+      message: `Invitation sent to ${guest.name} for ${guest.guestList.booking.eventName}.`,
       actionUrl: `/bookings/${bookingId}/guests`,
     });
 
-    revalidatePath(`/bookings/${bookingId}/guests`);
-    return { success: true as const, data: serialize(invitation) };
+    revalidateGuestViews(bookingId);
+    const invitation = await prisma.guestInvitation.findUnique({ where: { id: res.invitationId } });
+    return {
+      success: true as const,
+      data: serialize(invitation),
+      ...(res.noteLeftOut ? { notice: NOTE_LEFT_OUT } : {}),
+    };
   } catch (error) {
     console.error("[SEND_GUEST_INVITATION_ERROR]", error);
     return { success: false as const, error: "Failed to send invitation" };
@@ -200,48 +195,84 @@ export async function bulkSendInvitations(data: BulkSendInvitationInput) {
     }
 
     const { guestIds, bookingId, customMessage } = parsed.data;
+    const actorId = session.user.id as string;
+    const ids = [...new Set(guestIds)];
 
-    let sent = 0;
-    let failed = 0;
-    let alreadySent = 0;
+    const [guests, channel] = await Promise.all([
+      prisma.guest.findMany({
+        where: { id: { in: ids }, guestList: { bookingId } },
+        select: INVITE_GUEST_SELECT,
+      }),
+      inviteChannel(),
+    ]);
+    const byId = new Map(guests.map((g) => [g.id, g]));
 
-    // Process sequentially to avoid race conditions
-    for (const guestId of guestIds) {
-      const result = await sendGuestInvitation({
-        guestId,
-        bookingId,
-        customMessage,
-      });
+    // Every guest found is on this one booking's list: refuse up front when the booking can't send.
+    const refusal = guests.length > 0 ? bookingInviteRefusal(guests[0].guestList.booking.status) : null;
+    if (refusal) return { success: false as const, error: refusal };
 
-      if (result.success) {
-        sent++;
-      } else if (result.error === "Invitation already sent") {
-        alreadySent++;
-      } else {
-        failed++;
-      }
+    const outcomes = await sendInBulk(
+      ids,
+      async (id): Promise<BulkSendOutcome> => {
+        const guest = byId.get(id);
+        if (!guest) return { outcome: "SKIPPED", reason: "NOT_FOUND" };
+        return deliverInvitation({
+          guest,
+          booking: guest.guestList.booking,
+          channel,
+          actorId,
+          via: "team",
+          mode: "send",
+          customMessage,
+        });
+      },
+      "[BULK_SEND_INVITATION_ERROR]"
+    );
+
+    const { counts, reasons, alreadySent, failed, noteLeftOut } = tallySendOutcomes(outcomes);
+    const parts = [`${counts.sent} sent`];
+    if (counts.alreadyInvited) parts.push(`${counts.alreadyInvited} already invited`);
+    if (counts.inProgress) parts.push(`${counts.inProgress} already being sent`);
+    if (counts.replied) parts.push(`${counts.replied} already replied`);
+    if (counts.needPhone) parts.push(`${counts.needPhone} without a phone number WhatsApp can reach`);
+    if (counts.notFound) parts.push(`${counts.notFound} not on this booking's guest list`);
+    if (counts.bookingNotActive) {
+      parts.push(`${counts.bookingNotActive} not sent because the booking can't send invitations now`);
     }
+    if (counts.overLimit) parts.push(`${counts.overLimit} over the sending limit`);
+    if (counts.notAccepted) {
+      parts.push(`${counts.notAccepted} not accepted by WhatsApp (${reasons.join("; ")})`);
+    }
+    const message = parts.join(" · ");
 
-    // Log activity (fire-and-forget)
-    logActivity({
-      userId: session.user.id as string,
+    await logActivity({
+      userId: actorId,
       action: "bulk_sent_invitations",
       entityType: "GuestInvitation",
       entityId: bookingId,
-      changes: { sent, failed, alreadySent, total: guestIds.length },
+      changes: { ...counts, total: ids.length },
     });
 
-    // Notify (fire-and-forget)
     notify({
-      userId: session.user.id as string,
+      userId: actorId,
       type: "SYSTEM",
-      title: "Bulk Invitations Sent",
-      message: `${sent} sent, ${alreadySent} already sent, ${failed} failed out of ${guestIds.length} guests.`,
+      title: counts.sent > 0 ? "Invitations Sent" : "No Invitations Sent",
+      message: `${message} (out of ${ids.length} guests).`,
       actionUrl: `/bookings/${bookingId}/guests`,
     });
 
-    revalidatePath(`/bookings/${bookingId}/guests`);
-    return { success: true as const, data: { sent, failed, alreadySent } };
+    revalidateGuestViews(bookingId);
+    return {
+      success: true as const,
+      data: {
+        ...counts,
+        // The Guest Manager's summary reads these two; with `sent`, every guest lands in exactly one.
+        alreadySent,
+        failed,
+        message,
+        ...(noteLeftOut ? { notice: NOTE_LEFT_OUT } : {}),
+      },
+    };
   } catch (error) {
     console.error("[BULK_SEND_INVITATIONS_ERROR]", error);
     return { success: false as const, error: "Failed to send bulk invitations" };
@@ -354,25 +385,13 @@ export async function resendInvitation(guestId: string) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
-    // Find existing invitation with guest and booking details
+    if (typeof guestId !== "string" || !guestId) {
+      return { success: false as const, error: "Invitation not found" };
+    }
+
     const invitation = await prisma.guestInvitation.findUnique({
       where: { guestId },
-      include: {
-        guest: {
-          include: {
-            guestList: {
-              include: {
-                booking: {
-                  include: {
-                    venue: { select: { name: true } },
-                    contact: { select: { firstName: true, lastName: true } },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
+      select: { id: true, guest: { select: INVITE_GUEST_SELECT } },
     });
 
     if (!invitation) {
@@ -380,62 +399,21 @@ export async function resendInvitation(guestId: string) {
     }
 
     const guest = invitation.guest;
-    if (!guest.phone) {
-      return { success: false as const, error: "Guest does not have a phone number" };
-    }
-
     const booking = guest.guestList.booking;
 
-    // Format event date and time
-    const eventDate = format(new Date(booking.date), "EEEE, MMMM d, yyyy");
-    const eventTime = booking.startTime
-      ? format(new Date(booking.startTime), "h:mm a")
-      : undefined;
-
-    // Rebuild message
-    const rsvpUrl = buildRsvpUrl(invitation.rsvpToken);
-    const messageContent = buildInvitationMessage({
-      guestName: guest.name,
-      eventName: booking.eventName,
-      eventDate,
-      eventTime,
-      venueName: booking.venue.name,
-      hostName: `${booking.contact.firstName} ${booking.contact.lastName}`,
-      rsvpLink: rsvpUrl,
+    // Same message, same RSVP link: the token already on the invitation is reused.
+    const res = await deliverInvitation({
+      guest,
+      booking,
+      channel: await inviteChannel(),
+      actorId: session.user.id as string,
+      via: "team",
+      mode: "resend",
     });
+    if (res.outcome !== "SENT") {
+      return { success: false as const, error: notSentError(res, guest.name, "resend", booking.status) };
+    }
 
-    // Resend via WhatsApp (fire-and-forget) — ordered template params, not free text.
-    sendWhatsApp({
-      to: guest.phone,
-      template: "guest_invitation",
-      params: buildInvitationTemplateParams({
-        guestName: guest.name, eventName: booking.eventName, eventDate, eventTime,
-        venueName: booking.venue.name, hostName: `${booking.contact.firstName} ${booking.contact.lastName}`, rsvpLink: rsvpUrl,
-      }),
-    }).catch((err) => {
-      console.error("[RESEND_INVITATION_WHATSAPP_ERROR]", err);
-    });
-
-    // Update invitation sentAt
-    const updatedInvitation = await prisma.guestInvitation.update({
-      where: { guestId },
-      data: {
-        sentAt: new Date(),
-        messageContent,
-        invitationStatus: "SENT",
-      },
-    });
-
-    // Log activity (fire-and-forget)
-    logActivity({
-      userId: session.user.id as string,
-      action: "resent_invitation",
-      entityType: "GuestInvitation",
-      entityId: updatedInvitation.id,
-      changes: { guestId, guestName: guest.name },
-    });
-
-    // Notify (fire-and-forget)
     notify({
       userId: session.user.id as string,
       type: "SYSTEM",
@@ -444,7 +422,8 @@ export async function resendInvitation(guestId: string) {
       actionUrl: `/bookings/${booking.id}/guests`,
     });
 
-    revalidatePath(`/bookings/${booking.id}/guests`);
+    revalidateGuestViews(booking.id);
+    const updatedInvitation = await prisma.guestInvitation.findUnique({ where: { id: res.invitationId } });
     return { success: true as const, data: serialize(updatedInvitation) };
   } catch (error) {
     console.error("[RESEND_INVITATION_ERROR]", error);
@@ -467,7 +446,9 @@ export async function processRsvpResponse(data: RsvpResponseInput) {
       };
     }
 
-    const { token, response, plusOnes, dietaryRestrictions, message, consent } = parsed.data;
+    // No reply message is read: nothing on the invitation or the guest holds one, so the
+    // RSVP page no longer offers a note for the hosts (one sent by an old page is ignored).
+    const { token, response, plusOnes, dietaryRestrictions, consent } = parsed.data;
 
     // DPDP: the guest must agree before we store their response. This is our
     // own hosted page, so the tick is enforced here, not just in the UI.
@@ -563,7 +544,7 @@ export async function processRsvpResponse(data: RsvpResponseInput) {
       actionUrl: `/bookings/${booking.id}/guests`,
     });
 
-    revalidatePath(`/bookings/${booking.id}/guests`);
+    revalidateGuestViews(booking.id);
 
     return {
       success: true as const,

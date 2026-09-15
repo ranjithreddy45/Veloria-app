@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { bookingInviteRefusal } from "@/lib/guests/invitation-send";
 import { GuestManager } from "./_components/guest-manager";
 import { CreateGuestListButton } from "./_components/guest-manager";
 
@@ -38,6 +39,9 @@ export default async function GuestPage({ params }: GuestPageProps) {
   }
 
   const guestList = guestListResult.data;
+  // The send path refuses a booking that isn't committed (HOLD, CANCELLED, COMPLETED): the Guest
+  // Manager gives the server's own reason instead of offering Send.
+  const invitesBlockedReason = bookingInviteRefusal(booking.status);
 
   return (
     <div className="space-y-6">
@@ -68,6 +72,7 @@ export default async function GuestPage({ params }: GuestPageProps) {
         <GuestManager
           bookingId={bookingId}
           guestList={guestList}
+          invitesBlockedReason={invitesBlockedReason}
         />
       ) : (
         <Card className="rounded-2xl shadow-card">
