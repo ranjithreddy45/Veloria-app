@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 
 import { getBooking } from "@/actions/booking.actions";
+import { bookingBalance, isIssuedInvoice } from "@/lib/finance/issued-invoices";
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/layout/page-header";
@@ -380,13 +381,18 @@ export default async function BookingDetailPage({
       >
         <div className="space-y-4">
       {/* CR-003: Stage 1 payment summary (Total invoiced / Collected / Pending) */}
-      {booking.invoices.length > 0 &&
+      {booking.invoices.some((i) => isIssuedInvoice(i.status)) &&
         (() => {
-          const totalInvoiced = booking.invoices.reduce((s, i) => s + Number(i.totalAmount), 0);
-          const pending = booking.invoices.reduce((s, i) => s + Number(i.balanceDue), 0);
+          // Finance's "issued" rule: drafts are unsent and cancelled invoices are void.
+          // The customer app uses the same rule, so both sides show the same figures.
+          const issuedInvoices = booking.invoices.filter((i) => isIssuedInvoice(i.status));
+          const totalInvoiced = issuedInvoices.reduce((s, i) => s + Number(i.totalAmount), 0);
+          const pending = bookingBalance(
+            issuedInvoices.map((i) => ({ status: i.status, balanceDue: Number(i.balanceDue) }))
+          ).balanceDue;
           const collected = Math.max(0, totalInvoiced - pending);
           const pct = totalInvoiced > 0 ? Math.round((collected / totalInvoiced) * 100) : 0;
-          const dueDates = booking.invoices
+          const dueDates = issuedInvoices
             .filter((i) => Number(i.balanceDue) > 0 && i.dueDate)
             .map((i) => new Date(i.dueDate as unknown as string).getTime())
             .sort((a, b) => a - b);
@@ -479,7 +485,7 @@ export default async function BookingDetailPage({
         beoStatus={existingBeo?.status ?? null}
         hasInvoices={booking.invoices.length > 0}
         hasBalanceDue={booking.invoices.some(
-          (inv) => Number(inv.balanceDue) > 0
+          (inv) => isIssuedInvoice(inv.status) && Number(inv.balanceDue) > 0
         )}
         guestCount={booking.guestCount}
         eventDate={booking.date}
