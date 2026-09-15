@@ -2,61 +2,155 @@
 // BEO / function-sheet content composer — the single source of truth for what
 // goes on a function sheet so it's never empty.
 // ------------------------------------------------------------
-// A function sheet needs: the customer's actual MENU (from their quotation),
-// standard floor/AV/decor/staffing/instruction NOTES (from the matched SOP
-// template's beoDefaults), and a slot-aware RUN OF SHOW. Used by the ops
-// provisioning engine, the manual "create function sheet" action, and the
-// one-time backfill that fills historical empty sheets. Never throws.
+// A function sheet needs: the customer's actual MENU (the booking's saved menu,
+// else their quotation), standard floor/AV/decor/staffing/instruction NOTES
+// (from the matched SOP template's beoDefaults), and a RUN OF SHOW anchored on
+// the team's slot hours. Used by the ops provisioning engine, the manual
+// "create function sheet" action, and the one-time backfill that fills
+// historical empty sheets. Never throws.
 // ============================================================
 
 import { prisma } from "@/lib/prisma";
+import { slotScheduleStartMin } from "@/lib/sales/slot";
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
+
+/** A stored number (number, numeric string or Prisma Decimal) as a finite number; 0 when unreadable. */
+function num(v: unknown): number {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
 
 export interface BookingMenu {
   items: { name: string; category: string; quantity: number; unit: string; estUnitCost: number }[];
   estFoodCost: number;
   menuNotes: string;
+  /**
+   * booking_menu: the booking's saved menu (the team's Menu Builder, and what
+   * accepting a customer's menu request writes). quotation: the latest
+   * quotation's Food / Cake / Drinks plan lines.
+   */
+  source: "booking_menu" | "quotation";
+}
+
+/** Number, numeric string or Prisma Decimal, as money columns arrive. */
+type StoredNumber = number | string | { toString(): string };
+
+/** A booking's saved menu (BookingMenu and its selections), as loadBookingMenu reads it. */
+export interface SavedBookingMenu {
+  guestCount: number;
+  specialInstructions: string | null;
+  selections: {
+    /** Servings per guest: the menu builder multiplies the dish's per-head price by it. */
+    quantity: number;
+    customPrice: StoredNumber | null;
+    menuItem: { name: string; category: string; pricePerHead: StoredNumber };
+  }[];
 }
 
 /**
- * Pull the customer's actual menu (Food / Cake / Drinks) from the booking's
- * frozen quotation snapshot → kitchen-plan items + a readable menu note.
- * Returns null when there's no quotation / no F&B. Never throws.
+ * The booking's saved menu → the kitchen's menu, in the menu builder's order.
+ * Each dish is one line per guest plate (quantity = guests, unit "plate"),
+ * costed at the menu builder's own price: the dish's stored per-head price
+ * (customPrice ?? its pricePerHead) × its servings per guest. So estFoodCost is
+ * guests × the menu's price per head, and a dish served more than once per
+ * guest says so in its name ("Gulab Jamun (×2 per guest)").
+ * Guests: the booking's guest count when set, else the menu's saved count (the
+ * same precedence as the quotation menu); the note flags a menu that was priced
+ * for a different count. Returns null for a menu without dishes.
+ */
+export function kitchenMenuFromBookingMenu(saved: SavedBookingMenu, covers: number): BookingMenu | null {
+  if (saved.selections.length === 0) return null;
+  const guests = Math.max(1, covers || saved.guestCount || 1);
+
+  const items: BookingMenu["items"] = saved.selections.map((s) => {
+    const perGuest = Math.max(1, Math.floor(num(s.quantity)));
+    const perHeadPrice = s.customPrice != null ? num(s.customPrice) : num(s.menuItem.pricePerHead);
+    return {
+      name: perGuest > 1 ? `${s.menuItem.name} (×${perGuest} per guest)` : s.menuItem.name,
+      category: s.menuItem.category,
+      quantity: guests,
+      unit: "plate",
+      estUnitCost: round2(perHeadPrice * perGuest),
+    };
+  });
+
+  const estFoodCost = round2(items.reduce((sum, it) => sum + it.quantity * it.estUnitCost, 0));
+  const lines = [
+    `Menu for ${guests} guests (from the booking's menu):`,
+    ...items.map((it) => `• ${it.category}: ${it.name} — ${it.quantity} ${it.unit}`),
+  ];
+  if (covers > 0 && saved.guestCount > 0 && covers !== saved.guestCount) {
+    lines.push(`Note: the saved menu was priced for ${saved.guestCount} guests; the booking now has ${covers}.`);
+  }
+  const instructions = saved.specialInstructions?.trim();
+  if (instructions) lines.push("", "Menu instructions:", instructions);
+  return { items, estFoodCost, menuNotes: lines.join("\n"), source: "booking_menu" };
+}
+
+/** The latest quotation's Food / Cake / Drinks plan lines → kitchen-plan items + a readable menu note. */
+async function quotationMenu(bookingId: string, covers: number): Promise<BookingMenu | null> {
+  const q = await prisma.salesQuotation.findFirst({
+    where: { bookingId },
+    orderBy: { updatedAt: "desc" },
+    select: { outputsJson: true, inputsJson: true, guestCount: true },
+  });
+  const out = q?.outputsJson as unknown as { lines?: { particulars: string; plan: string; amount: number }[] } | null;
+  const lines = Array.isArray(out?.lines) ? out!.lines : [];
+  if (lines.length === 0) return null;
+
+  const input = (q?.inputsJson ?? {}) as { cakeKg?: number };
+  const guests = Math.max(1, covers || q?.guestCount || 1);
+  const FNB: Record<string, string> = { "Food Plan": "Food", "Cake Plan": "Cake", "Drinks Plan": "Drinks" };
+
+  const items: BookingMenu["items"] = [];
+  for (const l of lines) {
+    const cat = FNB[l.particulars];
+    if (!cat || !(Number(l.amount) > 0)) continue;
+    let quantity = guests;
+    let unit = "plate";
+    if (cat === "Cake") { quantity = Math.max(1, Number(input.cakeKg) || 1); unit = "kg"; }
+    const estUnitCost = round2(Number(l.amount) / quantity);
+    const name = l.plan && l.plan !== "—" ? `${cat}: ${l.plan}` : cat;
+    items.push({ name, category: cat, quantity, unit, estUnitCost });
+  }
+  if (items.length === 0) return null;
+
+  const estFoodCost = round2(items.reduce((s, it) => s + it.quantity * it.estUnitCost, 0));
+  const menuNotes =
+    `Menu for ${guests} guests (from the customer's quotation):\n` +
+    items.map((it) => `• ${it.name} — ${it.quantity} ${it.unit}`).join("\n");
+  return { items, estFoodCost, menuNotes, source: "quotation" };
+}
+
+/**
+ * The menu the kitchen prepares, for the kitchen plan and the function sheet:
+ *   1. the booking's saved menu (BookingMenu with at least one dish): what the
+ *      team builds in the Menu Builder and what accepting a customer's menu
+ *      request writes, so the kitchen cooks the menu the team and the customer
+ *      agreed;
+ *   2. otherwise the booking's latest quotation's Food / Cake / Drinks lines.
+ * Returns null when neither has a menu. Never throws.
  */
 export async function loadBookingMenu(bookingId: string, covers: number): Promise<BookingMenu | null> {
   try {
-    const q = await prisma.salesQuotation.findFirst({
+    const saved = await prisma.bookingMenu.findUnique({
       where: { bookingId },
-      orderBy: { updatedAt: "desc" },
-      select: { outputsJson: true, inputsJson: true, guestCount: true },
+      select: {
+        guestCount: true,
+        specialInstructions: true,
+        selections: {
+          orderBy: { order: "asc" },
+          select: {
+            quantity: true,
+            customPrice: true,
+            menuItem: { select: { name: true, category: true, pricePerHead: true } },
+          },
+        },
+      },
     });
-    const out = q?.outputsJson as unknown as { lines?: { particulars: string; plan: string; amount: number }[] } | null;
-    const lines = Array.isArray(out?.lines) ? out!.lines : [];
-    if (lines.length === 0) return null;
-
-    const input = (q?.inputsJson ?? {}) as { cakeKg?: number };
-    const guests = Math.max(1, covers || q?.guestCount || 1);
-    const FNB: Record<string, string> = { "Food Plan": "Food", "Cake Plan": "Cake", "Drinks Plan": "Drinks" };
-
-    const items: BookingMenu["items"] = [];
-    for (const l of lines) {
-      const cat = FNB[l.particulars];
-      if (!cat || !(Number(l.amount) > 0)) continue;
-      let quantity = guests;
-      let unit = "plate";
-      if (cat === "Cake") { quantity = Math.max(1, Number(input.cakeKg) || 1); unit = "kg"; }
-      const estUnitCost = round2(Number(l.amount) / quantity);
-      const name = l.plan && l.plan !== "—" ? `${cat}: ${l.plan}` : cat;
-      items.push({ name, category: cat, quantity, unit, estUnitCost });
-    }
-    if (items.length === 0) return null;
-
-    const estFoodCost = round2(items.reduce((s, it) => s + it.quantity * it.estUnitCost, 0));
-    const menuNotes =
-      `Menu for ${guests} guests (from the customer's quotation):\n` +
-      items.map((it) => `• ${it.name} — ${it.quantity} ${it.unit}`).join("\n");
-    return { items, estFoodCost, menuNotes };
+    if (saved && saved.selections.length > 0) return kitchenMenuFromBookingMenu(saved, covers);
+    return await quotationMenu(bookingId, covers);
   } catch {
     return null;
   }
@@ -128,17 +222,17 @@ async function selectBeoDefaults(eventType?: string | null): Promise<BeoDefaults
 
 export interface RunOfShowEntry { time: string; activity: string; owner: string; notes?: string }
 
-const SLOT_START: Record<string, number> = { MORNING: 9 * 60, AFTERNOON: 12 * 60, EVENING: 18 * 60, FULL_DAY: 10 * 60 };
 const hhmm = (mins: number) => {
   const m = ((mins % 1440) + 1440) % 1440;
   return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 };
 
-/** An event-day timeline anchored on the booking's slot, tailored with the
- *  customer's ACTUAL booked services (decor / activities / cake / photography)
- *  when provided. The coordinator can edit it — but it's never blank or generic. */
+/** An event-day timeline anchored on the booking's slot start (the team's slot
+ *  hours, src/lib/sales/slot.ts), tailored with the customer's ACTUAL booked
+ *  services (decor / activities / cake / photography) when provided. The
+ *  coordinator can edit it — but it's never blank or generic. */
 export function buildDefaultRunOfShow(timeSlot?: string | null, services?: BookingServices): RunOfShowEntry[] {
-  const start = SLOT_START[(timeSlot || "EVENING").toUpperCase()] ?? SLOT_START.EVENING;
+  const start = slotScheduleStartMin(timeSlot);
   const s = services;
   const rows: [number, string, string][] = [
     [-240, "Team & vendor arrival; setup begins", "Operations"],

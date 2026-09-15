@@ -8,6 +8,7 @@ import { getBooking } from "@/actions/booking.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { MenuBuilder } from "./_components/menu-builder";
+import { MenuRequestsPanel } from "@/components/customer-app/menu-requests-panel";
 
 export const metadata: Metadata = { title: "Booking Menu" };
 
@@ -61,6 +62,8 @@ export default async function BookingMenuPage({
           </Link>
         </Button>
       </PageHeader>
+      {/* Menu changes the customer asked for in the app; accepting one updates this menu. */}
+      <MenuRequestsPanel bookingId={bookingId} hideWhenEmpty />
       <MenuBuilder
         bookingId={bookingId}
         bookingGuestCount={booking.guestCount}
