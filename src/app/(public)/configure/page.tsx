@@ -25,9 +25,9 @@ export const metadata: Metadata = {
 export default async function ConfigurePage({
   searchParams,
 }: {
-  searchParams: Promise<{ venue?: string; resume?: string }>;
+  searchParams: Promise<{ venue?: string; venueId?: string; resume?: string }>;
 }) {
-  const { venue, resume } = await searchParams;
+  const { venue, venueId, resume } = await searchParams;
 
   const [venues, resumed] = await Promise.all([
     getPublicVenuesForConfigurator(),
@@ -51,7 +51,7 @@ export default async function ConfigurePage({
       <Configurator
         catalog={catalog}
         venues={venues}
-        initialVenueId={venue}
+        initialVenueId={venue ?? venueId}
         resume={resumeDraft}
       />
     </div>

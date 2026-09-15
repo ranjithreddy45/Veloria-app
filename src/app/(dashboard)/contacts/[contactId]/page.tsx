@@ -51,6 +51,7 @@ import { EnquiryVenueSelect } from "./_components/enquiry-venue-select";
 import { EnquirySourceSelect } from "./_components/enquiry-source-select";
 import { getVenues } from "@/actions/booking.actions";
 import { EnquiryNotesPanel } from "./_components/enquiry-notes-panel";
+import { CustomerAccessPanel } from "@/components/customer-app/customer-access-panel";
 import { EnquiryRemindersPanel } from "./_components/enquiry-reminders-panel";
 import { StatusPill } from "@/components/shared/status-pill";
 import { enquiryStatusOption } from "../_components/enquiry-status";
@@ -303,6 +304,7 @@ export default async function ContactDetailPage({
               here shows up on /calendar and notifies the assignee. */}
           <div className="grid gap-6 md:grid-cols-2">
             <EnquiryNotesPanel contactId={contact.id} />
+            <CustomerAccessPanel contactId={contact.id} />
             <EnquiryRemindersPanel contactId={contact.id} />
           </div>
 

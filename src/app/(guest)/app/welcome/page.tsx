@@ -3,8 +3,10 @@ import Link from "next/link";
 import { getGuestUser } from "@/lib/guest-session";
 import { getStorefrontVenues } from "@/actions/storefront.actions";
 import { getGuestPhotos } from "@/actions/guest-public.actions";
+import { getPublicContact } from "@/lib/public/business-contact";
 import { OtpSignIn } from "./_components/otp-sign-in";
 import { STOCK } from "../../_components/stock";
+import { IllustrationBadge } from "../../_components/ui";
 
 export const metadata = { title: "Welcome — Veloria Grand" };
 export const dynamic = "force-dynamic";
@@ -15,7 +17,13 @@ export default async function WelcomePage({ searchParams }: { searchParams: Prom
   const user = await getGuestUser();
   if (user) redirect(dest);
 
-  const [venues, photos] = await Promise.all([getStorefrontVenues(), getGuestPhotos({ limit: 1 })]);
+  // The venue's real contact options (Settings → Business contact) back up
+  // every "didn't get a code?" and "contact us" state on the sign-in form.
+  const [venues, photos, contact] = await Promise.all([
+    getStorefrontVenues(),
+    getGuestPhotos({ limit: 1 }),
+    getPublicContact(),
+  ]);
   const hero = photos[0]?.url ?? STOCK.welcome;
   const halls = venues.length;
 
@@ -26,6 +34,11 @@ export default async function WelcomePage({ searchParams }: { searchParams: Prom
       ) : (
         <div aria-hidden className="absolute inset-0 opacity-40 [background-image:radial-gradient(circle_at_30%_20%,#b88513_0,transparent_45%),radial-gradient(circle_at_80%_70%,#7a2160_0,transparent_50%)]" />
       )}
+      {!photos[0]?.url ? (
+        <div className="absolute right-4 top-[calc(var(--sat)+1rem)] z-10">
+          <IllustrationBadge />
+        </div>
+      ) : null}
       <div aria-hidden className="absolute inset-0 bg-[linear-gradient(180deg,rgba(42,11,32,.05)_25%,rgba(42,11,32,.5)_55%,rgba(42,11,32,.96)_82%)]" />
 
       <div className="vg-rise-slow relative flex min-h-screen flex-col justify-end gap-[18px] px-7 pb-[calc(var(--sab)+3.5rem)] pt-[calc(var(--sat)+2rem)]">
@@ -37,7 +50,7 @@ export default async function WelcomePage({ searchParams }: { searchParams: Prom
         <p className="text-body leading-[1.55] text-[#fdf5f3]/[.78]">
           {halls > 0 ? `${halls === 1 ? "One hall" : `${halls} halls`}, one address.` : "One address."} Hold a date in minutes, plan every detail from your phone.
         </p>
-        <OtpSignIn next={dest} />
+        <OtpSignIn next={dest} contact={contact} />
         <Link href="/app" className="block rounded-2xl border border-[#fdf5f3]/35 py-[15px] text-center text-body font-medium text-[#fdf5f3]">
           Browse as guest
         </Link>
