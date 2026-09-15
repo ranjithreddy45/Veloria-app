@@ -13,6 +13,7 @@ import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
 import type { BookingStatus, Prisma } from "@prisma/client";
+import { isIssuedInvoice } from "@/lib/finance/issued-invoices";
 import {
   computeEventProfitability,
   summarizeEventProfitability,
@@ -201,7 +202,7 @@ export async function getEventProfitability(params: EventProfitabilityParams): P
     for (const inv of invoices) {
       if (!inv.bookingId) continue;
       invoiceBooking.set(inv.id, inv.bookingId);
-      if (inv.status === "DRAFT" || inv.status === "CANCELLED") continue;
+      if (!isIssuedInvoice(inv.status)) continue; // finance's shared issued rule
       const r = rev(inv.bookingId);
       r.invoicedIssued += num(inv.totalAmount);
       r.issuedInvoiceCount += 1;
