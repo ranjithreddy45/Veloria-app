@@ -10,7 +10,11 @@ import {
   Heart,
 } from "lucide-react";
 import { getPublicEventPlan } from "@/actions/public-event-plan.actions";
+import { HelpChip, helpChipChannels } from "@/components/public/help-chip";
+import { getPublicContact, type PublicContact } from "@/lib/public/business-contact";
+import { prisma } from "@/lib/prisma";
 import { EventCountdown } from "./_components/event-countdown";
+import { helpLine, helpRoute, nextSteps } from "./_lib/event-copy";
 
 // ============================================================
 // PUBLIC tokenized client event-plan page — /event/[token] (no auth, noindex).
@@ -38,7 +42,25 @@ function occasionNoun(eventType: string): string {
   return t.length > 0 ? t : "event";
 }
 
-function NotFoundCard() {
+// The booking's real status, for what the page may promise. getPublicEventPlan has
+// already checked this token (format, rate limit) and found the event, but its
+// projection doesn't carry the status, so it is read here. null when it can't be
+// read: the page then promises nothing about the date.
+async function bookingStatusFor(token: string): Promise<string | null> {
+  try {
+    const op = await prisma.eventOperation.findFirst({
+      where: { clientToken: token },
+      select: { booking: { select: { status: true } } },
+    });
+    return op?.booking?.status ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// Promises nothing: says what may have happened and offers the numbers the team
+// keeps in Settings → Business contact (HelpChip hides itself when none are set).
+function NotFoundCard({ contact }: { contact: PublicContact }) {
   return (
     <div className="bg-card shadow-card mx-auto max-w-lg rounded-2xl border p-10 text-center">
       <div className="bg-primary/10 text-primary mx-auto flex size-12 items-center justify-center rounded-2xl">
@@ -48,9 +70,10 @@ function NotFoundCard() {
         We couldn&apos;t find this event
       </h1>
       <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm leading-relaxed">
-        This link may have expired or isn&apos;t quite ready yet. Your event
-        coordinator will sort it out in moments.
+        This link may have expired, or your event page isn&apos;t ready yet.
+        Please check with the Veloria Grand team.
       </p>
+      <HelpChip variant="banner" className="mt-6" contact={contact} />
     </div>
   );
 }
@@ -63,10 +86,15 @@ export default async function EventPlanPage({
   const { token } = await params;
   const res = await getPublicEventPlan(token);
 
-  if (!res.success) return <NotFoundCard />;
+  if (!res.success) return <NotFoundCard contact={await getPublicContact()} />;
 
   const e = res.data;
   const occasion = occasionNoun(e.eventType);
+  const [status, contact] = await Promise.all([bookingStatusFor(token), getPublicContact()]);
+  const coordinatorPhone = e.pointOfContact.phone?.trim() || null;
+  // The business's published WhatsApp / phone (Settings → Business contact), offered when the coordinator has no number.
+  const route = helpRoute(coordinatorPhone, helpChipChannels(contact) !== null);
+  const steps = nextSteps(status, route);
 
   return (
     <div className="space-y-6">
@@ -85,17 +113,24 @@ export default async function EventPlanPage({
           </h1>
           <div aria-hidden className="mx-auto mt-5 h-px w-14 bg-white/25" />
           <div className="mt-6">
-            <EventCountdown eventAtISO={e.eventAtISO} occasion={occasion} />
+            {/* Morning and Full Day have no hours set by the team: count days, never a clock time. */}
+            <EventCountdown
+              eventAtISO={e.eventAtISO}
+              eventDateISO={e.eventDateISO}
+              hasHours={e.slotHasHours}
+              occasion={occasion}
+            />
           </div>
         </div>
       </section>
 
       {/* ---- At-a-glance details ---- */}
       <section className="grid grid-cols-2 gap-3">
+        {/* The booking's own calendar day (eventDateISO), not a time read in UTC. */}
         <Detail
           icon={<CalendarDays className="text-muted-foreground/60 size-4" />}
           label="Date"
-          value={new Date(e.eventAtISO).toLocaleDateString(undefined, {
+          value={new Date(`${e.eventDateISO}T00:00:00.000Z`).toLocaleDateString(undefined, {
             weekday: "short",
             day: "numeric",
             month: "long",
@@ -181,18 +216,16 @@ export default async function EventPlanPage({
       <section className="border-primary/25 bg-primary/[0.06] rounded-2xl border p-5 sm:p-6">
         <h2 className="font-editorial text-foreground flex items-center gap-2.5 text-title font-semibold">
           <Heart className="size-4 text-destructive" />
-          What to expect next
+          {steps.heading}
         </h2>
-        <p className="text-foreground/80 mt-3 text-sm leading-relaxed">
-          Your date is locked in and our team is already preparing everything for
-          your big day. We&apos;ll confirm the final details with you as we get
-          closer. If anything changes, or you have a special request, your event
-          coordinator is just a message away.
-        </p>
+        {/* Worded from the booking's real status: "locked in" only once it is confirmed. */}
+        <p className="text-foreground/80 mt-3 text-sm leading-relaxed">{steps.body}</p>
       </section>
 
       {/* ---- Point of contact ---- */}
-      {(e.pointOfContact.name || e.pointOfContact.phone) && (
+      {/* No round-the-clock promise: the published support hours when set, and a way to reach
+          someone only when there is one (the coordinator's number, else the business's channels). */}
+      {(e.pointOfContact.name || coordinatorPhone) && (
         <section className="bg-card shadow-card rounded-2xl border p-5 sm:p-6">
           <p className="text-muted-foreground text-meta font-semibold uppercase tracking-[0.16em]">
             Your event coordinator
@@ -204,13 +237,13 @@ export default async function EventPlanPage({
                   {e.pointOfContact.name}
                 </p>
               )}
-              <p className="text-muted-foreground text-xs">
-                Here to help, any time
-              </p>
+              {route && (
+                <p className="text-muted-foreground text-xs">{helpLine(contact.supportHours)}</p>
+              )}
             </div>
-            {e.pointOfContact.phone && (
+            {coordinatorPhone && (
               <a
-                href={`tel:${e.pointOfContact.phone}`}
+                href={`tel:${coordinatorPhone}`}
                 className="bg-primary text-primary-foreground inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium transition-opacity hover:opacity-90"
               >
                 <Phone className="size-4" />
@@ -218,7 +251,14 @@ export default async function EventPlanPage({
               </a>
             )}
           </div>
+          {route === "team" && (
+            // The hours are on the line above, so the chip carries only the buttons.
+            <HelpChip className="mt-4 justify-start" contact={{ phone: contact.phone, whatsapp: contact.whatsapp }} />
+          )}
         </section>
+      )}
+      {!e.pointOfContact.name && !coordinatorPhone && route === "team" && (
+        <HelpChip variant="banner" contact={contact} />
       )}
     </div>
   );

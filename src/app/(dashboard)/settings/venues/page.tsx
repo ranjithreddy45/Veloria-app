@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { PageHelp } from "@/lib/page-help";
 import { VenuesList } from "./_components/venues-list";
 import { VenueHierarchy } from "./_components/venue-hierarchy";
+import { VenuePublicInfoEditor } from "./_components/venue-public-info-editor";
 
 export const metadata: Metadata = { title: "Venue Management" };
 
@@ -29,6 +30,7 @@ export default async function VenuesPage() {
         description="Manage your event venues and their availability."
       />
       <VenuesList venues={venues} />
+      <VenuePublicInfoEditor venues={venues} />
       <VenueHierarchy venues={hierarchyVenues} />
     </div>
   );

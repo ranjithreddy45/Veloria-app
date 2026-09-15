@@ -1,14 +1,35 @@
 import { prisma } from "@/lib/prisma";
+import {
+  POLICY_KEYS,
+  isPolicyKey,
+  resolvePublishedFaqs,
+  type DisplayFaq,
+  type PolicyKey,
+} from "@/app/(dashboard)/settings/customer-content/_lib/content-rules";
 
 // ============================================================
-// Customer-facing policies (PolicyDocument). Customers only ever see the
-// published version; an unpublished or missing policy returns null so the
-// UI can say so honestly instead of inventing terms.
+// Customer-facing policies (PolicyDocument) and FAQs (FaqItem).
+// Customers only ever see the published version; an unpublished or missing
+// policy returns null so the UI can say so honestly instead of inventing terms.
+//
+// The team edits both in Settings → Customer content. A policy draft is kept
+// in its own row under "DRAFT:<KEY>" and is never returned from here.
+//
+// Server-only (Prisma). The pure helpers re-exported below live in
+// settings/customer-content/_lib/content-rules.ts — client components import
+// them from there.
 // ============================================================
 
-export type PolicyKey = "CANCELLATION_REFUND" | "HOUSE_RULES" | "BOOKING_TERMS";
-
-export const POLICY_KEYS: readonly PolicyKey[] = ["CANCELLATION_REFUND", "HOUSE_RULES", "BOOKING_TERMS"] as const;
+export type { PolicyKey, DisplayFaq };
+export { POLICY_KEYS };
+export {
+  POLICY_META,
+  formatIstDate,
+  groupFaqsForDisplay,
+  parsePolicyParam,
+  policyPath,
+  type FaqGroup,
+} from "@/app/(dashboard)/settings/customer-content/_lib/content-rules";
 
 export interface PublishedPolicy {
   key: PolicyKey;
@@ -19,12 +40,47 @@ export interface PublishedPolicy {
 }
 
 export async function getPublishedPolicy(key: PolicyKey): Promise<PublishedPolicy | null> {
+  if (!isPolicyKey(key)) return null;
   try {
     const p = await prisma.policyDocument.findUnique({ where: { key } });
     if (!p || !p.isPublished) return null;
     return { key, title: p.title, body: p.body, version: p.version, publishedAt: p.publishedAt?.toISOString() ?? null };
   } catch {
     return null;
+  }
+}
+
+/** Every published policy, in POLICY_KEYS order. */
+export async function getPublishedPolicies(): Promise<PublishedPolicy[]> {
+  try {
+    const rows = await prisma.policyDocument.findMany({ where: { key: { in: [...POLICY_KEYS] }, isPublished: true } });
+    return POLICY_KEYS.flatMap((key) => {
+      const p = rows.find((r) => r.key === key);
+      return p ? [{ key, title: p.title, body: p.body, version: p.version, publishedAt: p.publishedAt?.toISOString() ?? null }] : [];
+    });
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Published FAQs in the team's order. A hall-specific FAQ appears only while
+ * its hall is visible to customers (active, top-level — the halls the customer
+ * app lists) and carries `hallName`. Pass `venueId` for one hall's FAQs only.
+ */
+export async function getPublishedFaqs(opts: { venueId?: string } = {}): Promise<DisplayFaq[]> {
+  try {
+    const rows = await prisma.faqItem.findMany({
+      where: { isPublished: true, ...(opts.venueId ? { venueId: opts.venueId } : {}) },
+      select: { id: true, question: true, answer: true, category: true, venueId: true, order: true, createdAt: true },
+    });
+    const hallIds = [...new Set(rows.map((r) => r.venueId).filter((id): id is string => !!id))];
+    const halls = hallIds.length
+      ? await prisma.venue.findMany({ where: { id: { in: hallIds }, isActive: true, parentVenueId: null }, select: { id: true, name: true } })
+      : [];
+    return resolvePublishedFaqs(rows, halls);
+  } catch {
+    return [];
   }
 }
 
