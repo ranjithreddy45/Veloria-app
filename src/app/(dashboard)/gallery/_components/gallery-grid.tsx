@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { deleteGalleryItem, updateGalleryItem } from "@/actions/gallery.actions";
+import { GalleryVisibilityToggle } from "@/components/customer-app/gallery-visibility-toggle";
 import { MEDIA_TYPE_LABELS } from "@/lib/constants";
 import { AddGalleryItemDialog } from "./add-gallery-item-dialog";
 
@@ -435,6 +436,7 @@ export function GalleryGrid({ data, venues }: GalleryGridProps) {
                     year: "numeric",
                   })}
                 </p>
+                <GalleryVisibilityToggle item={item} venues={venues} />
               </CardContent>
             </Card>
           ))}
