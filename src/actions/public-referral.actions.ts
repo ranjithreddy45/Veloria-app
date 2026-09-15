@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { clientIpOfHeaders } from "@/lib/hr/geo";
 import { checkRateLimit } from "@/lib/rate-limit";
 import {
   publicReferralSubmissionSchema,
@@ -180,9 +181,7 @@ export async function submitReferralPortalLead(
 async function getClientIp(): Promise<string> {
   try {
     const h = await headers();
-    const fwd = h.get("x-forwarded-for");
-    if (fwd) return fwd.split(",")[0]!.trim();
-    return h.get("x-real-ip") || "unknown";
+    return clientIpOfHeaders(h) || "unknown";
   } catch {
     return "unknown";
   }

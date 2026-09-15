@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { clientIpOfHeaders } from "@/lib/hr/geo";
 import { surveyResponseSchema } from "@/schemas/survey.schema";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
@@ -13,7 +14,7 @@ export async function POST(
 ) {
   try {
     // Rate limit: 10 survey responses per minute per IP
-    const identifier = request.headers.get("x-forwarded-for") || "unknown";
+    const identifier = clientIpOfHeaders(request.headers) || "unknown";
     const rateCheck = checkRateLimit(`survey-respond:${identifier}`, { maxRequests: 10, windowSeconds: 60 });
     if (!rateCheck.success) {
       return rateLimitResponse(rateCheck.resetIn);

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { clientIpOfHeaders } from "@/lib/hr/geo";
 import { toEnquirySource } from "@/lib/enquiry-source";
 import { webformSubmissionSchema } from "@/schemas/webform.schema";
 import { notify } from "@/lib/notify";
@@ -88,10 +89,7 @@ export async function POST(
     const { slug } = await params;
 
     // Rate limit by IP
-    const ip =
-      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      request.headers.get("x-real-ip") ||
-      "unknown";
+    const ip = clientIpOfHeaders(request.headers) || "unknown";
 
     maybeCleanup();
 

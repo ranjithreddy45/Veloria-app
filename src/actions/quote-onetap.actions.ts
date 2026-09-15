@@ -22,6 +22,7 @@
 import { prisma } from "@/lib/prisma";
 import { headers } from "next/headers";
 import { z } from "zod";
+import { clientIpOfHeaders } from "@/lib/hr/geo";
 import {
   ensureProformaForShareLink,
   finalizeOneTapBlock,
@@ -67,7 +68,7 @@ function rateLimited(ip: string): boolean {
 async function clientIp(): Promise<string> {
   try {
     const h = await headers();
-    return h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "unknown";
+    return clientIpOfHeaders(h) || "unknown";
   } catch {
     return "unknown";
   }

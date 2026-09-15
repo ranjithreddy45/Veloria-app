@@ -7,6 +7,7 @@ import { chatCompletionWithSystem } from "@/lib/ai/openai-client";
 import { aiEmailSchema } from "@/schemas/ai.schema";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { clientIpOfHeaders } from "@/lib/hr/geo";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest) {
 
   // Rate limit: 20 AI email requests per minute per user
   const identifier =
-    session?.user?.id || req.headers.get("x-forwarded-for") || "anonymous";
+    session?.user?.id || clientIpOfHeaders(req.headers) || "anonymous";
   const rateCheck = checkRateLimit(`ai-email:${identifier}`, {
     maxRequests: 20,
     windowSeconds: 60,

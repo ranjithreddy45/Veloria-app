@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { clientIpOfHeaders } from "@/lib/hr/geo";
 import { widgetInquirySchema } from "@/schemas/widget.schema";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { captureLeadFromExternal } from "@/lib/lead-capture";
@@ -12,7 +13,7 @@ import { CONSENT_TEXT_ENQUIRY } from "@/lib/privacy/consent-text";
 export async function POST(request: NextRequest) {
   try {
     // Rate limit: 5 widget inquiry requests per minute per IP
-    const identifier = request.headers.get("x-forwarded-for") || "unknown";
+    const identifier = clientIpOfHeaders(request.headers) || "unknown";
     const rateCheck = checkRateLimit(`widget-inquiry:${identifier}`, { maxRequests: 5, windowSeconds: 60 });
     if (!rateCheck.success) {
       return rateLimitResponse(rateCheck.resetIn);
@@ -73,7 +74,7 @@ export async function POST(request: NextRequest) {
             source: "/widget",
             purpose: "ENQUIRY_RESPONSE",
             text: CONSENT_TEXT_ENQUIRY,
-            ip: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || null,
+            ip: clientIpOfHeaders(request.headers),
             userAgent: request.headers.get("user-agent"),
           }
         : undefined,
