@@ -236,9 +236,15 @@ export async function openSalesLeadByTitle(page: Page, title: string): Promise<s
   // new lead to someone else, so search the whole book.
   await page.goto("/leads?scope=all");
   await expect(page.getByRole("heading", { level: 1, name: "Leads" })).toBeVisible();
-  await page.getByPlaceholder(/Search name, email or phone/).fill(title);
+  const search = page.getByPlaceholder(/Search name, email or phone/);
   const link = visibleOnly(page.getByRole("link", { name: title, exact: true }));
-  await expect(link).toBeVisible();
+  // Typing before React has hydrated the table is silently dropped on a slow CI
+  // runner (the lead already exists), so re-type until the search actually runs.
+  await expect(async () => {
+    await search.fill("");
+    await search.fill(title);
+    await expect(link).toBeVisible({ timeout: 4_000 });
+  }).toPass({ timeout: 30_000 });
   await link.click();
   await page.waitForURL(/\/leads\/[^/?]+$/);
   await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible();
