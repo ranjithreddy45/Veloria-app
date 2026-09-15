@@ -3,7 +3,7 @@
 import * as React from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { signOut } from "next-auth/react";
+import { signOutSafely } from "@/lib/client-auth";
 import {
   Search,
   User,
@@ -454,7 +454,7 @@ export function AppHeader() {
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="cursor-pointer text-destructive focus:text-destructive"
-              onClick={() => signOut({ callbackUrl: "/sign-in" })}
+              onClick={() => signOutSafely("/sign-in")}
             >
               <LogOut className="mr-2 size-4" />
               Sign out

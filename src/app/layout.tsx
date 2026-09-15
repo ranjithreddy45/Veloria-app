@@ -8,6 +8,7 @@ import { CapacitorProvider } from "@/providers/capacitor-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ServiceWorkerRegistrar } from "@/components/pwa/service-worker-registrar";
 import { StaleBuildRecovery } from "@/components/system/stale-build-recovery";
+import { auth } from "@/../auth";
 import "./globals.css";
 
 // ============================================================
@@ -86,11 +87,17 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Hydrate the client SessionProvider from the same request that rendered the
+  // page. Without this, the dashboard can render with the server session while
+  // the sidebar/header briefly render their unauthenticated "Guest" fallback
+  // until `/api/auth/session` completes after a sign-in redirect.
+  const session = await auth();
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geist.variable} ${geistMono.variable} ${fraunces.variable} font-sans antialiased`}>
@@ -100,7 +107,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <AuthSessionProvider>
+          <AuthSessionProvider session={session}>
             <QueryProvider>
               <CapacitorProvider>
                 <TooltipProvider delayDuration={0}>

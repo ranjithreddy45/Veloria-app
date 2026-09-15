@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 echo "🚀 Starting Deployment to VPS..."
 
 # 1. Sync the code
@@ -10,15 +11,24 @@ echo "🔨 Building and Restarting PM2..."
 ssh -i ./id_rsa theveloriagrand@43.225.53.88 << 'EOF'
   cd ~/veloria-app-prod
   pnpm install
-  rm -rf .next/standalone
+  # Completely remove the old .next directory to prevent stale build caches
+  rm -rf .next
   pnpm run build
   
   # Copy static files to standalone output
   cp -r public .next/standalone/
   cp -r .next/static .next/standalone/.next/
   
-  # Reload PM2 using the cluster configuration (zero-downtime)
-  pm2 reload ecosystem.config.js --env production || pm2 start ecosystem.config.js --env production
+  # We must delete the old processes because they are holding the port!
+  pm2 delete veloria-prod || true
+  pm2 delete veloria-app || true
+  
+  if [ -f "ecosystem.config.js" ]; then
+    pm2 start ecosystem.config.js --env production
+  else
+    echo "Ecosystem config not found. Falling back to simple start."
+    HOSTNAME=127.0.0.1 PORT=3010 pm2 start .next/standalone/server.js --name veloria-prod
+  fi
 EOF
 
 echo "Deployment Complete!"

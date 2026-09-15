@@ -3,7 +3,7 @@
 import { Fragment, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { signOut } from "next-auth/react";
+import { signOutSafely } from "@/lib/client-auth";
 import {
   LayoutDashboard,
   Users,
@@ -614,7 +614,7 @@ export function AppSidebar() {
             </span>
           </div>
           <button
-            onClick={() => signOut({ callbackUrl: "/sign-in" })}
+            onClick={() => signOutSafely("/sign-in")}
             className="shrink-0 rounded-lg p-1.5 text-sidebar-foreground/40 transition-all duration-150 hover:bg-background hover:text-sidebar-accent-foreground active:scale-[0.94] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 group-data-[collapsible=icon]:hidden"
             aria-label="Sign out"
             title="Sign out"

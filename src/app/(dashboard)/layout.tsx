@@ -5,6 +5,7 @@ import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppHeader } from "@/components/layout/app-header";
 import { AIChatWrapper } from "@/components/ai/ai-chat-wrapper";
 import { TwoFactorGate } from "@/components/security/two-factor-gate";
+import { SessionRevalidator } from "@/components/auth/session-revalidator";
 
 export default async function DashboardLayout({
   children,
@@ -24,6 +25,7 @@ export default async function DashboardLayout({
 
   return (
     <SidebarProvider>
+      <SessionRevalidator />
       {/* First focusable element — lets keyboard users jump past the nav (SC-03). */}
       <a href="#main-content" className="skip-link">
         Skip to main content
