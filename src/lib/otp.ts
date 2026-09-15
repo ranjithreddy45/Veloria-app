@@ -118,7 +118,11 @@ export function otpRateLimit(
   return { success: result.success, resetIn: result.resetIn };
 }
 
-/** Client IP from request headers (first forwarded hop), or null. */
+/**
+ * Client IP from request headers, or null. X-Forwarded-For is read from the
+ * proxy end (clientIpFromHeaders in src/lib/hr/geo.ts): its first entry is
+ * whatever the client sent, so it must never key these limits.
+ */
 export function clientIpOf(
   headers: { get(name: string): string | null } | null | undefined
 ): string | null {
@@ -326,21 +330,6 @@ export function usableContactEmail(email: string | null | undefined): string | n
   return e;
 }
 
-/**
- * User.email is required and unique. Use the contact's own email only when it
- * is real and no other login has it; otherwise the non-deliverable placeholder.
- * The copied email is stored UNVERIFIED, so the verified-email rule in
- * portal-identity never widens this login's access through it.
- */
-export function pickLoginEmail(input: {
-  contactEmail: string | null | undefined;
-  contactEmailTaken: boolean;
-  normalized: string;
-}): string {
-  const email = usableContactEmail(input.contactEmail);
-  return email && !input.contactEmailTaken ? email : placeholderLoginEmail(input.normalized);
-}
-
 export type StaffGrantDecision =
   | { kind: "LINK_EXISTING"; userId: string }
   | { kind: "CREATE_LOGIN" }
@@ -476,8 +465,14 @@ export async function verifyLoginOtp(normalized: string, code: string): Promise<
 
 type Db = Prisma.TransactionClient;
 
-/** SQL twin of normalizeOtpPhone() for one column. Constant SQL only — never user input. */
-function phoneKeySql(column: "phone" | "alternatePhone"): Prisma.Sql {
+/** Free-text phone columns matched digit-normalised: User/Contact phones and PublicHold.customerPhone. */
+export type PhoneKeyColumn = "phone" | "alternatePhone" | "customerPhone";
+
+/**
+ * SQL twin of normalizeOtpPhone() for one column of the table being queried.
+ * Constant SQL only: the column comes from the fixed list above, never from input.
+ */
+export function phoneKeySql(column: PhoneKeyColumn): Prisma.Sql {
   const digits = `regexp_replace(coalesce("${column}", ''), '[^0-9]', '', 'g')`;
   return Prisma.raw(
     `(CASE WHEN length(${digits}) = 10 THEN '91' || ${digits} ` +
@@ -738,22 +733,26 @@ function contactDisplayName(c: { firstName: string | null; lastName: string | nu
 }
 
 /**
- * Create a CLIENT login for a number: no password, email unverified. Callers
- * hold lockPhoneForLogin, so two requests can't mint two logins for one number.
+ * Create a CLIENT login for a number: no password, and always the
+ * non-deliverable placeholder email (wa-<digits>@customer.invalid), never the
+ * contact's email. A contact's email is only what someone typed (a public hold
+ * takes any email next to any phone) and User.email is unique, so copying it
+ * would let whoever holds the phone reserve a stranger's address: its owner
+ * could then not sign up, activate a host invite, use /portal/activate or sign
+ * in with Google. The customer adds their own address from the account screen.
+ * Callers hold lockPhoneForLogin, so two requests can't mint two logins for one
+ * number.
  */
 export async function createCustomerLogin(
   tx: Db,
-  input: { normalized: string; name: string | null; contactEmail: string | null; phoneVerifiedAt: Date | null }
+  input: {
+    normalized: string;
+    name: string | null;
+    phoneVerifiedAt: Date | null;
+  }
 ): Promise<OtpLogin> {
-  const contactEmail = usableContactEmail(input.contactEmail);
-  const contactEmailTaken = contactEmail
-    ? !!(await tx.user.findFirst({
-        where: { email: { equals: contactEmail, mode: "insensitive" } },
-        select: { id: true },
-      }))
-    : false;
-  let email = pickLoginEmail({ contactEmail, contactEmailTaken, normalized: input.normalized });
-  if (isUndeliverableEmail(email) && (await tx.user.findUnique({ where: { email }, select: { id: true } }))) {
+  let email = placeholderLoginEmail(input.normalized);
+  if (await tx.user.findUnique({ where: { email }, select: { id: true } })) {
     // An old login kept this placeholder after its phone was changed: stay unique.
     email = placeholderLoginEmail(input.normalized, randomBytes(3).toString("hex"));
   }
@@ -821,17 +820,17 @@ export async function completeOtpLogin(normalized: string): Promise<OtpLoginResu
         const contact = decision.linkContactId
           ? await tx.contact.findUnique({
               where: { id: decision.linkContactId },
-              select: { firstName: true, lastName: true, email: true },
+              select: { firstName: true, lastName: true },
             })
           : null;
         const invitedName =
           facts.collaborators
             .find((c) => decision.collaboratorIds.includes(c.id) && !!c.name?.trim())
             ?.name?.trim() ?? null;
+        // The new login gets the placeholder email, never the contact's (createCustomerLogin).
         user = await createCustomerLogin(tx, {
           normalized,
           name: contact ? contactDisplayName(contact) : invitedName,
-          contactEmail: contact?.email ?? null,
           phoneVerifiedAt: now,
         });
         created = true;
