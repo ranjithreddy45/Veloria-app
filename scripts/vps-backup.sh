@@ -86,14 +86,18 @@ if [ "$PRUNE_ONLY" = 0 ]; then
 
   log "dumping to $out via $PG_IMAGE …"
   start="$(date +%s)"
-  # The URL is handed to the container from the environment (`-e NAME`, no
-  # value) so it never appears in docker's argv / `ps`.
-  export PGDUMP_URL="$URL"
-  docker run --rm --network host -e PGDUMP_URL "$PG_IMAGE" \
-      sh -c 'exec pg_dump --no-owner --no-privileges --format=plain --encoding=UTF8 --dbname="$PGDUMP_URL"' \
+  # Not --rm: on this host overlay2 cleanup can fail with "device or resource
+  # busy", and with --rm that turned a complete dump into exit 125. The
+  # container is removed separately and a cleanup failure never fails the
+  # backup. The URL goes in over stdin, so it is never stored in the
+  # container's config (docker inspect) or in docker's own argv.
+  name="veloria-pgdump-$$"
+  docker ps -aq --filter "name=^veloria-pgdump-" | xargs -r docker rm -f >/dev/null 2>&1 || true
+  printf '%s\n' "$URL" | docker run -i --name "$name" --network host "$PG_IMAGE" \
+      sh -c 'read -r PGDUMP_URL && exec pg_dump --no-owner --no-privileges --format=plain --encoding=UTF8 --dbname="$PGDUMP_URL"' \
     2>"$BACKUP_DIR/.pg_dump.err" | gzip -6 > "$tmp"
-  dump_rc="${PIPESTATUS[0]}"
-  unset PGDUMP_URL
+  dump_rc="${PIPESTATUS[1]}"
+  docker rm -f "$name" >/dev/null 2>&1 || log "note: container $name not removed yet (retried next run)"
   if [ "$dump_rc" != 0 ]; then
     fail "pg_dump exited $dump_rc — $(head -c 400 "$BACKUP_DIR/.pg_dump.err" | tr '\n' ' ')"
   fi
