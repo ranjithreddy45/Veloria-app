@@ -19,6 +19,7 @@ const JOBS = [
   "rep-availability", // refresh openLeadCount + auto-offline idle reps (smart-routing)
   "quote-nudge", // viewed-but-unpaid 24h quote nudge (one-shot via QuoteShareLink.silentNudgeFiredAt; NOT quote-silent-nudge)
   "event-interval-reminders", // 48/24/12/4h pre-event reminders (vendor/guest/property) + T-1h readiness check
+  "lapsed-hold-release", // unpaid HOLDs past holdExpiresAt → CANCELLED + PublicHold EXPIRED; never a hold with any payment (src/lib/holds/lapsed-hold.ts)
 ] as const;
 
 export async function GET(request: Request) {

@@ -5,6 +5,13 @@ import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { utcDayRange } from "@/lib/sales/slot-util";
+import { SLOT_LABEL } from "@/lib/sales/slot";
+import { bookingBalance } from "@/lib/finance/issued-invoices";
+// Lapsed holds: ONE decision shared with the availability board, the customer's
+// calendar and the release jobs (src/lib/holds/lapsed-hold.ts).
+import { HOLD_FACTS_SELECT } from "@/lib/holds/lapsed-hold";
+import { findLapsedHoldIds, releaseLapsedHoldsForSlot } from "@/lib/holds/release-lapsed-holds";
+import { occupyingBookings, withoutLapsedHolds } from "@/lib/holds/slot-occupancy";
 import { revalidatePath } from "next/cache";
 import { bookingSchema, type BookingInput } from "@/schemas/booking.schema";
 import type { BookingStatus, TimeSlot } from "@prisma/client";
@@ -287,6 +294,7 @@ export async function getBooking(id: string) {
             invoiceNumber: true,
             status: true,
             totalAmount: true,
+            paidAmount: true,
             balanceDue: true,
             issueDate: true,
             dueDate: true,
@@ -359,11 +367,15 @@ export async function checkAvailability(
             : []),
         ],
       },
-      select: { id: true, bookingNumber: true, eventName: true, timeSlot: true, date: true },
+      select: { id: true, bookingNumber: true, eventName: true, timeSlot: true, date: true, status: true, holdExpiresAt: true },
     });
-    const existingBooking = existingBookings.find(
-      (b) => new Date(b.date).getUTCDate() === utcDay
-    );
+    const dayBookings = existingBookings.filter((b) => new Date(b.date).getUTCDate() === utcDay);
+    // A lapsed hold (window passed, no money on any of its invoices, no checkout
+    // in flight) no longer takes the slot: the same decision as the availability
+    // board and the customer's calendar. createBooking/updateBooking release it
+    // before taking the slot. If this lookup fails, holds keep blocking.
+    const lapsedIds = await findLapsedHoldIds(dayBookings);
+    const existingBooking = withoutLapsedHolds(dayBookings, lapsedIds)[0];
 
     // Check for blackout dates
     const blackouts = await prisma.blackoutDate.findMany({
@@ -482,6 +494,16 @@ export async function createBooking(data: BookingInput) {
           ]
         : [{ timeSlot: reqSlot }, { timeSlot: "FULL_DAY" as TimeSlot }];
 
+    // Lapsed holds on this slot read as free in the pre-check above, but their
+    // rows still occupy the slot (and the partial unique index on venue + date +
+    // slot). Release them first with the same guarded cancel as the release job
+    // and the customer's hold flow; a hold that gained money meanwhile is kept,
+    // and the clash check below refuses the slot. If the release itself fails
+    // it throws (reported as a failed booking) rather than booking around a
+    // hold that may still be live.
+    const now = new Date();
+    await releaseLapsedHoldsForSlot(bookingData.venueId, bookingDate, reqSlot, now);
+
     // Re-check + insert ATOMICALLY under Serializable isolation so two
     // concurrent blocks for overlapping slots (e.g. EVENING + FULL_DAY) can't
     // both succeed. The loser aborts with a serialization error → "slot taken".
@@ -491,9 +513,12 @@ export async function createBooking(data: BookingInput) {
         async (tx) => {
           const clashes = await tx.booking.findMany({
             where: { venueId: bookingData.venueId, date: { gte: dayGte, lt: dayLt }, status: { notIn: ["CANCELLED"] }, OR: conflictOr },
-            select: { id: true, date: true },
+            // Hold facts (status, window, money on every invoice), read inside
+            // this transaction, so a lapsed hold is judged by the shared rule.
+            select: { ...HOLD_FACTS_SELECT, date: true },
           });
-          if (clashes.some((c) => new Date(c.date).getUTCDate() === bookingUTCDay)) throw new Error("SLOT_TAKEN");
+          const dayClashes = clashes.filter((c) => new Date(c.date).getUTCDate() === bookingUTCDay);
+          if (occupyingBookings(dayClashes, now).length > 0) throw new Error("SLOT_TAKEN");
           return tx.booking.create({
             data: {
               bookingNumber,
@@ -711,6 +736,12 @@ export async function updateBooking(id: string, data: BookingInput) {
       // Match by UTC day range (not local-midnight equality) — see utcDayRange.
       const { gte, lt, utcDay } = utcDayRange(bookingDate);
 
+      // Release lapsed holds on the target slot first, exactly as createBooking
+      // does — never this booking itself. A failed release throws (reported as
+      // a failed update) rather than moving onto a hold that may still be live.
+      const now = new Date();
+      await releaseLapsedHoldsForSlot(bookingData.venueId, bookingDate, bookingData.timeSlot as TimeSlot, now, id);
+
       // Check for conflicts excluding the current booking
       const conflicts = await prisma.booking.findMany({
         where: {
@@ -730,9 +761,14 @@ export async function updateBooking(id: string, data: BookingInput) {
               : []),
           ],
         },
-        select: { id: true, date: true },
+        // Hold facts so a lapsed hold is judged by the shared rule.
+        select: { ...HOLD_FACTS_SELECT, date: true },
       });
-      const conflict = conflicts.some((c) => new Date(c.date).getUTCDate() === utcDay);
+      const conflict =
+        occupyingBookings(
+          conflicts.filter((c) => new Date(c.date).getUTCDate() === utcDay),
+          now
+        ).length > 0;
 
       if (conflict) {
         return {
@@ -824,7 +860,7 @@ export async function completeBooking(
         guestCount: true,
         date: true,
         createdById: true,
-        invoices: { select: { balanceDue: true } },
+        invoices: { select: { status: true, balanceDue: true } },
         tasks: { select: { status: true, dueDate: true } },
       },
     });
@@ -854,7 +890,11 @@ export async function completeBooking(
     eventEnd.setUTCHours(23, 59, 59, 999);
 
     const gate: string[] = [];
-    const balanceOwed = booking.invoices.some((i) => Number(i.balanceDue) > 0);
+    // Owed by finance's shared rule (bookingBalance: the balance of SENT,
+    // PARTIALLY_PAID and OVERDUE invoices), the booking page's and the customer
+    // app's figure: an unsent draft or a fully refunded invoice doesn't block.
+    const balanceOwed =
+      bookingBalance(booking.invoices.map((i) => ({ status: i.status, balanceDue: Number(i.balanceDue) }))).balanceDue > 0;
     if (balanceOwed) gate.push("Final payment not cleared (balance still due)");
     const beoReady = beo && ["PUBLISHED", "LOCKED"].includes(beo.status);
     if (!beoReady) gate.push("Function sheet (BEO) not published");
@@ -940,13 +980,6 @@ export async function completeBooking(
 // to CONFIRMED, locking the slot, and the customer gets the same confirmation.
 // ============================================================
 
-const SLOT_LABEL_CONFIRM: Record<string, string> = {
-  MORNING: "Morning",
-  AFTERNOON: "Afternoon (11am–3pm)",
-  EVENING: "Evening (5pm–10pm)",
-  FULL_DAY: "Full Day",
-};
-
 export async function confirmBooking(id: string) {
   try {
     const session = await auth();
@@ -1023,7 +1056,7 @@ export async function confirmBooking(id: string) {
         month: "long",
         year: "numeric",
       });
-      const slot = SLOT_LABEL_CONFIRM[booking.timeSlot] ?? booking.timeSlot;
+      const slot = SLOT_LABEL[booking.timeSlot];
       const name = `${booking.contact?.firstName ?? "Guest"} ${booking.contact?.lastName ?? ""}`.trim();
       const poc = booking.createdBy;
 
@@ -1269,7 +1302,7 @@ export async function getBookingsForCalendar(
     const startDate = new Date(Date.UTC(year, month - 1, 1));
     const endDate = new Date(Date.UTC(year, month, 1) - 1);
 
-    const bookings = await prisma.booking.findMany({
+    const rows = await prisma.booking.findMany({
       where: {
         date: { gte: startDate, lte: endDate },
         // Exclude cancelled bookings to match the grid/heatmap occupancy view.
@@ -1285,10 +1318,21 @@ export async function getBookingsForCalendar(
         date: true,
         timeSlot: true,
         guestCount: true,
+        holdExpiresAt: true,
         venue: { select: { id: true, name: true } },
       },
       orderBy: { date: "asc" },
     });
+
+    // Lapsed holds (window passed, no money against the booking) no longer
+    // occupy their slot: the same decision as the availability board, the
+    // booking form and the customer's calendar, so the day panel offers those
+    // slots as available too. Like cancelled bookings below, they are not
+    // hidden silently: `lapsedHolds` lists them until the release job cancels
+    // them, which takes minutes. If the lookup fails they stay in `data`.
+    const lapsedIds = await findLapsedHoldIds(rows);
+    const bookings = withoutLapsedHolds(rows, lapsedIds);
+    const lapsedHolds = rows.filter((b) => lapsedIds.has(b.id));
 
     // What the `status != CANCELLED` filter above just removed.
     //
@@ -1322,6 +1366,7 @@ export async function getBookingsForCalendar(
       // Additive: existing callers that only read `data` keep working.
       cancelled,
       cancelledPaid,
+      lapsedHolds: serialize(lapsedHolds),
     };
   } catch (error) {
     console.error("[GET_BOOKINGS_CALENDAR_ERROR]", error);

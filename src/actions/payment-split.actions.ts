@@ -40,6 +40,12 @@ import {
   type SplitRow,
   type SplitTarget,
 } from "@/lib/payments/split-format";
+import { HOLD_FACTS_SELECT, isHoldLapsed } from "@/lib/holds/lapsed-hold";
+import {
+  HOLD_LAPSED_CHECKOUT_ERROR,
+  HOLD_WINDOW_CLOSED_CHECKOUT_ERROR,
+  newCheckoutWouldExtendHold,
+} from "@/lib/holds/checkout-guard";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -477,7 +483,9 @@ export async function createSplitRazorpayOrder(
         invoiceNumber: true,
         status: true,
         balanceDue: true,
-        booking: { select: { status: true } },
+        // Status, hold window and money on ALL the booking's invoices: the facts
+        // the one lapsed-hold rule needs (src/lib/holds/lapsed-hold.ts).
+        booking: { select: HOLD_FACTS_SELECT },
       },
     });
     if (!invoice) return { success: false, error: "Invoice not found" };
@@ -487,6 +495,14 @@ export async function createSplitRazorpayOrder(
     }
     if (invoice.booking && invoice.booking.status === "CANCELLED") {
       return { success: false, error: "This booking has been cancelled and the date is no longer reserved. Please contact the host." };
+    }
+    // A hold that has LAPSED but not been released yet (window passed, no money
+    // on any invoice, no proof awaiting verification, no checkout in the last
+    // 15 minutes) already reads as free to the team and to customers. Refused
+    // with the invoice link's words, before any open order is reused.
+    const now = new Date();
+    if (invoice.booking && isHoldLapsed(invoice.booking, now)) {
+      return { success: false, error: HOLD_LAPSED_CHECKOUT_ERROR };
     }
     const outstandingPaise = Math.max(0, rupeesToPaise(Number(invoice.balanceDue)));
     const amountPaise = split.amountPaise;
@@ -516,6 +532,15 @@ export async function createSplitRazorpayOrder(
           data: { orderId: split.razorpayOrderId, amount: amountPaise, currency: "INR", keyId: razorpayKeyId() },
         };
       }
+    }
+
+    // A NEW order starts a new 15-minute checkout grace, and that grace keeps a
+    // hold from lapsing. Once the window has passed, only reopening this share's
+    // own open order (above) is allowed, unless money that doesn't depend on the
+    // grace is already against the booking (src/lib/holds/checkout-guard.ts).
+    // Same rule and words as the invoice link.
+    if (invoice.booking && newCheckoutWouldExtendHold(invoice.booking, now)) {
+      return { success: false, error: HOLD_WINDOW_CLOSED_CHECKOUT_ERROR };
     }
 
     const Razorpay = (await import("razorpay")).default;

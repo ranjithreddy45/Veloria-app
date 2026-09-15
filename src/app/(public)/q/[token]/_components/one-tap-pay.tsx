@@ -1,9 +1,15 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { CalendarCheck, Loader2, CheckCircle2, AlertCircle, Lock, ShieldCheck, PhoneCall } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { CalendarCheck, Loader2, CheckCircle2, AlertCircle, Lock, ShieldCheck } from "lucide-react";
+import {
+  CHECKOUT_CLOSE_FALLBACK_MS,
+  CHECKOUT_TIMED_OUT_MESSAGE,
+  RAZORPAY_CHECKOUT_TIMEOUT_SECONDS,
+  checkoutClosedByTimeout,
+} from "@/lib/holds/checkout-timeout";
 import { Button } from "@/components/ui/button";
-import { HelpChip } from "@/components/public/help-chip";
+import { HelpChip, type HelpChipContact } from "@/components/public/help-chip";
 import {
   createPublicRazorpayOrder,
   verifyPublicRazorpayPayment,
@@ -69,6 +75,7 @@ export function OneTapPay({
   tierQuotationId,
   eventDateLabel,
   slotLabel,
+  contact,
 }: {
   token: string;
   /** Server-computed 20% booking-advance amount (paise-exact, INR). */
@@ -87,6 +94,8 @@ export function OneTapPay({
   /** Optional event facts echoed on the success/slot-taken cards. */
   eventDateLabel?: string | null;
   slotLabel?: string | null;
+  /** The business's published contact channels, loaded on the server with getPublicContact(). */
+  contact?: HelpChipContact | null;
 }) {
   const [loading, setLoading] = useState(false);
   // "slotTaken": money captured but the slot was grabbed first (pay-then-lose
@@ -97,11 +106,18 @@ export function OneTapPay({
   const [error, setError] = useState("");
   // Amount actually captured (server-clamped) — echoed on the success card.
   const [paidAmount, setPaidAmount] = useState<number | null>(null);
+  // The page's own close, for a checkout Razorpay leaves open past its timeout.
+  const closeTimer = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    const timer = closeTimer;
+    return () => window.clearTimeout(timer.current);
+  }, []);
 
   const pay = useCallback(async () => {
     setLoading(true);
     setStatus("idle");
     setError("");
+    window.clearTimeout(closeTimer.current);
     try {
       const ok = await loadRazorpayScript();
       if (!ok) throw new Error("Couldn't load the payment gateway. Please try again.");
@@ -131,6 +147,18 @@ export function OneTapPay({
       // Server-clamped amount actually being charged (paise → INR) for the receipt line.
       const chargedInr = Math.round(paise / 100);
 
+      // The checkout closes before the 15-minute protection a started checkout
+      // gives a hold runs out (src/lib/holds/checkout-timeout.ts); a close on
+      // that timeout says so instead of silently resetting the button.
+      let openedAt = 0;
+      let paid = false; // Razorpay handed back a payment: the verify call decides what shows
+      let closed = false;
+      const timedOut = () => {
+        setStatus("error");
+        setError(CHECKOUT_TIMED_OUT_MESSAGE);
+        setLoading(false);
+      };
+
       const options = {
         key: keyId,
         amount: paise,
@@ -140,7 +168,10 @@ export function OneTapPay({
         order_id: orderId,
         prefill: { name: customerName, email: "", contact: "" },
         theme: { color: "#7c3aed" },
+        timeout: RAZORPAY_CHECKOUT_TIMEOUT_SECONDS,
         handler: async (resp: RazorpayResponse) => {
+          paid = true;
+          window.clearTimeout(closeTimer.current);
           try {
             setStatus("securing");
             // 3. Verify + credit the invoice (idempotent capture).
@@ -185,7 +216,14 @@ export function OneTapPay({
             setLoading(false);
           }
         },
-        modal: { ondismiss: () => setLoading(false) },
+        modal: {
+          ondismiss: (reason?: unknown) => {
+            closed = true;
+            window.clearTimeout(closeTimer.current);
+            setLoading(false);
+            if (!paid && checkoutClosedByTimeout(openedAt, Date.now(), reason)) timedOut();
+          },
+        },
       };
       const rzp = new window.Razorpay(options);
       rzp.on("payment.failed", (r: { error: { description: string } }) => {
@@ -193,7 +231,20 @@ export function OneTapPay({
         setError(r.error?.description || "Payment failed. Please try again.");
         setLoading(false);
       });
+      openedAt = Date.now();
       rzp.open();
+      // If Razorpay hasn't closed the checkout by now, close it here, still
+      // inside the hold's checkout protection.
+      closeTimer.current = window.setTimeout(() => {
+        if (paid || closed) return;
+        closed = true;
+        try {
+          rzp.close();
+        } catch {
+          // Already closed.
+        }
+        timedOut();
+      }, CHECKOUT_CLOSE_FALLBACK_MS);
     } catch (e) {
       setStatus("error");
       setError(e instanceof Error ? e.message : "Something went wrong.");
@@ -221,11 +272,11 @@ export function OneTapPay({
               ? `Payment of ${inr(paidAmount)} received — your date is now blocked for you.`
               : "Your booking advance is received and the date is now blocked for you."}
           </p>
-          <p className="mt-1 flex items-center justify-center gap-1.5 text-detail font-medium text-success">
-            <PhoneCall className="size-3.5" /> Your coordinator will call you within 24 hours.
+          <p className="mt-1 text-detail font-medium text-success">
+            Our team will be in touch about the next steps.
           </p>
         </div>
-        <HelpChip variant="banner" />
+        <HelpChip variant="banner" contact={contact} />
       </div>
     );
   }
@@ -241,13 +292,16 @@ export function OneTapPay({
           </p>
           <p className="text-sm text-warning">
             {paidAmount != null ? `Your payment of ${inr(paidAmount)} came through` : "Your payment came through"}
-            {" "}— but this slot was just taken. Our team will call you to sort it out or refund you in full.
+            {/* Nothing alerts the team when the slot is lost, so the customer is asked to get in touch. */}
+            {error
+              ? " — but we couldn't confirm your date on this page."
+              : " — but this slot was just taken. Please contact us to choose another date or arrange a refund."}
           </p>
           {error && (
             <p className="text-detail text-warning/80">{error}</p>
           )}
         </div>
-        <HelpChip variant="banner" />
+        <HelpChip variant="banner" contact={contact} />
       </div>
     );
   }
@@ -284,7 +338,7 @@ export function OneTapPay({
           <p className="flex items-center justify-center gap-1.5 text-center text-sm text-destructive">
             <AlertCircle className="size-4 shrink-0" /> {error}
           </p>
-          <HelpChip />
+          <HelpChip contact={contact} />
         </div>
       )}
 

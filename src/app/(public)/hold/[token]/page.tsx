@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
-import { CheckCircle2, Clock, CalendarDays, MapPin, Users, PhoneCall } from "lucide-react";
+import Link from "next/link";
+import { CheckCircle2, Clock, CalendarDays, MapPin, Users } from "lucide-react";
 import { getPublicHold } from "@/actions/public-hold.actions";
 import { getSocialProof } from "@/lib/public/social-proof";
 import { SocialProofStrip } from "@/components/public/social-proof-strip";
 import { HelpChip } from "@/components/public/help-chip";
+import { getPublicContact } from "@/lib/public/business-contact";
 import { HoldPayPanel } from "./_components/hold-pay-panel";
 
 // ============================================================
@@ -27,7 +29,8 @@ export default async function HoldConfirmationPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const res = await getPublicHold(token);
+  // The help buttons use the numbers the team keeps in Settings → Business contact.
+  const [res, contact] = await Promise.all([getPublicHold(token), getPublicContact()]);
 
   if (!res.success) {
     return (
@@ -39,13 +42,13 @@ export default async function HoldConfirmationPage({
           The link may have expired. Your date could still be open — have
           another look.
         </p>
-        <a
+        <Link
           href="/hold"
           className="bg-primary text-primary-foreground mt-6 inline-block rounded-full px-5 py-2.5 text-sm font-medium transition-opacity hover:opacity-90"
         >
           Check availability
-        </a>
-        <HelpChip variant="banner" className="mt-6" />
+        </Link>
+        <HelpChip variant="banner" className="mt-6" contact={contact} />
       </div>
     );
   }
@@ -116,12 +119,11 @@ export default async function HoldConfirmationPage({
               <span className="numeric">{inr(h.tokenAmount)}</span> received ·{" "}
               {dateLabel} · {h.slotLabel}
             </p>
-            <p className="mt-2 flex items-center justify-center gap-1.5 text-detail font-medium text-success">
-              <PhoneCall className="size-3.5" /> Your coordinator will call you
-              within 24 hours.
+            <p className="mt-2 text-detail font-medium text-success">
+              Our team will be in touch about the next steps.
             </p>
           </div>
-          <HelpChip variant="banner" />
+          <HelpChip variant="banner" contact={contact} />
         </div>
       ) : expired || released ? (
         <div className="bg-card shadow-card rounded-2xl border p-8 text-center">
@@ -131,13 +133,13 @@ export default async function HoldConfirmationPage({
           <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm leading-relaxed">
             The date is open again — you&apos;re welcome to hold it once more.
           </p>
-          <a
+          <Link
             href="/hold"
             className="bg-primary text-primary-foreground mt-6 inline-block rounded-full px-5 py-2.5 text-sm font-medium transition-opacity hover:opacity-90"
           >
             Check availability
-          </a>
-          <HelpChip variant="banner" className="mt-6" />
+          </Link>
+          <HelpChip variant="banner" className="mt-6" contact={contact} />
         </div>
       ) : (
         <HoldPayPanel
@@ -146,6 +148,7 @@ export default async function HoldConfirmationPage({
           tokenAmount={h.tokenAmount}
           customerFirstName={h.customerFirstName}
           expiresAt={h.expiresAt}
+          contact={contact}
           socialProof={
             socialProof ? <SocialProofStrip variant="banner" data={socialProof} /> : null
           }

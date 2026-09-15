@@ -21,6 +21,8 @@ import {
   type PeakDateInfo,
 } from "@/lib/pricing/date-demand";
 import { getDemandConfig } from "@/actions/date-demand.actions";
+import { findLapsedHoldIds } from "@/lib/holds/release-lapsed-holds";
+import { withoutLapsedHolds } from "@/lib/holds/slot-occupancy";
 
 // ============================================================
 // Date-Demand Pricing — Peak-date calendar + config admin actions.
@@ -471,11 +473,14 @@ export async function getHotDates(params?: {
       }
     }
 
-    // Bookings per UTC day across all venues (scarcity signal).
-    const bookings = await prisma.booking.findMany({
+    // Bookings per UTC day across all venues (scarcity signal). Lapsed holds
+    // (window passed, no money against them) don't count, as on the
+    // availability board (src/lib/holds/lapsed-hold.ts).
+    const bookingRows = await prisma.booking.findMany({
       where: { date: { gte: start, lt: end }, status: { notIn: ["CANCELLED"] } },
-      select: { date: true },
+      select: { id: true, date: true, status: true, holdExpiresAt: true },
     });
+    const bookings = withoutLapsedHolds(bookingRows, await findLapsedHoldIds(bookingRows));
     const bookingsByDay = new Map<string, number>();
     for (const b of bookings) {
       const key = utcToDateKey(b.date);

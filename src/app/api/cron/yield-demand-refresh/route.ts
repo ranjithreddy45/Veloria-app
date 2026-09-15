@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { prisma } from "@/lib/prisma";
 import type { TimeSlot } from "@prisma/client";
+import { findLapsedHoldIds } from "@/lib/holds/release-lapsed-holds";
+import { withoutLapsedHolds } from "@/lib/holds/slot-occupancy";
 
 export const maxDuration = 300; // 90-day forward window across all venues
 
@@ -78,15 +80,18 @@ export async function GET(request: Request) {
 
   const venueIds = venues.map((v) => v.id);
 
-  // Pull all non-cancelled bookings in the window once.
-  const bookings = await prisma.booking.findMany({
+  // Pull all non-cancelled bookings in the window once. A lapsed hold (window
+  // passed, no money against it) does not occupy its slot, as on the
+  // availability board (src/lib/holds/lapsed-hold.ts).
+  const bookingRows = await prisma.booking.findMany({
     where: {
       venueId: { in: venueIds },
       status: { not: "CANCELLED" },
       date: { gte: windowStart, lt: windowEnd },
     },
-    select: { venueId: true, date: true, timeSlot: true },
+    select: { id: true, venueId: true, date: true, timeSlot: true, status: true, holdExpiresAt: true },
   });
+  const bookings = withoutLapsedHolds(bookingRows, await findLapsedHoldIds(bookingRows, ranAt));
 
   // Recent inquiry/lead volume per venue/date (event-date demand interest).
   // Lead links a venue via preferredVenueId; eventDate is a plain DateTime.

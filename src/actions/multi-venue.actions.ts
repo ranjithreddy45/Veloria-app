@@ -11,6 +11,8 @@ import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
 import { hasPermission } from "@/lib/permissions";
 import { utcDayRange } from "@/lib/sales/slot-util";
+import { findLapsedHoldIds } from "@/lib/holds/release-lapsed-holds";
+import { withoutLapsedHolds } from "@/lib/holds/slot-occupancy";
 
 // ============================================================
 // Get Venue Hierarchy
@@ -242,11 +244,21 @@ export async function getCoordinatedSchedule(venueIds: string[], date: Date) {
         venueId: true,
         venueGroupId: true,
         date: true,
+        status: true,
+        holdExpiresAt: true,
       },
     });
-    const bookings = bookingsRaw.filter(
+    const dayBookings = bookingsRaw.filter(
       (b) => new Date(b.date).getUTCDate() === utcDay
     );
+    // A lapsed hold (window passed, no money against it) no longer occupies its
+    // slot: the same decision as the availability board, the booking form and
+    // the customer's calendar (src/lib/holds/lapsed-hold.ts). It is named on the
+    // free slot it used to block until the release job cancels it. If the
+    // lookup fails, holds keep blocking.
+    const lapsedIds = await findLapsedHoldIds(dayBookings);
+    const bookings = withoutLapsedHolds(dayBookings, lapsedIds);
+    const lapsedHolds = dayBookings.filter((b) => lapsedIds.has(b.id));
 
     // Fetch blackout dates for the given venues on the given date
     const blackoutsRaw = await prisma.blackoutDate.findMany({
@@ -313,6 +325,20 @@ export async function getCoordinatedSchedule(venueIds: string[], date: Date) {
           }
           // A specific slot booking also blocks FULL_DAY
           slots.FULL_DAY = { available: false, reason: conflictMsg };
+        }
+      }
+
+      // A free slot that a lapsed hold used to block names it, in the
+      // availability board's words.
+      const venueLapsed = lapsedHolds.filter((b) => b.venueId === venue.id);
+      for (const key of Object.keys(slots) as Array<keyof typeof slots>) {
+        if (!slots[key].available) continue;
+        const lapsed =
+          key === "FULL_DAY"
+            ? venueLapsed[0]
+            : venueLapsed.find((b) => b.timeSlot === key || b.timeSlot === "FULL_DAY");
+        if (lapsed) {
+          slots[key] = { available: true, reason: `Lapsed hold · ${lapsed.bookingNumber} (unpaid, slot free)` };
         }
       }
 

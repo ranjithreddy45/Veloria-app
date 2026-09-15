@@ -5,6 +5,9 @@ import { chatCompletionWithSystem } from "./openai-client";
 import { buildEmailSystemPrompt } from "./system-prompt";
 import { hasPermission, type Permission } from "@/lib/permissions";
 import { logActivity } from "@/lib/activity-logger";
+import { utcDayRange } from "@/lib/sales/slot-util";
+import { findLapsedHoldIds } from "@/lib/holds/release-lapsed-holds";
+import { withoutLapsedHolds } from "@/lib/holds/slot-occupancy";
 
 // ============================================================
 // Tool execution context — who is asking, and from where
@@ -754,35 +757,67 @@ async function checkVenueAvailabilityTool(args: Record<string, unknown>): Promis
   }
   if (!venueId) return JSON.stringify({ error: "Provide a venueId or venueName." });
 
-  const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) return JSON.stringify({ error: "Invalid date." });
-  date.setHours(0, 0, 0, 0);
+  // The same answer as the team's availability board (getAvailabilityGrid in
+  // src/actions/availability.actions.ts): the UTC day of a YYYY-MM-DD date
+  // (Booking.date and BlackoutDate.date are @db.Date), blackouts block, and a
+  // lapsed hold (window passed, no money against it) does not.
+  const ymd = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateStr ?? "");
+  const day = ymd ? new Date(Date.UTC(Number(ymd[1]), Number(ymd[2]) - 1, Number(ymd[3]))) : new Date(dateStr);
+  if (Number.isNaN(day.getTime())) return JSON.stringify({ error: "Invalid date." });
+  if (!["MORNING", "AFTERNOON", "EVENING", "FULL_DAY"].includes(timeSlot)) {
+    return JSON.stringify({ error: "Invalid time slot. Use MORNING, AFTERNOON, EVENING or FULL_DAY." });
+  }
+  const { gte, lt, utcDay } = utcDayRange(day);
 
   const slotConflicts =
     timeSlot === "FULL_DAY"
       ? ["MORNING", "AFTERNOON", "EVENING", "FULL_DAY"]
       : [timeSlot, "FULL_DAY"];
 
-  const conflict = await prisma.booking.findFirst({
-    where: {
-      venueId,
-      date,
-      status: { notIn: ["CANCELLED"] },
-      timeSlot: { in: slotConflicts as never },
-    },
-    select: { eventName: true, timeSlot: true, status: true },
-  });
+  const [rows, blackoutRows, venue] = await Promise.all([
+    prisma.booking.findMany({
+      where: {
+        venueId,
+        date: { gte, lt },
+        status: { notIn: ["CANCELLED"] },
+        timeSlot: { in: slotConflicts as never },
+      },
+      select: { id: true, bookingNumber: true, eventName: true, timeSlot: true, status: true, holdExpiresAt: true, date: true },
+    }),
+    prisma.blackoutDate.findMany({
+      where: { venueId, date: { gte, lt } },
+      select: { date: true, timeSlot: true, reason: true },
+    }),
+    prisma.venue.findUnique({ where: { id: venueId }, select: { name: true } }),
+  ]);
 
-  const venue = await prisma.venue.findUnique({ where: { id: venueId }, select: { name: true } });
+  const dayRows = rows.filter((b) => new Date(b.date).getUTCDate() === utcDay);
+  const lapsedIds = await findLapsedHoldIds(dayRows);
+  const conflict = withoutLapsedHolds(dayRows, lapsedIds)[0];
+  const lapsed = dayRows.filter((b) => lapsedIds.has(b.id));
+  // A whole-day blackout blocks every slot, a slot's own blackout blocks that
+  // slot, and a FULL_DAY request is blocked by any blackout on the day.
+  const blackout = blackoutRows.find(
+    (x) =>
+      new Date(x.date).getUTCDate() === utcDay &&
+      (x.timeSlot === null || timeSlot === "FULL_DAY" || x.timeSlot === timeSlot)
+  );
 
   return JSON.stringify({
     venue: venue?.name,
     date: dateStr,
     timeSlot,
-    available: !conflict,
-    reason: conflict
-      ? `Already booked: "${conflict.eventName}" (${conflict.timeSlot}, ${conflict.status})`
-      : null,
+    available: !conflict && !blackout,
+    reason: blackout
+      ? `Blacked out: ${blackout.reason || "no reason given"}`
+      : conflict
+        ? `Already booked: "${conflict.eventName}" (${conflict.timeSlot}, ${conflict.status})`
+        : null,
+    ...(lapsed.length > 0
+      ? {
+          note: `Lapsed hold ${lapsed.map((b) => b.bookingNumber).join(", ")} (unpaid) no longer blocks this slot; the release job cancels it within minutes.`,
+        }
+      : {}),
   });
 }
 

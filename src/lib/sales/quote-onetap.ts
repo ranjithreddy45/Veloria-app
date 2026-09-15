@@ -37,6 +37,9 @@ import { reportSystemFailure } from "@/lib/ops-alert";
 import { generateBookingNumber } from "@/actions/booking.actions";
 import { maybeConfirmBookingOnPayment } from "@/lib/sales/confirm-booking";
 import { getSystemUserId } from "@/lib/lead-capture";
+import { findLapsedHoldIds, releaseLapsedHoldsForSlot } from "@/lib/holds/release-lapsed-holds";
+import { withoutLapsedHolds } from "@/lib/holds/slot-occupancy";
+import { alertOneTapPaidSlotTaken } from "@/lib/holds/paid-without-slot";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -349,6 +352,7 @@ export async function finalizeOneTapBlock(
         eventDate: true,
         timeSlot: true,
         payInvoiceId: true,
+        createdById: true, // the rep who shared the link
       },
     });
     if (!link?.primaryQuotationId)
@@ -373,6 +377,7 @@ export async function finalizeOneTapBlock(
         clientEmail: true,
         contactId: true,
         invoiceId: true,
+        createdById: true, // the quote's owner
       },
     });
     if (!q) return { success: false, error: "Quotation not found." };
@@ -459,9 +464,9 @@ export async function finalizeOneTapBlock(
 
     // Create the HOLD Booking inside a Serializable txn — same conflictOr +
     // utcDayRange bucket the internal createBooking + public-hold use. The
-    // @@unique(venueId,date,timeSlot) guard means the loser (post-payment race)
-    // gets a clean "slot taken" instead of a double-book.
-    const bookingNumber = await generateBookingNumber();
+    // active-slot unique index (Booking_active_slot_key) means the loser of a
+    // post-payment race gets a clean "slot taken" instead of a double-book.
+    let bookingNumber = await generateBookingNumber();
     const { gte, lt, utcDay } = utcDayRange(date);
     const reqSlot = slot as unknown as TimeSlot;
     const conflictOr =
@@ -474,49 +479,107 @@ export async function finalizeOneTapBlock(
           ]
         : [{ timeSlot: reqSlot }, { timeSlot: "FULL_DAY" as TimeSlot }];
 
-    let bookingId: string;
-    try {
-      const booking = await prisma.$transaction(
-        async (tx) => {
-          const clashes = await tx.booking.findMany({
-            where: { venueId, date: { gte, lt }, status: { notIn: ["CANCELLED"] }, OR: conflictOr },
-            select: { id: true, date: true },
-          });
-          if (clashes.some((c) => new Date(c.date).getUTCDate() === utcDay)) {
-            throw new Error("SLOT_TAKEN");
-          }
-          return tx.booking.create({
-            data: {
-              bookingNumber,
-              eventName: q.occasion ? `${q.occasion} — ${q.clientName ?? "Guest"}` : `Booking for ${q.quoteNumber}`,
-              eventType: q.occasion || "Event",
-              date,
-              timeSlot: reqSlot,
-              guestCount: Math.max(1, q.guestCount || 1),
-              totalAmount: new Prisma.Decimal(grandTotal),
-              internalNotes: `Auto-created from one-tap quote ${q.quoteNumber}.`,
-              venueId,
-              contactId: contactId as string,
-              createdById: systemUserId,
-              status: "HOLD",
-            },
-            select: { id: true },
-          });
-        },
-        { isolationLevel: "Serializable" }
-      );
-      bookingId = booking.id;
-    } catch (e) {
+    // The customer has already paid. A lapsed hold on this slot (window passed,
+    // no money against it) reads as free to the team and to customers, but its
+    // row still occupies the slot and the unique index. Release it first with
+    // the shared guarded cancel, as the configurator settle does. A hold that
+    // gained money meanwhile is kept and the clash check below still refuses;
+    // a failed release is logged, never thrown, so the slot-taken alert still runs.
+    await releaseLapsedHoldsForSlot(venueId, date, reqSlot).catch((e) => {
+      console.error("[FINALIZE_ONETAP_LAPSED_RELEASE_ERROR]", e);
+    });
+
+    // A serialization failure (P2034) or a booking-number collision is retried.
+    // A clash, or a unique violation on the slot index, means the slot is taken.
+    const ATTEMPTS = 3;
+    let bookingId: string | null = null;
+    let slotTaken = false;
+    let failure: unknown = null;
+    for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
+      const candidateNumber = bookingNumber;
+      try {
+        const booking = await prisma.$transaction(
+          async (tx) => {
+            const clashes = await tx.booking.findMany({
+              where: { venueId, date: { gte, lt }, status: { notIn: ["CANCELLED"] }, OR: conflictOr },
+              select: { id: true, date: true },
+            });
+            if (clashes.some((c) => new Date(c.date).getUTCDate() === utcDay)) {
+              throw new Error("SLOT_TAKEN");
+            }
+            return tx.booking.create({
+              data: {
+                bookingNumber: candidateNumber,
+                eventName: q.occasion ? `${q.occasion} — ${q.clientName ?? "Guest"}` : `Booking for ${q.quoteNumber}`,
+                eventType: q.occasion || "Event",
+                date,
+                timeSlot: reqSlot,
+                guestCount: Math.max(1, q.guestCount || 1),
+                totalAmount: new Prisma.Decimal(grandTotal),
+                internalNotes: `Auto-created from one-tap quote ${q.quoteNumber}.`,
+                venueId,
+                contactId: contactId as string,
+                createdById: systemUserId,
+                status: "HOLD",
+              },
+              select: { id: true },
+            });
+          },
+          { isolationLevel: "Serializable" }
+        );
+        bookingId = booking.id;
+        break;
+      } catch (e) {
+        const code = (e as { code?: string }).code;
+        const target = (e as { meta?: { target?: unknown } }).meta?.target;
+        const onBookingNumber = (Array.isArray(target) ? target.join(",") : String(target ?? "")).includes("bookingNumber");
+        const canRetry = attempt < ATTEMPTS;
+        if ((e instanceof Error && e.message === "SLOT_TAKEN") || (code === "P2002" && !onBookingNumber)) {
+          slotTaken = true;
+          break;
+        }
+        if (code === "P2002" && canRetry) {
+          bookingNumber = await generateBookingNumber();
+          continue;
+        }
+        if (code === "P2034") {
+          if (canRetry) continue;
+          slotTaken = true;
+          break;
+        }
+        failure = e;
+        break;
+      }
+    }
+
+    if (!bookingId) {
       if (mintedContactId) {
         await prisma.contact.delete({ where: { id: mintedContactId } }).catch(() => {});
         await prisma.salesQuotation.update({ where: { id: quotationId }, data: { contactId: null } }).catch(() => {});
       }
       await releaseClaim();
-      const code = (e as { code?: string }).code;
-      if ((e instanceof Error && e.message === "SLOT_TAKEN") || code === "P2002" || code === "P2034") {
+      if (slotTaken) {
+        // The advance is captured and stays recorded on its invoice; only the
+        // booking could not be made, and nothing on the customer's side books
+        // them. So tell the quote's owner and admins, once per payment however
+        // many times this runs (verify call, webhook, re-delivery, a retried
+        // confirm). Nothing is sent while the invoice has no completed payment.
+        const paidInvoiceId = q.invoiceId && q.invoiceId !== PENDING ? q.invoiceId : link.payInvoiceId;
+        if (paidInvoiceId) {
+          await alertOneTapPaidSlotTaken({
+            quotationId,
+            quoteNumber: q.quoteNumber,
+            customerName: q.clientName,
+            invoiceId: paidInvoiceId,
+            venueId,
+            date,
+            timeSlot: reqSlot,
+            ownerIds: [q.createdById, link.createdById],
+          });
+        }
         return { success: false, error: "SLOT_TAKEN" };
       }
-      console.error("[FINALIZE_ONETAP_BLOCK_ERROR]", e);
+      console.error("[FINALIZE_ONETAP_BLOCK_ERROR]", failure);
       return { success: false, error: "Could not block the slot. Please contact us." };
     }
 
@@ -586,14 +649,19 @@ export async function publicSlotScarcity(
   const [bookings, blackouts] = await Promise.all([
     prisma.booking.findMany({
       where: { venueId, date: { gte, lt }, status: { notIn: ["CANCELLED"] } },
-      select: { date: true, timeSlot: true },
+      // id/status/holdExpiresAt only decide lapsed holds; nothing about a booking leaves this function.
+      select: { id: true, date: true, timeSlot: true, status: true, holdExpiresAt: true },
     }),
     prisma.blackoutDate.findMany({
       where: { venueId, date: { gte, lt } },
       select: { date: true, timeSlot: true },
     }),
   ]);
-  const dayBookings = bookings.filter((b) => new Date(b.date).getUTCDate() === utcDay);
+  // A lapsed hold (window passed, no money against it) does not make a slot
+  // busy: the same decision as the team's availability board and booking form
+  // (src/lib/holds/lapsed-hold.ts). If that lookup fails, holds stay busy.
+  const dayRows = bookings.filter((b) => new Date(b.date).getUTCDate() === utcDay);
+  const dayBookings = withoutLapsedHolds(dayRows, await findLapsedHoldIds(dayRows));
   const dayBlackouts = blackouts.filter((b) => new Date(b.date).getUTCDate() === utcDay);
   const fullDayBooking = dayBookings.some((b) => b.timeSlot === "FULL_DAY");
   const fullDayBlackout = dayBlackouts.some((b) => b.timeSlot === null);

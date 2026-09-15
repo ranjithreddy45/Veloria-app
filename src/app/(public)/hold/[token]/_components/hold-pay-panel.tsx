@@ -14,8 +14,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, PhoneCall } from "lucide-react";
-import { PublicPay } from "@/app/pay/[token]/_components/public-pay";
+import { CheckCircle2 } from "lucide-react";
+import { PublicPay, type PayContact } from "@/app/pay/[token]/_components/public-pay";
 import { HelpChip } from "@/components/public/help-chip";
 import { HoldCountdown, ReleaseLink } from "../../_components/availability-calendar";
 
@@ -29,6 +29,7 @@ export function HoldPayPanel({
   customerFirstName,
   expiresAt,
   socialProof,
+  contact,
 }: {
   token: string;
   invoiceId: string | null;
@@ -36,6 +37,8 @@ export function HoldPayPanel({
   customerFirstName: string;
   expiresAt: string | null;
   socialProof: React.ReactNode;
+  /** The business's published contact channels, loaded on the server with getPublicContact(). */
+  contact?: PayContact | null;
 }) {
   const router = useRouter();
   const [paid, setPaid] = useState(false);
@@ -52,11 +55,11 @@ export function HoldPayPanel({
           <p className="text-sm text-success">
             Payment of {inr(tokenAmount)} received — this date is now blocked for you.
           </p>
-          <p className="mt-1 flex items-center justify-center gap-1.5 text-detail font-medium text-success">
-            <PhoneCall className="size-3.5" /> Your coordinator will call you within 24 hours.
+          <p className="mt-1 text-detail font-medium text-success">
+            Our team will be in touch about the next steps.
           </p>
         </div>
-        <HelpChip variant="banner" />
+        <HelpChip variant="banner" contact={contact} />
       </div>
     );
   }
@@ -88,6 +91,7 @@ export function HoldPayPanel({
               amount={tokenAmount}
               customerName={customerFirstName}
               customerEmail=""
+              contact={contact}
               onSuccess={() => {
                 setPaid(true);
                 router.refresh();
@@ -98,7 +102,7 @@ export function HoldPayPanel({
               <p className="text-sm text-destructive">
                 Payment isn&apos;t available for this hold. Please contact us.
               </p>
-              <HelpChip />
+              <HelpChip contact={contact} />
             </div>
           )}
         </div>
