@@ -30,6 +30,7 @@ function isTwoFactorChallengePath(pathname: string): boolean {
  * logic lives in auth.ts where Prisma and bcryptjs are available.
  */
 const authConfig: NextAuthConfig = {
+  secret: process.env.AUTH_SECRET,
   providers: [
     Google({
       clientId: process.env.AUTH_GOOGLE_ID,
