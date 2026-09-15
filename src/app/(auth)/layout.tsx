@@ -27,7 +27,7 @@ export default function AuthLayout({
       {/* Safe-area insets folded into the vertical padding: installed as a PWA
           the brand lockup otherwise sits under the notch and the copyright
           line under the home indicator. */}
-      <div className="animate-rise-in relative z-10 flex w-full max-w-[400px] flex-col items-center px-5 pb-[calc(3rem+var(--sab))] pt-[calc(3rem+var(--sat))] sm:px-6">
+      <div className="animate-rise-in relative z-10 flex w-full max-w-[460px] flex-col items-center px-5 pb-[calc(3rem+var(--sab))] pt-[calc(3rem+var(--sat))] sm:px-6">
         {/* Brand lockup — full wordmark, falls back to ring-glow mark + text */}
         <div className="mb-9 flex flex-col items-center gap-3.5">
           <BrandLogo

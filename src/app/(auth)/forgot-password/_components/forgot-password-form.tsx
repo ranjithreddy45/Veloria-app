@@ -94,7 +94,7 @@ export default function ForgotPasswordForm() {
                       placeholder="you@example.com"
                       type="email"
                       autoComplete="email"
-                      className="pl-10 rounded-xl h-11"
+                      className="pl-10 rounded-xl h-11 !border-0 !outline-none !ring-0 focus:!border-0 focus:!ring-0 focus-visible:!border-0 focus-visible:!ring-0 focus-visible:!outline-none shadow-none"
                       disabled={isPending}
                       {...field}
                     />

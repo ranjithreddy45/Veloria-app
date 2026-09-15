@@ -280,7 +280,7 @@ export default function SignInForm({ googleEnabled = false }: { googleEnabled?: 
                       placeholder="you@example.com"
                       type="email"
                       autoComplete="email"
-                      className="h-10 rounded-lg text-body"
+                      className="h-10 rounded-lg text-body !border-0 !outline-none !ring-0 focus:!border-0 focus:!ring-0 focus-visible:!border-0 focus-visible:!ring-0 focus-visible:!outline-none shadow-none"
                       disabled={isPending}
                       {...field}
                     />
@@ -312,7 +312,7 @@ export default function SignInForm({ googleEnabled = false }: { googleEnabled?: 
                         placeholder="Enter your password"
                         type={showPassword ? "text" : "password"}
                         autoComplete="current-password"
-                        className="h-10 rounded-lg pr-14 text-body"
+                        className="h-10 rounded-lg pr-14 text-body !border-0 !outline-none !ring-0 focus:!border-0 focus:!ring-0 focus-visible:!border-0 focus-visible:!ring-0 focus-visible:!outline-none shadow-none"
                         disabled={isPending}
                         {...field}
                       />

@@ -78,7 +78,7 @@ export default function SignUpForm() {
                     <Input
                       placeholder="John Doe"
                       autoComplete="name"
-                      className="pl-10 rounded-xl h-11"
+                      className="pl-10 rounded-xl h-11 !border-0 !outline-none !ring-0 focus:!border-0 focus:!ring-0 focus-visible:!border-0 focus-visible:!ring-0 focus-visible:!outline-none shadow-none"
                       disabled={isPending}
                       {...field}
                     />
@@ -102,7 +102,7 @@ export default function SignUpForm() {
                       placeholder="you@example.com"
                       type="email"
                       autoComplete="email"
-                      className="pl-10 rounded-xl h-11"
+                      className="pl-10 rounded-xl h-11 !border-0 !outline-none !ring-0 focus:!border-0 focus:!ring-0 focus-visible:!border-0 focus-visible:!ring-0 focus-visible:!outline-none shadow-none"
                       disabled={isPending}
                       {...field}
                     />
@@ -126,7 +126,7 @@ export default function SignUpForm() {
                       placeholder="Create a strong password"
                       type="password"
                       autoComplete="new-password"
-                      className="pl-10 rounded-xl h-11"
+                      className="pl-10 rounded-xl h-11 !border-0 !outline-none !ring-0 focus:!border-0 focus:!ring-0 focus-visible:!border-0 focus-visible:!ring-0 focus-visible:!outline-none shadow-none"
                       disabled={isPending}
                       {...field}
                     />
@@ -150,7 +150,7 @@ export default function SignUpForm() {
                       placeholder="Confirm your password"
                       type="password"
                       autoComplete="new-password"
-                      className="pl-10 rounded-xl h-11"
+                      className="pl-10 rounded-xl h-11 !border-0 !outline-none !ring-0 focus:!border-0 focus:!ring-0 focus-visible:!border-0 focus-visible:!ring-0 focus-visible:!outline-none shadow-none"
                       disabled={isPending}
                       {...field}
                     />
