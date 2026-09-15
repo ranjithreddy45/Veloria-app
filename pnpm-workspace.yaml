@@ -8,6 +8,8 @@ allowBuilds:
   prisma: true
   sharp: true
   unrs-resolver: true
+  '@sentry/cli': false
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
+minimumReleaseAge: 0

@@ -10,7 +10,7 @@ import {
 import { StatusPill } from "@/components/shared/status-pill";
 import { cn } from "@/lib/utils";
 import { getClaimAttachment, getClaimDetail, getClaimLegacyBill } from "@/actions/hr-reimbursement.actions";
-import { CLAIM_EVENT_LABEL, CLAIM_STATUS_HUE, CLAIM_STATUS_LABEL } from "@/lib/hr/claim-workflow";
+import { CLAIM_EVENT_LABEL, CLAIM_STATUS_HUE, CLAIM_STATUS_LABEL } from "@/lib/hr/claim-labels";
 
 // ============================================================
 // One claim, fully explained: the supporting bills (open in a new tab) and
