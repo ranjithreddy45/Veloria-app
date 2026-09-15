@@ -3,6 +3,7 @@
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { getVerifiedContactIds } from "@/lib/portal-identity";
+import { hasPermission } from "@/lib/permissions";
 import { notify } from "@/lib/notify";
 import { generateUniqueCode, buildReferralLink } from "@/lib/referral-code";
 import { buildDefaultRunOfShow } from "@/lib/ops/beo-content";
@@ -23,15 +24,22 @@ import { submitReview } from "@/actions/review.actions";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
-async function me(): Promise<{ id: string; name: string | null } | null> {
+type Me = { id: string; name: string | null; role: string | null };
+async function me(): Promise<Me | null> {
   const s = await auth();
-  return s?.user?.id ? { id: s.user.id, name: s.user.name ?? null } : null;
+  return s?.user?.id ? { id: s.user.id, name: s.user.name ?? null, role: (s.user as { role?: string }).role ?? null } : null;
+}
+const EXTERNAL_ROLES = new Set(["CLIENT", "VENDOR"]);
+/** Team members who can already see bookings in the ERP may preview the host experience for any booking. */
+function isStaff(role: string | null): boolean {
+  return !!role && !EXTERNAL_ROLES.has(role) && hasPermission(role, "bookings:read");
 }
 
 const BOOKING_SELECT = {
   id: true, bookingNumber: true, eventName: true, eventType: true, date: true, timeSlot: true,
-  status: true, guestCount: true, venueId: true, createdById: true,
+  status: true, guestCount: true, venueId: true, createdById: true, contactId: true,
   venue: { select: { name: true } },
+  contact: { select: { firstName: true, lastName: true } },
 } as const;
 
 export interface GuestBooking {
@@ -43,25 +51,31 @@ function shapeBooking(b: { id: string; bookingNumber: string; eventName: string;
   return { id: b.id, bookingNumber: b.bookingNumber, eventName: b.eventName, eventType: b.eventType, date: b.date.toISOString(), timeSlot: b.timeSlot, status: b.status, guestCount: b.guestCount, venueId: b.venueId, venueName: b.venue.name };
 }
 
-/** The host's bookings (not cancelled), soonest upcoming first, then past. */
-async function myBookings(uid: string) {
-  const contactIds = await getVerifiedContactIds(uid);
-  if (contactIds.length === 0) return [];
-  const rows = await prisma.booking.findMany({
-    where: { contactId: { in: contactIds }, status: { not: "CANCELLED" } },
-    select: BOOKING_SELECT,
-    orderBy: { date: "asc" },
-  });
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const upcoming = rows.filter((r) => r.date >= today);
-  const past = rows.filter((r) => r.date < today).reverse();
-  return [...upcoming, ...past];
-}
+type BookingRow = { id: string; bookingNumber: string; eventName: string; eventType: string; date: Date; timeSlot: string; status: string; guestCount: number; venueId: string; createdById: string; contactId: string; venue: { name: string }; contact: { firstName: string; lastName: string | null } };
 
-async function pickBooking(uid: string, bookingId?: string) {
-  const all = await myBookings(uid);
-  const b = bookingId ? all.find((x) => x.id === bookingId) : all[0];
-  return { all, b: b ?? null };
+/**
+ * Who is this request acting for?
+ *  - A verified customer: their own contacts and bookings, soonest upcoming first.
+ *  - Staff with no customer contact: "preview" — any live booking, so the team can
+ *    see the host experience with real data. contactIds narrows to that booking's
+ *    host so money/documents/rewards read as the host would see them.
+ */
+async function scope(u: Me, bookingId?: string): Promise<{ contactIds: string[]; all: BookingRow[]; b: BookingRow | null; preview: boolean }> {
+  let contactIds = await getVerifiedContactIds(u.id);
+  let preview = false;
+  let rows: BookingRow[] = [];
+  if (contactIds.length > 0) {
+    rows = await prisma.booking.findMany({ where: { contactId: { in: contactIds }, status: { not: "CANCELLED" } }, select: BOOKING_SELECT, orderBy: { date: "asc" } });
+  } else if (isStaff(u.role)) {
+    preview = true;
+    rows = await prisma.booking.findMany({ where: { status: { in: ["HOLD", "TENTATIVE", "CONFIRMED", "IN_PROGRESS"] } }, select: BOOKING_SELECT, orderBy: { date: "asc" }, take: 25 });
+  }
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const all = [...rows.filter((r) => r.date >= today), ...rows.filter((r) => r.date < today).reverse()];
+  let b: BookingRow | null = bookingId ? all.find((x) => x.id === bookingId) ?? null : all[0] ?? null;
+  if (!b && bookingId && preview) b = await prisma.booking.findFirst({ where: { id: bookingId }, select: BOOKING_SELECT });
+  if (preview && b) contactIds = [b.contactId];
+  return { contactIds, all, b, preview };
 }
 
 async function readiness(bookingId: string): Promise<{ pct: number | null; open: number; done: number; total: number }> {
@@ -106,6 +120,8 @@ async function money(contactIds: string[]) {
 export interface GuestOverview {
   user: { id: string; name: string | null };
   verified: boolean;
+  /** Staff looking at a host's view — not their own booking. */
+  preview: boolean;
   unread: number;
   booking: GuestBooking | null;
   readiness: number | null;
@@ -117,12 +133,11 @@ export interface GuestOverview {
 }
 export async function getGuestOverview(): Promise<GuestOverview | null> {
   const u = await me(); if (!u) return null;
-  const contactIds = await getVerifiedContactIds(u.id);
+  const { contactIds, b, preview } = await scope(u);
   const unread = await prisma.notification.count({ where: { userId: u.id, isRead: false } });
   if (contactIds.length === 0) {
-    return { user: u, verified: false, unread, booking: null, readiness: null, openTasks: 0, guests: { confirmed: 0, total: 0 }, balanceDue: 0, nextTask: null, loyalty: null };
+    return { user: u, verified: false, preview, unread, booking: null, readiness: null, openTasks: 0, guests: { confirmed: 0, total: 0 }, balanceDue: 0, nextTask: null, loyalty: null };
   }
-  const { b } = await pickBooking(u.id);
   const [r, g, m, loyalty, nextTask] = await Promise.all([
     b ? readiness(b.id) : Promise.resolve({ pct: null, open: 0, done: 0, total: 0 }),
     b ? guestStats(b.id) : Promise.resolve({ confirmed: 0, total: 0, declined: 0, pending: 0, families: 0 }),
@@ -131,7 +146,7 @@ export async function getGuestOverview(): Promise<GuestOverview | null> {
     b ? prisma.task.findFirst({ where: { bookingId: b.id, status: { not: "DONE" }, dueDate: { not: null } }, orderBy: { dueDate: "asc" }, select: { title: true, dueDate: true } }) : Promise.resolve(null),
   ]);
   return {
-    user: u, verified: true, unread, booking: b ? shapeBooking(b) : null,
+    user: u, verified: true, preview, unread, booking: b ? shapeBooking(b) : null,
     readiness: r.pct, openTasks: r.open, guests: { confirmed: g.confirmed, total: g.total }, balanceDue: m.balance,
     nextTask: nextTask ? { title: nextTask.title, dueDate: nextTask.dueDate?.toISOString() ?? null } : null,
     loyalty: loyalty ? { points: loyalty.points, tier: String(loyalty.tier) } : null,
@@ -141,6 +156,8 @@ export async function getGuestOverview(): Promise<GuestOverview | null> {
 // ------------------------------------------------------------ my event hub
 export interface GuestEvent {
   booking: GuestBooking;
+  preview: boolean;
+  hostName: string;
   bookings: { id: string; eventName: string; date: string }[];
   readiness: number | null;
   openTasks: number;
@@ -153,9 +170,8 @@ export interface GuestEvent {
 }
 export async function getGuestEvent(bookingId?: string): Promise<GuestEvent | null> {
   const u = await me(); if (!u) return null;
-  const { all, b } = await pickBooking(u.id, bookingId);
+  const { all, b, contactIds, preview } = await scope(u, bookingId);
   if (!b) return null;
-  const contactIds = await getVerifiedContactIds(u.id);
   const [r, g, m, docsToSign, requests, op, timeline] = await Promise.all([
     readiness(b.id), guestStats(b.id), money(contactIds),
     prisma.signatureRequest.count({ where: { bookingId: b.id, status: { in: ["SENT", "VIEWED"] } } }),
@@ -182,7 +198,7 @@ export async function getGuestEvent(bookingId?: string): Promise<GuestEvent | nu
   }
 
   return {
-    booking: shapeBooking(b),
+    booking: shapeBooking(b), preview, hostName: `${b.contact.firstName} ${b.contact.lastName ?? ""}`.trim(),
     bookings: all.map((x) => ({ id: x.id, eventName: x.eventName, date: x.date.toISOString() })),
     readiness: r.pct, openTasks: r.open, docsToSign, guests: { confirmed: g.confirmed, total: g.total },
     balanceDue: m.balance, requests, team: team.slice(0, 3), runOfShow,
@@ -199,7 +215,7 @@ export interface GuestChecklist {
 }
 export async function getGuestChecklist(bookingId: string): Promise<GuestChecklist | null> {
   const u = await me(); if (!u) return null;
-  const { b } = await pickBooking(u.id, bookingId); if (!b) return null;
+  const { b } = await scope(u, bookingId); if (!b) return null;
   const plan = await prisma.executionPlan.findUnique({
     where: { bookingId: b.id },
     select: { phases: { orderBy: { order: "asc" }, select: { name: true, plannedEnd: true, tasks: { orderBy: { order: "asc" }, select: { id: true, title: true, status: true, assignee: { select: { name: true } }, vendor: { select: { name: true } } } } } } },
@@ -225,7 +241,8 @@ export async function getGuestChecklist(bookingId: string): Promise<GuestCheckli
 
 export async function addGuestTodo(bookingId: string, title: string): Promise<Result<GuestTodo>> {
   const u = await me(); if (!u) return { success: false, error: "Please sign in." };
-  const { b } = await pickBooking(u.id, bookingId); if (!b) return { success: false, error: "Not authorized." };
+  const { b, preview } = await scope(u, bookingId); if (!b) return { success: false, error: "Not authorized." };
+  if (preview) return { success: false, error: "Staff preview — this would change a real customer's booking. Sign in as that host (or the demo guest) to try it." };
   const clean = title.trim().slice(0, 160); if (clean.length < 2) return { success: false, error: "Type a to-do first." };
   const t = await prisma.task.create({ data: { title: clean, status: "TODO", priority: "MEDIUM", taskType: "CLIENT_TODO", bookingId: b.id, creatorId: u.id }, select: { id: true } });
   return { success: true, data: { id: t.id, label: clean, done: false } };
@@ -233,7 +250,8 @@ export async function addGuestTodo(bookingId: string, title: string): Promise<Re
 
 export async function toggleGuestTodo(taskId: string): Promise<Result<{ done: boolean }>> {
   const u = await me(); if (!u) return { success: false, error: "Please sign in." };
-  const contactIds = await getVerifiedContactIds(u.id);
+  const { contactIds, preview } = await scope(u);
+  if (preview) return { success: false, error: "Staff preview — this would change a real customer's booking. Sign in as that host (or the demo guest) to try it." };
   const t = await prisma.task.findFirst({ where: { id: taskId, taskType: "CLIENT_TODO", booking: { contactId: { in: contactIds } } }, select: { id: true, status: true } });
   if (!t) return { success: false, error: "Not found." };
   const done = t.status !== "DONE";
@@ -245,7 +263,7 @@ export async function toggleGuestTodo(taskId: string): Promise<Result<{ done: bo
 export interface GuestListRow { id: string; name: string; category: string; plusOnes: number; rsvpStatus: "PENDING" | "ACCEPTED" | "DECLINED"; dietary: string | null; invited: boolean }
 export async function getGuestGuestList(bookingId: string): Promise<{ stats: Awaited<ReturnType<typeof guestStats>>; guests: GuestListRow[] } | null> {
   const u = await me(); if (!u) return null;
-  const { b } = await pickBooking(u.id, bookingId); if (!b) return null;
+  const { b } = await scope(u, bookingId); if (!b) return null;
   const rows = await prisma.guest.findMany({
     where: { guestList: { bookingId: b.id } },
     orderBy: { createdAt: "desc" },
@@ -259,7 +277,8 @@ export async function getGuestGuestList(bookingId: string): Promise<{ stats: Awa
 
 export async function addGuestQuick(bookingId: string, name: string, plusOnes = 0): Promise<Result<{ id: string }>> {
   const u = await me(); if (!u) return { success: false, error: "Please sign in." };
-  const { b } = await pickBooking(u.id, bookingId); if (!b) return { success: false, error: "Not authorized." };
+  const { b, preview } = await scope(u, bookingId); if (!b) return { success: false, error: "Not authorized." };
+  if (preview) return { success: false, error: "Staff preview — this would change a real customer's booking. Sign in as that host (or the demo guest) to try it." };
   const clean = name.trim().slice(0, 120); if (clean.length < 2) return { success: false, error: "Enter a name." };
   const list = await prisma.guestList.upsert({ where: { bookingId: b.id }, update: {}, create: { bookingId: b.id }, select: { id: true } });
   const g = await prisma.guest.create({ data: { guestListId: list.id, name: clean, category: "OTHER", plusOnes: Math.max(0, Math.min(20, plusOnes)) }, select: { id: true } });
@@ -274,7 +293,7 @@ export interface GuestDocuments {
 }
 export async function getGuestDocuments(): Promise<GuestDocuments | null> {
   const u = await me(); if (!u) return null;
-  const contactIds = await getVerifiedContactIds(u.id); if (contactIds.length === 0) return null;
+  const { contactIds } = await scope(u); if (contactIds.length === 0) return null;
   const [sigs, contracts, invoices] = await Promise.all([
     prisma.signatureRequest.findMany({ where: { booking: { contactId: { in: contactIds } }, status: { in: ["SENT", "VIEWED"] } }, select: { token: true, documentTitle: true, sentAt: true }, orderBy: { createdAt: "desc" } }),
     prisma.contract.findMany({ where: { contactId: { in: contactIds } }, select: { id: true, title: true, status: true, signedAt: true }, orderBy: { createdAt: "desc" } }),
@@ -297,7 +316,7 @@ export interface GuestLive {
 }
 export async function getGuestLive(bookingId: string): Promise<GuestLive | null> {
   const u = await me(); if (!u) return null;
-  const { b } = await pickBooking(u.id, bookingId); if (!b) return null;
+  const { b } = await scope(u, bookingId); if (!b) return null;
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const d = new Date(b.date); d.setHours(0, 0, 0, 0);
   const [guests, op, vendors, timeline] = await Promise.all([
@@ -340,7 +359,8 @@ export async function getGuestPackages(venueId?: string): Promise<GuestPackage[]
 export type RequestKind = "MESSAGE" | "PACKAGES" | "REDEEM";
 export async function requestFromConcierge(bookingId: string, text: string, kind: RequestKind = "MESSAGE"): Promise<Result<{ id: string }>> {
   const u = await me(); if (!u) return { success: false, error: "Please sign in." };
-  const { b } = await pickBooking(u.id, bookingId); if (!b) return { success: false, error: "Not authorized." };
+  const { b, preview } = await scope(u, bookingId); if (!b) return { success: false, error: "Not authorized." };
+  if (preview) return { success: false, error: "Staff preview — this would change a real customer's booking. Sign in as that host (or the demo guest) to try it." };
   const clean = text.trim().slice(0, 1000); if (!clean) return { success: false, error: "Type a message first." };
   const prefix = kind === "PACKAGES" ? "Packages requested" : kind === "REDEEM" ? "Reward redemption" : "Message from host";
   const t = await prisma.task.create({
@@ -358,7 +378,7 @@ export async function requestFromConcierge(bookingId: string, text: string, kind
 export interface GuestRequest { id: string; text: string; kind: string; createdAt: string; status: string }
 export async function getGuestRequests(bookingId: string): Promise<GuestRequest[]> {
   const u = await me(); if (!u) return [];
-  const { b } = await pickBooking(u.id, bookingId); if (!b) return [];
+  const { b } = await scope(u, bookingId); if (!b) return [];
   const rows = await prisma.task.findMany({ where: { bookingId: b.id, taskType: "CLIENT_REQUEST" }, orderBy: { createdAt: "asc" }, take: 50, select: { id: true, description: true, status: true, createdAt: true, metadata: true } });
   return rows.map((r) => ({ id: r.id, text: r.description ?? "", kind: String((r.metadata as { kind?: string } | null)?.kind ?? "MESSAGE"), createdAt: r.createdAt.toISOString(), status: String(r.status) }));
 }
@@ -374,11 +394,10 @@ export interface GuestRewards {
 const TIER_FLOORS: [string, number][] = [["BRONZE", 0], ["SILVER", 500], ["GOLD", 2000], ["PLATINUM", 5000]];
 export async function getGuestRewards(): Promise<GuestRewards | null> {
   const u = await me(); if (!u) return null;
-  const contactIds = await getVerifiedContactIds(u.id); if (contactIds.length === 0) return null;
-  const [acct, referrals, { b }] = await Promise.all([
+  const { contactIds, b } = await scope(u); if (contactIds.length === 0) return null;
+  const [acct, referrals] = await Promise.all([
     prisma.loyaltyAccount.findFirst({ where: { contactId: { in: contactIds } }, select: { points: true, tier: true, totalEarned: true, transactions: { orderBy: { createdAt: "desc" }, take: 10, select: { description: true, points: true, createdAt: true } } } }),
     prisma.referral.findMany({ where: { referrerContactId: { in: contactIds } }, orderBy: { createdAt: "desc" }, take: 10, select: { id: true, referredName: true, status: true, createdAt: true } }),
-    pickBooking(u.id),
   ]);
   const earned = acct?.totalEarned ?? 0;
   const idx = TIER_FLOORS.reduce((a, [, floor], i) => (earned >= floor ? i : a), 0);
@@ -401,7 +420,9 @@ export async function getGuestRewards(): Promise<GuestRewards | null> {
  */
 export async function submitGuestReferral(name: string, phone: string, email?: string): Promise<Result<{ id: string }>> {
   const u = await me(); if (!u) return { success: false, error: "Please sign in." };
-  const contactIds = await getVerifiedContactIds(u.id); if (contactIds.length === 0) return { success: false, error: "Your account isn't linked to a booking yet." };
+  const { contactIds, preview } = await scope(u);
+  if (preview) return { success: false, error: "Staff preview — referrals come from the host's own account." };
+  if (contactIds.length === 0) return { success: false, error: "Your account isn't linked to a booking yet." };
   const referredName = name.trim().slice(0, 120); const referredPhone = phone.trim().slice(0, 30);
   if (referredName.length < 2) return { success: false, error: "Enter your friend's name." };
   if (referredPhone.replace(/\D/g, "").length < 7) return { success: false, error: "Enter a valid phone number." };
@@ -412,7 +433,7 @@ export async function submitGuestReferral(name: string, phone: string, email?: s
     data: { referrerContactId: contactIds[0], referrerUserId: u.id, referredName, referredPhone, referredEmail: email?.trim() || null, source: "GUEST", status: "PENDING", referralCode, referralLink: buildReferralLink(referralCode) },
     select: { id: true },
   });
-  const { b } = await pickBooking(u.id);
+  const { b } = await scope(u);
   if (b) notify({ userId: b.createdById, type: "LEAD_ASSIGNED", title: `Referral from ${u.name ?? "a host"}: ${referredName}`, message: `${referredPhone}${email ? ` · ${email.trim()}` : ""} — introduced via the guest app.`, actionUrl: "/referrals" });
   return { success: true, data: { id: r.id } };
 }
@@ -427,7 +448,7 @@ export interface GuestPayments {
 }
 export async function getGuestPayments(): Promise<GuestPayments | null> {
   const u = await me(); if (!u) return null;
-  const contactIds = await getVerifiedContactIds(u.id); if (contactIds.length === 0) return null;
+  const { contactIds } = await scope(u); if (contactIds.length === 0) return null;
   const invoices = await prisma.invoice.findMany({
     where: { contactId: { in: contactIds }, status: { notIn: ["DRAFT", "CANCELLED"] } },
     orderBy: { issueDate: "desc" },
@@ -486,15 +507,15 @@ export async function submitGuestRating(bookingId: string, rating: number, tags:
 }
 
 // ------------------------------------------------------------ account
-export interface GuestAccount { name: string | null; email: string | null; phone: string | null; tier: string | null; points: number; bookings: number; verified: boolean }
+export interface GuestAccount { name: string | null; email: string | null; phone: string | null; tier: string | null; points: number; bookings: number; verified: boolean; preview: boolean }
 export async function getGuestAccount(): Promise<GuestAccount | null> {
   const u = await me(); if (!u) return null;
-  const contactIds = await getVerifiedContactIds(u.id);
+  const { contactIds, preview } = await scope(u);
   const [user, contact, acct, bookings] = await Promise.all([
     prisma.user.findUnique({ where: { id: u.id }, select: { name: true, email: true } }),
     contactIds.length ? prisma.contact.findFirst({ where: { id: { in: contactIds } }, select: { phone: true } }) : Promise.resolve(null),
     contactIds.length ? prisma.loyaltyAccount.findFirst({ where: { contactId: { in: contactIds } }, select: { points: true, tier: true } }) : Promise.resolve(null),
     contactIds.length ? prisma.booking.count({ where: { contactId: { in: contactIds }, status: { not: "CANCELLED" } } }) : Promise.resolve(0),
   ]);
-  return { name: user?.name ?? u.name, email: user?.email ?? null, phone: contact?.phone ?? null, tier: acct ? String(acct.tier) : null, points: acct?.points ?? 0, bookings, verified: contactIds.length > 0 };
+  return { name: user?.name ?? u.name, email: user?.email ?? null, phone: contact?.phone ?? null, tier: acct ? String(acct.tier) : null, points: acct?.points ?? 0, bookings, verified: contactIds.length > 0, preview };
 }

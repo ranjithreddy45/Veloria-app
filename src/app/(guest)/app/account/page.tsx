@@ -39,7 +39,8 @@ export default async function AccountPage() {
         <div className="flex min-h-[52px] items-center gap-3 px-4 py-3.5"><span className="flex-1 text-copy">Bookings with us</span><span className="numeric text-detail text-[#6e6e73]">{a.bookings}</span></div>
       </Card>
 
-      {!a.verified && <p className="text-center text-meta leading-[1.5] text-[#6e6e73]">This sign-in isn&apos;t linked to a booking yet. Hold a date, or ask the concierge to link an existing one.</p>}
+      {a.preview && <p className="text-center text-meta leading-[1.5] text-[#6e6e73]">Staff preview — these are the host&apos;s details for the booking you&apos;re viewing, not your own account.</p>}
+      {!a.verified && !a.preview && <p className="text-center text-meta leading-[1.5] text-[#6e6e73]">This sign-in isn&apos;t linked to a booking yet. Hold a date, or ask the concierge to link an existing one.</p>}
       <SignOutButton />
     </Screen>
   );

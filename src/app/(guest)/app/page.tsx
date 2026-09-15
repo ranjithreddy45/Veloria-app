@@ -14,7 +14,8 @@ export const dynamic = "force-dynamic";
 const OCCASIONS = ["Wedding", "Reception", "Engagement", "Sangeet", "Birthday Party", "Corporate Event"];
 
 function greeting(name: string | null) {
-  const h = new Date().getHours();
+  // Rendered on the server (UTC) — greet in IST, where every guest is.
+  const h = Math.floor(((Date.now() / 60000 + 330) % 1440) / 60);
   const g = h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
   return name ? `${g}, ${name.split(" ")[0]}` : g;
 }
@@ -124,7 +125,10 @@ export default async function GuestHomePage() {
         </div>
       )}
 
-      {ov && !ov.verified && (
+      {ov?.preview && b && (
+        <p className="-mt-3 text-center text-meta text-[#6e6e73]">Staff preview · showing {b.eventName} as its host would see it</p>
+      )}
+      {ov && !ov.verified && !ov.preview && (
         <Card className="p-4 text-detail leading-[1.5] text-[#3a3a3c]">
           <span className="font-semibold text-[#1d1d1f]">We couldn&apos;t link this sign-in to a booking yet.</span> If you have an event with us, message the concierge or hold a date and it will appear here.
         </Card>

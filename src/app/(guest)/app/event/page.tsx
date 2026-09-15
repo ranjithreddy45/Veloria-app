@@ -36,6 +36,9 @@ export default async function MyEventPage({ searchParams }: { searchParams: Prom
 
   return (
     <Screen className="pt-[calc(var(--sat)+1rem)]">
+      {ev.preview && (
+        <div className="rounded-xl border border-[#b88513]/35 bg-[#faf3e1] px-3.5 py-2.5 text-detail text-[#6e4f0e]"><span className="font-semibold">Staff preview.</span> You&apos;re seeing {ev.hostName || "the host"}&apos;s view of this booking. Use Switch to pick another.</div>
+      )}
       <div className="flex items-baseline justify-between">
         <Title>My event</Title>
         {ev.bookings.length > 1 && (

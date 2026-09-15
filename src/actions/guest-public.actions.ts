@@ -18,27 +18,65 @@ export interface GuestPhoto {
   venueId: string | null;
 }
 
+/** Make a stored url loadable by a phone: data URLs are served by the photo route, everything else passes through. */
+function servable(url: string | null | undefined, kind: "g" | "p", id: string): string | null {
+  if (!url) return null;
+  if (url.startsWith("data:image/")) return `/api/guest/photo/${kind}/${id}`;
+  if (/^https?:\/\//.test(url) || url.startsWith("/")) return url;
+  return null;
+}
+
 /**
- * Public gallery photos. Prefers the thumbnail: uploads are stored as base64
- * data URLs, so a full-size original can be megabytes — one oversized item
- * without a thumbnail is dropped rather than shipped to a phone.
+ * Photos for the guest app, real ones only, in this order:
+ *   1. GalleryItems marked public (optionally for one venue / tag)
+ *   2. Property photos — PHOTO attachments on the acquisition deal of every
+ *      property linked to a live venue. This is the same source the ERP's
+ *      property page shows, so the halls carry the photos the team already has.
+ * Returns [] when there is nothing; callers fall back to the default set.
  */
 export async function getGuestPhotos(params?: { venueId?: string; limit?: number; tag?: string }): Promise<GuestPhoto[]> {
+  const limit = Math.min(params?.limit ?? 24, 80);
   try {
-    const rows = await prisma.galleryItem.findMany({
-      where: {
-        isPublic: true,
-        mediaType: "PHOTO",
-        ...(params?.venueId ? { venueId: params.venueId } : {}),
-        ...(params?.tag ? { tags: { has: params.tag } } : {}),
-      },
-      orderBy: [{ order: "asc" }, { createdAt: "desc" }],
-      take: Math.min(params?.limit ?? 24, 60),
-      select: { id: true, url: true, thumbnailUrl: true, title: true, tags: true, venueId: true },
-    });
-    return rows
-      .map((r) => ({ id: r.id, url: r.thumbnailUrl || r.url, title: r.title, tags: r.tags, venueId: r.venueId }))
-      .filter((r) => r.url.length < 400_000);
+    const [gallery, props] = await Promise.all([
+      prisma.galleryItem.findMany({
+        where: {
+          isPublic: true,
+          mediaType: "PHOTO",
+          ...(params?.venueId ? { venueId: params.venueId } : {}),
+          ...(params?.tag ? { tags: { has: params.tag } } : {}),
+        },
+        orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+        take: limit,
+        select: { id: true, url: true, thumbnailUrl: true, title: true, tags: true, venueId: true },
+      }),
+      prisma.acqProperty.findMany({
+        where: { deletedAt: null, venueId: params?.venueId ? params.venueId : { not: null } },
+        select: {
+          venueId: true, propertyName: true,
+          deal: { select: { attachments: { where: { kind: "PHOTO" }, orderBy: { createdAt: "asc" }, select: { id: true, url: true, label: true } } } },
+        },
+      }),
+    ]);
+    const venueIds = [...new Set(props.map((p) => p.venueId).filter((v): v is string => !!v))];
+    const venues = venueIds.length ? await prisma.venue.findMany({ where: { id: { in: venueIds }, isActive: true }, select: { id: true, name: true } }) : [];
+    const venueName = new Map(venues.map((v) => [v.id, v.name]));
+
+    const out: GuestPhoto[] = [];
+    for (const r of gallery) {
+      const url = servable(r.thumbnailUrl || r.url, "g", r.id);
+      if (url) out.push({ id: r.id, url, title: r.title, tags: r.tags, venueId: r.venueId });
+    }
+    for (const p of props) {
+      if (!p.venueId || !venueName.has(p.venueId)) continue; // property not linked to a live hall
+      const name = venueName.get(p.venueId)!;
+      if (params?.tag && params.tag !== name) continue;
+      for (const a of p.deal.attachments) {
+        const url = servable(a.url, "p", a.id);
+        if (url) out.push({ id: a.id, url, title: a.label || name, tags: [name], venueId: p.venueId });
+      }
+    }
+    const seen = new Set<string>();
+    return out.filter((x) => (seen.has(x.url) ? false : (seen.add(x.url), true))).slice(0, limit);
   } catch {
     return [];
   }
@@ -47,10 +85,19 @@ export async function getGuestPhotos(params?: { venueId?: string; limit?: number
 /** Distinct public tags, for the gallery filter chips. */
 export async function getGuestPhotoTags(): Promise<string[]> {
   try {
-    const rows = await prisma.galleryItem.findMany({ where: { isPublic: true }, select: { tags: true }, take: 500 });
+    const [rows, props] = await Promise.all([
+      prisma.galleryItem.findMany({ where: { isPublic: true }, select: { tags: true }, take: 500 }),
+      prisma.acqProperty.findMany({
+        where: { deletedAt: null, venueId: { not: null }, deal: { attachments: { some: { kind: "PHOTO" } } } },
+        select: { venueId: true },
+      }),
+    ]);
     const counts = new Map<string, number>();
     for (const r of rows) for (const t of r.tags) counts.set(t, (counts.get(t) ?? 0) + 1);
-    return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([t]) => t).slice(0, 8);
+    const ids = [...new Set(props.map((p) => p.venueId).filter((v): v is string => !!v))];
+    const venues = ids.length ? await prisma.venue.findMany({ where: { id: { in: ids }, isActive: true }, select: { name: true } }) : [];
+    const names = venues.map((v) => v.name);
+    return [...names, ...[...counts.entries()].sort((a, b) => b[1] - a[1]).map(([t]) => t)].filter((t, i, arr) => arr.indexOf(t) === i).slice(0, 10);
   } catch {
     return [];
   }
