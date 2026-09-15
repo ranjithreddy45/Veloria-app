@@ -50,6 +50,9 @@ export const submitVisitBookingSchema = z.object({
   utmSource: z.string().trim().max(120).optional().or(z.literal("")),
   utmMedium: z.string().trim().max(120).optional().or(z.literal("")),
   utmCampaign: z.string().trim().max(120).optional().or(z.literal("")),
+  // DPDP consent — required (enforced in the action; kept optional here so the
+  // inferred input type does not force every caller to pass it).
+  consent: z.boolean().optional(),
 });
 
 export type SubmitVisitBookingInput = z.input<typeof submitVisitBookingSchema>;

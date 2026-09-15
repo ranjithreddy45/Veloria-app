@@ -1,0 +1,8 @@
+# Nightly database backup at 03:30 IST (after the 02:00/03:00 cron lanes in
+# scripts/vps-cron.txt). cronie (AlmaLinux/CentOS cPanel boxes) honours CRON_TZ
+# for the schedule; the script itself names files by IST regardless of host TZ.
+CRON_TZ=Asia/Kolkata
+30 3 * * * /opt/veloria/scripts/vps-backup.sh >> /var/log/veloria-backup.log 2>&1
+# If this cron does not support CRON_TZ (line above is ignored / errors), use the
+# UTC equivalent instead — 03:30 IST is 22:00 UTC the previous day:
+# 0 22 * * * /opt/veloria/scripts/vps-backup.sh >> /var/log/veloria-backup.log 2>&1

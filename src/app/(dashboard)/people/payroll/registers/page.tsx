@@ -6,6 +6,7 @@ import { FEATURES } from "@/config/features";
 import { PageHeader } from "@/components/layout/page-header";
 import { listPayrollRunPeriods, getStatutoryRegister } from "@/actions/hr-statutory-reports.actions";
 import { RegistersView } from "./_components/registers-view";
+import { FilingExportsCard } from "./_components/filing-exports-card";
 
 export const metadata: Metadata = { title: "Statutory Registers" };
 
@@ -29,6 +30,7 @@ export default async function RegistersPage() {
         description="The monthly PF / ESI / PT / TDS challan register — per-employee amounts and totals HR files returns from."
       />
       <RegistersView periods={periods as never} initial={initial as never} />
+      <FilingExportsCard periods={periods} />
     </div>
   );
 }

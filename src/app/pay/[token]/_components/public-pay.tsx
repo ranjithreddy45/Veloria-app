@@ -9,6 +9,11 @@ import {
   verifyPublicRazorpayPayment,
 } from "@/actions/payment.actions";
 
+/** Shape every order-creation action returns (public invoice link + split links). */
+export type PublicOrderResult =
+  | { success: true; data: { orderId: string; amount: number; currency: string; keyId: string | undefined } }
+  | { success: false; error: string };
+
 interface PublicPayProps {
   invoiceId: string;
   invoiceNumber: string;
@@ -16,6 +21,14 @@ interface PublicPayProps {
   customerName: string;
   customerEmail: string;
   customerPhone?: string;
+  /**
+   * Override how the Razorpay order is minted. Default: the invoice link's
+   * createPublicRazorpayOrder(invoiceId, amount). /pay/split/<token> passes a
+   * token-bound action so one checkout component serves both link types.
+   */
+  createOrder?: () => Promise<PublicOrderResult>;
+  /** Razorpay checkout description (defaults to "Payment for <invoice>"). */
+  description?: string;
   /**
    * Called after a verified, successful payment. Used by the /hold page to
    * router.refresh() so the countdown + release link disappear and the server
@@ -59,6 +72,8 @@ export function PublicPay({
   customerEmail,
   customerPhone,
   onSuccess,
+  createOrder,
+  description,
 }: PublicPayProps) {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
@@ -72,7 +87,9 @@ export function PublicPay({
       const ok = await loadRazorpayScript();
       if (!ok) throw new Error("Couldn't load the payment gateway. Please try again.");
 
-      const orderRes = await createPublicRazorpayOrder(invoiceId, amount);
+      const orderRes: PublicOrderResult = createOrder
+        ? await createOrder()
+        : await createPublicRazorpayOrder(invoiceId, amount);
       if (!orderRes.success) throw new Error(orderRes.error || "Couldn't start the payment.");
       const { orderId, amount: paise, currency, keyId } = orderRes.data;
 
@@ -81,7 +98,7 @@ export function PublicPay({
         amount: paise,
         currency: currency || "INR",
         name: "Veloria Grand",
-        description: `Payment for ${invoiceNumber}`,
+        description: description || `Payment for ${invoiceNumber}`,
         order_id: orderId,
         prefill: { name: customerName, email: customerEmail, contact: customerPhone || "" },
         theme: { color: "#7c3aed" },
@@ -118,7 +135,7 @@ export function PublicPay({
       setError(e instanceof Error ? e.message : "Something went wrong.");
       setLoading(false);
     }
-  }, [invoiceId, amount, invoiceNumber, customerName, customerEmail, customerPhone, onSuccess]);
+  }, [invoiceId, amount, invoiceNumber, customerName, customerEmail, customerPhone, onSuccess, createOrder, description]);
 
   if (status === "success") {
     return (

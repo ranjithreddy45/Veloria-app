@@ -7,9 +7,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn } from "next-auth/react";
 import { toast } from "sonner";
-import { Loader2, Chrome, MessageCircle } from "lucide-react";
+import { Loader2, Chrome, MessageCircle, ShieldCheck } from "lucide-react";
 import { signInSchema, type SignInInput } from "@/schemas/auth.schema";
 import { signInAction } from "@/actions/auth.actions";
+import { TWO_FACTOR_ERROR_CODES } from "@/lib/security/two-factor-errors";
 import { requestLoginOtp } from "@/actions/otp.actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,21 +40,52 @@ export default function SignInForm() {
   const [otpSending, setOtpSending] = useState(false);
   const [otpVerifying, setOtpVerifying] = useState(false);
 
+  // Two-factor second step (email + password already checked out server-side;
+  // the same form re-submits with the authenticator / recovery code attached).
+  const [twoFactorStep, setTwoFactorStep] = useState(false);
+  const [totpCode, setTotpCode] = useState("");
+
   const form = useForm<SignInInput>({
     resolver: zodResolver(signInSchema),
     defaultValues: { email: "", password: "" },
   });
 
   function onSubmit(values: SignInInput) {
+    const totp = totpCode.trim();
+    if (twoFactorStep && !totp) {
+      toast.error("Enter the 6-digit code from your authenticator app.");
+      return;
+    }
     startTransition(async () => {
       const formData = new FormData();
       formData.append("email", values.email);
       formData.append("password", values.password);
+      if (twoFactorStep && totp) formData.append("totp", totp);
       const result = await signInAction(formData);
       if (result && !result.success) {
+        const code = "code" in result ? result.code : undefined;
+        if (code === TWO_FACTOR_ERROR_CODES.REQUIRED) {
+          setTwoFactorStep(true);
+          return;
+        }
+        if (code) {
+          // Wrong / reused / rate-limited code — stay on the code step.
+          setTotpCode("");
+          toast.error(result.error);
+          return;
+        }
+        // Password rejected (or anything else): back to the first step.
+        setTwoFactorStep(false);
+        setTotpCode("");
         toast.error(result.error || "Invalid email or password");
       }
     });
+  }
+
+  function leaveTwoFactorStep() {
+    setTwoFactorStep(false);
+    setTotpCode("");
+    form.setValue("password", "");
   }
 
   async function handleSendCode() {
@@ -136,7 +168,77 @@ export default function SignInForm() {
         </div>
       </div>
 
-      {authMode === "password" ? (
+      {authMode === "password" && twoFactorStep ? (
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3.5">
+            <div className="flex items-start gap-2.5 rounded-lg border border-border/70 bg-muted/40 p-3">
+              <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
+              <div className="space-y-0.5">
+                <p className="text-detail font-medium text-foreground">
+                  Two-factor authentication
+                </p>
+                <p className="text-meta text-muted-foreground">
+                  Enter the 6-digit code from your authenticator app for{" "}
+                  <span className="font-medium text-foreground">
+                    {form.getValues("email")}
+                  </span>
+                  .
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label
+                  htmlFor="sign-in-totp"
+                  className="text-detail font-medium text-foreground"
+                >
+                  Authentication code
+                </Label>
+                <button
+                  type="button"
+                  onClick={leaveTwoFactorStep}
+                  className="text-meta font-medium text-muted-foreground hover:text-foreground"
+                >
+                  Use a different account
+                </button>
+              </div>
+              <Input
+                id="sign-in-totp"
+                placeholder="123456"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                autoFocus
+                maxLength={12}
+                className="h-11 rounded-lg text-center text-lede font-semibold tracking-[0.35em]"
+                value={totpCode}
+                onChange={(e) => setTotpCode(e.target.value.toUpperCase())}
+                disabled={isPending}
+              />
+              <p className="text-meta text-muted-foreground">
+                Lost your phone? Enter one of your recovery codes (e.g.
+                K7MP3-Q9XZ2) instead.
+              </p>
+            </div>
+
+            <Button
+              type="submit"
+              className="button-sheen h-10 w-full rounded-lg text-body font-semibold text-primary-foreground"
+              disabled={isPending}
+            >
+              {isPending ? (
+                <>
+                  <Loader2 className="mr-2 size-3.5 animate-spin" />
+                  Verifying…
+                </>
+              ) : (
+                "Verify & sign in"
+              )}
+            </Button>
+          </form>
+        </Form>
+      ) : authMode === "password" ? (
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3.5">
             <FormField
@@ -320,6 +422,8 @@ export default function SignInForm() {
           setAuthMode((m) => (m === "password" ? "otp" : "password"));
           setOtpStep("phone");
           setCode("");
+          setTwoFactorStep(false);
+          setTotpCode("");
         }}
         className="flex w-full items-center justify-center gap-1.5 text-detail font-medium text-muted-foreground hover:text-foreground"
       >

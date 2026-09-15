@@ -9458,3 +9458,185 @@ model DrawWinner {
 
   @@index([entryId])
 }
+
+// ============================================================
+// Web Push — one row per browser/device subscription for a signed-in user.
+// Plain userId (no relation) so this is prod-push safe; rows are pruned when
+// the push service reports the endpoint gone (404/410). Additive only.
+// ============================================================
+model PushSubscription {
+  id         String   @id @default(cuid())
+  userId     String
+  endpoint   String   @unique
+  p256dh     String
+  auth       String
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ============================================================
+// Data-privacy compliance (India DPDP Act 2023) — additive only.
+// ConsentRecord: evidence of exactly what a data principal agreed to, on
+// which form, and when. PrivacyRequest: access / erasure / correction
+// requests raised on the public /privacy page and worked by admins in
+// /settings/privacy. Plain id strings, no @relation on existing models
+// (prod-push safety, per the project pattern).
+// ============================================================
+model ConsentRecord {
+  id          String   @id @default(cuid())
+  subjectType String // CONTACT | GUEST | CANDIDATE | EMPLOYEE
+  subjectId   String? // id of the Contact / Guest / RecCandidate / User row, when known
+  email       String?
+  phone       String?
+  purpose     String // ENQUIRY_RESPONSE | RSVP | SITE_VISIT | DATE_HOLD | JOB_APPLICATION | DRAW_WHATSAPP
+  source      String // form slug / route that captured it, e.g. "/visit", "/form/event-inquiry"
+  consentText String   @db.Text // the sentence the person actually ticked
+  givenAt     DateTime @default(now())
+  ipHash      String? // sha256(PRIVACY_IP_SALT + ip) — never the raw IP
+  userAgent   String?
+
+  @@index([subjectId])
+  @@index([phone])
+  @@index([email])
+}
+
+model PrivacyRequest {
+  id             String    @id @default(cuid())
+  kind           String // ACCESS | DELETE | CORRECT
+  status         String    @default("OPEN") // OPEN | IN_PROGRESS | DONE | REJECTED
+  requesterName  String
+  requesterEmail String?
+  requesterPhone String?
+  details        String?   @db.Text
+  verifiedAt     DateTime? // when an admin confirmed the requester owns the email/phone
+  handledById    String? // User id of the admin who closed it
+  handledAt      DateTime?
+  resolutionNote String?   @db.Text
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([status])
+}
+
+// ============================================================
+// Two-factor authentication (TOTP authenticator app) for staff sign-in.
+// Keyed by userId — deliberately no @relation on User (existing models are
+// never edited). Secret is AES-256-GCM encrypted at rest, recovery codes are
+// stored as SHA-256 hashes (shown to the user exactly once).
+// See src/lib/security/two-factor.ts + src/actions/two-factor.actions.ts.
+// ============================================================
+
+model UserTwoFactor {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  secretEnc         String // "v1.<iv>.<ciphertext>.<tag>" — AES-256-GCM of the base32 TOTP secret
+  enabled           Boolean   @default(false)
+  recoveryCodesHash String[]  @default([]) // sha256(userId-salted recovery code); a code is removed when consumed
+  enabledAt         DateTime?
+  lastUsedAt        DateTime? // period-start of the last accepted TOTP (replay guard) or time of last recovery-code use
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+// A sign-in that did not itself prove the second factor (Google OAuth, WhatsApp
+// OTP) mints a random challenge id into the JWT. The /two-factor page writes
+// this row once a valid code is entered; the jwt callback then clears the
+// pending flag for exactly that session and deletes the row.
+model UserTwoFactorChallenge {
+  id         String    @id // the challenge id (UUID) carried in the session JWT
+  userId     String
+  verifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// ============================================================
+// WhatsApp inbound webhook capture — one row per POST that reaches
+// /api/webhooks/weflux or /api/webhooks/whatsapp, written BEFORE auth or
+// parsing so a payload we fail to verify or understand is still on record, then
+// updated as signature / parse / contact-match proceed. Plain ids, no relations
+// (prod-push safe). Pruned after 30 days by the daily cron lane
+// (whatsapp-inbound-prune). Viewer: /settings/integrations/whatsapp-inbound.
+// ============================================================
+model WhatsAppInboundEvent {
+  id               String   @id @default(cuid())
+  provider         String // "WEFLUX" | "META"
+  receivedAt       DateTime @default(now())
+  signatureValid   Boolean? // null = never evaluated (e.g. webhook not configured)
+  eventType        String?
+  fromPhone        String?
+  messageId        String?
+  textPreview      String?
+  parsedOk         Boolean  @default(false)
+  parseError       String?
+  matchedContactId String?
+  handled          Boolean  @default(false)
+  rawBody          String   @db.Text // capped at 64 KB
+  headers          String?  @db.Text // JSON; secret-bearing values reduced to { present: true }
+
+  @@index([receivedAt])
+  @@index([fromPhone])
+}
+
+// ============================================================
+// Split payments — several people paying parts of ONE amount due.
+// ------------------------------------------------------------
+// parentLinkId is the Invoice id: the public payment link is literally
+// /pay/<invoice.id>, and every payment (manual, Razorpay, proof) is recorded
+// against the invoice, so the invoice is the one true "amount due" a split
+// divides. Paying a split records a NORMAL Payment on that invoice (receipt,
+// GL, auto-confirm all apply) and flips the split PAID. Plain id strings, no
+// @relation — additive + prod-push safe. Money is integer paise.
+// ============================================================
+model PaymentSplit {
+  id                String    @id @default(cuid())
+  parentLinkId      String // Invoice.id (the public pay-link token)
+  bookingId         String?
+  invoiceId         String?
+  token             String    @unique // unguessable public credential for /pay/split/<token>
+  payerName         String
+  payerPhone        String?
+  payerEmail        String?
+  amountPaise       Int
+  status            String    @default("PENDING") // PENDING | PAID | CANCELLED | EXPIRED
+  razorpayOrderId   String? // latest Razorpay order minted for this split
+  razorpayPaymentId String?
+  paidAt            DateTime?
+  expiresAt         DateTime?
+  createdById       String? // User.id of whoever created it (host or staff)
+  createdBy         String? // "HOST" | "STAFF"
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([parentLinkId])
+  @@index([status])
+  @@index([razorpayOrderId])
+}
+
+// ============================================================
+// Object storage registry — one row per object written through
+// lib/storage (storeIncomingFile). The file columns themselves keep holding
+// either the legacy base64 data-URL or an `s3://<bucket>/<key>` ref; this table
+// is the index over the bucket (what is there, how big, who put it, for which
+// record) so orphans and totals can be reasoned about without listing the
+// bucket. Written best-effort; never load-bearing for a read. Additive only.
+// ============================================================
+model StoredFile {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  bucket      String
+  contentType String
+  sizeBytes   Int
+  sha256      String?
+  ownerType   String? // e.g. "HrClaimAttachment", "Lead", "AcqDeal", "Document"
+  ownerId     String?
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  @@index([ownerType, ownerId])
+  @@index([createdAt])
+}

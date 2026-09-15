@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/card";
 import { auth } from "@/../auth";
 import { getPortalPayments } from "@/actions/portal.actions";
+import { getHostSplitTargets } from "@/actions/payment-split.actions";
+import { SplitPaymentsPanel } from "@/components/payments/split-payments-panel";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { PageHeader } from "@/components/layout/page-header";
 import { PAYMENT_STATUS_COLORS } from "@/lib/constants";
@@ -53,7 +55,12 @@ export default async function PortalPaymentsPage() {
   const session = await auth();
   if (!session?.user) redirect("/sign-in");
 
-  const payments = await getPortalPayments(session.user.id);
+  const [payments, splitTargets] = await Promise.all([
+    getPortalPayments(session.user.id),
+    // Split payments: open invoices this host owns, with their split links.
+    getHostSplitTargets(),
+  ]);
+  const hostFirstName = (session.user.name ?? "").trim().split(" ")[0] || "Your host";
 
   // Summary stats
   const completedPayments = payments.filter((p) => p.status === "COMPLETED");
@@ -124,6 +131,31 @@ export default async function PortalPaymentsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ---- Split payments: amounts still due, shareable between several payers ---- */}
+      {splitTargets.length > 0 && (
+        <section className="space-y-4">
+          <div>
+            <h2 className="font-editorial text-foreground text-title font-semibold">
+              Split what&apos;s due
+            </h2>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Share an amount between family or friends. Each person gets their own secure
+              link, and every paid share lands in your payment history below.
+            </p>
+          </div>
+          {splitTargets.map((t) => (
+            <SplitPaymentsPanel
+              key={t.invoiceId}
+              target={t}
+              canCreate
+              requesterName={hostFirstName}
+              variant="portal"
+              className="shadow-card"
+            />
+          ))}
+        </section>
+      )}
 
       {/* Payments List */}
       {payments.length === 0 ? (

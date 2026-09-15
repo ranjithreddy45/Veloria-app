@@ -40,6 +40,10 @@ export const widgetInquirySchema = z.object({
     .string()
     .min(1, { error: "Message is required" })
     .max(5000, { error: "Message must be at most 5000 characters" }),
+  // DPDP consent. Optional in the SCHEMA on purpose: the hosted widget form
+  // enforces the tick client-side, while the API stays open to external
+  // integrations that own their own consent UI (recorded when true).
+  consent: z.boolean().optional(),
 });
 
 export type WidgetInquiryInput = z.infer<typeof widgetInquirySchema>;

@@ -26,6 +26,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { PushToggle } from "@/components/shared/push-toggle";
 import { cn } from "@/lib/utils";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import {
@@ -272,6 +273,10 @@ export function NotificationPopover() {
             </Button>
           )}
         </div>
+
+        {/* Device push opt-in — only mounts once the popover opens, so the
+            support/permission probe never runs on every page load. */}
+        {open && <PushToggle compact />}
 
         {/* Notification List */}
         <ScrollArea className="h-[360px]">

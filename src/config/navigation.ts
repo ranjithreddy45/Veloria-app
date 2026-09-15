@@ -428,6 +428,9 @@ export const sidebarNavigation: NavItem[] = [
       // hr:read-gated People section, so ordinary staff never saw it exist.
       { title: "Employee Handbook", href: "/people/handbook", icon: "BookOpen", permissions: [] },
       { title: "Help Desk", href: "/me/helpdesk", icon: "MessageCircle", permissions: [] },
+      // Self-service two-factor enrolment. Lives under /me so every staff role
+      // can reach it (the /settings tree is settings:read-gated in middleware).
+      { title: "Security & 2FA", href: "/me/security", icon: "ShieldCheck", permissions: [] },
     ],
   },
   // People split into focused sub-modules so the team finds things fast.
@@ -573,6 +576,7 @@ export const sidebarNavigation: NavItem[] = [
       { title: "General Ledger", href: "/finance", icon: "Scale", permissions: ["finance:read"] },
       { title: "Bank & Reconcile", href: "/finance/bank", icon: "Landmark", permissions: ["finance:read"] },
       { title: "Reports", href: "/finance/reports", icon: "TrendingUp", permissions: ["finance:read"] },
+      { title: "Event Profitability", href: "/finance/reports/event-profitability", icon: "TrendingUp", permissions: ["finance:read"] },
       { title: "Tax & Compliance", href: "/finance/tax", icon: "Percent", permissions: ["finance:read"] },
       // Fully approved employee expense claims, ready to pay.
       { title: "Reimbursements", href: "/finance/reimbursements", icon: "Receipt", permissions: ["finance:read"] },
@@ -906,6 +910,7 @@ export const sidebarNavigation: NavItem[] = [
         icon: "ShieldCheck",
         permissions: ["users:manage-roles"],
       },
+      { title: "Privacy & Consent", href: "/settings/privacy", icon: "ShieldCheck", permissions: ["users:manage-roles"] },
       {
         title: "Email Templates",
         href: "/settings/email-templates",
@@ -929,6 +934,13 @@ export const sidebarNavigation: NavItem[] = [
         href: "/settings/integrations/health",
         icon: "PlugZap",
         permissions: ["settings:read"],
+      },
+      {
+        title: "System Health",
+        href: "/settings/system-health",
+        icon: "Activity",
+        // ADMIN + SUPER_ADMIN only (the page re-checks the role itself).
+        permissions: ["users:manage-roles"],
       },
       {
         title: "Google Ads",

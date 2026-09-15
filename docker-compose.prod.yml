@@ -1,0 +1,29 @@
+# ============================================================
+# Veloria Grand on the VPS. The app listens on 127.0.0.1:3000 only; the
+# server's existing web server (nginx/Apache) reverse-proxies
+# app.theveloriagrand.com → :3100 (3000 is taken by another app on this box) and terminates HTTPS.
+# The database stays on Neon — nothing here stores data.
+#   deploy:  bash scripts/deploy-vps.sh   (run on the server)
+# ============================================================
+services:
+  app:
+    image: veloria-app:latest
+    build:
+      context: .
+      # This host's Docker bridge can't resolve DNS during builds (restrictive
+      # FORWARD policy); building on the host network sidesteps it.
+      network: host
+      args:
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+        NEXT_PUBLIC_BRAND_LOGO_URL: ${NEXT_PUBLIC_BRAND_LOGO_URL:-}
+        NEXT_PUBLIC_GOOGLE_API_KEY: ${NEXT_PUBLIC_GOOGLE_API_KEY:-}
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
+        NEXT_PUBLIC_GOOGLE_APP_ID: ${NEXT_PUBLIC_GOOGLE_APP_ID:-}
+    container_name: veloria-app
+    restart: unless-stopped
+    env_file: .env.production
+    ports:
+      - "127.0.0.1:3100:3000"
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "5" }

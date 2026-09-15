@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { processRsvpResponse } from "@/actions/invitation.actions";
+import { ConsentCheckbox } from "@/components/public/consent-checkbox";
+import { CONSENT_TEXT_RSVP } from "@/lib/privacy/consent-text";
 
 // ============================================================
 // RSVP Form (Public — No Auth)
@@ -28,8 +30,14 @@ export function RsvpForm({ token, guestName }: RsvpFormProps) {
   const [plusOnes, setPlusOnes] = useState(0);
   const [dietaryRestrictions, setDietaryRestrictions] = useState("");
   const [message, setMessage] = useState("");
+  const [consent, setConsent] = useState(false);
+  const [consentError, setConsentError] = useState<string | null>(null);
 
   function handleSubmit(choice: "ACCEPTED" | "DECLINED") {
+    if (!consent) {
+      setConsentError("Please agree to the privacy notice to send your response.");
+      return;
+    }
     setResponse(choice);
 
     startTransition(async () => {
@@ -40,6 +48,7 @@ export function RsvpForm({ token, guestName }: RsvpFormProps) {
         dietaryRestrictions:
           choice === "ACCEPTED" ? dietaryRestrictions : undefined,
         message: message || undefined,
+        consent: true,
       });
 
       if (result.success) {
@@ -134,6 +143,19 @@ export function RsvpForm({ token, guestName }: RsvpFormProps) {
           />
         </div>
       </div>
+
+      {/* DPDP consent */}
+      <ConsentCheckbox
+        id="rsvp-consent"
+        text={CONSENT_TEXT_RSVP}
+        checked={consent}
+        onCheckedChange={(v) => {
+          setConsent(v);
+          if (v) setConsentError(null);
+        }}
+        error={consentError}
+        disabled={isPending}
+      />
 
       {/* Action Buttons */}
       <div className="flex gap-3">

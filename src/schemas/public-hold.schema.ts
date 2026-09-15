@@ -36,6 +36,9 @@ export const publicHoldSchema = z.object({
   utmSource: z.string().trim().max(120).optional(),
   utmMedium: z.string().trim().max(120).optional(),
   utmCampaign: z.string().trim().max(120).optional(),
+  // DPDP consent — required (enforced in the action; optional in the schema so
+  // the inferred input type does not force every caller to pass it).
+  consent: z.boolean().optional(),
 });
 
 export type PublicHoldInput = z.infer<typeof publicHoldSchema>;

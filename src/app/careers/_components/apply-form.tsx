@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FileUpload } from "@/components/ui/file-upload";
 import { applyToRole } from "@/actions/recruit-public.actions";
+import { ConsentCheckbox } from "@/components/public/consent-checkbox";
+import { CONSENT_TEXT_CAREERS } from "@/lib/privacy/consent-text";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -16,6 +18,8 @@ export function ApplyForm({ jobOpeningId, roleTitle }: { jobOpeningId: string; r
   const [submitted, setSubmitted] = useState(false);
   const [form, setForm] = useState({ firstName: "", lastName: "", email: "", phone: "", city: "" });
   const [resume, setResume] = useState<{ url: string; name: string } | null>(null);
+  const [consent, setConsent] = useState(false);
+  const [consentError, setConsentError] = useState<string | null>(null);
 
   function set(key: keyof typeof form, value: string) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -31,6 +35,10 @@ export function ApplyForm({ jobOpeningId, roleTitle }: { jobOpeningId: string; r
       toast.error("Please enter a valid email address.");
       return;
     }
+    if (!consent) {
+      setConsentError("Please agree to the privacy notice to submit your application.");
+      return;
+    }
     startTransition(async () => {
       const res = await applyToRole(jobOpeningId, {
         firstName: form.firstName,
@@ -39,6 +47,7 @@ export function ApplyForm({ jobOpeningId, roleTitle }: { jobOpeningId: string; r
         phone: form.phone || undefined,
         city: form.city || undefined,
         resumeUrl: resume?.url || undefined,
+        consent: true,
       });
       if (res.success) {
         setSubmitted(true);
@@ -161,6 +170,20 @@ export function ApplyForm({ jobOpeningId, roleTitle }: { jobOpeningId: string; r
           <p className="text-meta text-muted-foreground">Optional. PDF or image, up to ~1 MB.</p>
         </div>
       </div>
+
+      {/* DPDP consent */}
+      <ConsentCheckbox
+        id="careers-consent"
+        text={CONSENT_TEXT_CAREERS}
+        checked={consent}
+        onCheckedChange={(v) => {
+          setConsent(v);
+          if (v) setConsentError(null);
+        }}
+        error={consentError}
+        disabled={isPending}
+        className="mt-5"
+      />
 
       <Button type="submit" className="mt-6 w-full" disabled={isPending}>
         {isPending ? (

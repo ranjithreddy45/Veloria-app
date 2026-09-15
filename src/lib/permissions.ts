@@ -1256,6 +1256,7 @@ export const ROUTE_PERMISSIONS: { prefix: string; permission: Permission }[] = [
   { prefix: "/admin/draw", permission: "bookings:read" }, // Guest Draw register (managers)
   { prefix: "/settings/users", permission: "users:read" },
   { prefix: "/settings/roles", permission: "users:manage-roles" },
+  { prefix: "/settings/privacy", permission: "users:manage-roles" }, // DPDP request queue + consent ledger
   { prefix: "/settings/public-quotes", permission: "publicquotes:read" },
   // Smart-routing / rep-availability settings sub-pages. rep-availability is
   // intentionally gated to leads:read (not settings:read) so Sales reps can

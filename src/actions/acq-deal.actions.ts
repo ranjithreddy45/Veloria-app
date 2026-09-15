@@ -7,6 +7,15 @@ import { revalidatePath } from "next/cache";
 import { notify } from "@/lib/notify";
 import { logActivity } from "@/lib/activity-logger";
 import { isSafeReceiptUrl, isSafeReceiptDataUrl } from "@/lib/sales/receipt";
+import {
+  isDataUrl,
+  isProxyFileUrl,
+  isStorageRef,
+  normalizeFileValueForStorage,
+  resolveFileValue,
+  resolveFileValues,
+  storeIncomingFile,
+} from "@/lib/storage/data-url";
 import { ensureDealProperty } from "@/lib/acq/conversion";
 import {
   isLegalTransition,
@@ -128,7 +137,23 @@ export async function getAcqDeal(id: string): Promise<Result<unknown>> {
     },
   });
   if (!deal) return { success: false, error: "Deal not found" };
-  return { success: true, data: serialize(deal) };
+  // Object-storage refs → URLs the browser can load; inline data-URLs and
+  // https links pass through. Covers the deal's own photos, the linked lead's
+  // photos and every attachment.
+  const [images, leadImages, attachmentUrls] = await Promise.all([
+    resolveFileValues(deal.images),
+    resolveFileValues(deal.lead?.images),
+    Promise.all(deal.attachments.map((a) => resolveFileValue(a.url))),
+  ]);
+  return {
+    success: true,
+    data: serialize({
+      ...deal,
+      images,
+      lead: deal.lead ? { ...deal.lead, images: leadImages } : deal.lead,
+      attachments: deal.attachments.map((a, i) => ({ ...a, url: attachmentUrls[i] })),
+    }),
+  };
 }
 
 // ------------------------------------------------------------
@@ -303,10 +328,23 @@ export async function updateAcqDealImages(
   const deal = await prisma.acqDeal.findFirst({ where: { id, deletedAt: null }, select: { id: true } });
   if (!deal) return { success: false, error: "Deal not found" };
 
-  const safe = (Array.isArray(images) ? images : [])
+  // A fresh upload must be an image data-URL; an already-stored photo comes
+  // back from the panel as its object-storage ref or the /api/files proxy URL
+  // it was shown through — both are kept (as the ref). Capped BEFORE upload so
+  // nothing over the cap lands in the bucket as an orphan.
+  const candidates = (Array.isArray(images) ? images : [])
     .filter((v): v is string => typeof v === "string")
-    .filter((v) => isSafeReceiptDataUrl(v) && v.startsWith("data:image/"))
+    .filter((v) => (isSafeReceiptDataUrl(v) && v.startsWith("data:image/")) || isStorageRef(v) || isProxyFileUrl(v))
     .slice(0, 24);
+  const safe: string[] = [];
+  for (const v of candidates) {
+    if (isDataUrl(v)) {
+      safe.push(await storeIncomingFile(v, { prefix: "bd/deals", ownerType: "AcqDeal", ownerId: id, createdById: user.id }));
+    } else {
+      const ref = await normalizeFileValueForStorage(v);
+      if (ref) safe.push(ref);
+    }
+  }
 
   await prisma.acqDeal.update({ where: { id }, data: { images: safe } });
   revalidatePath(`/bd/deals/${id}`);
@@ -418,8 +456,16 @@ export async function addAcqAttachment(
   if (!isSafeReceiptUrl(url)) {
     return { success: false, error: "Upload an image/PDF, or enter a valid https:// link." };
   }
+  // Validated above. With object storage enabled a data-URL goes to the bucket
+  // and the row holds the ref; an https link passes through either way.
+  const storedUrl = await storeIncomingFile(url, {
+    prefix: "bd/attachments",
+    ownerType: "AcqAttachment",
+    ownerId: dealId,
+    createdById: user.id,
+  });
   const att = await prisma.acqAttachment.create({
-    data: { dealId, kind: input.kind, url, label: input.label || null, uploadedById: user.id },
+    data: { dealId, kind: input.kind, url: storedUrl, label: input.label || null, uploadedById: user.id },
     select: { id: true },
   });
   revalidatePath(`/bd/deals/${dealId}`);

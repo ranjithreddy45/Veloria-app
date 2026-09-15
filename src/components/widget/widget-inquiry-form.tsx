@@ -9,6 +9,7 @@ import {
   type WidgetInquiryInput,
 } from "@/schemas/widget.schema";
 import { EVENT_TYPES } from "@/lib/constants";
+import { ConsentCheckbox } from "@/components/public/consent-checkbox";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -86,10 +87,17 @@ export function WidgetInquiryForm({ venues = [] }: WidgetInquiryFormProps) {
       guestCount: null,
       venueId: "",
       message: "",
+      consent: false,
     },
   });
 
   async function onSubmit(data: WidgetInquiryInput) {
+    // Consent is required on OUR hosted form (the schema leaves it optional so
+    // external integrations can post without it — see widget.schema.ts).
+    if (data.consent !== true) {
+      form.setError("consent", { message: "Please agree to the privacy notice to continue." });
+      return;
+    }
     setIsPending(true);
     try {
       const response = await fetch("/api/widget/inquiry", {
@@ -350,6 +358,28 @@ export function WidgetInquiryForm({ venues = [] }: WidgetInquiryFormProps) {
                     />
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* DPDP consent */}
+            <FormField
+              control={form.control}
+              name="consent"
+              render={({ field, fieldState }) => (
+                <FormItem>
+                  <FormControl>
+                    <ConsentCheckbox
+                      id="widget-consent"
+                      checked={field.value === true}
+                      onCheckedChange={(v) => {
+                        field.onChange(v);
+                        if (v) form.clearErrors("consent");
+                      }}
+                      error={fieldState.error?.message}
+                      disabled={isPending}
+                    />
+                  </FormControl>
                 </FormItem>
               )}
             />

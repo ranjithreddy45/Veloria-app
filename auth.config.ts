@@ -2,6 +2,23 @@ import type { NextAuthConfig } from "next-auth";
 import type { UserRole } from "@prisma/client";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
+import {
+  TWO_FACTOR_CHALLENGE_PATH,
+  TWO_FACTOR_ENFORCEMENT,
+  TWO_FACTOR_HARD_ALLOWLIST,
+  TWO_FACTOR_SETUP_PATH,
+  isTwoFactorRequiredForRole,
+} from "@/lib/security/two-factor-policy";
+
+/** Paths a session that still owes its second factor may reach. */
+function isTwoFactorChallengePath(pathname: string): boolean {
+  return (
+    pathname === TWO_FACTOR_CHALLENGE_PATH ||
+    pathname.startsWith(`${TWO_FACTOR_CHALLENGE_PATH}/`) ||
+    pathname.startsWith("/api/auth") ||
+    pathname === "/not-authorized"
+  );
+}
 
 /**
  * Edge-safe auth configuration.
@@ -36,6 +53,41 @@ const authConfig: NextAuthConfig = {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
       const pathname = nextUrl.pathname;
+
+      // ------------------------------------------------------------------
+      // Two-factor authentication (see src/lib/security/two-factor-policy.ts)
+      // ------------------------------------------------------------------
+      // 1. A Google / WhatsApp-OTP sign-in by an enrolled user is flagged
+      //    `twoFactorPending` in the JWT (auth.ts). Until the /two-factor page
+      //    verifies a code for this session, every other route bounces there —
+      //    server actions POST to the page URL, so they are covered too.
+      const tfUser = auth?.user as
+        | { role?: string; twoFactorPending?: boolean; twoFactorEnabled?: boolean }
+        | undefined;
+      if (isLoggedIn && tfUser?.twoFactorPending) {
+        if (isTwoFactorChallengePath(pathname)) return true;
+        if (pathname.startsWith("/api/")) {
+          return Response.json(
+            { error: "Two-factor authentication required" },
+            { status: 401 }
+          );
+        }
+        return Response.redirect(new URL(TWO_FACTOR_CHALLENGE_PATH, nextUrl));
+      }
+      // 2. Hard enforcement (off by default): a required role that has not
+      //    enrolled can only reach the setup page until it does.
+      if (
+        isLoggedIn &&
+        (TWO_FACTOR_ENFORCEMENT as string) === "hard" &&
+        isTwoFactorRequiredForRole(tfUser?.role) &&
+        !tfUser?.twoFactorEnabled &&
+        !pathname.startsWith("/api/") &&
+        !(TWO_FACTOR_HARD_ALLOWLIST as readonly string[]).some(
+          (p) => pathname === p || pathname.startsWith(`${p}/`)
+        )
+      ) {
+        return Response.redirect(new URL(TWO_FACTOR_SETUP_PATH, nextUrl));
+      }
 
       // Protected dashboard/internal routes
       const isOnDashboard = pathname.startsWith("/dashboard");
@@ -122,6 +174,12 @@ const authConfig: NextAuthConfig = {
         // Effective (override-aware) permissions, baked at sign-in (auth.ts).
         (session.user as { perms?: string[] }).perms =
           (token as { perms?: string[] }).perms;
+        // Two-factor flags (auth.ts jwt callback). The challenge id is not a
+        // secret: only a verified code can turn it into a passed challenge.
+        const tf = token as { tfa?: boolean; tfaPending?: boolean; tfaSid?: string };
+        session.user.twoFactorEnabled = !!tf.tfa;
+        session.user.twoFactorPending = !!tf.tfaPending;
+        session.user.twoFactorSid = tf.tfaPending ? tf.tfaSid : undefined;
       }
       return session;
     },

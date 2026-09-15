@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { widgetInquirySchema } from "@/schemas/widget.schema";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { captureLeadFromExternal } from "@/lib/lead-capture";
+import { CONSENT_TEXT_ENQUIRY } from "@/lib/privacy/consent-text";
 
 // ============================================================
 // POST: Submit Widget Inquiry (Public — No Auth Required)
@@ -64,6 +65,18 @@ export async function POST(request: NextRequest) {
       eventDate: data.eventDate ? new Date(data.eventDate).toISOString() : undefined,
       guestCount: data.guestCount || undefined,
       venueId: data.venueId || undefined,
+      // Consent ledger (DPDP) — recorded when the form says the box was ticked;
+      // never a reason to refuse an inquiry from an external integration.
+      consent: data.consent === true
+        ? {
+            given: true,
+            source: "/widget",
+            purpose: "ENQUIRY_RESPONSE",
+            text: CONSENT_TEXT_ENQUIRY,
+            ip: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || null,
+            userAgent: request.headers.get("user-agent"),
+          }
+        : undefined,
     });
 
     return NextResponse.json(

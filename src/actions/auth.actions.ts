@@ -5,6 +5,10 @@ import prisma from "@/lib/prisma";
 import { signIn } from "@/../auth";
 import { signUpSchema, signInSchema, forgotPasswordSchema, resetPasswordSchema } from "@/schemas/auth.schema";
 import { AuthError } from "next-auth";
+import {
+  twoFactorErrorCode,
+  twoFactorErrorMessage,
+} from "@/lib/security/two-factor-errors";
 
 // ============================================================
 // Sign Up Action
@@ -86,6 +90,9 @@ export async function signInAction(formData: FormData) {
       email: formData.get("email") as string,
       password: formData.get("password") as string,
     };
+    // Optional second step — 6-digit authenticator code or a recovery code.
+    // Sent by the sign-in form only after a "2FA_REQUIRED" response.
+    const totp = String(formData.get("totp") ?? "").trim();
 
     // Validate input
     const parsed = signInSchema.safeParse(rawData);
@@ -111,6 +118,7 @@ export async function signInAction(formData: FormData) {
     await signIn("credentials", {
       email: parsed.data.email.toLowerCase(),
       password: parsed.data.password,
+      ...(totp ? { totp } : {}),
       redirectTo,
     });
 
@@ -121,6 +129,16 @@ export async function signInAction(formData: FormData) {
     // NextAuth throws a NEXT_REDIRECT "error" on successful redirect.
     // We need to re-throw it so Next.js can handle the redirect.
     if (error instanceof AuthError) {
+      // Second-factor outcomes (password already verified). `code` lets the
+      // form reveal the code input / keep the user on that step.
+      const tfCode = twoFactorErrorCode(error);
+      if (tfCode) {
+        return {
+          success: false as const,
+          error: twoFactorErrorMessage(tfCode),
+          code: tfCode,
+        };
+      }
       switch (error.type) {
         case "CredentialsSignin":
           return {

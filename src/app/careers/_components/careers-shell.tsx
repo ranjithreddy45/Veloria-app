@@ -34,7 +34,10 @@ export function CareersShell({ children }: { children: React.ReactNode }) {
 
       <footer className="relative z-10 mx-auto max-w-5xl px-6 py-10">
         <p className="text-center text-meta text-muted-foreground/70">
-          &copy; {new Date().getFullYear()} Veloria Grand. All rights reserved.
+          &copy; {new Date().getFullYear()} Veloria Grand. All rights reserved. &middot;{" "}
+          <Link href="/privacy" className="underline-offset-2 hover:text-foreground hover:underline">
+            Privacy Policy
+          </Link>
         </p>
       </footer>
     </div>

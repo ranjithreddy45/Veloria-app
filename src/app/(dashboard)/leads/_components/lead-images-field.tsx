@@ -5,6 +5,12 @@
 // Uses the app-standard FileUpload (base64 data-URL) pattern and shows thumbnail
 // previews with remove buttons. Picked images are lifted into the parent form
 // (`value` / `onChange`) and persisted to `Lead.images` by createLead/updateLead.
+//
+// `value` entries are whatever the server handed back: a base64 data-URL
+// (inline photo), an http(s) or /api/files proxy URL (a photo that lives in
+// object storage), or — defensively — a raw `s3://` ref, which is previewed
+// through the proxy route. Existing entries are echoed back unchanged on save;
+// the server normalises them. Only NEW picks are validated here.
 // ============================================================
 
 import * as React from "react";
@@ -13,6 +19,13 @@ import { toast } from "sonner";
 
 import { FileUpload } from "@/components/ui/file-upload";
 import { isSafeReceiptDataUrl } from "@/lib/sales/receipt";
+import { parseStorageRef, proxyUrlForKey } from "@/lib/storage/refs";
+
+/** A src the <img> can load for any stored-file value. */
+function previewSrc(value: string): string {
+  const ref = parseStorageRef(value);
+  return ref ? proxyUrlForKey(ref.key) : value;
+}
 
 // HEIC/HEIF is the iPhone camera default and is NOT in the app's accepted
 // data-URL formats, so it must be called out by name — otherwise the user picks
@@ -99,7 +112,7 @@ export function LeadImagesField({
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={src}
+                src={previewSrc(src)}
                 alt={`Lead image ${idx + 1}`}
                 className="size-full object-cover"
               />

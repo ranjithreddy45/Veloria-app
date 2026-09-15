@@ -1,0 +1,8 @@
+# Uptime probe — every 5 minutes (crontab -e as root, or a user that can write
+# /var/lib/veloria and /var/log). Alerts on UP→DOWN after 2 consecutive
+# failures (~10 min) and on DOWN→UP. Config is read from
+# /opt/veloria/.env.production: APP_URL, ALERT_WHATSAPP_TO, ALERT_EMAIL_TO,
+# RESEND_API_KEY, WEFLUX_API_KEY (or WEFLUX_CRM_SECRET), ALERT_EMAIL_FROM.
+# Until the DNS cutover set APP_URL=https://beta.theveloriagrand.com there,
+# otherwise the probe watches Vercel rather than this box.
+*/5 * * * * /opt/veloria/scripts/vps-uptime.sh >> /var/log/veloria-uptime.log 2>&1

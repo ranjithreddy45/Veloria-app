@@ -3,6 +3,8 @@
 import * as React from "react";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import type { WebformField } from "@/schemas/webform.schema";
+import { ConsentCheckbox } from "@/components/public/consent-checkbox";
+import { CONSENT_TEXT_ENQUIRY } from "@/lib/privacy/consent-text";
 
 // ============================================================
 // Public Form Component
@@ -105,6 +107,8 @@ export function PublicForm({
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isSubmitted, setIsSubmitted] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
+  const [consent, setConsent] = React.useState(false);
+  const [consentError, setConsentError] = React.useState<string | null>(null);
 
   // Capture attribution once on mount (query string is stable for the page).
   const attributionRef = React.useRef<Record<string, string>>({});
@@ -195,7 +199,11 @@ export function PublicForm({
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    // DPDP: the tick is required on our hosted page (the API itself does not
+    // enforce it — embedding sites own their own consent UI).
+    const consentOk = consent;
+    setConsentError(consentOk ? null : "Please agree to the privacy notice to continue.");
+    return Object.keys(newErrors).length === 0 && consentOk;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -221,8 +229,12 @@ export function PublicForm({
         data: Record<string, string>;
         honeypot?: string;
         attribution?: Record<string, string>;
+        consent?: boolean;
+        consentText?: string;
       } = {
         data: { ...formData },
+        consent: true,
+        consentText: CONSENT_TEXT_ENQUIRY,
       };
 
       if (honeypotValue !== undefined) {
@@ -379,6 +391,18 @@ export function PublicForm({
             )}
           </div>
         ))}
+
+        {/* DPDP consent — required on the hosted page */}
+        <ConsentCheckbox
+          id={`consent-${slug}`}
+          checked={consent}
+          onCheckedChange={(v) => {
+            setConsent(v);
+            if (v) setConsentError(null);
+          }}
+          error={consentError}
+          disabled={isSubmitting}
+        />
 
         {/* Honeypot field — hidden from humans */}
         {honeypotField && (

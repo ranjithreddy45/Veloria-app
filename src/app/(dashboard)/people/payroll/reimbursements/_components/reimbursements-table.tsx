@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { ClaimDecisionDialog, type ClaimDecisionMode, type ClaimDecisionTarget } from "@/components/hr/claim-decision-dialog";
 import { ClaimTrailDialog } from "@/components/hr/claim-trail-dialog";
-import { CLAIM_STATUS_HUE, CLAIM_STATUS_LABEL, awaitingLevel } from "@/lib/hr/claim-workflow";
+import { CLAIM_STATUS_HUE, CLAIM_STATUS_LABEL, awaitingLevel } from "@/lib/hr/claim-labels";
 import type { listReimbursements } from "@/actions/hr-reimbursement.actions";
 
 /** Row shape returned by listReimbursements(). */

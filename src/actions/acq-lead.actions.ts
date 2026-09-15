@@ -30,6 +30,14 @@ import {
   type AcqLeadStatus,
 } from "@/lib/acq/constants";
 import { isSafeReceiptDataUrl } from "@/lib/sales/receipt";
+import {
+  isDataUrl,
+  isProxyFileUrl,
+  isStorageRef,
+  normalizeFileValueForStorage,
+  resolveFileValues,
+  storeIncomingFile,
+} from "@/lib/storage/data-url";
 import { BD_PIPELINE_KEYS, bdPipelineWhere, deriveBdPipelineStage } from "@/lib/bd/pipeline";
 import { z } from "zod";
 
@@ -46,7 +54,37 @@ function normalizeLeadSource(v: z.infer<typeof leadSourceInput>): (typeof ACQ_LE
 const MAX_LEAD_IMAGES = 24;
 
 /**
- * Validate base64 image data-URLs for AcqLead.images.
+ * A value the images column may hold: a fresh base64 image data-URL, or an
+ * already-stored photo echoed back by the edit UI — the object-storage ref
+ * (s3://…) or the /api/files proxy URL it was displayed through. Without the
+ * latter two, saving the photo panel after migration would reject every
+ * existing photo as "not a supported image".
+ */
+function isAcceptableLeadImage(v: string): boolean {
+  return (isSafeReceiptDataUrl(v) && v.startsWith("data:image/")) || isStorageRef(v) || isProxyFileUrl(v);
+}
+
+/**
+ * Turn validated image values into what the column stores. With object
+ * storage enabled a data-URL is uploaded and becomes its ref; a proxy URL is
+ * normalised back to its ref; with storage disabled data-URLs are returned
+ * unchanged (stored inline, as before).
+ */
+async function persistLeadImages(images: string[], owner: { leadId?: string; userId: string }): Promise<string[]> {
+  const out: string[] = [];
+  for (const v of images) {
+    if (isDataUrl(v)) {
+      out.push(await storeIncomingFile(v, { prefix: "bd/leads", ownerType: "AcqLead", ownerId: owner.leadId, createdById: owner.userId }));
+    } else {
+      const ref = await normalizeFileValueForStorage(v);
+      if (ref) out.push(ref);
+    }
+  }
+  return out;
+}
+
+/**
+ * Validate image values for AcqLead.images (see isAcceptableLeadImage).
  *
  * Returns an ERROR when something was offered and nothing survived (or when any
  * single entry is rejected). Silently filtering to [] and reporting success is
@@ -62,7 +100,7 @@ function sanitizeLeadImages(images: unknown): { ok: true; images: string[] } | {
   if (candidates.length > MAX_LEAD_IMAGES) {
     return { ok: false, error: `Up to ${MAX_LEAD_IMAGES} photos per lead — remove a few and save again.` };
   }
-  const safe = candidates.filter((v) => isSafeReceiptDataUrl(v) && v.startsWith("data:image/"));
+  const safe = candidates.filter(isAcceptableLeadImage);
   if (safe.length !== candidates.length) {
     const rejected = candidates.length - safe.length;
     return {
@@ -424,7 +462,8 @@ export async function getAcqLead(id: string): Promise<Result<unknown>> {
     orderBy: { createdAt: "desc" },
   });
 
-  return { success: true, data: serialize({ ...lead, timeline: transitions }) };
+  // Object-storage refs → URLs the browser can load (inline data-URLs pass through).
+  return { success: true, data: serialize({ ...lead, images: await resolveFileValues(lead.images), timeline: transitions }) };
 }
 
 // ------------------------------------------------------------
@@ -471,6 +510,9 @@ export async function createAcqLead(input: AcqLeadInput): Promise<
   const now = new Date();
   const firstContactDue = addWorkingHours(now, cfg.LEAD_FIRST_CONTACT_SLA_HOURS);
 
+  // After the duplicate guard, so a rejected create leaves nothing in the bucket.
+  const storedImages = await persistLeadImages(pics.images, { userId: user.id });
+
   const lead = await prisma.acqLead.create({
     data: {
       ownerName: d.ownerName,
@@ -492,7 +534,7 @@ export async function createAcqLead(input: AcqLeadInput): Promise<
       brokerageDemand: d.brokerageDemand || null,
       leadSource: normalizeLeadSource(d.leadSource),
       ownerType: d.ownerType,
-      images: pics.images,
+      images: storedImages,
       bdExecutiveId: d.bdExecutiveId || user.id,
       status: "NEW",
       firstContactDue,
@@ -672,10 +714,11 @@ export async function updateAcqLeadImages(
   const pics = sanitizeLeadImages(images);
   if (!pics.ok) return { success: false, error: pics.error };
 
-  await prisma.acqLead.update({ where: { id }, data: { images: pics.images } });
+  const stored = await persistLeadImages(pics.images, { leadId: id, userId: user.id });
+  await prisma.acqLead.update({ where: { id }, data: { images: stored } });
   revalidatePath(`/bd/leads/${id}`);
   revalidatePath("/bd/leads");
-  return { success: true, data: { id, count: pics.images.length } };
+  return { success: true, data: { id, count: stored.length } };
 }
 
 // ------------------------------------------------------------

@@ -1,16 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
+import { processMetaWebhookPayload } from "@/lib/whatsapp/inbound-pipeline";
 import {
-  recordInboundWhatsAppMessage,
-  applyWhatsAppStatusUpdate,
-} from "@/lib/whatsapp/inbound";
+  captureInboundEvent,
+  updateInboundEvent,
+  errorMessage,
+} from "@/lib/whatsapp/inbound-capture";
 
 // ============================================================
 // WhatsApp Webhook — Meta Cloud API Webhook Handler
 // ============================================================
 // GET: Verify webhook subscription (Meta requires this)
 // POST: Receive incoming messages + delivery status updates
+//
+// OBSERVABILITY: every POST is persisted as a WhatsAppInboundEvent BEFORE
+// signature verification or parsing (best-effort — logging never changes a
+// response code), then updated with the verification result, the parsed
+// summary and any error. Viewer + replay: /settings/integrations/whatsapp-inbound.
+// Parse/dispatch lives in @/lib/whatsapp/inbound-pipeline so replay runs the
+// same code this route does.
 
 export const runtime = "nodejs";
 
@@ -63,8 +72,18 @@ export async function GET(request: NextRequest) {
 // ============================================================
 
 export async function POST(request: NextRequest) {
+  let captureId: string | null = null;
   try {
     const body = await request.text();
+
+    // Persist FIRST — before signature check, before JSON.parse — so a payload
+    // we reject or cannot read is still on record with its (redacted) headers.
+    captureId = await captureInboundEvent({
+      provider: "META",
+      rawBody: body,
+      headers: request.headers,
+      url: request.nextUrl,
+    });
 
     // Read app secret from DB config, fallback to env var
     const config = await getActiveConfig();
@@ -74,10 +93,17 @@ export async function POST(request: NextRequest) {
     // no secret is configured, and require a valid signature otherwise.
     if (!appSecret) {
       console.error("[WhatsApp Webhook] No app secret configured — rejecting unverifiable inbound.");
+      await updateInboundEvent(captureId, {
+        parseError: "Webhook not configured — no Meta app secret saved",
+      });
       return NextResponse.json({ error: "Webhook not configured" }, { status: 503 });
     }
     const signature = request.headers.get("x-hub-signature-256");
     if (!signature) {
+      await updateInboundEvent(captureId, {
+        signatureValid: false,
+        parseError: "Missing X-Hub-Signature-256 header",
+      });
       return NextResponse.json({ error: "Missing signature" }, { status: 401 });
     }
     const expectedSignature =
@@ -87,49 +113,27 @@ export async function POST(request: NextRequest) {
     const expBuf = Buffer.from(expectedSignature);
     if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
       console.warn("[WhatsApp Webhook] Invalid signature");
+      await updateInboundEvent(captureId, {
+        signatureValid: false,
+        parseError: "X-Hub-Signature-256 did not match the saved app secret",
+      });
       return NextResponse.json({ error: "Invalid signature" }, { status: 403 });
     }
 
-    const payload = JSON.parse(body);
+    await updateInboundEvent(captureId, { signatureValid: true });
 
-    // Parse Meta webhook payload structure:
-    // { object: "whatsapp_business_account", entry: [{ changes: [{ value: { messages, statuses } }] }] }
-    for (const entry of payload.entry || []) {
-      for (const change of entry.changes || []) {
-        const value = change.value;
+    const payload = JSON.parse(body) as Record<string, unknown>;
 
-        // Handle incoming messages — funnel through the shared, provider-
-        // agnostic inbound handler so Meta and weflux behave identically.
-        if (value?.messages) {
-          for (const message of value.messages) {
-            const br = message.interactive?.button_reply;
-            const lr = message.interactive?.list_reply;
-            const text =
-              br?.title || lr?.title || message.text?.body || "[Media message]";
-            await recordInboundWhatsAppMessage({
-              from: message.from,
-              waId: message.id,
-              text,
-              interactive: message.interactive
-                ? { buttonReplyId: br?.id, listReplyId: lr?.id }
-                : null,
-            });
-          }
-        }
-
-        // Handle status updates (sent → delivered → read → failed)
-        if (value?.statuses) {
-          for (const status of value.statuses) {
-            await applyWhatsAppStatusUpdate(status.id, status.status);
-          }
-        }
-      }
-    }
+    // Parse Meta webhook payload structure and funnel every message / status
+    // through the shared, provider-agnostic inbound handler.
+    const summary = await processMetaWebhookPayload(payload);
+    await updateInboundEvent(captureId, { parsedOk: true, ...summary });
 
     // Always return 200 to prevent Meta from retrying
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("[WhatsApp Webhook Error]", error);
+    await updateInboundEvent(captureId, { parseError: `Processing threw: ${errorMessage(error)}` });
     // Return 200 even on error to prevent retries
     return NextResponse.json({ success: true });
   }

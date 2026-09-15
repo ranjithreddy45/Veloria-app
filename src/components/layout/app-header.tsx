@@ -19,6 +19,7 @@ import {
   FileText,
   CalendarCheck,
   Users,
+  ShieldCheck,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { NotificationPopover } from "@/components/layout/notification-popover";
@@ -408,6 +409,12 @@ export function AppHeader() {
                 <Link href="/settings" className="cursor-pointer">
                   <Settings className="mr-2 size-4" />
                   Settings
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/me/security" className="cursor-pointer">
+                  <ShieldCheck className="mr-2 size-4" />
+                  Security &amp; 2FA
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>

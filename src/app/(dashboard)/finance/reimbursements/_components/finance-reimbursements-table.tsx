@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusPill } from "@/components/shared/status-pill";
 import { ClaimTrailDialog } from "@/components/hr/claim-trail-dialog";
-import { CLAIM_STATUS_HUE, CLAIM_STATUS_LABEL } from "@/lib/hr/claim-workflow";
+import { CLAIM_STATUS_HUE, CLAIM_STATUS_LABEL } from "@/lib/hr/claim-labels";
 import {
   markReimbursementPaid,
   scheduleReimbursementPayment,

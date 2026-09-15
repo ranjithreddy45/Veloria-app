@@ -795,6 +795,69 @@ async function main() {
     console.error("[bootstrap] archived-login release failed (non-fatal):", e);
   }
 
+  // ============================================================
+  // ---- Database unique guards (src/lib/dedup/unique-guards.ts) ----
+  // Partial, expression-based UNIQUE indexes on the normalised phone/email
+  // keys of Contact / Vendor / HallOwner. Kept OUT of schema.prisma on
+  // purpose: a @unique on a table that already holds duplicates makes
+  // `prisma db push` fail and blocks every deploy. Here a guard is applied
+  // only once its table is clean (0 duplicate groups); otherwise it is skipped
+  // with a log line and retried next deploy after /settings/duplicates has
+  // been used to merge. Guards with autoApply=false are status-only here —
+  // an admin applies them from /settings/duplicates. CONCURRENTLY cannot run
+  // inside a transaction block, so every statement is a single autocommit
+  // $executeRawUnsafe (never $transaction). A failed CONCURRENTLY build leaves
+  // an INVALID index that IF NOT EXISTS would keep forever, so one is dropped
+  // before the retry. Outcomes go to ActivityLog (UNIQUE_GUARD_CHECK) only
+  // when a guard was actually evaluated — a valid index is its own record.
+  // ============================================================
+  try {
+    const { GUARDS, createIndexSql, dropIndexSql, duplicateCountSql, indexStatusSql } = await import(
+      "../src/lib/dedup/unique-guards"
+    );
+    const guardAdmin = await prisma.user.findFirst({
+      where: { role: "SUPER_ADMIN", isActive: true },
+      select: { id: true },
+    });
+    for (const guard of GUARDS) {
+      try {
+        const [status] = await prisma.$queryRawUnsafe<{ valid: boolean }[]>(indexStatusSql(guard));
+        if (status?.valid) continue; // already protected
+        if (status && !status.valid) {
+          await prisma.$executeRawUnsafe(dropIndexSql(guard));
+          console.warn(`[bootstrap] unique guard ${guard.name}: dropped invalid leftover index ${guard.indexName}`);
+        }
+        const [count] = await prisma.$queryRawUnsafe<{ groups: number }[]>(duplicateCountSql(guard));
+        const duplicates = Number(count?.groups ?? 0);
+        let indexCreated = false;
+        if (duplicates > 0) {
+          console.warn(`[bootstrap] unique guard ${guard.name} skipped: ${duplicates} duplicate groups`);
+        } else if (!guard.autoApply) {
+          console.log(`[bootstrap] unique guard ${guard.name} is clean but manual-apply — apply it from /settings/duplicates`);
+        } else {
+          await prisma.$executeRawUnsafe(createIndexSql(guard));
+          indexCreated = true;
+          console.log(`[bootstrap] unique guard ${guard.name} applied (${guard.indexName})`);
+        }
+        if (guardAdmin) {
+          await prisma.activityLog.create({
+            data: {
+              action: "UNIQUE_GUARD_CHECK",
+              entityType: "SYSTEM",
+              entityId: guard.name,
+              userId: guardAdmin.id,
+              changes: { duplicates, indexCreated, autoApply: guard.autoApply, source: "bootstrap" },
+            },
+          });
+        }
+      } catch (e) {
+        console.error(`[bootstrap] unique guard ${guard.name} failed (non-fatal):`, (e as Error).message);
+      }
+    }
+  } catch (e) {
+    console.error("[bootstrap] unique guards failed (non-fatal):", e);
+  }
+
   console.log("[bootstrap] Done.");
 }
 

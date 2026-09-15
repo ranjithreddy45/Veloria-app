@@ -1,0 +1,86 @@
+name: E2E smoke (Playwright)
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: chromium
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: veloria
+          POSTGRES_PASSWORD: veloria_secret
+          POSTGRES_DB: veloria_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U veloria -d veloria_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      CI: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
+      DATABASE_URL: postgresql://veloria:veloria_secret@localhost:5432/veloria_db
+      # Dummy signing secret — CI only. auth.ts sets trustHost: true.
+      AUTH_SECRET: e2e-ci-dummy-secret-0123456789abcdefghijklmnopqrstuvwxyz
+      NEXTAUTH_URL: http://localhost:3000
+      AUTH_TRUST_HOST: "true"
+      E2E_BASE_URL: http://localhost:3000
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies (postinstall runs prisma generate)
+        run: pnpm install --frozen-lockfile
+
+      - name: Push schema to the service database
+        run: pnpm exec prisma db push --skip-generate
+
+      - name: Seed (creates admin@veloriagrand.com / Admin@123)
+        run: pnpm db:seed
+
+      - name: Build
+        run: pnpm build
+
+      - name: Install Playwright chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run e2e suite (Playwright boots `pnpm start`)
+        run: pnpm exec playwright test
+        env:
+          E2E_USE_WEBSERVER: "1"
+
+      - name: Upload Playwright report and traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            tests/e2e/.report
+            tests/e2e/.results
+          retention-days: 7
+          if-no-files-found: ignore

@@ -3,10 +3,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/../auth";
 import { findDuplicates } from "@/actions/dedup.actions";
+import { getUniqueGuardStatus } from "@/actions/unique-guards.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MergeGroup } from "./_components/merge-group";
+import { DatabaseGuards } from "./_components/database-guards";
 
 export const metadata: Metadata = { title: "Duplicate finder" };
 
@@ -17,15 +19,17 @@ export default async function DuplicatesPage() {
     redirect("/not-authorized");
   }
 
-  const { groups } = await findDuplicates();
+  const [{ groups }, guardStatus] = await Promise.all([findDuplicates(), getUniqueGuardStatus()]);
   const total = groups.reduce((n, g) => n + g.members.length, 0);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <PageHeader
         title="Duplicate finder"
-        description="Records that share a phone number or email (format-insensitive). Review each group, keep one, and delete or merge the extras. Once clean, we can lock these with hard database constraints so duplicates can never be created again."
+        description="Records that share a phone number or email (format-insensitive). Review each group, keep one, and delete or merge the extras. Once a table is clean, lock it with the database guards below so duplicates can never be created again."
       />
+
+      <div id="duplicate-groups" className="scroll-mt-24" />
 
       {groups.length === 0 ? (
         <Card>
@@ -79,6 +83,11 @@ export default async function DuplicatesPage() {
           </div>
         </>
       )}
+
+      <DatabaseGuards
+        guards={guardStatus.success ? guardStatus.data : []}
+        loadError={guardStatus.success ? undefined : guardStatus.error}
+      />
     </div>
   );
 }

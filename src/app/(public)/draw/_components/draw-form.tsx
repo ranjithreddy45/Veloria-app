@@ -263,7 +263,10 @@ export function DrawForm() {
               />
               <span>
                 I agree that Veloria Grand may contact me on WhatsApp about the draw result and
-                future offers. I can opt out anytime.
+                future offers. I can opt out anytime. —{" "}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer">
+                  see Privacy Policy
+                </a>
               </span>
             </div>
             {consentErr ? (

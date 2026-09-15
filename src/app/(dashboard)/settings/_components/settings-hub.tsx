@@ -33,6 +33,7 @@ const CATEGORIES: Category[] = [
     items: [
       { label: "Users", href: "/settings/users", icon: Users, desc: "Team members & invites" },
       { label: "Roles & Permissions", href: "/settings/roles", icon: ShieldCheck, desc: "Who can do what" },
+      { label: "Two-Factor Authentication", href: "/settings/security", icon: ShieldCheck, desc: "Authenticator app for your own sign-in" },
       { label: "Activity Log", href: "/settings/activity-log", icon: History, desc: "Full audit trail" },
       { label: "Emergency Response", href: "/settings/emergency", icon: Siren, desc: "Venue safety protocols & incident log" },
     ],
