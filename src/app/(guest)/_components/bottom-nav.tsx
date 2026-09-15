@@ -2,6 +2,8 @@
 
 import { NavLink } from "./nav-transition";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { getConciergeUnreadCount } from "@/actions/guest-concierge.actions";
 import { Home, Building2, CalendarDays, MessageCircle, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +21,22 @@ const TABS = [
 export function BottomNav() {
   const pathname = usePathname();
   const isRoot = TABS.some((t) => t.href === pathname);
+  const [unread, setUnread] = useState(0);
+
+  // Team replies the customer hasn't opened yet, refreshed whenever a root tab opens.
+  useEffect(() => {
+    if (!isRoot) return;
+    let alive = true;
+    getConciergeUnreadCount()
+      .then((n) => {
+        if (alive) setUnread(n);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [pathname, isRoot]);
+
   if (!isRoot) return null;
 
   return (
@@ -42,11 +60,19 @@ export function BottomNav() {
                 active ? "text-[#6d1b52]" : "text-[#8e8e93]"
               )}
             >
-              <Icon
-                className="size-6"
-                strokeWidth={1.8}
-                fill={active ? "rgba(109,27,82,.18)" : "none"}
-              />
+              <span className="relative">
+                <Icon
+                  className="size-6"
+                  strokeWidth={1.8}
+                  fill={active ? "rgba(109,27,82,.18)" : "none"}
+                />
+                {tab.href === "/app/concierge" && unread > 0 && (
+                  <span className="absolute -right-2 -top-1 min-w-4 rounded-full bg-[#d70015] px-1 text-center text-[10px] font-bold leading-4 text-white">
+                    {unread > 9 ? "9+" : unread}
+                    <span className="sr-only"> unread</span>
+                  </span>
+                )}
+              </span>
               <span className="text-[10.5px] font-semibold">{tab.label}</span>
             </NavLink>
           );
