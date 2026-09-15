@@ -12,25 +12,19 @@ import {
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
 import { hasPermission } from "@/lib/permissions";
+import { getVerifiedContactIds } from "@/lib/portal-identity";
 
 // ============================================================
 // Helper: Get contact IDs linked to this user's email
 // ============================================================
 
+/**
+ * Contacts this login may act for. Delegates to the portal's verified-identity
+ * rule (verified email or a customer link) so an unverified account that
+ * merely shares a customer's email sees nothing.
+ */
 async function getClientContactIds(userId: string): Promise<string[]> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { email: true },
-  });
-
-  if (!user?.email) return [];
-
-  const contacts = await prisma.contact.findMany({
-    where: { email: user.email },
-    select: { id: true },
-  });
-
-  return contacts.map((c) => c.id);
+  return getVerifiedContactIds(userId);
 }
 
 // ============================================================
