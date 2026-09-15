@@ -404,11 +404,11 @@ export function LeadForm({ contacts, venues = [], users = [], lead }: LeadFormPr
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Estimated Value</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <span className="text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 text-sm">
-                        &#8377;
-                      </span>
+                  <div className="relative">
+                    <span className="text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 text-sm">
+                      &#8377;
+                    </span>
+                    <FormControl>
                       <Input
                         type="number"
                         min={0}
@@ -420,8 +420,8 @@ export function LeadForm({ contacts, venues = [], users = [], lead }: LeadFormPr
                           field.onChange(val ? parseFloat(val) : null);
                         }}
                       />
-                    </div>
-                  </FormControl>
+                    </FormControl>
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
@@ -544,11 +544,11 @@ export function LeadForm({ contacts, venues = [], users = [], lead }: LeadFormPr
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Per-plate Budget</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <span className="text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 text-sm">
-                        &#8377;
-                      </span>
+                  <div className="relative">
+                    <span className="text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 text-sm">
+                      &#8377;
+                    </span>
+                    <FormControl>
                       <Input
                         type="number"
                         placeholder="e.g., 1200"
@@ -559,8 +559,8 @@ export function LeadForm({ contacts, venues = [], users = [], lead }: LeadFormPr
                           field.onChange(val ? parseFloat(val) : null);
                         }}
                       />
-                    </div>
-                  </FormControl>
+                    </FormControl>
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}

@@ -89,7 +89,7 @@ test.describe("Sales CRM — leads", () => {
   test("the leads list renders with its primary actions", async ({ page }) => {
     await page.goto("/leads?scope=all");
     await expect(page.getByRole("heading", { level: 1, name: "Leads" })).toBeVisible();
-    await expect(page.getByRole("link", { name: /New Lead/ }).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: /New lead/i }).first()).toBeVisible();
     await expect(page.getByPlaceholder(/Search name, email or phone/)).toBeVisible();
     await expect(page.getByRole("link", { name: /Import/ }).first()).toBeVisible();
   });

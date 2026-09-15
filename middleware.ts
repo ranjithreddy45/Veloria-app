@@ -126,6 +126,18 @@ export default auth((req) => {
   const user = req.auth?.user;
   const role = user?.role;
 
+  // A logged-OUT visitor (no session user: no cookie, or an old cookie that
+  // no longer decrypts) is sent to sign in and brought back here afterwards.
+  // A session that exists but lacks the right role (including a deactivated
+  // user whose token was stripped) still gets /not-authorized: sending that
+  // one to /sign-in would loop, because the sign-in page bounces signed-in
+  // sessions back to the dashboard.
+  const signInRedirect = () => {
+    const signInUrl = new URL("/sign-in", nextUrl);
+    signInUrl.searchParams.set("callbackUrl", pathname + nextUrl.search);
+    return NextResponse.redirect(signInUrl);
+  };
+
   // Check if the route is an internal route
   const isInternalRoute = INTERNAL_ROUTES.some((route) =>
     pathname.startsWith(route)
@@ -136,6 +148,7 @@ export default auth((req) => {
 
   // Role-based access control for internal routes
   if (isInternalRoute) {
+    if (!user) return signInRedirect();
     if (!role || !(INTERNAL_ROLES as readonly string[]).includes(role)) {
       return NextResponse.redirect(new URL("/not-authorized", nextUrl));
     }
@@ -175,6 +188,7 @@ export default auth((req) => {
   // Role-based access control for vendor portal routes
   const isVendorPortalRoute = pathname.startsWith("/vendor-portal");
   if (isVendorPortalRoute) {
+    if (!user) return signInRedirect();
     if (!role || !(VENDOR_PORTAL_ROLES as readonly string[]).includes(role)) {
       return NextResponse.redirect(new URL("/not-authorized", nextUrl));
     }

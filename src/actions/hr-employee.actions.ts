@@ -155,14 +155,21 @@ export async function getEmployees(filters: EmployeeFilters = {}) {
   if (filters.designationId) where.designationId = filters.designationId;
   if (filters.status) where.status = filters.status as Prisma.EmployeeWhereInput["status"];
   if (filters.search?.trim()) {
-    const q = filters.search.trim();
-    where.OR = [
-      { firstName: { contains: q, mode: "insensitive" } },
-      { lastName: { contains: q, mode: "insensitive" } },
-      { empCode: { contains: q, mode: "insensitive" } },
-      { workEmail: { contains: q, mode: "insensitive" } },
-      { phone: { contains: q, mode: "insensitive" } },
-    ];
+    // Every typed word must match some field, so a full name such as
+    // "Varshitha Reddy" finds the employee whose first and last names each
+    // hold one of the words. A single word behaves exactly as before.
+    const words = filters.search.trim().split(/\s+/).slice(0, 6);
+    where.AND = words.map(
+      (w): Prisma.EmployeeWhereInput => ({
+        OR: [
+          { firstName: { contains: w, mode: "insensitive" } },
+          { lastName: { contains: w, mode: "insensitive" } },
+          { empCode: { contains: w, mode: "insensitive" } },
+          { workEmail: { contains: w, mode: "insensitive" } },
+          { phone: { contains: w, mode: "insensitive" } },
+        ],
+      })
+    );
   }
 
   // Resolve the sort strictly through the whitelist; fall back to the default.
