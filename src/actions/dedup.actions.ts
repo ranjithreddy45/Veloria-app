@@ -197,6 +197,30 @@ export async function mergeContacts(winnerId: string, loserIds: string[]): Promi
       await tx.supportTicket.updateMany({ where, data });
       await tx.smsMessage.updateMany({ where, data });
       await tx.winbackTarget.updateMany({ where, data });
+      // Customer app (plain contactId refs): conversations, menu requests and
+      // contact-level consent evidence follow the surviving contact.
+      await tx.conciergeThread.updateMany({ where, data });
+      await tx.menuSelectionRequest.updateMany({ where, data });
+      await tx.consentRecord.updateMany({
+        where: { subjectType: "CONTACT", subjectId: { in: loserRows.map((r) => r.id) } },
+        data: { subjectId: winnerId },
+      });
+      // Customer logins: move each login's link to the winner. A login already
+      // linked to the winner just drops the duplicate (userId + contactId is unique).
+      const winnerLinkUsers = new Set(
+        (await tx.customerLink.findMany({ where: { contactId: winnerId }, select: { userId: true } })).map(
+          (l) => l.userId
+        )
+      );
+      const loserLinks = await tx.customerLink.findMany({ where, select: { id: true, userId: true } });
+      for (const link of loserLinks) {
+        if (winnerLinkUsers.has(link.userId)) {
+          await tx.customerLink.delete({ where: { id: link.id } });
+        } else {
+          await tx.customerLink.update({ where: { id: link.id }, data });
+          winnerLinkUsers.add(link.userId);
+        }
+      }
 
       // ── One-to-one uniques ──
       // Loyalty (audit fix): don't strand points. If the winner has no account,
