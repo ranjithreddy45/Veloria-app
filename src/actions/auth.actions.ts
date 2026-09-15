@@ -115,16 +115,19 @@ export async function signInAction(formData: FormData) {
         ? "/vendor-portal"
         : "/dashboard";
 
+    // `redirect: false` signs in (sets the session cookie) without a
+    // server-side redirect. The form then does a full page load to
+    // `redirectTo` so the client session provider starts fresh. The old soft
+    // redirect kept the sign-in page's signed-out client session, so the
+    // sidebar showed "Guest" and hid role-gated menu items until a refresh.
     await signIn("credentials", {
       email: parsed.data.email.toLowerCase(),
       password: parsed.data.password,
       ...(totp ? { totp } : {}),
-      redirectTo,
+      redirect: false,
     });
 
-    // signIn will redirect on success, so this line is only reached
-    // if there is no redirect (which shouldn't happen in normal flow)
-    return { success: true as const };
+    return { success: true as const, redirectTo };
   } catch (error) {
     // NextAuth throws a NEXT_REDIRECT "error" on successful redirect.
     // We need to re-throw it so Next.js can handle the redirect.

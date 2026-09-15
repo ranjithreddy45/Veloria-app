@@ -62,6 +62,12 @@ export default function SignInForm() {
       formData.append("password", values.password);
       if (twoFactorStep && totp) formData.append("totp", totp);
       const result = await signInAction(formData);
+      if (result?.success) {
+        // Full page load so the client session (sidebar name, role and
+        // role-gated menu) is read fresh for the signed-in user.
+        window.location.assign("redirectTo" in result ? result.redirectTo : "/dashboard");
+        return;
+      }
       if (result && !result.success) {
         const code = "code" in result ? result.code : undefined;
         if (code === TWO_FACTOR_ERROR_CODES.REQUIRED) {
