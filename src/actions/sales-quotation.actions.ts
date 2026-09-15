@@ -18,6 +18,7 @@ import {
 import { updateLeadStatus } from "@/actions/lead.actions";
 import { updateDeal } from "@/actions/pipeline.actions";
 import { validatePackageLinesAgainstCatalog } from "@/actions/quote-packages.actions";
+import { ensureQuoteShareLink, quotationPdfShareUrl } from "@/lib/quote-radar/share-link";
 import { Prisma } from "@prisma/client";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string; code?: number };
@@ -554,10 +555,38 @@ export async function sendSalesQuotation(
   if (row.status !== "APPROVED" && row.status !== "SENT")
     return { success: false, error: "A quotation can only be sent after it is approved.", code: 409 };
 
-  const pdfUrl = row.pdfUrl ?? `/api/quotations/${id}/pdf`;
   const email = opts.to?.trim() || row.clientEmail || row.contact?.email || "";
   if (opts.method === "EMAIL" && !email)
     return { success: false, error: "No customer email on file — enter a recipient." };
+
+  // Compose the email before anything is recorded. Its PDF link has to open for
+  // a customer who isn't signed in, and the printout allows that only with
+  // ?token= of a live share link (access.ts next to /api/quotations/[id]/pdf),
+  // so reuse the quotation's live link or mint one. If that fails the send
+  // fails too: no email with a link that opens nothing, no SENT without a send.
+  let message: { subject: string; html: string } | null = null;
+  let shareLinkId: string | null = null;
+  if (opts.method === "EMAIL") {
+    let html = opts.body?.trim();
+    if (!html) {
+      let pdfLink: string;
+      try {
+        const link = await ensureQuoteShareLink(prisma, row, { actorId: user.id });
+        shareLinkId = link.id;
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.theveloriagrand.com";
+        pdfLink = quotationPdfShareUrl(appUrl, id, link.token);
+      } catch (e) {
+        console.error("[QUOTATION_SHARE_LINK_ERROR]", e);
+        return {
+          success: false,
+          error: "Couldn't create the customer's link to this quotation, so it wasn't sent. Please try again.",
+        };
+      }
+      const greetingName = escapeHtml(row.clientName || row.contact?.firstName || "Guest");
+      html = `Dear ${greetingName},<br/><br/>Thank you for considering Veloria Grand. Please find your event quotation below.<br/><br/><a href="${escapeHtml(pdfLink)}">View / download your quotation (PDF)</a><br/><br/>Grand total: ₹${escapeHtml(String(row.grandTotal))}<br/><br/>Warm regards,<br/>Veloria Grand`;
+    }
+    message = { subject: opts.subject?.trim() || `Your Veloria Grand Quotation — ${row.quoteNumber}`, html };
+  }
 
   await prisma.$transaction([
     prisma.salesQuotation.update({
@@ -576,15 +605,10 @@ export async function sendSalesQuotation(
     }),
   ]);
 
-  if (opts.method === "EMAIL") {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.theveloriagrand.com";
-    const subject = opts.subject?.trim() || `Your Veloria Grand Quotation — ${row.quoteNumber}`;
-    const greetingName = escapeHtml(row.clientName || row.contact?.firstName || "Guest");
-    const body =
-      opts.body?.trim() ||
-      `Dear ${greetingName},<br/><br/>Thank you for considering Veloria Grand. Please find your event quotation below.<br/><br/><a href="${appUrl}${pdfUrl}">View / download your quotation (PDF)</a><br/><br/>Grand total: ₹${escapeHtml(String(row.grandTotal))}<br/><br/>Warm regards,<br/>Veloria Grand`;
+  if (message) {
+    const mail = { to: email, ...message };
     // after() so the quotation email survives a serverless freeze.
-    after(() => sendEmail({ to: email, subject, html: body }).catch((e) => console.error("[QUOTATION_EMAIL_ERROR]", e)));
+    after(() => sendEmail(mail).catch((e) => console.error("[QUOTATION_EMAIL_ERROR]", e)));
   }
 
   logActivity({
@@ -592,7 +616,7 @@ export async function sendSalesQuotation(
     action: "QUOTATION_SENT",
     entityType: "SalesQuotation",
     entityId: id,
-    changes: { method: opts.method },
+    changes: { method: opts.method, ...(shareLinkId ? { shareLinkId } : {}) },
   });
   revalidatePath("/quotations");
   revalidatePath(`/quotations/${id}`);

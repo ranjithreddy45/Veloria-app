@@ -14,6 +14,7 @@ import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { notifyAwait } from "@/lib/notify";
 import { reportSystemFailure } from "@/lib/ops-alert";
+import { COLLECTIBLE_INVOICE_STATUSES } from "@/lib/finance/issued-invoices";
 import {
   formatPaise,
   rupeesToPaise,
@@ -24,8 +25,8 @@ import {
 /** How long a split link stays payable after it's created. */
 export const SPLIT_LINK_TTL_DAYS = 14;
 
-/** Invoice states cash may be collected against (mirrors recordPayment). */
-export const SPLIT_PAYABLE_INVOICE_STATUSES = ["SENT", "PARTIALLY_PAID", "OVERDUE"] as const;
+/** Invoice states cash may be collected against: finance's owed rule, the statuses recordPayment takes money in. */
+export const SPLIT_PAYABLE_INVOICE_STATUSES = COLLECTIBLE_INVOICE_STATUSES;
 
 /** Smallest split Razorpay will accept (₹1). */
 export const MIN_SPLIT_PAISE = 100;

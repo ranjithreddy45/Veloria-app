@@ -13,7 +13,7 @@ import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
 import type { BookingStatus, Prisma } from "@prisma/client";
-import { isIssuedInvoice } from "@/lib/finance/issued-invoices";
+import { isCollectibleInvoice, isIssuedInvoice } from "@/lib/finance/issued-invoices";
 import {
   computeEventProfitability,
   summarizeEventProfitability,
@@ -129,7 +129,7 @@ export async function getEventProfitability(params: EventProfitabilityParams): P
         // Issued invoices → accrual revenue; every invoice → payment→booking map.
         prisma.invoice.findMany({
           where: { bookingId: { in: ids } },
-          select: { id: true, bookingId: true, status: true, totalAmount: true },
+          select: { id: true, bookingId: true, status: true, totalAmount: true, balanceDue: true },
         }),
         // Cash: completed and refunded payments on those invoices.
         prisma.payment.groupBy({
@@ -190,11 +190,11 @@ export async function getEventProfitability(params: EventProfitabilityParams): P
 
     // ---- fold into per-booking inputs ----
     const invoiceBooking = new Map<string, string>();
-    const revenue = new Map<string, { invoicedIssued: number; issuedInvoiceCount: number; paymentsCompleted: number; paymentsRefunded: number }>();
+    const revenue = new Map<string, { invoicedIssued: number; issuedInvoiceCount: number; paymentsCompleted: number; paymentsRefunded: number; balanceDue: number }>();
     const rev = (id: string) => {
       let r = revenue.get(id);
       if (!r) {
-        r = { invoicedIssued: 0, issuedInvoiceCount: 0, paymentsCompleted: 0, paymentsRefunded: 0 };
+        r = { invoicedIssued: 0, issuedInvoiceCount: 0, paymentsCompleted: 0, paymentsRefunded: 0, balanceDue: 0 };
         revenue.set(id, r);
       }
       return r;
@@ -206,6 +206,7 @@ export async function getEventProfitability(params: EventProfitabilityParams): P
       const r = rev(inv.bookingId);
       r.invoicedIssued += num(inv.totalAmount);
       r.issuedInvoiceCount += 1;
+      if (isCollectibleInvoice(inv.status)) r.balanceDue += num(inv.balanceDue); // finance's owed rule
     }
     for (const p of payments) {
       const bookingId = invoiceBooking.get(p.invoiceId);
@@ -355,7 +356,7 @@ export async function getEventProfitability(params: EventProfitabilityParams): P
             `${b.contact.firstName} ${b.contact.lastName}`.trim() + (b.contact.company ? ` · ${b.contact.company}` : ""),
           contractValue: num(b.totalAmount),
         },
-        revenue: revenue.get(b.id) ?? { invoicedIssued: 0, issuedInvoiceCount: 0, paymentsCompleted: 0, paymentsRefunded: 0 },
+        revenue: revenue.get(b.id) ?? { invoicedIssued: 0, issuedInvoiceCount: 0, paymentsCompleted: 0, paymentsRefunded: 0, balanceDue: 0 },
         vendor: vendor.get(b.id) ?? EMPTY_VENDOR,
         other: other.get(b.id) ?? EMPTY_OTHER,
         staff: staffByBooking.get(b.id) ?? [],

@@ -1,11 +1,16 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { CheckCircle2, ShieldCheck, Users, AlertTriangle, Clock, Ban } from "lucide-react";
+import { CheckCircle2, ShieldCheck, Users, AlertTriangle, Clock, Ban, CalendarX } from "lucide-react";
 import { getPublicSplitForPayment } from "@/actions/payment-split.actions";
 import { formatPaise } from "@/lib/payments/split-format";
 import { COMPANY_LEGAL_LINE } from "@/lib/constants";
-import { HelpChip } from "@/components/public/help-chip";
+import { prisma } from "@/lib/prisma";
+import { HOLD_FACTS_SELECT } from "@/lib/holds/lapsed-hold";
+import { getPublicContact, type PublicContact } from "@/lib/public/business-contact";
+import { ContactChip } from "@/app/(guest)/_components/contact-chip";
+import { ContactLinks } from "@/app/(guest)/_components/contact-links";
 import { SplitPay } from "./_components/split-pay";
+import { splitPageState, splitStateCopy, type SplitInvoiceFacts, type SplitPageState } from "./split-page-state";
 
 export const metadata: Metadata = {
   title: "Pay your share — Veloria Grand",
@@ -16,19 +21,22 @@ function longDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
 }
 
-/** A terminal-state card (paid / expired / cancelled / not payable). */
+/** A terminal-state card (paid / cancelled / lapsed / expired / not payable), with the business's contact buttons. */
 function StateCard({
   tone,
   icon,
   title,
   body,
   reference,
+  contact,
 }: {
   tone: "success" | "warn" | "muted";
   icon: ReactNode;
   title: string;
   body: string;
   reference: string;
+  /** Published channels from getPublicContact(); each button hides when its channel isn't set. */
+  contact: PublicContact;
 }) {
   const wrap =
     tone === "success"
@@ -55,14 +63,43 @@ function StateCard({
         <p className={`font-semibold ${heading}`}>{title}</p>
         <p className={`text-sm ${copy}`}>{body}</p>
       </div>
-      <HelpChip variant="banner" message={reference} />
+      <ContactLinks contact={contact} context={reference} />
     </div>
   );
 }
 
+/** The invoice's status and its booking's hold facts, read now. null when they can't be read. */
+async function readInvoiceFacts(invoiceId: string): Promise<SplitInvoiceFacts | null> {
+  try {
+    const inv = await prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      select: { status: true, booking: { select: HOLD_FACTS_SELECT } },
+    });
+    return inv ? { invoiceStatus: inv.status, booking: inv.booking } : null;
+  } catch (e) {
+    console.error("[PAY_SPLIT_INVOICE_FACTS_ERROR]", e);
+    return null;
+  }
+}
+
+const STATE_ICON: Record<SplitPageState, ReactNode> = {
+  SHARE_PAID: <CheckCircle2 className="size-9 text-emerald-600 dark:text-emerald-400" />,
+  BOOKING_CANCELLED: <CalendarX className="size-9 text-amber-600 dark:text-amber-400" />,
+  HOLD_LAPSED: <Clock className="size-9 text-amber-600 dark:text-amber-400" />,
+  LINK_EXPIRED: <Clock className="size-9 text-amber-600 dark:text-amber-400" />,
+  LINK_CANCELLED: <Ban className="size-9 text-muted-foreground" />,
+  SETTLED: <CheckCircle2 className="size-9 text-emerald-600 dark:text-emerald-400" />,
+  NOT_OPEN: <Ban className="size-9 text-muted-foreground" />,
+  EXCEEDS_OUTSTANDING: <AlertTriangle className="size-9 text-amber-600 dark:text-amber-400" />,
+  PAYABLE: null,
+};
+
 export default async function PaySplitPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  const res = await getPublicSplitForPayment(token);
+  const [res, contact] = await Promise.all([getPublicSplitForPayment(token), getPublicContact()]);
+  // Read after the share: the invoice's status and its booking's hold facts, so
+  // the page can say why a share can't be paid (split-page-state.ts).
+  const facts = res.success ? await readInvoiceFacts(res.data.invoiceId) : null;
 
   return (
     <main className="relative min-h-screen bg-aura bg-grid-faint">
@@ -85,7 +122,7 @@ export default async function PaySplitPage({ params }: { params: Promise<{ token
             <p className="mt-1.5 text-sm text-muted-foreground">
               We couldn&apos;t find this share. Please ask the person who sent it for a fresh link.
             </p>
-            <HelpChip variant="banner" className="mt-5" />
+            <ContactChip context="My split payment link isn't working" className="mt-5" />
           </div>
         ) : (
           (() => {
@@ -93,7 +130,20 @@ export default async function PaySplitPage({ params }: { params: Promise<{ token
             const reference = `Split payment · ${s.invoiceNumber} · ${s.payerName}`;
             const firstName = s.payerName.split(" ")[0];
             const hostFirst = s.hostName.split(" ")[0] || "the host";
-            const canPay = s.status === "PENDING" && s.invoicePayable && !s.exceedsOutstanding;
+            // Why this share can or can't be paid, from the records (split-page-state.ts).
+            const state = splitPageState(s, facts);
+            const canPay = state === "PAYABLE";
+            const copy =
+              state === "PAYABLE"
+                ? null
+                : splitStateCopy(state, {
+                    hostFirst,
+                    share: formatPaise(s.amountPaise),
+                    paidOn: s.paidAt ? longDate(s.paidAt) : null,
+                    outstanding: formatPaise(s.outstandingPaise),
+                    invoiceStatus: facts?.invoiceStatus ?? null,
+                    bookingCancelled: facts?.booking?.status === "CANCELLED",
+                  });
 
             return (
               <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-premium">
@@ -135,45 +185,14 @@ export default async function PaySplitPage({ params }: { params: Promise<{ token
                     )}
                   </div>
 
-                  {s.status === "PAID" ? (
+                  {copy ? (
                     <StateCard
-                      tone="success"
-                      icon={<CheckCircle2 className="size-9 text-emerald-600 dark:text-emerald-400" />}
-                      title="Your share is paid"
-                      body={`${formatPaise(s.amountPaise)} received${s.paidAt ? ` on ${longDate(s.paidAt)}` : ""}. Thank you — ${hostFirst} has been told.`}
+                      tone={copy.tone}
+                      icon={STATE_ICON[state]}
+                      title={copy.title}
+                      body={copy.body}
                       reference={reference}
-                    />
-                  ) : s.status === "EXPIRED" ? (
-                    <StateCard
-                      tone="warn"
-                      icon={<Clock className="size-9 text-amber-600 dark:text-amber-400" />}
-                      title="This link has expired"
-                      body={`Please ask ${hostFirst} to send you a fresh payment link.`}
-                      reference={reference}
-                    />
-                  ) : s.status === "CANCELLED" ? (
-                    <StateCard
-                      tone="muted"
-                      icon={<Ban className="size-9 text-muted-foreground" />}
-                      title="This link was cancelled"
-                      body={`${hostFirst} withdrew this share. Nothing is due from you on this link.`}
-                      reference={reference}
-                    />
-                  ) : !s.invoicePayable ? (
-                    <StateCard
-                      tone="success"
-                      icon={<CheckCircle2 className="size-9 text-emerald-600 dark:text-emerald-400" />}
-                      title="Nothing left to pay"
-                      body="This invoice has already been settled. Thank you!"
-                      reference={reference}
-                    />
-                  ) : s.exceedsOutstanding ? (
-                    <StateCard
-                      tone="warn"
-                      icon={<AlertTriangle className="size-9 text-amber-600 dark:text-amber-400" />}
-                      title="This share needs updating"
-                      body={`Only ${formatPaise(s.outstandingPaise)} is still due on this invoice, which is less than your share. Please ask ${hostFirst} for a fresh link.`}
-                      reference={reference}
+                      contact={contact}
                     />
                   ) : (
                     <div className="mt-6 space-y-3">
@@ -186,6 +205,7 @@ export default async function PaySplitPage({ params }: { params: Promise<{ token
                         payerEmail={s.payerEmail}
                         payerPhone={s.payerPhone}
                         eventName={s.eventName}
+                        contact={contact}
                       />
                     </div>
                   )}

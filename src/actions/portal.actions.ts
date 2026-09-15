@@ -10,6 +10,12 @@ import { isSafeReceiptDataUrl } from "@/lib/sales/receipt";
 import { getVerifiedContactIds } from "@/lib/portal-identity";
 import { createPortalInvite, acceptPortalInvite } from "@/lib/portal-invite";
 import type { PaymentMethod } from "@prisma/client";
+import {
+  bookingBalance,
+  COLLECTIBLE_INVOICE_STATUSES,
+  isCollectibleInvoice,
+  NOT_ISSUED_INVOICE_STATUSES,
+} from "@/lib/finance/issued-invoices";
 
 // ============================================================
 // Helper: Get contact IDs linked to this user's VERIFIED identity.
@@ -59,11 +65,12 @@ export async function getPortalDashboard(userId: string) {
     },
   });
 
-  // Pending invoices (not PAID, not CANCELLED, not DRAFT)
+  // Pending invoices: the ones the customer still OWES (finance's shared rule,
+  // isCollectibleInvoice), never a draft, paid, cancelled or refunded invoice.
   const pendingInvoices = await prisma.invoice.count({
     where: {
       contactId: { in: contactIds },
-      status: { in: ["SENT", "PARTIALLY_PAID", "OVERDUE"] },
+      status: { in: [...COLLECTIBLE_INVOICE_STATUSES] },
     },
   });
 
@@ -194,6 +201,9 @@ export async function getPortalBooking(userId: string, bookingId: string) {
         },
       },
       invoices: {
+        // BILLED invoices only (finance's issued rule): a DRAFT is still being
+        // prepared and a CANCELLED invoice is void, so the customer sees neither.
+        where: { status: { notIn: [...NOT_ISSUED_INVOICE_STATUSES] } },
         select: {
           id: true,
           invoiceNumber: true,
@@ -243,6 +253,13 @@ export async function getPortalBooking(userId: string, bookingId: string) {
       status: inv.status,
       dueDate: inv.dueDate,
     })),
+    // What the customer still OWES on this booking, by finance's shared rule
+    // (bookingBalance: the balance of SENT, PARTIALLY_PAID and OVERDUE
+    // invoices), the customer app's and the team booking page's figure. A fully
+    // refunded invoice is listed (it was billed) but is not owed.
+    balanceDue: bookingBalance(
+      booking.invoices.map((inv) => ({ status: inv.status, balanceDue: Number(inv.balanceDue) }))
+    ).balanceDue,
     coordinator: booking.createdBy
       ? {
           name: booking.createdBy.name,
@@ -269,7 +286,8 @@ export async function getPortalInvoices(userId: string) {
   if (contactIds.length === 0) return [];
 
   const invoices = await prisma.invoice.findMany({
-    where: { contactId: { in: contactIds } },
+    // BILLED invoices only (finance's issued rule): never a draft or a void cancelled invoice.
+    where: { contactId: { in: contactIds }, status: { notIn: [...NOT_ISSUED_INVOICE_STATUSES] } },
     orderBy: { issueDate: "desc" },
     include: {
       booking: {
@@ -310,6 +328,8 @@ export async function getPortalInvoice(userId: string, invoiceId: string) {
     where: {
       id: invoiceId,
       contactId: { in: contactIds },
+      // A DRAFT is still being prepared, so it never opens here (the customer app's rule too).
+      status: { not: "DRAFT" },
     },
     include: {
       contact: {
@@ -574,9 +594,16 @@ export async function submitPaymentProof(
 
   const invoice = await prisma.invoice.findFirst({
     where: { id: data.invoiceId, contactId: { in: contactIds } },
-    select: { id: true, balanceDue: true, invoiceNumber: true },
+    select: { id: true, status: true, balanceDue: true, invoiceNumber: true },
   });
-  if (!invoice) return { success: false as const, error: "Invoice not found." };
+  // A DRAFT is still being prepared, so to the customer it does not exist yet.
+  if (!invoice || invoice.status === "DRAFT") return { success: false as const, error: "Invoice not found." };
+  // Money is taken only against an invoice the customer still OWES (finance's
+  // shared rule, the statuses recordPayment accepts): never a paid, cancelled or
+  // fully refunded invoice, even though a full refund restores its balance.
+  if (!isCollectibleInvoice(invoice.status)) {
+    return { success: false as const, error: "This invoice is not open for payment." };
+  }
   if (data.amount > Number(invoice.balanceDue) + 0.01) {
     return { success: false as const, error: "Amount exceeds the balance due." };
   }
@@ -632,7 +659,8 @@ export async function getPortalInvoiceForPdf(userId: string, invoiceId: string) 
   if (contactIds.length === 0) return null;
 
   const invoice = await prisma.invoice.findFirst({
-    where: { id: invoiceId, contactId: { in: contactIds } },
+    // A DRAFT is still being prepared, so it never renders here (the customer app's rule too).
+    where: { id: invoiceId, contactId: { in: contactIds }, status: { not: "DRAFT" } },
     include: {
       contact: {
         select: {

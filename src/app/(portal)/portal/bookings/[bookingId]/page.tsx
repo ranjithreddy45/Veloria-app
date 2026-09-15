@@ -35,10 +35,29 @@ import {
   TIME_SLOT_LABELS,
 } from "@/lib/constants";
 import { formatINR } from "@/lib/utils";
+import { invoiceBalance } from "../../invoices/_components/invoice-balance";
 
 // ============================================================
 // Helpers
 // ============================================================
+
+/**
+ * The line under an invoice's total, by finance's owed rule (invoiceBalance):
+ * what is still due on an owed invoice, or that a paid or refunded one is closed.
+ */
+function InvoiceBalanceLine({ invoice }: { invoice: { status: string; balanceDue: number } }) {
+  const balance = invoiceBalance(invoice);
+  if (balance.kind === "owed") {
+    return balance.amount > 0 ? (
+      <p className="numeric text-destructive text-xs font-medium">{formatINR(balance.amount)} due</p>
+    ) : null;
+  }
+  if (balance.kind === "paid") return <p className="text-success text-xs font-medium">{balance.label}</p>;
+  if (balance.kind === "refunded") {
+    return <p className="text-muted-foreground text-xs font-medium">{balance.label}</p>;
+  }
+  return null;
+}
 
 function daysUntil(date: Date | string): number {
   const now = new Date();
@@ -370,11 +389,7 @@ export default async function PortalBookingDetailPage({
                           <p className="numeric text-foreground text-sm font-semibold">
                             {formatINR(inv.totalAmount)}
                           </p>
-                          {inv.balanceDue > 0 && (
-                            <p className="numeric text-destructive text-xs font-medium">
-                              {formatINR(inv.balanceDue)} due
-                            </p>
-                          )}
+                          <InvoiceBalanceLine invoice={inv} />
                         </div>
                         <StatusBadge
                           status={inv.status}
@@ -483,22 +498,14 @@ export default async function PortalBookingDetailPage({
                       <span className="text-foreground text-sm font-semibold">
                         Balance due
                       </span>
+                      {/* What the customer still OWES: getPortalBooking's balanceDue, by
+                          finance's owed rule, so a paid or refunded invoice adds nothing. */}
                       <span
                         className={`numeric text-lede font-semibold ${
-                          booking.invoices.reduce(
-                            (sum, inv) => sum + Number(inv.balanceDue),
-                            0
-                          ) > 0
-                            ? "text-destructive"
-                            : "text-success"
+                          booking.balanceDue > 0 ? "text-destructive" : "text-success"
                         }`}
                       >
-                        {formatINR(
-                          booking.invoices.reduce(
-                            (sum, inv) => sum + Number(inv.balanceDue),
-                            0
-                          )
-                        )}
+                        {formatINR(booking.balanceDue)}
                       </span>
                     </div>
 

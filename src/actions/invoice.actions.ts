@@ -13,6 +13,7 @@ import { notify } from "@/lib/notify";
 import { reportSystemFailure } from "@/lib/ops-alert";
 import { after } from "next/server";
 import { postInvoiceIssued } from "@/lib/finance/receivables";
+import { COLLECTIBLE_INVOICE_STATUSES } from "@/lib/finance/issued-invoices";
 import { sendEmail } from "@/lib/email";
 import { invoiceSentEmail } from "@/lib/email-templates/invoice-sent";
 import { format } from "date-fns";
@@ -690,14 +691,18 @@ export async function getInvoiceStats() {
 
     const [outstandingResult, overdueResult, collectedResult] =
       await Promise.all([
-        // Total outstanding (balance due on non-paid, non-cancelled invoices)
+        // Total outstanding: balance due on the invoices customers still OWE, by
+        // finance's shared rule (isCollectibleInvoice: SENT, PARTIALLY_PAID,
+        // OVERDUE). Never a draft, paid, cancelled or refunded invoice.
         prisma.invoice.aggregate({
           _sum: { balanceDue: true },
           where: {
-            status: { notIn: ["PAID", "CANCELLED", "REFUNDED", "DRAFT"] },
+            status: { in: [...COLLECTIBLE_INVOICE_STATUSES] },
           },
         }),
-        // Overdue amount
+        // Overdue amount: owed and past due. markOverdue and the daily
+        // invoice-due job move a SENT or PARTIALLY_PAID invoice past its due
+        // date to OVERDUE; getPaymentStats counts the same status.
         prisma.invoice.aggregate({
           _sum: { balanceDue: true },
           where: { status: "OVERDUE" },

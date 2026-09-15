@@ -25,6 +25,7 @@ import {
 import { RazorpayCheckout } from "../_components/razorpay-checkout";
 import { UploadProof } from "../_components/upload-proof";
 import { PortalPdfButton } from "../_components/portal-pdf-button";
+import { hasAmountDue, invoiceBalance } from "../_components/invoice-balance";
 import { formatINR } from "@/lib/utils";
 
 // ============================================================
@@ -68,11 +69,11 @@ export default async function PortalInvoiceDetailPage({
 
   if (!invoice) notFound();
 
-  const isPayable =
-    invoice.balanceDue > 0 &&
-    invoice.status !== "CANCELLED" &&
-    invoice.status !== "DRAFT" &&
-    invoice.status !== "REFUNDED";
+  // Finance's owed rule: only a SENT, PARTIALLY_PAID or OVERDUE invoice with a
+  // balance left takes money (submitPaymentProof and recordPayment accept no
+  // other), so a paid, cancelled or refunded invoice offers no payment.
+  const isPayable = hasAmountDue(invoice);
+  const balance = invoiceBalance(invoice);
 
   return (
     <div className="space-y-8">
@@ -359,19 +360,29 @@ export default async function PortalInvoiceDetailPage({
                   </span>
                 </div>
 
+                {/* Owed: the balance still due. Paid or refunded: the status, never
+                    the stored balance (a full refund puts it back to the total). */}
                 <div className="bg-muted/50 flex items-center justify-between rounded-xl px-4 py-3">
                   <span className="text-foreground text-sm font-semibold">
                     Balance due
                   </span>
-                  <span
-                    className={`numeric text-title font-semibold ${
-                      invoice.balanceDue > 0
-                        ? "text-destructive"
-                        : "text-success"
-                    }`}
-                  >
-                    {formatINR(invoice.balanceDue)}
-                  </span>
+                  {balance.kind === "owed" ? (
+                    <span
+                      className={`numeric text-title font-semibold ${
+                        balance.amount > 0 ? "text-destructive" : "text-success"
+                      }`}
+                    >
+                      {formatINR(balance.amount)}
+                    </span>
+                  ) : (
+                    <span
+                      className={`text-title font-semibold ${
+                        balance.kind === "paid" ? "text-success" : "text-muted-foreground"
+                      }`}
+                    >
+                      {balance.kind === "none" ? "—" : balance.label}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

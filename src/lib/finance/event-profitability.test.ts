@@ -34,7 +34,7 @@ const noOther = { committed: 0, paid: 0, pending: 0, recordCount: 0 };
 function input(over: Partial<EventProfitabilityInput> = {}): EventProfitabilityInput {
   return {
     booking,
-    revenue: { invoicedIssued: 1770000, issuedInvoiceCount: 1, paymentsCompleted: 1000000, paymentsRefunded: 0 },
+    revenue: { invoicedIssued: 1770000, issuedInvoiceCount: 1, paymentsCompleted: 1000000, paymentsRefunded: 0, balanceDue: 770000 },
     vendor: { ...noVendor },
     other: { ...noOther },
     staff: [],
@@ -43,10 +43,39 @@ function input(over: Partial<EventProfitabilityInput> = {}): EventProfitabilityI
 }
 
 describe("computeEventProfitability — revenue definitions", () => {
-  it("carries invoiced (accrual) and collected (cash) separately and nets refunds", () => {
+  it("takes balance due from the owed invoices, not invoiced − collected", () => {
+    // A ₹5,00,000 invoice paid, then fully refunded (REFUNDED: billed, not owed), and a
+    // ₹10,00,000 invoice with ₹6,00,000 collected (PARTIALLY_PAID: ₹4,00,000 owed).
     const row = computeEventProfitability(
       input({
-        revenue: { invoicedIssued: 1770000, issuedInvoiceCount: 2, paymentsCompleted: 800000, paymentsRefunded: 200000 },
+        revenue: { invoicedIssued: 1500000, issuedInvoiceCount: 2, paymentsCompleted: 600000, paymentsRefunded: 500000, balanceDue: 400000 },
+      }),
+    );
+    expect(row.invoiced).toBe(1500000);
+    expect(row.collected).toBe(600000);
+    expect(row.refunded).toBe(500000);
+    expect(row.balanceDue).toBe(400000); // not 15,00,000 − 6,00,000
+    expect(row.flags).toEqual(expect.arrayContaining(["BALANCE_DUE", "REFUNDED"]));
+  });
+
+  it("owes nothing on a booking whose only invoice was fully refunded", () => {
+    const row = computeEventProfitability(
+      input({
+        revenue: { invoicedIssued: 500000, issuedInvoiceCount: 1, paymentsCompleted: 0, paymentsRefunded: 500000, balanceDue: 0 },
+      }),
+    );
+    expect(row.invoiced).toBe(500000);
+    expect(row.balanceDue).toBe(0);
+    expect(row.flags).toContain("REFUNDED");
+    expect(row.flags).not.toContain("BALANCE_DUE");
+    expect(row.flags).not.toContain("NO_INVOICE");
+  });
+
+  it("carries invoiced (accrual) and collected (cash) separately and nets refunds", () => {
+    // A refunded payment reopens its invoice, so the ₹2,00,000 refunded is owed again.
+    const row = computeEventProfitability(
+      input({
+        revenue: { invoicedIssued: 1770000, issuedInvoiceCount: 2, paymentsCompleted: 800000, paymentsRefunded: 200000, balanceDue: 970000 },
         vendor: { ...noVendor, paidPayoutTotal: 100000, paidUnlinkedPayoutNet: 100000, recordCount: 1 },
       }),
     );
@@ -62,7 +91,7 @@ describe("computeEventProfitability — revenue definitions", () => {
 
   it("flags a booking with no issued invoice", () => {
     const row = computeEventProfitability(
-      input({ revenue: { invoicedIssued: 0, issuedInvoiceCount: 0, paymentsCompleted: 0, paymentsRefunded: 0 } }),
+      input({ revenue: { invoicedIssued: 0, issuedInvoiceCount: 0, paymentsCompleted: 0, paymentsRefunded: 0, balanceDue: 0 } }),
     );
     expect(row.flags).toContain("NO_INVOICE");
     expect(row.dataStatus).toBe("no-revenue");
@@ -151,7 +180,7 @@ describe("computeEventProfitability — other cost, staff, margin", () => {
   it("adds commission/owner/referral paid cost into the margin and keeps committed separate", () => {
     const row = computeEventProfitability(
       input({
-        revenue: { invoicedIssued: 1000000, issuedInvoiceCount: 1, paymentsCompleted: 1000000, paymentsRefunded: 0 },
+        revenue: { invoicedIssued: 1000000, issuedInvoiceCount: 1, paymentsCompleted: 1000000, paymentsRefunded: 0, balanceDue: 0 },
         vendor: { ...noVendor, paidPayoutTotal: 300000, paidUnlinkedPayoutNet: 300000, recordCount: 1 },
         other: { committed: 20000, paid: 75000, pending: 30000, recordCount: 2 },
       }),
@@ -170,7 +199,7 @@ describe("computeEventProfitability — other cost, staff, margin", () => {
   it("is complete when invoiced = collected and every committed cost is paid", () => {
     const row = computeEventProfitability(
       input({
-        revenue: { invoicedIssued: 1000000, issuedInvoiceCount: 1, paymentsCompleted: 1000000, paymentsRefunded: 0 },
+        revenue: { invoicedIssued: 1000000, issuedInvoiceCount: 1, paymentsCompleted: 1000000, paymentsRefunded: 0, balanceDue: 0 },
         vendor: { ...noVendor, approvedBillTotal: 400000, paidPayoutTotal: 400000, recordCount: 2 },
         other: { committed: 0, paid: 50000, pending: 0, recordCount: 1 },
       }),
@@ -184,7 +213,7 @@ describe("computeEventProfitability — other cost, staff, margin", () => {
   it("flags a negative margin", () => {
     const row = computeEventProfitability(
       input({
-        revenue: { invoicedIssued: 100000, issuedInvoiceCount: 1, paymentsCompleted: 100000, paymentsRefunded: 0 },
+        revenue: { invoicedIssued: 100000, issuedInvoiceCount: 1, paymentsCompleted: 100000, paymentsRefunded: 0, balanceDue: 0 },
         vendor: { ...noVendor, paidPayoutTotal: 150000, paidUnlinkedPayoutNet: 150000, recordCount: 1 },
       }),
     );
@@ -247,7 +276,7 @@ describe("summarizeEventProfitability", () => {
   it("totals revenue over every row but margin only over costed rows", () => {
     const costed = computeEventProfitability(
       input({
-        revenue: { invoicedIssued: 1000000, issuedInvoiceCount: 1, paymentsCompleted: 1000000, paymentsRefunded: 0 },
+        revenue: { invoicedIssued: 1000000, issuedInvoiceCount: 1, paymentsCompleted: 1000000, paymentsRefunded: 0, balanceDue: 0 },
         vendor: { ...noVendor, paidPayoutTotal: 400000, paidUnlinkedPayoutNet: 400000, recordCount: 1 },
         staff: [{ hours: 10, hourlyRate: 500 }],
       }),
@@ -255,14 +284,14 @@ describe("summarizeEventProfitability", () => {
     const uncosted = computeEventProfitability(
       input({
         booking: { ...booking, bookingId: "b2", bookingNumber: "BK-002" },
-        revenue: { invoicedIssued: 500000, issuedInvoiceCount: 1, paymentsCompleted: 500000, paymentsRefunded: 0 },
+        revenue: { invoicedIssued: 500000, issuedInvoiceCount: 1, paymentsCompleted: 500000, paymentsRefunded: 0, balanceDue: 0 },
         staff: [{ hours: 10, hourlyRate: null }],
       }),
     );
     const noRevenue = computeEventProfitability(
       input({
         booking: { ...booking, bookingId: "b3", bookingNumber: "BK-003" },
-        revenue: { invoicedIssued: 0, issuedInvoiceCount: 0, paymentsCompleted: 0, paymentsRefunded: 0 },
+        revenue: { invoicedIssued: 0, issuedInvoiceCount: 0, paymentsCompleted: 0, paymentsRefunded: 0, balanceDue: 0 },
       }),
     );
     const t = summarizeEventProfitability([costed, uncosted, noRevenue]);
@@ -284,14 +313,14 @@ describe("summarizeEventProfitability", () => {
   it("weights the average margin by collected cash, not by row", () => {
     const big = computeEventProfitability(
       input({
-        revenue: { invoicedIssued: 900000, issuedInvoiceCount: 1, paymentsCompleted: 900000, paymentsRefunded: 0 },
+        revenue: { invoicedIssued: 900000, issuedInvoiceCount: 1, paymentsCompleted: 900000, paymentsRefunded: 0, balanceDue: 0 },
         vendor: { ...noVendor, paidPayoutTotal: 450000, paidUnlinkedPayoutNet: 450000, recordCount: 1 }, // 50%
       }),
     );
     const small = computeEventProfitability(
       input({
         booking: { ...booking, bookingId: "b2" },
-        revenue: { invoicedIssued: 100000, issuedInvoiceCount: 1, paymentsCompleted: 100000, paymentsRefunded: 0 },
+        revenue: { invoicedIssued: 100000, issuedInvoiceCount: 1, paymentsCompleted: 100000, paymentsRefunded: 0, balanceDue: 0 },
         vendor: { ...noVendor, paidPayoutTotal: 0, approvedBillTotal: 10000, recordCount: 1 }, // 100% paid-basis
       }),
     );

@@ -6,6 +6,50 @@ import { reportSystemFailure } from "@/lib/ops-alert";
 import { allocateReceiptNumber } from "@/lib/finance/receipt-number";
 import { finalizeOneTapBlock } from "@/lib/sales/quote-onetap";
 import { settleSplitOnCapture } from "@/lib/payments/split-payments";
+import { notifyCustomer } from "@/lib/customer-notify";
+import { formatINR } from "@/lib/utils";
+import { alertPaymentOnCancelledBooking } from "@/lib/holds/paid-without-slot";
+
+/**
+ * Tell the customer's own app logins that a payment was received (an in-app
+ * notice through notifyCustomer). It reads the committed rows, so the amount,
+ * receipt number and balance are exactly what finance sees. Money is for the
+ * booking's own customer only, so no bookingId is passed: invited
+ * collaborators are not told. Never throws; returns how many logins were told.
+ *
+ * Called once per payment, by the path that completed it: the Razorpay capture
+ * below (only the call that flipped the payment), and in payment.actions.ts
+ * recordPayment (which creates the payment) and verifyPaymentProof (only the
+ * call that flipped the proof). A payment is completed by exactly one of them.
+ */
+export async function notifyCustomerOfPayment(paymentId: string): Promise<number> {
+  try {
+    const p = await prisma.payment.findUnique({
+      where: { id: paymentId },
+      select: {
+        amount: true,
+        status: true,
+        receiptNumber: true,
+        invoice: { select: { invoiceNumber: true, balanceDue: true, contactId: true } },
+      },
+    });
+    if (!p || p.status !== "COMPLETED") return 0;
+    const balance = Number(p.invoice.balanceDue);
+    return await notifyCustomer({
+      contactId: p.invoice.contactId,
+      type: "PAYMENT_RECEIVED",
+      title: `Payment received: ${formatINR(p.amount)}`,
+      message:
+        `We received ${formatINR(p.amount)} towards invoice ${p.invoice.invoiceNumber}` +
+        `${p.receiptNumber ? ` (receipt ${p.receiptNumber})` : ""}. ` +
+        (balance > 0 ? `Balance due on this invoice: ${formatINR(balance)}.` : "This invoice is now fully paid."),
+      actionUrl: "/app/payments",
+    });
+  } catch (err) {
+    console.error("[PAYMENT_CUSTOMER_NOTICE_ERROR]", err);
+    return 0;
+  }
+}
 
 /**
  * Allocate an invoice's cumulative paidAmount across its Installments,
@@ -164,8 +208,19 @@ export async function applyRazorpayCapture(opts: {
     });
   });
 
+  // Customer notice: the payment shows up for the customer's own app logins.
+  // Non-blocking and best-effort; the credit above has already committed.
+  void notifyCustomerOfPayment(payment.id);
+
   // BookMyShow-style: confirm the held slot once the advance is covered.
   await maybeConfirmBookingOnPayment(payment.invoiceId);
+
+  // A capture on a CANCELLED booking (typically a checkout left open past its
+  // 15-minute grace while the lapsed hold was released) is recorded above but
+  // never confirms that booking: maybeConfirmBookingOnPayment acts on HOLD
+  // bookings only, and the slot may belong to someone else by now. Tell the
+  // booking owner and admins to re-book or refund. Once per payment; never throws.
+  await alertPaymentOnCancelledBooking(payment.id);
 
   // ---- Split payments: if this order belongs to a PaymentSplit, flip it PAID
   // and notify the host + staff. Idempotent (status-guarded), best-effort — the
@@ -196,6 +251,8 @@ export async function applyRazorpayCapture(opts: {
     });
     if (link) {
       const fin = await finalizeOneTapBlock(link.id);
+      // SLOT_TAKEN has already alerted the quote's owner and admins inside
+      // finalizeOneTapBlock (once per payment, whichever caller got there first).
       if (!fin.success && fin.error !== "SLOT_TAKEN") {
         void reportSystemFailure({
           area: "One-tap booking",

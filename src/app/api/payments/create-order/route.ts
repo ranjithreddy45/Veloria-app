@@ -3,7 +3,10 @@ import Razorpay from "razorpay";
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { clientIpOfHeaders } from "@/lib/hr/geo";
 import { razorpayKeyId, razorpayKeySecret } from "@/lib/payments/razorpay-creds";
+import { HOLD_FACTS_SELECT } from "@/lib/holds/lapsed-hold";
+import { CUSTOMER_HOLD_CHECKOUT_ERROR, holdCheckoutRefusal } from "@/lib/holds/checkout-guard";
 
 // ============================================================
 // Razorpay Instance (lazy init to avoid build-time errors)
@@ -31,7 +34,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limit: 10 payment creation requests per minute per user
-    const identifier = session?.user?.id || request.headers.get("x-forwarded-for") || "anonymous";
+    const identifier = session?.user?.id || clientIpOfHeaders(request.headers) || "anonymous";
     const rateCheck = checkRateLimit(`payment-create:${identifier}`, { maxRequests: 10, windowSeconds: 60 });
     if (!rateCheck.success) {
       return rateLimitResponse(rateCheck.resetIn);
@@ -50,7 +53,16 @@ export async function POST(request: NextRequest) {
     // Verify invoice exists and amount is valid
     const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
-      select: { id: true, balanceDue: true, status: true, invoiceNumber: true, contactId: true },
+      select: {
+        id: true,
+        balanceDue: true,
+        status: true,
+        invoiceNumber: true,
+        contactId: true,
+        // The booking's status, hold window and money on ALL its invoices: the
+        // facts the one lapsed-hold rule needs (src/lib/holds/lapsed-hold.ts).
+        booking: { select: HOLD_FACTS_SELECT },
+      },
     });
 
     if (!invoice) {
@@ -82,6 +94,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, error: "Cannot create order for this invoice" },
         { status: 400 }
+      );
+    }
+
+    // The same hold rules and words as the public pay links
+    // (createPublicRazorpayOrder, createSplitRazorpayOrder;
+    // src/lib/holds/checkout-guard.ts): no checkout on a lapsed hold, and no NEW
+    // checkout once the hold's window has passed unless money that doesn't rely
+    // on a checkout's 15-minute grace is already against the booking. Every order
+    // restarts that grace, so otherwise reopening checkout would keep an expired
+    // hold's date indefinitely. Checked after the ownership guard, so nobody
+    // learns the state of someone else's hold.
+    const holdRefusal = holdCheckoutRefusal(invoice.booking, new Date());
+    if (holdRefusal) {
+      return NextResponse.json(
+        { success: false, error: CUSTOMER_HOLD_CHECKOUT_ERROR[holdRefusal] },
+        { status: 409 }
       );
     }
 

@@ -7,18 +7,15 @@ import {
   CreditCard,
   FileX,
 } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { auth } from "@/../auth";
 import { getPortalInvoices } from "@/actions/portal.actions";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { PageHeader } from "@/components/layout/page-header";
 import { INVOICE_STATUS_COLORS } from "@/lib/constants";
+import { isCollectibleInvoice } from "@/lib/finance/issued-invoices";
 import { formatINR } from "@/lib/utils";
+import { hasAmountDue, invoiceBalance } from "./_components/invoice-balance";
 
 export const metadata: Metadata = { title: "My Invoices" };
 
@@ -32,12 +29,10 @@ export default async function PortalInvoicesPage() {
 
   const invoices = await getPortalInvoices(session.user.id);
 
-  const unpaidInvoices = invoices.filter(
-    (inv) => inv.status === "SENT" || inv.status === "PARTIALLY_PAID" || inv.status === "OVERDUE"
-  );
-  const otherInvoices = invoices.filter(
-    (inv) => inv.status !== "SENT" && inv.status !== "PARTIALLY_PAID" && inv.status !== "OVERDUE"
-  );
+  // Finance's owed rule: SENT, PARTIALLY_PAID and OVERDUE invoices still need
+  // paying. Paid and refunded ones sit under "Other invoices".
+  const unpaidInvoices = invoices.filter((inv) => isCollectibleInvoice(inv.status));
+  const otherInvoices = invoices.filter((inv) => !isCollectibleInvoice(inv.status));
 
   return (
     <div className="space-y-10">
@@ -202,19 +197,11 @@ function InvoiceRow({ invoice, showPayButton }: InvoiceRowProps) {
                 <p className="text-muted-foreground/70 text-meta font-semibold uppercase tracking-[0.1em]">
                   Balance
                 </p>
-                <p
-                  className={`numeric mt-0.5 text-sm font-semibold ${
-                    invoice.balanceDue > 0
-                      ? "text-destructive"
-                      : "text-success"
-                  }`}
-                >
-                  {formatINR(invoice.balanceDue)}
-                </p>
+                <BalanceFigure invoice={invoice} />
               </div>
 
               {/* Pay Button or Arrow */}
-              {showPayButton && invoice.balanceDue > 0 ? (
+              {showPayButton && hasAmountDue(invoice) ? (
                 <span className="bg-primary text-primary-foreground hidden items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition-opacity group-hover:opacity-90 sm:inline-flex">
                   <CreditCard className="size-3.5" />
                   Pay now
@@ -245,7 +232,7 @@ function InvoiceRow({ invoice, showPayButton }: InvoiceRowProps) {
             </span>
             {isOverdue && <span className="font-semibold">Overdue</span>}
             {/* Mobile Pay Button */}
-            {showPayButton && invoice.balanceDue > 0 && (
+            {showPayButton && hasAmountDue(invoice) && (
               <span className="bg-primary text-primary-foreground inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold sm:hidden">
                 <CreditCard className="size-3" />
                 Pay now
@@ -255,5 +242,33 @@ function InvoiceRow({ invoice, showPayButton }: InvoiceRowProps) {
         </CardContent>
       </Card>
     </Link>
+  );
+}
+
+// ============================================================
+// Balance Figure (finance's owed rule, invoiceBalance)
+// ============================================================
+
+/** An owed invoice shows what is still due; a paid or refunded one shows its status, never the stored balance. */
+function BalanceFigure({ invoice }: { invoice: { status: string; balanceDue: number } }) {
+  const balance = invoiceBalance(invoice);
+  if (balance.kind === "owed") {
+    return (
+      <p
+        className={`numeric mt-0.5 text-sm font-semibold ${
+          balance.amount > 0 ? "text-destructive" : "text-success"
+        }`}
+      >
+        {formatINR(balance.amount)}
+      </p>
+    );
+  }
+  if (balance.kind === "paid") {
+    return <p className="mt-0.5 text-sm font-semibold text-success">{balance.label}</p>;
+  }
+  return (
+    <p className="text-muted-foreground mt-0.5 text-sm font-semibold">
+      {balance.kind === "refunded" ? balance.label : "—"}
+    </p>
   );
 }

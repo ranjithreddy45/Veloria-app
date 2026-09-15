@@ -4,6 +4,7 @@ import { auth } from "@/../auth";
 import { phoneForExport } from "@/lib/phone";
 import { buildLeadListWhere, type LeadListFilters } from "@/lib/crm/lead-filters";
 import { hasPermission } from "@/lib/permissions";
+import { isCollectibleInvoice } from "@/lib/finance/issued-invoices";
 import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/utils";
 import { ENQUIRY_STATUS_LABEL, type EnquiryStatus } from "@/lib/enquiry-status";
@@ -509,7 +510,8 @@ export async function exportInvoices() {
       Number(inv.cgstAmount) + Number(inv.sgstAmount) + Number(inv.igstAmount),
       Number(inv.totalAmount),
       Number(inv.paidAmount),
-      Number(inv.balanceDue),
+      // Owed rule: only sent, partly paid and overdue invoices still have a balance to collect.
+      isCollectibleInvoice(inv.status) ? Number(inv.balanceDue) : 0,
     ]);
 
     return serialize({ success: true as const, data: { headers, rows } });
